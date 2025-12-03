@@ -1,0 +1,9 @@
+{
+  "functions": "convex/",
+  "authInfo": [
+    {
+      "applicationID": "convex",
+      "domain": "$CLERK_ISSUER_DOMAIN"
+    }
+  ]
+}

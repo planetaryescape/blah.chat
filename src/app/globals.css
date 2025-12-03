@@ -1,26 +1,184 @@
-@import "tailwindcss";
+@import url("https://api.fontshare.com/v2/css?f[]=clash-display@400,600,700&display=swap");
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-clash);
+  --font-mono: var(--font-jetbrains);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.5rem;
+
+  /* Vesper Dark Colors (OKLch) */
+  --background: 16% 0.02 30; /* deep warm black */
+  --foreground: 92% 0.01 60; /* warm off-white */
+
+  --primary: 68% 0.15 75; /* warm amber */
+  --primary-foreground: 16% 0.02 30;
+
+  --secondary: 28% 0.04 40; /* warm brown-gray */
+  --secondary-foreground: 92% 0.01 60;
+
+  --accent: 62% 0.18 230; /* saturated blue */
+  --accent-foreground: 16% 0.02 30;
+
+  --muted: 22% 0.03 35; /* dark brown-gray */
+  --muted-foreground: 70% 0.02 50;
+
+  --destructive: 58% 0.22 25; /* terracotta red */
+  --destructive-foreground: 98% 0 0;
+
+  --border: 28% 0.04 40;
+  --input: 28% 0.04 40;
+  --ring: 68% 0.15 75; /* matches primary */
+
+  --card: 18% 0.02 32;
+  --card-foreground: 92% 0.01 60;
+  --popover: 18% 0.02 32;
+  --popover-foreground: 92% 0.01 60;
+
+  /* Chart colors - keep existing */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  /* Sidebar - warmer variants */
+  --sidebar: 18% 0.02 32;
+  --sidebar-foreground: 92% 0.01 60;
+  --sidebar-primary: 68% 0.15 75;
+  --sidebar-primary-foreground: 16% 0.02 30;
+  --sidebar-accent: 28% 0.04 40;
+  --sidebar-accent-foreground: 92% 0.01 60;
+  --sidebar-border: 28% 0.04 40;
+  --sidebar-ring: 68% 0.15 75;
+
+  /* Spacing Scale */
+  --space-xs: 0.25rem; /* 4px */
+  --space-sm: 0.5rem; /* 8px */
+  --space-md: 1rem; /* 16px */
+  --space-lg: 1.5rem; /* 24px */
+  --space-xl: 2rem; /* 32px */
+  --space-2xl: 3rem; /* 48px */
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Shadows - warm-tinted */
+  --shadow-sm: 0 1px 2px 0 oklch(0% 0 0 / 0.15);
+  --shadow-md: 0 4px 6px -1px oklch(0% 0 0 / 0.2);
+  --shadow-lg: 0 10px 15px -3px oklch(0% 0 0 / 0.25);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark {
+  /* Same as :root since dark is primary theme */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom Animations */
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.message-enter {
+  animation: message-enter 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+.slide-in-left {
+  animation: slide-in-left 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Background Texture */
+.chat-area-noise {
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"),
+    oklch(var(--background));
 }

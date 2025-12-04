@@ -1,127 +1,184 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAction, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 interface VoiceInputProps {
-  onTranscript: (text: string) => void;
+  onTranscript: (text: string, autoSend: boolean) => void;
+  onRecordingStateChange?: (recording: boolean, stream?: MediaStream) => void;
   isDisabled?: boolean;
 }
 
-export function VoiceInput({ onTranscript, isDisabled }: VoiceInputProps) {
-  const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-  const recognitionRef = useRef<any>(null);
-
-  useEffect(() => {
-    // Check for browser support
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (SpeechRecognition) {
-      setIsSupported(true);
-
-      // Initialize recognition
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.onresult = (event: any) => {
-        let interimTranscript = "";
-        let finalTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + " ";
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        // Send final transcript to parent
-        if (finalTranscript) {
-          onTranscript(finalTranscript.trim());
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListening(false);
-
-        if (event.error === "no-speech") {
-          toast.error("No speech detected. Please try again.");
-        } else if (event.error === "not-allowed") {
-          toast.error("Microphone access denied. Please enable in browser settings.");
-        } else {
-          toast.error(`Speech recognition error: ${event.error}`);
-        }
-      };
-
-      recognitionRef.current = recognition;
-    } else {
-      setIsSupported(false);
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, [onTranscript]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) return;
-
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      try {
-        recognitionRef.current.start();
-        toast.success("Listening... Speak now");
-      } catch (error) {
-        console.error("Failed to start recognition:", error);
-        toast.error("Failed to start voice input");
-      }
-    }
-  };
-
-  if (!isSupported) {
-    return null; // Don't show button if not supported
-  }
-
-  return (
-    <Button
-      type="button"
-      variant={isListening ? "default" : "ghost"}
-      size="sm"
-      onClick={toggleListening}
-      disabled={isDisabled}
-      className={isListening ? "animate-pulse" : ""}
-      title={isListening ? "Stop listening" : "Start voice input"}
-    >
-      {isListening ? (
-        <>
-          <MicOff className="w-4 h-4" />
-          <span className="sr-only">Stop listening</span>
-        </>
-      ) : (
-        <>
-          <Mic className="w-4 h-4" />
-          <span className="sr-only">Start voice input</span>
-        </>
-      )}
-    </Button>
-  );
+export interface VoiceInputRef {
+  stopRecording: (mode: "preview" | "send") => void;
 }
+
+export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
+  ({ onTranscript, onRecordingStateChange, isDisabled }, ref) => {
+    const [isRecording, setIsRecording] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [stopMode, setStopMode] = useState<"preview" | "send" | null>(null);
+
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const streamRef = useRef<MediaStream | null>(null);
+
+    const user = useQuery(api.users.getCurrentUser);
+    const transcribeAudio = useAction(api.transcription.transcribeAudio);
+
+    const sttEnabled = user?.preferences?.sttEnabled ?? true;
+    const sttProvider = user?.preferences?.sttProvider ?? "openai";
+
+    const startRecording = useCallback(async () => {
+      if (!sttEnabled) {
+        toast.error("Voice input disabled in settings");
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        streamRef.current = stream;
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType: "audio/webm;codecs=opus",
+        });
+
+        audioChunksRef.current = [];
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          setIsProcessing(true);
+          onRecordingStateChange?.(false);
+
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+
+          // Convert to base64
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = (reader.result as string).split(",")[1];
+
+            try {
+              const transcript = await transcribeAudio({
+                audioBase64: base64,
+                mimeType: "audio/webm",
+              });
+
+              const autoSend = stopMode === "send";
+              onTranscript(transcript, autoSend);
+              toast.success("Transcription complete");
+            } catch (error) {
+              console.error("Transcription failed:", error);
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : "STT not working right now",
+              );
+              onTranscript("", false);
+            } finally {
+              setIsProcessing(false);
+              setStopMode(null);
+            }
+          };
+          reader.readAsDataURL(audioBlob);
+        };
+
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+        setIsRecording(true);
+        onRecordingStateChange?.(true, stream);
+        toast.success(`Recording... (${sttProvider})`);
+      } catch (error) {
+        console.error("MediaRecorder failed:", error);
+        toast.error("Microphone access denied");
+      }
+    }, [
+      sttEnabled,
+      sttProvider,
+      transcribeAudio,
+      onTranscript,
+      onRecordingStateChange,
+      stopMode,
+    ]);
+
+    const stopRecording = useCallback(
+      (mode: "preview" | "send") => {
+        if (!isRecording || !mediaRecorderRef.current) return;
+
+        setStopMode(mode);
+        mediaRecorderRef.current.stop();
+
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+
+        setIsRecording(false);
+      },
+      [isRecording],
+    );
+
+    const toggleRecording = useCallback(() => {
+      if (isRecording) {
+        stopRecording("preview");
+      } else {
+        startRecording();
+      }
+    }, [isRecording, startRecording, stopRecording]);
+
+    // Expose stopRecording to parent via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        stopRecording,
+      }),
+      [stopRecording],
+    );
+
+    if (!sttEnabled) {
+      return null; // Hide button if STT disabled
+    }
+
+    return (
+      <Button
+        type="button"
+        variant={isRecording ? "default" : "ghost"}
+        size="sm"
+        onClick={toggleRecording}
+        disabled={isDisabled || isProcessing || !user}
+        className={isRecording ? "animate-pulse" : ""}
+        title={
+          isRecording ? "Stop recording" : `Start voice input (${sttProvider})`
+        }
+      >
+        {isProcessing ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : isRecording ? (
+          <MicOff className="w-4 h-4" />
+        ) : (
+          <Mic className="w-4 h-4" />
+        )}
+      </Button>
+    );
+  },
+);
+
+VoiceInput.displayName = "VoiceInput";

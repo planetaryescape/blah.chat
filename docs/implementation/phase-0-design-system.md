@@ -450,3 +450,26 @@ Get approval on visual direction before building functionality.
 - Lucide: https://lucide.dev (already used by shadcn)
 - Phosphor: https://phosphoricons.com
 - Tabler: https://tabler.io/icons
+
+---
+
+## Component Strategy
+
+### AI Elements Evaluation
+
+Vercel AI Elements incompatible with resilient generation.
+
+**Why manual:**
+- AI Elements: `useChat()` hook → client-side state
+- blah.chat: Convex actions → DB persistence
+- Requirement: refresh mid-generation must work
+
+**Selective inspiration:**
+- Actions → toolbar patterns
+- Shimmer → loading states
+- PromptInput → suggestions, file uploads
+
+**Build manually:**
+- ChatMessage → status tracking (pending/generating/complete/error)
+- MessageList → auto-scroll + reactive queries
+- ChatInput → Convex mutations

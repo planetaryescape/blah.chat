@@ -1682,6 +1682,28 @@ Architecture Approach:
 This is non-negotiable. I will absolutely refresh pages or close tabs mid-generation, and I cannot lose responses.
 </resilient_generation>
 
+<ai_component_library_decision>
+### AI Component Library Decision
+
+**Evaluated**: Vercel AI Elements
+**Decision**: Design inspiration only
+
+**Rationale**:
+- AI Elements: client-side streaming (useChat + API routes)
+- Resilient generation: server-side actions + DB persistence
+- Client state lost on refresh (fails core requirement)
+
+**Trade-offs**:
+- Manual: 52-72 lines/component, custom maintenance
+- AI Elements: pre-built but incompatible with Convex
+- Decision: manual necessary for refresh resilience
+
+**Reference for**:
+- Toolbar UX patterns
+- Loading animations
+- Input features
+</ai_component_library_decision>
+
 <memory_system_flow>
 
 1. User sends message

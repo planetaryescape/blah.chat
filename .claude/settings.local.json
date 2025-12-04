@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": ["mcp__Exa__get_code_context_exa"],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -5,7 +5,10 @@ import { api } from "@/convex/_generated/api";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
+import { ModelSelector } from "@/components/chat/ModelSelector";
+import { ThinkingEffortSelector, type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
+import { Separator } from "@/components/ui/separator";
+import { getModelConfig } from "@/lib/ai/models";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
 
@@ -26,6 +29,32 @@ export default function ChatPage({
     api.messages.list,
     conversationId ? { conversationId } : "skip"
   );
+  const user = useQuery(api.users.getCurrentUser);
+
+  const [selectedModel, setSelectedModel] = useState<string>(
+    conversation?.model || user?.preferences.defaultModel || "openai:gpt-5-mini"
+  );
+  const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>("medium");
+
+  // Sync with conversation model on load
+  useEffect(() => {
+    if (conversation?.model) {
+      setSelectedModel(conversation.model);
+    }
+  }, [conversation?.model]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
+        e.preventDefault();
+        document.querySelector('[data-model-selector]')?.dispatchEvent(new Event('click', { bubbles: true }));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, []);
 
   // Redirect if conversation not found
   useEffect(() => {
@@ -50,16 +79,35 @@ export default function ChatPage({
       ["pending", "generating"].includes(m.status || ""),
   );
 
+  const modelConfig = getModelConfig(selectedModel);
+  const showThinkingEffort = modelConfig?.supportsThinkingEffort;
+
   return (
     <div className="flex flex-col h-screen">
-      <header className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <h1 className="text-lg font-semibold">{conversation.title}</h1>
-        <ThemeSwitcher />
+      <header className="flex items-center gap-4 px-4 py-3 border-b">
+        <h1 className="text-lg font-semibold truncate flex-1">
+          {conversation.title || "New Chat"}
+        </h1>
+
+        <div className="flex items-center gap-2">
+          <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+
+          {showThinkingEffort && (
+            <>
+              <Separator orientation="vertical" className="h-8" />
+              <ThinkingEffortSelector value={thinkingEffort} onChange={setThinkingEffort} />
+            </>
+          )}
+        </div>
       </header>
+
       <MessageList messages={messages} />
+
       <ChatInput
         conversationId={conversationId}
         isGenerating={isGenerating}
+        selectedModel={selectedModel}
+        thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
       />
     </div>
   );

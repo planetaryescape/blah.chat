@@ -8,14 +8,19 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { DEFAULT_MODEL } from "@/lib/ai/registry";
-
 interface ChatInputProps {
   conversationId: Id<"conversations">;
   isGenerating: boolean;
+  selectedModel: string;
+  thinkingEffort?: "low" | "medium" | "high";
 }
 
-export function ChatInput({ conversationId, isGenerating }: ChatInputProps) {
+export function ChatInput({
+  conversationId,
+  isGenerating,
+  selectedModel,
+  thinkingEffort
+}: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -32,7 +37,8 @@ export function ChatInput({ conversationId, isGenerating }: ChatInputProps) {
       await sendMessage({
         conversationId,
         content: input.trim(),
-        modelId: DEFAULT_MODEL,
+        modelId: selectedModel,
+        thinkingEffort,
       });
       setInput("");
     } finally {

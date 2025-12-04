@@ -27,7 +27,14 @@ export const createUser = mutation({
         theme: "dark",
         defaultModel: "gpt-4o",
         sendOnEnter: true,
+        enableHybridSearch: false,
+        autoMemoryExtractEnabled: true,
+        autoMemoryExtractInterval: 5,
+        budgetHardLimitEnabled: true,
       },
+      dailyMessageLimit: 50,
+      dailyMessageCount: 0,
+      lastMessageDate: new Date().toISOString().split("T")[0],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -109,6 +116,11 @@ export const updatePreferences = mutation({
       sendOnEnter: v.optional(v.boolean()),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
+      enableHybridSearch: v.optional(v.boolean()),
+      autoMemoryExtractEnabled: v.optional(v.boolean()),
+      autoMemoryExtractInterval: v.optional(v.number()),
+      budgetHardLimitEnabled: v.optional(v.boolean()),
+      alwaysShowMessageActions: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {
@@ -127,6 +139,104 @@ export const updatePreferences = mutation({
         ...user.preferences,
         ...args.preferences,
       },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateCustomInstructions = mutation({
+  args: {
+    aboutUser: v.string(),
+    responseStyle: v.string(),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // Validate length (3000 chars max each)
+    if (args.aboutUser.length > 3000 || args.responseStyle.length > 3000) {
+      throw new Error("Max 3000 characters per field");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      preferences: {
+        ...user.preferences,
+        customInstructions: {
+          aboutUser: args.aboutUser,
+          responseStyle: args.responseStyle,
+          enabled: args.enabled,
+        },
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateBudgetSettings = mutation({
+  args: {
+    monthlyBudget: v.optional(v.number()),
+    budgetAlertThreshold: v.optional(v.number()),
+    budgetHardLimitEnabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    const updates: any = { updatedAt: Date.now() };
+
+    if (args.monthlyBudget !== undefined) {
+      updates.monthlyBudget = args.monthlyBudget;
+    }
+    if (args.budgetAlertThreshold !== undefined) {
+      updates.budgetAlertThreshold = args.budgetAlertThreshold;
+    }
+    if (args.budgetHardLimitEnabled !== undefined) {
+      updates.preferences = {
+        ...user.preferences,
+        budgetHardLimitEnabled: args.budgetHardLimitEnabled,
+      };
+    }
+
+    await ctx.db.patch(user._id, updates);
+  },
+});
+
+export const updateDailyMessageLimit = mutation({
+  args: {
+    dailyMessageLimit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    if (args.dailyMessageLimit < 1 || args.dailyMessageLimit > 1000) {
+      throw new Error("Daily message limit must be between 1 and 1000");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      dailyMessageLimit: args.dailyMessageLimit,
       updatedAt: Date.now(),
     });
   },

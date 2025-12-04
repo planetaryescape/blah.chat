@@ -1,5 +1,9 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "../_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "../_generated/server";
 import { internal } from "../_generated/api";
 import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -31,7 +35,11 @@ export const generateEmbedding = internalAction({
         embedding,
       });
     } catch (error) {
-      console.error("Failed to generate embedding for message:", args.messageId, error);
+      console.error(
+        "Failed to generate embedding for message:",
+        args.messageId,
+        error,
+      );
       // Don't throw - embedding generation is non-critical
     }
   },
@@ -45,14 +53,20 @@ export const generateBatchEmbeddings = internalAction({
     cursor: v.optional(v.string()),
     batchSize: v.optional(v.number()),
   },
-  handler: async (ctx, args): Promise<{ done: boolean; processed: number; total?: number }> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ done: boolean; processed: number; total?: number }> => {
     const batchSize = args.batchSize || 50;
 
     // Get messages without embeddings
-    const result: any = await ctx.runQuery(internal.messages.embeddings.getMessagesWithoutEmbeddings, {
-      cursor: args.cursor,
-      limit: batchSize,
-    });
+    const result: any = await ctx.runQuery(
+      internal.messages.embeddings.getMessagesWithoutEmbeddings,
+      {
+        cursor: args.cursor,
+        limit: batchSize,
+      },
+    );
 
     if (result.messages.length === 0) {
       return { done: true, processed: 0 };
@@ -60,16 +74,20 @@ export const generateBatchEmbeddings = internalAction({
 
     // Filter out empty messages
     const validMessages = result.messages.filter(
-      (m: any) => m.content && m.content.trim().length > 0
+      (m: any) => m.content && m.content.trim().length > 0,
     );
 
     if (validMessages.length === 0) {
       // All messages were empty, schedule next batch
       if (result.continueCursor) {
-        await ctx.scheduler.runAfter(1000, internal.messages.embeddings.generateBatchEmbeddings, {
-          cursor: result.continueCursor,
-          batchSize,
-        });
+        await ctx.scheduler.runAfter(
+          1000,
+          internal.messages.embeddings.generateBatchEmbeddings,
+          {
+            cursor: result.continueCursor,
+            batchSize,
+          },
+        );
       }
       return { done: !result.continueCursor, processed: 0 };
     }
@@ -89,10 +107,14 @@ export const generateBatchEmbeddings = internalAction({
 
     // Schedule next batch if there are more messages
     if (result.continueCursor) {
-      await ctx.scheduler.runAfter(1000, internal.messages.embeddings.generateBatchEmbeddings, {
-        cursor: result.continueCursor,
-        batchSize,
-      });
+      await ctx.scheduler.runAfter(
+        1000,
+        internal.messages.embeddings.generateBatchEmbeddings,
+        {
+          cursor: result.continueCursor,
+          batchSize,
+        },
+      );
     }
 
     return {

@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
+import {
+  mutation,
+  query,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { getCurrentUserOrCreate, getCurrentUser } from "./lib/userSync";
 
 export const create = mutation({
@@ -64,7 +69,7 @@ export const list = query({
           .then((msgs) => msgs.length);
 
         return { ...conv, messageCount };
-      })
+      }),
     );
 
     // Sort: pinned first, then by lastMessageAt
@@ -162,7 +167,9 @@ export const deleteConversation = mutation({
     // Delete messages first
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .collect();
 
     for (const msg of messages) {
@@ -243,12 +250,12 @@ export const cleanupEmptyConversations = mutation({
           .collect()
           .then((msgs) => msgs.length);
         return { ...conv, messageCount };
-      })
+      }),
     );
 
     // Sort by lastMessageAt (most recent first)
     const sorted = conversationsWithCounts.sort(
-      (a, b) => b.lastMessageAt - a.lastMessageAt
+      (a, b) => b.lastMessageAt - a.lastMessageAt,
     );
 
     // Find empty conversations (excluding the most recent one)

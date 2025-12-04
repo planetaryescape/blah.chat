@@ -19,10 +19,31 @@ export const sendMessage = mutation({
   ): Promise<{ conversationId: Id<"conversations">; messageId: Id<"messages"> }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
+    // PRE-FLIGHT CHECKS
+
+    // 1. Check daily message limit
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    if (user.lastMessageDate !== today) {
+      // Reset counter for new day
+      await ctx.db.patch(user._id, {
+        dailyMessageCount: 0,
+        lastMessageDate: today,
+      });
+      user.dailyMessageCount = 0;
+    }
+
+    const dailyLimit = user.dailyMessageLimit || 50;
+    if ((user.dailyMessageCount || 0) >= dailyLimit) {
+      throw new Error("Daily message limit reached. Come back tomorrow!");
+    }
+
+    // 2. Check budget (if enabled)
+    // TODO: Re-enable budget check after convex schema migration
+
     // Use provided model or user's default
     const modelId = args.modelId || user.preferences.defaultModel;
 
-    // 1. Get or create conversation
+    // 3. Get or create conversation
     let conversationId = args.conversationId;
     if (!conversationId) {
       conversationId = await ctx.runMutation(internal.conversations.createInternal, {
@@ -32,36 +53,63 @@ export const sendMessage = mutation({
       });
     }
 
-    // 2. Insert user message
+    // 4. Insert user message
     await ctx.runMutation(internal.messages.create, {
       conversationId,
+      userId: user._id,
       role: "user",
       content: args.content,
       status: "complete",
     });
 
-    // 3. Insert pending assistant message
+    // 5. Insert pending assistant message
     const assistantMessageId = await ctx.runMutation(internal.messages.create, {
       conversationId,
+      userId: user._id,
       role: "assistant",
       status: "pending",
       model: modelId,
     });
 
-    // 4. Schedule generation action (non-blocking)
+    // 6. Schedule generation action (non-blocking)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId,
       assistantMessageId,
       modelId,
+      userId: user._id,
       thinkingEffort: args.thinkingEffort,
     });
 
-    // 5. Update conversation timestamp
+    // 7. Increment daily message count
+    await ctx.db.patch(user._id, {
+      dailyMessageCount: (user.dailyMessageCount || 0) + 1,
+    });
+
+    // 8. Update conversation timestamp
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
       conversationId,
     });
 
-    // 6. Return immediately
+    // 9. Check if memory extraction should trigger (auto-extraction)
+    if (conversationId && user.preferences?.autoMemoryExtractEnabled !== false) {
+      const interval = user.preferences?.autoMemoryExtractInterval || 5;
+
+      // Count messages in this conversation
+      const messageCount = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+        .collect()
+        .then((msgs) => msgs.length);
+
+      // Trigger extraction if we've hit the interval
+      if (messageCount > 0 && messageCount % interval === 0) {
+        await ctx.scheduler.runAfter(0, internal.memories.extract.extractMemories, {
+          conversationId,
+        });
+      }
+    }
+
+    // 10. Return immediately
     return { conversationId, messageId: assistantMessageId };
   },
 });
@@ -97,6 +145,7 @@ export const regenerate = mutation({
     // Create new pending assistant message
     const newMessageId: Id<"messages"> = await ctx.runMutation(internal.messages.create, {
       conversationId: message.conversationId,
+      userId: conversation.userId,
       role: "assistant",
       status: "pending",
       model: modelId,
@@ -107,6 +156,7 @@ export const regenerate = mutation({
       conversationId: message.conversationId,
       assistantMessageId: newMessageId,
       modelId,
+      userId: conversation.userId,
     });
 
     // Update conversation timestamp
@@ -199,6 +249,7 @@ export const branchFromMessage = mutation({
     for (const message of messagesToCopy) {
       await ctx.runMutation(internal.messages.create, {
         conversationId: newConversationId,
+        userId: user._id,
         role: message.role,
         content: message.content,
         status: "complete", // All copied messages are complete

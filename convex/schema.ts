@@ -24,16 +24,18 @@ export default defineSchema({
     userId: v.id("users"),
     title: v.string(),
     model: v.string(),
-    isPinned: v.boolean(),
+    pinned: v.boolean(),
+    archived: v.boolean(),
+    starred: v.boolean(),
     lastMessageAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_pinned", ["userId", "isPinned"])
+    .index("by_user_pinned", ["userId", "pinned"])
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["userId"],
+      filterFields: ["userId", "archived"],
     }),
 
   messages: defineTable({

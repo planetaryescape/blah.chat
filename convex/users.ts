@@ -100,3 +100,34 @@ export const getCurrentUser = query({
     return user;
   },
 });
+
+export const updatePreferences = mutation({
+  args: {
+    preferences: v.object({
+      theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
+      defaultModel: v.optional(v.string()),
+      sendOnEnter: v.optional(v.boolean()),
+      codeTheme: v.optional(v.string()),
+      fontSize: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      preferences: {
+        ...user.preferences,
+        ...args.preferences,
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});

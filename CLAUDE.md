@@ -157,6 +157,26 @@ Draw inspiration: code editor themes (Rosé Pine, Tokyo Night, Vesper), unique w
 
 ---
 
+## AI Components Strategy
+
+**Vercel AI Elements**: Design inspiration only
+
+Evaluated for integration but incompatible with resilient generation:
+- AI Elements: client-side streaming (loses data on refresh)
+- blah.chat: server-side Convex actions (persists to DB)
+
+Reference for:
+- Action toolbar patterns
+- Loading animations
+- Input UX (suggestions, attachments)
+
+Do NOT use for:
+- Core message rendering
+- Streaming logic
+- State management
+
+---
+
 ## Phased Implementation
 
 See `docs/implementation/README.md` for full plan.

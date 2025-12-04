@@ -54,6 +54,15 @@ Set up Clerk authentication + Convex database. User sync via webhook.
 
 Core chat with **server-side generation** that survives disconnection. Test: send message → close tab → response completes.
 
+**Architecture**: Manual components required
+- Vercel AI Elements evaluated but uses client-side streaming
+- Cannot survive page refresh (fails acceptance criteria)
+- Convex action-based approach provides:
+  - Server-side streaming + DB persistence
+  - Real-time reactive updates
+  - Multi-tab sync
+  - 10min max duration vs 2min timeout
+
 **Deliverables**: LLM generation via Convex actions, progressive updates, cost tracking
 
 **Test**: Refresh mid-generation ✓

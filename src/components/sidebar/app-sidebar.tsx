@@ -1,28 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { ConversationList } from "./ConversationList";
+import { Logo } from "@/components/brand/Logo";
+import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Settings } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { api } from "@/convex/_generated/api";
+import { UserButton } from "@clerk/nextjs";
+import { useMutation, useQuery } from "convex/react";
+import { Plus, Search, Settings } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ConversationList } from "./ConversationList";
 
 export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,43 +60,56 @@ export function AppSidebar() {
   }, []);
 
   const filteredConversations = conversations?.filter((conv: any) =>
-    conv.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b">
-        <div className="flex items-center justify-between px-3 py-2">
-          <h1 className="text-lg font-serif font-semibold">blah.chat</h1>
-          <UserButton afterSignOutUrl="/sign-in" />
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="pt-6 px-4">
+        <div className="flex items-center justify-between px-2">
+          <div className="hidden group-data-[collapsible=icon]:hidden sm:block">
+            <Logo size="md" />
+          </div>
+          <div className="group-data-[collapsible=icon]:block hidden">
+            <Logo size="sm" />
+          </div>
+          <div className="sm:hidden">
+            <Logo size="sm" />
+          </div>
         </div>
 
-        <div className="px-3 pb-3">
-          <Button onClick={handleNewChat} className="w-full" size="sm">
+        <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
+          <Button
+            onClick={handleNewChat}
+            className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+            size="sm"
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Chat
+          </Button>
+        </div>
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center mt-2">
+          <Button
+            onClick={handleNewChat}
+            className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 p-0"
+            size="icon"
+          >
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        <div className="sticky top-0 bg-sidebar z-10 border-b border-border pb-3">
-          <SidebarGroup>
-            <SidebarGroupLabel>Search</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="px-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-9 text-sm"
-                  />
-                </div>
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2 group-data-[collapsible=icon]:hidden">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-9 text-sm bg-background/50 border-sidebar-border focus:border-primary/50 transition-colors"
+            />
+          </div>
         </div>
 
         <SidebarGroup>
@@ -106,10 +120,10 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t">
+      <SidebarFooter className="pb-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild tooltip="Settings">
               <Link href="/settings">
                 <Settings className="w-4 h-4" />
                 <span>Settings</span>
@@ -117,8 +131,14 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="px-3 pb-2">
-          <ThemeSwitcher />
+        <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center justify-between">
+            <UserButton afterSignOutUrl="/sign-in" />
+            <ThemeSwitcher />
+          </div>
+        </div>
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
+          <UserButton afterSignOutUrl="/sign-in" />
         </div>
       </SidebarFooter>
     </Sidebar>

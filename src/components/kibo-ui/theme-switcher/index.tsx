@@ -27,7 +27,7 @@ export const ThemeSwitcher = ({ className }: ThemeSwitcherProps) => {
     <div
       className={cn(
         "relative isolate flex h-8 rounded-full bg-background p-1 ring-1 ring-border",
-        className
+        className,
       )}
     >
       {themes.map(({ key, icon: Icon, label }) => {
@@ -50,7 +50,7 @@ export const ThemeSwitcher = ({ className }: ThemeSwitcherProps) => {
             <Icon
               className={cn(
                 "relative z-10 m-auto h-4 w-4",
-                isActive ? "text-foreground" : "text-muted-foreground"
+                isActive ? "text-foreground" : "text-muted-foreground",
               )}
             />
           </button>

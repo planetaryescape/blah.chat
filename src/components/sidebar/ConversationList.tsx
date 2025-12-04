@@ -1,7 +1,11 @@
 import { ConversationItem } from "./ConversationItem";
 import type { Doc } from "@/convex/_generated/dataModel";
 
-export function ConversationList({ conversations }: { conversations: Doc<"conversations">[] }) {
+export function ConversationList({
+  conversations,
+}: {
+  conversations: Doc<"conversations">[];
+}) {
   if (conversations.length === 0) {
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
@@ -13,10 +17,7 @@ export function ConversationList({ conversations }: { conversations: Doc<"conver
   return (
     <div className="py-2">
       {conversations.map((conversation) => (
-        <ConversationItem
-          key={conversation._id}
-          conversation={conversation}
-        />
+        <ConversationItem key={conversation._id} conversation={conversation} />
       ))}
     </div>
   );

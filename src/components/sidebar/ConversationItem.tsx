@@ -1,10 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,12 +8,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Trash2, Edit, Archive, Pin, Star } from "lucide-react";
+import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { RenameDialog } from "./RenameDialog";
+import { useMutation } from "convex/react";
+import { Archive, Edit, MoreVertical, Pin, Star, Trash2 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
+import { RenameDialog } from "./RenameDialog";
 
-export function ConversationItem({ conversation }: { conversation: Doc<"conversations"> }) {
+export function ConversationItem({
+  conversation,
+}: {
+  conversation: Doc<"conversations">;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [showRename, setShowRename] = useState(false);
@@ -46,8 +50,11 @@ export function ConversationItem({ conversation }: { conversation: Doc<"conversa
     <>
       <div
         className={cn(
-          "group flex items-center gap-2 px-2 mx-2 py-2 rounded cursor-pointer hover:bg-accent transition-colors",
-          isActive && "bg-accent"
+          "group flex items-center gap-2 px-2 mx-2 mb-0.5 py-2 sm:py-1 rounded-md cursor-pointer transition-all duration-200",
+          "hover:bg-sidebar-accent/50 hover:shadow-none",
+          isActive
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm ring-1 ring-sidebar-border/50"
+            : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
         )}
         onClick={handleClick}
       >
@@ -87,7 +94,9 @@ export function ConversationItem({ conversation }: { conversation: Doc<"conversa
                 {conversation.starred ? "Unstar" : "Star"}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => archiveConversation({ conversationId: conversation._id })}
+                onClick={() =>
+                  archiveConversation({ conversationId: conversation._id })
+                }
               >
                 <Archive className="w-4 h-4 mr-2" />
                 Archive

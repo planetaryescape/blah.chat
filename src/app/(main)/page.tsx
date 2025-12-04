@@ -45,7 +45,9 @@ export default function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, isLoading, conversations, createConversation, router]);
+    // Only run when auth state changes, not when conversations update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isLoading]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

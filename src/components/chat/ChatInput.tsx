@@ -1,36 +1,73 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2 } from "lucide-react";
-import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
+import { useMutation } from "convex/react";
+import { Loader2, Send, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AttachmentPreview } from "./AttachmentPreview";
+import { AudioWaveform } from "./AudioWaveform";
+import { FileUpload } from "./FileUpload";
+import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
+
+interface Attachment {
+  type: "file" | "image" | "audio";
+  name: string;
+  storageId: string;
+  mimeType: string;
+  size: number;
+}
+
+import { ModelSelector } from "./ModelSelector";
+
 interface ChatInputProps {
   conversationId: Id<"conversations">;
   isGenerating: boolean;
   selectedModel: string;
+  onModelChange: (modelId: string) => void;
   thinkingEffort?: "low" | "medium" | "high";
+  attachments: Attachment[];
+  onAttachmentsChange: (attachments: Attachment[]) => void;
 }
 
 export function ChatInput({
   conversationId,
   isGenerating,
   selectedModel,
-  thinkingEffort
+  onModelChange,
+  thinkingEffort,
+  attachments,
+  onAttachmentsChange,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
+    null,
+  );
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const voiceInputRef = useRef<VoiceInputRef>(null);
+
   const sendMessage = useMutation(api.chat.sendMessage);
 
   const isExpanded = input.length > 50;
 
+  // Check model capabilities
+  const modelConfig = getModelConfig(selectedModel);
+  const supportsVision = modelConfig?.capabilities?.includes("vision") ?? false;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isGenerating || isSending) return;
+    if (!input.trim() || isGenerating || isSending || uploading) return;
 
     setIsSending(true);
     try {
@@ -39,8 +76,10 @@ export function ChatInput({
         content: input.trim(),
         modelId: selectedModel,
         thinkingEffort,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       setInput("");
+      onAttachmentsChange([]);
     } finally {
       setIsSending(false);
     }
@@ -68,43 +107,167 @@ export function ChatInput({
   }, []);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn(
-        "border-t border-border p-4 bg-background transition-all duration-200",
-        isExpanded && "shadow-lg"
-      )}
-    >
-      <div className="flex gap-2 items-end">
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Message blah.chat..."
-          className="resize-none min-h-[60px] transition-all duration-200 focus-within:border-ring"
-          rows={1}
-          disabled={isGenerating || isSending}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          className={cn(
-            "rounded-full transition-all duration-200",
-            (!input.trim() || isGenerating || isSending) && "opacity-50"
+    <div className="w-full max-w-4xl mx-auto px-4 pb-6">
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className={cn(
+          "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
+          "bg-surface-glass backdrop-blur-xl border border-white/10",
+          "rounded-[2rem]",
+          isFocused
+            ? "shadow-glow ring-1 ring-primary/30"
+            : "shadow-lg hover:shadow-xl hover:border-white/20",
+        )}
+      >
+        {/* Attachment previews */}
+        {attachments.length > 0 && (
+          <div className="px-4 pt-2">
+            <AttachmentPreview
+              attachments={attachments}
+              onRemove={(idx) =>
+                onAttachmentsChange(attachments.filter((_, i) => i !== idx))
+              }
+            />
+          </div>
+        )}
+
+        <div className="flex gap-2 items-end pl-2 pr-2">
+          {/* Action buttons (left side) */}
+          {supportsVision && (
+            <div className="flex gap-1 items-center pb-2">
+              <FileUpload
+                conversationId={conversationId}
+                attachments={attachments}
+                onAttachmentsChange={onAttachmentsChange}
+                uploading={uploading}
+                setUploading={setUploading}
+              />
+            </div>
           )}
-          disabled={!input.trim() || isGenerating || isSending}
-        >
-          {isSending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+
+          {/* Textarea or Waveform */}
+          {isRecording ? (
+            <div className="relative w-full min-h-[60px] flex items-center justify-center rounded-xl bg-primary/5 my-1">
+              <AudioWaveform
+                stream={recordingStream!}
+                height={40}
+                className="absolute inset-0"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => voiceInputRef.current?.stopRecording("preview")}
+                className="relative z-10 h-10 w-10 rounded-full bg-destructive/20 hover:bg-destructive/30"
+              >
+                <Square className="h-4 w-4 fill-destructive text-destructive" />
+              </Button>
+              {isTranscribing && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20 rounded-xl">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
           ) : (
-            <Send className="w-4 h-4" />
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder="Message blah.chat..."
+              className="resize-none min-h-[50px] py-3 px-2 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
+              rows={1}
+              disabled={isGenerating || isSending || uploading}
+            />
           )}
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground mt-2">
-        Enter to send, Shift+Enter for new line
-      </p>
-    </form>
+
+          {/* Send button & Mic (right side) */}
+          <div className="pb-1.5 pr-1 flex items-center gap-1">
+            {(supportsVision ||
+              (typeof window !== "undefined" &&
+                "webkitSpeechRecognition" in window)) && (
+              <VoiceInput
+                ref={voiceInputRef}
+                onTranscript={async (text, autoSend) => {
+                  setIsTranscribing(false);
+                  if (autoSend && text.trim()) {
+                    setIsSending(true);
+                    try {
+                      await sendMessage({
+                        conversationId,
+                        content: text.trim(),
+                        modelId: selectedModel,
+                        thinkingEffort,
+                        attachments:
+                          attachments.length > 0 ? attachments : undefined,
+                      });
+                      onAttachmentsChange([]);
+                    } finally {
+                      setIsSending(false);
+                    }
+                  } else {
+                    setInput((prev) =>
+                      prev.trim() ? `${prev} ${text}` : text,
+                    );
+                  }
+                }}
+                onRecordingStateChange={(recording, stream) => {
+                  setIsRecording(recording);
+                  setRecordingStream(stream || null);
+                  if (!recording && stream) setIsTranscribing(true);
+                }}
+                isDisabled={isGenerating || isSending || uploading}
+              />
+            )}
+            <Button
+              type={isRecording ? "button" : "submit"}
+              size="icon"
+              onClick={
+                isRecording
+                  ? () => voiceInputRef.current?.stopRecording("send")
+                  : undefined
+              }
+              className={cn(
+                "h-10 w-10 rounded-full transition-all duration-300 shadow-lg hover:shadow-primary/25",
+                (!input.trim() && !isRecording) ||
+                  isGenerating ||
+                  isSending ||
+                  uploading
+                  ? "bg-muted text-muted-foreground opacity-50"
+                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95",
+              )}
+              disabled={
+                (!input.trim() && !isRecording) ||
+                isGenerating ||
+                isSending ||
+                uploading
+              }
+            >
+              {isSending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5 ml-0.5" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="px-4 pb-2 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <ModelSelector
+              value={selectedModel}
+              onChange={onModelChange}
+              className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
+            />
+          </div>
+          <span className="text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase">
+            Shift + Enter for new line
+          </span>
+        </div>
+      </form>
+    </div>
   );
 }

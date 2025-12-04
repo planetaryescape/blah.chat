@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { X, FileIcon, Image, Loader2, Upload } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 interface Attachment {
@@ -32,7 +32,10 @@ export function FileUpload({
   maxSizeMB = 10,
   uploading,
   setUploading,
-}: FileUploadProps & { uploading: boolean; setUploading: (uploading: boolean) => void }) {
+}: FileUploadProps & {
+  uploading: boolean;
+  setUploading: (uploading: boolean) => void;
+}) {
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const saveFile = useMutation(api.files.saveFile);
 
@@ -86,7 +89,9 @@ export function FileUpload({
         }
 
         onAttachmentsChange([...attachments, ...newAttachments]);
-        toast.success(`Uploaded ${newAttachments.length} file${newAttachments.length === 1 ? "" : "s"}`);
+        toast.success(
+          `Uploaded ${newAttachments.length} file${newAttachments.length === 1 ? "" : "s"}`,
+        );
       } catch (error) {
         console.error("Upload failed:", error);
         toast.error("Failed to upload files");
@@ -94,7 +99,14 @@ export function FileUpload({
         setUploading(false);
       }
     },
-    [attachments, conversationId, generateUploadUrl, maxSizeMB, onAttachmentsChange, saveFile]
+    [
+      attachments,
+      conversationId,
+      generateUploadUrl,
+      maxSizeMB,
+      onAttachmentsChange,
+      saveFile,
+    ],
   );
 
   const { getRootProps, getInputProps } = useDropzone({

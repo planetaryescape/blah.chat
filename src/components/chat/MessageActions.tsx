@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, RotateCcw, Trash2, Square, GitBranch } from "lucide-react";
-import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useMutation, useQuery } from "convex/react";
+import {
+  Check,
+  Copy,
+  GitBranch,
+  RotateCcw,
+  Square,
+  Trash2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MessageActionsProps {
   message: Doc<"messages">;
@@ -28,7 +41,7 @@ export function MessageActions({ message }: MessageActionsProps) {
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
-      message.content || message.partialContent || ""
+      message.content || message.partialContent || "",
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -47,71 +60,102 @@ export function MessageActions({ message }: MessageActionsProps) {
 
   return (
     <div
-      className={cn(
-        "flex items-center gap-1 mt-2 transition-all duration-200",
-        alwaysShow ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-      )}
+      className={cn("flex items-center gap-1", "transition-all duration-200")}
     >
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 text-xs"
-        onClick={handleCopy}
-      >
-        {copied ? (
-          <Check className="w-3 h-3 mr-1" />
-        ) : (
-          <Copy className="w-3 h-3 mr-1" />
-        )}
-        {copied ? "Copied" : "Copy"}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+            <span className="sr-only">{copied ? "Copied" : "Copy"}</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{copied ? "Copied!" : "Copy message"}</p>
+        </TooltipContent>
+      </Tooltip>
 
       {!isUser && !isGenerating && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => regenerate({ messageId: message._id })}
-        >
-          <RotateCcw className="w-3 h-3 mr-1" />
-          Regenerate
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+              onClick={() => regenerate({ messageId: message._id })}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="sr-only">Regenerate</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Regenerate response</p>
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {isGenerating && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => stop({ conversationId: message.conversationId })}
-        >
-          <Square className="w-3 h-3 mr-1" />
-          Stop
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+              onClick={() => stop({ conversationId: message.conversationId })}
+            >
+              <Square className="w-3.5 h-3.5" />
+              <span className="sr-only">Stop</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Stop generation</p>
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {!isGenerating && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={handleBranch}
-          title="Branch from this message"
-        >
-          <GitBranch className="w-3 h-3 mr-1" />
-          Branch
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+              onClick={handleBranch}
+            >
+              <GitBranch className="w-3.5 h-3.5" />
+              <span className="sr-only">Branch</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Branch from this message</p>
+          </TooltipContent>
+        </Tooltip>
       )}
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 text-xs text-destructive"
-        onClick={() => deleteMsg({ messageId: message._id })}
-      >
-        <Trash2 className="w-3 h-3 mr-1" />
-        Delete
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+            onClick={() => deleteMsg({ messageId: message._id })}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="sr-only">Delete</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Delete message</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

@@ -12,7 +12,9 @@ interface ExtractMemoriesButtonProps {
   conversationId: Id<"conversations">;
 }
 
-export function ExtractMemoriesButton({ conversationId }: ExtractMemoriesButtonProps) {
+export function ExtractMemoriesButton({
+  conversationId,
+}: ExtractMemoriesButtonProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const triggerExtraction = useMutation(api.memories.triggerExtraction);
 

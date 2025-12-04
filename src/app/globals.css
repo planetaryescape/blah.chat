@@ -2,6 +2,8 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "../styles/prose.css";
+@import "../styles/code-theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -49,32 +51,32 @@
   --radius: 0.5rem;
 
   /* Vesper Dark Colors (OKLch) */
-  --background: 16% 0.02 30; /* deep warm black */
-  --foreground: 92% 0.01 60; /* warm off-white */
+  --background: oklch(16% 0.02 30); /* deep warm black */
+  --foreground: oklch(92% 0.01 60); /* warm off-white */
 
-  --primary: 68% 0.15 75; /* warm amber */
-  --primary-foreground: 16% 0.02 30;
+  --primary: oklch(68% 0.15 75); /* warm amber */
+  --primary-foreground: oklch(16% 0.02 30);
 
-  --secondary: 28% 0.04 40; /* warm brown-gray */
-  --secondary-foreground: 92% 0.01 60;
+  --secondary: oklch(28% 0.04 40); /* warm brown-gray */
+  --secondary-foreground: oklch(92% 0.01 60);
 
-  --accent: 62% 0.18 230; /* saturated blue */
-  --accent-foreground: 16% 0.02 30;
+  --accent: oklch(62% 0.18 230); /* saturated blue */
+  --accent-foreground: oklch(16% 0.02 30);
 
-  --muted: 22% 0.03 35; /* dark brown-gray */
-  --muted-foreground: 70% 0.02 50;
+  --muted: oklch(22% 0.03 35); /* dark brown-gray */
+  --muted-foreground: oklch(70% 0.02 50);
 
-  --destructive: 58% 0.22 25; /* terracotta red */
-  --destructive-foreground: 98% 0 0;
+  --destructive: oklch(58% 0.22 25); /* terracotta red */
+  --destructive-foreground: oklch(98% 0 0);
 
-  --border: 28% 0.04 40;
-  --input: 28% 0.04 40;
-  --ring: 68% 0.15 75; /* matches primary */
+  --border: oklch(28% 0.04 40);
+  --input: oklch(28% 0.04 40);
+  --ring: oklch(68% 0.15 75); /* matches primary */
 
-  --card: 18% 0.02 32;
-  --card-foreground: 92% 0.01 60;
-  --popover: 18% 0.02 32;
-  --popover-foreground: 92% 0.01 60;
+  --card: oklch(18% 0.02 32);
+  --card-foreground: oklch(92% 0.01 60);
+  --popover: oklch(18% 0.02 32);
+  --popover-foreground: oklch(92% 0.01 60);
 
   /* Chart colors - keep existing */
   --chart-1: oklch(0.646 0.222 41.116);
@@ -84,14 +86,14 @@
   --chart-5: oklch(0.769 0.188 70.08);
 
   /* Sidebar - warmer variants */
-  --sidebar: 18% 0.02 32;
-  --sidebar-foreground: 92% 0.01 60;
-  --sidebar-primary: 68% 0.15 75;
-  --sidebar-primary-foreground: 16% 0.02 30;
-  --sidebar-accent: 28% 0.04 40;
-  --sidebar-accent-foreground: 92% 0.01 60;
-  --sidebar-border: 28% 0.04 40;
-  --sidebar-ring: 68% 0.15 75;
+  --sidebar: oklch(18% 0.02 32);
+  --sidebar-foreground: oklch(92% 0.01 60);
+  --sidebar-primary: oklch(68% 0.15 75);
+  --sidebar-primary-foreground: oklch(16% 0.02 30);
+  --sidebar-accent: oklch(28% 0.04 40);
+  --sidebar-accent-foreground: oklch(92% 0.01 60);
+  --sidebar-border: oklch(28% 0.04 40);
+  --sidebar-ring: oklch(68% 0.15 75);
 
   /* Spacing Scale */
   --space-xs: 0.25rem; /* 4px */
@@ -118,8 +120,84 @@
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: oklch(98% 0.005 60); /* warm off-white */
+    --foreground: oklch(20% 0.02 30); /* deep warm black */
+
+    --primary: oklch(52% 0.15 75); /* darker amber */
+    --primary-foreground: oklch(98% 0 0);
+
+    --secondary: oklch(92% 0.02 40); /* light brown-gray */
+    --secondary-foreground: oklch(20% 0.02 30);
+
+    --accent: oklch(58% 0.18 230); /* slightly darker blue */
+    --accent-foreground: oklch(98% 0 0);
+
+    --muted: oklch(94% 0.015 35); /* light brown-gray */
+    --muted-foreground: oklch(45% 0.02 50);
+
+    --destructive: oklch(55% 0.22 25); /* darker terracotta */
+    --destructive-foreground: oklch(98% 0 0);
+
+    --border: oklch(88% 0.02 40);
+    --input: oklch(96% 0.01 40);
+    --ring: oklch(52% 0.15 75); /* matches primary */
+
+    --card: oklch(96% 0.008 32);
+    --card-foreground: oklch(20% 0.02 30);
+    --popover: oklch(98% 0.005 32);
+    --popover-foreground: oklch(20% 0.02 30);
+
+    /* Sidebar - light variants */
+    --sidebar: oklch(96% 0.008 32);
+    --sidebar-foreground: oklch(20% 0.02 30);
+    --sidebar-primary: oklch(52% 0.15 75);
+    --sidebar-primary-foreground: oklch(98% 0 0);
+    --sidebar-accent: oklch(92% 0.02 40);
+    --sidebar-accent-foreground: oklch(20% 0.02 30);
+    --sidebar-border: oklch(88% 0.02 40);
+    --sidebar-ring: oklch(52% 0.15 75);
+  }
+}
+
 .dark {
-  /* Same as :root since dark is primary theme */
+  --background: oklch(16% 0.02 30); /* deep warm black */
+  --foreground: oklch(92% 0.01 60); /* warm off-white */
+
+  --primary: oklch(68% 0.15 75); /* warm amber */
+  --primary-foreground: oklch(16% 0.02 30);
+
+  --secondary: oklch(28% 0.04 40); /* warm brown-gray */
+  --secondary-foreground: oklch(92% 0.01 60);
+
+  --accent: oklch(62% 0.18 230); /* saturated blue */
+  --accent-foreground: oklch(16% 0.02 30);
+
+  --muted: oklch(22% 0.03 35); /* dark brown-gray */
+  --muted-foreground: oklch(70% 0.02 50);
+
+  --destructive: oklch(58% 0.22 25); /* terracotta red */
+  --destructive-foreground: oklch(98% 0 0);
+
+  --border: oklch(28% 0.04 40);
+  --input: oklch(28% 0.04 40);
+  --ring: oklch(68% 0.15 75); /* matches primary */
+
+  --card: oklch(18% 0.02 32);
+  --card-foreground: oklch(92% 0.01 60);
+  --popover: oklch(18% 0.02 32);
+  --popover-foreground: oklch(92% 0.01 60);
+
+  /* Sidebar - dark variants */
+  --sidebar: oklch(18% 0.02 32);
+  --sidebar-foreground: oklch(92% 0.01 60);
+  --sidebar-primary: oklch(68% 0.15 75);
+  --sidebar-primary-foreground: oklch(16% 0.02 30);
+  --sidebar-accent: oklch(28% 0.04 40);
+  --sidebar-accent-foreground: oklch(92% 0.01 60);
+  --sidebar-border: oklch(28% 0.04 40);
+  --sidebar-ring: oklch(68% 0.15 75);
 }
 
 @layer base {
@@ -174,6 +252,26 @@
 
 .slide-in-left {
   animation: slide-in-left 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(var(--primary) / 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
 }
 
 /* Background Texture */

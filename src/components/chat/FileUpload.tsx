@@ -30,8 +30,9 @@ export function FileUpload({
   attachments,
   onAttachmentsChange,
   maxSizeMB = 10,
-}: FileUploadProps) {
-  const [uploading, setUploading] = useState(false);
+  uploading,
+  setUploading,
+}: FileUploadProps & { uploading: boolean; setUploading: (uploading: boolean) => void }) {
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const saveFile = useMutation(api.files.saveFile);
 
@@ -96,78 +97,31 @@ export function FileUpload({
     [attachments, conversationId, generateUploadUrl, maxSizeMB, onAttachmentsChange, saveFile]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     disabled: uploading,
     maxSize: maxSizeMB * 1024 * 1024,
+    noClick: false,
+    noKeyboard: false,
   });
 
-  const removeAttachment = (index: number) => {
-    const newAttachments = attachments.filter((_, i) => i !== index);
-    onAttachmentsChange(newAttachments);
-  };
-
   return (
-    <div className="space-y-2">
-      {/* Dropzone */}
-      <div
-        {...getRootProps()}
-        className={`
-          border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
-          transition-colors
-          ${isDragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}
-          ${uploading ? "opacity-50 cursor-not-allowed" : ""}
-        `}
-      >
-        <input {...getInputProps()} />
-        {uploading ? (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Uploading...
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <Upload className="w-8 h-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              {isDragActive
-                ? "Drop files here..."
-                : `Drag & drop files or click to browse (max ${maxSizeMB}MB)`}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Attachment list */}
-      {attachments.length > 0 && (
-        <div className="space-y-2">
-          {attachments.map((attachment, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-2 p-2 bg-secondary rounded-lg"
-            >
-              {attachment.type === "image" ? (
-                <Image className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <FileIcon className="w-4 h-4 text-muted-foreground" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{attachment.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(attachment.size / 1024).toFixed(1)} KB
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeAttachment(index)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      {...getRootProps()}
+      disabled={uploading}
+      title="Attach files"
+      className="h-9 w-9 p-0"
+    >
+      <input {...getInputProps()} />
+      {uploading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Upload className="w-4 h-4" />
       )}
-    </div>
+      <span className="sr-only">Attach files</span>
+    </Button>
   );
 }

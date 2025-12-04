@@ -12,6 +12,8 @@
     margin-top: 1.25em;
     margin-bottom: 1.25em;
     line-height: 1.75;
+    /* Reserve space to reduce layout shifts during streaming */
+    min-height: 1.75em;
   }
 
   .prose p:first-child {
@@ -130,7 +132,7 @@
   .prose a {
     color: var(--primary);
     text-decoration: underline;
-    text-decoration-color: oklch(65% 0.15 230 / 0.3);
+    text-decoration-color: var(--primary-underline);
     text-underline-offset: 2px;
     font-weight: 500;
     transition: all var(--transition-fast);
@@ -138,7 +140,7 @@
 
   .prose a:hover {
     text-decoration-color: var(--primary);
-    color: oklch(70% 0.15 230);
+    color: var(--primary-hover);
   }
 
   /* Code */
@@ -153,16 +155,57 @@
   }
 
   .prose pre {
+    position: relative;
     font-family: var(--font-mono);
     font-size: 0.875em;
     line-height: 1.7142857;
     margin-top: 1.7142857em;
     margin-bottom: 1.7142857em;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     padding: 1em 1.5em;
     overflow-x: auto;
     background: var(--card);
     border: 1px solid var(--border);
+    box-shadow:
+      inset 0 1px 0 0 oklch(20% 0.03 240),
+      0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Prevent code blocks from shifting layout */
+    contain: layout;
+  }
+
+  /* Gradient border accent for code blocks */
+  .prose pre::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      oklch(70% 0.18 200 / 0.2),
+      oklch(75% 0.12 60 / 0.15)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Noise texture overlay for code blocks */
+  .prose pre::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: var(--bg-grain);
+    opacity: 0.03;
+    mix-blend-mode: overlay;
+    pointer-events: none;
   }
 
   .prose pre code {

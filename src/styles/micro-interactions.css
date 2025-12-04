@@ -1,0 +1,390 @@
+/**
+ * Micro-interactions CSS
+ * Subtle animations that feel intentional, not tacky.
+ * Users should feel the app is crafted without knowing exactly why.
+ */
+
+/* ===== Animation Timing Variables ===== */
+:root {
+  --transition-fast: 150ms;
+  --transition-base: 250ms;
+  --transition-slow: 400ms;
+  --easing-smooth: cubic-bezier(0.23, 1, 0.32, 1);
+  --easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ===== Shake Animation (for error states) ===== */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+.shake {
+  animation: shake 0.3s ease-in-out 2;
+}
+
+/* ===== Pulse Animation (for focus rings, success states) ===== */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 var(--ring);
+  }
+  50% {
+    box-shadow: 0 0 0 4px oklch(var(--ring) / 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 oklch(var(--ring) / 0);
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 0.6s var(--easing-smooth);
+}
+
+/* ===== Shimmer Gradient (for loading states) ===== */
+@keyframes shimmer-sweep {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.shimmer-gradient {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(70% 0.18 200 / 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 2s linear infinite;
+}
+
+/* ===== Slide-in Underline (for links) ===== */
+@keyframes underline-slide {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width var(--transition-base) var(--easing-smooth);
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* ===== Fade & Scale (for dropdowns, modals) ===== */
+@keyframes fade-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.fade-scale-in {
+  animation: fade-scale-in var(--transition-fast) var(--easing-smooth);
+}
+
+.fade-out {
+  animation: fade-out 100ms var(--easing-smooth);
+}
+
+/* ===== Bounce Up (for scroll-to-bottom FAB) ===== */
+@keyframes bounce-up {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.bounce-up:hover {
+  animation: bounce-up 0.3s var(--easing-bounce);
+}
+
+/* ===== Rotate & Scale (for theme switcher) ===== */
+@keyframes rotate-scale {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(180deg) scale(1);
+  }
+}
+
+.rotate-scale {
+  animation: rotate-scale 0.4s var(--easing-smooth);
+}
+
+/* ===== Checkmark Draw (SVG stroke animation) ===== */
+@keyframes draw-checkmark {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.checkmark-path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw-checkmark 0.3s var(--easing-smooth) forwards;
+}
+
+/* ===== Gradient Border Pulse (for generating messages) ===== */
+@keyframes gradient-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.gradient-border-pulse::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, oklch(70% 0.18 200), oklch(65% 0.15 230));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: exclude;
+  mask-composite: exclude;
+  animation: gradient-pulse 2s ease-in-out infinite;
+}
+
+/* ===== Slide from Top (for new message indicator) ===== */
+@keyframes slide-from-top {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-from-top {
+  animation: slide-from-top var(--transition-base) var(--easing-smooth);
+}
+
+/* ===== Scale Bounce (for file drop) ===== */
+@keyframes scale-bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.scale-bounce {
+  animation: scale-bounce 0.3s var(--easing-bounce);
+}
+
+/* ===== Blur-up (for image loading) ===== */
+.blur-up {
+  filter: blur(8px);
+  transition: filter var(--transition-slow) var(--easing-smooth);
+}
+
+.blur-up.loaded {
+  filter: blur(0);
+}
+
+/* ===== Gentle Rotate (for loading search icon) ===== */
+@keyframes gentle-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gentle-rotate {
+  animation: gentle-rotate 2s linear infinite;
+}
+
+/* ===== Staggered Fade Dots (for thinking indicator) ===== */
+@keyframes fade-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.thinking-dot {
+  animation: fade-dot 1.4s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* ===== Toast Slide & Fade ===== */
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: toast-slide-in var(--transition-base) var(--easing-smooth);
+}
+
+.toast-exit {
+  animation: toast-slide-out var(--transition-fast) var(--easing-smooth);
+}
+
+/* ===== Utility Classes ===== */
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all var(--transition-base) var(--easing-smooth);
+}
+
+.transition-fast {
+  transition: all var(--transition-fast) var(--easing-smooth);
+}
+
+.transition-slow {
+  transition: all var(--transition-slow) var(--easing-smooth);
+}
+
+/* Hover scale effects */
+.hover-scale-sm:hover {
+  transform: scale(1.005);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-scale-lg:hover {
+  transform: scale(1.05);
+}
+
+/* Active scale */
+.active-scale:active {
+  transform: scale(0.98);
+}
+
+/* Cursor states */
+.cursor-grab {
+  cursor: grab;
+}
+
+.cursor-grab:active {
+  cursor: grabbing;
+}
+
+/* Glow effects */
+.glow-cyan:hover {
+  box-shadow: var(--glow-cyan);
+}
+
+.glow-gold:hover {
+  box-shadow: var(--glow-gold);
+}
+
+/* Fade-in on hover (for action buttons) */
+.fade-in-on-hover {
+  opacity: 0;
+  transition: opacity var(--transition-base) var(--easing-smooth);
+}
+
+.group:hover .fade-in-on-hover {
+  opacity: 1;
+}
+
+/* Indent on hover (for list items) */
+.indent-on-hover {
+  transition: transform var(--transition-base) var(--easing-smooth);
+}
+
+.indent-on-hover:hover {
+  transform: translateX(4px);
+}

@@ -10,13 +10,31 @@ export const sendMessage = mutation({
     content: v.string(),
     modelId: v.optional(v.string()),
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          type: v.union(
+            v.literal("file"),
+            v.literal("image"),
+            v.literal("audio"),
+          ),
+          name: v.string(),
+          storageId: v.string(),
+          mimeType: v.string(),
+          size: v.number(),
+        }),
+      ),
     ),
   },
   handler: async (
     ctx,
     args,
-  ): Promise<{ conversationId: Id<"conversations">; messageId: Id<"messages"> }> => {
+  ): Promise<{
+    conversationId: Id<"conversations">;
+    messageId: Id<"messages">;
+  }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
     // PRE-FLIGHT CHECKS
@@ -46,11 +64,14 @@ export const sendMessage = mutation({
     // 3. Get or create conversation
     let conversationId = args.conversationId;
     if (!conversationId) {
-      conversationId = await ctx.runMutation(internal.conversations.createInternal, {
-        userId: user._id,
-        model: modelId,
-        title: "New Chat",
-      });
+      conversationId = await ctx.runMutation(
+        internal.conversations.createInternal,
+        {
+          userId: user._id,
+          model: modelId,
+          title: "New Chat",
+        },
+      );
     }
 
     // 4. Insert user message
@@ -59,6 +80,7 @@ export const sendMessage = mutation({
       userId: user._id,
       role: "user",
       content: args.content,
+      attachments: args.attachments,
       status: "complete",
     });
 
@@ -91,21 +113,30 @@ export const sendMessage = mutation({
     });
 
     // 9. Check if memory extraction should trigger (auto-extraction)
-    if (conversationId && user.preferences?.autoMemoryExtractEnabled !== false) {
+    if (
+      conversationId &&
+      user.preferences?.autoMemoryExtractEnabled !== false
+    ) {
       const interval = user.preferences?.autoMemoryExtractInterval || 5;
 
       // Count messages in this conversation
       const messageCount = await ctx.db
         .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
         .collect()
         .then((msgs) => msgs.length);
 
       // Trigger extraction if we've hit the interval
       if (messageCount > 0 && messageCount % interval === 0) {
-        await ctx.scheduler.runAfter(0, internal.memories.extract.extractMemories, {
-          conversationId,
-        });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.memories.extract.extractMemories,
+          {
+            conversationId,
+          },
+        );
       }
     }
 
@@ -130,7 +161,9 @@ export const regenerate = mutation({
     // Delete this message + all following messages
     const allMessages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", message.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", message.conversationId),
+      )
       .order("asc")
       .collect();
 
@@ -140,16 +173,20 @@ export const regenerate = mutation({
     }
 
     // Priority: message.model → conversation.model → user.preferences.defaultModel
-    const modelId = message.model || conversation.model || user.preferences.defaultModel;
+    const modelId =
+      message.model || conversation.model || user.preferences.defaultModel;
 
     // Create new pending assistant message
-    const newMessageId: Id<"messages"> = await ctx.runMutation(internal.messages.create, {
-      conversationId: message.conversationId,
-      userId: conversation.userId,
-      role: "assistant",
-      status: "pending",
-      model: modelId,
-    });
+    const newMessageId: Id<"messages"> = await ctx.runMutation(
+      internal.messages.create,
+      {
+        conversationId: message.conversationId,
+        userId: conversation.userId,
+        role: "assistant",
+        status: "pending",
+        model: modelId,
+      },
+    );
 
     // Schedule generation
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
@@ -187,11 +224,15 @@ export const stopGeneration = mutation({
     // Find generating message
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .order("desc")
       .take(5);
 
-    const generatingMsg = messages.find((m) => m.status && ["generating", "pending"].includes(m.status));
+    const generatingMsg = messages.find(
+      (m) => m.status && ["generating", "pending"].includes(m.status),
+    );
 
     if (generatingMsg) {
       await ctx.db.patch(generatingMsg._id, {
@@ -229,21 +270,28 @@ export const branchFromMessage = mutation({
     const allMessages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", sourceMessage.conversationId)
+        q.eq("conversationId", sourceMessage.conversationId),
       )
       .collect();
 
     // Sort by createdAt and filter messages up to branch point
-    const sortedMessages = allMessages.sort((a, b) => a.createdAt - b.createdAt);
-    const branchIndex = sortedMessages.findIndex((m) => m._id === args.messageId);
+    const sortedMessages = allMessages.sort(
+      (a, b) => a.createdAt - b.createdAt,
+    );
+    const branchIndex = sortedMessages.findIndex(
+      (m) => m._id === args.messageId,
+    );
     const messagesToCopy = sortedMessages.slice(0, branchIndex + 1);
 
     // Create new conversation
-    const newConversationId = await ctx.runMutation(internal.conversations.createInternal, {
-      userId: user._id,
-      model: sourceConversation.model,
-      title: args.title || `Branch from: ${sourceConversation.title}`,
-    });
+    const newConversationId = await ctx.runMutation(
+      internal.conversations.createInternal,
+      {
+        userId: user._id,
+        model: sourceConversation.model,
+        title: args.title || `Branch from: ${sourceConversation.title}`,
+      },
+    );
 
     // Copy messages to new conversation
     for (const message of messagesToCopy) {

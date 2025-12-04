@@ -1,12 +1,39 @@
-import { v } from "convex/values";
-import { internalAction, type ActionCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { api } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import { streamText, type CoreMessage } from "ai";
-import { getModel } from "@/lib/ai/registry";
+import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
-import { getModelConfig } from "@/lib/ai/models";
+import { getModel } from "@/lib/ai/registry";
+import { openai } from "@ai-sdk/openai";
+import { embed, streamText, type CoreMessage } from "ai";
+import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalAction, type ActionCtx } from "./_generated/server";
+import { buildBasePromptOptions, getBasePrompt } from "./lib/prompts/base";
+import {
+    formatMemoriesByCategory,
+    truncateMemories,
+} from "./lib/prompts/formatting";
+
+// Helper to download attachment and convert to base64
+async function downloadAttachment(
+  ctx: ActionCtx,
+  storageId: string,
+): Promise<string> {
+  const url = await ctx.storage.getUrl(storageId);
+  if (!url) throw new Error("Failed to get storage URL");
+
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+
+  // Convert ArrayBuffer to base64 (Convex-compatible)
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+
+  return base64;
+}
 
 // Helper function to build system prompts from multiple sources
 async function buildSystemPrompts(
@@ -15,11 +42,12 @@ async function buildSystemPrompts(
     userId: Id<"users">;
     conversationId: Id<"conversations">;
     userMessage: string;
+    modelConfig: ModelConfig;
   },
 ): Promise<CoreMessage[]> {
   const systemMessages: CoreMessage[] = [];
 
-  // 1. User custom instructions (global)
+  // 1. User custom instructions (highest priority)
   const user = await ctx.runQuery(api.users.getCurrentUser, {});
   if (user?.preferences?.customInstructions?.enabled) {
     const { aboutUser, responseStyle } = user.preferences.customInstructions;
@@ -54,25 +82,42 @@ async function buildSystemPrompts(
     });
   }
 
-  // 4. Retrieved memories (RAG)
+  // 4. Retrieved memories (RAG) - FIXED with vector search
   try {
-    const memories = await ctx.runQuery(internal.memories.search, {
-      userId: args.userId,
-      query: args.userMessage,
-      limit: 8,
+    const { embedding } = await embed({
+      model: openai.embedding("text-embedding-3-small"),
+      value: args.userMessage,
     });
 
-    if (memories && memories.length > 0) {
-      const memoryContent = memories.map((m: any) => `- ${m.content}`).join("\n");
-      systemMessages.push({
-        role: "system",
-        content: `Memories:\n${memoryContent}`,
-      });
+    const memories = await ctx.runAction(internal.memories.searchByEmbedding, {
+      userId: args.userId,
+      embedding,
+      limit: 20,
+    });
+
+    if (memories?.length) {
+      const memoryBudget = Math.floor(args.modelConfig.contextWindow * 0.1);
+      const truncated = truncateMemories(memories, memoryBudget);
+
+      const memoryContent = formatMemoriesByCategory(truncated);
+      if (memoryContent) {
+        systemMessages.push({
+          role: "system",
+          content: memoryContent,
+        });
+      }
     }
   } catch (error) {
-    // Memory system might not be implemented yet, silently skip
-    console.log("Memory retrieval skipped:", error);
+    console.log("Memory retrieval failed:", error);
   }
+
+  // 5. Base identity (last - foundation)
+  const basePromptOptions = buildBasePromptOptions(args.modelConfig);
+  const basePrompt = getBasePrompt(basePromptOptions);
+  systemMessages.push({
+    role: "system",
+    content: basePrompt,
+  });
 
   return systemMessages;
 }
@@ -84,7 +129,7 @@ export const generateResponse = internalAction({
     modelId: v.string(),
     userId: v.id("users"),
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ),
   },
   handler: async (ctx, args) => {
@@ -107,31 +152,90 @@ export const generateResponse = internalAction({
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
 
-      // 4. Build system prompts (NEW)
+      // 4. Get model config
+      const modelConfig = getModelConfig(args.modelId);
+      if (!modelConfig) {
+        throw new Error(`Model ${args.modelId} not found in configuration`);
+      }
+
+      // 5. Build system prompts (NEW)
       const systemPrompts = await buildSystemPrompts(ctx, {
         userId: args.userId,
         conversationId: args.conversationId,
         userMessage: lastUserMsg?.content || "",
+        modelConfig,
       });
 
-      // 5. Filter conversation history (exclude pending message)
-      const history = messages
-        .filter(
-          (m: Doc<"messages">) => m._id !== args.assistantMessageId && m.status === "complete",
-        )
-        .map((m: Doc<"messages">) => ({
-          role: m.role as "user" | "assistant" | "system",
-          content: m.content || "",
-        }));
+      // 6. Check for vision capability
+      const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
 
-      // 6. Combine: system prompts FIRST, then history
+      // 6. Filter and transform conversation history (with attachments if vision model)
+      const history = await Promise.all(
+        messages
+          .filter(
+            (m: Doc<"messages">) =>
+              m._id !== args.assistantMessageId && m.status === "complete",
+          )
+          .map(async (m: Doc<"messages">) => {
+            // Text-only messages (no attachments)
+            if (!m.attachments || m.attachments.length === 0) {
+              return {
+                role: m.role as "user" | "assistant" | "system",
+                content: m.content || "",
+              };
+            }
+
+            // Messages with attachments - only if vision model
+            if (!hasVision) {
+              // Non-vision models: text only, ignore attachments
+              return {
+                role: m.role as "user" | "assistant" | "system",
+                content: m.content || "",
+              };
+            }
+
+            // Vision models: build content array with text + attachments
+            const contentParts: any[] = [
+              { type: "text", text: m.content || "" },
+            ];
+
+            for (const attachment of m.attachments) {
+              const base64 = await downloadAttachment(
+                ctx,
+                attachment.storageId,
+              );
+
+              if (attachment.type === "image") {
+                contentParts.push({
+                  type: "image",
+                  image: base64,
+                });
+              } else if (attachment.type === "file") {
+                // PDFs (Anthropic Claude + Google Gemini support)
+                contentParts.push({
+                  type: "file",
+                  data: base64,
+                  mediaType: attachment.mimeType,
+                  filename: attachment.name,
+                });
+              }
+              // Future: audio support
+            }
+
+            return {
+              role: m.role as "user" | "assistant" | "system",
+              content: contentParts,
+            };
+          }),
+      );
+
+      // 7. Combine: system prompts FIRST, then history
       const allMessages = [...systemPrompts, ...history];
 
-      // 7. Get model from registry
+      // 8. Get model from registry
       const model = getModel(args.modelId);
-      const modelConfig = getModelConfig(args.modelId);
 
-      // 8. Build streamText options
+      // 9. Build streamText options
       const options: any = {
         model,
         messages: allMessages,
@@ -210,15 +314,22 @@ export const generateResponse = internalAction({
       });
 
       // 11. Auto-name if conversation still has default title
-      const conversation = await ctx.runQuery(internal.conversations.getInternal, {
-        id: args.conversationId,
-      });
+      const conversation = await ctx.runQuery(
+        internal.conversations.getInternal,
+        {
+          id: args.conversationId,
+        },
+      );
 
       if (conversation && conversation.title === "New Chat") {
         // Still has default title, schedule title generation
-        await ctx.scheduler.runAfter(0, internal.ai.generateTitle.generateTitle, {
-          conversationId: args.conversationId,
-        });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.ai.generateTitle.generateTitle,
+          {
+            conversationId: args.conversationId,
+          },
+        );
       }
     } catch (error) {
       await ctx.runMutation(internal.messages.markError, {

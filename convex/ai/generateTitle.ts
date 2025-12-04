@@ -3,32 +3,106 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { streamText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import type { Doc } from "../_generated/dataModel";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
+type Message = Doc<"messages">;
+
+/**
+ * Smart truncation: keep first message + recent messages within char budget.
+ * Preserves conversation seed (first msg) and current context (recent msgs).
+ */
+function truncateMessages(messages: Message[], charBudget = 16000): Message[] {
+  // Filter to complete messages only
+  const complete = messages.filter((m) => m.status === "complete" && m.content);
+
+  if (complete.length === 0) return [];
+
+  // Calculate total chars
+  const totalChars = complete.reduce((sum, m) => sum + m.content.length, 0);
+
+  // If under budget, return all
+  if (totalChars <= charBudget) return complete;
+
+  // Smart truncation: keep first + recent
+  const first = complete[0];
+  const firstChars = first.content.length;
+  const remainingBudget = charBudget - firstChars;
+
+  if (remainingBudget <= 0) {
+    // First message too long, truncate it
+    return [
+      {
+        ...first,
+        content: first.content.substring(0, charBudget),
+      },
+    ];
+  }
+
+  // Take from end backward
+  const recent: Message[] = [];
+  let currentBudget = remainingBudget;
+
+  for (let i = complete.length - 1; i > 0; i--) {
+    const msg = complete[i];
+    const msgChars = msg.content.length;
+
+    if (currentBudget - msgChars >= 0) {
+      recent.unshift(msg);
+      currentBudget -= msgChars;
+    } else {
+      // Try to fit partial message (min 100 chars worth including)
+      if (currentBudget > 100) {
+        recent.unshift({
+          ...msg,
+          content: msg.content.substring(msg.content.length - currentBudget),
+        });
+      }
+      break;
+    }
+  }
+
+  return [first, ...recent];
+}
+
+/**
+ * Format messages as conversation history for LLM prompt.
+ */
+function formatConversation(messages: Message[]): string {
+  return messages
+    .map((m) => {
+      const role = m.role === "user" ? "User" : "Assistant";
+      return `${role}: ${m.content}`;
+    })
+    .join("\n\n");
+}
+
 export const generateTitle = internalAction({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
     try {
-      // Get first 2 messages (user + assistant)
+      // Get all messages in conversation
       const messages = await ctx.runQuery(internal.messages.listInternal, {
         conversationId: args.conversationId,
       });
 
-      const userMsg = messages.find(m => m.role === "user");
-      const assistantMsg = messages.find(m => m.role === "assistant" && m.status === "complete");
+      // Apply smart truncation
+      const truncated = truncateMessages(messages, 16000);
 
-      if (!userMsg || !assistantMsg) return;
+      if (truncated.length === 0) return;
 
-      // Generate title with grok-4-fast
+      // Format as conversation history
+      const conversationText = formatConversation(truncated);
+
+      // Generate title with full context
       const result = streamText({
         model: openrouter("x-ai/grok-4-fast"),
         prompt: `Generate a 3-5 word title for this conversation.
 
-User: ${userMsg.content}
-Assistant: ${assistantMsg.content.substring(0, 300)}...
+${conversationText}
 
 Title (no quotes):`,
       });

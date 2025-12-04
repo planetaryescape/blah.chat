@@ -28,6 +28,21 @@ export const create = internalMutation({
       ),
     ),
     model: v.optional(v.string()),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          type: v.union(
+            v.literal("file"),
+            v.literal("image"),
+            v.literal("audio"),
+          ),
+          name: v.string(),
+          storageId: v.string(),
+          mimeType: v.string(),
+          size: v.number(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const messageId = await ctx.db.insert("messages", {
@@ -37,16 +52,25 @@ export const create = internalMutation({
       content: args.content || "",
       status: args.status || "complete",
       model: args.model,
+      attachments: args.attachments,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
     // Schedule embedding generation for complete messages with content
-    if (args.status === "complete" && args.content && args.content.trim().length > 0) {
-      await ctx.scheduler.runAfter(0, internal.messages.embeddings.generateEmbedding, {
-        messageId,
-        content: args.content,
-      });
+    if (
+      args.status === "complete" &&
+      args.content &&
+      args.content.trim().length > 0
+    ) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.messages.embeddings.generateEmbedding,
+        {
+          messageId,
+          content: args.content,
+        },
+      );
     }
 
     return messageId;
@@ -122,10 +146,14 @@ export const completeMessage = internalMutation({
 
     // Schedule embedding generation for completed assistant message
     if (args.content && args.content.trim().length > 0) {
-      await ctx.scheduler.runAfter(0, internal.messages.embeddings.generateEmbedding, {
-        messageId: args.messageId,
-        content: args.content,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.messages.embeddings.generateEmbedding,
+        {
+          messageId: args.messageId,
+          content: args.content,
+        },
+      );
     }
   },
 });

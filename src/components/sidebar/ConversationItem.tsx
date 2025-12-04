@@ -16,11 +16,13 @@ import {
 import { MoreVertical, Trash2, Edit, Archive, Pin, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RenameDialog } from "./RenameDialog";
+import { DeleteConversationDialog } from "./DeleteConversationDialog";
 
 export function ConversationItem({ conversation }: { conversation: Doc<"conversations"> }) {
   const router = useRouter();
   const pathname = usePathname();
   const [showRename, setShowRename] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const deleteConversation = useMutation(api.conversations.deleteConversation);
   const togglePin = useMutation(api.conversations.togglePin);
@@ -91,7 +93,10 @@ export function ConversationItem({ conversation }: { conversation: Doc<"conversa
                 Archive
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+              <DropdownMenuItem
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-destructive"
+              >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -104,6 +109,13 @@ export function ConversationItem({ conversation }: { conversation: Doc<"conversa
         conversation={conversation}
         open={showRename}
         onOpenChange={setShowRename}
+      />
+
+      <DeleteConversationDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        onConfirm={handleDelete}
+        conversationTitle={conversation.title}
       />
     </>
   );

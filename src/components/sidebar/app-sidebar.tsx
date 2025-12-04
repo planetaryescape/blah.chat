@@ -58,7 +58,7 @@ export function AppSidebar() {
     return () => window.removeEventListener("keydown", handleKeyboard);
   }, []);
 
-  const filteredConversations = conversations?.filter((conv) =>
+  const filteredConversations = conversations?.filter((conv: any) =>
     conv.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -66,7 +66,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b">
         <div className="flex items-center justify-between px-3 py-2">
-          <h1 className="text-lg font-semibold">blah.chat</h1>
+          <h1 className="text-lg font-serif font-semibold">blah.chat</h1>
           <UserButton afterSignOutUrl="/sign-in" />
         </div>
 
@@ -79,22 +79,24 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Search</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-9 text-sm"
-                />
+        <div className="sticky top-0 bg-sidebar z-10 border-b border-border pb-3">
+          <SidebarGroup>
+            <SidebarGroupLabel>Search</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search conversations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-9 text-sm"
+                  />
+                </div>
               </div>
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
 
         <SidebarGroup>
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>

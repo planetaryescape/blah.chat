@@ -53,3 +53,33 @@
 .hljs-operator {
   color: oklch(var(--foreground));
 }
+
+/* Light mode syntax highlighting - warm earthy tones */
+@media (prefers-color-scheme: light) {
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-tag {
+    color: oklch(48% 0.12 25); /* darker rust */
+  }
+
+  .hljs-string,
+  .hljs-attr {
+    color: oklch(42% 0.11 140); /* forest green */
+  }
+
+  .hljs-function,
+  .hljs-title,
+  .hljs-name {
+    color: oklch(42% 0.13 250); /* deep blue */
+  }
+
+  .hljs-number,
+  .hljs-literal {
+    color: oklch(48% 0.14 35); /* burnt orange */
+  }
+
+  .hljs-built_in,
+  .hljs-class {
+    color: oklch(45% 0.12 230); /* darker blue */
+  }
+}

@@ -5,10 +5,14 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
+import { internal } from "./_generated/api";
+
+export * as embeddings from "./messages/embeddings";
 
 export const create = internalMutation({
   args: {
     conversationId: v.id("conversations"),
+    userId: v.id("users"),
     role: v.union(
       v.literal("user"),
       v.literal("assistant"),
@@ -28,6 +32,7 @@ export const create = internalMutation({
   handler: async (ctx, args) => {
     const messageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
+      userId: args.userId,
       role: args.role,
       content: args.content || "",
       status: args.status || "complete",
@@ -35,6 +40,14 @@ export const create = internalMutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+
+    // Schedule embedding generation for complete messages with content
+    if (args.status === "complete" && args.content && args.content.trim().length > 0) {
+      await ctx.scheduler.runAfter(0, internal.messages.embeddings.generateEmbedding, {
+        messageId,
+        content: args.content,
+      });
+    }
 
     return messageId;
   },
@@ -106,6 +119,14 @@ export const completeMessage = internalMutation({
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
     });
+
+    // Schedule embedding generation for completed assistant message
+    if (args.content && args.content.trim().length > 0) {
+      await ctx.scheduler.runAfter(0, internal.messages.embeddings.generateEmbedding, {
+        messageId: args.messageId,
+        content: args.content,
+      });
+    }
   },
 });
 

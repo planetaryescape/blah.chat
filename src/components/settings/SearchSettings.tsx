@@ -3,10 +3,15 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,7 +20,6 @@ export function SearchSettings() {
   const updatePreferences = useMutation(api.users.updatePreferences);
 
   const [hybridSearchEnabled, setHybridSearchEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user?.preferences) {
@@ -23,19 +27,18 @@ export function SearchSettings() {
     }
   }, [user]);
 
-  const handleSave = async () => {
-    setIsLoading(true);
+  const handleToggleChange = async (checked: boolean) => {
+    setHybridSearchEnabled(checked);
     try {
       await updatePreferences({
         preferences: {
-          enableHybridSearch: hybridSearchEnabled,
+          enableHybridSearch: checked,
         },
       });
       toast.success("Search settings saved!");
     } catch (error) {
       toast.error("Failed to save settings");
-    } finally {
-      setIsLoading(false);
+      setHybridSearchEnabled(!checked);
     }
   };
 
@@ -70,7 +73,7 @@ export function SearchSettings() {
           <Switch
             id="hybrid-search"
             checked={hybridSearchEnabled}
-            onCheckedChange={setHybridSearchEnabled}
+            onCheckedChange={handleToggleChange}
           />
         </div>
 
@@ -78,19 +81,15 @@ export function SearchSettings() {
           <p className="text-sm font-medium">Search modes:</p>
           <ul className="text-sm space-y-1 list-disc list-inside">
             <li>
-              <strong>Full-text only (default):</strong> Fast keyword-based search
+              <strong>Full-text only (default):</strong> Fast keyword-based
+              search
             </li>
             <li>
-              <strong>Hybrid search:</strong> Combines keywords with AI-powered semantic understanding
-              for more accurate results
+              <strong>Hybrid search:</strong> Combines keywords with AI-powered
+              semantic understanding for more accurate results
             </li>
           </ul>
         </div>
-
-        <Button onClick={handleSave} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Changes
-        </Button>
       </CardContent>
     </Card>
   );

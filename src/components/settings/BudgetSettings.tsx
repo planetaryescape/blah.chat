@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -122,8 +128,9 @@ export function BudgetSettings() {
 
         <div className="rounded-lg bg-muted p-4">
           <p className="text-sm">
-            <strong>Note:</strong> Budget tracking uses the per-message cost calculated from
-            token usage. Costs may vary slightly from provider billing due to rounding.
+            <strong>Note:</strong> Budget tracking uses the per-message cost
+            calculated from token usage. Costs may vary slightly from provider
+            billing due to rounding.
           </p>
         </div>
 

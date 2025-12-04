@@ -2,8 +2,20 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, DollarSign, Zap, MessageSquare, TrendingUp } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Loader2,
+  DollarSign,
+  Zap,
+  MessageSquare,
+  TrendingUp,
+} from "lucide-react";
 import {
   LineChart,
   Line,
@@ -20,13 +32,24 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const COLORS = ["#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#6366f1"];
+const COLORS = [
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#6366f1",
+];
 
 export default function UsagePage() {
   const monthlyTotal = useQuery(api.usage.queries.getMonthlyTotal);
   const dailySpend = useQuery(api.usage.queries.getDailySpend, { days: 30 });
-  const spendByModel = useQuery(api.usage.queries.getSpendByModel, { days: 30 });
-  const conversationCosts = useQuery(api.usage.queries.getConversationCosts, { limit: 10 });
+  const spendByModel = useQuery(api.usage.queries.getSpendByModel, {
+    days: 30,
+  });
+  const conversationCosts = useQuery(api.usage.queries.getConversationCosts, {
+    limit: 10,
+  });
 
   if (!monthlyTotal || !dailySpend || !spendByModel || !conversationCosts) {
     return (
@@ -55,7 +78,9 @@ export default function UsagePage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${monthlyTotal.cost.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ${monthlyTotal.cost.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
               {monthlyTotal.budget > 0
                 ? `${monthlyTotal.percentUsed.toFixed(1)}% of $${monthlyTotal.budget} budget`
@@ -84,18 +109,25 @@ export default function UsagePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{monthlyTotal.requests}</div>
-            <p className="text-xs text-muted-foreground">API calls this month</p>
+            <p className="text-xs text-muted-foreground">
+              API calls this month
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Cost/Request</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Cost/Request
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${monthlyTotal.requests > 0 ? (monthlyTotal.cost / monthlyTotal.requests).toFixed(4) : "0.00"}
+              $
+              {monthlyTotal.requests > 0
+                ? (monthlyTotal.cost / monthlyTotal.requests).toFixed(4)
+                : "0.00"}
             </div>
             <p className="text-xs text-muted-foreground">Per API call</p>
           </CardContent>
@@ -107,7 +139,9 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle>Daily Spend</CardTitle>
-            <CardDescription>Cost per day over the last 30 days</CardDescription>
+            <CardDescription>
+              Cost per day over the last 30 days
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -115,15 +149,31 @@ export default function UsagePage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={(val) => new Date(val).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  tickFormatter={(val) =>
+                    new Date(val).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })
+                  }
                 />
                 <YAxis tickFormatter={(val) => `$${val.toFixed(2)}`} />
                 <Tooltip
-                  formatter={(value: number) => [`$${value.toFixed(4)}`, "Cost"]}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                  formatter={(value: number) => [
+                    `$${value.toFixed(4)}`,
+                    "Cost",
+                  ]}
+                  labelFormatter={(label) =>
+                    new Date(label).toLocaleDateString()
+                  }
                 />
                 <Legend />
-                <Line type="monotone" dataKey="cost" stroke="#8b5cf6" strokeWidth={2} name="Daily Cost" />
+                <Line
+                  type="monotone"
+                  dataKey="cost"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  name="Daily Cost"
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -133,7 +183,9 @@ export default function UsagePage() {
         <Card>
           <CardHeader>
             <CardTitle>Spend by Model</CardTitle>
-            <CardDescription>Cost breakdown by AI model (last 30 days)</CardDescription>
+            <CardDescription>
+              Cost breakdown by AI model (last 30 days)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -145,13 +197,20 @@ export default function UsagePage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label={(entry: any) => `${entry.model}: $${entry.cost.toFixed(2)}`}
+                  label={(entry: any) =>
+                    `${entry.model}: $${entry.cost.toFixed(2)}`
+                  }
                 >
                   {spendByModel.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toFixed(4)}`} />
+                <Tooltip
+                  formatter={(value: number) => `$${value.toFixed(4)}`}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -162,7 +221,9 @@ export default function UsagePage() {
       <Card>
         <CardHeader>
           <CardTitle>Top Conversations by Cost</CardTitle>
-          <CardDescription>Most expensive conversations (last 10)</CardDescription>
+          <CardDescription>
+            Most expensive conversations (last 10)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>

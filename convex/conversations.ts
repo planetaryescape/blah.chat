@@ -54,8 +54,21 @@ export const list = query({
       .filter((q) => q.eq(q.field("archived"), false))
       .collect();
 
+    // Get message counts for each conversation
+    const convosWithCounts = await Promise.all(
+      convos.map(async (conv) => {
+        const messageCount = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
+          .collect()
+          .then((msgs) => msgs.length);
+
+        return { ...conv, messageCount };
+      })
+    );
+
     // Sort: pinned first, then by lastMessageAt
-    return convos.sort((a, b) => {
+    return convosWithCounts.sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.lastMessageAt - a.lastMessageAt;
     });

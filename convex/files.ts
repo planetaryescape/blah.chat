@@ -7,7 +7,7 @@ import { getCurrentUserOrCreate, getCurrentUser } from "./lib/userSync";
  */
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
-    const user = await getCurrentUserOrCreate(ctx);
+    const _user = await getCurrentUserOrCreate(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -61,7 +61,9 @@ export const listByConversation = query({
 
     const files = await ctx.db
       .query("files")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .filter((q) => q.eq(q.field("userId"), user._id))
       .collect();
 
@@ -70,7 +72,7 @@ export const listByConversation = query({
       files.map(async (file) => {
         const url = await ctx.storage.getUrl(file.storageId);
         return { ...file, url };
-      })
+      }),
     );
 
     return filesWithUrls;

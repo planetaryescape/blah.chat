@@ -117,7 +117,9 @@ export const vectorSearch = query({
     // Filter by conversation if specified
     let filtered = withScores;
     if (args.conversationId) {
-      filtered = withScores.filter((m) => m.conversationId === args.conversationId);
+      filtered = withScores.filter(
+        (m) => m.conversationId === args.conversationId,
+      );
     }
 
     // Return top N without score
@@ -133,7 +135,7 @@ function mergeWithRRF<T extends Doc<"messages">>(
   textResults: T[],
   vectorResults: T[],
   limit: number,
-  k = 60
+  k = 60,
 ): T[] {
   const scores = new Map<string, { score: number; item: T }>();
 

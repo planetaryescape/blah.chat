@@ -5,12 +5,16 @@ import type { Doc } from "./_generated/dataModel";
 import { streamText } from "ai";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost } from "@/lib/ai/pricing";
+import { getModelConfig } from "@/lib/ai/models";
 
 export const generateResponse = internalAction({
   args: {
     conversationId: v.id("conversations"),
     assistantMessageId: v.id("messages"),
     modelId: v.string(),
+    thinkingEffort: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high"))
+    ),
   },
   handler: async (ctx, args) => {
     try {
@@ -37,12 +41,44 @@ export const generateResponse = internalAction({
 
       // 4. Get model from registry
       const model = getModel(args.modelId);
+      const modelConfig = getModelConfig(args.modelId);
 
-      // 5. Stream from LLM
-      const result = streamText({
+      // 5. Build streamText options
+      const options: any = {
         model,
         messages: history,
-      });
+      };
+
+      // OpenAI o1/o3 reasoning effort
+      if (args.thinkingEffort && args.modelId.startsWith("openai:o")) {
+        options.providerOptions = {
+          openai: {
+            reasoningEffort: args.thinkingEffort,
+          },
+        };
+      }
+
+      // Anthropic extended thinking budget
+      if (
+        args.thinkingEffort &&
+        modelConfig?.capabilities.includes("extended-thinking")
+      ) {
+        const budgets = { low: 5000, medium: 15000, high: 30000 };
+        options.providerOptions = {
+          anthropic: {
+            thinking: {
+              type: "enabled",
+              budgetTokens: budgets[args.thinkingEffort],
+            },
+          },
+        };
+        options.headers = {
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+        };
+      }
+
+      // Stream from LLM
+      const result = streamText(options);
 
       // 6. Accumulate chunks, throttle DB updates
       let accumulated = "";

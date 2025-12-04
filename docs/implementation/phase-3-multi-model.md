@@ -17,16 +17,20 @@ Integrate OpenAI, Anthropic, Google, Ollama. Model picker UI. Thinking effort co
 ## Models to Support
 
 **OpenAI**:
-- gpt-4o, gpt-4o-mini
+
+- gpt-5, gpt-5-mini
 - o1, o1-mini, o3-mini (reasoning)
 
 **Anthropic**:
+
 - claude-4-opus, claude-4-sonnet, claude-3.5-haiku
 
 **Google**:
+
 - gemini-2.0-flash, gemini-2.5-pro
 
 **Ollama** (local):
+
 - llama, mistral, phi, etc.
 
 ---
@@ -45,10 +49,10 @@ npm install @ai-sdk/anthropic @ai-sdk/google
 
 ```typescript
 // lib/ai/registry.ts
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createProviderRegistry } from 'ai';
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createProviderRegistry } from "ai";
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -64,9 +68,9 @@ const google = createGoogleGenerativeAI({
 
 // Ollama (OpenAI-compatible)
 const ollama = createOpenAI({
-  name: 'ollama',
-  apiKey: 'ollama', // Ollama doesn't require real key
-  baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+  name: "ollama",
+  apiKey: "ollama", // Ollama doesn't require real key
+  baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
 });
 
 export const registry = createProviderRegistry({
@@ -76,7 +80,7 @@ export const registry = createProviderRegistry({
   ollama,
 });
 
-export const DEFAULT_MODEL = 'openai:gpt-4o-mini';
+export const DEFAULT_MODEL = "openai:gpt-4o-mini";
 ```
 
 **Environment variables**:
@@ -97,7 +101,7 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 // lib/ai/models.ts
 export interface ModelConfig {
   id: string;
-  provider: 'openai' | 'anthropic' | 'google' | 'ollama';
+  provider: "openai" | "anthropic" | "google" | "ollama";
   name: string;
   description?: string;
   contextWindow: number;
@@ -107,119 +111,124 @@ export interface ModelConfig {
     cached?: number;
     reasoning?: number;
   };
-  capabilities: ('vision' | 'function-calling' | 'thinking' | 'extended-thinking')[];
+  capabilities: (
+    | "vision"
+    | "function-calling"
+    | "thinking"
+    | "extended-thinking"
+  )[];
   supportsThinkingEffort?: boolean;
   isLocal?: boolean;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // OpenAI
-  'openai:gpt-4o': {
-    id: 'openai:gpt-4o',
-    provider: 'openai',
-    name: 'GPT-4o',
-    description: 'Most capable multimodal model',
+  "openai:gpt-4o": {
+    id: "openai:gpt-4o",
+    provider: "openai",
+    name: "GPT-4o",
+    description: "Most capable multimodal model",
     contextWindow: 128000,
-    pricing: { input: 2.50, output: 10.00, cached: 1.25 },
-    capabilities: ['vision', 'function-calling'],
+    pricing: { input: 2.5, output: 10.0, cached: 1.25 },
+    capabilities: ["vision", "function-calling"],
   },
-  'openai:gpt-4o-mini': {
-    id: 'openai:gpt-4o-mini',
-    provider: 'openai',
-    name: 'GPT-4o Mini',
-    description: 'Fast and affordable',
+  "openai:gpt-4o-mini": {
+    id: "openai:gpt-4o-mini",
+    provider: "openai",
+    name: "GPT-4o Mini",
+    description: "Fast and affordable",
     contextWindow: 128000,
-    pricing: { input: 0.15, output: 0.60, cached: 0.075 },
-    capabilities: ['vision', 'function-calling'],
+    pricing: { input: 0.15, output: 0.6, cached: 0.075 },
+    capabilities: ["vision", "function-calling"],
   },
-  'openai:o1': {
-    id: 'openai:o1',
-    provider: 'openai',
-    name: 'o1',
-    description: 'Advanced reasoning',
+  "openai:o1": {
+    id: "openai:o1",
+    provider: "openai",
+    name: "o1",
+    description: "Advanced reasoning",
     contextWindow: 200000,
-    pricing: { input: 15.00, output: 60.00, reasoning: 15.00 },
-    capabilities: ['thinking'],
+    pricing: { input: 15.0, output: 60.0, reasoning: 15.0 },
+    capabilities: ["thinking"],
     supportsThinkingEffort: true,
   },
-  'openai:o1-mini': {
-    id: 'openai:o1-mini',
-    provider: 'openai',
-    name: 'o1-mini',
-    description: 'Faster reasoning',
+  "openai:o1-mini": {
+    id: "openai:o1-mini",
+    provider: "openai",
+    name: "o1-mini",
+    description: "Faster reasoning",
     contextWindow: 128000,
-    pricing: { input: 3.00, output: 12.00, reasoning: 3.00 },
-    capabilities: ['thinking'],
+    pricing: { input: 3.0, output: 12.0, reasoning: 3.0 },
+    capabilities: ["thinking"],
     supportsThinkingEffort: true,
   },
-  'openai:o3-mini': {
-    id: 'openai:o3-mini',
-    provider: 'openai',
-    name: 'o3-mini',
-    description: 'Latest reasoning model',
+  "openai:o3-mini": {
+    id: "openai:o3-mini",
+    provider: "openai",
+    name: "o3-mini",
+    description: "Latest reasoning model",
     contextWindow: 200000,
-    pricing: { input: 1.10, output: 4.40, reasoning: 1.10 },
-    capabilities: ['thinking'],
+    pricing: { input: 1.1, output: 4.4, reasoning: 1.1 },
+    capabilities: ["thinking"],
     supportsThinkingEffort: true,
   },
 
   // Anthropic
-  'anthropic:claude-4-opus': {
-    id: 'anthropic:claude-4-opus',
-    provider: 'anthropic',
-    name: 'Claude 4 Opus',
-    description: 'Most capable Claude model',
+  "anthropic:claude-4-opus": {
+    id: "anthropic:claude-4-opus",
+    provider: "anthropic",
+    name: "Claude 4 Opus",
+    description: "Most capable Claude model",
     contextWindow: 200000,
-    pricing: { input: 15.00, output: 75.00, cached: 1.50 },
-    capabilities: ['vision', 'thinking', 'extended-thinking'],
+    pricing: { input: 15.0, output: 75.0, cached: 1.5 },
+    capabilities: ["vision", "thinking", "extended-thinking"],
     supportsThinkingEffort: true,
   },
-  'anthropic:claude-4-sonnet': {
-    id: 'anthropic:claude-4-sonnet',
-    provider: 'anthropic',
-    name: 'Claude 4 Sonnet',
-    description: 'Balanced performance',
+  "anthropic:claude-4-sonnet": {
+    id: "anthropic:claude-4-sonnet",
+    provider: "anthropic",
+    name: "Claude 4 Sonnet",
+    description: "Balanced performance",
     contextWindow: 200000,
-    pricing: { input: 3.00, output: 15.00, cached: 0.30 },
-    capabilities: ['vision', 'thinking', 'extended-thinking'],
+    pricing: { input: 3.0, output: 15.0, cached: 0.3 },
+    capabilities: ["vision", "thinking", "extended-thinking"],
     supportsThinkingEffort: true,
   },
-  'anthropic:claude-3.5-haiku': {
-    id: 'anthropic:claude-3.5-haiku',
-    provider: 'anthropic',
-    name: 'Claude 3.5 Haiku',
-    description: 'Fast and affordable',
+  "anthropic:claude-3.5-haiku": {
+    id: "anthropic:claude-3.5-haiku",
+    provider: "anthropic",
+    name: "Claude 3.5 Haiku",
+    description: "Fast and affordable",
     contextWindow: 200000,
-    pricing: { input: 0.80, output: 4.00, cached: 0.08 },
-    capabilities: ['vision'],
+    pricing: { input: 0.8, output: 4.0, cached: 0.08 },
+    capabilities: ["vision"],
   },
 
   // Google
-  'google:gemini-2.0-flash': {
-    id: 'google:gemini-2.0-flash',
-    provider: 'google',
-    name: 'Gemini 2.0 Flash',
-    description: 'Fast multimodal model',
+  "google:gemini-2.0-flash": {
+    id: "google:gemini-2.0-flash",
+    provider: "google",
+    name: "Gemini 2.0 Flash",
+    description: "Fast multimodal model",
     contextWindow: 1000000,
-    pricing: { input: 0.30, output: 1.20, cached: 0.075 },
-    capabilities: ['vision', 'function-calling'],
+    pricing: { input: 0.3, output: 1.2, cached: 0.075 },
+    capabilities: ["vision", "function-calling"],
   },
-  'google:gemini-2.5-pro': {
-    id: 'google:gemini-2.5-pro',
-    provider: 'google',
-    name: 'Gemini 2.5 Pro',
-    description: 'Most capable Gemini',
+  "google:gemini-2.5-pro": {
+    id: "google:gemini-2.5-pro",
+    provider: "google",
+    name: "Gemini 2.5 Pro",
+    description: "Most capable Gemini",
     contextWindow: 2000000,
-    pricing: { input: 2.50, output: 10.00, cached: 0.625 },
-    capabilities: ['vision', 'function-calling', 'thinking'],
+    pricing: { input: 2.5, output: 10.0, cached: 0.625 },
+    capabilities: ["vision", "function-calling", "thinking"],
   },
 
   // Ollama (placeholder - dynamically loaded)
-  'ollama:llama': {
-    id: 'ollama:llama',
-    provider: 'ollama',
-    name: 'Llama (local)',
-    description: 'Local model via Ollama',
+  "ollama:llama": {
+    id: "ollama:llama",
+    provider: "ollama",
+    name: "Llama (local)",
+    description: "Local model via Ollama",
     contextWindow: 128000,
     pricing: { input: 0, output: 0 },
     capabilities: [],
@@ -238,7 +247,7 @@ export function calculateCost(
     outputTokens: number;
     cachedTokens?: number;
     reasoningTokens?: number;
-  }
+  },
 ): number {
   const config = MODEL_CONFIG[model];
   if (!config || config.isLocal) return 0;
@@ -248,7 +257,8 @@ export function calculateCost(
   const cachedCost =
     ((usage.cachedTokens || 0) / 1_000_000) * (config.pricing.cached || 0);
   const reasoningCost =
-    ((usage.reasoningTokens || 0) / 1_000_000) * (config.pricing.reasoning || 0);
+    ((usage.reasoningTokens || 0) / 1_000_000) *
+    (config.pricing.reasoning || 0);
 
   return inputCost + outputCost + cachedCost + reasoningCost;
 }
@@ -503,11 +513,9 @@ export const generateResponse = internalAction({
     messageId: v.id("messages"),
     conversationId: v.id("conversations"),
     model: v.string(),
-    thinkingEffort: v.optional(v.union(
-      v.literal("low"),
-      v.literal("medium"),
-      v.literal("high")
-    )),
+    thinkingEffort: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ),
   },
   handler: async (ctx, args) => {
     try {
@@ -522,7 +530,7 @@ export const generateResponse = internalAction({
       };
 
       // OpenAI o1/o3 reasoning effort
-      if (args.thinkingEffort && args.model.startsWith('openai:o')) {
+      if (args.thinkingEffort && args.model.startsWith("openai:o")) {
         options.providerOptions = {
           openai: {
             reasoningEffort: args.thinkingEffort,
@@ -531,18 +539,21 @@ export const generateResponse = internalAction({
       }
 
       // Anthropic thinking budget
-      if (args.thinkingEffort && modelConfig?.capabilities.includes('extended-thinking')) {
+      if (
+        args.thinkingEffort &&
+        modelConfig?.capabilities.includes("extended-thinking")
+      ) {
         const budgets = { low: 5000, medium: 15000, high: 30000 };
         options.providerOptions = {
           anthropic: {
             thinking: {
-              type: 'enabled',
+              type: "enabled",
               budgetTokens: budgets[args.thinkingEffort],
             },
           },
         };
         options.headers = {
-          'anthropic-beta': 'interleaved-thinking-2025-05-14',
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
         };
       }
 
@@ -566,7 +577,9 @@ export const generateResponse = internalAction({
 // lib/ai/ollama.ts
 export async function checkOllamaStatus(): Promise<boolean> {
   try {
-    const response = await fetch(`${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}/api/tags`);
+    const response = await fetch(
+      `${process.env.OLLAMA_BASE_URL || "http://localhost:11434"}/api/tags`,
+    );
     return response.ok;
   } catch {
     return false;
@@ -575,7 +588,9 @@ export async function checkOllamaStatus(): Promise<boolean> {
 
 export async function listOllamaModels(): Promise<string[]> {
   try {
-    const response = await fetch(`${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}/api/tags`);
+    const response = await fetch(
+      `${process.env.OLLAMA_BASE_URL || "http://localhost:11434"}/api/tags`,
+    );
     if (!response.ok) return [];
 
     const data = await response.json();

@@ -23,7 +23,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <div className={cn("flex group", isUser ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[80%] rounded-lg px-4 py-3 message-enter",
+          "max-w-[80%] rounded-lg px-4 py-3 message-enter [&_.prose]:max-w-none",
           isUser
             ? "bg-primary text-primary-foreground"
             : "bg-card border border-border"
@@ -58,7 +58,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               </Badge>
             )}
 
-            {!isUser && <MessageActions message={message} />}
+            <MessageActions message={message} />
           </>
         )}
       </div>

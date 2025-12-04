@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, RotateCcw, Trash2, Square } from "lucide-react";
+import { Copy, Check, RotateCcw, Trash2, Square, GitBranch } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { useRouter } from "next/navigation";
 
 interface MessageActionsProps {
   message: Doc<"messages">;
@@ -13,9 +14,11 @@ interface MessageActionsProps {
 
 export function MessageActions({ message }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
   const regenerate = useMutation(api.chat.regenerate);
   const deleteMsg = useMutation(api.chat.deleteMessage);
   const stop = useMutation(api.chat.stopGeneration);
+  const branchFromMessage = useMutation(api.chat.branchFromMessage);
 
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
@@ -26,6 +29,17 @@ export function MessageActions({ message }: MessageActionsProps) {
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBranch = async () => {
+    try {
+      const newConversationId = await branchFromMessage({
+        messageId: message._id,
+      });
+      router.push(`/chat/${newConversationId}`);
+    } catch (error) {
+      console.error("Failed to branch:", error);
+    }
   };
 
   return (
@@ -67,6 +81,19 @@ export function MessageActions({ message }: MessageActionsProps) {
         >
           <Square className="w-3 h-3 mr-1" />
           Stop
+        </Button>
+      )}
+
+      {!isGenerating && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={handleBranch}
+          title="Branch from this message"
+        >
+          <GitBranch className="w-3 h-3 mr-1" />
+          Branch
         </Button>
       )}
 

@@ -29,6 +29,15 @@ export default defineSchema({
       budgetHardLimitEnabled: v.optional(v.boolean()), // default true
       // UI settings
       alwaysShowMessageActions: v.optional(v.boolean()), // default false (show on hover)
+      // STT settings
+      sttEnabled: v.optional(v.boolean()), // default true
+      sttProvider: v.optional(
+        v.union(
+          v.literal("openai"),
+          v.literal("deepgram"),
+          v.literal("assemblyai"),
+        ),
+      ), // default "openai"
     }),
     monthlyBudget: v.optional(v.number()),
     budgetAlertThreshold: v.optional(v.number()),

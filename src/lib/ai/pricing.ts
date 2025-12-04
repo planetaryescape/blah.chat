@@ -9,7 +9,7 @@ export type ModelPricing = {
 
 // Re-export from models.ts for backward compatibility
 export const MODEL_PRICING: Record<string, ModelPricing> = Object.fromEntries(
-  Object.entries(MODEL_CONFIG).map(([id, config]) => [id, config.pricing])
+  Object.entries(MODEL_CONFIG).map(([id, config]) => [id, config.pricing]),
 );
 
 export function calculateCost(

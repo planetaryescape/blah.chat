@@ -28,7 +28,9 @@ export async function listOllamaModels(): Promise<string[]> {
 }
 
 // Generate dynamic model configs for Ollama
-export async function getOllamaModelConfigs(): Promise<Record<string, ModelConfig>> {
+export async function getOllamaModelConfigs(): Promise<
+  Record<string, ModelConfig>
+> {
   const models = await listOllamaModels();
   const configs: Record<string, ModelConfig> = {};
 

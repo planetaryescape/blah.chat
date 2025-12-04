@@ -43,8 +43,8 @@ export const list = query({
       .filter((q) =>
         q.or(
           q.eq(q.field("isBuiltIn"), true),
-          q.eq(q.field("userId"), user._id)
-        )
+          q.eq(q.field("userId"), user._id),
+        ),
       )
       .collect();
 

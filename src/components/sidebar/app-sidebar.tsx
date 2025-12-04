@@ -31,6 +31,14 @@ export function AppSidebar() {
   const router = useRouter();
 
   const handleNewChat = async () => {
+    // Check if most recent conversation is empty
+    const mostRecent = conversations?.[0];
+    if (mostRecent && mostRecent.messageCount === 0) {
+      router.push(`/chat/${mostRecent._id}`);
+      return;
+    }
+
+    // Create new conversation
     const conversationId = await createConversation({
       model: "openai:gpt-5-mini",
     });

@@ -19,6 +19,13 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+// Ollama via OpenAI-compatible API
+const ollama = createOpenAI({
+  name: "ollama",
+  apiKey: "ollama", // Ollama doesn't need real key
+  baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+});
+
 export function getModel(modelId: string) {
   const [provider, model] = modelId.split(":");
 
@@ -31,6 +38,10 @@ export function getModel(modelId: string) {
       return google(model);
     case "xai":
       return openrouter(`x-ai/${model}`);
+    case "perplexity":
+      return openrouter(`perplexity/${model}`);
+    case "ollama":
+      return ollama(model);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

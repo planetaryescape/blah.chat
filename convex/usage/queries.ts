@@ -30,17 +30,22 @@ export const getDailySpend = query({
       .collect();
 
     // Group by date
-    const dailyTotals = records.reduce((acc, record) => {
-      const date = record.date;
-      if (!acc[date]) {
-        acc[date] = { date, cost: 0, tokens: 0 };
-      }
-      acc[date].cost += record.cost;
-      acc[date].tokens += record.inputTokens + record.outputTokens;
-      return acc;
-    }, {} as Record<string, { date: string; cost: number; tokens: number }>);
+    const dailyTotals = records.reduce(
+      (acc, record) => {
+        const date = record.date;
+        if (!acc[date]) {
+          acc[date] = { date, cost: 0, tokens: 0 };
+        }
+        acc[date].cost += record.cost;
+        acc[date].tokens += record.inputTokens + record.outputTokens;
+        return acc;
+      },
+      {} as Record<string, { date: string; cost: number; tokens: number }>,
+    );
 
-    return Object.values(dailyTotals).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.values(dailyTotals).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
   },
 });
 
@@ -73,16 +78,22 @@ export const getSpendByModel = query({
       .collect();
 
     // Group by model
-    const modelTotals = records.reduce((acc, record) => {
-      const model = record.model;
-      if (!acc[model]) {
-        acc[model] = { model, cost: 0, tokens: 0, requests: 0 };
-      }
-      acc[model].cost += record.cost;
-      acc[model].tokens += record.inputTokens + record.outputTokens;
-      acc[model].requests += 1;
-      return acc;
-    }, {} as Record<string, { model: string; cost: number; tokens: number; requests: number }>);
+    const modelTotals = records.reduce(
+      (acc, record) => {
+        const model = record.model;
+        if (!acc[model]) {
+          acc[model] = { model, cost: 0, tokens: 0, requests: 0 };
+        }
+        acc[model].cost += record.cost;
+        acc[model].tokens += record.inputTokens + record.outputTokens;
+        acc[model].requests += 1;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { model: string; cost: number; tokens: number; requests: number }
+      >,
+    );
 
     return Object.values(modelTotals).sort((a, b) => b.cost - a.cost);
   },
@@ -110,7 +121,10 @@ export const getMonthlyTotal = query({
       .collect();
 
     const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
-    const totalTokens = records.reduce((sum, r) => sum + r.inputTokens + r.outputTokens, 0);
+    const totalTokens = records.reduce(
+      (sum, r) => sum + r.inputTokens + r.outputTokens,
+      0,
+    );
     const totalRequests = records.length;
 
     return {
@@ -118,7 +132,9 @@ export const getMonthlyTotal = query({
       tokens: totalTokens,
       requests: totalRequests,
       budget: user.monthlyBudget || 0,
-      percentUsed: user.monthlyBudget ? (totalCost / user.monthlyBudget) * 100 : 0,
+      percentUsed: user.monthlyBudget
+        ? (totalCost / user.monthlyBudget) * 100
+        : 0,
     };
   },
 });

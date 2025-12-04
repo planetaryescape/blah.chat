@@ -70,7 +70,8 @@ export const update = mutation({
     const updates: any = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.description !== undefined) updates.description = args.description;
-    if (args.systemPrompt !== undefined) updates.systemPrompt = args.systemPrompt;
+    if (args.systemPrompt !== undefined)
+      updates.systemPrompt = args.systemPrompt;
 
     await ctx.db.patch(args.id, updates);
   },
@@ -150,7 +151,9 @@ export const removeConversation = mutation({
 
     // Remove from project
     await ctx.db.patch(args.projectId, {
-      conversationIds: project.conversationIds.filter((id) => id !== args.conversationId),
+      conversationIds: project.conversationIds.filter(
+        (id) => id !== args.conversationId,
+      ),
       updatedAt: Date.now(),
     });
 

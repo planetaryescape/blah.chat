@@ -6,7 +6,13 @@ export const checkBudget = query({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user?.monthlyBudget) {
-      return { allowed: true, totalSpend: 0, budget: 0, percentUsed: 0, remaining: 0 };
+      return {
+        allowed: true,
+        totalSpend: 0,
+        budget: 0,
+        percentUsed: 0,
+        remaining: 0,
+      };
     }
 
     // Get current month records

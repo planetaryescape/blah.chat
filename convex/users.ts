@@ -121,6 +121,14 @@ export const updatePreferences = mutation({
       autoMemoryExtractInterval: v.optional(v.number()),
       budgetHardLimitEnabled: v.optional(v.boolean()),
       alwaysShowMessageActions: v.optional(v.boolean()),
+      sttEnabled: v.optional(v.boolean()),
+      sttProvider: v.optional(
+        v.union(
+          v.literal("openai"),
+          v.literal("deepgram"),
+          v.literal("assemblyai"),
+        ),
+      ),
     }),
   },
   handler: async (ctx, args) => {

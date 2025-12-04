@@ -13,7 +13,28 @@ export default defineSchema({
       sendOnEnter: v.boolean(),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
+      customInstructions: v.optional(
+        v.object({
+          aboutUser: v.string(),
+          responseStyle: v.string(),
+          enabled: v.boolean(),
+        }),
+      ),
+      // Search settings
+      enableHybridSearch: v.optional(v.boolean()), // default false
+      // Memory settings
+      autoMemoryExtractEnabled: v.optional(v.boolean()), // default true
+      autoMemoryExtractInterval: v.optional(v.number()), // default 5
+      // Budget settings
+      budgetHardLimitEnabled: v.optional(v.boolean()), // default true
+      // UI settings
+      alwaysShowMessageActions: v.optional(v.boolean()), // default false (show on hover)
     }),
+    monthlyBudget: v.optional(v.number()),
+    budgetAlertThreshold: v.optional(v.number()),
+    dailyMessageLimit: v.optional(v.number()), // default 50
+    dailyMessageCount: v.optional(v.number()),
+    lastMessageDate: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -27,6 +48,10 @@ export default defineSchema({
     pinned: v.boolean(),
     archived: v.boolean(),
     starred: v.boolean(),
+    systemPrompt: v.optional(v.string()),
+    projectId: v.optional(v.id("projects")),
+    lastMemoryExtractionAt: v.optional(v.number()),
+    memoryExtractionMessageCount: v.optional(v.number()),
     lastMessageAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -40,6 +65,7 @@ export default defineSchema({
 
   messages: defineTable({
     conversationId: v.id("conversations"),
+    userId: v.optional(v.id("users")),
     role: v.union(
       v.literal("user"),
       v.literal("assistant"),
@@ -58,6 +84,7 @@ export default defineSchema({
     outputTokens: v.optional(v.number()),
     cost: v.optional(v.number()),
     error: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())),
     attachments: v.optional(
       v.array(
         v.object({
@@ -79,7 +106,17 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_conversation", ["conversationId"])
-    .index("by_status", ["status"]),
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["conversationId", "userId"],
+    })
+    .searchIndex("search_content", {
+      searchField: "content",
+      filterFields: ["conversationId", "userId", "role"],
+    }),
 
   memories: defineTable({
     userId: v.id("users"),
@@ -107,10 +144,23 @@ export default defineSchema({
     userId: v.id("users"),
     name: v.string(),
     description: v.optional(v.string()),
+    systemPrompt: v.optional(v.string()),
     conversationIds: v.array(v.id("conversations")),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  files: defineTable({
+    userId: v.id("users"),
+    conversationId: v.optional(v.id("conversations")),
+    storageId: v.id("_storage"),
+    name: v.string(),
+    mimeType: v.string(),
+    size: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_conversation", ["conversationId"]),
 
   bookmarks: defineTable({
     userId: v.id("users"),
@@ -168,7 +218,27 @@ export default defineSchema({
     outputTokens: v.number(),
     cost: v.number(),
     messageCount: v.number(),
+    warningsSent: v.optional(v.array(v.string())),
   })
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"]),
+
+  templates: defineTable({
+    userId: v.optional(v.id("users")),
+    name: v.string(),
+    prompt: v.string(),
+    description: v.optional(v.string()),
+    category: v.string(),
+    isBuiltIn: v.boolean(),
+    isPublic: v.boolean(),
+    usageCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_category", ["category", "isBuiltIn"])
+    .searchIndex("search_templates", {
+      searchField: "name",
+      filterFields: ["userId", "isBuiltIn", "category"],
+    }),
 });

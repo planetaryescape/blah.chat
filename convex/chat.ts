@@ -109,6 +109,11 @@ export const regenerate = mutation({
       modelId,
     });
 
+    // Update conversation timestamp
+    await ctx.runMutation(internal.conversations.updateLastMessageAt, {
+      conversationId: message.conversationId,
+    });
+
     return newMessageId;
   },
 });
@@ -146,6 +151,11 @@ export const stopGeneration = mutation({
         generationCompletedAt: Date.now(),
       });
     }
+
+    // Update conversation timestamp
+    await ctx.runMutation(internal.conversations.updateLastMessageAt, {
+      conversationId: args.conversationId,
+    });
   },
 });
 

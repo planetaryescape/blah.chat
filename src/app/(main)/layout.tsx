@@ -1,6 +1,7 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function MainLayout({
   children,
@@ -8,20 +9,16 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex">
-        {/* Sidebar placeholder */}
-        <aside className="w-64 min-h-screen border-r border-border bg-card p-4">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold text-foreground">blah.chat</h1>
-            <UserButton afterSignOutUrl="/sign-in" />
+    <SidebarProvider>
+      <div className="flex w-full h-screen">
+        <AppSidebar />
+        <main className="flex-1 flex flex-col">
+          <div className="border-b p-2">
+            <SidebarTrigger />
           </div>
-          <p className="text-sm text-muted-foreground">Sidebar placeholder</p>
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1">{children}</main>
+          {children}
+        </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

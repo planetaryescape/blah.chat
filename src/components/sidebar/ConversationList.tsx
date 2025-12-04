@@ -13,7 +13,10 @@ export function ConversationList({ conversations }: { conversations: Doc<"conver
   return (
     <div className="py-2">
       {conversations.map((conversation) => (
-        <ConversationItem key={conversation._id} conversation={conversation} />
+        <ConversationItem
+          key={conversation._id}
+          conversation={conversation}
+        />
       ))}
     </div>
   );

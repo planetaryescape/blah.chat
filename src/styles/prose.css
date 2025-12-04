@@ -1,0 +1,43 @@
+.prose {
+  @apply text-foreground max-w-none;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  @apply font-semibold text-foreground mt-4 mb-2;
+}
+
+.prose a {
+  @apply text-primary underline-offset-4 hover:text-primary/80 transition-colors duration-200;
+}
+
+.prose code {
+  @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-accent;
+}
+
+.prose pre code {
+  @apply bg-transparent px-0 py-0 text-foreground;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary/30 pl-4 italic text-muted-foreground my-4;
+}
+
+.prose ul,
+.prose ol {
+  @apply my-2 ml-4;
+}
+
+.prose li {
+  @apply my-1;
+}
+
+.prose table {
+  @apply border-collapse border border-border my-4;
+}
+
+.prose th,
+.prose td {
+  @apply border border-border px-3 py-2;
+}

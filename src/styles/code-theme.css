@@ -1,0 +1,55 @@
+/* Vesper code theme - works in both light/dark */
+.hljs {
+  background: oklch(var(--muted));
+  color: oklch(var(--foreground));
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  transition: background-color 200ms;
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: oklch(68% 0.15 75); /* warm amber */
+}
+
+.hljs-string,
+.hljs-attr {
+  color: oklch(62% 0.14 150); /* green */
+}
+
+.hljs-function,
+.hljs-title {
+  color: oklch(62% 0.18 230); /* blue */
+}
+
+.hljs-comment {
+  color: oklch(var(--muted-foreground));
+  font-style: italic;
+}
+
+.hljs-number,
+.hljs-literal {
+  color: oklch(65% 0.18 25); /* orange */
+}
+
+.hljs-built_in,
+.hljs-class {
+  color: oklch(70% 0.16 240); /* light blue */
+}
+
+.hljs-variable {
+  color: oklch(var(--foreground));
+}
+
+.hljs-tag {
+  color: oklch(68% 0.15 75);
+}
+
+.hljs-name {
+  color: oklch(62% 0.18 230);
+}
+
+.hljs-operator {
+  color: oklch(var(--foreground));
+}

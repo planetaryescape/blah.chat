@@ -1,19 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function CustomInstructionsForm() {
   const user = useQuery(api.users.getCurrentUser);
-  const updateCustomInstructions = useMutation(api.users.updateCustomInstructions);
+  const updateCustomInstructions = useMutation(
+    api.users.updateCustomInstructions,
+  );
 
   const [aboutUser, setAboutUser] = useState("");
   const [responseStyle, setResponseStyle] = useState("");
@@ -67,7 +75,9 @@ export function CustomInstructionsForm() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="about-user">What would you like AI to know about you?</Label>
+          <Label htmlFor="about-user">
+            What would you like AI to know about you?
+          </Label>
           <Textarea
             id="about-user"
             value={aboutUser}
@@ -75,7 +85,7 @@ export function CustomInstructionsForm() {
             placeholder="e.g., I'm a software engineer working on web apps. I prefer TypeScript and React. I'm learning French."
             maxLength={3000}
             rows={6}
-            className="resize-none"
+            className="resize-none max-h-[200px] min-h-[100px] overflow-y-auto"
           />
           <p className="text-xs text-muted-foreground">
             {aboutUser.length}/3000 characters
@@ -91,7 +101,7 @@ export function CustomInstructionsForm() {
             placeholder="e.g., Be concise and direct. Use code examples. Explain trade-offs."
             maxLength={3000}
             rows={6}
-            className="resize-none"
+            className="resize-none max-h-[200px] min-h-[100px] overflow-y-auto"
           />
           <p className="text-xs text-muted-foreground">
             {responseStyle.length}/3000 characters
@@ -99,11 +109,7 @@ export function CustomInstructionsForm() {
         </div>
 
         <div className="flex items-center space-x-2">
-          <Switch
-            id="enabled"
-            checked={enabled}
-            onCheckedChange={setEnabled}
-          />
+          <Switch id="enabled" checked={enabled} onCheckedChange={setEnabled} />
           <Label htmlFor="enabled" className="cursor-pointer">
             Enable custom instructions
           </Label>

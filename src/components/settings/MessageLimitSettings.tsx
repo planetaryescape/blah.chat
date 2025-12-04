@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,7 +18,9 @@ import { toast } from "sonner";
 
 export function MessageLimitSettings() {
   const user = useQuery(api.users.getCurrentUser);
-  const updateDailyMessageLimit = useMutation(api.users.updateDailyMessageLimit);
+  const updateDailyMessageLimit = useMutation(
+    api.users.updateDailyMessageLimit,
+  );
 
   const [dailyLimit, setDailyLimit] = useState(50);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,8 +108,9 @@ export function MessageLimitSettings() {
 
         <div className="rounded-lg bg-muted p-4">
           <p className="text-sm">
-            <strong>Note:</strong> This limit helps manage usage and costs. You can adjust it
-            anytime. The counter resets automatically at midnight (your local time).
+            <strong>Note:</strong> This limit helps manage usage and costs. You
+            can adjust it anytime. The counter resets automatically at midnight
+            (your local time).
           </p>
         </div>
 

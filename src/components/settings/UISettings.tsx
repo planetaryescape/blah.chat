@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,29 +21,27 @@ export function UISettings() {
 
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
     useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user?.preferences) {
       setAlwaysShowMessageActions(
-        user.preferences.alwaysShowMessageActions ?? false
+        user.preferences.alwaysShowMessageActions ?? false,
       );
     }
   }, [user]);
 
-  const handleSave = async () => {
-    setIsLoading(true);
+  const handleToggleChange = async (checked: boolean) => {
+    setAlwaysShowMessageActions(checked);
     try {
       await updatePreferences({
         preferences: {
-          alwaysShowMessageActions,
+          alwaysShowMessageActions: checked,
         },
       });
       toast.success("UI settings saved!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
-    } finally {
-      setIsLoading(false);
+      setAlwaysShowMessageActions(!checked);
     }
   };
 
@@ -82,14 +79,9 @@ export function UISettings() {
           <Switch
             id="always-show-actions"
             checked={alwaysShowMessageActions}
-            onCheckedChange={setAlwaysShowMessageActions}
+            onCheckedChange={handleToggleChange}
           />
         </div>
-
-        <Button onClick={handleSave} disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Changes
-        </Button>
       </CardContent>
     </Card>
   );

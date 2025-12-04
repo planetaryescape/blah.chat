@@ -18,20 +18,31 @@ Integrate OpenAI, Anthropic, Google, Ollama. Model picker UI. Thinking effort co
 
 **OpenAI**:
 
-- gpt-5, gpt-5-mini
-- o1, o1-mini, o3-mini (reasoning)
+- gpt-5, gpt-5-nano, gpt-5-mini
 
 **Anthropic**:
 
-- claude-4-opus, claude-4-sonnet, claude-3.5-haiku
+- claude-4.5-opus, claude-4.5-sonnet, claude-4.5-haiku
 
 **Google**:
 
-- gemini-2.0-flash, gemini-2.5-pro
+- gemini-2.5-flash, gemini-2.5-pro, gemini-3-pro
+
+**xAI**:
+
+- grok-4, grok-4-fast, grok-4.1-fast
+
+**Perplexity**:
+
+- sonar
 
 **Ollama** (local):
 
-- llama, mistral, phi, etc.
+- llama, mistral, qwen, openai-oss etc.
+
+**OpenRouter**:
+
+- some good models
 
 ---
 

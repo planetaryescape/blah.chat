@@ -25,7 +25,7 @@ export default function TemplatesPage() {
 
   const templates = useQuery(
     api.templates.list,
-    selectedCategory === "all" ? {} : { category: selectedCategory }
+    selectedCategory === "all" ? {} : { category: selectedCategory },
   );
 
   const seedBuiltIn = useMutation(api.templates.builtIn.seedBuiltInTemplates);
@@ -63,7 +63,11 @@ export default function TemplatesPage() {
         </Button>
       </div>
 
-      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+      <Tabs
+        value={selectedCategory}
+        onValueChange={setSelectedCategory}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-5">
           {CATEGORIES.map((cat) => (
             <TabsTrigger key={cat} value={cat}>

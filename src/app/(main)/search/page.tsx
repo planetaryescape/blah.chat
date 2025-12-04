@@ -55,7 +55,11 @@ export default function SearchPage() {
               disabled={isSearching}
             />
           </div>
-          <Button type="submit" size="lg" disabled={isSearching || !query.trim()}>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isSearching || !query.trim()}
+          >
             {isSearching ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -17,7 +17,10 @@ interface ProjectSelectorProps {
   currentProjectId?: Id<"projects">;
 }
 
-export function ProjectSelector({ conversationId, currentProjectId }: ProjectSelectorProps) {
+export function ProjectSelector({
+  conversationId,
+  currentProjectId,
+}: ProjectSelectorProps) {
   const projects = useQuery(api.projects.list);
   const addConversation = useMutation(api.projects.addConversation);
   const removeConversation = useMutation(api.projects.removeConversation);

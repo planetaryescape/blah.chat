@@ -3,7 +3,13 @@
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
@@ -64,7 +70,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 {project.name}
               </CardTitle>
               {project.description && (
-                <CardDescription className="mt-2">{project.description}</CardDescription>
+                <CardDescription className="mt-2">
+                  {project.description}
+                </CardDescription>
               )}
             </div>
           </div>
@@ -81,7 +89,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
             )}
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{project.conversationIds.length} conversation{project.conversationIds.length === 1 ? "" : "s"}</span>
+              <span>
+                {project.conversationIds.length} conversation
+                {project.conversationIds.length === 1 ? "" : "s"}
+              </span>
             </div>
 
             <div className="flex gap-2">
@@ -112,7 +123,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
           </DialogHeader>
-          <ProjectForm project={project} onSuccess={() => setIsEditOpen(false)} />
+          <ProjectForm
+            project={project}
+            onSuccess={() => setIsEditOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
@@ -121,13 +135,16 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the project and unlink all conversations. The conversations
-              themselves will not be deleted.
+              This will remove the project and unlink all conversations. The
+              conversations themselves will not be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

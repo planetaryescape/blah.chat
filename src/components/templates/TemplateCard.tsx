@@ -3,7 +3,13 @@
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, FileText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -84,7 +90,9 @@ export function TemplateCard({ template }: TemplateCardProps) {
                 {template.name}
               </CardTitle>
               {template.description && (
-                <CardDescription className="mt-2">{template.description}</CardDescription>
+                <CardDescription className="mt-2">
+                  {template.description}
+                </CardDescription>
               )}
             </div>
           </div>
@@ -98,7 +106,9 @@ export function TemplateCard({ template }: TemplateCardProps) {
             </div>
 
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="px-2 py-1 bg-secondary rounded-full">{template.category}</span>
+              <span className="px-2 py-1 bg-secondary rounded-full">
+                {template.category}
+              </span>
               <span>{template.usageCount} uses</span>
             </div>
 
@@ -142,7 +152,10 @@ export function TemplateCard({ template }: TemplateCardProps) {
               <DialogHeader>
                 <DialogTitle>Edit Template</DialogTitle>
               </DialogHeader>
-              <TemplateForm template={template} onSuccess={() => setIsEditOpen(false)} />
+              <TemplateForm
+                template={template}
+                onSuccess={() => setIsEditOpen(false)}
+              />
             </DialogContent>
           </Dialog>
 
@@ -156,7 +169,10 @@ export function TemplateCard({ template }: TemplateCardProps) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>

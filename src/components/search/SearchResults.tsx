@@ -3,7 +3,13 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { MessageSquare, User, Bot, Calendar } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -21,7 +27,11 @@ interface SearchResultsProps {
   query: string;
 }
 
-export function SearchResults({ results, isLoading, query }: SearchResultsProps) {
+export function SearchResults({
+  results,
+  isLoading,
+  query,
+}: SearchResultsProps) {
   if (isLoading) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -41,9 +51,12 @@ export function SearchResults({ results, isLoading, query }: SearchResultsProps)
   if (results.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground mb-2">No results found for "{query}"</p>
+        <p className="text-muted-foreground mb-2">
+          No results found for "{query}"
+        </p>
         <p className="text-sm text-muted-foreground">
-          Try different keywords or enable hybrid search in settings for semantic matching
+          Try different keywords or enable hybrid search in settings for
+          semantic matching
         </p>
       </div>
     );
@@ -122,7 +135,7 @@ function highlightText(text: string, query: string): string {
     const regex = new RegExp(`(${escapeRegex(term)})`, "gi");
     highlighted = highlighted.replace(
       regex,
-      '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>'
+      '<mark class="bg-yellow-200 dark:bg-yellow-900">$1</mark>',
     );
   });
 

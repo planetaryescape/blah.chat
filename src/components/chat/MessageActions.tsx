@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, RotateCcw, Trash2, Square, GitBranch } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface MessageActionsProps {
   message: Doc<"messages">;
@@ -15,6 +16,7 @@ interface MessageActionsProps {
 export function MessageActions({ message }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
+  const user = useQuery(api.users.getCurrentUser);
   const regenerate = useMutation(api.chat.regenerate);
   const deleteMsg = useMutation(api.chat.deleteMessage);
   const stop = useMutation(api.chat.stopGeneration);
@@ -22,6 +24,7 @@ export function MessageActions({ message }: MessageActionsProps) {
 
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
+  const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
@@ -43,33 +46,36 @@ export function MessageActions({ message }: MessageActionsProps) {
   };
 
   return (
-    <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-      {!isUser && !isGenerating && (
-        <>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={handleCopy}
-          >
-            {copied ? (
-              <Check className="w-3 h-3 mr-1" />
-            ) : (
-              <Copy className="w-3 h-3 mr-1" />
-            )}
-            {copied ? "Copied" : "Copy"}
-          </Button>
+    <div
+      className={cn(
+        "flex items-center gap-1 mt-2 transition-all duration-200",
+        alwaysShow ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+      )}
+    >
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 text-xs"
+        onClick={handleCopy}
+      >
+        {copied ? (
+          <Check className="w-3 h-3 mr-1" />
+        ) : (
+          <Copy className="w-3 h-3 mr-1" />
+        )}
+        {copied ? "Copied" : "Copy"}
+      </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => regenerate({ messageId: message._id })}
-          >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            Regenerate
-          </Button>
-        </>
+      {!isUser && !isGenerating && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => regenerate({ messageId: message._id })}
+        >
+          <RotateCcw className="w-3 h-3 mr-1" />
+          Regenerate
+        </Button>
       )}
 
       {isGenerating && (

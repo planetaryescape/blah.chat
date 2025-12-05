@@ -135,7 +135,7 @@ export function ChatInput({
   }, [isGenerating]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6">
+    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <form
         ref={formRef}
         onSubmit={handleSubmit}

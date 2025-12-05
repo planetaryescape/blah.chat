@@ -1,8 +1,16 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { mutation } from "./_generated/server";
 import { getCurrentUserOrCreate } from "./lib/userSync";
+
+const attachmentValidator = v.object({
+  type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
+  name: v.string(),
+  storageId: v.string(),
+  mimeType: v.string(),
+  size: v.number(),
+});
 
 export const sendMessage = mutation({
   args: {
@@ -12,21 +20,7 @@ export const sendMessage = mutation({
     thinkingEffort: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ),
-    attachments: v.optional(
-      v.array(
-        v.object({
-          type: v.union(
-            v.literal("file"),
-            v.literal("image"),
-            v.literal("audio"),
-          ),
-          name: v.string(),
-          storageId: v.string(),
-          mimeType: v.string(),
-          size: v.number(),
-        }),
-      ),
-    ),
+    attachments: v.optional(v.array(attachmentValidator)),
   },
   handler: async (
     ctx,
@@ -99,7 +93,7 @@ export const sendMessage = mutation({
       assistantMessageId,
       modelId,
       userId: user._id,
-      thinkingEffort: args.thinkingEffort,
+      thinkingEffort: args.thinkingEffort as any,
     });
 
     // 7. Increment daily message count
@@ -141,7 +135,7 @@ export const sendMessage = mutation({
     }
 
     // 10. Return immediately
-    return { conversationId, messageId: assistantMessageId };
+    return { conversationId: conversationId!, messageId: assistantMessageId };
   },
 });
 
@@ -168,8 +162,18 @@ export const regenerate = mutation({
       .collect();
 
     const index = allMessages.findIndex((m) => m._id === args.messageId);
+    const deletedCount = allMessages.slice(index).length;
     for (const msg of allMessages.slice(index)) {
       await ctx.db.delete(msg._id);
+    }
+
+    // Decrement messageCount by deleted count
+    // Note: Creating new message below will increment by 1
+    const conv = await ctx.db.get(message.conversationId);
+    if (conv && deletedCount > 0) {
+      await ctx.db.patch(message.conversationId, {
+        messageCount: Math.max(0, (conv.messageCount || 0) - deletedCount),
+      });
     }
 
     // Priority: message.model → conversation.model → user.preferences.defaultModel
@@ -211,7 +215,22 @@ export const deleteMessage = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    const message = await ctx.db.get(args.messageId);
+    if (!message) throw new Error("Message not found");
+
     await ctx.db.delete(args.messageId);
+
+    // Decrement conversation messageCount
+    const conversation = await ctx.db.get(message.conversationId);
+    if (
+      conversation &&
+      conversation.messageCount &&
+      conversation.messageCount > 0
+    ) {
+      await ctx.db.patch(message.conversationId, {
+        messageCount: conversation.messageCount - 1,
+      });
+    }
   },
 });
 
@@ -247,6 +266,86 @@ export const stopGeneration = mutation({
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
       conversationId: args.conversationId,
     });
+  },
+});
+
+export const retryMessage = mutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args): Promise<Id<"messages">> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await getCurrentUserOrCreate(ctx);
+    const userMessage = await ctx.db.get(args.messageId);
+    if (!userMessage) throw new Error("Message not found");
+    if (userMessage.role !== "user") {
+      throw new Error("Can only retry user messages");
+    }
+
+    const conversation = await ctx.db.get(userMessage.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+
+    // Find failed AI message (next message after user message)
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", userMessage.conversationId),
+      )
+      .order("asc")
+      .collect();
+
+    const userIndex = allMessages.findIndex((m) => m._id === args.messageId);
+    const aiMessage = allMessages[userIndex + 1];
+
+    if (!aiMessage) throw new Error("No message to retry");
+    if (aiMessage.status !== "error") {
+      throw new Error("Can only retry failed messages");
+    }
+
+    // Delete failed AI message + all following messages
+    const deletedCount = allMessages.slice(userIndex + 1).length;
+    for (const msg of allMessages.slice(userIndex + 1)) {
+      await ctx.db.delete(msg._id);
+    }
+
+    // Decrement messageCount by deleted count
+    const conv = await ctx.db.get(userMessage.conversationId);
+    if (conv && deletedCount > 0) {
+      await ctx.db.patch(userMessage.conversationId, {
+        messageCount: Math.max(0, (conv.messageCount || 0) - deletedCount),
+      });
+    }
+
+    // Priority: aiMessage.model → conversation.model → user.preferences.defaultModel
+    const modelId =
+      aiMessage.model || conversation.model || user.preferences.defaultModel;
+
+    // Create new pending assistant message
+    const newMessageId: Id<"messages"> = await ctx.runMutation(
+      internal.messages.create,
+      {
+        conversationId: userMessage.conversationId,
+        userId: conversation.userId,
+        role: "assistant",
+        status: "pending",
+        model: modelId,
+      },
+    );
+
+    // Schedule generation
+    await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+      conversationId: userMessage.conversationId,
+      assistantMessageId: newMessageId,
+      modelId,
+      userId: conversation.userId,
+    });
+
+    // Update conversation timestamp
+    await ctx.runMutation(internal.conversations.updateLastMessageAt, {
+      conversationId: userMessage.conversationId,
+    });
+
+    return newMessageId;
   },
 });
 

@@ -206,9 +206,12 @@ export function VirtualizedMessageList({
                   <ChatMessage
                     message={item.data}
                     nextMessage={(() => {
-                      if (virtualItem.index + 1 >= grouped.length) return undefined;
+                      if (virtualItem.index + 1 >= grouped.length)
+                        return undefined;
                       const nextItem = grouped[virtualItem.index + 1];
-                      return nextItem.type === "message" ? nextItem.data : undefined;
+                      return nextItem.type === "message"
+                        ? nextItem.data
+                        : undefined;
                     })()}
                   />
                 ) : (

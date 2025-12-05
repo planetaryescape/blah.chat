@@ -29,38 +29,71 @@ export interface ModelConfig {
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // OpenAI
-  "openai:gpt-5.1-instant": {
-    id: "openai:gpt-5.1-instant",
+  "openai:gpt-5.1": {
+    id: "openai:gpt-5.1",
     provider: "openai",
-    name: "GPT-5.1 Instant",
-    description: "Fast, conversational, and improved instruction following",
+    name: "GPT-5.1",
+    description:
+      "The best model for coding and agentic tasks with configurable reasoning effort.",
     contextWindow: 200000,
-    pricing: { input: 0.1, output: 0.4, cached: 0.05 },
-    capabilities: ["vision", "function-calling"],
-  },
-  "openai:gpt-5.1-thinking": {
-    id: "openai:gpt-5.1-thinking",
-    provider: "openai",
-    name: "GPT-5.1 Thinking",
-    description: "Adaptive reasoning with dynamic thinking time",
-    contextWindow: 200000,
-    pricing: { input: 5.0, output: 20.0, reasoning: 5.0 },
-    capabilities: ["thinking", "vision"],
+    pricing: { input: 5.0, output: 20.0, reasoning: 5.0 }, // Estimated based on flagship pricing
+    capabilities: ["thinking", "vision", "function-calling"],
     supportsThinkingEffort: true,
   },
-  "openai:gpt-4o": {
-    id: "openai:gpt-4o",
+  "openai:gpt-5-pro": {
+    id: "openai:gpt-5-pro",
     provider: "openai",
-    name: "GPT-4o",
-    description: "Reliable multimodal flagship",
+    name: "GPT-5 Pro",
+    description:
+      "Version of GPT-5 that produces smarter and more precise responses",
+    contextWindow: 200000,
+    pricing: { input: 10.0, output: 40.0, reasoning: 10.0 }, // Estimated higher tier
+    capabilities: ["thinking", "vision", "function-calling"],
+    supportsThinkingEffort: true,
+  },
+  "openai:gpt-5": {
+    id: "openai:gpt-5",
+    provider: "openai",
+    name: "GPT-5",
+    description:
+      "Previous intelligent reasoning model for coding and agentic tasks.",
     contextWindow: 128000,
-    pricing: { input: 2.5, output: 10.0, cached: 1.25 },
+    pricing: { input: 2.5, output: 10.0, reasoning: 2.5 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    supportsThinkingEffort: true,
+  },
+  "openai:gpt-5-mini": {
+    id: "openai:gpt-5-mini",
+    provider: "openai",
+    name: "GPT-5 Mini",
+    description:
+      "A faster, cost-efficient version of GPT-5 for well-defined tasks",
+    contextWindow: 128000,
+    pricing: { input: 0.15, output: 0.6, cached: 0.075 },
+    capabilities: ["vision", "function-calling"],
+  },
+  "openai:gpt-5-nano": {
+    id: "openai:gpt-5-nano",
+    provider: "openai",
+    name: "GPT-5 Nano",
+    description: "Fastest, most cost-efficient version of GPT-5",
+    contextWindow: 128000,
+    pricing: { input: 0.05, output: 0.2, cached: 0.025 },
+    capabilities: ["vision", "function-calling"],
+  },
+  "openai:gpt-4.1": {
+    id: "openai:gpt-4.1",
+    provider: "openai",
+    name: "GPT-4.1",
+    description: "Smartest non-reasoning model",
+    contextWindow: 128000,
+    pricing: { input: 1.0, output: 4.0 }, // Estimated
     capabilities: ["vision", "function-calling"],
   },
 
   // Anthropic
-  "anthropic:claude-4.5-opus": {
-    id: "anthropic:claude-4.5-opus",
+  "anthropic:claude-opus-4-5-20251101": {
+    id: "anthropic:claude-opus-4-5-20251101",
     provider: "anthropic",
     name: "Claude 4.5 Opus",
     description: "Most capable Claude for complex tasks",
@@ -69,8 +102,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["vision", "thinking", "extended-thinking"],
     supportsThinkingEffort: true,
   },
-  "anthropic:claude-4.5-sonnet": {
-    id: "anthropic:claude-4.5-sonnet",
+  "anthropic:claude-sonnet-4-5-20250929": {
+    id: "anthropic:claude-sonnet-4-5-20250929",
     provider: "anthropic",
     name: "Claude 4.5 Sonnet",
     description: "Balanced performance and speed",
@@ -79,16 +112,26 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["vision", "thinking", "extended-thinking"],
     supportsThinkingEffort: true,
   },
+  "anthropic:claude-haiku-4-5-20251001": {
+    id: "anthropic:claude-haiku-4-5-20251001",
+    provider: "anthropic",
+    name: "Claude 4.5 Haiku",
+    description: "Fast and cost-effective",
+    contextWindow: 200000,
+    pricing: { input: 0.25, output: 1.25, cached: 0.03 }, // Estimated pricing
+    capabilities: ["vision", "function-calling"],
+  },
 
   // Google
-  "google:gemini-3-pro": {
-    id: "google:gemini-3-pro",
+  "google:gemini-3-pro-preview": {
+    id: "google:gemini-3-pro-preview",
     provider: "google",
     name: "Gemini 3 Pro",
-    description: "Google's most intelligent AI model",
-    contextWindow: 2000000,
-    pricing: { input: 2.5, output: 10.0, cached: 0.625 },
+    description: "Google's most capable AI model",
+    contextWindow: 1048576,
+    pricing: { input: 0, output: 0 }, // Preview pricing
     capabilities: ["vision", "function-calling", "thinking"],
+    supportsThinkingEffort: true,
   },
   "google:gemini-3-deep-think": {
     id: "google:gemini-3-deep-think",
@@ -98,6 +141,15 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 2000000,
     pricing: { input: 5.0, output: 15.0, cached: 1.25 },
     capabilities: ["vision", "function-calling", "thinking"],
+  },
+  "google:gemini-3-pro-image-preview": {
+    id: "google:gemini-3-pro-image-preview",
+    provider: "google",
+    name: "Gemini 3 Pro Image",
+    description: "Image generation model",
+    contextWindow: 1048576,
+    pricing: { input: 0, output: 0 }, // Preview pricing
+    capabilities: ["vision"],
   },
 
   // xAI

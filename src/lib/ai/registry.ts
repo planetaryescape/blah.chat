@@ -46,7 +46,7 @@ export function getModel(modelId: string) {
         "sonar-pro": "perplexity/sonar-pro",
         "sonar-deep-research": "perplexity/sonar-deep-research",
         "sonar-reasoning": "perplexity/sonar-reasoning",
-        "sonar": "perplexity/sonar",
+        sonar: "perplexity/sonar",
       };
       return openrouter(perplexityMap[model] || `perplexity/${model}`);
     case "openrouter":
@@ -71,4 +71,4 @@ export function getModel(modelId: string) {
   }
 }
 
-export const DEFAULT_MODEL = "openai:gpt-5.1-instant";
+export const DEFAULT_MODEL = "openai:gpt-5.1";

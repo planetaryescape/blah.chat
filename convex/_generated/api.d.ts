@@ -38,6 +38,7 @@ import type * as usage_checkBudget from "../usage/checkBudget.js";
 import type * as usage_mutations from "../usage/mutations.js";
 import type * as usage_queries from "../usage/queries.js";
 import type * as users from "../users.js";
+import type * as votes from "../votes.js";
 
 import type {
   ApiFromModules,
@@ -76,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   "usage/mutations": typeof usage_mutations;
   "usage/queries": typeof usage_queries;
   users: typeof users;
+  votes: typeof votes;
 }>;
 
 /**

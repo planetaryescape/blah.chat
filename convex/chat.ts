@@ -16,7 +16,8 @@ export const sendMessage = mutation({
   args: {
     conversationId: v.optional(v.id("conversations")),
     content: v.string(),
-    modelId: v.optional(v.string()),
+    modelId: v.optional(v.string()), // Single model (backwards compat)
+    models: v.optional(v.array(v.string())), // NEW: Array for comparison
     thinkingEffort: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ),
@@ -27,7 +28,9 @@ export const sendMessage = mutation({
     args,
   ): Promise<{
     conversationId: Id<"conversations">;
-    messageId: Id<"messages">;
+    messageId?: Id<"messages">; // Single mode
+    assistantMessageIds?: Id<"messages">[]; // Comparison mode
+    comparisonGroupId?: string;
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
@@ -52,8 +55,13 @@ export const sendMessage = mutation({
     // 2. Check budget (if enabled)
     // TODO: Re-enable budget check after convex schema migration
 
-    // Use provided model or user's default
-    const modelId = args.modelId || user.preferences.defaultModel;
+    // Determine models to use
+    const modelsToUse = args.models || [args.modelId || user.preferences.defaultModel];
+
+    // Generate comparison group ID if multiple models
+    const comparisonGroupId = modelsToUse.length > 1
+      ? crypto.randomUUID()
+      : undefined;
 
     // 3. Get or create conversation
     let conversationId = args.conversationId;
@@ -62,13 +70,13 @@ export const sendMessage = mutation({
         internal.conversations.createInternal,
         {
           userId: user._id,
-          model: modelId,
+          model: modelsToUse[0], // Primary model
           title: "New Chat",
         },
       );
     }
 
-    // 4. Insert user message
+    // 4. Insert user message (single)
     await ctx.runMutation(internal.messages.create, {
       conversationId,
       userId: user._id,
@@ -78,23 +86,29 @@ export const sendMessage = mutation({
       status: "complete",
     });
 
-    // 5. Insert pending assistant message
-    const assistantMessageId = await ctx.runMutation(internal.messages.create, {
-      conversationId,
-      userId: user._id,
-      role: "assistant",
-      status: "pending",
-      model: modelId,
-    });
+    // 5. Insert N pending assistant messages
+    const assistantMessageIds: Id<"messages">[] = [];
 
-    // 6. Schedule generation action (non-blocking)
-    await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
-      conversationId,
-      assistantMessageId,
-      modelId,
-      userId: user._id,
-      thinkingEffort: args.thinkingEffort as any,
-    });
+    for (const model of modelsToUse) {
+      const msgId = await ctx.runMutation(internal.messages.create, {
+        conversationId,
+        userId: user._id,
+        role: "assistant",
+        status: "pending",
+        model,
+        comparisonGroupId, // Link all responses
+      });
+      assistantMessageIds.push(msgId);
+
+      // 6. Schedule generation action (non-blocking)
+      await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+        conversationId,
+        assistantMessageId: msgId,
+        modelId: model,
+        userId: user._id,
+        thinkingEffort: args.thinkingEffort as any,
+      });
+    }
 
     // 7. Increment daily message count
     await ctx.db.patch(user._id, {
@@ -135,7 +149,12 @@ export const sendMessage = mutation({
     }
 
     // 10. Return immediately
-    return { conversationId: conversationId!, messageId: assistantMessageId };
+    return {
+      conversationId: conversationId!,
+      messageId: modelsToUse.length === 1 ? assistantMessageIds[0] : undefined,
+      assistantMessageIds: modelsToUse.length > 1 ? assistantMessageIds : undefined,
+      comparisonGroupId,
+    };
   },
 });
 

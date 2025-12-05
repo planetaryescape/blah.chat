@@ -9,7 +9,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { buildBasePromptOptions, getBasePrompt } from "./lib/prompts/base";
 import { formatMemoriesByCategory } from "./lib/prompts/formatting";
-import { calculateConversationTokens } from "./tokens/counting";
+import { calculateConversationTokensAsync } from "./tokens/counting";
 
 export * as image from "./generation/image";
 
@@ -340,7 +340,7 @@ export const generateResponse = internalAction({
           : JSON.stringify(msg.content),
       );
 
-      const tokenUsage = calculateConversationTokens(
+      const tokenUsage = await calculateConversationTokensAsync(
         systemPromptStrings,
         [], // No memory prompts - now accessed via tools
         allMessagesForCounting,

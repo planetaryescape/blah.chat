@@ -36,6 +36,7 @@ export default defineSchema({
           v.literal("openai"),
           v.literal("deepgram"),
           v.literal("assemblyai"),
+          v.literal("groq"),
         ),
       ), // default "openai"
       // Comparison settings

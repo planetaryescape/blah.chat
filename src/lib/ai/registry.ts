@@ -2,6 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createGroq } from "@ai-sdk/groq";
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -24,6 +25,10 @@ const ollama = createOpenAI({
   name: "ollama",
   apiKey: "ollama", // Ollama doesn't need real key
   baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+});
+
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 export function getModel(modelId: string) {
@@ -66,6 +71,8 @@ export function getModel(modelId: string) {
       return openrouter(openRouterMap[model] || model);
     case "ollama":
       return ollama(model);
+    case "groq":
+      return groq(model);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

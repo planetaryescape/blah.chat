@@ -87,7 +87,10 @@ async function buildSystemPrompts(
   // 4. Memory retrieval (pre-fetch approach)
   if (args.userMessage) {
     try {
-      console.log("[Memory] Searching for memories with query:", args.userMessage);
+      console.log(
+        "[Memory] Searching for memories with query:",
+        args.userMessage,
+      );
       // @ts-ignore
       const memories = await ctx.runAction(
         internal.memories.search.hybridSearch,

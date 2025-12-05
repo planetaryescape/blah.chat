@@ -20,7 +20,11 @@ export function MessageList({ messages }: MessageListProps) {
   // Scroll on new content (new messages or streaming updates)
   useEffect(() => {
     scrollToBottom("smooth");
-  }, [messages.length, messages[messages.length - 1]?.partialContent, scrollToBottom]);
+  }, [
+    messages.length,
+    messages[messages.length - 1]?.partialContent,
+    scrollToBottom,
+  ]);
 
   if (messages.length === 0) {
     return (

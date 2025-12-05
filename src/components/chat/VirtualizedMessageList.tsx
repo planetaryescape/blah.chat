@@ -36,7 +36,12 @@ export function VirtualizedMessageList({
     if (autoScroll) {
       scrollToBottom("smooth");
     }
-  }, [messages.length, messages[messages.length - 1]?.partialContent, autoScroll, scrollToBottom]);
+  }, [
+    messages.length,
+    messages[messages.length - 1]?.partialContent,
+    autoScroll,
+    scrollToBottom,
+  ]);
 
   // Only use virtualization for long conversations
   const useVirtualization = messages.length > 50;
@@ -44,7 +49,10 @@ export function VirtualizedMessageList({
   if (!useVirtualization) {
     // Render normally for short conversations
     return (
-      <div ref={containerRef} className="flex flex-col gap-4 px-4 py-6 h-full overflow-auto relative">
+      <div
+        ref={containerRef}
+        className="flex flex-col gap-4 px-4 py-6 h-full overflow-auto relative"
+      >
         {messages.map((message: any) => (
           <ChatMessage key={message._id} message={message} />
         ))}

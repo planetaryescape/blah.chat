@@ -28,9 +28,7 @@ export function useAutoScroll(
   const checkIfAtBottom = useCallback(
     (container: HTMLElement): boolean => {
       return (
-        container.scrollHeight -
-          container.scrollTop -
-          container.clientHeight <
+        container.scrollHeight - container.scrollTop - container.clientHeight <
         threshold
       );
     },

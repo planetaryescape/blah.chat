@@ -2,7 +2,6 @@
 
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
-import { useConvexAuth } from "convex/react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
     ArrowRight,
@@ -19,7 +18,6 @@ import Link from "next/link";
 import { useRef } from "react";
 
 export default function LandingPage() {
-  const { isAuthenticated } = useConvexAuth();
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -41,9 +39,7 @@ export default function LandingPage() {
           variant="outline"
           className="rounded-full border-white/20 hover:bg-white/10 hover:text-white text-white bg-transparent backdrop-blur-sm"
         >
-          <Link href={isAuthenticated ? "/app" : "/sign-up"}>
-            {isAuthenticated ? "Enter App" : "Get Started"}
-          </Link>
+          <Link href="/sign-up">Get Started</Link>
         </Button>
       </nav>
 
@@ -359,7 +355,7 @@ export default function LandingPage() {
               size="lg"
               className="h-16 px-12 rounded-full text-xl font-bold bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105"
             >
-              <Link href={isAuthenticated ? "/app" : "/sign-up"}>
+              <Link href="/sign-up">
                 Start Chatting <ArrowRight className="ml-2 w-6 h-6" />
               </Link>
             </Button>

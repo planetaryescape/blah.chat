@@ -77,14 +77,22 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="pt-6 px-4">
         <div className="flex items-center justify-between px-2">
-          <div className="hidden group-data-[collapsible=icon]:hidden sm:block">
+          <Link
+            href="/"
+            className="hidden group-data-[collapsible=icon]:hidden sm:block hover:opacity-80 transition-opacity"
+          >
             <Logo size="md" />
-          </div>
-          <div className="group-data-[collapsible=icon]:block hidden">
+          </Link>
+          <Link
+            href="/"
+            className="group-data-[collapsible=icon]:block hidden hover:opacity-80 transition-opacity"
+          >
             <Logo size="sm" showText={false} />
-          </div>
+          </Link>
           <div className="sm:hidden">
-            <Logo size="sm" />
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <Logo size="sm" />
+            </Link>
           </div>
         </div>
 

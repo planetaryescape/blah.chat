@@ -1,38 +1,54 @@
-"use client";
-
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import {
-  BarChart3,
-  Bookmark,
-  Brain,
-  FileText,
-  FolderKanban,
-  Plus,
-  Search,
-  Settings,
+    BarChart3,
+    Bookmark,
+    Brain,
+    FileText,
+    FolderKanban,
+    MoreHorizontal,
+    Plus,
+    Search,
+    Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ConversationList } from "./ConversationList";
+
+const MENU_ITEMS = [
+  { icon: Search, label: "Search", href: "/search" },
+  { icon: Brain, label: "Memories", href: "/memories" },
+  { icon: FolderKanban, label: "Projects", href: "/projects" },
+  { icon: FileText, label: "Templates", href: "/templates" },
+  { icon: BarChart3, label: "Usage", href: "/usage" },
+  { icon: Bookmark, label: "Bookmarks", href: "/bookmarks" },
+  { icon: Settings, label: "Settings", href: "/settings" },
+];
 
 export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,6 +56,7 @@ export function AppSidebar() {
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const router = useRouter();
+  const { isMobile } = useSidebar();
 
   const handleNewChat = async () => {
     // Check if most recent conversation is empty
@@ -72,6 +89,9 @@ export function AppSidebar() {
   const filteredConversations = conversations?.filter((conv: any) =>
     conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const displayedItems = isMobile ? MENU_ITEMS.slice(0, 3) : MENU_ITEMS;
+  const overflowItems = isMobile ? MENU_ITEMS.slice(3) : [];
 
   return (
     <Sidebar collapsible="icon">
@@ -140,62 +160,43 @@ export function AppSidebar() {
 
       <SidebarFooter className="pb-4">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Search">
-              <Link href="/search">
-                <Search className="w-4 h-4" />
-                <span>Search</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Memories">
-              <Link href="/memories">
-                <Brain className="w-4 h-4" />
-                <span>Memories</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Projects">
-              <Link href="/projects">
-                <FolderKanban className="w-4 h-4" />
-                <span>Projects</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Templates">
-              <Link href="/templates">
-                <FileText className="w-4 h-4" />
-                <span>Templates</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Usage">
-              <Link href="/usage">
-                <BarChart3 className="w-4 h-4" />
-                <span>Usage</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Bookmarks">
-              <Link href="/bookmarks">
-                <Bookmark className="w-4 h-4" />
-                <span>Bookmarks</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings">
-              <Link href="/settings">
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {displayedItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton asChild tooltip={item.label}>
+                <Link href={item.href}>
+                  <item.icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+
+          {isMobile && overflowItems.length > 0 && (
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton tooltip="More">
+                    <MoreHorizontal className="w-4 h-4" />
+                    <span>More</span>
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="right"
+                  align="end"
+                  className="w-48 bg-sidebar border-sidebar-border"
+                >
+                  {overflowItems.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href} className="flex items-center gap-2 cursor-pointer">
+                        <item.icon className="w-4 h-4 text-muted-foreground" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
         <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
           <div className="flex items-center justify-between">

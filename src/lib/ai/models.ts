@@ -7,7 +7,8 @@ export interface ModelConfig {
     | "xai"
     | "perplexity"
     | "ollama"
-    | "openrouter";
+    | "openrouter"
+    | "groq";
   name: string;
   description?: string;
   contextWindow: number;
@@ -300,6 +301,109 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0, output: 0 },
     capabilities: [],
+  },
+
+  // Groq - Production
+  "groq:llama-3.1-8b-instant": {
+    id: "groq:llama-3.1-8b-instant",
+    provider: "groq",
+    name: "Llama 3.1 8B Instant",
+    description: "Ultra-fast 8B model (560 T/sec)",
+    contextWindow: 128000,
+    pricing: { input: 0.05, output: 0.08 },
+    capabilities: ["function-calling"],
+  },
+  "groq:llama-3.3-70b-versatile": {
+    id: "groq:llama-3.3-70b-versatile",
+    provider: "groq",
+    name: "Llama 3.3 70B Versatile",
+    description: "Balanced 70B model with tool use",
+    contextWindow: 128000,
+    pricing: { input: 0.59, output: 0.79 },
+    capabilities: ["function-calling"],
+  },
+  "groq:llama-guard-4-12b": {
+    id: "groq:llama-guard-4-12b",
+    provider: "groq",
+    name: "Llama Guard 4 12B",
+    description: "Content moderation (1200 T/sec)",
+    contextWindow: 128000,
+    pricing: { input: 0.2, output: 0.2 },
+    capabilities: [],
+  },
+  "groq:gpt-oss-120b": {
+    id: "groq:gpt-oss-120b",
+    provider: "groq",
+    name: "GPT-OSS 120B",
+    description: "OpenAI flagship open MoE",
+    contextWindow: 128000,
+    pricing: { input: 0.15, output: 0.75 },
+    capabilities: ["function-calling"],
+  },
+  "groq:gpt-oss-20b": {
+    id: "groq:gpt-oss-20b",
+    provider: "groq",
+    name: "GPT-OSS 20B",
+    description: "Compact MoE (1000 T/sec)",
+    contextWindow: 131000,
+    pricing: { input: 0.1, output: 0.5 },
+    capabilities: ["function-calling"],
+  },
+  "groq:groq-compound": {
+    id: "groq:groq-compound",
+    provider: "groq",
+    name: "Groq Compound",
+    description: "Multi-tool agentic system (web + code)",
+    contextWindow: 128000,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["function-calling"],
+  },
+  "groq:groq-compound-mini": {
+    id: "groq:groq-compound-mini",
+    provider: "groq",
+    name: "Groq Compound Mini",
+    description: "Single-tool agentic (3x faster)",
+    contextWindow: 128000,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["function-calling"],
+  },
+
+  // Groq - Preview
+  "groq:moonshotai-kimi-k2-instruct-0905": {
+    id: "groq:moonshotai-kimi-k2-instruct-0905",
+    provider: "groq",
+    name: "Kimi K2 Instruct (Preview)",
+    description: "1T MoE with 262K context",
+    contextWindow: 262000,
+    pricing: { input: 1.0, output: 3.0 },
+    capabilities: ["function-calling"],
+  },
+  "groq:qwen-qwen3-32b": {
+    id: "groq:qwen-qwen3-32b",
+    provider: "groq",
+    name: "Qwen3 32B (Preview)",
+    description: "Dual-mode reasoning + dialogue",
+    contextWindow: 131000,
+    pricing: { input: 0.29, output: 0.59 },
+    capabilities: ["function-calling", "thinking"],
+  },
+  "groq:llama-4-maverick-17b-128e-instruct": {
+    id: "groq:llama-4-maverick-17b-128e-instruct",
+    provider: "groq",
+    name: "Llama 4 Maverick (Preview)",
+    description: "17B MoE multimodal (400B total)",
+    contextWindow: 131000,
+    pricing: { input: 0.2, output: 0.6 },
+    capabilities: ["vision", "function-calling"],
+  },
+  "groq:llama-4-scout-17b-16e-instruct": {
+    id: "groq:llama-4-scout-17b-16e-instruct",
+    provider: "groq",
+    name: "Llama 4 Scout (Preview)",
+    description: "Fast 17B multimodal (750 T/sec)",
+    contextWindow: 131000,
+    pricing: { input: 0.11, output: 0.34 },
+    capabilities: ["vision", "function-calling"],
   },
 };
 export function getModelConfig(modelId: string): ModelConfig | undefined {

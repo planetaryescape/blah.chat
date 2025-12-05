@@ -12,6 +12,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.53",
     "@ai-sdk/google": "^2.0.44",
+    "@ai-sdk/groq": "^2.0.32",
     "@ai-sdk/openai": "^2.0.77",
     "@anthropic-ai/sdk": "^0.71.1",
     "@clerk/nextjs": "^6.35.6",

@@ -9,7 +9,8 @@ import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
-import { useQuery } from "convex/react";
+import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
@@ -23,8 +24,9 @@ export default function ChatPage({
   const router = useRouter();
 
   const conversation = useQuery(
-    api.conversations.get as any,
-    (conversationId ? { conversationId } : "skip") as any,
+    // @ts-ignore - Convex type inference depth issue with conditional skip
+    api.conversations.get,
+    conversationId ? { conversationId } : "skip",
   );
   const messages = useQuery(
     api.messages.list,
@@ -46,6 +48,37 @@ export default function ChatPage({
       size: number;
     }>
   >([]);
+
+  const { isActive, selectedModels, startComparison, exitComparison } =
+    useComparisonMode();
+
+  const recordVote = useMutation(api.votes.recordVote);
+  const createConsolidation = useMutation(
+    api.conversations.createConsolidationConversation,
+  );
+
+  const handleVote = async (winnerId: string, rating: string) => {
+    const msg = messages?.find((m: Doc<"messages">) => m._id === winnerId);
+    if (msg?.comparisonGroupId) {
+      const voteRating = rating as "left_better" | "right_better" | "tie" | "both_bad";
+      await recordVote({
+        comparisonGroupId: msg.comparisonGroupId,
+        winnerId: msg._id,
+        rating: voteRating,
+      });
+    }
+  };
+
+  const handleConsolidate = async (model: string) => {
+    const msg = messages?.find((m: Doc<"messages">) => m.comparisonGroupId);
+    if (msg?.comparisonGroupId) {
+      const { conversationId: newConvId } = await createConsolidation({
+        comparisonGroupId: msg.comparisonGroupId,
+        consolidationModel: model,
+      });
+      router.push(`/chat/${newConvId}`);
+    }
+  };
 
   // Sync with conversation model on load
   useEffect(() => {
@@ -115,7 +148,12 @@ export default function ChatPage({
         </div>
       </header>
 
-      <MessageList messages={messages} />
+      <MessageList
+        messages={messages}
+        onVote={handleVote}
+        onConsolidate={handleConsolidate}
+        showModelNames={user?.preferences?.showModelNamesDuringComparison ?? false}
+      />
 
       <ChatInput
         conversationId={conversationId}
@@ -126,6 +164,10 @@ export default function ChatPage({
         onThinkingEffortChange={setThinkingEffort}
         attachments={attachments}
         onAttachmentsChange={setAttachments}
+        isComparisonMode={isActive}
+        selectedModels={selectedModels}
+        onStartComparison={startComparison}
+        onExitComparison={exitComparison}
       />
     </div>
   );

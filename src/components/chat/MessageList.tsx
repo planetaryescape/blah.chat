@@ -3,20 +3,47 @@
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ChatMessage } from "./ChatMessage";
+import { ComparisonView } from "./ComparisonView";
 
 interface MessageListProps {
   messages: Doc<"messages">[];
+  onVote?: (winnerId: string, rating: string) => void;
+  onConsolidate?: (model: string) => void;
+  showModelNames?: boolean;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({
+  messages,
+  onVote,
+  onConsolidate,
+  showModelNames = false,
+}: MessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
     useAutoScroll({
       threshold: 100,
       animationDuration: 400,
     });
+
+  // Group messages by comparison
+  const grouped = useMemo(() => {
+    const regular: Doc<"messages">[] = [];
+    const comparisons: Record<string, Doc<"messages">[]> = {};
+
+    for (const msg of messages) {
+      if (msg.comparisonGroupId) {
+        comparisons[msg.comparisonGroupId] ||= [];
+        comparisons[msg.comparisonGroupId].push(msg);
+      } else {
+        regular.push(msg);
+      }
+    }
+
+    return { regular, comparisons };
+  }, [messages]);
 
   // Scroll on new content (new messages or streaming updates)
   useEffect(() => {
@@ -43,17 +70,36 @@ export function MessageList({ messages }: MessageListProps) {
     <div
       ref={containerRef}
       className="flex-1 w-full min-w-0 overflow-y-auto p-4 space-y-4 relative"
+      style={{
+        contain: "layout style paint",
+        contentVisibility: "auto",
+      }}
     >
-      {messages.map((message, index) => {
-        const nextMessage = messages[index + 1];
-        return (
-          <ChatMessage
-            key={message._id}
-            message={message}
-            nextMessage={nextMessage}
-          />
-        );
-      })}
+      <AnimatePresence mode="popLayout">
+        {grouped.regular.map((message, index) => {
+          const nextMessage = grouped.regular[index + 1];
+          return (
+            <motion.div
+              key={message._id}
+              layout
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            >
+              <ChatMessage message={message} nextMessage={nextMessage} />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+
+      {Object.entries(grouped.comparisons).map(([id, msgs]) => (
+        <ComparisonView
+          key={id}
+          messages={msgs}
+          comparisonGroupId={id}
+          showModelNames={showModelNames}
+          onVote={onVote || (() => {})}
+          onConsolidate={onConsolidate || (() => {})}
+        />
+      ))}
 
       {showScrollButton && (
         <Button

@@ -29,6 +29,9 @@ import {
     ThinkingEffortSelector,
     type ThinkingEffort,
 } from "./ThinkingEffortSelector";
+import { ComparisonTrigger } from "./ComparisonTrigger";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 interface ChatInputProps {
   conversationId: Id<"conversations">;
@@ -39,6 +42,10 @@ interface ChatInputProps {
   onThinkingEffortChange?: (effort: ThinkingEffort) => void;
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
+  isComparisonMode?: boolean;
+  selectedModels?: string[];
+  onStartComparison?: (models: string[]) => void;
+  onExitComparison?: () => void;
 }
 
 export function ChatInput({
@@ -50,6 +57,10 @@ export function ChatInput({
   onThinkingEffortChange,
   attachments,
   onAttachmentsChange,
+  isComparisonMode = false,
+  selectedModels = [],
+  onStartComparison,
+  onExitComparison,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -288,16 +299,36 @@ export function ChatInput({
         </div>
 
         <div className="px-4 pb-2 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <ModelSelector
-              value={selectedModel}
-              onChange={onModelChange}
-              className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
-            />
-            {supportsThinking && thinkingEffort && onThinkingEffortChange && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {isComparisonMode && onExitComparison ? (
+              <Badge variant="secondary" className="mr-2 flex items-center gap-2">
+                Comparing {selectedModels.length} models
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={onExitComparison}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </Badge>
+            ) : (
+              <ModelSelector
+                value={selectedModel}
+                onChange={onModelChange}
+                className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
+              />
+            )}
+            {supportsThinking && thinkingEffort && onThinkingEffortChange && !isComparisonMode && (
               <ThinkingEffortSelector
                 value={thinkingEffort}
                 onChange={onThinkingEffortChange}
+              />
+            )}
+            {onStartComparison && (
+              <ComparisonTrigger
+                onStartComparison={onStartComparison}
+                isActive={isComparisonMode}
               />
             )}
           </div>

@@ -3,11 +3,11 @@
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_MODEL } from "@/lib/ai/registry";
 import {
-    Authenticated,
-    Unauthenticated,
-    useConvexAuth,
-    useMutation,
-    useQuery,
+  Authenticated,
+  Unauthenticated,
+  useConvexAuth,
+  useMutation,
+  useQuery,
 } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";

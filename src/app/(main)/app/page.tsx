@@ -1,32 +1,45 @@
 "use client";
 
-import { useEffect } from "react";
-import { useMutation, useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useRouter } from "next/navigation";
-import { Authenticated, Unauthenticated } from "convex/react";
 import { DEFAULT_MODEL } from "@/lib/ai/registry";
+import {
+    Authenticated,
+    Unauthenticated,
+    useConvexAuth,
+    useMutation,
+    useQuery,
+} from "convex/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
-export default function HomePage() {
+export default function AppPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const createConversation = useMutation(api.conversations.create);
-  const conversations = useQuery(api.conversations.list);
+  const conversations = useQuery(api.conversations.list, {});
+  const navigationStarted = useRef(false);
 
+  // Redirect unauthenticated users to sign-in
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/sign-in");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  // Navigate to chat when authenticated and data loaded
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
     if (conversations === undefined) return; // Query loading
+    if (navigationStarted.current) return; // Already navigating
 
-    let cancelled = false;
+    navigationStarted.current = true;
 
     const handleNavigation = async () => {
       // Check if most recent conversation is empty
       const mostRecent = conversations[0];
       if (mostRecent && mostRecent.messageCount === 0) {
         // Reuse empty conversation
-        if (!cancelled) {
-          router.push(`/chat/${mostRecent._id}`);
-        }
+        router.push(`/chat/${mostRecent._id}`);
         return;
       }
 
@@ -35,19 +48,11 @@ export default function HomePage() {
         model: DEFAULT_MODEL,
         title: "New Chat",
       });
-      if (!cancelled) {
-        router.push(`/chat/${conversationId}`);
-      }
+      router.push(`/chat/${conversationId}`);
     };
 
     handleNavigation();
-
-    return () => {
-      cancelled = true;
-    };
-    // Only run when auth state changes, not when conversations update
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, conversations, router, createConversation]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

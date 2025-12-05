@@ -1,9 +1,60 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Component, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
-import { Skeleton } from "@/components/ui/skeleton";
+
+interface CodeBlockErrorBoundaryProps {
+  children: ReactNode;
+  code: string;
+  language?: string;
+}
+
+interface CodeBlockErrorBoundaryState {
+  hasError: boolean;
+}
+
+/**
+ * Specialized error boundary for code blocks
+ * Shows a plain text fallback if syntax highlighting completely fails
+ */
+class CodeBlockErrorBoundary extends Component<
+  CodeBlockErrorBoundaryProps,
+  CodeBlockErrorBoundaryState
+> {
+  constructor(props: CodeBlockErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): CodeBlockErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.warn("[CodeBlock] Render error caught by boundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Fallback: render as plain preformatted text
+      return (
+        <div className="relative group my-4">
+          <div className="flex items-center justify-between bg-muted/50 px-4 py-2 rounded-t border-b border-border">
+            <span className="text-xs text-muted-foreground font-mono">
+              {this.props.language || "code"}
+            </span>
+          </div>
+          <pre className="rounded-b overflow-x-auto max-h-[600px] overflow-y-auto w-full p-4 bg-[#24292e] text-[#e1e4e8]">
+            <code>{this.props.code}</code>
+          </pre>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 interface MarkdownContentProps {
   content: string;
@@ -68,10 +119,18 @@ export function MarkdownContent({
             const match = /language-(\w+)/.exec(className || "");
             const code = String(children).replace(/\n$/, "");
             const inline = !match && !className;
-            return !inline && match ? (
-              <CodeBlock code={code} language={match[1]} />
-            ) : (
-              <CodeBlock code={code} inline />
+
+            // Inline code doesn't need error boundary (simple rendering)
+            if (inline) {
+              return <CodeBlock code={code} inline />;
+            }
+
+            // Wrap code blocks in error boundary for graceful degradation
+            const language = match?.[1];
+            return (
+              <CodeBlockErrorBoundary code={code} language={language}>
+                <CodeBlock code={code} language={language} />
+              </CodeBlockErrorBoundary>
             );
           },
         }}

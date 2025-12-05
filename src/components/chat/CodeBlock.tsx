@@ -1,6 +1,6 @@
+import { highlightCode } from "@/lib/highlighter";
 import { cn } from "@/lib/utils";
 import { ClientCodeControls } from "./ClientCodeControls";
-import { highlightCode } from "@/lib/highlighter";
 
 interface CodeBlockProps {
   code: string;
@@ -45,8 +45,8 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
       <div className="relative">
         <div
           className={cn(
-            "rounded-b overflow-x-auto max-h-[600px] overflow-y-auto",
-            "[&>pre]:m-0 [&>pre]:p-4",
+            "rounded-b overflow-x-auto max-h-[600px] overflow-y-auto w-full",
+            "[&>pre]:m-0 [&>pre]:p-4 [&>pre]:w-full [&>pre]:overflow-x-auto",
           )}
           dangerouslySetInnerHTML={{ __html: html }}
         />

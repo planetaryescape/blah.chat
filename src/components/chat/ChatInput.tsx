@@ -13,8 +13,8 @@ import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
 import { ImageGenerateButton } from "./ImageGenerateButton";
-import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
 import { RateLimitDialog } from "./RateLimitDialog";
+import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -26,8 +26,8 @@ interface Attachment {
 
 import { ModelSelector } from "./ModelSelector";
 import {
-  ThinkingEffortSelector,
-  type ThinkingEffort,
+    ThinkingEffortSelector,
+    type ThinkingEffort,
 } from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
@@ -135,7 +135,7 @@ export function ChatInput({
   }, [isGenerating]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 pb-6">
+    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6">
       <form
         ref={formRef}
         onSubmit={handleSubmit}

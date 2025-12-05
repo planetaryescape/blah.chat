@@ -1,9 +1,9 @@
-import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
-import { internal } from "../_generated/api";
-import { streamText } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { streamText } from "ai";
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
+import { internalAction } from "../_generated/server";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY!,
@@ -85,6 +85,8 @@ export const generateTitle = internalAction({
   handler: async (ctx, args) => {
     try {
       // Get all messages in conversation
+      // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
+      // @ts-ignore
       const messages = await ctx.runQuery(internal.messages.listInternal, {
         conversationId: args.conversationId,
       });

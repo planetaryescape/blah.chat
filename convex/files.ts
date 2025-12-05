@@ -51,6 +51,21 @@ export const getFileUrl = query({
 });
 
 /**
+ * Get URLs for multiple attachments (batch fetch)
+ */
+export const getAttachmentUrls = query({
+  args: { storageIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    return Promise.all(
+      args.storageIds.map(async (id) => ({
+        storageId: id,
+        url: await ctx.storage.getUrl(id),
+      })),
+    );
+  },
+});
+
+/**
  * List files for a conversation
  */
 export const listByConversation = query({

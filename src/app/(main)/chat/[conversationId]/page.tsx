@@ -48,6 +48,9 @@ export default function ChatPage({
       size: number;
     }>
   >([]);
+  const [showModelNamesOverride, setShowModelNamesOverride] = useState<
+    boolean | null
+  >(null);
 
   const { isActive, selectedModels, startComparison, exitComparison } =
     useComparisonMode();
@@ -60,7 +63,11 @@ export default function ChatPage({
   const handleVote = async (winnerId: string, rating: string) => {
     const msg = messages?.find((m: Doc<"messages">) => m._id === winnerId);
     if (msg?.comparisonGroupId) {
-      const voteRating = rating as "left_better" | "right_better" | "tie" | "both_bad";
+      const voteRating = rating as
+        | "left_better"
+        | "right_better"
+        | "tie"
+        | "both_bad";
       await recordVote({
         comparisonGroupId: msg.comparisonGroupId,
         winnerId: msg._id,
@@ -78,6 +85,20 @@ export default function ChatPage({
       });
       router.push(`/chat/${newConvId}`);
     }
+  };
+
+  // Compute effective showModelNames (local override takes precedence)
+  const showModelNames =
+    showModelNamesOverride ??
+    user?.preferences?.showModelNamesDuringComparison ??
+    false;
+
+  const handleToggleModelNames = () => {
+    setShowModelNamesOverride((prev) => {
+      const current =
+        prev ?? user?.preferences?.showModelNamesDuringComparison ?? false;
+      return !current;
+    });
   };
 
   // Sync with conversation model on load
@@ -152,7 +173,8 @@ export default function ChatPage({
         messages={messages}
         onVote={handleVote}
         onConsolidate={handleConsolidate}
-        showModelNames={user?.preferences?.showModelNamesDuringComparison ?? false}
+        onToggleModelNames={handleToggleModelNames}
+        showModelNames={showModelNames}
       />
 
       <ChatInput

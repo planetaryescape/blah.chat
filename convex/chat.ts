@@ -56,17 +56,19 @@ export const sendMessage = mutation({
     // TODO: Re-enable budget check after convex schema migration
 
     // Determine models to use
-    const modelsToUse = args.models || [args.modelId || user.preferences.defaultModel];
+    const modelsToUse = args.models || [
+      args.modelId || user.preferences.defaultModel,
+    ];
 
     // Generate comparison group ID if multiple models
-    const comparisonGroupId = modelsToUse.length > 1
-      ? crypto.randomUUID()
-      : undefined;
+    const comparisonGroupId =
+      modelsToUse.length > 1 ? crypto.randomUUID() : undefined;
 
     // 3. Get or create conversation
     let conversationId = args.conversationId;
     if (!conversationId) {
       conversationId = await ctx.runMutation(
+        // @ts-ignore - Type instantiation depth issue with internal mutations
         internal.conversations.createInternal,
         {
           userId: user._id,
@@ -84,6 +86,7 @@ export const sendMessage = mutation({
       content: args.content,
       attachments: args.attachments,
       status: "complete",
+      comparisonGroupId, // Link to comparison group if multi-model
     });
 
     // 5. Insert N pending assistant messages
@@ -152,7 +155,8 @@ export const sendMessage = mutation({
     return {
       conversationId: conversationId!,
       messageId: modelsToUse.length === 1 ? assistantMessageIds[0] : undefined,
-      assistantMessageIds: modelsToUse.length > 1 ? assistantMessageIds : undefined,
+      assistantMessageIds:
+        modelsToUse.length > 1 ? assistantMessageIds : undefined,
       comparisonGroupId,
     };
   },

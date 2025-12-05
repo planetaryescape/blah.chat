@@ -1,7 +1,17 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,14 +19,36 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, Brain, Trash2, Calendar } from "lucide-react";
-import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
+import { Brain, Calendar, Eye, EyeOff, Loader2, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function MemoriesPage() {
-  const memories = useQuery(api.memories.list);
+  const memories = useQuery(api.memories.listAll);
   const deleteMemory = useMutation(api.memories.deleteMemory);
+  const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Load toggle state from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("showMemoryReasoning");
+    if (stored) {
+      setShowReasoning(JSON.parse(stored));
+    }
+  }, []);
+
+  // Save toggle state to localStorage
+  const toggleReasoning = () => {
+    const newValue = !showReasoning;
+    setShowReasoning(newValue);
+    localStorage.setItem("showMemoryReasoning", JSON.stringify(newValue));
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -27,19 +59,40 @@ export default function MemoriesPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteAllMemories({});
+      toast.success(`Deleted ${result.deleted} memories`);
+    } catch (error) {
+      toast.error("Failed to delete memories");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Helper: Get importance badge color
+  const getImportanceBadge = (importance: number) => {
+    if (importance >= 9) {
+      return "bg-orange-500/20 text-orange-700 dark:text-orange-300";
+    }
+    if (importance >= 7) {
+      return "bg-blue-500/20 text-blue-700 dark:text-blue-300";
+    }
+    return "bg-gray-500/20 text-gray-700 dark:text-gray-300";
+  };
+
   if (memories === undefined) {
     return (
-      <div className="container mx-auto max-w-6xl py-8 px-4">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   const groupedMemories = memories.reduce<Record<string, typeof memories>>(
-    (acc, memory) => {
-      const category = memory.metadata?.category || "other";
+    (acc: Record<string, typeof memories>, memory: any) => {
+      const category = (memory.metadata?.category as string) || "other";
       if (!acc[category]) acc[category] = [];
       acc[category].push(memory);
       return acc;
@@ -72,78 +125,185 @@ export default function MemoriesPage() {
     };
 
   return (
-    <div className="container mx-auto max-w-6xl py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Memories</h1>
-        <p className="text-muted-foreground">
-          AI-extracted facts from your conversations. These help personalize
-          responses.
-        </p>
-      </div>
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+      {/* Background gradients */}
+      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
 
-      {memories.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6 pb-8">
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No memories yet</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                As you chat, AI will automatically extract memorable facts. You
-                can also manually trigger extraction using the "Extract
-                Memories" button in any conversation.
+      {/* Fixed Header */}
+      <div className="flex-none z-50 bg-background/60 backdrop-blur-xl border-b border-border/40 shadow-sm transition-all duration-200">
+        <div className="container mx-auto max-w-6xl px-4 py-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Memories
+              </h1>
+              <p className="text-muted-foreground">
+                AI-extracted facts from your conversations. Only high-quality
+                memories (importance 7+) are saved.
               </p>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedMemories).map(
-            ([category, categoryMemories]) => {
-              const label = categoryLabels[category] || {
-                title: category,
-                description: "Other memories",
-              };
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleReasoning}
+                className="gap-2"
+              >
+                {showReasoning ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    Hide reasoning
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Show reasoning
+                  </>
+                )}
+              </Button>
+              {memories && memories.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={isDeleting}
+                      className="gap-2"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Delete all
+                        </>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete all memories?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete all {memories.length}{" "}
+                        {memories.length === 1 ? "memory" : "memories"}. This
+                        action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAll}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete all
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* Gradient Glow */}
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-orange-500/5 pointer-events-none" />
+      </div>
 
-              return (
-                <Card key={category}>
-                  <CardHeader>
-                    <CardTitle>{label.title}</CardTitle>
-                    <CardDescription>{label.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {categoryMemories.map((memory) => (
-                        <div
-                          key={memory._id}
-                          className="flex items-start justify-between gap-4 p-3 rounded-lg bg-muted/50"
-                        >
-                          <div className="flex-1 space-y-1">
-                            <p className="text-sm">{memory.content}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              {formatDistanceToNow(memory.createdAt, {
-                                addSuffix: true,
-                              })}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(memory._id)}
-                            className="h-8 w-8 shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1 w-full min-h-0">
+        <div className="container mx-auto max-w-6xl px-4 py-8">
+          {memories.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 pb-8">
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Brain className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">
+                    No memories yet
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    As you chat, AI will automatically extract memorable facts.
+                    You can also manually trigger extraction using the "Extract
+                    Memories" button in any conversation.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(groupedMemories).map(
+                ([category, categoryMemories]) => {
+                  const label = categoryLabels[category] || {
+                    title: category,
+                    description: "Other memories",
+                  };
+
+                  return (
+                    <Card key={category}>
+                      <CardHeader>
+                        <CardTitle>{label.title}</CardTitle>
+                        <CardDescription>{label.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {(categoryMemories || []).map((memory: any) => {
+                            const importance = memory.metadata?.importance || 0;
+                            const reasoning = memory.metadata?.reasoning;
+
+                            return (
+                              <div
+                                key={memory._id}
+                                className="flex items-start justify-between gap-4 p-3 rounded-lg bg-muted/50"
+                              >
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-start gap-2">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getImportanceBadge(importance)}`}
+                                      title={`Importance: ${importance}/10`}
+                                    >
+                                      {importance}
+                                    </span>
+                                    <p className="text-sm flex-1">
+                                      {memory.content}
+                                    </p>
+                                  </div>
+
+                                  {showReasoning && reasoning && (
+                                    <p className="text-xs text-muted-foreground italic pl-8">
+                                      "{reasoning}"
+                                    </p>
+                                  )}
+
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Calendar className="h-3 w-3" />
+                                    {formatDistanceToNow(memory.createdAt, {
+                                      addSuffix: true,
+                                    })}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(memory._id)}
+                                  className="h-8 w-8 shrink-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            },
+                      </CardContent>
+                    </Card>
+                  );
+                },
+              )}
+            </div>
           )}
         </div>
-      )}
+      </ScrollArea>
     </div>
   );
 }

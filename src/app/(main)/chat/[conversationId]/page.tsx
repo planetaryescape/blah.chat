@@ -2,10 +2,10 @@
 
 import { ChatInput } from "@/components/chat/ChatInput";
 import { MessageList } from "@/components/chat/MessageList";
-import {
-  ThinkingEffortSelector,
-  type ThinkingEffort,
-} from "@/components/chat/ThinkingEffortSelector";
+import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
+import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
+import { ShareDialog } from "@/components/chat/ShareDialog";
+import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
@@ -23,8 +23,8 @@ export default function ChatPage({
   const router = useRouter();
 
   const conversation = useQuery(
-    api.conversations.get,
-    conversationId ? { conversationId } : "skip",
+    api.conversations.get as any,
+    (conversationId ? { conversationId } : "skip") as any,
   );
   const messages = useQuery(
     api.messages.list,
@@ -33,9 +33,7 @@ export default function ChatPage({
   const user = useQuery(api.users.getCurrentUser);
 
   const [selectedModel, setSelectedModel] = useState<string>(
-    conversation?.model ||
-      user?.preferences.defaultModel ||
-      "openai:gpt-5-mini",
+    conversation?.model || user?.preferences.defaultModel || "openai:gpt-5.1",
   );
   const [thinkingEffort, setThinkingEffort] =
     useState<ThinkingEffort>("medium");
@@ -96,6 +94,8 @@ export default function ChatPage({
 
   const modelConfig = getModelConfig(selectedModel);
   const showThinkingEffort = modelConfig?.supportsThinkingEffort;
+  const hasMessages = messages.length > 0;
+  const messageCount = conversation?.messageCount || 0;
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
@@ -105,12 +105,13 @@ export default function ChatPage({
         </h1>
 
         <div className="flex items-center gap-2">
-          {showThinkingEffort && (
-            <ThinkingEffortSelector
-              value={thinkingEffort}
-              onChange={setThinkingEffort}
-            />
+          {messageCount >= 3 && (
+            <ExtractMemoriesButton conversationId={conversationId} />
           )}
+          {hasMessages && (
+            <ContextWindowIndicator conversationId={conversationId} />
+          )}
+          {hasMessages && <ShareDialog conversationId={conversationId} />}
         </div>
       </header>
 
@@ -122,6 +123,7 @@ export default function ChatPage({
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
         thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
+        onThinkingEffortChange={setThinkingEffort}
         attachments={attachments}
         onAttachmentsChange={setAttachments}
       />

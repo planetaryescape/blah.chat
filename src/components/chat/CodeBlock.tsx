@@ -34,7 +34,11 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
   // Defer syntax highlighting to avoid blocking during streaming
   useEffect(() => {
     // Skip re-highlighting if code hasn't changed
-    if (codeRef.current === code && languageRef.current === language && highlightedHTML) {
+    if (
+      codeRef.current === code &&
+      languageRef.current === language &&
+      highlightedHTML
+    ) {
       return;
     }
 

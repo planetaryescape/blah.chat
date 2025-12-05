@@ -32,6 +32,7 @@ import type * as shares_password from "../shares/password.js";
 import type * as templates from "../templates.js";
 import type * as templates_builtIn from "../templates/builtIn.js";
 import type * as tokens_counting from "../tokens/counting.js";
+import type * as tokens_service from "../tokens/service.js";
 import type * as transcription from "../transcription.js";
 import type * as usage from "../usage.js";
 import type * as usage_checkBudget from "../usage/checkBudget.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   templates: typeof templates;
   "templates/builtIn": typeof templates_builtIn;
   "tokens/counting": typeof tokens_counting;
+  "tokens/service": typeof tokens_service;
   transcription: typeof transcription;
   usage: typeof usage;
   "usage/checkBudget": typeof usage_checkBudget;

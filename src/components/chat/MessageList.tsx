@@ -12,17 +12,22 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages }: MessageListProps) {
-  const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
-    threshold: 100,
-    animationDuration: 400,
-  });
+  const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
+    useAutoScroll({
+      threshold: 100,
+      animationDuration: 400,
+    });
 
   // Scroll on new content (new messages or streaming updates)
   useEffect(() => {
-    scrollToBottom("smooth");
+    // Only auto-scroll if user is at bottom (hasn't scrolled up)
+    if (isAtBottom) {
+      scrollToBottom("smooth");
+    }
   }, [
     messages.length,
     messages[messages.length - 1]?.partialContent,
+    isAtBottom,
     scrollToBottom,
   ]);
 
@@ -37,7 +42,7 @@ export function MessageList({ messages }: MessageListProps) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto p-4 space-y-4 relative"
+      className="flex-1 w-full min-w-0 overflow-y-auto p-4 space-y-4 relative"
     >
       {messages.map((message, index) => {
         const nextMessage = messages[index + 1];

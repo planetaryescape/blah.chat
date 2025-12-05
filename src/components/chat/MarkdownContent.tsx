@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MarkdownContentProps {
   content: string;

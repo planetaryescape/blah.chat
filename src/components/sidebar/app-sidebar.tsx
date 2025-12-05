@@ -5,21 +5,30 @@ import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
-import { Plus, Search, Settings } from "lucide-react";
+import {
+  BarChart3,
+  Bookmark,
+  Brain,
+  FileText,
+  FolderKanban,
+  Plus,
+  Search,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -27,7 +36,8 @@ import { ConversationList } from "./ConversationList";
 
 export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
-  const conversations = useQuery(api.conversations.list);
+  // @ts-ignore
+  const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const router = useRouter();
 
@@ -71,7 +81,7 @@ export function AppSidebar() {
             <Logo size="md" />
           </div>
           <div className="group-data-[collapsible=icon]:block hidden">
-            <Logo size="sm" />
+            <Logo size="sm" showText={false} />
           </div>
           <div className="sm:hidden">
             <Logo size="sm" />
@@ -112,7 +122,7 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <SidebarGroup>
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
           <SidebarGroupContent>
             <ConversationList conversations={filteredConversations || []} />
@@ -122,6 +132,54 @@ export function AppSidebar() {
 
       <SidebarFooter className="pb-4">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Search">
+              <Link href="/search">
+                <Search className="w-4 h-4" />
+                <span>Search</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Memories">
+              <Link href="/memories">
+                <Brain className="w-4 h-4" />
+                <span>Memories</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Projects">
+              <Link href="/projects">
+                <FolderKanban className="w-4 h-4" />
+                <span>Projects</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Templates">
+              <Link href="/templates">
+                <FileText className="w-4 h-4" />
+                <span>Templates</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Usage">
+              <Link href="/usage">
+                <BarChart3 className="w-4 h-4" />
+                <span>Usage</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Bookmarks">
+              <Link href="/bookmarks">
+                <Bookmark className="w-4 h-4" />
+                <span>Bookmarks</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Settings">
               <Link href="/settings">

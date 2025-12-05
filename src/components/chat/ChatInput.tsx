@@ -6,13 +6,15 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
-import { useMutation } from "convex/react";
-import { Loader2, Send, Square } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { Loader2, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
+import { ImageGenerateButton } from "./ImageGenerateButton";
 import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
+import { RateLimitDialog } from "./RateLimitDialog";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -23,13 +25,18 @@ interface Attachment {
 }
 
 import { ModelSelector } from "./ModelSelector";
+import {
+  ThinkingEffortSelector,
+  type ThinkingEffort,
+} from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
   conversationId: Id<"conversations">;
   isGenerating: boolean;
   selectedModel: string;
   onModelChange: (modelId: string) => void;
-  thinkingEffort?: "low" | "medium" | "high";
+  thinkingEffort?: ThinkingEffort;
+  onThinkingEffortChange?: (effort: ThinkingEffort) => void;
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
 }
@@ -40,6 +47,7 @@ export function ChatInput({
   selectedModel,
   onModelChange,
   thinkingEffort,
+  onThinkingEffortChange,
   attachments,
   onAttachmentsChange,
 }: ChatInputProps) {
@@ -52,18 +60,22 @@ export function ChatInput({
   );
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [showRateLimitDialog, setShowRateLimitDialog] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const voiceInputRef = useRef<VoiceInputRef>(null);
 
+  // @ts-ignore
   const sendMessage = useMutation(api.chat.sendMessage);
+  const user = useQuery(api.users.getCurrentUser);
 
   const isExpanded = input.length > 50;
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
   const supportsVision = modelConfig?.capabilities?.includes("vision") ?? false;
+  const supportsThinking = modelConfig?.supportsThinkingEffort ?? false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +92,15 @@ export function ChatInput({
       });
       setInput("");
       onAttachmentsChange([]);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Daily message limit")
+      ) {
+        setShowRateLimitDialog(true);
+      } else {
+        console.error("Failed to send message:", error);
+      }
     } finally {
       setIsSending(false);
     }
@@ -105,6 +126,13 @@ export function ChatInput({
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
+
+  // Auto-focus when AI finishes generating
+  useEffect(() => {
+    if (!isGenerating && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isGenerating]);
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-6">
@@ -148,26 +176,12 @@ export function ChatInput({
 
           {/* Textarea or Waveform */}
           {isRecording ? (
-            <div className="relative w-full min-h-[60px] flex items-center justify-center rounded-xl bg-primary/5 my-1">
+            <div className="relative w-full min-h-[60px] flex items-center justify-center rounded-xl bg-primary/5 my-1 overflow-hidden">
               <AudioWaveform
                 stream={recordingStream!}
-                height={40}
-                className="absolute inset-0"
+                height={60}
+                className="absolute inset-0 w-full h-full"
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => voiceInputRef.current?.stopRecording("preview")}
-                className="relative z-10 h-10 w-10 rounded-full bg-destructive/20 hover:bg-destructive/30"
-              >
-                <Square className="h-4 w-4 fill-destructive text-destructive" />
-              </Button>
-              {isTranscribing && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20 rounded-xl">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              )}
             </div>
           ) : (
             <Textarea
@@ -186,6 +200,15 @@ export function ChatInput({
 
           {/* Send button & Mic (right side) */}
           <div className="pb-1.5 pr-1 flex items-center gap-1">
+            {input.trim() && (
+              <ImageGenerateButton
+                conversationId={conversationId}
+                initialPrompt={input}
+                variant="ghost"
+                size="icon"
+                iconOnly
+              />
+            )}
             {(supportsVision ||
               (typeof window !== "undefined" &&
                 "webkitSpeechRecognition" in window)) && (
@@ -205,6 +228,15 @@ export function ChatInput({
                           attachments.length > 0 ? attachments : undefined,
                       });
                       onAttachmentsChange([]);
+                    } catch (error) {
+                      if (
+                        error instanceof Error &&
+                        error.message.includes("Daily message limit")
+                      ) {
+                        setShowRateLimitDialog(true);
+                      } else {
+                        console.error("Failed to send message:", error);
+                      }
                     } finally {
                       setIsSending(false);
                     }
@@ -262,12 +294,24 @@ export function ChatInput({
               onChange={onModelChange}
               className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
             />
+            {supportsThinking && thinkingEffort && onThinkingEffortChange && (
+              <ThinkingEffortSelector
+                value={thinkingEffort}
+                onChange={onThinkingEffortChange}
+              />
+            )}
           </div>
           <span className="text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase">
             Shift + Enter for new line
           </span>
         </div>
       </form>
+
+      <RateLimitDialog
+        open={showRateLimitDialog}
+        onOpenChange={setShowRateLimitDialog}
+        limit={user?.dailyMessageLimit || 50}
+      />
     </div>
   );
 }

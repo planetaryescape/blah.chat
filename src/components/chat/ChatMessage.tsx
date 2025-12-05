@@ -8,25 +8,45 @@ import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { memo } from "react";
-import { AttachmentIndicators } from "./AttachmentIndicators";
+import { AttachmentRenderer } from "./AttachmentRenderer";
 import { MarkdownContent } from "./MarkdownContent";
 import { MessageActions } from "./MessageActions";
 
 interface ChatMessageProps {
   message: Doc<"messages">;
+  nextMessage?: Doc<"messages">;
+  readOnly?: boolean;
 }
 
 export const ChatMessage = memo(
-  function ChatMessage({ message }: ChatMessageProps) {
+  function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
     const isUser = message.role === "user";
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
 
+    // @ts-ignore
     const user = useQuery(api.users.getCurrentUser);
     const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
 
     const displayContent = message.partialContent || message.content || "";
     const modelName = message.model?.split(":")[1] || message.model;
+
+    // Fetch URLs for attachments
+    const attachmentStorageIds =
+      message.attachments?.map((a: any) => a.storageId) || [];
+    const attachmentUrls = useQuery(
+      api.files.getAttachmentUrls,
+      attachmentStorageIds.length > 0
+        ? { storageIds: attachmentStorageIds }
+        : "skip",
+    );
+
+    const urlMap = new Map<string, string>(
+      attachmentUrls
+        ?.map((a: any) => [a.storageId, a.url] as [string, string])
+        .filter((pair: any): pair is [string, string] => pair[1] !== null) ||
+        [],
+    );
 
     // User message styling: Very subtle, transparent, glassmorphic
     const userMessageClass = cn(
@@ -68,12 +88,18 @@ export const ChatMessage = memo(
           }}
         >
           {isError ? (
-            <div className="text-destructive flex flex-col gap-2">
-              <div className="flex items-center gap-2 font-display font-bold">
-                <AlertCircle className="w-5 h-5" />
-                <span>Error Generating Response</span>
+            <div className="flex flex-col gap-3 p-1">
+              <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
+                <AlertCircle className="w-4 h-4" />
+                <span className="font-medium text-sm">
+                  Unable to generate response
+                </span>
               </div>
-              <p className="text-sm opacity-90">{message.error}</p>
+              <div className="bg-muted/30 rounded-md p-3 border border-border/50">
+                <p className="font-mono text-[11px] leading-relaxed opacity-80 break-words">
+                  {message.error}
+                </p>
+              </div>
             </div>
           ) : (
             <>
@@ -99,11 +125,16 @@ export const ChatMessage = memo(
                 </div>
               )}
 
-              {message.attachments && message.attachments.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border/10">
-                  <AttachmentIndicators attachments={message.attachments} />
-                </div>
-              )}
+              {message.attachments &&
+                message.attachments.length > 0 &&
+                urlMap.size > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/10">
+                    <AttachmentRenderer
+                      attachments={message.attachments}
+                      urls={urlMap}
+                    />
+                  </div>
+                )}
 
               {isGenerating && (
                 <div className="flex items-center gap-2 mt-3 text-xs font-medium text-muted-foreground uppercase tracking-widest">
@@ -133,7 +164,11 @@ export const ChatMessage = memo(
                       : "opacity-0 group-hover/assistant:opacity-100",
                 )}
               >
-                <MessageActions message={message} />
+                <MessageActions
+                  message={message}
+                  nextMessage={nextMessage}
+                  readOnly={readOnly}
+                />
               </div>
             </>
           )}
@@ -145,7 +180,8 @@ export const ChatMessage = memo(
     return (
       prev.message._id === next.message._id &&
       prev.message.partialContent === next.message.partialContent &&
-      prev.message.status === next.message.status
+      prev.message.status === next.message.status &&
+      prev.nextMessage?.status === next.nextMessage?.status
     );
   },
 );

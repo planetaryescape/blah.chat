@@ -1,39 +1,39 @@
 "use client";
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -41,11 +41,17 @@ import { toast } from "sonner";
 export function MemorySettings() {
   const user = useQuery(api.users.getCurrentUser);
   const updatePreferences = useMutation(api.users.updatePreferences);
-  const memories = useQuery(api.memories.list);
+  const {
+    results: memories,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.memories.list, {}, { initialNumItems: 10 });
   const createMemory = useMutation(api.memories.createManual);
   const updateMemory = useMutation(api.memories.update);
   const deleteMemory = useMutation(api.memories.deleteMemory);
-  const scanRecentConversations = useMutation(api.memories.scanRecentConversations);
+  const scanRecentConversations = useMutation(
+    api.memories.scanRecentConversations,
+  );
 
   const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
   const [extractInterval, setExtractInterval] = useState(5);
@@ -215,7 +221,8 @@ export function MemorySettings() {
             <p className="text-sm">
               <strong>How it works:</strong> AI analyzes your conversations and
               extracts memorable facts like preferences, project details, and
-              context. These memories help AI provide more personalized responses.
+              context. These memories help AI provide more personalized
+              responses.
             </p>
           </div>
         </CardContent>
@@ -274,7 +281,7 @@ export function MemorySettings() {
             </div>
           ) : (
             <div className="space-y-4">
-              {memories.map((memory) => (
+              {memories.map((memory: any) => (
                 <div
                   key={memory._id}
                   className="flex items-start justify-between rounded-lg border p-4"
@@ -339,8 +346,8 @@ export function MemorySettings() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Memory?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. The AI will forget this
-                            fact.
+                            This action cannot be undone. The AI will forget
+                            this fact.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -357,6 +364,20 @@ export function MemorySettings() {
                   </div>
                 </div>
               ))}
+              {(status === "CanLoadMore" || status === "LoadingMore") && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => loadMore(10)}
+                    disabled={status === "LoadingMore"}
+                  >
+                    {status === "LoadingMore" ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Load More
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

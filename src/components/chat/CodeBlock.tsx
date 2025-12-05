@@ -1,8 +1,6 @@
-"use client";
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Check, Copy } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ClientCodeControls } from "./ClientCodeControls";
+import { highlightCode } from "@/lib/highlighter";
 
 interface CodeBlockProps {
   code: string;
@@ -11,44 +9,48 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ code, language, inline }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   if (inline) {
     return (
-      <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-accent">
+      <code
+        className={cn(
+          "bg-muted/80 px-1.5 py-0.5 rounded",
+          "text-sm font-mono text-accent",
+          "border border-border/20",
+          "hover:bg-muted transition-colors",
+        )}
+      >
         {code}
       </code>
     );
   }
 
+  // Apply syntax highlighting with Shiki (client-side sync)
+  const html = highlightCode(code, language || "text");
+
+  // Shiki returns complete HTML with inline styles
+  // Wrap in our UI with line numbers, controls, scrolling
   return (
     <div className="relative group my-4">
+      {/* Header with language and controls */}
       <div className="flex items-center justify-between bg-muted/50 px-4 py-2 rounded-t border-b border-border">
         <span className="text-xs text-muted-foreground font-mono">
           {language || "code"}
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-all duration-200"
-          onClick={handleCopy}
-        >
-          {copied ? (
-            <Check className="w-3 h-3 text-primary" />
-          ) : (
-            <Copy className="w-3 h-3" />
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <ClientCodeControls code={code} />
+        </div>
       </div>
-      <pre className="rounded-b">
-        <code className={language ? `language-${language}` : ""}>{code}</code>
-      </pre>
+
+      {/* Shiki-generated code (safe HTML from highlighter) */}
+      <div className="relative">
+        <div
+          className={cn(
+            "rounded-b overflow-x-auto max-h-[600px] overflow-y-auto",
+            "[&>pre]:m-0 [&>pre]:p-4",
+          )}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
     </div>
   );
 }

@@ -21,16 +21,24 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { BookmarkButton } from "./BookmarkButton";
 
 interface MessageActionsProps {
   message: Doc<"messages">;
+  nextMessage?: Doc<"messages">;
+  readOnly?: boolean;
 }
 
-export function MessageActions({ message }: MessageActionsProps) {
+export function MessageActions({
+  message,
+  nextMessage,
+  readOnly,
+}: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
-  const user = useQuery(api.users.getCurrentUser);
+  const user = useQuery(api.users.getCurrentUser as any);
   const regenerate = useMutation(api.chat.regenerate);
+  const retryMessage = useMutation(api.chat.retryMessage);
   const deleteMsg = useMutation(api.chat.deleteMessage);
   const stop = useMutation(api.chat.stopGeneration);
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
@@ -38,6 +46,8 @@ export function MessageActions({ message }: MessageActionsProps) {
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
   const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
+  const shouldShowRetry =
+    isUser && nextMessage?.status === "error" && !isGenerating;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
@@ -60,7 +70,7 @@ export function MessageActions({ message }: MessageActionsProps) {
 
   return (
     <div
-      className={cn("flex items-center gap-1", "transition-all duration-200")}
+      className={cn("flex items-center gap-2", "transition-all duration-200")}
     >
       <Tooltip>
         <TooltipTrigger asChild>
@@ -83,79 +93,109 @@ export function MessageActions({ message }: MessageActionsProps) {
         </TooltipContent>
       </Tooltip>
 
-      {!isUser && !isGenerating && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
-              onClick={() => regenerate({ messageId: message._id })}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="sr-only">Regenerate</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Regenerate response</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
+      {!readOnly && (
+        <>
+          {shouldShowRetry && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  onClick={() => retryMessage({ messageId: message._id })}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="sr-only">Retry</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Retry message</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
 
-      {isGenerating && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
-              onClick={() => stop({ conversationId: message.conversationId })}
-            >
-              <Square className="w-3.5 h-3.5" />
-              <span className="sr-only">Stop</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Stop generation</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
+          {!isUser && !isGenerating && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  onClick={() => regenerate({ messageId: message._id })}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="sr-only">Regenerate</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Regenerate response</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
 
-      {!isGenerating && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
-              onClick={handleBranch}
-            >
-              <GitBranch className="w-3.5 h-3.5" />
-              <span className="sr-only">Branch</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Branch from this message</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
+          {isGenerating && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  onClick={() =>
+                    stop({ conversationId: message.conversationId })
+                  }
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span className="sr-only">Stop</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Stop generation</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
-            onClick={() => deleteMsg({ messageId: message._id })}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span className="sr-only">Delete</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Delete message</p>
-        </TooltipContent>
-      </Tooltip>
+          {!isGenerating && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  onClick={handleBranch}
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span className="sr-only">Branch</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Branch from this message</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          <BookmarkButton
+            messageId={message._id}
+            conversationId={message.conversationId}
+          />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                onClick={() => deleteMsg({ messageId: message._id })}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Delete message</p>
+            </TooltipContent>
+          </Tooltip>
+        </>
+      )}
     </div>
   );
 }

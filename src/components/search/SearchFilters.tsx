@@ -1,0 +1,444 @@
+"use client";
+
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  X,
+  Plus,
+  Info,
+  Sparkles,
+  Calendar,
+  User,
+  Bot,
+  MessageSquare,
+  Pin,
+} from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import type { SearchFilters as Filters } from "@/hooks/useSearchFilters";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+
+interface SearchFiltersProps {
+  filters: Filters;
+  onClearFilters: () => void;
+  hasActiveFilters: boolean;
+  onFilterChange: (key: keyof Filters, value: string | null) => void;
+}
+
+const DATE_PRESETS = [
+  { label: "Today", value: "today" },
+  { label: "Last 7 days", value: "7days" },
+  { label: "Last 30 days", value: "30days" },
+  { label: "Last 90 days", value: "90days" },
+] as const;
+
+// Debounce helper for search input
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+export function SearchFilters({
+  filters,
+  onClearFilters,
+  hasActiveFilters,
+  onFilterChange,
+}: SearchFiltersProps) {
+  // @ts-ignore - Convex nested types cause "excessively deep" error - ignore, no actual issue
+  const currentUser = useQuery(api.users.getCurrentUser);
+  const updatePreferences = useMutation(api.users.updatePreferences);
+
+  const [conversationSearch, setConversationSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(conversationSearch, 300);
+
+  // @ts-ignore - Convex nested types cause "excessively deep" error - ignore, no actual issue
+  const conversations = useQuery(api.conversations.list, {
+    searchQuery: debouncedSearch || undefined,
+    limit: 20,
+  });
+
+  const [datePreset, setDatePreset] = useState<string>("all");
+  const [messageType, setMessageType] = useState<string>(
+    filters.messageType || "all",
+  );
+
+  const enableHybridSearch =
+    currentUser?.preferences?.enableHybridSearch ?? false;
+
+  const handleToggleHybrid = async (checked: boolean) => {
+    try {
+      await updatePreferences({
+        preferences: {
+          enableHybridSearch: checked,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to update hybrid search preference:", error);
+    }
+  };
+
+  const handleDatePresetChange = (value: string) => {
+    setDatePreset(value);
+
+    if (value === "all") {
+      onFilterChange("dateFrom", null);
+      onFilterChange("dateTo", null);
+      return;
+    }
+
+    const now = Date.now();
+    let dateFrom = now;
+
+    switch (value) {
+      case "today":
+        dateFrom = new Date().setHours(0, 0, 0, 0);
+        break;
+      case "7days":
+        dateFrom = now - 7 * 24 * 60 * 60 * 1000;
+        break;
+      case "30days":
+        dateFrom = now - 30 * 24 * 60 * 60 * 1000;
+        break;
+      case "90days":
+        dateFrom = now - 90 * 24 * 60 * 60 * 1000;
+        break;
+    }
+
+    onFilterChange("dateFrom", dateFrom.toString());
+    onFilterChange("dateTo", now.toString());
+  };
+
+  const handleMessageTypeChange = (value: string) => {
+    setMessageType(value);
+
+    if (value === "all") {
+      onFilterChange("messageType", null);
+    } else {
+      onFilterChange("messageType", value);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-4 flex-wrap">
+      {/* Active filter chips + Add filter button */}
+      <div className="flex items-center gap-2 flex-wrap flex-1">
+        {hasActiveFilters && (
+          <>
+            {filters.conversationId && (
+              <FilterChip
+                label="Conversation"
+                value={
+                  conversations?.find(
+                    (c: any) => c._id === filters.conversationId,
+                  )?.title || "Unknown"
+                }
+                onRemove={() => onClearFilters()}
+              />
+            )}
+            {filters.dateFrom && (
+              <FilterChip
+                label="Date Range"
+                value="Custom"
+                onRemove={() => onClearFilters()}
+              />
+            )}
+            {filters.messageType && (
+              <FilterChip
+                label="Type"
+                value={
+                  filters.messageType === "user"
+                    ? "User Messages"
+                    : "AI Responses"
+                }
+                onRemove={() => onClearFilters()}
+              />
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearFilters}
+              className="h-7 text-xs"
+            >
+              Clear all
+            </Button>
+          </>
+        )}
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-7 text-xs">
+              <Plus className="w-3 h-3 mr-1" />
+              Add filter
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-4" align="start" side="bottom">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Filter Search Results</h4>
+
+              {/* Conversation Filter */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Conversation
+                </Label>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mr-2" />
+                      {filters.conversationId
+                        ? conversations?.find(
+                            (c: any) => c._id === filters.conversationId,
+                          )?.title || "Unknown"
+                        : "All conversations"}
+                    </Button>
+                  </PopoverTrigger>
+
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search conversations..."
+                        value={conversationSearch}
+                        onValueChange={setConversationSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {conversationSearch
+                            ? `No conversations matching "${conversationSearch}"`
+                            : "No conversations yet"}
+                        </CommandEmpty>
+
+                        <CommandGroup
+                          heading={
+                            conversationSearch
+                              ? "Search Results"
+                              : "Recent Conversations"
+                          }
+                        >
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              onFilterChange("conversationId", null);
+                              setConversationSearch("");
+                            }}
+                          >
+                            All conversations
+                          </CommandItem>
+
+                          {!conversations && (
+                            <CommandItem disabled>
+                              Loading conversations...
+                            </CommandItem>
+                          )}
+
+                          {conversations?.map((conv: any) => (
+                            <CommandItem
+                              key={conv._id}
+                              value={conv._id}
+                              onSelect={() => {
+                                onFilterChange("conversationId", conv._id);
+                                setConversationSearch("");
+                              }}
+                            >
+                              {conv.pinned && (
+                                <Pin className="w-3 h-3 mr-2 text-muted-foreground" />
+                              )}
+                              <span className="truncate">
+                                {conv.title || "Untitled"}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Date Range Filter */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Date Range
+                </Label>
+                <RadioGroup
+                  value={datePreset}
+                  onValueChange={handleDatePresetChange}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="date-all" />
+                    <Label
+                      htmlFor="date-all"
+                      className="text-sm cursor-pointer"
+                    >
+                      All time
+                    </Label>
+                  </div>
+                  {DATE_PRESETS.map((preset: any) => (
+                    <div
+                      key={preset.value}
+                      className="flex items-center space-x-2"
+                    >
+                      <RadioGroupItem
+                        value={preset.value}
+                        id={`date-${preset.value}`}
+                      />
+                      <Label
+                        htmlFor={`date-${preset.value}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {preset.label}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {/* Message Type Filter */}
+              <div className="space-y-2">
+                <Label className="text-xs">Message Type</Label>
+                <RadioGroup
+                  value={messageType}
+                  onValueChange={handleMessageTypeChange}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="type-all" />
+                    <Label
+                      htmlFor="type-all"
+                      className="text-sm cursor-pointer"
+                    >
+                      All messages
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="user" id="type-user" />
+                    <Label
+                      htmlFor="type-user"
+                      className="text-sm cursor-pointer flex items-center gap-2"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      User messages
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="assistant" id="type-assistant" />
+                    <Label
+                      htmlFor="type-assistant"
+                      className="text-sm cursor-pointer flex items-center gap-2"
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      AI responses
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {/* Hybrid search toggle */}
+      <TooltipProvider>
+        <Tooltip>
+          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1.5 border border-border/40">
+            <Sparkles
+              className={cn(
+                "w-4 h-4 transition-colors",
+                enableHybridSearch
+                  ? "text-primary animate-pulse"
+                  : "text-muted-foreground",
+              )}
+            />
+            <Label
+              htmlFor="hybrid-toggle"
+              className="text-xs font-medium cursor-pointer"
+            >
+              Hybrid
+            </Label>
+            <Switch
+              id="hybrid-toggle"
+              checked={enableHybridSearch}
+              onCheckedChange={handleToggleHybrid}
+              className="scale-75"
+            />
+            <TooltipTrigger asChild>
+              <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+          </div>
+          <TooltipContent>
+            <p className="max-w-xs text-xs">
+              Combines keyword search with AI-powered semantic search for better
+              results
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+}
+
+interface FilterChipProps {
+  label: string;
+  value: string;
+  onRemove: () => void;
+}
+
+function FilterChip({ label, value, onRemove }: FilterChipProps) {
+  return (
+    <Badge
+      variant="secondary"
+      className="h-7 pl-2 pr-1 text-xs gap-1 bg-primary/10 text-primary border-primary/20"
+    >
+      <span className="font-medium">{label}:</span>
+      <span className="truncate max-w-[100px]">{value}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onRemove}
+        className="h-4 w-4 p-0 hover:bg-primary/20 ml-1"
+      >
+        <X className="w-3 h-3" />
+      </Button>
+    </Badge>
+  );
+}

@@ -7,7 +7,11 @@ interface LogoProps {
 
 import Image from "next/image";
 
-export function Logo({ size = "md", animated = true }: LogoProps) {
+export function Logo({
+  size = "md",
+  animated = true,
+  showText = true,
+}: LogoProps & { showText?: boolean }) {
   const sizes = {
     sm: { text: "text-lg", icon: 20 },
     md: { text: "text-2xl", icon: 28 },
@@ -31,14 +35,18 @@ export function Logo({ size = "md", animated = true }: LogoProps) {
       </div>
 
       {/* Text lockup */}
-      <div
-        className={`${sizes[size].text} font-[family-name:var(--font-syne)] leading-none flex items-baseline`}
-      >
-        <span className="text-foreground font-bold tracking-tighter">blah</span>
-        <span className="text-muted-foreground font-medium tracking-tight">
-          .chat
-        </span>
-      </div>
+      {showText && (
+        <div
+          className={`${sizes[size].text} font-[family-name:var(--font-syne)] leading-none flex items-baseline`}
+        >
+          <span className="text-foreground font-bold tracking-tighter">
+            blah
+          </span>
+          <span className="text-muted-foreground font-medium tracking-tight">
+            .chat
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useEffect, useRef } from "react";
 
 interface AudioWaveformProps {
   stream: MediaStream;
@@ -18,6 +18,19 @@ export function AudioWaveform({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  // Ref to store the computed color
+  const colorRef = useRef<string>("");
+
+  useEffect(() => {
+    // Resolve the primary color using a temporary element
+    const tempEl = document.createElement("div");
+    tempEl.style.color = "var(--primary)";
+    tempEl.style.display = "none";
+    document.body.appendChild(tempEl);
+    const computedColor = getComputedStyle(tempEl).color;
+    colorRef.current = computedColor;
+    document.body.removeChild(tempEl);
+  }, []);
 
   useEffect(() => {
     if (!stream) return;
@@ -81,12 +94,38 @@ export function AudioWaveform({
 
         // ElevenLabs-style gradient
         const opacity = 0.6 + normalized * 0.4; // 0.6-1.0 range
-        ctx.fillStyle = `hsl(var(--primary) / ${opacity})`;
+
+        // Use the resolved RGB color with opacity
+        // computedColor is usually "rgb(r, g, b)" or "rgba(r, g, b, a)"
+        // We can use color-mix or just set globalAlpha, but setting fillStyle is better.
+        // If it's rgb(...), we can replace ')' with ', opacity)'.
+        // Or simpler: use ctx.globalAlpha for opacity if we draw one by one,
+        // but that affects the whole context state.
+        // Best: use `color-mix(in srgb, ${colorRef.current}, transparent ${100 - opacity * 100}%)`
+        // or just rely on CSS color module 4 relative syntax if supported,
+        // but safe fallback is to use the computed RGB string.
+
+        if (colorRef.current.startsWith("rgb")) {
+          // rgb(r, g, b) -> rgba(r, g, b, opacity)
+          const rgbValues = colorRef.current.match(/\d+/g);
+          if (rgbValues && rgbValues.length >= 3) {
+            ctx.fillStyle = `rgba(${rgbValues[0]}, ${rgbValues[1]}, ${rgbValues[2]}, ${opacity})`;
+          } else {
+            ctx.fillStyle = colorRef.current; // Fallback
+          }
+        } else {
+          // Fallback for other formats
+          ctx.fillStyle = colorRef.current;
+          ctx.globalAlpha = opacity;
+        }
 
         // Rounded rectangle
         ctx.beginPath();
         ctx.roundRect(x, y, barWidth, barHeight, barWidth / 2);
         ctx.fill();
+
+        // Reset alpha if we used it
+        ctx.globalAlpha = 1.0;
       }
 
       animationFrameRef.current = requestAnimationFrame(draw);
@@ -108,8 +147,8 @@ export function AudioWaveform({
   return (
     <canvas
       ref={canvasRef}
-      className={cn("w-full", className)}
-      style={{ height: `${height}px` }}
+      className={cn("w-full h-full", className)} // Ensure full height
+      style={{ height: "100%", width: "100%" }} // Force full size
     />
   );
 }

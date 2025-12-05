@@ -1,17 +1,18 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { cn } from "@/lib/utils";
+import { useAction, useQuery } from "convex/react";
+import { Mic } from "lucide-react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import { toast } from "sonner";
 
 interface VoiceInputProps {
   onTranscript: (text: string, autoSend: boolean) => void;
@@ -27,13 +28,14 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
   ({ onTranscript, onRecordingStateChange, isDisabled }, ref) => {
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [stopMode, setStopMode] = useState<"preview" | "send" | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const streamRef = useRef<MediaStream | null>(null);
+    const stopModeRef = useRef<"preview" | "send" | null>(null);
 
-    const user = useQuery(api.users.getCurrentUser);
+    // @ts-ignore
+    const user = useQuery(api.users.getCurrentUser as any);
     const transcribeAudio = useAction(api.transcription.transcribeAudio);
 
     const sttEnabled = user?.preferences?.sttEnabled ?? true;
@@ -82,9 +84,8 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
                 mimeType: "audio/webm",
               });
 
-              const autoSend = stopMode === "send";
+              const autoSend = stopModeRef.current === "send";
               onTranscript(transcript, autoSend);
-              toast.success("Transcription complete");
             } catch (error) {
               console.error("Transcription failed:", error);
               toast.error(
@@ -95,7 +96,7 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
               onTranscript("", false);
             } finally {
               setIsProcessing(false);
-              setStopMode(null);
+              stopModeRef.current = null;
             }
           };
           reader.readAsDataURL(audioBlob);
@@ -105,7 +106,6 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         mediaRecorderRef.current = recorder;
         setIsRecording(true);
         onRecordingStateChange?.(true, stream);
-        toast.success(`Recording... (${sttProvider})`);
       } catch (error) {
         console.error("MediaRecorder failed:", error);
         toast.error("Microphone access denied");
@@ -116,14 +116,13 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
       transcribeAudio,
       onTranscript,
       onRecordingStateChange,
-      stopMode,
     ]);
 
     const stopRecording = useCallback(
       (mode: "preview" | "send") => {
         if (!isRecording || !mediaRecorderRef.current) return;
 
-        setStopMode(mode);
+        stopModeRef.current = mode;
         mediaRecorderRef.current.stop();
 
         if (streamRef.current) {
@@ -164,18 +163,38 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         size="sm"
         onClick={toggleRecording}
         disabled={isDisabled || isProcessing || !user}
-        className={isRecording ? "animate-pulse" : ""}
+        className={cn(
+          "transition-all duration-300",
+          isRecording
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "",
+        )}
         title={
           isRecording ? "Stop recording" : `Start voice input (${sttProvider})`
         }
       >
-        {isProcessing ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : isRecording ? (
-          <MicOff className="w-4 h-4" />
-        ) : (
-          <Mic className="w-4 h-4" />
-        )}
+        <div className="relative w-4 h-4 flex items-center justify-center">
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center justify-center transition-all duration-300 transform",
+              isRecording
+                ? "opacity-100 scale-100 rotate-0"
+                : "opacity-0 scale-50 rotate-90",
+            )}
+          >
+            <div className="h-3 w-3 bg-current rounded-[2px]" />
+          </div>
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center justify-center transition-all duration-300 transform",
+              !isRecording
+                ? "opacity-100 scale-100 rotate-0"
+                : "opacity-0 scale-50 -rotate-90",
+            )}
+          >
+            <Mic className="w-4 h-4" />
+          </div>
+        </div>
       </Button>
     );
   },

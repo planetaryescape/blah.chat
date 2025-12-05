@@ -16,7 +16,7 @@ export function ConversationList({
 
   return (
     <div className="py-2">
-      {conversations.map((conversation) => (
+      {conversations.map((conversation: any) => (
         <ConversationItem key={conversation._id} conversation={conversation} />
       ))}
     </div>

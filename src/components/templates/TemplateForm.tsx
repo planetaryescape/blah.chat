@@ -100,7 +100,7 @@ export function TemplateForm({ template, onSuccess }: TemplateFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.map((cat: any) => (
               <SelectItem key={cat} value={cat}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </SelectItem>

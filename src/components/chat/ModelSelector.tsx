@@ -119,7 +119,7 @@ export function ModelSelector({
                       {provider}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {models.map((model) => (
+                      {models.map((model: any) => (
                         <ModelCard
                           key={model.id}
                           model={model}

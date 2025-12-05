@@ -1,61 +1,52 @@
-"use client";
-
-import { useEffect } from "react";
-import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 export type ThinkingEffort = "low" | "medium" | "high";
 
 interface ThinkingEffortSelectorProps {
   value: ThinkingEffort;
   onChange: (effort: ThinkingEffort) => void;
+  className?: string;
 }
 
 const efforts = [
-  { value: "low", label: "Low", shortcut: "1" },
-  { value: "medium", label: "Medium", shortcut: "2" },
-  { value: "high", label: "High", shortcut: "3" },
+  { value: "low", label: "Low Reasoning" },
+  { value: "medium", label: "Medium Reasoning" },
+  { value: "high", label: "High Reasoning" },
 ] as const;
 
 export function ThinkingEffortSelector({
   value,
   onChange,
+  className,
 }: ThinkingEffortSelectorProps) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.shiftKey && e.altKey) {
-        const effort = efforts.find((ef) => ef.shortcut === e.key);
-        if (effort) {
-          e.preventDefault();
-          onChange(effort.value as ThinkingEffort);
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onChange]);
-
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium">Thinking Effort</Label>
-      <ToggleGroup
-        type="single"
-        value={value}
-        onValueChange={(v) => v && onChange(v as ThinkingEffort)}
-        className="justify-start"
+    <Select value={value} onValueChange={(v) => onChange(v as ThinkingEffort)}>
+      <SelectTrigger
+        className={cn(
+          "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1",
+          className,
+        )}
       >
-        {efforts.map((effort) => (
-          <ToggleGroupItem
+        <SelectValue placeholder="Reasoning effort" />
+      </SelectTrigger>
+      <SelectContent>
+        {efforts.map((effort: any) => (
+          <SelectItem
             key={effort.value}
             value={effort.value}
-            aria-label={`${effort.label} thinking effort`}
-            className="min-w-20"
+            className="text-xs"
           >
             {effort.label}
-          </ToggleGroupItem>
+          </SelectItem>
         ))}
-      </ToggleGroup>
-    </div>
+      </SelectContent>
+    </Select>
   );
 }

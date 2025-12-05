@@ -28,7 +28,7 @@ export function STTSettings() {
 
   const [sttEnabled, setSttEnabled] = useState(true);
   const [sttProvider, setSttProvider] = useState<
-    "openai" | "deepgram" | "assemblyai"
+    "openai" | "deepgram" | "assemblyai" | "groq"
   >("openai");
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function STTSettings() {
   };
 
   const handleProviderChange = async (
-    value: "openai" | "deepgram" | "assemblyai",
+    value: "openai" | "deepgram" | "assemblyai" | "groq",
   ) => {
     setSttProvider(value);
     try {
@@ -126,6 +126,9 @@ export function STTSettings() {
               </SelectItem>
               <SelectItem value="assemblyai">
                 AssemblyAI ($0.0025/min) - Most Accurate
+              </SelectItem>
+              <SelectItem value="groq">
+                Groq Whisper Turbo ($0.04/hour) - Fast & Affordable
               </SelectItem>
             </SelectContent>
           </Select>

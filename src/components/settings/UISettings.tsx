@@ -21,16 +21,21 @@ export function UISettings() {
 
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
     useState(false);
+  const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
+    useState(false);
 
   useEffect(() => {
     if (user?.preferences) {
       setAlwaysShowMessageActions(
         user.preferences.alwaysShowMessageActions ?? false,
       );
+      setShowModelNamesDuringComparison(
+        user.preferences.showModelNamesDuringComparison ?? false,
+      );
     }
   }, [user]);
 
-  const handleToggleChange = async (checked: boolean) => {
+  const handleAlwaysShowActionsChange = async (checked: boolean) => {
     setAlwaysShowMessageActions(checked);
     try {
       await updatePreferences({
@@ -42,6 +47,21 @@ export function UISettings() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setAlwaysShowMessageActions(!checked);
+    }
+  };
+
+  const handleShowModelNamesChange = async (checked: boolean) => {
+    setShowModelNamesDuringComparison(checked);
+    try {
+      await updatePreferences({
+        preferences: {
+          showModelNamesDuringComparison: checked,
+        } as any,
+      });
+      toast.success("UI settings saved!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setShowModelNamesDuringComparison(!checked);
     }
   };
 
@@ -79,7 +99,24 @@ export function UISettings() {
           <Switch
             id="always-show-actions"
             checked={alwaysShowMessageActions}
-            onCheckedChange={handleToggleChange}
+            onCheckedChange={handleAlwaysShowActionsChange}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="show-model-names">
+              Show model names during comparison
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Display model identities immediately (enabled) or hide until after
+              voting (disabled) for unbiased comparison
+            </p>
+          </div>
+          <Switch
+            id="show-model-names"
+            checked={showModelNamesDuringComparison}
+            onCheckedChange={handleShowModelNamesChange}
           />
         </div>
       </CardContent>

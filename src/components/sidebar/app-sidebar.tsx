@@ -2,38 +2,38 @@ import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import {
-    BarChart3,
-    Bookmark,
-    Brain,
-    FileText,
-    FolderKanban,
-    MoreHorizontal,
-    Plus,
-    Search,
-    Settings,
+  BarChart3,
+  Bookmark,
+  Brain,
+  FileText,
+  FolderKanban,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -187,7 +187,10 @@ export function AppSidebar() {
                 >
                   {overflowItems.map((item) => (
                     <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href} className="flex items-center gap-2 cursor-pointer">
+                      <Link
+                        href={item.href}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
                         <item.icon className="w-4 h-4 text-muted-foreground" />
                         <span>{item.label}</span>
                       </Link>

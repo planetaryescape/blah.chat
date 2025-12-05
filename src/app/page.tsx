@@ -2,22 +2,33 @@
 
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
-    ArrowRight,
-    ChevronDown,
-    Code2,
-    Eye,
-    Mic,
-    ShieldCheck,
-    Users,
-    Webhook,
+  ArrowRight,
+  ChevronDown,
+  Code2,
+  Eye,
+  Mic,
+  ShieldCheck,
+  Users,
+  Webhook,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 export default function LandingPage() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace("/app");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,

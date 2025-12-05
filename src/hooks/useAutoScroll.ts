@@ -6,7 +6,7 @@ interface UseAutoScrollOptions {
 }
 
 interface UseAutoScrollReturn {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   scrollToBottom: (behavior?: ScrollBehavior) => boolean;
   showScrollButton: boolean;
   isAtBottom: boolean;

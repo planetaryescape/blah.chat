@@ -1,6 +1,6 @@
 "use client";
 
-import { highlightCode } from "@/lib/highlighter";
+import { highlightCode, type HighlightResult } from "@/lib/highlighter";
 import { cn } from "@/lib/utils";
 import { ClientCodeControls } from "./ClientCodeControls";
 import { useEffect, useRef, useState } from "react";
@@ -11,8 +11,27 @@ interface CodeBlockProps {
   inline?: boolean;
 }
 
+/**
+ * Escape HTML for safe initial rendering before highlighting completes
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Create a safe initial fallback HTML while highlighting is in progress
+ */
+function createInitialFallback(code: string): string {
+  return `<pre class="shiki" style="background-color:#24292e;color:#e1e4e8"><code>${escapeHtml(code)}</code></pre>`;
+}
+
 export function CodeBlock({ code, language, inline }: CodeBlockProps) {
-  const [highlightedHTML, setHighlightedHTML] = useState("");
+  const [highlightResult, setHighlightResult] = useState<HighlightResult | null>(null);
   const codeRef = useRef(code);
   const languageRef = useRef(language);
 
@@ -37,7 +56,7 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
     if (
       codeRef.current === code &&
       languageRef.current === language &&
-      highlightedHTML
+      highlightResult
     ) {
       return;
     }
@@ -47,14 +66,16 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
 
     // Use requestIdleCallback to run during browser idle time
     const idleCallback = requestIdleCallback(() => {
-      const html = highlightCode(code, language || "text");
-      setHighlightedHTML(html);
+      // highlightCode now handles all errors internally and returns a safe result
+      const result = highlightCode(code, language || "text");
+      setHighlightResult(result);
     });
 
     return () => cancelIdleCallback(idleCallback);
-  }, [code, language, highlightedHTML]);
+  }, [code, language, highlightResult]);
 
-  const html = highlightedHTML || code; // Fallback to plain code while highlighting
+  // Use highlighted HTML or safe escaped fallback while loading
+  const html = highlightResult?.html || createInitialFallback(code);
 
   // Shiki returns complete HTML with inline styles
   // Wrap in our UI with line numbers, controls, scrolling

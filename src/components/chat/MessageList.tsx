@@ -13,14 +13,16 @@ interface MessageListProps {
   messages: Doc<"messages">[];
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string) => void;
-  showModelNames?: boolean;
+  onToggleModelNames?: () => void;
+  showModelNames: boolean;
 }
 
 export function MessageList({
   messages,
   onVote,
   onConsolidate,
-  showModelNames = false,
+  onToggleModelNames,
+  showModelNames,
 }: MessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
     useAutoScroll({
@@ -28,21 +30,51 @@ export function MessageList({
       animationDuration: 400,
     });
 
-  // Group messages by comparison
+  // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
-    const regular: Doc<"messages">[] = [];
-    const comparisons: Record<string, Doc<"messages">[]> = {};
+    // First, group comparison messages by ID
+    const comparisonGroups: Record<string, Doc<"messages">[]> = {};
 
     for (const msg of messages) {
       if (msg.comparisonGroupId) {
-        comparisons[msg.comparisonGroupId] ||= [];
-        comparisons[msg.comparisonGroupId].push(msg);
-      } else {
-        regular.push(msg);
+        comparisonGroups[msg.comparisonGroupId] ||= [];
+        comparisonGroups[msg.comparisonGroupId].push(msg);
       }
     }
 
-    return { regular, comparisons };
+    // Build chronological list of items (messages + comparison blocks)
+    type Item =
+      | { type: "message"; data: Doc<"messages"> }
+      | {
+          type: "comparison";
+          id: string;
+          messages: Doc<"messages">[];
+          timestamp: number;
+        };
+
+    const items: Item[] = [];
+    const processedGroups = new Set<string>();
+
+    for (const msg of messages) {
+      if (msg.comparisonGroupId) {
+        // Only add comparison block once (on first message of group)
+        if (!processedGroups.has(msg.comparisonGroupId)) {
+          const groupMsgs = comparisonGroups[msg.comparisonGroupId];
+          items.push({
+            type: "comparison",
+            id: msg.comparisonGroupId,
+            messages: groupMsgs,
+            timestamp: Math.min(...groupMsgs.map((m) => m.createdAt)),
+          });
+          processedGroups.add(msg.comparisonGroupId);
+        }
+      } else {
+        // Regular message
+        items.push({ type: "message", data: msg });
+      }
+    }
+
+    return items;
   }, [messages]);
 
   // Scroll on new content (new messages or streaming updates)
@@ -76,30 +108,42 @@ export function MessageList({
       }}
     >
       <AnimatePresence mode="popLayout">
-        {grouped.regular.map((message, index) => {
-          const nextMessage = grouped.regular[index + 1];
-          return (
-            <motion.div
-              key={message._id}
-              layout
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            >
-              <ChatMessage message={message} nextMessage={nextMessage} />
-            </motion.div>
-          );
+        {grouped.map((item, index) => {
+          if (item.type === "message") {
+            const nextItem = grouped[index + 1];
+            const nextMessage =
+              nextItem?.type === "message" ? nextItem.data : undefined;
+
+            return (
+              <motion.div
+                key={item.data._id}
+                layout
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              >
+                <ChatMessage message={item.data} nextMessage={nextMessage} />
+              </motion.div>
+            );
+          } else {
+            // Comparison block
+            return (
+              <motion.div
+                key={item.id}
+                layout
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              >
+                <ComparisonView
+                  messages={item.messages}
+                  comparisonGroupId={item.id}
+                  showModelNames={showModelNames}
+                  onVote={onVote || (() => {})}
+                  onConsolidate={onConsolidate || (() => {})}
+                  onToggleModelNames={onToggleModelNames || (() => {})}
+                />
+              </motion.div>
+            );
+          }
         })}
       </AnimatePresence>
-
-      {Object.entries(grouped.comparisons).map(([id, msgs]) => (
-        <ComparisonView
-          key={id}
-          messages={msgs}
-          comparisonGroupId={id}
-          showModelNames={showModelNames}
-          onVote={onVote || (() => {})}
-          onConsolidate={onConsolidate || (() => {})}
-        />
-      ))}
 
       {showScrollButton && (
         <Button

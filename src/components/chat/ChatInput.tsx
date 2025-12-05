@@ -26,8 +26,8 @@ interface Attachment {
 
 import { ModelSelector } from "./ModelSelector";
 import {
-    ThinkingEffortSelector,
-    type ThinkingEffort,
+  ThinkingEffortSelector,
+  type ThinkingEffort,
 } from "./ThinkingEffortSelector";
 import { ComparisonTrigger } from "./ComparisonTrigger";
 import { Badge } from "@/components/ui/badge";
@@ -97,7 +97,9 @@ export function ChatInput({
       await sendMessage({
         conversationId,
         content: input.trim(),
-        modelId: selectedModel,
+        ...(isComparisonMode
+          ? { models: selectedModels }
+          : { modelId: selectedModel }),
         thinkingEffort,
         attachments: attachments.length > 0 ? attachments : undefined,
       });
@@ -233,7 +235,9 @@ export function ChatInput({
                       await sendMessage({
                         conversationId,
                         content: text.trim(),
-                        modelId: selectedModel,
+                        ...(isComparisonMode
+                          ? { models: selectedModels }
+                          : { modelId: selectedModel }),
                         thinkingEffort,
                         attachments:
                           attachments.length > 0 ? attachments : undefined,
@@ -301,7 +305,10 @@ export function ChatInput({
         <div className="px-4 pb-2 flex justify-between items-center">
           <div className="flex items-center gap-2 flex-wrap">
             {isComparisonMode && onExitComparison ? (
-              <Badge variant="secondary" className="mr-2 flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                className="mr-2 flex items-center gap-2"
+              >
                 Comparing {selectedModels.length} models
                 <Button
                   size="icon"
@@ -319,12 +326,15 @@ export function ChatInput({
                 className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
               />
             )}
-            {supportsThinking && thinkingEffort && onThinkingEffortChange && !isComparisonMode && (
-              <ThinkingEffortSelector
-                value={thinkingEffort}
-                onChange={onThinkingEffortChange}
-              />
-            )}
+            {supportsThinking &&
+              thinkingEffort &&
+              onThinkingEffortChange &&
+              !isComparisonMode && (
+                <ThinkingEffortSelector
+                  value={thinkingEffort}
+                  onChange={onThinkingEffortChange}
+                />
+              )}
             {onStartComparison && (
               <ComparisonTrigger
                 onStartComparison={onStartComparison}

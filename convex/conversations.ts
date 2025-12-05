@@ -567,7 +567,10 @@ export const createConsolidationConversation = mutation({
     consolidationModel: v.string(),
   },
   returns: v.object({ conversationId: v.id("conversations") }),
-  handler: async (ctx, args): Promise<{ conversationId: Id<"conversations"> }> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ conversationId: Id<"conversations"> }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
     // 1. Fetch comparison messages
@@ -579,11 +582,32 @@ export const createConsolidationConversation = mutation({
       .collect();
 
     // 2. Separate user message and assistant responses
-    const userMessage = allMessages.find((m) => m.role === "user");
+    let userMessage = allMessages.find((m) => m.role === "user");
     const responses = allMessages.filter((m) => m.role === "assistant");
 
+    // Fallback: For old messages without comparisonGroupId on user message,
+    // find the user message by looking at the conversation of the first response
+    if (!userMessage && responses.length > 0) {
+      const conversationId = responses[0].conversationId;
+      const allConversationMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", conversationId),
+        )
+        .order("asc")
+        .collect();
+
+      // Find the user message that came right before the comparison responses
+      const firstResponseTime = Math.min(...responses.map((r) => r.createdAt));
+      userMessage = allConversationMessages
+        .filter((m) => m.role === "user" && m.createdAt < firstResponseTime)
+        .sort((a, b) => b.createdAt - a.createdAt)[0];
+    }
+
     if (!userMessage || responses.length === 0) {
-      throw new Error("Invalid comparison group");
+      throw new Error(
+        `Invalid comparison group: found ${allMessages.length} messages (${responses.length} assistant, ${userMessage ? 1 : 0} user) for groupId ${args.comparisonGroupId}`,
+      );
     }
 
     // 3. Build consolidation prompt (using imported helper when available)

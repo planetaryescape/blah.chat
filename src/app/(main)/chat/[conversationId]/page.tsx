@@ -3,7 +3,7 @@
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
-import { MessageList } from "@/components/chat/MessageList";
+import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { api } from "@/convex/_generated/api";
@@ -169,7 +169,7 @@ export default function ChatPage({
         </div>
       </header>
 
-      <MessageList
+      <VirtualizedMessageList
         messages={messages}
         onVote={handleVote}
         onConsolidate={handleConsolidate}

@@ -1,81 +1,151 @@
 "use client";
 
-import { useState } from "react";
-import { useAction } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Loader2 } from "lucide-react";
+import { RecentSearches } from "@/components/search/RecentSearches";
+import { SearchBar } from "@/components/search/SearchBar";
+import { SearchFilters } from "@/components/search/SearchFilters";
+import { SearchHeader } from "@/components/search/SearchHeader";
 import { SearchResults } from "@/components/search/SearchResults";
-import type { Id } from "@/convex/_generated/dataModel";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { useRecentSearches } from "@/hooks/useRecentSearches";
+import { useSearchFilters } from "@/hooks/useSearchFilters";
+import { useSearchQuery } from "@/hooks/useSearchQuery";
+import { useEffect, useRef, useState } from "react";
+
+const PAGE_SIZE = 20;
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
 
-  const hybridSearch = useAction(api.search.hybridSearch);
+  const { filters, setFilter, clearFilters, hasActiveFilters } =
+    useSearchFilters();
+  const { recentSearches, addSearch, clearRecent } = useRecentSearches();
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const {
+    inputValue,
+    setInputValue,
+    debouncedQuery,
+    results,
+    isSearching,
+    hasMore,
+  } = useSearchQuery({
+    ...filters,
+    limit: page * PAGE_SIZE,
+  });
 
-    setIsSearching(true);
-    try {
-      const searchResults = await hybridSearch({
-        query: query.trim(),
-        limit: 50,
-      });
-      setResults(searchResults);
-    } catch (error) {
-      console.error("Search failed:", error);
-    } finally {
-      setIsSearching(false);
+  const {
+    selectedCount,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    isSelected,
+  } = useBulkSelection();
+
+  // Clear selection when filter/search changes
+  useEffect(() => {
+    clearSelection();
+  }, [debouncedQuery, filters, clearSelection]);
+
+  // Add to recent searches when query is submitted
+  const handleQueryChange = (newValue: string) => {
+    setInputValue(newValue);
+    if (newValue.trim() && debouncedQuery !== newValue.trim()) {
+      // Reset page when query changes
+      setPage(1);
     }
   };
 
-  return (
-    <div className="container mx-auto max-w-4xl py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Search Conversations</h1>
-        <p className="text-muted-foreground">
-          Search across all your messages using semantic and keyword search
-        </p>
-      </div>
+  // Track successful searches
+  const prevQueryRef = useRef<string>("");
+  useEffect(() => {
+    if (
+      debouncedQuery &&
+      results.length > 0 &&
+      !isSearching &&
+      debouncedQuery !== prevQueryRef.current
+    ) {
+      addSearch(debouncedQuery);
+      prevQueryRef.current = debouncedQuery;
+    }
+  }, [debouncedQuery, results.length, isSearching, addSearch]);
 
-      <form onSubmit={handleSearch} className="mb-8">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search messages..."
-              className="pl-10 h-12 text-lg"
-              disabled={isSearching}
+  const handleSelectRecentSearch = (query: string) => {
+    setInputValue(query);
+    setPage(1);
+  };
+
+  const handleLoadMore = () => {
+    setPage((p) => p + 1);
+  };
+
+  const handleClearFilters = () => {
+    clearFilters();
+    setPage(1);
+  };
+
+  const handleActionComplete = () => {
+    // Trigger search results refresh
+    setPage(1);
+    clearSelection();
+  };
+
+  return (
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+      {/* Background gradients */}
+      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
+
+      {/* Fixed header */}
+      <div className="flex-none z-50">
+        <SearchHeader>
+          <div className="space-y-4">
+            <SearchBar
+              value={inputValue}
+              onChange={handleQueryChange}
+              isSearching={isSearching}
+              autoFocus
+            />
+            <SearchFilters
+              filters={filters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+              onFilterChange={setFilter}
             />
           </div>
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSearching || !query.trim()}
-          >
-            {isSearching ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Searching...
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4 mr-2" />
-                Search
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+        </SearchHeader>
+      </div>
 
-      <SearchResults results={results} isLoading={isSearching} query={query} />
+      <ScrollArea className="flex-1 w-full min-h-0">
+        <div className="container mx-auto max-w-6xl px-4 py-8 relative">
+          {/* Show recent searches when no query */}
+          {!debouncedQuery && !inputValue && (
+            <RecentSearches
+              recentSearches={recentSearches}
+              onSelectSearch={handleSelectRecentSearch}
+              onClearRecent={clearRecent}
+            />
+          )}
+
+          {/* Show results when searching */}
+          {(debouncedQuery || inputValue) && (
+            <SearchResults
+              results={results}
+              isLoading={isSearching}
+              query={debouncedQuery}
+              hasMore={hasMore}
+              onLoadMore={handleLoadMore}
+              hasFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
+              selectedCount={selectedCount}
+              isSelected={isSelected}
+              toggleSelection={toggleSelection}
+              selectAll={selectAll}
+              clearSelection={clearSelection}
+              onRefresh={handleActionComplete}
+            />
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }

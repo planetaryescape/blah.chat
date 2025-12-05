@@ -38,6 +38,8 @@ export default defineSchema({
           v.literal("assemblyai"),
         ),
       ), // default "openai"
+      // Comparison settings
+      showModelNamesDuringComparison: v.optional(v.boolean()), // default false
     }),
     monthlyBudget: v.optional(v.number()),
     budgetAlertThreshold: v.optional(v.number()),
@@ -140,6 +142,18 @@ export default defineSchema({
     branchIndex: v.optional(v.number()),
     // Comparison support
     comparisonGroupId: v.optional(v.string()),
+    votes: v.optional(
+      v.object({
+        rating: v.union(
+          v.literal("left_better"),
+          v.literal("right_better"),
+          v.literal("tie"),
+          v.literal("both_bad"),
+        ),
+        isWinner: v.boolean(),
+        votedAt: v.number(),
+      }),
+    ),
     generationStartedAt: v.optional(v.number()),
     generationCompletedAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -294,4 +308,19 @@ export default defineSchema({
       searchField: "name",
       filterFields: ["userId", "isBuiltIn", "category"],
     }),
+
+  votes: defineTable({
+    userId: v.id("users"),
+    comparisonGroupId: v.string(),
+    winnerId: v.optional(v.id("messages")), // null for tie
+    rating: v.union(
+      v.literal("left_better"),
+      v.literal("right_better"),
+      v.literal("tie"),
+      v.literal("both_bad"),
+    ),
+    votedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_comparison", ["comparisonGroupId"]),
 });

@@ -23,6 +23,7 @@ export const create = internalMutation({
       ),
     ),
     model: v.optional(v.string()),
+    comparisonGroupId: v.optional(v.string()), // NEW: For comparison mode
     attachments: v.optional(
       v.array(
         v.object({
@@ -47,6 +48,7 @@ export const create = internalMutation({
       content: args.content || "",
       status: args.status || "complete",
       model: args.model,
+      comparisonGroupId: args.comparisonGroupId,
       attachments: args.attachments,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -241,5 +243,21 @@ export const addToolCalls = internalMutation({
       toolCalls: [...existingCalls, ...args.toolCalls],
       updatedAt: Date.now(),
     });
+  },
+});
+
+// Get all messages in a comparison group
+export const getComparisonGroup = query({
+  args: { comparisonGroupId: v.string() },
+  handler: async (ctx, { comparisonGroupId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_comparison_group", (q) =>
+        q.eq("comparisonGroupId", comparisonGroupId),
+      )
+      .collect();
   },
 });

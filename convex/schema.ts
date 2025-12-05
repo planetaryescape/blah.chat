@@ -61,6 +61,18 @@ export default defineSchema({
     projectId: v.optional(v.id("projects")),
     lastMemoryExtractionAt: v.optional(v.number()),
     memoryExtractionMessageCount: v.optional(v.number()),
+    // Token usage tracking
+    tokenUsage: v.optional(
+      v.object({
+        systemTokens: v.number(),
+        messagesTokens: v.number(),
+        memoriesTokens: v.number(),
+        totalTokens: v.number(),
+        contextLimit: v.number(),
+        lastCalculatedAt: v.number(),
+      }),
+    ),
+    messageCount: v.optional(v.number()),
     lastMessageAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -106,9 +118,28 @@ export default defineSchema({
           storageId: v.string(),
           mimeType: v.string(),
           size: v.number(),
+          metadata: v.optional(v.any()),
         }),
       ),
     ),
+    // Tool calling support
+    toolCalls: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          arguments: v.string(),
+          result: v.optional(v.string()),
+          timestamp: v.number(),
+        }),
+      ),
+    ),
+    // Branching support
+    parentMessageId: v.optional(v.id("messages")),
+    branchLabel: v.optional(v.string()),
+    branchIndex: v.optional(v.number()),
+    // Comparison support
+    comparisonGroupId: v.optional(v.string()),
     generationStartedAt: v.optional(v.number()),
     generationCompletedAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -117,6 +148,8 @@ export default defineSchema({
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
+    .index("by_parent", ["parentMessageId"])
+    .index("by_comparison_group", ["comparisonGroupId"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
@@ -132,21 +165,26 @@ export default defineSchema({
     content: v.string(),
     embedding: v.array(v.number()),
     conversationId: v.optional(v.id("conversations")),
-    metadata: v.optional(
-      v.object({
-        category: v.optional(v.string()),
-        importance: v.optional(v.number()),
-        tags: v.optional(v.array(v.string())),
-      }),
-    ),
+    metadata: v.object({
+      category: v.string(),
+      importance: v.optional(v.number()), // 1-10 scale
+      reasoning: v.optional(v.string()), // Why this memory is important
+      extractedAt: v.optional(v.number()), // When extraction occurred
+      sourceConversationId: v.optional(v.id("conversations")),
+    }),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_importance", ["userId", "metadata.importance"]) // Query by importance
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
       filterFields: ["userId"],
+    })
+    .searchIndex("search_content", {
+      searchField: "content",
+      filterFields: ["userId", "metadata.category"],
     }),
 
   projects: defineTable({
@@ -180,7 +218,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_message", ["messageId"]),
+    .index("by_message", ["messageId"])
+    .index("by_conversation", ["conversationId"]),
 
   shares: defineTable({
     userId: v.id("users"),
@@ -189,6 +228,9 @@ export default defineSchema({
     title: v.string(),
     expiresAt: v.optional(v.number()),
     isPublic: v.boolean(),
+    isActive: v.boolean(), // Can be toggled to revoke access
+    password: v.optional(v.string()), // bcrypt hashed
+    anonymizeUsernames: v.optional(v.boolean()),
     viewCount: v.number(),
     createdAt: v.number(),
   })
@@ -208,8 +250,10 @@ export default defineSchema({
       time: v.string(),
       dayOfWeek: v.optional(v.number()),
       dayOfMonth: v.optional(v.number()),
+      timezone: v.string(), // "America/New_York"
     }),
     model: v.string(),
+    projectId: v.optional(v.id("projects")),
     isActive: v.boolean(),
     lastRunAt: v.optional(v.number()),
     nextRunAt: v.number(),

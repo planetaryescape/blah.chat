@@ -20,6 +20,7 @@ export function useAutoScroll(
   const containerRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const resizeRAF = useRef<number | undefined>(undefined);
 
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -102,10 +103,11 @@ export function useAutoScroll(
     resizeObserverRef.current = new ResizeObserver(() => {
       // Only auto-scroll if user is at bottom and hasn't scrolled up
       if (!userScrolledUp && isAtBottom) {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            scrollToBottom("auto");
-          });
+        // Debounce - cancel pending RAF before scheduling new
+        if (resizeRAF.current) cancelAnimationFrame(resizeRAF.current);
+
+        resizeRAF.current = requestAnimationFrame(() => {
+          scrollToBottom("auto");
         });
       }
     });

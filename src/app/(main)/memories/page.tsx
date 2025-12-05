@@ -234,7 +234,7 @@ export default function MemoriesPage() {
           ) : (
             <div className="space-y-6">
               {Object.entries(groupedMemories).map(
-                ([category, categoryMemories]) => {
+                ([category, categoryMemories]: [string, any]) => {
                   const label = categoryLabels[category] || {
                     title: category,
                     description: "Other memories",

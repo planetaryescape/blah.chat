@@ -17,10 +17,11 @@ export function VirtualizedMessageList({
   messages,
   autoScroll = true,
 }: VirtualizedMessageListProps) {
-  const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
-    threshold: 100,
-    animationDuration: 400,
-  });
+  const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
+    useAutoScroll({
+      threshold: 100,
+      animationDuration: 400,
+    });
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -33,13 +34,15 @@ export function VirtualizedMessageList({
 
   // Scroll on new content
   useEffect(() => {
-    if (autoScroll) {
+    // Only auto-scroll if user is at bottom and autoScroll enabled
+    if (autoScroll && isAtBottom) {
       scrollToBottom("smooth");
     }
   }, [
     messages.length,
     messages[messages.length - 1]?.partialContent,
     autoScroll,
+    isAtBottom,
     scrollToBottom,
   ]);
 

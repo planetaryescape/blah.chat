@@ -1,11 +1,11 @@
 "use client";
 
 import { ChatInput } from "@/components/chat/ChatInput";
-import { MessageList } from "@/components/chat/MessageList";
-import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
-import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
+import { MessageList } from "@/components/chat/MessageList";
+import { ShareDialog } from "@/components/chat/ShareDialog";
+import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
@@ -99,7 +99,7 @@ export default function ChatPage({
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
-      <header className="flex items-center gap-4 px-4 py-3 border-b">
+      <header className="flex items-center gap-4 px-4 py-3 border-b shrink-0">
         <h1 className="text-lg font-semibold truncate flex-1">
           {conversation.title || "New Chat"}
         </h1>

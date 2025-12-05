@@ -23,9 +23,9 @@ export default function MainLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex w-full h-screen">
+      <div className="flex w-full h-[100dvh] overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden">
           <div className="border-b p-2">
             <SidebarTrigger />
           </div>

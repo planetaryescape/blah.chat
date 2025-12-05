@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { useConvexAuth } from "convex/react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
-    ArrowRight,
-    ChevronDown,
-    Code2,
-    Eye,
-    Mic,
-    ShieldCheck,
-    Users,
-    Webhook
+  ArrowRight,
+  ChevronDown,
+  Code2,
+  Eye,
+  Mic,
+  ShieldCheck,
+  Users,
+  Webhook,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -41,8 +41,8 @@ export default function LandingPage() {
           variant="outline"
           className="rounded-full border-white/20 hover:bg-white/10 hover:text-white text-white bg-transparent backdrop-blur-sm"
         >
-          <Link href={isAuthenticated ? "/app" : "/sign-in"}>
-            {isAuthenticated ? "Enter App" : "Sign In"}
+          <Link href={isAuthenticated ? "/app" : "/sign-up"}>
+            {isAuthenticated ? "Enter App" : "Get Started"}
           </Link>
         </Button>
       </nav>
@@ -68,7 +68,6 @@ export default function LandingPage() {
               Another chat app. Really?
             </motion.p>
           </motion.div>
-
         </div>
 
         <motion.div
@@ -94,28 +93,28 @@ export default function LandingPage() {
       </section>
 
       {/* Section 2: The Fragmentation (Scroll driven) */}
-      <section className="h-screen sticky top-0 flex items-center justify-center bg-foreground text-background z-20">
+      <section className="min-h-screen sticky top-0 flex items-center justify-center bg-foreground text-background z-20 py-12 md:py-0">
         <div className="container px-4 max-w-5xl">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="font-syne text-6xl md:text-8xl font-bold leading-none mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="order-2 md:order-1">
+              <h2 className="font-syne text-4xl md:text-6xl lg:text-8xl font-bold leading-none mb-6 md:mb-8">
                 The <br />
                 <span className="text-background/50 italic">Mess.</span>
               </h2>
-              <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-80 mb-8">
+              <p className="text-lg md:text-xl lg:text-2xl font-medium leading-relaxed opacity-80 mb-6 md:mb-8">
                 ChatGPT for personalization & memories. <br />
                 Perplexity for web search & latest info. <br />
                 Gemini for Google Workspace, video & voice. <br />
                 Grok for speed. <br />
                 Nano Banana for images.
               </p>
-              <p className="text-lg text-background/60 font-medium border-l-2 border-background/20 pl-4">
+              <p className="text-base md:text-lg text-background/60 font-medium border-l-2 border-background/20 pl-4">
                 5 Subscriptions. 5x the Cost. <br />
                 Paying for repeated functionality just to get one feature from
                 each.
               </p>
             </div>
-            <div className="relative aspect-square">
+            <div className="relative aspect-square order-1 md:order-2 max-w-[300px] md:max-w-none mx-auto">
               {/* Abstract representation of scattered tools */}
               <motion.div
                 style={{
@@ -131,7 +130,7 @@ export default function LandingPage() {
                 className="absolute inset-0 border-4 border-background/20 rounded-full"
               />
               <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-center font-syne text-3xl font-bold">
+                <p className="text-center font-syne text-xl md:text-3xl font-bold">
                   Why are your superpowers <br />
                   scattered?
                 </p>
@@ -142,18 +141,18 @@ export default function LandingPage() {
       </section>
 
       {/* Section 3: The Solution (Control & Unification) */}
-      <section className="h-screen sticky top-0 flex items-center justify-center bg-background z-30">
+      <section className="min-h-screen sticky top-0 flex items-center justify-center bg-background z-30 py-12 md:py-0">
         <div className="container px-4 max-w-6xl">
-          <div className="grid gap-24">
+          <div className="grid gap-12 md:gap-24">
             <div className="space-y-4">
-              <h3 className="text-sm font-mono uppercase tracking-widest text-primary">
+              <h3 className="text-xs md:text-sm font-mono uppercase tracking-widest text-primary">
                 The Philosophy
               </h3>
-              <h2 className="font-syne text-5xl md:text-7xl font-bold">
+              <h2 className="font-syne text-4xl md:text-5xl lg:text-7xl font-bold">
                 Total Control. <br />
                 One Interface.
               </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl">
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
                 I built this to bring everything I love into one place. <br />
                 Stop paying for the same thing 5 times. <br />
                 <strong>
@@ -166,20 +165,20 @@ export default function LandingPage() {
       </section>
 
       {/* Section 4: The Gallery (Creative Toolkit - Dense & Compact) */}
-      <section className="h-screen sticky top-0 bg-zinc-950 text-zinc-50 z-35 flex flex-col justify-center py-8 overflow-hidden">
+      <section className="min-h-screen sticky top-0 bg-zinc-950 text-zinc-50 z-35 flex flex-col justify-center py-12 md:py-8 overflow-y-auto md:overflow-hidden">
         <div className="container px-4 max-w-[1400px] h-full flex flex-col">
           <div className="mb-8 text-center shrink-0">
-            <h2 className="font-syne text-4xl md:text-6xl font-bold mb-4 tracking-tighter">
+            <h2 className="font-syne text-3xl md:text-4xl lg:text-6xl font-bold mb-4 tracking-tighter">
               The Toolkit.
             </h2>
-            <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+            <p className="text-base md:text-lg text-zinc-400 max-w-2xl mx-auto">
               A dense, powerful grid of tools. Everything you need.
             </p>
           </div>
 
-          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 grid-rows-4 gap-3 min-h-0">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 md:grid-rows-4 gap-3 min-h-0 pb-12 md:pb-0">
             {/* 1. The Brain (Large) - Row 1-2, Col 1-2 */}
-            <div className="col-span-2 row-span-2 relative rounded-2xl overflow-hidden group border border-white/10">
+            <div className="md:col-span-2 md:row-span-2 relative rounded-2xl overflow-hidden group border border-white/10 h-[250px] md:h-auto">
               <Image
                 src="/assets/landing/neural_glass_abstract_1764891914296.png"
                 alt="Neural Glass"
@@ -197,7 +196,7 @@ export default function LandingPage() {
             </div>
 
             {/* 2. Voice Mode (Small) - Row 1, Col 3 */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
+            <div className="md:col-span-1 md:row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors h-[120px] md:h-auto">
               <Mic className="w-6 h-6 text-white" />
               <div>
                 <h4 className="font-bold text-lg leading-none mb-1">Voice</h4>
@@ -208,7 +207,7 @@ export default function LandingPage() {
             </div>
 
             {/* 3. Vision (Small) - Row 1, Col 4 */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
+            <div className="md:col-span-1 md:row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors h-[120px] md:h-auto">
               <Eye className="w-6 h-6 text-white" />
               <div>
                 <h4 className="font-bold text-lg leading-none mb-1">Vision</h4>
@@ -219,7 +218,7 @@ export default function LandingPage() {
             </div>
 
             {/* 4. The Structure (Large Vertical) - Row 2-3, Col 3 */}
-            <div className="col-span-1 row-span-2 relative rounded-2xl overflow-hidden group border border-white/10">
+            <div className="md:col-span-1 md:row-span-2 relative rounded-2xl overflow-hidden group border border-white/10 h-[200px] md:h-auto">
               <Image
                 src="/assets/landing/abstract_flow_branching_1764891937677.png"
                 alt="Abstract Flow"
@@ -236,7 +235,7 @@ export default function LandingPage() {
             </div>
 
             {/* 5. Code Artifacts (Small) - Row 2, Col 4 */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
+            <div className="md:col-span-1 md:row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors h-[120px] md:h-auto">
               <Code2 className="w-6 h-6 text-white" />
               <div>
                 <h4 className="font-bold text-lg leading-none mb-1">Code</h4>
@@ -247,7 +246,7 @@ export default function LandingPage() {
             </div>
 
             {/* 6. Privacy (Small) - Row 3, Col 4 */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
+            <div className="md:col-span-1 md:row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors h-[120px] md:h-auto">
               <ShieldCheck className="w-6 h-6 text-white" />
               <div>
                 <h4 className="font-bold text-lg leading-none mb-1">Privacy</h4>
@@ -258,7 +257,7 @@ export default function LandingPage() {
             </div>
 
             {/* 7. The Library (Wide) - Row 3, Col 1-2 */}
-            <div className="col-span-2 row-span-1 relative rounded-2xl overflow-hidden group border border-white/10">
+            <div className="md:col-span-2 md:row-span-1 relative rounded-2xl overflow-hidden group border border-white/10 h-[150px] md:h-auto">
               <Image
                 src="/assets/landing/structured_light_abstract_1764891925820.png"
                 alt="Structured Light"
@@ -277,7 +276,7 @@ export default function LandingPage() {
             </div>
 
             {/* 8. Team Spaces (Small) - Row 4, Col 1 */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
+            <div className="md:col-span-1 md:row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors h-[120px] md:h-auto">
               <Users className="w-6 h-6 text-white" />
               <div>
                 <h4 className="font-bold text-lg leading-none mb-1">Teams</h4>
@@ -288,7 +287,7 @@ export default function LandingPage() {
             </div>
 
             {/* 9. API Access (Small) - Row 4, Col 2 */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
+            <div className="md:col-span-1 md:row-span-1 bg-zinc-900/50 rounded-2xl p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors h-[120px] md:h-auto">
               <Webhook className="w-6 h-6 text-white" />
               <div>
                 <h4 className="font-bold text-lg leading-none mb-1">API</h4>
@@ -299,7 +298,7 @@ export default function LandingPage() {
             </div>
 
             {/* 10. The Control (Wide) - Row 4, Col 3-4 */}
-            <div className="col-span-2 row-span-1 relative rounded-2xl overflow-hidden group border border-white/10">
+            <div className="md:col-span-2 md:row-span-1 relative rounded-2xl overflow-hidden group border border-white/10 h-[150px] md:h-auto">
               <Image
                 src="/assets/landing/control_interface_abstract_1764891952530.png"
                 alt="Control Interface"

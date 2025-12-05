@@ -104,9 +104,13 @@ export function ComparisonView({
         </div>
 
         <Tabs defaultValue={sortedMessages[0]._id} className="flex-1">
-          <TabsList className="w-full sticky top-0 z-10">
+          <TabsList className="w-full justify-start overflow-x-auto sticky top-0 z-10 no-scrollbar px-1">
             {sortedMessages.map((msg, idx) => (
-              <TabsTrigger key={msg._id} value={msg._id}>
+              <TabsTrigger
+                key={msg._id}
+                value={msg._id}
+                className="flex-shrink-0 min-w-[100px]"
+              >
                 {showModelNames
                   ? msg.model?.split(":")[1] || msg.model
                   : `Model ${idx + 1}`}

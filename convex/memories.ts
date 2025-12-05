@@ -2,11 +2,11 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import {
-    internalAction,
-    internalMutation,
-    internalQuery,
-    mutation,
-    query,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
 
 export const create = internalMutation({
@@ -14,8 +14,14 @@ export const create = internalMutation({
     userId: v.id("users"),
     content: v.string(),
     embedding: v.array(v.float64()),
-    conversationId: v.id("conversations"),
-    category: v.string(),
+    conversationId: v.optional(v.id("conversations")),
+    metadata: v.object({
+      category: v.string(),
+      importance: v.number(),
+      reasoning: v.optional(v.string()),
+      extractedAt: v.number(),
+      sourceConversationId: v.optional(v.id("conversations")),
+    }),
   },
   handler: async (ctx, args) => {
     const memoryId = await ctx.db.insert("memories", {
@@ -23,9 +29,7 @@ export const create = internalMutation({
       content: args.content,
       embedding: args.embedding,
       conversationId: args.conversationId,
-      metadata: {
-        category: args.category,
-      },
+      metadata: args.metadata,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -87,23 +91,68 @@ export const searchByEmbedding = internalAction({
   },
 });
 
+export const internalList = internalQuery({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const memories = await ctx.db
+      .query("memories")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .take(args.limit || 100);
+    return memories;
+  },
+});
+
+import { paginationOptsValidator } from "convex/server";
+
 export const list = query({
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+    if (!identity) {
+      // Return empty result if not authenticated to prevent errors during initial load
+      return { page: [], isDone: true, continueCursor: "" };
+    }
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (!user) throw new Error("User not found");
+    if (!user) return { page: [], isDone: true, continueCursor: "" };
 
     const memories = await ctx.db
       .query("memories")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
-      .take(100);
+      .paginate(args.paginationOpts);
+
+    return memories;
+  },
+});
+
+export const listAll = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) return [];
+
+    const memories = await ctx.db
+      .query("memories")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(1000);
 
     return memories;
   },
@@ -185,8 +234,9 @@ export const createManual = mutation({
       content: args.content,
       embedding: embedding,
       metadata: {
-        category: "manual",
+        category: "user_profile",
         importance: 1,
+        extractedAt: Date.now(),
       },
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -267,5 +317,36 @@ export const scanRecentConversations = mutation({
     }
 
     return { triggered: triggeredCount };
+  },
+});
+
+// Migration: Delete all memories for current user
+export const deleteAllMemories = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    // Get all memories for user
+    const memories = await ctx.db
+      .query("memories")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // Delete all memories
+    for (const memory of memories) {
+      await ctx.db.delete(memory._id);
+    }
+
+    console.log(`Deleted ${memories.length} memories for user ${user._id}`);
+
+    return { deleted: memories.length };
   },
 });

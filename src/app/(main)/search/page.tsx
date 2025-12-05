@@ -10,11 +10,11 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
 import { useSearchQuery } from "@/hooks/useSearchQuery";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 const PAGE_SIZE = 20;
 
-export default function SearchPage() {
+function SearchPageContent() {
   const [page, setPage] = useState(1);
 
   const { filters, setFilter, clearFilters, hasActiveFilters } =
@@ -146,6 +146,26 @@ export default function SearchPage() {
           )}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchPageSkeleton />}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageSkeleton() {
+  return (
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="flex-none z-50 p-6">
+        <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
+      </div>
     </div>
   );
 }

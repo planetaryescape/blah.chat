@@ -2,16 +2,16 @@ import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
 import { getModel } from "@/lib/ai/registry";
 import { openai } from "@ai-sdk/openai";
-import { embed, streamText, type CoreMessage } from "ai";
+import { streamText, type CoreMessage } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { buildBasePromptOptions, getBasePrompt } from "./lib/prompts/base";
-import {
-    formatMemoriesByCategory,
-    truncateMemories,
-} from "./lib/prompts/formatting";
+import { formatMemoriesByCategory } from "./lib/prompts/formatting";
+import { calculateConversationTokens } from "./tokens/counting";
+
+export * as image from "./generation/image";
 
 // Helper to download attachment and convert to base64
 async function downloadAttachment(
@@ -48,6 +48,7 @@ async function buildSystemPrompts(
   const systemMessages: CoreMessage[] = [];
 
   // 1. User custom instructions (highest priority)
+  // @ts-ignore
   const user = await ctx.runQuery(api.users.getCurrentUser, {});
   if (user?.preferences?.customInstructions?.enabled) {
     const { aboutUser, responseStyle } = user.preferences.customInstructions;
@@ -58,6 +59,7 @@ async function buildSystemPrompts(
   }
 
   // 2. Project context (if conversation is in a project)
+  // @ts-ignore
   const conversation = await ctx.runQuery(internal.conversations.getInternal, {
     id: args.conversationId,
   });
@@ -82,38 +84,47 @@ async function buildSystemPrompts(
     });
   }
 
-  // 4. Retrieved memories (RAG) - FIXED with vector search
-  try {
-    const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
-      value: args.userMessage,
-    });
+  // 4. Memory retrieval (pre-fetch approach)
+  if (args.userMessage) {
+    try {
+      console.log("[Memory] Searching for memories with query:", args.userMessage);
+      // @ts-ignore
+      const memories = await ctx.runAction(
+        internal.memories.search.hybridSearch,
+        {
+          userId: args.userId,
+          query: args.userMessage,
+          limit: 10,
+        },
+      );
 
-    const memories = await ctx.runAction(internal.memories.searchByEmbedding, {
-      userId: args.userId,
-      embedding,
-      limit: 20,
-    });
+      console.log(`[Memory] Found ${memories.length} memories`);
 
-    if (memories?.length) {
-      const memoryBudget = Math.floor(args.modelConfig.contextWindow * 0.1);
-      const truncated = truncateMemories(memories, memoryBudget);
+      if (memories.length > 0) {
+        const memoryContent = formatMemoriesByCategory(memories);
+        console.log("[Memory] Formatted content length:", memoryContent.length);
+        console.log("[Memory] Formatted content:", memoryContent);
 
-      const memoryContent = formatMemoriesByCategory(truncated);
-      if (memoryContent) {
-        systemMessages.push({
-          role: "system",
-          content: memoryContent,
-        });
+        if (memoryContent) {
+          systemMessages.push({
+            role: "system",
+            content: memoryContent,
+          });
+          console.log("[Memory] Injected memories into system prompt");
+        }
+      } else {
+        console.log("[Memory] No memories found for query");
       }
+    } catch (error) {
+      console.error("[Memory] Fetch failed:", error);
+      // Continue without memories (graceful degradation)
     }
-  } catch (error) {
-    console.log("Memory retrieval failed:", error);
   }
 
-  // 5. Base identity (last - foundation)
+  // 5. Base identity (foundation)
   const basePromptOptions = buildBasePromptOptions(args.modelConfig);
   const basePrompt = getBasePrompt(basePromptOptions);
+
   systemMessages.push({
     role: "system",
     content: basePrompt,
@@ -269,11 +280,11 @@ export const generateResponse = internalAction({
         };
       }
 
-      // Stream from LLM
-      const result = streamText(options);
-
       // 6. Accumulate chunks, throttle DB updates
       let accumulated = "";
+
+      // Stream from LLM
+      const result = streamText(options);
       let lastUpdate = Date.now();
       const UPDATE_INTERVAL = 200; // ms
 
@@ -313,7 +324,33 @@ export const generateResponse = internalAction({
         conversationId: args.conversationId,
       });
 
-      // 11. Auto-name if conversation still has default title
+      // 11. Calculate and update token usage
+      const allMessagesForCounting = await ctx.runQuery(
+        internal.messages.listInternal,
+        { conversationId: args.conversationId },
+      );
+
+      // System prompts (tool-based memory retrieval tokens counted separately by AI SDK)
+      const systemPromptStrings: string[] = systemPrompts.map((msg) =>
+        typeof msg.content === "string"
+          ? msg.content
+          : JSON.stringify(msg.content),
+      );
+
+      const tokenUsage = calculateConversationTokens(
+        systemPromptStrings,
+        [], // No memory prompts - now accessed via tools
+        allMessagesForCounting,
+        modelConfig.contextWindow,
+        args.modelId,
+      );
+
+      await ctx.runMutation(internal.conversations.updateTokenUsage, {
+        conversationId: args.conversationId,
+        tokenUsage,
+      });
+
+      // 12. Auto-name if conversation still has default title
       const conversation = await ctx.runQuery(
         internal.conversations.getInternal,
         {

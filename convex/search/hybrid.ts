@@ -16,6 +16,9 @@ export const hybridSearch = action({
     query: v.string(),
     limit: v.optional(v.number()),
     conversationId: v.optional(v.id("conversations")),
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
+    messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
   },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
     const user: any = await ctx.runQuery(api.users.getCurrentUser, {});
@@ -28,6 +31,9 @@ export const hybridSearch = action({
       query: args.query,
       userId: user._id,
       conversationId: args.conversationId,
+      dateFrom: args.dateFrom,
+      dateTo: args.dateTo,
+      messageType: args.messageType,
       limit: 40, // Fetch more for RRF merging
     });
 
@@ -47,6 +53,9 @@ export const hybridSearch = action({
         embedding,
         userId: user._id,
         conversationId: args.conversationId,
+        dateFrom: args.dateFrom,
+        dateTo: args.dateTo,
+        messageType: args.messageType,
         limit: 40,
       });
 
@@ -67,6 +76,9 @@ export const fullTextSearch = query({
     query: v.string(),
     userId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
+    messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
@@ -76,9 +88,19 @@ export const fullTextSearch = query({
       .filter((q) => q.eq(q.field("userId"), args.userId))
       .take(args.limit);
 
-    // Filter by conversation if specified
+    // Apply filters
     if (args.conversationId) {
       results = results.filter((m) => m.conversationId === args.conversationId);
+    }
+
+    if (args.dateFrom !== undefined && args.dateTo !== undefined) {
+      results = results.filter(
+        (m) => m.createdAt >= args.dateFrom! && m.createdAt <= args.dateTo!,
+      );
+    }
+
+    if (args.messageType) {
+      results = results.filter((m) => m.role === args.messageType);
     }
 
     return results;
@@ -93,6 +115,9 @@ export const vectorSearch = query({
     embedding: v.array(v.float64()),
     userId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
+    messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
@@ -114,12 +139,23 @@ export const vectorSearch = query({
     // Sort by score descending
     withScores.sort((a, b) => b.score - a.score);
 
-    // Filter by conversation if specified
+    // Apply filters
     let filtered = withScores;
+
     if (args.conversationId) {
-      filtered = withScores.filter(
+      filtered = filtered.filter(
         (m) => m.conversationId === args.conversationId,
       );
+    }
+
+    if (args.dateFrom !== undefined && args.dateTo !== undefined) {
+      filtered = filtered.filter(
+        (m) => m.createdAt >= args.dateFrom! && m.createdAt <= args.dateTo!,
+      );
+    }
+
+    if (args.messageType) {
+      filtered = filtered.filter((m) => m.role === args.messageType);
     }
 
     // Return top N without score

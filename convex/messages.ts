@@ -1,11 +1,6 @@
 import { v } from "convex/values";
-import {
-  mutation,
-  query,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
 import { internal } from "./_generated/api";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 
 export * as embeddings from "./messages/embeddings";
 
@@ -57,6 +52,14 @@ export const create = internalMutation({
       updatedAt: Date.now(),
     });
 
+    // Increment conversation messageCount
+    const conversation = await ctx.db.get(args.conversationId);
+    if (conversation) {
+      await ctx.db.patch(args.conversationId, {
+        messageCount: (conversation.messageCount || 0) + 1,
+      });
+    }
+
     // Schedule embedding generation for complete messages with content
     if (
       args.status === "complete" &&
@@ -65,6 +68,7 @@ export const create = internalMutation({
     ) {
       await ctx.scheduler.runAfter(
         0,
+        // @ts-ignore
         internal.messages.embeddings.generateEmbedding,
         {
           messageId,
@@ -167,6 +171,74 @@ export const markError = internalMutation({
     await ctx.db.patch(args.messageId, {
       status: "error",
       error: args.error,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updatePartial = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    updates: v.object({
+      error: v.optional(v.string()),
+      metadata: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      ...args.updates,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const addAttachment = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    attachment: v.object({
+      type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
+      storageId: v.string(),
+      name: v.string(),
+      size: v.number(),
+      mimeType: v.string(),
+      metadata: v.optional(v.any()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) throw new Error("Message not found");
+
+    const attachments = message.attachments || [];
+    attachments.push(args.attachment);
+
+    await ctx.db.patch(args.messageId, {
+      attachments,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Add tool calls to message
+export const addToolCalls = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    toolCalls: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        arguments: v.string(),
+        result: v.optional(v.string()),
+        timestamp: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) throw new Error("Message not found");
+
+    const existingCalls = message.toolCalls || [];
+    await ctx.db.patch(args.messageId, {
+      toolCalls: [...existingCalls, ...args.toolCalls],
       updatedAt: Date.now(),
     });
   },

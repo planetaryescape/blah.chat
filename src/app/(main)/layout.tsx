@@ -1,8 +1,8 @@
 "use client";
 
+import { CommandPalette } from "@/components/CommandPalette";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { CommandPalette } from "@/components/CommandPalette";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useConvexAuth } from "convex/react";
 
@@ -25,7 +25,7 @@ export default function MainLayout({
     <SidebarProvider>
       <div className="flex w-full h-screen">
         <AppSidebar />
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
           <div className="border-b p-2">
             <SidebarTrigger />
           </div>

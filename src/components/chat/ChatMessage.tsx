@@ -80,12 +80,16 @@ export const ChatMessage = memo(
       >
         <motion.div
           className={isUser ? userMessageClass : assistantMessageClass}
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          initial={!isGenerating ? { opacity: 0, y: 20, scale: 0.95 } : false}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{
-            duration: 0.4,
-            ease: [0.2, 0, 0, 1], // Custom ease for "pop" feel
-          }}
+          transition={
+            !isGenerating
+              ? {
+                  duration: 0.4,
+                  ease: [0.2, 0, 0, 1], // Custom ease for "pop" feel
+                }
+              : { duration: 0 }
+          }
         >
           {isError ? (
             <div className="flex flex-col gap-3 p-1">

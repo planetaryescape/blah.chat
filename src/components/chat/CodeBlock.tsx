@@ -1,6 +1,9 @@
+"use client";
+
 import { highlightCode } from "@/lib/highlighter";
 import { cn } from "@/lib/utils";
 import { ClientCodeControls } from "./ClientCodeControls";
+import { useEffect, useRef, useState } from "react";
 
 interface CodeBlockProps {
   code: string;
@@ -9,6 +12,10 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ code, language, inline }: CodeBlockProps) {
+  const [highlightedHTML, setHighlightedHTML] = useState("");
+  const codeRef = useRef(code);
+  const languageRef = useRef(language);
+
   if (inline) {
     return (
       <code
@@ -24,8 +31,26 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
     );
   }
 
-  // Apply syntax highlighting with Shiki (client-side sync)
-  const html = highlightCode(code, language || "text");
+  // Defer syntax highlighting to avoid blocking during streaming
+  useEffect(() => {
+    // Skip re-highlighting if code hasn't changed
+    if (codeRef.current === code && languageRef.current === language && highlightedHTML) {
+      return;
+    }
+
+    codeRef.current = code;
+    languageRef.current = language;
+
+    // Use requestIdleCallback to run during browser idle time
+    const idleCallback = requestIdleCallback(() => {
+      const html = highlightCode(code, language || "text");
+      setHighlightedHTML(html);
+    });
+
+    return () => cancelIdleCallback(idleCallback);
+  }, [code, language, highlightedHTML]);
+
+  const html = highlightedHTML || code; // Fallback to plain code while highlighting
 
   // Shiki returns complete HTML with inline styles
   // Wrap in our UI with line numbers, controls, scrolling

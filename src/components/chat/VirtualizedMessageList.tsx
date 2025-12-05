@@ -1,9 +1,12 @@
 "use client";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { ChatMessage } from "./ChatMessage";
+import { Button } from "@/components/ui/button";
+import { ArrowDown } from "lucide-react";
 
 interface VirtualizedMessageListProps {
   messages: Doc<"messages">[];
@@ -14,26 +17,26 @@ export function VirtualizedMessageList({
   messages,
   autoScroll = true,
 }: VirtualizedMessageListProps) {
-  const parentRef = useRef<HTMLDivElement>(null);
+  const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
+    threshold: 100,
+    animationDuration: 400,
+  });
 
   const virtualizer = useVirtualizer({
     count: messages.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 150, // Estimated height of a message
-    overscan: 5, // Number of items to render outside visible area
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 150,
+    overscan: 5,
   });
 
   const items = virtualizer.getVirtualItems();
 
-  // Auto-scroll to bottom on new messages
+  // Scroll on new content
   useEffect(() => {
-    if (autoScroll && messages.length > 0) {
-      virtualizer.scrollToIndex(messages.length - 1, {
-        align: "end",
-        behavior: "smooth",
-      });
+    if (autoScroll) {
+      scrollToBottom("smooth");
     }
-  }, [messages.length, autoScroll, virtualizer]);
+  }, [messages.length, messages[messages.length - 1]?.partialContent, autoScroll, scrollToBottom]);
 
   // Only use virtualization for long conversations
   const useVirtualization = messages.length > 50;
@@ -41,16 +44,25 @@ export function VirtualizedMessageList({
   if (!useVirtualization) {
     // Render normally for short conversations
     return (
-      <div className="flex flex-col gap-4 px-4 py-6">
+      <div ref={containerRef} className="flex flex-col gap-4 px-4 py-6 h-full overflow-auto relative">
         {messages.map((message: any) => (
           <ChatMessage key={message._id} message={message} />
         ))}
+        {showScrollButton && (
+          <Button
+            className="fixed bottom-24 right-8 rounded-full shadow-lg transition-all duration-200"
+            size="icon"
+            onClick={() => scrollToBottom("smooth")}
+          >
+            <ArrowDown className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     );
   }
 
   return (
-    <div ref={parentRef} className="h-full overflow-auto">
+    <div ref={containerRef} className="h-full overflow-auto relative">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -80,6 +92,15 @@ export function VirtualizedMessageList({
           );
         })}
       </div>
+      {showScrollButton && (
+        <Button
+          className="fixed bottom-24 right-8 rounded-full shadow-lg transition-all duration-200"
+          size="icon"
+          onClick={() => scrollToBottom("smooth")}
+        >
+          <ArrowDown className="w-4 h-4" />
+        </Button>
+      )}
     </div>
   );
 }

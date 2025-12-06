@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
@@ -30,6 +31,14 @@ export const ChatMessage = memo(
 
     const displayContent = message.partialContent || message.content || "";
     const modelName = message.model?.split(":")[1] || message.model;
+
+    // Check if this is a thinking/reasoning model
+    const modelConfig = message.model ? getModelConfig(message.model) : null;
+    const isThinkingModel =
+      modelConfig?.supportsThinkingEffort ||
+      modelConfig?.capabilities?.includes("extended-thinking") ||
+      modelConfig?.capabilities?.includes("thinking") ||
+      false;
 
     // Fetch URLs for attachments
     const attachmentStorageIds =
@@ -112,6 +121,11 @@ export const ChatMessage = memo(
                   content={displayContent}
                   isStreaming={isGenerating}
                 />
+              ) : isThinkingModel ? (
+                <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                  <span>Thinking...</span>
+                </div>
               ) : (
                 <div className="flex gap-1 items-center h-6">
                   <span
@@ -140,12 +154,6 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
-              {isGenerating && (
-                <div className="flex items-center gap-2 mt-3 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                  <span>Thinking...</span>
-                </div>
-              )}
 
               {!isUser && message.status === "complete" && modelName && (
                 <div className="absolute -bottom-5 left-4 opacity-0 group-hover/assistant:opacity-100 transition-opacity duration-300">

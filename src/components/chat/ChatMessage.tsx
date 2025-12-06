@@ -2,13 +2,20 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
+import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
 import { memo, useState } from "react";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
@@ -51,6 +58,13 @@ export const ChatMessage = memo(
       modelConfig?.capabilities?.includes("extended-thinking") ||
       modelConfig?.capabilities?.includes("thinking") ||
       false;
+
+    // Calculate performance metrics
+    const ttft =
+      message.firstTokenAt && message.generationStartedAt
+        ? message.firstTokenAt - message.generationStartedAt
+        : null;
+    const isCached = ttft !== null && isCachedResponse(ttft);
 
     // Fetch URLs for attachments
     const attachmentStorageIds =
@@ -218,14 +232,112 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
-              {!isUser && message.status === "complete" && modelName && (
-                <div className="absolute -bottom-5 left-4 transition-opacity duration-300">
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                  >
-                    {modelName}
-                  </Badge>
+              {!isUser &&
+                (message.status === "complete" ||
+                  message.status === "generating") &&
+                modelName && (
+                  <div className="absolute -bottom-5 left-4 flex items-center gap-2 transition-opacity duration-300">
+                    {/* Model name */}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                    >
+                      {modelName}
+                    </Badge>
+
+                    {/* TTFT badge */}
+                    {ttft !== null && (
+                      <TooltipProvider>
+                        {isCached ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                              >
+                                <Zap className="w-3 h-3 mr-1" />
+                                cached
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="text-xs">
+                                <div className="font-semibold">
+                                  Cached Response
+                                </div>
+                                <div className="text-muted-foreground">
+                                  Served instantly from cache
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
+                                  message.status === "generating" &&
+                                    "animate-pulse"
+                                )}
+                              >
+                                TTFT: {formatTTFT(ttft)}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="text-xs">
+                                <div className="font-semibold">
+                                  Time to First Token
+                                </div>
+                                <div className="text-muted-foreground">
+                                  {message.status === "generating"
+                                    ? "AI started responding"
+                                    : "How long until AI started responding"}
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </TooltipProvider>
+                    )}
+
+                    {/* TPS badge (completed only) */}
+                    {message.tokensPerSecond &&
+                      message.status === "complete" && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                              >
+                                TPS: {Math.round(message.tokensPerSecond)} t/s
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="text-xs">
+                                <div className="font-semibold">
+                                  Tokens Per Second
+                                </div>
+                                <div className="text-muted-foreground">
+                                  Generation speed:{" "}
+                                  {Math.round(message.tokensPerSecond)}{" "}
+                                  tokens/sec
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                  </div>
+                )}
+
+              {/* Screen reader announcement */}
+              {!isUser && message.status === "complete" && (
+                <div className="sr-only" role="status" aria-live="polite">
+                  {ttft && `Response generated in ${formatTTFT(ttft)}`}
+                  {message.tokensPerSecond &&
+                    ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
                 </div>
               )}
 

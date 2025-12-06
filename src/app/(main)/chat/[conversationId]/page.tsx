@@ -59,6 +59,10 @@ export default function ChatPage({
   const createConsolidation = useMutation(
     api.conversations.createConsolidationConversation,
   );
+  const consolidateInPlace = useMutation(
+    api.conversations.consolidateInSameChat,
+  );
+  const updateModelMutation = useMutation(api.conversations.updateModel);
 
   const handleVote = async (winnerId: string, rating: string) => {
     const msg = messages?.find((m: Doc<"messages">) => m._id === winnerId);
@@ -76,9 +80,28 @@ export default function ChatPage({
     }
   };
 
-  const handleConsolidate = async (model: string) => {
+  const handleConsolidate = async (
+    model: string,
+    mode: "same-chat" | "new-chat",
+  ) => {
     const msg = messages?.find((m: Doc<"messages">) => m.comparisonGroupId);
-    if (msg?.comparisonGroupId) {
+    if (!msg?.comparisonGroupId) return;
+
+    if (mode === "same-chat") {
+      // Consolidate in place - no navigation
+      await consolidateInPlace({
+        conversationId: conversationId!,
+        comparisonGroupId: msg.comparisonGroupId,
+        consolidationModel: model,
+      });
+
+      // Update conversation model to match consolidation choice
+      await updateModelMutation({
+        conversationId: conversationId!,
+        model: model,
+      });
+    } else {
+      // Create new conversation and navigate
       const { conversationId: newConvId } = await createConsolidation({
         comparisonGroupId: msg.comparisonGroupId,
         consolidationModel: model,
@@ -190,6 +213,7 @@ export default function ChatPage({
         selectedModels={selectedModels}
         onStartComparison={startComparison}
         onExitComparison={exitComparison}
+        isEmpty={messages?.length === 0}
       />
     </div>
   );

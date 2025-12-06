@@ -7,7 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
@@ -15,6 +15,8 @@ import { FileUpload } from "./FileUpload";
 import { ImageGenerateButton } from "./ImageGenerateButton";
 import { RateLimitDialog } from "./RateLimitDialog";
 import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { KeyboardHints } from "./KeyboardHints";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -24,14 +26,14 @@ interface Attachment {
   size: number;
 }
 
-import { ModelSelector } from "./ModelSelector";
-import {
-  ThinkingEffortSelector,
-  type ThinkingEffort,
-} from "./ThinkingEffortSelector";
-import { ComparisonTrigger } from "./ComparisonTrigger";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { ComparisonTrigger } from "./ComparisonTrigger";
+import { ModelSelector } from "./ModelSelector";
+import {
+    ThinkingEffortSelector,
+    type ThinkingEffort,
+} from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
   conversationId: Id<"conversations">;
@@ -46,6 +48,7 @@ interface ChatInputProps {
   selectedModels?: string[];
   onStartComparison?: (models: string[]) => void;
   onExitComparison?: () => void;
+  isEmpty?: boolean;
 }
 
 export function ChatInput({
@@ -61,6 +64,7 @@ export function ChatInput({
   selectedModels = [],
   onStartComparison,
   onExitComparison,
+  isEmpty = false,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -76,9 +80,11 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const voiceInputRef = useRef<VoiceInputRef>(null);
+  const { isMobile, isTouchDevice } = useMobileDetect();
 
   // @ts-ignore
   const sendMessage = useMutation(api.chat.sendMessage);
+  const stopGeneration = useMutation(api.chat.stopGeneration);
   const user = useQuery(api.users.getCurrentUser);
 
   const isExpanded = input.length > 50;
@@ -90,7 +96,10 @@ export function ChatInput({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isGenerating || isSending || uploading) return;
+    // Allow typing during generation, but prevent submission
+    if (isGenerating) return;
+
+    if (!input.trim() || isSending || uploading) return;
 
     setIsSending(true);
     try {
@@ -126,6 +135,16 @@ export function ChatInput({
     }
   };
 
+  const handleStop = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await stopGeneration({ conversationId });
+    } catch (error) {
+      console.error("Failed to stop generation:", error);
+    }
+  };
+
   // Auto-resize (blocks.so pattern)
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -135,17 +154,47 @@ export function ChatInput({
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   }, [input]);
 
-  // Focus on mount
+  // Handle prompted actions from EmptyScreen
   useEffect(() => {
-    textareaRef.current?.focus();
+    const handleInsertPrompt = (e: CustomEvent<string>) => {
+      setInput(e.detail);
+      // Optional: auto-focus
+      textareaRef.current?.focus();
+    };
+
+    window.addEventListener("insert-prompt" as any, handleInsertPrompt as any);
+    return () => {
+      window.removeEventListener(
+        "insert-prompt" as any,
+        handleInsertPrompt as any,
+      );
+    };
   }, []);
 
-  // Auto-focus when AI finishes generating
+  // Autofocus on empty state (skip mobile/touch)
   useEffect(() => {
-    if (!isGenerating && textareaRef.current) {
-      textareaRef.current.focus();
+    if (isEmpty && !isMobile && !isTouchDevice && textareaRef.current) {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [isGenerating]);
+  }, [isEmpty, isMobile, isTouchDevice]);
+
+  // Dynamic placeholder based on model capabilities
+  const getPlaceholder = () => {
+    const config = getModelConfig(selectedModel);
+    if (config?.capabilities?.includes("vision")) {
+      return "Describe an image or upload a file...";
+    }
+    if (
+      config?.capabilities?.includes("thinking") ||
+      config?.capabilities?.includes("extended-thinking")
+    ) {
+      return "Ask me to reason through a problem...";
+    }
+    return "Message blah.chat...";
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))]">
@@ -154,10 +203,10 @@ export function ChatInput({
         onSubmit={handleSubmit}
         className={cn(
           "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
-          "bg-surface-glass backdrop-blur-xl border border-white/10",
-          "rounded-[2rem]",
+          "bg-zinc-900/90 backdrop-blur-xl border border-white/10", // Darker, more grounded background like T3
+          "rounded-3xl", // More rounded
           isFocused
-            ? "shadow-glow ring-1 ring-primary/30"
+            ? "shadow-glow ring-1 ring-white/10"
             : "shadow-lg hover:shadow-xl hover:border-white/20",
         )}
       >
@@ -204,10 +253,10 @@ export function ChatInput({
               onKeyDown={handleKeyDown}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder="Message blah.chat..."
+              placeholder={getPlaceholder()}
               className="resize-none min-h-[50px] py-3 px-2 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
               rows={1}
-              disabled={isGenerating || isSending || uploading}
+              disabled={isSending || uploading} // Removed isGenerating
             />
           )}
 
@@ -266,35 +315,37 @@ export function ChatInput({
                   setRecordingStream(stream || null);
                   if (!recording && stream) setIsTranscribing(true);
                 }}
-                isDisabled={isGenerating || isSending || uploading}
+                isDisabled={isSending || uploading} // Removed isGenerating
               />
             )}
             <Button
-              type={isRecording ? "button" : "submit"}
+              type={isGenerating ? "button" : (isRecording ? "button" : "submit")}
               size="icon"
               onClick={
-                isRecording
-                  ? () => voiceInputRef.current?.stopRecording("send")
-                  : undefined
+                isGenerating
+                  ? handleStop
+                  : (isRecording
+                      ? () => voiceInputRef.current?.stopRecording("send")
+                      : undefined)
               }
               className={cn(
-                "h-10 w-10 rounded-full transition-all duration-300 shadow-lg hover:shadow-primary/25",
-                (!input.trim() && !isRecording) ||
-                  isGenerating ||
+                "h-10 w-10 rounded-full transition-all duration-300 shadow-lg",
+                (!input.trim() && !isRecording && !isGenerating) ||
                   isSending ||
                   uploading
                   ? "bg-muted text-muted-foreground opacity-50"
-                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95",
+                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/25",
               )}
               disabled={
-                (!input.trim() && !isRecording) ||
-                isGenerating ||
+                (!input.trim() && !isRecording && !isGenerating) ||
                 isSending ||
                 uploading
               }
             >
               {isSending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
+              ) : isGenerating ? (
+                <Square className="w-4 h-4 fill-current" />
               ) : (
                 <Send className="w-5 h-5 ml-0.5" />
               )}
@@ -342,9 +393,7 @@ export function ChatInput({
               />
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase">
-            Shift + Enter for new line
-          </span>
+          <KeyboardHints isEmpty={isEmpty} hasContent={input.length > 0} />
         </div>
       </form>
 

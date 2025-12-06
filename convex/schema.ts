@@ -168,6 +168,9 @@ export default defineSchema({
     ),
     generationStartedAt: v.optional(v.number()),
     generationCompletedAt: v.optional(v.number()),
+    // Performance metrics
+    firstTokenAt: v.optional(v.number()), // When first token received
+    tokensPerSecond: v.optional(v.number()), // Calculated TPS
     createdAt: v.number(),
     updatedAt: v.number(),
   })

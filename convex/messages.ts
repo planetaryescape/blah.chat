@@ -113,6 +113,26 @@ export const listInternal = internalQuery({
   },
 });
 
+export const updateStatus = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("generating"),
+      v.literal("complete"),
+      v.literal("error"),
+    ),
+    generationStartedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      status: args.status,
+      generationStartedAt: args.generationStartedAt,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const updatePartialContent = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -150,6 +170,21 @@ export const updatePartialReasoning = internalMutation({
   },
 });
 
+export const updateMetrics = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    firstTokenAt: v.optional(v.number()),
+    tokensPerSecond: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      firstTokenAt: args.firstTokenAt,
+      tokensPerSecond: args.tokensPerSecond,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const completeThinking = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -176,6 +211,7 @@ export const completeMessage = internalMutation({
     outputTokens: v.number(),
     reasoningTokens: v.optional(v.number()),
     cost: v.number(),
+    tokensPerSecond: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
@@ -191,6 +227,7 @@ export const completeMessage = internalMutation({
       outputTokens: args.outputTokens,
       reasoningTokens: args.reasoningTokens,
       cost: args.cost,
+      tokensPerSecond: args.tokensPerSecond,
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
     });

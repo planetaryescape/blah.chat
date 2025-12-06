@@ -224,11 +224,22 @@ export const generateResponse = internalAction({
     systemPromptOverride: v.optional(v.string()), // For consolidation
   },
   handler: async (ctx, args) => {
+    // Timing variables for performance metrics
+    const generationStartTime = Date.now();
+    let firstTokenTime: number | undefined;
+
     try {
       // 1. Mark generation started
       await ctx.runMutation(internal.messages.updatePartialContent, {
         messageId: args.assistantMessageId,
         partialContent: "",
+      });
+
+      // Set generation started timestamp
+      await ctx.runMutation(internal.messages.updateStatus, {
+        messageId: args.assistantMessageId,
+        status: "generating",
+        generationStartedAt: generationStartTime,
       });
 
       // 2. Get conversation history
@@ -454,6 +465,17 @@ export const generateResponse = internalAction({
 
         // Handle text chunks
         if (chunk.type === "text-delta") {
+          // Capture first token timestamp
+          if (!firstTokenTime && chunk.text.length > 0) {
+            firstTokenTime = now;
+
+            // Immediately update message with firstTokenAt
+            await ctx.runMutation(internal.messages.updateMetrics, {
+              messageId: args.assistantMessageId,
+              firstTokenAt: firstTokenTime,
+            });
+          }
+
           accumulated += chunk.text;
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
@@ -505,6 +527,14 @@ export const generateResponse = internalAction({
         reasoningTokens,
       );
 
+      // Calculate TPS (tokens per second)
+      const endTime = Date.now();
+      const durationSeconds = (endTime - generationStartTime) / 1000;
+      const tokensPerSecond =
+        outputTokens && durationSeconds > 0
+          ? outputTokens / durationSeconds
+          : undefined;
+
       // 9. Final completion
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.assistantMessageId,
@@ -514,6 +544,7 @@ export const generateResponse = internalAction({
         outputTokens,
         reasoningTokens,
         cost,
+        tokensPerSecond,
       });
 
       // 10. Update conversation timestamp

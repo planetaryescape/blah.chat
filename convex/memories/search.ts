@@ -63,7 +63,7 @@ export const keywordSearch = internalQuery({
 });
 
 // Vector search using embeddings
-export const vectorSearch = internalQuery({
+export const vectorSearch = internalAction({
   args: {
     userId: v.id("users"),
     embedding: v.array(v.float64()),
@@ -71,35 +71,39 @@ export const vectorSearch = internalQuery({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Doc<"memories">[]> => {
-    const results = await ctx.db
-      .query("memories")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
+    try {
+      // Use native Convex vector search
+      const results = await ctx.vectorSearch("memories", "by_embedding", {
+        vector: args.embedding,
+        limit: args.limit,
+        filter: (q) => q.eq("userId", args.userId),
+      });
 
-    // Manual vector similarity (simplified - in production use proper vector search)
-    const scored = results
-      .map((doc) => ({
-        ...doc,
-        _score: 0.5, // Placeholder score
-      }))
-      .slice(0, args.limit);
+      console.log(`[VectorSearch] Found ${results.length} results, top score: ${results[0]?._score}`);
 
-    const ids = scored.map((r) => r._id);
-    const memories: Doc<"memories">[] = await ctx.runQuery(
-      internal.memories.getMemoriesByIds,
-      {
-        ids,
-      },
-    );
+      // Fetch full documents
+      const memories: Doc<"memories">[] = await Promise.all(
+        results.map(async (result) => {
+          const memory = await ctx.runQuery(internal.memories.getMemoryById, {
+            id: result._id,
+          });
+          return memory;
+        })
+      ).then(mems => mems.filter((m): m is Doc<"memories"> => m !== null));
 
-    // Client-side category filter if needed
-    if (args.category) {
-      return memories.filter(
-        (m: Doc<"memories">) => m.metadata?.category === args.category,
-      );
+      // Client-side category filter if needed
+      if (args.category) {
+        return memories.filter(
+          (m: Doc<"memories">) => m.metadata?.category === args.category,
+        );
+      }
+
+      return memories;
+    } catch (error) {
+      console.error("[VectorSearch] Failed, falling back to empty:", error);
+      // Fallback: return empty (graceful degradation)
+      return [];
     }
-
-    return memories;
   },
 });
 
@@ -130,7 +134,7 @@ export const hybridSearch = internalAction({
           limit: searchLimit,
           category: args.category,
         }),
-        ctx.runQuery(internal.memories.search.vectorSearch, {
+        ctx.runAction(internal.memories.search.vectorSearch, {
           userId: args.userId,
           embedding,
           limit: searchLimit,

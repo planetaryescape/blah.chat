@@ -64,6 +64,9 @@ export default defineSchema({
     projectId: v.optional(v.id("projects")),
     lastMemoryExtractionAt: v.optional(v.number()),
     memoryExtractionMessageCount: v.optional(v.number()),
+    // Phase 2B: Memory caching
+    cachedMemoryIds: v.optional(v.array(v.id("memories"))),
+    lastMemoryFetchAt: v.optional(v.number()),
     // Token usage tracking
     tokenUsage: v.optional(
       v.object({
@@ -107,6 +110,12 @@ export default defineSchema({
     inputTokens: v.optional(v.number()),
     outputTokens: v.optional(v.number()),
     cost: v.optional(v.number()),
+    // Reasoning/thinking support
+    reasoning: v.optional(v.string()),
+    partialReasoning: v.optional(v.string()),
+    reasoningTokens: v.optional(v.number()),
+    thinkingStartedAt: v.optional(v.number()),
+    thinkingCompletedAt: v.optional(v.number()),
     error: v.optional(v.string()),
     embedding: v.optional(v.array(v.float64())),
     attachments: v.optional(
@@ -143,6 +152,8 @@ export default defineSchema({
     branchIndex: v.optional(v.number()),
     // Comparison support
     comparisonGroupId: v.optional(v.string()),
+    consolidatedMessageId: v.optional(v.id("messages")), // Links to consolidated message
+    isConsolidation: v.optional(v.boolean()), // Marks consolidated message
     votes: v.optional(
       v.object({
         rating: v.union(
@@ -165,6 +176,7 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_parent", ["parentMessageId"])
     .index("by_comparison_group", ["comparisonGroupId"])
+    .index("by_consolidated_message", ["consolidatedMessageId"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
@@ -285,6 +297,7 @@ export default defineSchema({
     conversationId: v.optional(v.id("conversations")),
     inputTokens: v.number(),
     outputTokens: v.number(),
+    reasoningTokens: v.optional(v.number()),
     cost: v.number(),
     messageCount: v.number(),
     warningsSent: v.optional(v.array(v.string())),

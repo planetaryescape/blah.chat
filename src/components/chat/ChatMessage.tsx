@@ -1,17 +1,20 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { memo } from "react";
+import { AlertCircle, ChevronDown, Loader2 } from "lucide-react";
+import { memo, useState } from "react";
 import { AttachmentRenderer } from "./AttachmentRenderer";
+import { ComparisonView } from "./ComparisonView";
 import { MarkdownContent } from "./MarkdownContent";
 import { MessageActions } from "./MessageActions";
+import { ReasoningBlock } from "./ReasoningBlock";
 
 interface ChatMessageProps {
   message: Doc<"messages">;
@@ -21,6 +24,8 @@ interface ChatMessageProps {
 
 export const ChatMessage = memo(
   function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
+    const [showOriginals, setShowOriginals] = useState(false);
+
     const isUser = message.role === "user";
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
@@ -29,11 +34,18 @@ export const ChatMessage = memo(
     const user = useQuery(api.users.getCurrentUser);
     const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
 
+    // Query for original responses if this is a consolidated message
+    const originalResponses = useQuery(
+      api.messages.getOriginalResponses,
+      message.isConsolidation ? { consolidatedMessageId: message._id } : "skip",
+    );
+
     const displayContent = message.partialContent || message.content || "";
 
     // Check if this is a thinking/reasoning model
     const modelConfig = message.model ? getModelConfig(message.model) : null;
-    const modelName = modelConfig?.name || message.model?.split(":")[1] || message.model;
+    const modelName =
+      modelConfig?.name || message.model?.split(":")[1] || message.model;
     const isThinkingModel =
       modelConfig?.supportsThinkingEffort ||
       modelConfig?.capabilities?.includes("extended-thinking") ||
@@ -116,6 +128,18 @@ export const ChatMessage = memo(
             </div>
           ) : (
             <>
+              {/* Reasoning block - shows thinking for reasoning models */}
+              {message.role === "assistant" && (
+                <ReasoningBlock
+                  reasoning={message.reasoning}
+                  partialReasoning={message.partialReasoning}
+                  thinkingStartedAt={message.thinkingStartedAt}
+                  thinkingCompletedAt={message.thinkingCompletedAt}
+                  reasoningTokens={message.reasoningTokens}
+                  isThinking={isGenerating && !!message.partialReasoning}
+                />
+              )}
+
               {displayContent ? (
                 <MarkdownContent
                   content={displayContent}
@@ -154,6 +178,45 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
+              {/* Toggle for consolidated messages */}
+              {message.isConsolidation &&
+                originalResponses &&
+                originalResponses.length > 0 && (
+                  <div className="mt-4 border-t border-border/10 pt-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowOriginals(!showOriginals)}
+                      className="gap-2 text-xs"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "w-3 h-3 transition-transform",
+                          showOriginals && "rotate-180",
+                        )}
+                      />
+                      {showOriginals ? "Hide" : "Show"} original{" "}
+                      {originalResponses.length} response
+                      {originalResponses.length !== 1 ? "s" : ""}
+                    </Button>
+
+                    {showOriginals && (
+                      <div className="mt-4">
+                        <ComparisonView
+                          assistantMessages={originalResponses}
+                          comparisonGroupId={
+                            originalResponses[0]?.comparisonGroupId || ""
+                          }
+                          showModelNames={true}
+                          onVote={() => {}}
+                          onConsolidate={() => {}}
+                          onToggleModelNames={() => {}}
+                          hideConsolidateButton={true}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
 
               {!isUser && message.status === "complete" && modelName && (
                 <div className="absolute -bottom-5 left-4 transition-opacity duration-300">

@@ -31,12 +31,13 @@ const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-export function getModel(modelId: string) {
+export function getModel(modelId: string, useResponsesAPI = false) {
   const [provider, model] = modelId.split(":");
 
   switch (provider) {
     case "openai":
-      return openai(model);
+      // Use Responses API for reasoning models when requested
+      return useResponsesAPI ? openai.responses(model) : openai(model);
     case "anthropic":
       return anthropic(model);
     case "google":

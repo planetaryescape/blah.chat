@@ -9,6 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -20,11 +22,13 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { useMemo, useState } from "react";
 
+type ConsolidationMode = "same-chat" | "new-chat";
+
 interface ConsolidateDialogProps {
   open: boolean;
   comparisonGroupId: string;
   messages: Doc<"messages">[];
-  onConfirm: (model: string) => void;
+  onConfirm: (model: string, mode: ConsolidationMode) => void;
   onClose: () => void;
 }
 
@@ -38,6 +42,7 @@ export function ConsolidateDialog({
   const [selectedModel, setSelectedModel] = useState<string>(
     availableModels[0]?.id || "",
   );
+  const [mode, setMode] = useState<ConsolidationMode>("same-chat");
 
   // Estimate input tokens (rough calculation)
   const estimatedTokens = useMemo(() => {
@@ -49,7 +54,7 @@ export function ConsolidateDialog({
   const estimatedCost = (estimatedTokens / 1000) * 0.003; // Rough estimate
 
   const handleConfirm = () => {
-    onConfirm(selectedModel);
+    onConfirm(selectedModel, mode);
   };
 
   return (
@@ -58,12 +63,39 @@ export function ConsolidateDialog({
         <DialogHeader>
           <DialogTitle>Consolidate Responses</DialogTitle>
           <DialogDescription>
-            Create a new conversation where one model synthesizes all{" "}
-            {messages.length} responses into a comprehensive answer.
+            Synthesize all {messages.length} responses into one comprehensive
+            answer.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Consolidation mode</label>
+            <RadioGroup
+              value={mode}
+              onValueChange={(v) => setMode(v as ConsolidationMode)}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="same-chat" id="same-chat" />
+                <Label htmlFor="same-chat" className="cursor-pointer">
+                  <div className="font-medium">Same chat</div>
+                  <div className="text-xs text-muted-foreground">
+                    Replace comparison with consolidated response
+                  </div>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="new-chat" id="new-chat" />
+                <Label htmlFor="new-chat" className="cursor-pointer">
+                  <div className="font-medium">New chat</div>
+                  <div className="text-xs text-muted-foreground">
+                    Create separate conversation with consolidated response
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <div>
             <label className="text-sm font-medium mb-2 block">
               Which model should consolidate?

@@ -1,9 +1,7 @@
 "use client";
 
-import { ModelIcon } from "@/components/brand/ModelIcon";
 import { Badge } from "@/components/ui/badge";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { getModelConfig } from "@/lib/ai/models";
 import { forwardRef } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { VotingControls } from "./VotingControls";
@@ -14,14 +12,22 @@ interface ComparisonPanelProps {
   showModelName: boolean;
   onVote: () => void;
   isVoted?: boolean;
+  hasVoted?: boolean;
+  duration?: number | null;
 }
 
 export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
-  ({ message, index, showModelName, onVote, isVoted }, ref) => {
+  ({ message, index, showModelName, onVote, isVoted, hasVoted, duration }, ref) => {
     const isGenerating = ["pending", "generating"].includes(message.status);
     const displayContent = message.partialContent || message.content || "";
-    const modelConfig = message.model ? getModelConfig(message.model) : null;
-    const modelName = modelConfig?.name || message.model?.split(":")[1] || message.model;
+    const modelName = message.model?.split(":")[1] || message.model;
+
+    // Format duration helper
+    const formatDuration = (ms: number | null) => {
+      if (ms === null) return "—";
+      if (ms < 1000) return `${ms}ms`;
+      return `${(ms / 1000).toFixed(1)}s`;
+    };
 
     return (
       <div
@@ -29,45 +35,28 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
         className="flex flex-col h-full border rounded-lg overflow-hidden"
       >
         {/* Header */}
-        <div className="flex flex-col gap-2 p-4 border-b bg-muted/20 backdrop-blur-sm relative group-hover:bg-muted/30 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ModelIcon
-                modelId={modelName}
-                className="w-8 h-8 p-1.5 bg-background rounded-lg shadow-sm border border-border/50"
-              />
-              <div className="flex flex-col">
-                <span className="font-semibold text-sm leading-none tracking-tight">
-                  {showModelName ? modelName : `Model ${index + 1}`}
-                </span>
-                <div className="text-[10px] text-muted-foreground font-mono mt-1 opacity-60">
-                  {message.model}
-                </div>
-              </div>
-            </div>
-            {isGenerating && (
-              <Badge variant="outline" className="animate-pulse border-primary/20 text-primary h-5 text-[10px] px-1.5">
-                Generating
-              </Badge>
-            )}
-            {message.status === "error" && (
-              <Badge variant="destructive" className="h-5 text-[10px] px-1.5">Error</Badge>
+        <div className="flex flex-col items-start gap-2 p-3 border-b bg-muted/30">
+          <div>
+            {showModelName ? (
+              <Badge variant="secondary">{modelName}</Badge>
+            ) : (
+              <Badge variant="outline">Model {index + 1}</Badge>
             )}
           </div>
-
-          <div className="grid grid-cols-3 gap-1 pt-1">
-            <div className="flex flex-col px-2 py-1 rounded bg-background/50 border border-border/20">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Input</span>
-              <span className="text-xs font-mono font-medium">{message.inputTokens?.toLocaleString() || 0}</span>
-            </div>
-            <div className="flex flex-col px-2 py-1 rounded bg-background/50 border border-border/20">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Output</span>
-              <span className="text-xs font-mono font-medium">{message.outputTokens?.toLocaleString() || 0}</span>
-            </div>
-            <div className="flex flex-col px-2 py-1 rounded bg-background/50 border border-border/20">
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70">Cost</span>
-              <span className="text-xs font-mono font-medium">${message.cost?.toFixed(5) || "0.00000"}</span>
-            </div>
+          <div className="text-xs text-muted-foreground flex gap-2 w-full overflow-hidden text-ellipsis whitespace-nowrap pl-2">
+            <span>{message.inputTokens?.toLocaleString() || 0} in</span>
+            <span>•</span>
+            <span>{message.outputTokens?.toLocaleString() || 0} out</span>
+            <span>•</span>
+            <span className="font-mono">
+              ${message.cost?.toFixed(4) || "0.0000"}
+            </span>
+            {duration !== undefined && (
+              <>
+                <span>•</span>
+                <span className="font-mono">{formatDuration(duration)}</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -93,6 +82,7 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
             <VotingControls
               onVote={onVote}
               isVoted={isVoted}
+              hasVoted={hasVoted}
               label="This is better"
             />
           </div>

@@ -12,24 +12,28 @@ import { useMemo, useState } from "react";
 import { ComparisonPanel } from "./ComparisonPanel";
 import { ConsolidateDialog } from "./ConsolidateDialog";
 
+type ConsolidationMode = "same-chat" | "new-chat";
+
 interface ComparisonViewProps {
-  messages: Doc<"messages">[];
+  assistantMessages: Doc<"messages">[];
   comparisonGroupId: string;
   showModelNames: boolean;
   onVote: (winnerId: string, rating: string) => void;
-  onConsolidate: (model: string) => void;
+  onConsolidate: (model: string, mode: ConsolidationMode) => void;
   onToggleModelNames: () => void;
   onExit?: () => void;
+  hideConsolidateButton?: boolean;
 }
 
 export function ComparisonView({
-  messages,
+  assistantMessages,
   comparisonGroupId,
   showModelNames,
   onVote,
   onConsolidate,
   onToggleModelNames,
   onExit,
+  hideConsolidateButton = false,
 }: ComparisonViewProps) {
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [showConsolidateDialog, setShowConsolidateDialog] = useState(false);
@@ -40,23 +44,39 @@ export function ComparisonView({
 
   // Sort messages by creation time
   const sortedMessages = useMemo(() => {
-    return [...messages].sort((a, b) => a.createdAt - b.createdAt);
-  }, [messages]);
+    return [...assistantMessages].sort((a, b) => a.createdAt - b.createdAt);
+  }, [assistantMessages]);
 
   // Calculate aggregate stats
   const totalCost = useMemo(() => {
-    return messages.reduce((sum, m) => sum + (m.cost || 0), 0);
-  }, [messages]);
+    return assistantMessages.reduce((sum, m) => sum + (m.cost || 0), 0);
+  }, [assistantMessages]);
 
   const totalInputTokens = useMemo(() => {
-    return messages.reduce((sum, m) => sum + (m.inputTokens || 0), 0);
-  }, [messages]);
+    return assistantMessages.reduce((sum, m) => sum + (m.inputTokens || 0), 0);
+  }, [assistantMessages]);
 
   const totalOutputTokens = useMemo(() => {
-    return messages.reduce((sum, m) => sum + (m.outputTokens || 0), 0);
-  }, [messages]);
+    return assistantMessages.reduce((sum, m) => sum + (m.outputTokens || 0), 0);
+  }, [assistantMessages]);
 
-  const allComplete = messages.every((m) => m.status === "complete");
+  // Calculate generation durations (ms)
+  const generationDurations = useMemo(() => {
+    return sortedMessages.map((msg) => {
+      if (!msg.generationCompletedAt) return null; // Still generating or pending
+      const duration = msg.generationCompletedAt - msg.createdAt;
+      return duration;
+    });
+  }, [sortedMessages]);
+
+  // Format duration helper
+  const formatDuration = (ms: number | null) => {
+    if (ms === null) return "—";
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  const allComplete = assistantMessages.every((m) => m.status === "complete");
 
   const handleVote = (winnerId: string, messageIndex: number) => {
     setVotedMessageId(winnerId);
@@ -71,9 +91,9 @@ export function ComparisonView({
     onVote(winnerId, rating);
   };
 
-  const handleConsolidate = (model: string) => {
+  const handleConsolidate = (model: string, mode: ConsolidationMode) => {
     setShowConsolidateDialog(false);
-    onConsolidate(model);
+    onConsolidate(model, mode);
   };
 
   // Mobile: Tabs
@@ -81,20 +101,26 @@ export function ComparisonView({
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="font-medium">Comparing {messages.length} models</h3>
-          <div className="flex items-center gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={onToggleModelNames}
-              className="h-8 w-8"
-            >
-              {showModelNames ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
-            </Button>
+          {!hideConsolidateButton && (
+            <h3 className="font-medium">
+              Comparing {assistantMessages.length} models
+            </h3>
+          )}
+          <div className="flex items-center gap-1 ml-auto">
+            {!hideConsolidateButton && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onToggleModelNames}
+                className="h-8 w-8"
+              >
+                {showModelNames ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </Button>
+            )}
             {onExit && (
               <Button size="icon" variant="ghost" onClick={onExit}>
                 <X className="w-4 h-4" />
@@ -126,6 +152,8 @@ export function ComparisonView({
                 showModelName={showModelNames}
                 onVote={() => handleVote(msg._id, idx)}
                 isVoted={votedMessageId === msg._id}
+                hasVoted={votedMessageId !== undefined}
+                duration={generationDurations[idx]}
               />
             </TabsContent>
           ))}
@@ -137,7 +165,20 @@ export function ComparisonView({
             <span className="font-medium">Total Cost</span>
             <span className="font-mono">${totalCost.toFixed(4)}</span>
           </div>
-          {allComplete && (
+          <div className="flex justify-between text-sm">
+            <span className="font-medium">Avg Response Time</span>
+            <span className="font-mono">
+              {formatDuration(
+                generationDurations.filter((d) => d !== null).length > 0
+                  ? generationDurations
+                      .filter((d) => d !== null)
+                      .reduce((a, b) => a! + b!, 0)! /
+                      generationDurations.filter((d) => d !== null).length
+                  : null,
+              )}
+            </span>
+          </div>
+          {allComplete && !hideConsolidateButton && (
             <Button
               onClick={() => setShowConsolidateDialog(true)}
               className="w-full"
@@ -166,37 +207,47 @@ export function ComparisonView({
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-3">
-          <h3 className="font-medium">Comparing {messages.length} models</h3>
-          <Badge variant="outline">
-            {syncEnabled ? "Sync On" : "Sync Off"}
-          </Badge>
+          {!hideConsolidateButton && (
+            <>
+              <h3 className="font-medium">
+                Comparing {assistantMessages.length} models
+              </h3>
+              <Badge variant="outline">
+                {syncEnabled ? "Sync On" : "Sync Off"}
+              </Badge>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setSyncEnabled(!syncEnabled)}
-          >
-            Toggle Sync
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onToggleModelNames}
-            className="gap-2"
-          >
-            {showModelNames ? (
-              <>
-                <EyeOff className="w-4 h-4" />
-                Hide Names
-              </>
-            ) : (
-              <>
-                <Eye className="w-4 h-4" />
-                Show Names
-              </>
-            )}
-          </Button>
+        <div className="flex items-center gap-2 ml-auto">
+          {!hideConsolidateButton && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSyncEnabled(!syncEnabled)}
+              >
+                Toggle Sync
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onToggleModelNames}
+                className="gap-2"
+              >
+                {showModelNames ? (
+                  <>
+                    <EyeOff className="w-4 h-4" />
+                    Hide Names
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Show Names
+                  </>
+                )}
+              </Button>
+            </>
+          )}
           {onExit && (
             <Button size="icon" variant="ghost" onClick={onExit}>
               <X className="w-4 h-4" />
@@ -209,9 +260,9 @@ export function ComparisonView({
       <div
         className={cn(
           "flex-1 grid gap-4 p-4 overflow-hidden",
-          messages.length === 2 && "grid-cols-2",
-          messages.length === 3 && "grid-cols-3",
-          messages.length === 4 && "grid-cols-2 lg:grid-cols-4",
+          assistantMessages.length === 2 && "grid-cols-2",
+          assistantMessages.length === 3 && "grid-cols-3",
+          assistantMessages.length === 4 && "grid-cols-2 lg:grid-cols-4",
         )}
       >
         {sortedMessages.map((msg, idx) => (
@@ -223,6 +274,8 @@ export function ComparisonView({
             showModelName={showModelNames}
             onVote={() => handleVote(msg._id, idx)}
             isVoted={votedMessageId === msg._id}
+            hasVoted={votedMessageId !== undefined}
+            duration={generationDurations[idx]}
           />
         ))}
       </div>
@@ -238,9 +291,20 @@ export function ComparisonView({
             {totalInputTokens.toLocaleString()} input +{" "}
             {totalOutputTokens.toLocaleString()} output tokens
           </div>
+          <div className="text-xs text-muted-foreground">
+            Avg response:{" "}
+            {formatDuration(
+              generationDurations.filter((d) => d !== null).length > 0
+                ? generationDurations
+                    .filter((d) => d !== null)
+                    .reduce((a, b) => a! + b!, 0)! /
+                    generationDurations.filter((d) => d !== null).length
+                : null,
+            )}
+          </div>
         </div>
 
-        {allComplete && (
+        {allComplete && !hideConsolidateButton && (
           <Button
             onClick={() => setShowConsolidateDialog(true)}
             variant="secondary"

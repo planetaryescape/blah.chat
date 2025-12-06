@@ -165,9 +165,7 @@ export const getConversationCosts = query({
       conversations.map(async (conv) => {
         const records = await ctx.db
           .query("usageRecords")
-          .withIndex("by_conversation", (q) =>
-            q.eq("conversationId", conv._id),
-          )
+          .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
           .collect();
 
         const totalCost = records.reduce((sum, r) => sum + r.cost, 0);

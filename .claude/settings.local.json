@@ -3,7 +3,13 @@
     "allow": [
       "mcp__Exa__get_code_context_exa",
       "WebSearch",
-      "mcp__Exa__web_search_exa"
+      "mcp__Exa__web_search_exa",
+      "mcp__Puppeteer__puppeteer_navigate",
+      "mcp__Puppeteer__puppeteer_screenshot",
+      "mcp__Puppeteer__puppeteer_click",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": [],
     "ask": []

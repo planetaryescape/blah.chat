@@ -1,39 +1,40 @@
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { Button } from "@/components/ui/button";
+import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import {
-  BarChart3,
-  Bookmark,
-  Brain,
-  FileText,
-  FolderKanban,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Settings,
+    BarChart3,
+    Bookmark,
+    Brain,
+    FileText,
+    FolderKanban,
+    MoreHorizontal,
+    Plus,
+    Search,
+    Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -119,22 +120,17 @@ export function AppSidebar() {
         <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
           <Button
             onClick={handleNewChat}
-            className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 shadow-glow hover:shadow-glow-lg transition-all duration-300"
+            className="w-full bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between"
             size="sm"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            New Chat
+            <span className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Chat
+            </span>
+            <ShortcutBadge keys={["mod", "N"]} />
           </Button>
         </div>
-        <div className="hidden group-data-[collapsible=icon]:flex justify-center mt-2">
-          <Button
-            onClick={handleNewChat}
-            className="w-8 h-8 rounded-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 p-0"
-            size="icon"
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
+
       </SidebarHeader>
 
       <SidebarContent>

@@ -72,25 +72,28 @@ interface MarkdownContentProps {
  * Animation is handled by character-level reveal in useStreamBuffer
  */
 const markdownComponents = {
-	code: ({
-		className,
-		children,
-	}: { className?: string; children?: ReactNode }) => {
-		const match = /language-(\w+)/.exec(className || "");
-		const code = String(children).replace(/\n$/, "");
-		const inline = !match && !className;
+  code: ({
+    className,
+    children,
+  }: {
+    className?: string;
+    children?: ReactNode;
+  }) => {
+    const match = /language-(\w+)/.exec(className || "");
+    const code = String(children).replace(/\n$/, "");
+    const inline = !match && !className;
 
-		if (inline) {
-			return <CodeBlock code={code} inline />;
-		}
+    if (inline) {
+      return <CodeBlock code={code} inline />;
+    }
 
-		const language = match?.[1];
-		return (
-			<CodeBlockErrorBoundary code={code} language={language}>
-				<CodeBlock code={code} language={language} />
-			</CodeBlockErrorBoundary>
-		);
-	},
+    const language = match?.[1];
+    return (
+      <CodeBlockErrorBoundary code={code} language={language}>
+        <CodeBlock code={code} language={language} />
+      </CodeBlockErrorBoundary>
+    );
+  },
 };
 
 /**
@@ -102,27 +105,27 @@ const markdownComponents = {
  * - Prevents layout shifts and jarring appearance during streaming
  */
 export function MarkdownContent({
-	content,
-	isStreaming = false,
+  content,
+  isStreaming = false,
 }: MarkdownContentProps) {
-	// Buffer hook smoothly reveals characters from server chunks
-	const { displayContent, hasBufferedContent } = useStreamBuffer(
-		content,
-		isStreaming,
-		{
-			charsPerSecond: 200,
-			minTokenSize: 3,
-			adaptiveThreshold: 5000,
-		},
-	);
+  // Buffer hook smoothly reveals characters from server chunks
+  const { displayContent, hasBufferedContent } = useStreamBuffer(
+    content,
+    isStreaming,
+    {
+      charsPerSecond: 200,
+      minTokenSize: 3,
+      adaptiveThreshold: 5000,
+    },
+  );
 
-	// Show cursor while streaming OR buffer is draining
-	const showCursor = isStreaming || hasBufferedContent;
+  // Show cursor while streaming OR buffer is draining
+  const showCursor = isStreaming || hasBufferedContent;
 
-	return (
-		<div className={cn("markdown-content prose", showCursor && "streaming")}>
-			<Streamdown children={displayContent} components={markdownComponents} />
-			{showCursor && <span className="streaming-cursor" aria-hidden="true" />}
-		</div>
-	);
+  return (
+    <div className={cn("markdown-content prose", showCursor && "streaming")}>
+      <Streamdown children={displayContent} components={markdownComponents} />
+      {showCursor && <span className="streaming-cursor" aria-hidden="true" />}
+    </div>
+  );
 }

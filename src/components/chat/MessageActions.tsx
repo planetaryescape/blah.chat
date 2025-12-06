@@ -77,7 +77,7 @@ export function MessageActions({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+            className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
             onClick={handleCopy}
           >
             {copied ? (
@@ -101,7 +101,7 @@ export function MessageActions({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
                   onClick={() => retryMessage({ messageId: message._id })}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -120,7 +120,7 @@ export function MessageActions({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
                   onClick={() => regenerate({ messageId: message._id })}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -139,7 +139,7 @@ export function MessageActions({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
                   onClick={() =>
                     stop({ conversationId: message.conversationId })
                   }
@@ -160,7 +160,7 @@ export function MessageActions({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 hover:bg-background/20 hover:text-foreground"
+                  className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
                   onClick={handleBranch}
                 >
                   <GitBranch className="w-3.5 h-3.5" />
@@ -183,7 +183,7 @@ export function MessageActions({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-destructive/20 hover:text-destructive"
                 onClick={() => deleteMsg({ messageId: message._id })}
               >
                 <Trash2 className="w-3.5 h-3.5" />

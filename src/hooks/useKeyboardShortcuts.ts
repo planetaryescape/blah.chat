@@ -1,13 +1,20 @@
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { analytics } from "@/lib/analytics";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { analytics } from "@/lib/analytics";
 
 export function useKeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
   const createConversation = useMutation(api.conversations.create);
+  const { filteredConversations } = useConversationContext();
+
+  // Extract conversationId from pathname (e.g., /chat/xyz123)
+  const conversationId = pathname?.startsWith("/chat/")
+    ? pathname.split("/")[2]
+    : null;
 
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
@@ -29,8 +36,8 @@ export function useKeyboardShortcuts() {
       // Cmd+K - Command palette (handled in CommandPalette component)
       // This is just a placeholder
 
-      // Cmd+N - New chat
-      if (isMod && e.key === "n") {
+      // Cmd+Shift+N - New chat
+      if (isMod && e.shiftKey && e.key === "N") {
         e.preventDefault();
         try {
           const conversationId = await createConversation({
@@ -66,22 +73,65 @@ export function useKeyboardShortcuts() {
         router.push("/search");
       }
 
+      // Cmd+1-9 - Quick-jump to filtered conversations
+      if (isMod && e.key >= "1" && e.key <= "9") {
+        e.preventDefault();
+        const index = Number.parseInt(e.key, 10) - 1;
+        if (filteredConversations?.[index]) {
+          router.push(`/chat/${filteredConversations[index]._id}`);
+        }
+      }
+
+      // Cmd+[ - Previous conversation
+      if (isMod && e.key === "[") {
+        e.preventDefault();
+        navigateConversation("prev");
+      }
+
+      // Cmd+] - Next conversation
+      if (isMod && e.key === "]") {
+        e.preventDefault();
+        navigateConversation("next");
+      }
+
       // Esc - Go back / Close modals (handled by individual components)
       if (e.key === "Escape") {
         // Allow default behavior
       }
     };
 
+    function navigateConversation(direction: "prev" | "next") {
+      if (!conversationId || !filteredConversations?.length) return;
+
+      // Sort chronologically (newest first)
+      const sorted = [...filteredConversations].sort(
+        (a, b) => b._creationTime - a._creationTime,
+      );
+      const currentIdx = sorted.findIndex((c) => c._id === conversationId);
+
+      if (currentIdx === -1) return;
+
+      const nextIdx =
+        direction === "next"
+          ? Math.min(currentIdx + 1, sorted.length - 1)
+          : Math.max(currentIdx - 1, 0);
+
+      router.push(`/chat/${sorted[nextIdx]._id}`);
+    }
+
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [router, pathname, createConversation]);
+  }, [router, pathname, createConversation, filteredConversations]);
 }
 
 // Export keyboard shortcut reference for documentation
 export const KEYBOARD_SHORTCUTS = {
   global: {
     "Cmd/Ctrl + K": "Open command palette",
-    "Cmd/Ctrl + N": "New chat",
+    "Cmd/Ctrl + Shift + N": "New chat",
+    "Cmd/Ctrl + 1-9": "Jump to conversation 1-9",
+    "Cmd/Ctrl + [": "Previous conversation",
+    "Cmd/Ctrl + ]": "Next conversation",
     "Cmd/Ctrl + ,": "Settings",
     "Cmd/Ctrl + B": "Bookmarks",
     "Cmd/Ctrl + F": "Search",

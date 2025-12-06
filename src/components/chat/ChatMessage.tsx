@@ -13,10 +13,11 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
 import { MarkdownContent } from "./MarkdownContent";
@@ -32,10 +33,17 @@ interface ChatMessageProps {
 export const ChatMessage = memo(
   function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const messageRef = useRef<HTMLDivElement>(null);
 
     const isUser = message.role === "user";
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
+
+    // Mutations for keyboard shortcuts
+    const regenerate = useMutation(api.chat.regenerate);
+    const deleteMsg = useMutation(api.chat.deleteMessage);
+    const createBookmark = useMutation(api.bookmarks.create);
 
     // @ts-ignore
     const user = useQuery(api.users.getCurrentUser);
@@ -83,6 +91,99 @@ export const ChatMessage = memo(
         [],
     );
 
+    // Keyboard shortcuts for focused messages
+    useEffect(() => {
+      if (!isFocused || readOnly) return;
+
+      const handleKeyDown = async (e: KeyboardEvent) => {
+        // Don't interfere with typing
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.getAttribute("contenteditable") === "true"
+        ) {
+          return;
+        }
+
+        const isMod = e.metaKey || e.ctrlKey;
+
+        switch (e.key.toLowerCase()) {
+          case "r":
+            // Regenerate (assistant messages only, no modifier)
+            if (!isUser && !isGenerating && !isMod) {
+              e.preventDefault();
+              try {
+                await regenerate({ messageId: message._id });
+                toast.success("Regenerating response...");
+              } catch (error) {
+                toast.error("Failed to regenerate");
+              }
+            }
+            break;
+
+          case "b":
+            // Bookmark (no modifier)
+            if (!isMod) {
+              e.preventDefault();
+              try {
+                await createBookmark({
+                  conversationId: message.conversationId,
+                  messageId: message._id,
+                });
+                toast.success("Message bookmarked");
+              } catch (error) {
+                toast.error("Failed to bookmark");
+              }
+            }
+            break;
+
+          case "c":
+            // Copy (no modifier - Cmd+C is native)
+            if (!isMod) {
+              e.preventDefault();
+              await navigator.clipboard.writeText(displayContent);
+              toast.success("Copied to clipboard");
+            }
+            break;
+
+          case "delete":
+          case "backspace":
+            // Delete message and focus next
+            if (!isMod) {
+              e.preventDefault();
+              try {
+                await deleteMsg({ messageId: message._id });
+                // Focus next message sibling
+                const nextSibling = messageRef.current?.parentElement
+                  ?.nextElementSibling?.querySelector(
+                    "[tabindex=\"0\"]",
+                  ) as HTMLElement;
+                nextSibling?.focus();
+                toast.success("Message deleted");
+              } catch (error) {
+                toast.error("Failed to delete");
+              }
+            }
+            break;
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [
+      isFocused,
+      readOnly,
+      isUser,
+      isGenerating,
+      message._id,
+      message.conversationId,
+      displayContent,
+      regenerate,
+      createBookmark,
+      deleteMsg,
+    ]);
+
     // User message styling: Very subtle, transparent, glassmorphic
     const userMessageClass = cn(
       "relative ml-auto max-w-[90%] sm:max-w-[75%] rounded-[2rem] rounded-tr-sm",
@@ -114,7 +215,14 @@ export const ChatMessage = memo(
         )}
       >
         <motion.div
-          className={isUser ? userMessageClass : assistantMessageClass}
+          ref={messageRef}
+          tabIndex={0}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className={cn(
+            isUser ? userMessageClass : assistantMessageClass,
+            isFocused && "ring-2 ring-primary/50",
+          )}
           initial={!isGenerating ? { opacity: 0, y: 20, scale: 0.95 } : false}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={
@@ -125,6 +233,8 @@ export const ChatMessage = memo(
                 }
               : { duration: 0 }
           }
+          aria-label={`${isUser ? "Your" : "Assistant"} message`}
+          aria-keyshortcuts="r b c delete"
         >
           {isError ? (
             <div className="flex flex-col gap-3 p-1">

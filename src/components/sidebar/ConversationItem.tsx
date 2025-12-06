@@ -20,8 +20,14 @@ import { RenameDialog } from "./RenameDialog";
 
 export function ConversationItem({
   conversation,
+  index,
+  selectedIndex = -1,
+  onClearSelection,
 }: {
   conversation: Doc<"conversations">;
+  index?: number;
+  selectedIndex?: number;
+  onClearSelection?: () => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -34,6 +40,7 @@ export function ConversationItem({
   const archiveConversation = useMutation(api.conversations.archive);
 
   const isActive = pathname === `/chat/${conversation._id}`;
+  const isSelected = index !== undefined && index === selectedIndex;
 
   const handleClick = () => {
     router.push(`/chat/${conversation._id}`);
@@ -55,14 +62,26 @@ export function ConversationItem({
           isActive
             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm ring-1 ring-sidebar-border/50"
             : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+          isSelected && "bg-primary/10 ring-1 ring-primary",
         )}
         onClick={handleClick}
+        onMouseEnter={onClearSelection}
+        data-list-index={index}
+        role="option"
+        aria-selected={isSelected}
+        tabIndex={-1}
       >
         <div className="flex-1 truncate">
           <p className="text-sm truncate">
             {conversation.title || "New conversation"}
           </p>
         </div>
+
+        {index !== undefined && index < 9 && (
+          <kbd className="h-4 px-1 text-[9px] rounded border border-border/30 bg-background/50 font-mono text-muted-foreground opacity-60">
+            ⌘{index + 1}
+          </kbd>
+        )}
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {conversation.starred && (

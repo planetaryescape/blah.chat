@@ -143,12 +143,13 @@ export function VirtualizedMessageList({
       <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
         <div
           ref={containerRef}
-          className="flex-1 w-full min-w-0 overflow-y-auto p-4 space-y-4 relative"
+          className="flex-1 w-full min-w-0 overflow-y-auto relative"
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
           }}
         >
+          <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
           <AnimatePresence mode="popLayout">
             {grouped.map((item, index) => {
               if (item.type === "message") {
@@ -206,6 +207,7 @@ export function VirtualizedMessageList({
               }
             })}
           </AnimatePresence>
+          </div>
         </div>
 
         {showScrollButton && (
@@ -255,7 +257,7 @@ export function VirtualizedMessageList({
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
               >
-                <div className="px-4 py-2">
+                <div className="w-full max-w-4xl mx-auto px-4 py-2">
                   {isMessage ? (
                     <ChatMessage
                       message={item.data}

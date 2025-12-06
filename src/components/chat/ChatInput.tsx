@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
@@ -13,10 +14,9 @@ import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
 import { ImageGenerateButton } from "./ImageGenerateButton";
+import { KeyboardHints } from "./KeyboardHints";
 import { RateLimitDialog } from "./RateLimitDialog";
 import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
-import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { KeyboardHints } from "./KeyboardHints";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -224,17 +224,8 @@ export function ChatInput({
 
         <div className="flex gap-2 items-end pl-2 pr-2">
           {/* Action buttons (left side) */}
-          {supportsVision && (
-            <div className="flex gap-1 items-center pb-2">
-              <FileUpload
-                conversationId={conversationId}
-                attachments={attachments}
-                onAttachmentsChange={onAttachmentsChange}
-                uploading={uploading}
-                setUploading={setUploading}
-              />
-            </div>
-          )}
+          {/* Action buttons (left side) */}
+          {/* Removed FileUpload from here */}
 
           {/* Textarea or Waveform */}
           {isRecording ? (
@@ -355,6 +346,15 @@ export function ChatInput({
 
         <div className="px-4 pb-2 flex justify-between items-center">
           <div className="flex items-center gap-2 flex-wrap">
+            {supportsVision && (
+              <FileUpload
+                conversationId={conversationId}
+                attachments={attachments}
+                onAttachmentsChange={onAttachmentsChange}
+                uploading={uploading}
+                setUploading={setUploading}
+              />
+            )}
             {isComparisonMode && onExitComparison ? (
               <Badge
                 variant="secondary"

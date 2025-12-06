@@ -27,8 +27,11 @@ export function calculateCost(
   const cachedCost = cachedTokens
     ? (cachedTokens / 1_000_000) * (model.pricing.cached || 0)
     : 0;
+
+  // Reasoning tokens use reasoning price if available, otherwise use output price
+  const reasoningPrice = model.pricing.reasoning || model.pricing.output;
   const reasoningCost = reasoningTokens
-    ? (reasoningTokens / 1_000_000) * (model.pricing.reasoning || 0)
+    ? (reasoningTokens / 1_000_000) * reasoningPrice
     : 0;
 
   return inputCost + outputCost + cachedCost + reasoningCost;

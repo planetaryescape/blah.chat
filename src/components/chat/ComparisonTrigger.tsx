@@ -29,13 +29,14 @@ export function ComparisonTrigger({
       }}
       trigger={
         <Button
-          size="icon"
-          variant={isActive ? "default" : "ghost"}
+          variant="ghost"
           disabled={isActive}
           title="Compare models"
           onClick={() => setOpen(true)}
+          className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5"
         >
-          <ArrowLeftRight className="w-4 h-4" />
+          <ArrowLeftRight className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Compare</span>
         </Button>
       }
     />

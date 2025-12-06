@@ -3,8 +3,12 @@ import type { Doc } from "@/convex/_generated/dataModel";
 
 export function ConversationList({
   conversations,
+  selectedIndex = -1,
+  onClearSelection,
 }: {
   conversations: Doc<"conversations">[];
+  selectedIndex?: number;
+  onClearSelection?: () => void;
 }) {
   if (conversations.length === 0) {
     return (
@@ -15,9 +19,15 @@ export function ConversationList({
   }
 
   return (
-    <div className="py-2">
-      {conversations.map((conversation: any) => (
-        <ConversationItem key={conversation._id} conversation={conversation} />
+    <div className="py-2" role="listbox" aria-label="Conversations">
+      {conversations.map((conversation: any, index: number) => (
+        <ConversationItem
+          key={conversation._id}
+          conversation={conversation}
+          index={index}
+          selectedIndex={selectedIndex}
+          onClearSelection={onClearSelection}
+        />
       ))}
     </div>
   );

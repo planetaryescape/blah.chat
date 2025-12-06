@@ -1,6 +1,7 @@
 "use client";
 
 import { CommandPalette } from "@/components/CommandPalette";
+import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,7 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
-import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { ConversationProvider } from "@/contexts/ConversationContext";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -72,24 +73,24 @@ export default function MainLayout({
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
 
-  // Enable keyboard shortcuts
-  useKeyboardShortcuts();
-
   // Don't show sidebar when not authenticated
   if (!isLoading && !isAuthenticated) {
     return <>{children}</>;
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex w-full h-[100dvh] overflow-hidden">
-        <AppSidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden">
-          <Header />
-          {children}
-        </main>
-      </div>
-      <CommandPalette />
-    </SidebarProvider>
+    <ConversationProvider>
+      <KeyboardShortcutsManager />
+      <SidebarProvider>
+        <div className="flex w-full h-[100dvh] overflow-hidden">
+          <AppSidebar />
+          <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden">
+            <Header />
+            {children}
+          </main>
+        </div>
+        <CommandPalette />
+      </SidebarProvider>
+    </ConversationProvider>
   );
 }

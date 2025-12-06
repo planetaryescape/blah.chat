@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback } from "react";
-import { useDropzone } from "react-dropzone";
-import { useMutation } from "convex/react";
+import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
+import { useMutation } from "convex/react";
 import { Loader2, Upload } from "lucide-react";
+import { useCallback } from "react";
+import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 
 interface Attachment {
@@ -36,6 +36,7 @@ export function FileUpload({
   uploading: boolean;
   setUploading: (uploading: boolean) => void;
 }) {
+  // @ts-ignore - Type instantiation depth issue
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const saveFile = useMutation(api.files.saveFile);
 
@@ -121,18 +122,18 @@ export function FileUpload({
     <Button
       type="button"
       variant="ghost"
-      size="sm"
       {...getRootProps()}
       disabled={uploading}
       title="Attach files"
-      className="h-9 w-9 p-0"
+      className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5"
     >
       <input {...getInputProps()} />
       {uploading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
       ) : (
-        <Upload className="w-4 h-4" />
+        <Upload className="w-3.5 h-3.5" />
       )}
+      <span className="hidden sm:inline">Attach</span>
       <span className="sr-only">Attach files</span>
     </Button>
   );

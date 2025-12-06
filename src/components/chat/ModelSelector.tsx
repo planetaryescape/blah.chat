@@ -2,17 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  getModelConfig,
-  getModelsByProvider,
-  type ModelConfig,
+    getModelConfig,
+    getModelsByProvider,
+    type ModelConfig,
 } from "@/lib/ai/models";
 import { getOllamaModelConfigs } from "@/lib/ai/ollama";
 import { cn } from "@/lib/utils";
@@ -130,11 +130,12 @@ export function ModelSelector({
             variant="ghost"
             data-model-selector
             className={cn(
-              "h-6 text-[10px] border-none bg-transparent hover:bg-white/5 px-2 min-w-0 w-auto gap-1 text-muted-foreground/80 hover:text-foreground transition-colors",
+              "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5",
               className,
             )}
           >
-            <span className="truncate font-medium">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="truncate hidden sm:inline">
               {currentModel?.name || "Select model"}
             </span>
             <ChevronDown className="w-3 h-3 opacity-50 flex-shrink-0" />

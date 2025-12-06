@@ -53,6 +53,22 @@ export const create = internalMutation({
       reasoning: v.optional(v.string()),
       extractedAt: v.number(),
       sourceConversationId: v.optional(v.id("conversations")),
+      // Phase 3: Confidence scoring
+      confidence: v.optional(v.number()),
+      verifiedBy: v.optional(
+        v.union(v.literal("auto"), v.literal("manual"), v.literal("consolidated"))
+      ),
+      // Phase 3: TTL & versioning
+      expiresAt: v.optional(v.number()),
+      version: v.optional(v.number()),
+      expirationHint: v.optional(
+        v.union(
+          v.literal("contextual"),
+          v.literal("preference"),
+          v.literal("deadline"),
+          v.literal("temporary")
+        )
+      ),
     }),
   },
   handler: async (ctx, args) => {

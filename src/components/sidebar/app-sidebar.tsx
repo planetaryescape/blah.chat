@@ -23,6 +23,8 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar";
 import { api } from "@/convex/_generated/api";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -58,6 +60,7 @@ export function AppSidebar() {
   const createConversation = useMutation(api.conversations.create);
   const router = useRouter();
   const { isMobile } = useSidebar();
+  const { setFilteredConversations } = useConversationContext();
 
   const handleNewChat = async () => {
     // Check if most recent conversation is empty
@@ -74,22 +77,27 @@ export function AppSidebar() {
     router.push(`/chat/${conversationId}`);
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyboard = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
-        e.preventDefault();
-        handleNewChat();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyboard);
-    return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [handleNewChat]);
+  // Keyboard shortcuts removed - now centralized in useKeyboardShortcuts hook
 
   const filteredConversations = conversations?.filter((conv: any) =>
     conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  // Update context whenever filtered conversations change
+  useEffect(() => {
+    setFilteredConversations(filteredConversations);
+  }, [filteredConversations, setFilteredConversations]);
+
+  // Arrow key navigation
+  const { selectedIndex, clearSelection } = useListKeyboardNavigation({
+    items: filteredConversations || [],
+    onSelect: (conv) => {
+      router.push(`/chat/${conv._id}`);
+      clearSelection();
+    },
+    enabled: true,
+    loop: true,
+  });
 
   const displayedItems = isMobile ? MENU_ITEMS.slice(0, 3) : MENU_ITEMS;
   const overflowItems = isMobile ? MENU_ITEMS.slice(3) : [];
@@ -127,7 +135,7 @@ export function AppSidebar() {
               <Plus className="w-4 h-4" />
               New Chat
             </span>
-            <ShortcutBadge keys={["mod", "N"]} />
+            <ShortcutBadge keys={["mod", "shift", "N"]} />
           </Button>
         </div>
 
@@ -149,7 +157,11 @@ export function AppSidebar() {
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
           <SidebarGroupContent>
-            <ConversationList conversations={filteredConversations || []} />
+            <ConversationList
+              conversations={filteredConversations || []}
+              selectedIndex={selectedIndex}
+              onClearSelection={clearSelection}
+            />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

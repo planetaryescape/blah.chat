@@ -57,7 +57,7 @@ export function ImageGenerateButton({
         await sendMessage({
           conversationId,
           content: prompt.trim(),
-          modelId: "google:gemini-3-pro-image-preview", // Default image gen model
+          modelId: "google:gemini-2.0-flash-exp", // Default image gen model
         });
       } else {
         await generateImage({

@@ -154,7 +154,7 @@ export function highlightCode(code: string, lang: string): HighlightResult {
     // Log the error for debugging but don't crash
     console.warn(
       `[Shiki] Failed to highlight code with language "${lang}":`,
-      error
+      error,
     );
 
     // Return escaped plain text as fallback

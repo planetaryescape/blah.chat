@@ -414,10 +414,13 @@ const MODEL_ID_MIGRATIONS: Record<string, string> = {
   "groq:gpt-oss-20b": "groq:openai/gpt-oss-20b",
   "groq:groq-compound": "groq:groq/compound",
   "groq:groq-compound-mini": "groq:groq/compound-mini",
-  "groq:moonshotai-kimi-k2-instruct-0905": "groq:moonshotai/kimi-k2-instruct-0905",
+  "groq:moonshotai-kimi-k2-instruct-0905":
+    "groq:moonshotai/kimi-k2-instruct-0905",
   "groq:qwen-qwen3-32b": "groq:qwen/qwen3-32b",
-  "groq:llama-4-maverick-17b-128e-instruct": "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
-  "groq:llama-4-scout-17b-16e-instruct": "groq:meta-llama/llama-4-scout-17b-16e-instruct",
+  "groq:llama-4-maverick-17b-128e-instruct":
+    "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
+  "groq:llama-4-scout-17b-16e-instruct":
+    "groq:meta-llama/llama-4-scout-17b-16e-instruct",
 };
 
 export function getModelConfig(modelId: string): ModelConfig | undefined {

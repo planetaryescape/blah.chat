@@ -31,7 +31,8 @@ function createInitialFallback(code: string): string {
 }
 
 export function CodeBlock({ code, language, inline }: CodeBlockProps) {
-  const [highlightResult, setHighlightResult] = useState<HighlightResult | null>(null);
+  const [highlightResult, setHighlightResult] =
+    useState<HighlightResult | null>(null);
   const codeRef = useRef(code);
   const languageRef = useRef(language);
 

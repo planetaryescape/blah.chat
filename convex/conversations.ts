@@ -274,6 +274,23 @@ export const rename = mutation({
   },
 });
 
+export const updateModel = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    model: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const conv = await ctx.db.get(args.conversationId);
+    if (!conv || conv.userId !== user._id) throw new Error("Not found");
+
+    await ctx.db.patch(args.conversationId, {
+      model: args.model,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const updateTitle = internalMutation({
   args: {
     conversationId: v.id("conversations"),
@@ -304,6 +321,33 @@ export const updateMemoryTracking = internalMutation({
       lastMemoryExtractionAt: args.lastMemoryExtractionAt,
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const updateMemoryCache = internalMutation({
+  args: {
+    id: v.id("conversations"),
+    cachedMemoryIds: v.array(v.id("memories")),
+    lastMemoryFetchAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      cachedMemoryIds: args.cachedMemoryIds,
+      lastMemoryFetchAt: args.lastMemoryFetchAt,
+    });
+  },
+});
+
+export const clearMemoryCache = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.conversationId, {
+      cachedMemoryIds: undefined,
+      lastMemoryFetchAt: undefined,
+    });
+    console.log(`[Cache] Cleared for conversation ${args.conversationId}`);
   },
 });
 
@@ -702,5 +746,82 @@ export const createConsolidationConversation = mutation({
     });
 
     return { conversationId };
+  },
+});
+
+export const consolidateInSameChat = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    comparisonGroupId: v.string(),
+    consolidationModel: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    // 1. Fetch comparison group messages
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_comparison_group", (q) =>
+        q.eq("comparisonGroupId", args.comparisonGroupId),
+      )
+      .collect();
+
+    // 2. Separate user message and assistant responses
+    const userMessage = allMessages.find((m) => m.role === "user");
+    const responses = allMessages.filter((m) => m.role === "assistant");
+
+    if (!userMessage || responses.length === 0) {
+      throw new Error("Invalid comparison group");
+    }
+
+    // 3. Build consolidation prompt
+    const modelList = responses.map((r) => r.model || "unknown").join(", ");
+    let consolidationPrompt = `Here are ${responses.length} responses from ${modelList} about:\n\n`;
+    consolidationPrompt += `**Original prompt:** "${userMessage.content}"\n\n`;
+
+    for (const r of responses) {
+      consolidationPrompt += `**Response from ${r.model || "unknown"}:**\n${r.content}\n\n`;
+    }
+
+    consolidationPrompt +=
+      "Can you consolidate all of this information into one comprehensive, well-organized response? Identify common themes, reconcile any differences, and synthesize the best insights from each response.";
+
+    // 4. Insert pending consolidated assistant message (NO comparisonGroupId)
+    const consolidatedMessageId = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      userId: user._id,
+      role: "assistant",
+      content: "",
+      status: "pending",
+      model: args.consolidationModel,
+      isConsolidation: true, // Mark as consolidated message
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // 5. Link comparison messages to consolidated message
+    for (const response of responses) {
+      await ctx.db.patch(response._id, {
+        consolidatedMessageId, // Link to consolidated message
+      });
+    }
+
+    // 6. Update conversation messageCount (+1 for consolidated message)
+    const conversation = await ctx.db.get(args.conversationId);
+    await ctx.db.patch(args.conversationId, {
+      messageCount: (conversation?.messageCount || 0) + 1,
+      lastMessageAt: Date.now(),
+    });
+
+    // 7. Schedule generation with consolidation prompt as system context
+    await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+      conversationId: args.conversationId,
+      assistantMessageId: consolidatedMessageId,
+      modelId: args.consolidationModel,
+      userId: user._id,
+      systemPromptOverride: consolidationPrompt, // Pass consolidation context
+    });
+
+    return { messageId: consolidatedMessageId };
   },
 });

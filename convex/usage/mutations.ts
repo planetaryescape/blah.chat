@@ -52,6 +52,7 @@ export const recordTextGeneration = internalMutation({
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
+    reasoningTokens: v.optional(v.number()),
     cost: v.number(),
   },
   handler: async (ctx, args) => {
@@ -61,10 +62,7 @@ export const recordTextGeneration = internalMutation({
     const existing = await ctx.db
       .query("usageRecords")
       .withIndex("by_user_date_model", (q) =>
-        q
-          .eq("userId", args.userId)
-          .eq("date", date)
-          .eq("model", args.model),
+        q.eq("userId", args.userId).eq("date", date).eq("model", args.model),
       )
       .first();
 
@@ -72,6 +70,8 @@ export const recordTextGeneration = internalMutation({
       await ctx.db.patch(existing._id, {
         inputTokens: existing.inputTokens + args.inputTokens,
         outputTokens: existing.outputTokens + args.outputTokens,
+        reasoningTokens:
+          (existing.reasoningTokens || 0) + (args.reasoningTokens || 0),
         cost: existing.cost + args.cost,
         messageCount: existing.messageCount + 1,
       });
@@ -83,6 +83,7 @@ export const recordTextGeneration = internalMutation({
         conversationId: args.conversationId,
         inputTokens: args.inputTokens,
         outputTokens: args.outputTokens,
+        reasoningTokens: args.reasoningTokens,
         cost: args.cost,
         messageCount: 1,
       });

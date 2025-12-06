@@ -28,17 +28,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  useAction,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
+import { Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function MemorySettings() {
+  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const {
@@ -53,6 +67,8 @@ export function MemorySettings() {
     api.memories.scanRecentConversations,
   );
   const migrateMemories = useAction(api.memories.migrateUserMemories);
+  const consolidateMemories = useAction(api.memories.consolidateUserMemories);
+  const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
 
   const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
   const [extractInterval, setExtractInterval] = useState(5);
@@ -61,6 +77,9 @@ export function MemorySettings() {
   const [editingMemory, setEditingMemory] = useState<any>(null);
   const [editMemoryContent, setEditMemoryContent] = useState("");
   const [isMigrating, setIsMigrating] = useState(false);
+  const [isConsolidating, setIsConsolidating] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   useEffect(() => {
     if (user?.preferences) {
@@ -168,6 +187,40 @@ export function MemorySettings() {
     }
   };
 
+  const handleConsolidate = async () => {
+    setIsConsolidating(true);
+    try {
+      toast.info("Consolidating memories...");
+      const result = await consolidateMemories();
+      if (result.created > 0 || result.deleted > 0) {
+        toast.success(
+          `Consolidated ${result.original} → ${result.consolidated} memories (${result.created} new, ${result.deleted} removed)`,
+        );
+      } else {
+        toast.info("No duplicate memories found.");
+      }
+    } catch (error) {
+      toast.error("Failed to consolidate memories");
+      console.error("Consolidation error:", error);
+    } finally {
+      setIsConsolidating(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (deleteConfirmText !== "DELETE") return;
+
+    try {
+      const result = await deleteAllMemories();
+      toast.success(`Deleted ${result.deleted} memories`);
+      setShowDeleteDialog(false);
+      setDeleteConfirmText("");
+    } catch (error) {
+      toast.error("Failed to delete memories");
+      console.error("Delete error:", error);
+    }
+  };
+
   if (!user) {
     return (
       <Card>
@@ -229,38 +282,43 @@ export function MemorySettings() {
 
           <div className="flex items-center justify-between border-t pt-4">
             <div className="space-y-0.5">
-              <Label>Scan Recent Chats</Label>
+              <Label>Memory Actions</Label>
               <p className="text-sm text-muted-foreground">
-                Force AI to look for memories in recent conversations
+                Scan, consolidate, migrate, or delete all memories
               </p>
             </div>
-            <Button variant="outline" onClick={handleScanRecent}>
-              Scan Now
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between border-t pt-4">
-            <div className="space-y-0.5">
-              <Label>Migrate to Third-Person</Label>
-              <p className="text-sm text-muted-foreground">
-                Rephrase existing memories from first-person to third-person for
-                better AI context injection
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={handleMigrateMemories}
-              disabled={isMigrating}
-            >
-              {isMigrating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Migrating...
-                </>
-              ) : (
-                "Migrate Now"
-              )}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={handleScanRecent}>
+                  Scan Recent Chats
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleConsolidate}
+                  disabled={isConsolidating}
+                >
+                  {isConsolidating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Consolidating...
+                    </>
+                  ) : (
+                    "Consolidate Memories"
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive"
+                >
+                  Delete All Memories
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="rounded-lg bg-muted p-4">
@@ -428,6 +486,53 @@ export function MemorySettings() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete All Memories?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all {memories?.length || 0} memories.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirm">
+                Type <code className="font-mono font-bold">DELETE</code> to
+                confirm
+              </Label>
+              <Input
+                id="confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="font-mono"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setDeleteConfirmText("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAll}
+              disabled={deleteConfirmText !== "DELETE"}
+            >
+              Delete All Memories
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

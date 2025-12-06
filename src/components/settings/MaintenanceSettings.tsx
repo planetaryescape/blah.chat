@@ -61,9 +61,7 @@ export function MaintenanceSettings() {
               <Checkbox
                 id="delete-all"
                 checked={deleteAll}
-                onCheckedChange={(checked) =>
-                  setDeleteAll(checked === true)
-                }
+                onCheckedChange={(checked) => setDeleteAll(checked === true)}
               />
               <Label
                 htmlFor="delete-all"

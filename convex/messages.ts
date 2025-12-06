@@ -127,12 +127,54 @@ export const updatePartialContent = internalMutation({
   },
 });
 
+export const markThinkingStarted = internalMutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      thinkingStartedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updatePartialReasoning = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    partialReasoning: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      partialReasoning: args.partialReasoning,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const completeThinking = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    reasoning: v.string(),
+    reasoningTokens: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      reasoning: args.reasoning,
+      partialReasoning: undefined,
+      thinkingCompletedAt: Date.now(),
+      reasoningTokens: args.reasoningTokens,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const completeMessage = internalMutation({
   args: {
     messageId: v.id("messages"),
     content: v.string(),
+    reasoning: v.optional(v.string()),
     inputTokens: v.number(),
     outputTokens: v.number(),
+    reasoningTokens: v.optional(v.number()),
     cost: v.number(),
   },
   handler: async (ctx, args) => {
@@ -141,10 +183,13 @@ export const completeMessage = internalMutation({
 
     await ctx.db.patch(args.messageId, {
       content: args.content,
+      reasoning: args.reasoning,
       partialContent: undefined,
+      partialReasoning: undefined,
       status: "complete",
       inputTokens: args.inputTokens,
       outputTokens: args.outputTokens,
+      reasoningTokens: args.reasoningTokens,
       cost: args.cost,
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
@@ -161,6 +206,7 @@ export const completeMessage = internalMutation({
           model: message.model,
           inputTokens: args.inputTokens,
           outputTokens: args.outputTokens,
+          reasoningTokens: args.reasoningTokens,
           cost: args.cost,
         },
       );
@@ -274,6 +320,24 @@ export const getComparisonGroup = query({
       .withIndex("by_comparison_group", (q) =>
         q.eq("comparisonGroupId", comparisonGroupId),
       )
+      .collect();
+  },
+});
+
+// Get original assistant responses linked to a consolidated message
+export const getOriginalResponses = query({
+  args: { consolidatedMessageId: v.id("messages") },
+  handler: async (ctx, { consolidatedMessageId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    // Fetch all assistant messages linked to this consolidated message
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_consolidated_message", (q) =>
+        q.eq("consolidatedMessageId", consolidatedMessageId),
+      )
+      .filter((q) => q.eq(q.field("role"), "assistant"))
       .collect();
   },
 });

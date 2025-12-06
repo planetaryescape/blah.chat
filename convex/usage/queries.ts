@@ -160,13 +160,29 @@ export const getConversationCosts = query({
       .order("desc")
       .take(args.limit || 10);
 
-    // For now, return conversations without cost breakdown
-    // Cost tracking per conversation requires schema update
-    return conversations.map((conv) => ({
-      conversationId: conv._id,
-      title: conv.title,
-      cost: 0, // TODO: Add conversationId to usageRecords schema
-      tokens: 0,
-    }));
+    // Calculate costs per conversation from usageRecords
+    return Promise.all(
+      conversations.map(async (conv) => {
+        const records = await ctx.db
+          .query("usageRecords")
+          .withIndex("by_conversation", (q) =>
+            q.eq("conversationId", conv._id),
+          )
+          .collect();
+
+        const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
+        const totalTokens = records.reduce(
+          (sum, r) => sum + r.inputTokens + r.outputTokens,
+          0,
+        );
+
+        return {
+          conversationId: conv._id,
+          title: conv.title,
+          cost: totalCost,
+          tokens: totalTokens,
+        };
+      }),
+    );
   },
 });

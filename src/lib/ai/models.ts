@@ -423,7 +423,30 @@ const MODEL_ID_MIGRATIONS: Record<string, string> = {
 export function getModelConfig(modelId: string): ModelConfig | undefined {
   // Check if migration needed
   const migratedId = MODEL_ID_MIGRATIONS[modelId] || modelId;
-  return MODEL_CONFIG[migratedId];
+
+  // Return config if exists
+  if (MODEL_CONFIG[migratedId]) {
+    return MODEL_CONFIG[migratedId];
+  }
+
+  // Fallback for custom models not in config
+  // Extract provider and model name
+  const [provider, ...modelParts] = migratedId.split(":");
+  const modelName = modelParts.join(":");
+
+  if (provider && modelName) {
+    return {
+      id: migratedId,
+      provider: provider as ModelConfig["provider"],
+      name: modelName,
+      description: `Custom ${provider} model`,
+      contextWindow: 128000,
+      pricing: { input: 0, output: 0 },
+      capabilities: [],
+    };
+  }
+
+  return undefined;
 }
 
 export function getModelsByProvider() {

@@ -2,16 +2,48 @@ import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
 import { getModel } from "@/lib/ai/registry";
 import { openai } from "@ai-sdk/openai";
-import { streamText, type CoreMessage } from "ai";
+import {
+  streamText,
+  wrapLanguageModel,
+  extractReasoningMiddleware,
+  type CoreMessage,
+} from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { buildBasePromptOptions, getBasePrompt } from "./lib/prompts/base";
-import { formatMemoriesByCategory } from "./lib/prompts/formatting";
+import { formatMemoriesByCategory, truncateMemories } from "./lib/prompts/formatting";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
 export * as image from "./generation/image";
+
+/**
+ * Classifies message to determine memory retrieval strategy
+ * Returns limit: 0 (skip), 3 (minimal), 10 (full)
+ */
+function getMemoryLimit(content: string): number {
+  // Always retrieve for long/complex messages
+  if (content.length > 100) return 10;
+
+  // Explicit memory references
+  const memoryKeywords = /\b(remember|recall|you (said|mentioned|told)|we (discussed|talked)|earlier|before|previous|last time|my (preference|project|usual))\b/i;
+  if (memoryKeywords.test(content)) return 10;
+
+  // Context questions
+  const contextQuestions = /\b(what|when|where|why|how) (did|do|does|is|was|were|can|should)\b/i;
+  if (contextQuestions.test(content)) return 10;
+
+  // Continuation words (minimal context)
+  const continuations = /^(yes|no|ok|sure|continue|go on|tell me more|what else|and\?|explain|elaborate)\b/i;
+  if (continuations.test(content) && content.length > 20) return 3;
+
+  // Very short messages (greetings, acknowledgments) - skip
+  if (content.length < 20) return 0;
+
+  // Default: minimal retrieval for unknown patterns
+  return 3;
+}
 
 // Helper to download attachment and convert to base64
 async function downloadAttachment(
@@ -44,8 +76,9 @@ async function buildSystemPrompts(
     userMessage: string;
     modelConfig: ModelConfig;
   },
-): Promise<CoreMessage[]> {
+): Promise<{ messages: CoreMessage[]; memoryContent: string | null }> {
   const systemMessages: CoreMessage[] = [];
+  let memoryContentForTracking: string | null = null;
 
   // 1. User custom instructions (highest priority)
   // @ts-ignore
@@ -84,34 +117,77 @@ async function buildSystemPrompts(
     });
   }
 
-  // 4. Memory retrieval (pre-fetch approach)
+  // 4. Memory retrieval (pre-fetch approach with selective retrieval + caching)
   if (args.userMessage) {
     try {
-      console.log(
-        "[Memory] Searching for memories with query:",
-        args.userMessage,
-      );
-      // @ts-ignore
-      const memories = await ctx.runAction(
-        internal.memories.search.hybridSearch,
-        {
-          userId: args.userId,
-          query: args.userMessage,
-          limit: 10,
-        },
-      );
+      // Phase 2B: Caching + selective retrieval
+      const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+      const memoryLimit = getMemoryLimit(args.userMessage);
+      let memories: any[] = [];
+
+      if (memoryLimit > 0) {
+        // Check cache validity
+        const now = Date.now();
+        const cacheValid =
+          conversation?.cachedMemoryIds &&
+          conversation?.lastMemoryFetchAt &&
+          (now - conversation.lastMemoryFetchAt) < CACHE_TTL_MS;
+
+        if (cacheValid) {
+          // Cache HIT - fetch full docs from IDs
+          const cachedIds = conversation!.cachedMemoryIds!;
+          // @ts-ignore
+          memories = (await Promise.all(
+            cachedIds.map(id => ctx.runQuery(internal.memories.getMemoryById, { id }))
+          )).filter(m => m !== null);
+
+          console.log(`[Memory] Cache HIT: ${memories.length} memories, age=${Math.round((now - conversation!.lastMemoryFetchAt!) / 1000)}s`);
+        } else {
+          // Cache MISS - fetch fresh + update cache
+          // @ts-ignore
+          memories = await ctx.runAction(
+            internal.memories.search.hybridSearch,
+            {
+              userId: args.userId,
+              query: args.userMessage,
+              limit: memoryLimit,
+            },
+          );
+
+          // Store IDs in cache
+          const memoryIds = memories.map(m => m._id);
+          // @ts-ignore
+          await ctx.runMutation(internal.conversations.updateMemoryCache, {
+            id: args.conversationId,
+            cachedMemoryIds: memoryIds,
+            lastMemoryFetchAt: now,
+          });
+
+          console.log(`[Memory] Cache MISS: fetched ${memories.length} memories, limit=${memoryLimit}`);
+        }
+      } else {
+        console.log(`[Memory] Skipped retrieval: "${args.userMessage.slice(0, 50)}..."`);
+      }
 
       console.log(`[Memory] Found ${memories.length} memories`);
 
       if (memories.length > 0) {
-        const memoryContent = formatMemoriesByCategory(memories);
-        console.log("[Memory] Formatted content length:", memoryContent.length);
-        console.log("[Memory] Formatted content:", memoryContent);
+        // Calculate 15% budget
+        const maxMemoryTokens = Math.floor(args.modelConfig.contextWindow * 0.15);
+        console.log(`[Memory] Budget: ${maxMemoryTokens} tokens (15% of ${args.modelConfig.contextWindow})`);
 
-        if (memoryContent) {
+        // Truncate by priority
+        const truncated = truncateMemories(memories, maxMemoryTokens);
+        console.log(`[Memory] Truncated ${memories.length} → ${truncated.length} memories`);
+
+        memoryContentForTracking = formatMemoriesByCategory(truncated);
+        console.log("[Memory] Formatted content length:", memoryContentForTracking.length);
+        console.log("[Memory] Formatted content:", memoryContentForTracking);
+
+        if (memoryContentForTracking) {
           systemMessages.push({
             role: "system",
-            content: memoryContent,
+            content: memoryContentForTracking,
           });
           console.log("[Memory] Injected memories into system prompt");
         }
@@ -133,7 +209,7 @@ async function buildSystemPrompts(
     content: basePrompt,
   });
 
-  return systemMessages;
+  return { messages: systemMessages, memoryContent: memoryContentForTracking };
 }
 
 export const generateResponse = internalAction({
@@ -145,6 +221,7 @@ export const generateResponse = internalAction({
     thinkingEffort: v.optional(
       v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ),
+    systemPromptOverride: v.optional(v.string()), // For consolidation
   },
   handler: async (ctx, args) => {
     try {
@@ -172,13 +249,18 @@ export const generateResponse = internalAction({
         throw new Error(`Model ${args.modelId} not found in configuration`);
       }
 
-      // 5. Build system prompts (NEW)
-      const systemPrompts = await buildSystemPrompts(ctx, {
-        userId: args.userId,
-        conversationId: args.conversationId,
-        userMessage: lastUserMsg?.content || "",
-        modelConfig,
-      });
+      // 5. Build system prompts (or use override for consolidation)
+      const systemPromptsResult = args.systemPromptOverride
+        ? { messages: [{ role: "system" as const, content: args.systemPromptOverride }], memoryContent: null }
+        : await buildSystemPrompts(ctx, {
+            userId: args.userId,
+            conversationId: args.conversationId,
+            userMessage: lastUserMsg?.content || "",
+            modelConfig,
+          });
+
+      const systemPrompts = systemPromptsResult.messages;
+      const memoryContentForTracking = systemPromptsResult.memoryContent;
 
       // 6. Check for vision capability
       const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
@@ -246,20 +328,51 @@ export const generateResponse = internalAction({
       // 7. Combine: system prompts FIRST, then history
       const allMessages = [...systemPrompts, ...history];
 
-      // 8. Get model from registry
-      const model = getModel(args.modelId);
+      // 8. Detect reasoning capability
+      const isReasoningModel =
+        modelConfig?.supportsThinkingEffort ||
+        modelConfig?.capabilities?.includes("thinking") ||
+        modelConfig?.capabilities?.includes("extended-thinking");
+
+      // Use Responses API for OpenAI reasoning models to get summaries
+      const useResponsesAPI =
+        args.thinkingEffort &&
+        modelConfig?.provider === "openai" &&
+        modelConfig?.supportsThinkingEffort;
+
+      // Get model from registry (with Responses API for OpenAI reasoning)
+      const model = getModel(args.modelId, useResponsesAPI);
+
+      const needsTagExtraction = args.modelId.includes("deepseek");
+
+      // Wrap DeepSeek models with middleware to extract <think> tags
+      let finalModel = model;
+      if (needsTagExtraction) {
+        finalModel = wrapLanguageModel({
+          model,
+          middleware: extractReasoningMiddleware({ tagName: "think" }),
+        });
+      }
 
       // 9. Build streamText options
       const options: any = {
-        model,
+        model: finalModel, // Use wrapped model for DeepSeek
         messages: allMessages,
       };
 
-      // OpenAI o1/o3 reasoning effort
-      if (args.thinkingEffort && args.modelId.startsWith("openai:o")) {
+      // OpenAI reasoning effort (GPT-5, o1, o3)
+      if (
+        args.thinkingEffort &&
+        modelConfig?.supportsThinkingEffort &&
+        modelConfig.provider === "openai"
+      ) {
+        console.log(
+          `[OpenAI] Enabling reasoning effort: ${args.thinkingEffort} for model: ${args.modelId}`,
+        );
         options.providerOptions = {
           openai: {
             reasoningEffort: args.thinkingEffort,
+            reasoningSummary: "detailed",
           },
         };
       }
@@ -283,42 +396,123 @@ export const generateResponse = internalAction({
         };
       }
 
+      // Google Gemini thinking models (experimental - may need API verification)
+      if (
+        args.thinkingEffort &&
+        modelConfig?.capabilities?.includes("thinking") &&
+        modelConfig.provider === "google"
+      ) {
+        // Note: Gemini thinking support may require different API parameters
+        console.log(
+          `[Gemini] Thinking effort requested but implementation needs verification`,
+        );
+      }
+
+      // Generic thinking models (xAI, Perplexity, Groq, etc.)
+      if (
+        args.thinkingEffort &&
+        modelConfig?.capabilities?.includes("thinking") &&
+        !["openai", "anthropic", "google"].includes(modelConfig.provider)
+      ) {
+        console.warn(
+          `[${modelConfig.provider}] Thinking effort requested but no specific implementation exists. Model may not produce reasoning output.`,
+        );
+      }
+
+      // Mark thinking phase started for reasoning models
+      if (isReasoningModel && args.thinkingEffort) {
+        await ctx.runMutation(internal.messages.markThinkingStarted, {
+          messageId: args.assistantMessageId,
+        });
+      }
+
       // 6. Accumulate chunks, throttle DB updates
       let accumulated = "";
+      let reasoningBuffer = "";
 
       // Stream from LLM
       const result = streamText(options);
       let lastUpdate = Date.now();
+      let lastReasoningUpdate = Date.now();
       const UPDATE_INTERVAL = 200; // ms
 
-      for await (const chunk of result.textStream) {
-        accumulated += chunk;
-
+      for await (const chunk of result.fullStream) {
         const now = Date.now();
-        if (now - lastUpdate >= UPDATE_INTERVAL) {
-          await ctx.runMutation(internal.messages.updatePartialContent, {
-            messageId: args.assistantMessageId,
-            partialContent: accumulated,
-          });
-          lastUpdate = now;
+
+        // Handle reasoning chunks
+        if (chunk.type === "reasoning-delta") {
+          reasoningBuffer += chunk.text;
+
+          if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
+            await ctx.runMutation(internal.messages.updatePartialReasoning, {
+              messageId: args.assistantMessageId,
+              partialReasoning: reasoningBuffer,
+            });
+            lastReasoningUpdate = now;
+          }
+        }
+
+        // Handle text chunks
+        if (chunk.type === "text-delta") {
+          accumulated += chunk.text;
+
+          if (now - lastUpdate >= UPDATE_INTERVAL) {
+            await ctx.runMutation(internal.messages.updatePartialContent, {
+              messageId: args.assistantMessageId,
+              partialContent: accumulated,
+            });
+            lastUpdate = now;
+          }
         }
       }
 
       // 7. Get token usage
       const usage = await result.usage;
 
+      // Complete thinking if reasoning present
+      const reasoningOutputs = await result.reasoning;
+      console.log(
+        `[Reasoning] Model: ${args.modelId}, Outputs:`,
+        reasoningOutputs,
+      );
+      const finalReasoning =
+        reasoningOutputs && reasoningOutputs.length > 0
+          ? reasoningOutputs.map((r) => r.text).join("\n")
+          : undefined;
+
+      console.log(
+        `[Reasoning] Final reasoning length: ${finalReasoning?.length || 0}, reasoning tokens: ${usage.reasoningTokens || 0}`,
+      );
+
+      if (finalReasoning && finalReasoning.trim().length > 0) {
+        await ctx.runMutation(internal.messages.completeThinking, {
+          messageId: args.assistantMessageId,
+          reasoning: finalReasoning,
+          reasoningTokens: usage.reasoningTokens,
+        });
+      }
+
       // 8. Calculate cost
       const inputTokens = usage.inputTokens ?? 0;
       const outputTokens = usage.outputTokens ?? 0;
+      const reasoningTokens = usage.reasoningTokens;
 
-      const cost = calculateCost(args.modelId, inputTokens, outputTokens);
+      const cost = calculateCost(
+        args.modelId,
+        inputTokens,
+        outputTokens,
+        undefined, // cachedTokens
+        reasoningTokens,
+      );
 
       // 9. Final completion
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.assistantMessageId,
         content: accumulated,
+        reasoning: finalReasoning,
         inputTokens,
         outputTokens,
+        reasoningTokens,
         cost,
       });
 
@@ -342,7 +536,7 @@ export const generateResponse = internalAction({
 
       const tokenUsage = await calculateConversationTokensAsync(
         systemPromptStrings,
-        [], // No memory prompts - now accessed via tools
+        memoryContentForTracking ? [memoryContentForTracking] : [],
         allMessagesForCounting,
         modelConfig.contextWindow,
         args.modelId,

@@ -29,7 +29,7 @@ const memorySchema = z.object({
         "relationship",
       ]),
       importance: z.number().min(1).max(10), // Required: 1-10 scale
-      reasoning: z.string().optional(), // Why this is important
+      reasoning: z.string().min(10).max(300), // Required: 1-2 sentences explaining importance
     }),
   ),
 });
@@ -185,7 +185,7 @@ ${existingMemoriesText}
 Conversation:
 ${conversationText}
 
-Return JSON with facts that pass ALL tests above. Include importance (7-10 only) and reasoning (why important).`,
+Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (7-10 only) and reasoning (1-2 sentences explaining why this fact matters long-term and how it will be useful in future conversations).`,
       });
 
       if (result.object.facts.length === 0) {
@@ -255,6 +255,11 @@ Return JSON with facts that pass ALL tests above. Include importance (7-10 only)
       await ctx.runMutation(internal.conversations.updateMemoryTracking, {
         id: args.conversationId,
         lastMemoryExtractionAt: Date.now(),
+      });
+
+      // 7. Invalidate memory cache when new memories extracted
+      await ctx.runMutation(internal.conversations.clearMemoryCache, {
+        conversationId: args.conversationId,
       });
 
       return { extracted: storedCount };

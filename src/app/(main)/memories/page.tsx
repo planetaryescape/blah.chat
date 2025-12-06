@@ -318,11 +318,37 @@ export default function MemoriesPage() {
                                     </p>
                                   )}
 
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Calendar className="h-3 w-3" />
-                                    {formatDistanceToNow(memory.createdAt, {
-                                      addSuffix: true,
-                                    })}
+                                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                                    {/* Confidence badge - show if < 0.8 */}
+                                    {memory.metadata?.confidence &&
+                                      memory.metadata.confidence < 0.8 && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20">
+                                          {Math.round(memory.metadata.confidence * 100)}% confidence
+                                        </span>
+                                      )}
+
+                                    {/* Expiration date badge */}
+                                    {memory.metadata?.expiresAt && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-500/20">
+                                        Expires:{" "}
+                                        {new Date(memory.metadata.expiresAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+
+                                    {/* Version badge - show if > 1 */}
+                                    {memory.metadata?.version &&
+                                      memory.metadata.version > 1 && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
+                                          v{memory.metadata.version}
+                                        </span>
+                                      )}
+
+                                    <span className="flex items-center gap-1 text-muted-foreground">
+                                      <Calendar className="h-3 w-3" />
+                                      {formatDistanceToNow(memory.createdAt, {
+                                        addSuffix: true,
+                                      })}
+                                    </span>
                                   </div>
                                 </div>
                                 <Button

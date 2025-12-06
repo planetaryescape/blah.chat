@@ -275,7 +275,10 @@ export const createManual = mutation({
       embedding: embedding,
       metadata: {
         category: "user_profile",
-        importance: 1,
+        importance: 8, // Manual memories are important
+        confidence: 1.0, // Manual = 100% confident/verified
+        verifiedBy: "manual",
+        version: 1,
         extractedAt: Date.now(),
       },
       createdAt: Date.now(),
@@ -590,7 +593,10 @@ Resolve pronouns intelligently:
 - "My colleague John" → "User's colleague John"
 - If ambiguous, preserve user's phrasing in quotes
 
-Original reasoning: "${cluster[0].metadata?.reasoning || "Important context for future interactions"}"
+${cluster[0].metadata?.reasoning
+  ? `Original reasoning (preserve exactly): "${cluster[0].metadata.reasoning}"`
+  : `This memory has no existing reasoning. Generate a clear, specific 1-2 sentence explanation of why this fact matters for future interactions with the user. Focus on practical value - how will knowing this help you assist the user better?`
+}
 
 Return ONE memory with:
 - content: rephrased text in third-person
@@ -598,7 +604,7 @@ Return ONE memory with:
 - importance: ${cluster[0].metadata?.importance || 7}
 - sourceIds: ["${cluster[0]._id}"]
 - operation: "keep"
-- reasoning: preserve the original reasoning exactly as shown above`
+- reasoning: ${cluster[0].metadata?.reasoning ? 'the preserved original reasoning from above' : 'your newly generated reasoning explaining why this fact is valuable'}`
             : `Consolidate these related memories into atomic, self-contained units.
 
 Memories:
@@ -618,12 +624,18 @@ Return array of atomic memories with:
 - importance: 1-10
 - sourceIds: [original memory IDs merged] (use IDs from above)
 - operation: "merge"|"dedupe"|"keep"
-- reasoning: For merged memories, combine the reasoning from source memories (e.g., "Combines: reason1; reason2"). For dedupe/keep operations, preserve the most complete reasoning from sources.
+- reasoning: For each consolidated memory, provide reasoning. If source memories have reasoning, combine them (e.g., "Combines: reason1; reason2"). If source memories lack reasoning, generate clear 1-2 sentence explanation of why this consolidated fact is valuable for future interactions.
 
 IMPORTANT: sourceIds must contain the actual memory IDs shown above.
 
-Source reasoning for reference:
-${cluster.map((m) => `- [${m._id}]: "${m.metadata?.reasoning || "No reasoning"}"`).join("\n")}`,
+Source memories with reasoning status:
+${cluster.map((m) => {
+  if (m.metadata?.reasoning) {
+    return `- [${m._id}]: HAS reasoning: "${m.metadata.reasoning}"`;
+  } else {
+    return `- [${m._id}]: NO reasoning - Content: "${m.content}" (generate reasoning explaining why this matters)`;
+  }
+}).join("\n")}`,
         });
 
         // 4. Delete original memories in cluster
@@ -642,6 +654,13 @@ ${cluster.map((m) => `- [${m._id}]: "${m.metadata?.reasoning || "No reasoning"}"
             value: consolidated.content,
           });
 
+          // Calculate expiration: inherit longest expiration (or none if any is permanent)
+          const expiresAt = cluster.reduce((longest: number | undefined, m) => {
+            if (!m.metadata?.expiresAt) return undefined; // Any permanent memory makes the consolidated one permanent
+            if (!longest) return m.metadata.expiresAt;
+            return Math.max(longest, m.metadata.expiresAt);
+          }, undefined as number | undefined);
+
           // Insert new atomic memory
           await ctx.runMutation(internal.memories.create, {
             userId: cluster[0].userId,
@@ -651,6 +670,10 @@ ${cluster.map((m) => `- [${m._id}]: "${m.metadata?.reasoning || "No reasoning"}"
               category: consolidated.category,
               importance: consolidated.importance,
               reasoning: consolidated.reasoning,
+              confidence: 0.95, // Consolidated = high confidence
+              verifiedBy: "consolidated",
+              version: 1,
+              expiresAt,
               extractedAt: Date.now(),
               sourceConversationId: cluster[0].conversationId,
             },

@@ -201,6 +201,27 @@ export default defineSchema({
       reasoning: v.optional(v.string()), // Why this memory is important
       extractedAt: v.optional(v.number()), // When extraction occurred
       sourceConversationId: v.optional(v.id("conversations")),
+      // Phase 3: Confidence scoring
+      confidence: v.optional(v.number()), // 0.0-1.0, extraction certainty
+      verifiedBy: v.optional(
+        v.union(
+          v.literal("auto"),
+          v.literal("manual"),
+          v.literal("consolidated")
+        )
+      ),
+      // Phase 3: TTL & versioning
+      expiresAt: v.optional(v.number()), // timestamp, null = permanent
+      version: v.optional(v.number()), // starts at 1, increments on edit
+      supersededBy: v.optional(v.id("memories")), // points to newer version
+      expirationHint: v.optional(
+        v.union(
+          v.literal("contextual"), // 7 days
+          v.literal("preference"), // never
+          v.literal("deadline"), // completion + 7 days
+          v.literal("temporary") // 1 day
+        )
+      ),
     }),
     createdAt: v.number(),
     updatedAt: v.number(),

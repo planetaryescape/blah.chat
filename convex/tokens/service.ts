@@ -18,6 +18,7 @@ export interface TokenCountService {
  */
 class OpenAITokenCounter implements TokenCountService {
   private model: string;
+  private tiktokenAvailable: boolean | null = null;
 
   constructor(modelId: string) {
     this.model = modelId;
@@ -25,6 +26,11 @@ class OpenAITokenCounter implements TokenCountService {
 
   async countText(text: string): Promise<number> {
     if (!text || text.trim().length === 0) return 0;
+
+    // Skip tiktoken if known to be unavailable
+    if (this.tiktokenAvailable === false) {
+      return estimateTokens(text);
+    }
 
     try {
       const baseModel = this.model.includes(":")
@@ -45,12 +51,21 @@ class OpenAITokenCounter implements TokenCountService {
       const tokens = encoder.encode(text);
       const count = tokens.length;
       encoder.free();
+
+      // Mark tiktoken as working
+      if (this.tiktokenAvailable === null) {
+        this.tiktokenAvailable = true;
+      }
+
       return count;
     } catch (error) {
-      console.warn(
-        `OpenAI token counting failed for ${this.model}:`,
-        error instanceof Error ? error.message : error,
-      );
+      // Mark tiktoken as unavailable to avoid repeated attempts
+      if (this.tiktokenAvailable === null) {
+        this.tiktokenAvailable = false;
+        console.warn(
+          `OpenAI token counting unavailable (tiktoken WASM not supported), using estimation`,
+        );
+      }
       return estimateTokens(text);
     }
   }

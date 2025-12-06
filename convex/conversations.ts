@@ -308,8 +308,12 @@ export const updateMemoryTracking = internalMutation({
 });
 
 export const cleanupEmptyConversations = mutation({
-  handler: async (ctx) => {
+  args: {
+    keepOne: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
+    const keepOne = args.keepOne ?? true; // Default: keep one empty conversation
 
     // Get all conversations for user
     const conversations = await ctx.db
@@ -323,11 +327,15 @@ export const cleanupEmptyConversations = mutation({
       (a, b) => b.lastMessageAt - a.lastMessageAt,
     );
 
-    // Find empty conversations (excluding the most recent one)
+    // Find empty conversations
     const emptyConversations = sorted.filter(
       (c) => (c.messageCount || 0) === 0,
     );
-    const toDelete = emptyConversations.slice(1); // Keep first (most recent), delete rest
+
+    // Determine which conversations to delete
+    const toDelete = keepOne
+      ? emptyConversations.slice(1) // Keep first (most recent), delete rest
+      : emptyConversations; // Delete all empty conversations
 
     // Cascade delete empty conversations
     let deletedCount = 0;
@@ -395,6 +403,32 @@ export const cleanupEmptyConversations = mutation({
       // 7. Delete conversation
       await ctx.db.delete(conv._id);
       deletedCount++;
+    }
+
+    // If we deleted all empty conversations and user has no conversations left,
+    // create a new one to ensure they have at least one conversation
+    if (!keepOne && deletedCount > 0) {
+      const remainingConversations = await ctx.db
+        .query("conversations")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .filter((q) => q.eq(q.field("archived"), false))
+        .collect();
+
+      if (remainingConversations.length === 0) {
+        // Create a new empty conversation
+        await ctx.db.insert("conversations", {
+          userId: user._id,
+          model: "openai:gpt-5-mini",
+          title: "New Chat",
+          messageCount: 0,
+          pinned: false,
+          archived: false,
+          starred: false,
+          lastMessageAt: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
     }
 
     return { deletedCount };

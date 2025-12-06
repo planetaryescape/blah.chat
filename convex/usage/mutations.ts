@@ -44,3 +44,48 @@ export const recordImageGeneration = internalMutation({
     });
   },
 });
+
+export const recordTextGeneration = internalMutation({
+  args: {
+    userId: v.id("users"),
+    conversationId: v.id("conversations"),
+    model: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    cost: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const date = new Date().toISOString().split("T")[0];
+
+    // Upsert: aggregate daily per user+date+model
+    const existing = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date_model", (q) =>
+        q
+          .eq("userId", args.userId)
+          .eq("date", date)
+          .eq("model", args.model),
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        inputTokens: existing.inputTokens + args.inputTokens,
+        outputTokens: existing.outputTokens + args.outputTokens,
+        cost: existing.cost + args.cost,
+        messageCount: existing.messageCount + 1,
+      });
+    } else {
+      await ctx.db.insert("usageRecords", {
+        userId: args.userId,
+        date,
+        model: args.model,
+        conversationId: args.conversationId,
+        inputTokens: args.inputTokens,
+        outputTokens: args.outputTokens,
+        cost: args.cost,
+        messageCount: 1,
+      });
+    }
+  },
+});

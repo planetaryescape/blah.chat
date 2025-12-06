@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, Component, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { useState, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
 
@@ -32,7 +33,11 @@ class CodeBlockErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.warn("[CodeBlock] Render error caught by boundary:", error, errorInfo);
+    console.warn(
+      "[CodeBlock] Render error caught by boundary:",
+      error,
+      errorInfo,
+    );
   }
 
   render() {
@@ -61,29 +66,113 @@ interface MarkdownContentProps {
   isStreaming?: boolean;
 }
 
+/**
+ * Creates animated wrapper components for Streamdown
+ * Each text element gets word-by-word fade-in animation
+ */
+function createAnimatedComponents(isStreaming: boolean) {
+  if (!isStreaming) {
+    // Return standard components for non-streaming content
+    return {
+      code: ({ className, children }: { className?: string; children?: ReactNode }) => {
+        const match = /language-(\w+)/.exec(className || "");
+        const code = String(children).replace(/\n$/, "");
+        const inline = !match && !className;
+
+        if (inline) {
+          return <CodeBlock code={code} inline />;
+        }
+
+        const language = match?.[1];
+        return (
+          <CodeBlockErrorBoundary code={code} language={language}>
+            <CodeBlock code={code} language={language} />
+          </CodeBlockErrorBoundary>
+        );
+      },
+    };
+  }
+
+  // Streaming components with fade-in animation via CSS
+  return {
+    code: ({ className, children }: { className?: string; children?: ReactNode }) => {
+      const match = /language-(\w+)/.exec(className || "");
+      const code = String(children).replace(/\n$/, "");
+      const inline = !match && !className;
+
+      if (inline) {
+        return (
+          <span className="streaming-word" style={{ animationDelay: "0ms" }}>
+            <CodeBlock code={code} inline />
+          </span>
+        );
+      }
+
+      const language = match?.[1];
+      return (
+        <div className="streaming-block">
+          <CodeBlockErrorBoundary code={code} language={language}>
+            <CodeBlock code={code} language={language} />
+          </CodeBlockErrorBoundary>
+        </div>
+      );
+    },
+    // Wrap paragraph text content with animated words
+    p: ({ children }: { children?: ReactNode }) => (
+      <p className="streaming-paragraph">{children}</p>
+    ),
+    // Lists get block-level animation
+    li: ({ children }: { children?: ReactNode }) => (
+      <li className="streaming-list-item">{children}</li>
+    ),
+    // Headings
+    h1: ({ children }: { children?: ReactNode }) => (
+      <h1 className="streaming-heading">{children}</h1>
+    ),
+    h2: ({ children }: { children?: ReactNode }) => (
+      <h2 className="streaming-heading">{children}</h2>
+    ),
+    h3: ({ children }: { children?: ReactNode }) => (
+      <h3 className="streaming-heading">{children}</h3>
+    ),
+  };
+}
+
+/**
+ * Markdown content renderer with streaming fade-in animation
+ *
+ * Uses Streamdown for markdown parsing with CSS-based animations:
+ * - During streaming: Applies fade-in CSS animation to content blocks
+ * - After completion: Standard rendering without animation overhead
+ */
 export function MarkdownContent({
   content,
   isStreaming = false,
 }: MarkdownContentProps) {
   const [displayedContent, setDisplayedContent] = useState(content);
-  const targetContentRef = useRef(content);
+  const [animationKey, setAnimationKey] = useState(0);
+  const prevContentLengthRef = useRef(0);
   const rafRef = useRef<number | undefined>(undefined);
 
   // Batch updates with RAF to prevent excessive re-parsing
   useEffect(() => {
-    // On refresh: show content instantly (no animation)
+    // Update displayed content
     if (!isStreaming) {
       setDisplayedContent(content);
+      prevContentLengthRef.current = content.length;
       return;
     }
-
-    targetContentRef.current = content;
 
     // Cancel pending RAF
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
     // Batch update to next frame
     rafRef.current = requestAnimationFrame(() => {
+      // Check if content grew (new text arrived)
+      if (content.length > prevContentLengthRef.current) {
+        setAnimationKey((k) => k + 1); // Trigger re-animation
+      }
+      prevContentLengthRef.current = content.length;
       setDisplayedContent(content);
     });
 
@@ -92,49 +181,18 @@ export function MarkdownContent({
     };
   }, [content, isStreaming]);
 
-  // Typewriter effect for streaming messages
-  useEffect(() => {
-    if (!isStreaming) return;
-
-    const interval = setInterval(() => {
-      setDisplayedContent((prev) => {
-        const target = targetContentRef.current;
-        if (prev === target) return prev;
-
-        // Reveal 50 chars at a time (increased from 10 for better performance)
-        const nextLen = Math.min(prev.length + 50, target.length);
-        return target.slice(0, nextLen);
-      });
-    }, 100); // 100ms (reduced from 30ms for fewer updates)
-
-    return () => clearInterval(interval);
-  }, [isStreaming]);
+  // Memoize components to prevent recreation on each render
+  const components = useMemo(
+    () => createAnimatedComponents(isStreaming),
+    [isStreaming],
+  );
 
   return (
-    <div className="prose">
-      <Streamdown
-        children={displayedContent}
-        components={{
-          code: ({ className, children }) => {
-            const match = /language-(\w+)/.exec(className || "");
-            const code = String(children).replace(/\n$/, "");
-            const inline = !match && !className;
-
-            // Inline code doesn't need error boundary (simple rendering)
-            if (inline) {
-              return <CodeBlock code={code} inline />;
-            }
-
-            // Wrap code blocks in error boundary for graceful degradation
-            const language = match?.[1];
-            return (
-              <CodeBlockErrorBoundary code={code} language={language}>
-                <CodeBlock code={code} language={language} />
-              </CodeBlockErrorBoundary>
-            );
-          },
-        }}
-      />
+    <div
+      className={cn("prose", isStreaming && "is-streaming")}
+      key={isStreaming ? `streaming-${animationKey}` : "static"}
+    >
+      <Streamdown children={displayedContent} components={components} />
     </div>
   );
 }

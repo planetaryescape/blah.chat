@@ -282,6 +282,7 @@ export default defineSchema({
     userId: v.id("users"),
     date: v.string(),
     model: v.string(),
+    conversationId: v.optional(v.id("conversations")),
     inputTokens: v.number(),
     outputTokens: v.number(),
     cost: v.number(),
@@ -289,7 +290,9 @@ export default defineSchema({
     warningsSent: v.optional(v.array(v.string())),
   })
     .index("by_user_date", ["userId", "date"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_user_date_model", ["userId", "date", "model"])
+    .index("by_conversation", ["conversationId"]),
 
   templates: defineTable({
     userId: v.optional(v.id("users")),

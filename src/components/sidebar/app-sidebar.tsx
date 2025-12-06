@@ -84,7 +84,7 @@ export function AppSidebar() {
 
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
-  }, []);
+  }, [handleNewChat]);
 
   const filteredConversations = conversations?.filter((conv: any) =>
     conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -98,19 +98,19 @@ export function AppSidebar() {
       <SidebarHeader className="pt-6 px-4">
         <div className="flex items-center justify-between px-2">
           <Link
-            href="/"
+            href="/app"
             className="hidden group-data-[collapsible=icon]:hidden sm:block hover:opacity-80 transition-opacity"
           >
             <Logo size="md" />
           </Link>
           <Link
-            href="/"
+            href="/app"
             className="group-data-[collapsible=icon]:block hidden hover:opacity-80 transition-opacity"
           >
             <Logo size="sm" showText={false} />
           </Link>
           <div className="sm:hidden">
-            <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Link href="/app" className="hover:opacity-80 transition-opacity">
               <Logo size="sm" />
             </Link>
           </div>

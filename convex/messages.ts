@@ -150,6 +150,22 @@ export const completeMessage = internalMutation({
       updatedAt: Date.now(),
     });
 
+    // Record usage to usageRecords table
+    if (message.model && message.userId && args.cost > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId: message.userId,
+          conversationId: message.conversationId,
+          model: message.model,
+          inputTokens: args.inputTokens,
+          outputTokens: args.outputTokens,
+          cost: args.cost,
+        },
+      );
+    }
+
     // Schedule embedding generation for completed assistant message
     if (args.content && args.content.trim().length > 0) {
       await ctx.scheduler.runAfter(

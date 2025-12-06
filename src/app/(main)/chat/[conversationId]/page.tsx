@@ -126,7 +126,7 @@ export default function ChatPage({
   // Redirect if conversation not found
   useEffect(() => {
     if (conversation === null) {
-      router.push("/");
+      router.push("/app");
     }
   }, [conversation, router]);
 

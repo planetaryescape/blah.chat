@@ -64,14 +64,21 @@ export function CodeBlock({ code, language, inline }: CodeBlockProps) {
     codeRef.current = code;
     languageRef.current = language;
 
-    // Use requestIdleCallback to run during browser idle time
-    const idleCallback = requestIdleCallback(() => {
+    const runHighlight = () => {
       // highlightCode now handles all errors internally and returns a safe result
       const result = highlightCode(code, language || "text");
       setHighlightResult(result);
-    });
+    };
 
-    return () => cancelIdleCallback(idleCallback);
+    // Use requestIdleCallback when available (Chrome, Firefox, Edge)
+    // Fall back to setTimeout for Safari/iOS which doesn't support requestIdleCallback
+    if ("requestIdleCallback" in window) {
+      const idleCallback = requestIdleCallback(runHighlight);
+      return () => cancelIdleCallback(idleCallback);
+    } else {
+      const timeout = setTimeout(runHighlight, 1);
+      return () => clearTimeout(timeout);
+    }
   }, [code, language, highlightResult]);
 
   // Use highlighted HTML or safe escaped fallback while loading

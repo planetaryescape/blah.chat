@@ -142,6 +142,26 @@ export const extractMemories = internalAction({
 - Important relationships: team members, collaborators with context
 - Significant life context: major goals, challenges, commitments
 
+🔄 REPHRASING RULES:
+Convert all facts to third-person perspective for AI context injection:
+- "I am X" → "User is X"
+- "My wife is Jane" → "User's wife is named Jane"
+- "I prefer TypeScript" → "User prefers TypeScript"
+- "We're building a startup" → "User is building a startup"
+
+Preserve specifics:
+- Technical terms exactly: "Next.js 15", "gpt-4o", "React 19"
+- Version numbers: "TypeScript 5.3"
+- Project names: "blah.chat"
+- Quotes with attribution: "User mentioned: 'exact quote here'"
+
+Resolve pronouns intelligently:
+- "My colleague John" → "User's colleague John"
+- "She recommended X" → "[Name] recommended X" (or use context to clarify)
+- If ambiguous, preserve user's phrasing in quotes
+
+Let context guide rephrasing - prioritize clarity for AI consumption.
+
 ❌ DO NOT CAPTURE:
 - One-off requests: "can you write a poem about X", "show me Y"
 - Questions out of curiosity: "what are the top Z"

@@ -33,7 +33,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -52,6 +52,7 @@ export function MemorySettings() {
   const scanRecentConversations = useMutation(
     api.memories.scanRecentConversations,
   );
+  const migrateMemories = useAction(api.memories.migrateUserMemories);
 
   const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
   const [extractInterval, setExtractInterval] = useState(5);
@@ -59,6 +60,7 @@ export function MemorySettings() {
   const [newMemoryContent, setNewMemoryContent] = useState("");
   const [editingMemory, setEditingMemory] = useState<any>(null);
   const [editMemoryContent, setEditMemoryContent] = useState("");
+  const [isMigrating, setIsMigrating] = useState(false);
 
   useEffect(() => {
     if (user?.preferences) {
@@ -146,6 +148,26 @@ export function MemorySettings() {
     }
   };
 
+  const handleMigrateMemories = async () => {
+    setIsMigrating(true);
+    try {
+      toast.info("Migrating memories to third-person format...");
+      const result = await migrateMemories();
+      if (result.migrated > 0) {
+        toast.success(
+          `Successfully migrated ${result.migrated} memories! ${result.skipped > 0 ? `(${result.skipped} skipped)` : ""}`,
+        );
+      } else {
+        toast.info("No memories to migrate.");
+      }
+    } catch (error) {
+      toast.error("Failed to migrate memories");
+      console.error("Migration error:", error);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   if (!user) {
     return (
       <Card>
@@ -214,6 +236,30 @@ export function MemorySettings() {
             </div>
             <Button variant="outline" onClick={handleScanRecent}>
               Scan Now
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between border-t pt-4">
+            <div className="space-y-0.5">
+              <Label>Migrate to Third-Person</Label>
+              <p className="text-sm text-muted-foreground">
+                Rephrase existing memories from first-person to third-person for
+                better AI context injection
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleMigrateMemories}
+              disabled={isMigrating}
+            >
+              {isMigrating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Migrating...
+                </>
+              ) : (
+                "Migrate Now"
+              )}
             </Button>
           </div>
 

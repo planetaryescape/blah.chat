@@ -1,13 +1,26 @@
+import { openai } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { embed, generateObject } from "ai";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { z } from "zod";
+import { api, internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import {
+  action,
   internalAction,
   internalMutation,
   internalQuery,
   mutation,
   query,
 } from "./_generated/server";
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
+
+const rephrasedMemorySchema = z.object({
+  content: z.string(),
+});
 
 export const create = internalMutation({
   args: {
@@ -83,6 +96,7 @@ export const searchByEmbedding = internalAction({
     });
 
     const ids = results.map((r) => r._id);
+    // @ts-ignore - Convex type instantiation depth issue
     const memories = await ctx.runQuery(internal.memories.getMemoriesByIds, {
       ids,
     });
@@ -274,6 +288,21 @@ export const update = mutation({
   },
 });
 
+export const updateWithEmbedding = internalMutation({
+  args: {
+    id: v.id("memories"),
+    content: v.string(),
+    embedding: v.array(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      content: args.content,
+      embedding: args.embedding,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const scanRecentConversations = mutation({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -348,5 +377,80 @@ export const deleteAllMemories = mutation({
     console.log(`Deleted ${memories.length} memories for user ${user._id}`);
 
     return { deleted: memories.length };
+  },
+});
+
+export const migrateUserMemories = action({
+  handler: async (ctx): Promise<{ migrated: number; skipped: number; total: number }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // 1. Fetch user's memories (listAll already handles user lookup + filtering)
+    // @ts-ignore - Convex type instantiation depth issue
+    const memories: Doc<"memories">[] = await ctx.runQuery(api.memories.listAll);
+
+    if (memories.length === 0) {
+      return { migrated: 0, skipped: 0, total: 0 };
+    }
+
+    let migrated = 0;
+    let skipped = 0;
+
+    // 2. For each memory:
+    for (const memory of memories) {
+      try {
+        // 3. Use LLM to rephrase
+        const result = await generateObject({
+          model: openrouter("x-ai/grok-4.1-fast"),
+          schema: rephrasedMemorySchema,
+          prompt: `Rephrase this memory to third-person perspective for AI context injection.
+
+Original memory: "${memory.content}"
+
+REPHRASING RULES:
+- Convert first-person to third-person: "I am X" → "User is X"
+- Possessives: "My wife is Jane" → "User's wife is named Jane"
+- "I prefer X" → "User prefers X"
+- "We're building X" → "User is building X"
+
+Preserve specifics exactly:
+- Technical terms: "Next.js 15", "gpt-4o", "React 19"
+- Version numbers: "TypeScript 5.3"
+- Project names: "blah.chat"
+- Code snippets: \`const\` vs \`let\`
+
+For quotes, attribute to user:
+- "I say 'X'" → "User's motto: 'X'"
+
+Resolve pronouns intelligently:
+- "My colleague John" → "User's colleague John"
+- If ambiguous, preserve user's phrasing in quotes
+
+Let context guide rephrasing - prioritize clarity for AI consumption.
+
+Return ONLY the rephrased content, no explanation or additional text.`,
+        });
+
+        // 4. Generate new embedding
+        const embeddingResult = await embed({
+          model: openai.embedding("text-embedding-3-small"),
+          value: result.object.content,
+        });
+
+        // 5. Update memory
+        await ctx.runMutation(internal.memories.updateWithEmbedding, {
+          id: memory._id,
+          content: result.object.content,
+          embedding: embeddingResult.embedding,
+        });
+
+        migrated++;
+      } catch (error) {
+        console.error(`Failed to migrate memory ${memory._id}:`, error);
+        skipped++;
+      }
+    }
+
+    return { migrated, skipped, total: memories.length };
   },
 });

@@ -310,83 +310,22 @@
   }
 
   /* ============================================
-   * Streaming Text Animation (ChatGPT-style)
-   * Word-by-word fade-in with blur effect
+   * Smooth Character-by-Character Streaming
+   * Cursor-only animation, no layout shifts
    * ============================================ */
 
-  /* Keyframes for word fade-in animation */
-  @keyframes streamingWordFadeIn {
-    0% {
-      opacity: 0;
-      filter: blur(4px);
-      transform: translateY(4px);
-    }
-    100% {
-      opacity: 1;
-      filter: blur(0);
-      transform: translateY(0);
-    }
-  }
-
-  /* Keyframes for block-level fade-in (code blocks, etc.) */
-  @keyframes streamingBlockFadeIn {
-    0% {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Streaming container marker */
-  .prose.is-streaming {
-    /* Optimize for animations */
-    will-change: contents;
-  }
-
-  /* Animated word during streaming */
-  .prose.is-streaming .streaming-word {
-    display: inline;
-    animation: streamingWordFadeIn 0.35s ease-out forwards;
-    opacity: 0;
-  }
-
-  /* Animated block elements (code blocks, images) */
-  .prose.is-streaming .streaming-block {
-    animation: streamingBlockFadeIn 0.4s ease-out forwards;
-    opacity: 0;
-  }
-
-  /* Paragraph animation for streaming */
-  .prose.is-streaming .streaming-paragraph {
-    /* Paragraphs inherit text animations from children */
-  }
-
-  /* List items animate as blocks */
-  .prose.is-streaming .streaming-list-item {
-    animation: streamingWordFadeIn 0.3s ease-out forwards;
-    opacity: 0;
-  }
-
-  /* Headings animate with slightly longer duration */
-  .prose.is-streaming .streaming-heading {
-    animation: streamingBlockFadeIn 0.4s ease-out forwards;
-    opacity: 0;
-  }
-
-  /* Blinking cursor indicator during streaming */
-  .prose.is-streaming::after {
-    content: "▊";
-    display: inline;
+  /* Blinking cursor during streaming */
+  .markdown-content.streaming .streaming-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background: hsl(var(--primary));
     margin-left: 2px;
-    animation: streamingCursorBlink 1s step-end infinite;
-    color: var(--primary);
-    font-weight: 400;
+    vertical-align: text-bottom;
+    animation: cursor-blink 1s steps(2) infinite;
   }
 
-  @keyframes streamingCursorBlink {
+  @keyframes cursor-blink {
     0%, 50% {
       opacity: 1;
     }
@@ -395,30 +334,27 @@
     }
   }
 
-  /* Remove animations after streaming completes */
-  .prose:not(.is-streaming) .streaming-word,
-  .prose:not(.is-streaming) .streaming-block,
-  .prose:not(.is-streaming) .streaming-list-item,
-  .prose:not(.is-streaming) .streaming-heading {
-    animation: none;
-    opacity: 1;
-    filter: none;
-    transform: none;
+  /* Subtle content fade (opacity only - no transforms) */
+  .markdown-content.streaming {
+    animation: content-fade 0.15s ease-out;
   }
 
-  /* Performance: disable animations for users who prefer reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    .prose.is-streaming .streaming-word,
-    .prose.is-streaming .streaming-block,
-    .prose.is-streaming .streaming-list-item,
-    .prose.is-streaming .streaming-heading {
-      animation: none;
+  @keyframes content-fade {
+    from {
+      opacity: 0.8;
+    }
+    to {
       opacity: 1;
-      filter: none;
-      transform: none;
+    }
+  }
+
+  /* Respect user's motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .markdown-content.streaming {
+      animation: none;
     }
 
-    .prose.is-streaming::after {
+    .markdown-content.streaming .streaming-cursor {
       animation: none;
       opacity: 1;
     }

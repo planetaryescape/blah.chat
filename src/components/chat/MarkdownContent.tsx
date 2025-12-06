@@ -1,9 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
+import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 
 interface CodeBlockErrorBoundaryProps {
   children: ReactNode;
@@ -67,132 +68,61 @@ interface MarkdownContentProps {
 }
 
 /**
- * Creates animated wrapper components for Streamdown
- * Each text element gets word-by-word fade-in animation
+ * Standard components for Streamdown - no animation classes
+ * Animation is handled by character-level reveal in useStreamBuffer
  */
-function createAnimatedComponents(isStreaming: boolean) {
-  if (!isStreaming) {
-    // Return standard components for non-streaming content
-    return {
-      code: ({ className, children }: { className?: string; children?: ReactNode }) => {
-        const match = /language-(\w+)/.exec(className || "");
-        const code = String(children).replace(/\n$/, "");
-        const inline = !match && !className;
+const markdownComponents = {
+	code: ({
+		className,
+		children,
+	}: { className?: string; children?: ReactNode }) => {
+		const match = /language-(\w+)/.exec(className || "");
+		const code = String(children).replace(/\n$/, "");
+		const inline = !match && !className;
 
-        if (inline) {
-          return <CodeBlock code={code} inline />;
-        }
+		if (inline) {
+			return <CodeBlock code={code} inline />;
+		}
 
-        const language = match?.[1];
-        return (
-          <CodeBlockErrorBoundary code={code} language={language}>
-            <CodeBlock code={code} language={language} />
-          </CodeBlockErrorBoundary>
-        );
-      },
-    };
-  }
-
-  // Streaming components with fade-in animation via CSS
-  return {
-    code: ({ className, children }: { className?: string; children?: ReactNode }) => {
-      const match = /language-(\w+)/.exec(className || "");
-      const code = String(children).replace(/\n$/, "");
-      const inline = !match && !className;
-
-      if (inline) {
-        return (
-          <span className="streaming-word" style={{ animationDelay: "0ms" }}>
-            <CodeBlock code={code} inline />
-          </span>
-        );
-      }
-
-      const language = match?.[1];
-      return (
-        <div className="streaming-block">
-          <CodeBlockErrorBoundary code={code} language={language}>
-            <CodeBlock code={code} language={language} />
-          </CodeBlockErrorBoundary>
-        </div>
-      );
-    },
-    // Wrap paragraph text content with animated words
-    p: ({ children }: { children?: ReactNode }) => (
-      <p className="streaming-paragraph">{children}</p>
-    ),
-    // Lists get block-level animation
-    li: ({ children }: { children?: ReactNode }) => (
-      <li className="streaming-list-item">{children}</li>
-    ),
-    // Headings
-    h1: ({ children }: { children?: ReactNode }) => (
-      <h1 className="streaming-heading">{children}</h1>
-    ),
-    h2: ({ children }: { children?: ReactNode }) => (
-      <h2 className="streaming-heading">{children}</h2>
-    ),
-    h3: ({ children }: { children?: ReactNode }) => (
-      <h3 className="streaming-heading">{children}</h3>
-    ),
-  };
-}
+		const language = match?.[1];
+		return (
+			<CodeBlockErrorBoundary code={code} language={language}>
+				<CodeBlock code={code} language={language} />
+			</CodeBlockErrorBoundary>
+		);
+	},
+};
 
 /**
- * Markdown content renderer with streaming fade-in animation
+ * Markdown content renderer with smooth character-by-character streaming
  *
- * Uses Streamdown for markdown parsing with CSS-based animations:
- * - During streaming: Applies fade-in CSS animation to content blocks
- * - After completion: Standard rendering without animation overhead
+ * Uses useStreamBuffer to decouple network timing from visual timing:
+ * - Server sends chunky updates (200ms intervals)
+ * - Buffer smoothly reveals characters at 200 chars/sec via RAF
+ * - Prevents layout shifts and jarring appearance during streaming
  */
 export function MarkdownContent({
-  content,
-  isStreaming = false,
+	content,
+	isStreaming = false,
 }: MarkdownContentProps) {
-  const [displayedContent, setDisplayedContent] = useState(content);
-  const [animationKey, setAnimationKey] = useState(0);
-  const prevContentLengthRef = useRef(0);
-  const rafRef = useRef<number | undefined>(undefined);
+	// Buffer hook smoothly reveals characters from server chunks
+	const { displayContent, hasBufferedContent } = useStreamBuffer(
+		content,
+		isStreaming,
+		{
+			charsPerSecond: 200,
+			minTokenSize: 3,
+			adaptiveThreshold: 5000,
+		},
+	);
 
-  // Batch updates with RAF to prevent excessive re-parsing
-  useEffect(() => {
-    // Update displayed content
-    if (!isStreaming) {
-      setDisplayedContent(content);
-      prevContentLengthRef.current = content.length;
-      return;
-    }
+	// Show cursor while streaming OR buffer is draining
+	const showCursor = isStreaming || hasBufferedContent;
 
-    // Cancel pending RAF
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-
-    // Batch update to next frame
-    rafRef.current = requestAnimationFrame(() => {
-      // Check if content grew (new text arrived)
-      if (content.length > prevContentLengthRef.current) {
-        setAnimationKey((k) => k + 1); // Trigger re-animation
-      }
-      prevContentLengthRef.current = content.length;
-      setDisplayedContent(content);
-    });
-
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [content, isStreaming]);
-
-  // Memoize components to prevent recreation on each render
-  const components = useMemo(
-    () => createAnimatedComponents(isStreaming),
-    [isStreaming],
-  );
-
-  return (
-    <div
-      className={cn("prose", isStreaming && "is-streaming")}
-      key={isStreaming ? `streaming-${animationKey}` : "static"}
-    >
-      <Streamdown children={displayedContent} components={components} />
-    </div>
-  );
+	return (
+		<div className={cn("markdown-content prose", showCursor && "streaming")}>
+			<Streamdown children={displayContent} components={markdownComponents} />
+			{showCursor && <span className="streaming-cursor" aria-hidden="true" />}
+		</div>
+	);
 }

@@ -30,10 +30,10 @@ export const ChatMessage = memo(
     const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
 
     const displayContent = message.partialContent || message.content || "";
-    const modelName = message.model?.split(":")[1] || message.model;
 
     // Check if this is a thinking/reasoning model
     const modelConfig = message.model ? getModelConfig(message.model) : null;
+    const modelName = modelConfig?.name || message.model?.split(":")[1] || message.model;
     const isThinkingModel =
       modelConfig?.supportsThinkingEffort ||
       modelConfig?.capabilities?.includes("extended-thinking") ||
@@ -156,7 +156,7 @@ export const ChatMessage = memo(
 
 
               {!isUser && message.status === "complete" && modelName && (
-                <div className="absolute -bottom-5 left-4 opacity-0 group-hover/assistant:opacity-100 transition-opacity duration-300">
+                <div className="absolute -bottom-5 left-4 transition-opacity duration-300">
                   <Badge
                     variant="outline"
                     className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
@@ -166,22 +166,24 @@ export const ChatMessage = memo(
                 </div>
               )}
 
-              <div
-                className={cn(
-                  "mt-2 flex justify-end transition-opacity duration-200",
-                  alwaysShow
-                    ? "opacity-100"
-                    : isUser
-                      ? "opacity-0 group-hover:opacity-100"
-                      : "opacity-0 group-hover/assistant:opacity-100",
-                )}
-              >
-                <MessageActions
-                  message={message}
-                  nextMessage={nextMessage}
-                  readOnly={readOnly}
-                />
-              </div>
+              {!isGenerating && (
+                <div
+                  className={cn(
+                    "mt-2 flex justify-end transition-opacity duration-200",
+                    alwaysShow
+                      ? "opacity-100"
+                      : isUser
+                        ? "opacity-0 group-hover:opacity-100"
+                        : "opacity-0 group-hover/assistant:opacity-100",
+                  )}
+                >
+                  <MessageActions
+                    message={message}
+                    nextMessage={nextMessage}
+                    readOnly={readOnly}
+                  />
+                </div>
+              )}
             </>
           )}
         </motion.div>

@@ -130,17 +130,18 @@ export const sendMessage = mutation({
     ) {
       const interval = user.preferences?.autoMemoryExtractInterval || 5;
 
-      // Count messages in this conversation
-      const messageCount = await ctx.db
+      // Count user messages (turns) in this conversation
+      const userMessageCount = await ctx.db
         .query("messages")
         .withIndex("by_conversation", (q) =>
           q.eq("conversationId", conversationId),
         )
+        .filter((q) => q.eq(q.field("role"), "user"))
         .collect()
         .then((msgs) => msgs.length);
 
       // Trigger extraction if we've hit the interval
-      if (messageCount > 0 && messageCount % interval === 0) {
+      if (userMessageCount > 0 && userMessageCount % interval === 0) {
         await ctx.scheduler.runAfter(
           0,
           internal.memories.extract.extractMemories,

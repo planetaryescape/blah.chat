@@ -1,5 +1,6 @@
 "use client";
 
+import { ModelIcon } from "@/components/brand/ModelIcon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";

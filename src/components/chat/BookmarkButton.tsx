@@ -82,7 +82,7 @@ export function BookmarkButton({
       <Button
         variant="ghost"
         size="sm"
-        className="h-6 w-6 p-0"
+        className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
         onClick={handleToggleBookmark}
         title={isBookmarked ? "Remove bookmark" : "Bookmark message"}
       >

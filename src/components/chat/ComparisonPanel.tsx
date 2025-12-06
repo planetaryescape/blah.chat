@@ -3,6 +3,7 @@
 import { ModelIcon } from "@/components/brand/ModelIcon";
 import { Badge } from "@/components/ui/badge";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { getModelConfig } from "@/lib/ai/models";
 import { forwardRef } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { VotingControls } from "./VotingControls";
@@ -19,14 +20,14 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
   ({ message, index, showModelName, onVote, isVoted }, ref) => {
     const isGenerating = ["pending", "generating"].includes(message.status);
     const displayContent = message.partialContent || message.content || "";
-    const modelName = message.model?.split(":")[1] || message.model;
+    const modelConfig = message.model ? getModelConfig(message.model) : null;
+    const modelName = modelConfig?.name || message.model?.split(":")[1] || message.model;
 
     return (
       <div
         ref={ref}
         className="flex flex-col h-full border rounded-lg overflow-hidden"
       >
-        {/* Header */}
         {/* Header */}
         <div className="flex flex-col gap-2 p-4 border-b bg-muted/20 backdrop-blur-sm relative group-hover:bg-muted/30 transition-colors">
           <div className="flex items-center justify-between">

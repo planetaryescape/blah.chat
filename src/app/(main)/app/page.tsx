@@ -32,6 +32,19 @@ export default function AppPage() {
     if (conversations === undefined) return; // Query loading
     if (navigationStarted.current) return; // Already navigating
 
+    // Check sessionStorage to prevent rapid re-creation across remounts
+    const lastCreationKey = "last_conversation_creation";
+    const lastCreation = sessionStorage.getItem(lastCreationKey);
+    const now = Date.now();
+
+    if (lastCreation) {
+      const timeSinceLastCreation = now - Number.parseInt(lastCreation, 10);
+      if (timeSinceLastCreation < 1000) {
+        // Less than 1 second since last creation, skip
+        return;
+      }
+    }
+
     navigationStarted.current = true;
 
     const handleNavigation = async () => {
@@ -44,6 +57,7 @@ export default function AppPage() {
       }
 
       // Create new conversation
+      sessionStorage.setItem(lastCreationKey, now.toString());
       const conversationId = await createConversation({
         model: DEFAULT_MODEL,
         title: "New Chat",

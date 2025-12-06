@@ -1,9 +1,17 @@
 import { openai } from "@ai-sdk/openai";
-import { embed } from "ai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
+
+// Constants for memory retrieval
+const MIN_CONFIDENCE = 0.7; // Filter memories below 70% confidence
 
 // Helper: RRF (Reciprocal Rank Fusion) merging
 function applyRRF(
@@ -35,6 +43,53 @@ function applyRRF(
   return Array.from(scores.values())
     .sort((a, b) => b.score - a.score)
     .map(({ item, score }) => ({ ...item, score }));
+}
+
+// Helper: Rerank memories with LLM
+async function rerankMemories(
+  query: string,
+  candidates: Doc<"memories">[],
+): Promise<Doc<"memories">[]> {
+  if (candidates.length <= 1) return candidates;
+
+  const prompt = `Rerank these memories by relevance to query: "${query}"
+
+Memories:
+${candidates.map((m, i) => `${i}. ${m.content}`).join("\n")}
+
+Return ONLY comma-separated indices in relevance order (most relevant first).
+Example: 3,0,5,1,2
+
+Response:`;
+
+  try {
+    const result = await generateText({
+      model: openrouter("x-ai/grok-4.1-fast"),
+      prompt,
+      temperature: 0,
+    });
+
+    const indices = result.text
+      .trim()
+      .split(",")
+      .map((s) => parseInt(s.trim()))
+      .filter((i) => !isNaN(i) && i >= 0 && i < candidates.length);
+
+    // Fallback to original order if parsing fails
+    if (indices.length === 0) {
+      console.log(
+        "[Rerank] Failed to parse LLM response, using original order",
+      );
+      return candidates;
+    }
+
+    const reranked = indices.map((i) => candidates[i]);
+    console.log(`[Rerank] Reranked ${candidates.length} candidates`);
+    return reranked;
+  } catch (error) {
+    console.error("[Rerank] Failed, using original order:", error);
+    return candidates;
+  }
 }
 
 // Keyword search using search index
@@ -107,7 +162,7 @@ export const vectorSearch = internalAction({
   },
 });
 
-// Hybrid search combining keyword + vector with RRF
+// Hybrid search combining keyword + vector with RRF + reranking
 export const hybridSearch = internalAction({
   args: {
     userId: v.id("users"),
@@ -145,7 +200,41 @@ export const hybridSearch = internalAction({
       // 3. Merge with RRF
       const merged = applyRRF(textResults, vectorResults, 60);
 
-      return merged.slice(0, limit);
+      // 4. Filter by quality (confidence, expiration, superseded)
+      const now = Date.now();
+      const filtered = merged.filter((m: Doc<"memories">) => {
+        // Skip low confidence
+        if (m.metadata?.confidence && m.metadata.confidence < MIN_CONFIDENCE) {
+          return false;
+        }
+
+        // Skip expired
+        if (m.metadata?.expiresAt && m.metadata.expiresAt < now) {
+          console.log(`[Memory] Skipped expired: "${m.content.slice(0, 40)}..."`);
+          return false;
+        }
+
+        // Skip superseded
+        if (m.metadata?.supersededBy) {
+          console.log(`[Memory] Skipped superseded: "${m.content.slice(0, 40)}..."`);
+          return false;
+        }
+
+        return true;
+      });
+
+      console.log(
+        `[Memory] Filtered ${merged.length - filtered.length} memories (confidence/expiration/superseded)`,
+      );
+
+      // 5. Take top 20 candidates for reranking
+      const candidates = filtered.slice(0, 20);
+
+      // 6. Rerank with LLM
+      const reranked = await rerankMemories(args.query, candidates);
+
+      // 7. Return top N after reranking
+      return reranked.slice(0, limit);
     } catch (error) {
       console.error("Hybrid search failed:", error);
       // Fallback to empty results on error

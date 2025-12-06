@@ -13,9 +13,19 @@ const openrouter = createOpenRouter({
 
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
+const MIN_CONFIDENCE = 0.7; // Only save facts with 70%+ confidence
 const MIN_CONTENT_LENGTH = 10;
 const MAX_CONTENT_LENGTH = 500;
 const SIMILARITY_THRESHOLD = 0.85; // Cosine similarity threshold for duplicates
+
+// TTL configuration (in milliseconds)
+const EXPIRATION_MS = {
+  contextual: 7 * 24 * 60 * 60 * 1000, // 7 days
+  preference: null, // Never expires
+  deadline: null, // TODO: parse from fact content
+  temporary: 1 * 24 * 60 * 60 * 1000, // 1 day
+  none: null, // Never expires
+} as const;
 
 const memorySchema = z.object({
   facts: z.array(
@@ -30,6 +40,10 @@ const memorySchema = z.object({
       ]),
       importance: z.number().min(1).max(10), // Required: 1-10 scale
       reasoning: z.string().min(10).max(300), // Required: 1-2 sentences explaining importance
+      confidence: z.number().min(0).max(1), // NEW: 0.0-1.0 confidence score
+      expirationHint: z
+        .enum(["contextual", "preference", "deadline", "temporary", "none"])
+        .optional(), // NEW: TTL hint
     }),
   ),
 });
@@ -179,42 +193,87 @@ Rate each fact honestly:
 
 ⚠️ ONLY return facts with importance >= 7. If nothing meets this bar, return empty array.
 
+CONFIDENCE SCORING (0.0-1.0):
+Rate certainty about this fact:
+- 0.9-1.0: Explicit statement, direct quote ("I am X", "My name is Y")
+- 0.7-0.9: Strong contextual evidence, repeated mentions
+- 0.5-0.7: Weak inference, single mention
+- Below 0.5: Speculation (DO NOT EXTRACT)
+
+Examples:
+- "I am a software engineer" → confidence: 1.0
+- "I prefer TypeScript over JavaScript" → confidence: 0.9
+- "I'm thinking about trying Rust" → confidence: 0.5 (don't extract)
+
+ONLY extract facts with confidence >= 0.7
+
+TEMPORAL CONTEXT (Expiration Hints):
+For time-sensitive facts, suggest expiration:
+- "contextual": Conversation-specific info (expires in 7 days)
+- "preference": User preferences (never expires)
+- "deadline": Time-bound tasks (completion + 7 days)
+- "temporary": One-time context (expires in 1 day)
+- "none": General knowledge (never expires)
+
+Examples:
+- "User is building v1.0" → "deadline"
+- "Deadline: Dec 2024" → "deadline"
+- "User prefers dark mode" → "preference"
+- "User mentioned TypeScript today" → "contextual"
+
 EXISTING MEMORIES (Do NOT duplicate):
 ${existingMemoriesText}
 
 Conversation:
 ${conversationText}
 
-Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (7-10 only) and reasoning (1-2 sentences explaining why this fact matters long-term and how it will be useful in future conversations).`,
+Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (7-10 only), reasoning (1-2 sentences explaining why this fact matters long-term), confidence (0.7-1.0), and expirationHint if applicable.`,
       });
 
       if (result.object.facts.length === 0) {
         return { extracted: 0 };
       }
 
-      // 3. Filter by importance threshold (should already be filtered by LLM, but double-check)
-      const importantFacts = result.object.facts.filter(
-        (f) => f.importance >= IMPORTANCE_THRESHOLD,
+      // 3. Filter by importance and confidence thresholds
+      const qualityFacts = result.object.facts.filter(
+        (f) =>
+          f.importance >= IMPORTANCE_THRESHOLD &&
+          f.confidence >= MIN_CONFIDENCE,
       );
 
-      if (importantFacts.length === 0) {
-        console.log("No facts met importance threshold after LLM extraction");
+      if (qualityFacts.length === 0) {
+        console.log(
+          "No facts met quality thresholds (importance >= 7, confidence >= 0.7)",
+        );
         return { extracted: 0 };
       }
+
+      // Log extracted facts with confidence and reasoning
+      qualityFacts.forEach((fact, idx) => {
+        console.log(
+          `[Extraction ${idx + 1}/${qualityFacts.length}] "${fact.content.slice(0, 40)}..." | Confidence: ${(fact.confidence * 100).toFixed(0)}% | Importance: ${fact.importance} | Reasoning: "${fact.reasoning.slice(0, 40)}..."`,
+        );
+      });
 
       // 4. Generate embeddings (batch)
       const embeddingResult = await embedMany({
         model: openai.embedding("text-embedding-3-small"),
-        values: importantFacts.map((f) => f.content),
+        values: qualityFacts.map((f) => f.content),
       });
 
       // 5. Semantic deduplication check and store unique memories
       let storedCount = 0;
       const extractedAt = Date.now();
 
-      for (let i = 0; i < importantFacts.length; i++) {
-        const fact = importantFacts[i];
+      for (let i = 0; i < qualityFacts.length; i++) {
+        const fact = qualityFacts[i];
         const embedding = embeddingResult.embeddings[i];
+
+        // Calculate expiration timestamp
+        const expiresAt =
+          fact.expirationHint && EXPIRATION_MS[fact.expirationHint]
+            ? extractedAt + EXPIRATION_MS[fact.expirationHint]
+            : undefined;
 
         // Check if duplicate
         const isDuplicate = await isMemoryDuplicate(
@@ -239,6 +298,11 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
             category: fact.category,
             importance: fact.importance,
             reasoning: fact.reasoning,
+            confidence: fact.confidence,
+            verifiedBy: "auto",
+            expiresAt,
+            expirationHint: fact.expirationHint,
+            version: 1,
             extractedAt: extractedAt,
             sourceConversationId: args.conversationId,
           },
@@ -248,7 +312,7 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
       }
 
       console.log(
-        `Extracted ${storedCount} unique memories (${importantFacts.length - storedCount} duplicates filtered)`,
+        `Extracted ${storedCount} unique memories (${qualityFacts.length - storedCount} duplicates filtered)`,
       );
 
       // 6. Update conversation tracking

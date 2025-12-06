@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createGroq } from "@ai-sdk/groq";
+import { getModelConfig } from "./models";
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -33,15 +34,19 @@ const groq = createGroq({
 
 export function getModel(modelId: string, useResponsesAPI = false) {
   const [provider, model] = modelId.split(":");
+  const config = getModelConfig(modelId);
+  const actualModel = config?.actualModelId || model;
 
   switch (provider) {
     case "openai":
       // Use Responses API for reasoning models when requested
-      return useResponsesAPI ? openai.responses(model) : openai(model);
+      return useResponsesAPI
+        ? openai.responses(actualModel)
+        : openai(actualModel);
     case "anthropic":
-      return anthropic(model);
+      return anthropic(actualModel);
     case "google":
-      return google(model);
+      return google(actualModel);
     case "xai":
       return openrouter(`x-ai/${model}`);
     case "perplexity":
@@ -71,9 +76,9 @@ export function getModel(modelId: string, useResponsesAPI = false) {
       };
       return openrouter(openRouterMap[model] || model);
     case "ollama":
-      return ollama(model);
+      return ollama(actualModel);
     case "groq":
-      return groq(model);
+      return groq(actualModel);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

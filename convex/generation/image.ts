@@ -14,7 +14,7 @@ export const generateImage = internalAction({
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
-    const model = args.model || "gemini-3-pro-image-preview";
+    const model = args.model || "gemini-2.0-flash-exp";
 
     try {
       // Build message content with text prompt

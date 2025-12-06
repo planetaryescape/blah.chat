@@ -24,7 +24,6 @@ const EXPIRATION_MS = {
   preference: null, // Never expires
   deadline: null, // TODO: parse from fact content
   temporary: 1 * 24 * 60 * 60 * 1000, // 1 day
-  none: null, // Never expires
 } as const;
 
 const memorySchema = z.object({
@@ -42,7 +41,7 @@ const memorySchema = z.object({
       reasoning: z.string().min(10).max(300), // Required: 1-2 sentences explaining importance
       confidence: z.number().min(0).max(1), // NEW: 0.0-1.0 confidence score
       expirationHint: z
-        .enum(["contextual", "preference", "deadline", "temporary", "none"])
+        .enum(["contextual", "preference", "deadline", "temporary"])
         .optional(), // NEW: TTL hint
     }),
   ),
@@ -270,10 +269,8 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
         const embedding = embeddingResult.embeddings[i];
 
         // Calculate expiration timestamp
-        const expiresAt =
-          fact.expirationHint && EXPIRATION_MS[fact.expirationHint]
-            ? extractedAt + EXPIRATION_MS[fact.expirationHint]
-            : undefined;
+        const expirationMs = fact.expirationHint ? EXPIRATION_MS[fact.expirationHint] : null;
+        const expiresAt = expirationMs ? extractedAt + expirationMs : undefined;
 
         // Check if duplicate
         const isDuplicate = await isMemoryDuplicate(

@@ -3,16 +3,25 @@
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
-import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ShareDialog } from "@/components/chat/ShareDialog";
+import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
+import { Button } from "@/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { getModelConfig } from "@/lib/ai/models";
+import { useConversationContext } from "@/contexts/ConversationContext";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { getModelConfig } from "@/lib/ai/models";
 import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 
 export default function ChatPage({
   params,
@@ -22,6 +31,7 @@ export default function ChatPage({
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
   const router = useRouter();
+  const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
     // @ts-ignore - Convex type inference depth issue with conditional skip
@@ -174,12 +184,86 @@ export default function ChatPage({
   const hasMessages = messages.length > 0;
   const messageCount = conversation?.messageCount || 0;
 
+  // Navigation helpers
+  const { currentIndex, isFirst, isLast } = useMemo(() => {
+    if (!filteredConversations?.length || !conversationId) {
+      return { currentIndex: -1, isFirst: true, isLast: true };
+    }
+
+    const sorted = [...filteredConversations].sort(
+      (a, b) => b._creationTime - a._creationTime,
+    );
+    const idx = sorted.findIndex((c) => c._id === conversationId);
+
+    return {
+      currentIndex: idx,
+      isFirst: idx <= 0,
+      isLast: idx >= sorted.length - 1,
+    };
+  }, [filteredConversations, conversationId]);
+
+  const navigateToPrevious = () => {
+    if (isFirst || !filteredConversations?.length) return;
+
+    const sorted = [...filteredConversations].sort(
+      (a, b) => b._creationTime - a._creationTime,
+    );
+    const prevIdx = Math.max(currentIndex - 1, 0);
+    router.push(`/chat/${sorted[prevIdx]._id}`);
+  };
+
+  const navigateToNext = () => {
+    if (isLast || !filteredConversations?.length) return;
+
+    const sorted = [...filteredConversations].sort(
+      (a, b) => b._creationTime - a._creationTime,
+    );
+    const nextIdx = Math.min(currentIndex + 1, sorted.length - 1);
+    router.push(`/chat/${sorted[nextIdx]._id}`);
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       <header className="flex items-center gap-4 px-4 py-3 border-b shrink-0">
-        <h1 className="text-lg font-semibold truncate flex-1">
-          {conversation.title || "New Chat"}
-        </h1>
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={navigateToPrevious}
+                  disabled={isFirst}
+                  className="h-7 w-7 shrink-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Previous conversation (⌘[)</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <h1 className="text-lg font-semibold truncate">
+            {conversation.title || "New Chat"}
+          </h1>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={navigateToNext}
+                  disabled={isLast}
+                  className="h-7 w-7 shrink-0"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Next conversation (⌘])</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
         <div className="flex items-center gap-2">
           {messageCount >= 3 && (

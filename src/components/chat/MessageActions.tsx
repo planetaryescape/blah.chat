@@ -89,7 +89,7 @@ export function MessageActions({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{copied ? "Copied!" : "Copy message"}</p>
+          <p>{copied ? "Copied!" : "Copy message (C)"}</p>
         </TooltipContent>
       </Tooltip>
 
@@ -128,7 +128,7 @@ export function MessageActions({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Regenerate response</p>
+                <p>Regenerate response (R)</p>
               </TooltipContent>
             </Tooltip>
           )}
@@ -191,7 +191,7 @@ export function MessageActions({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Delete message</p>
+              <p>Delete message (Delete)</p>
             </TooltipContent>
           </Tooltip>
         </>

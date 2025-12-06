@@ -1,3 +1,5 @@
+import type { ReasoningConfig } from "./reasoning/types";
+
 export interface ModelConfig {
   id: string;
   provider:
@@ -26,6 +28,8 @@ export interface ModelConfig {
   )[];
   supportsThinkingEffort?: boolean;
   isLocal?: boolean;
+  actualModelId?: string;
+  reasoning?: ReasoningConfig;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
@@ -124,32 +128,84 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
 
   // Google
-  "google:gemini-3-pro-preview": {
-    id: "google:gemini-3-pro-preview",
+  "google:gemini-2.5-flash": {
+    id: "google:gemini-2.5-flash",
     provider: "google",
-    name: "Gemini 3 Pro",
-    description: "Google's most capable AI model",
+    name: "Gemini 2.5 Flash",
+    description: "Production model with thinking - fast, multimodal, 1M context",
     contextWindow: 1048576,
-    pricing: { input: 0, output: 0 }, // Preview pricing
+    pricing: {
+      input: 0.15,
+      output: 0.60,
+      cached: 0.019,
+      reasoning: 3.50, // Thinking output pricing (6x higher!)
+    },
     capabilities: ["vision", "function-calling", "thinking"],
     supportsThinkingEffort: true,
+    reasoning: {
+      type: "google-thinking-budget",
+      budgetMapping: {
+        low: 4096,
+        medium: 12288,
+        high: 24576,
+      },
+    },
   },
-  "google:gemini-3-deep-think": {
-    id: "google:gemini-3-deep-think",
+  "google:gemini-2.5-pro": {
+    id: "google:gemini-2.5-pro",
     provider: "google",
-    name: "Gemini 3 Deep Think",
-    description: "Specialized for complex problem solving",
-    contextWindow: 2000000,
-    pricing: { input: 5.0, output: 15.0, cached: 1.25 },
+    name: "Gemini 2.5 Pro",
+    description: "Most capable with extended thinking - 2M context, best quality",
+    contextWindow: 2097152,
+    pricing: {
+      input: 1.25,
+      output: 5.00,
+      cached: 0.31,
+    },
     capabilities: ["vision", "function-calling", "thinking"],
+    supportsThinkingEffort: true,
+    reasoning: {
+      type: "google-thinking-budget",
+      budgetMapping: {
+        low: 8192,
+        medium: 16384,
+        high: 24576,
+      },
+    },
   },
-  "google:gemini-3-pro-image-preview": {
-    id: "google:gemini-3-pro-image-preview",
+  "google:gemini-2.0-flash": {
+    id: "google:gemini-2.0-flash",
     provider: "google",
-    name: "Gemini 3 Pro Image",
-    description: "Image generation model",
+    name: "Gemini 2.0 Flash",
+    description: "Stable multimodal - fast, cost-effective, no thinking",
     contextWindow: 1048576,
-    pricing: { input: 0, output: 0 }, // Preview pricing
+    pricing: {
+      input: 0.075,
+      output: 0.30,
+      cached: 0.019,
+    },
+    capabilities: ["vision", "function-calling"],
+  },
+  "google:gemini-2.0-flash-lite": {
+    id: "google:gemini-2.0-flash-lite",
+    provider: "google",
+    name: "Gemini 2.0 Flash Lite",
+    description: "Ultra-cost-optimized - fastest, cheapest, no thinking",
+    contextWindow: 1048576,
+    pricing: {
+      input: 0.0375,
+      output: 0.15,
+      cached: 0.0095,
+    },
+    capabilities: ["vision", "function-calling"],
+  },
+  "google:gemini-2.0-flash-exp": {
+    id: "google:gemini-2.0-flash-exp",
+    provider: "google",
+    name: "Gemini 2.0 Flash (Experimental)",
+    description: "Experimental generation - for image/video/audio",
+    contextWindow: 1048576,
+    pricing: { input: 0, output: 0 },
     capabilities: ["vision"],
   },
 
@@ -409,6 +465,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
 
 // Migration map: old model IDs → new model IDs (vendor prefixes added)
 const MODEL_ID_MIGRATIONS: Record<string, string> = {
+  // Groq migrations
   "groq:llama-guard-4-12b": "groq:meta-llama/llama-guard-4-12b",
   "groq:gpt-oss-120b": "groq:openai/gpt-oss-120b",
   "groq:gpt-oss-20b": "groq:openai/gpt-oss-20b",
@@ -421,6 +478,11 @@ const MODEL_ID_MIGRATIONS: Record<string, string> = {
     "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
   "groq:llama-4-scout-17b-16e-instruct":
     "groq:meta-llama/llama-4-scout-17b-16e-instruct",
+
+  // Google Gemini migrations
+  "google:gemini-3-pro-preview": "google:gemini-2.5-flash",
+  "google:gemini-3-deep-think": "google:gemini-2.5-pro",
+  "google:gemini-3-pro-image-preview": "google:gemini-2.0-flash-exp",
 };
 
 export function getModelConfig(modelId: string): ModelConfig | undefined {

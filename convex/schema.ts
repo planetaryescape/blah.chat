@@ -41,6 +41,14 @@ export default defineSchema({
       ), // default "openai"
       // Comparison settings
       showModelNamesDuringComparison: v.optional(v.boolean()), // default false
+      // Reasoning display settings
+      reasoning: v.optional(
+        v.object({
+          showByDefault: v.optional(v.boolean()), // default true
+          autoExpand: v.optional(v.boolean()), // default false
+          showDuringStreaming: v.optional(v.boolean()), // default true
+        }),
+      ),
     }),
     monthlyBudget: v.optional(v.number()),
     budgetAlertThreshold: v.optional(v.number()),
@@ -148,6 +156,16 @@ export default defineSchema({
         }),
       ),
     ),
+    partialToolCalls: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          arguments: v.string(),
+          timestamp: v.number(),
+        }),
+      ),
+    ),
     // Branching support
     parentMessageId: v.optional(v.id("messages")),
     branchLabel: v.optional(v.string()),
@@ -176,6 +194,43 @@ export default defineSchema({
     // Memory extraction tracking
     memoryExtracted: v.optional(v.boolean()),
     memoryExtractedAt: v.optional(v.number()),
+    // Source citations (Perplexity, web search models)
+    sources: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          url: v.string(),
+          publishedDate: v.optional(v.string()),
+          snippet: v.optional(v.string()),
+        }),
+      ),
+    ),
+    partialSources: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          url: v.string(),
+          publishedDate: v.optional(v.string()),
+          snippet: v.optional(v.string()),
+        }),
+      ),
+    ),
+    sourceMetadata: v.optional(
+      v.array(
+        v.object({
+          sourceId: v.string(),
+          ogTitle: v.optional(v.string()),
+          ogDescription: v.optional(v.string()),
+          ogImage: v.optional(v.string()),
+          favicon: v.optional(v.string()),
+          domain: v.string(),
+          fetchedAt: v.optional(v.number()),
+          error: v.optional(v.string()),
+        }),
+      ),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -200,6 +255,8 @@ export default defineSchema({
     content: v.string(),
     embedding: v.array(v.number()),
     conversationId: v.optional(v.id("conversations")),
+    sourceMessageId: v.optional(v.id("messages")), // Single extraction source
+    sourceMessageIds: v.optional(v.array(v.id("messages"))), // Consolidated sources
     metadata: v.object({
       category: v.string(),
       importance: v.optional(v.number()), // 1-10 scale
@@ -313,6 +370,10 @@ export default defineSchema({
     // Sharing
     shareId: v.optional(v.string()), // unique ID for public share URL
     isPublic: v.optional(v.boolean()),
+    sharePassword: v.optional(v.string()), // SHA-256 hashed password
+    shareExpiresAt: v.optional(v.number()), // expiration timestamp
+    shareCreatedAt: v.optional(v.number()), // when share was created
+    shareViewCount: v.optional(v.number()), // track view analytics
 
     createdAt: v.number(),
     updatedAt: v.number(),

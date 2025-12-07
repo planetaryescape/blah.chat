@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, ChevronDown, Loader2 } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { formatDuration } from "@/lib/utils/formatMetrics";
 
 interface ReasoningBlockProps {
   reasoning?: string;
@@ -22,16 +25,37 @@ export function ReasoningBlock({
   reasoningTokens,
   isThinking = false,
 }: ReasoningBlockProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // @ts-ignore - Convex type instantiation depth issue
+  const user = useQuery(api.users.getCurrentUser);
+
+  // Get user preferences with defaults
+  const reasoningPrefs = user?.preferences?.reasoning ?? {
+    showByDefault: true,
+    autoExpand: false,
+    showDuringStreaming: true,
+  };
+
+  const [isExpanded, setIsExpanded] = useState(reasoningPrefs.autoExpand);
+
+  // Update isExpanded when preferences change
+  useEffect(() => {
+    setIsExpanded(reasoningPrefs.autoExpand);
+  }, [reasoningPrefs.autoExpand]);
 
   const displayReasoning = reasoning || partialReasoning;
   const hasReasoningMetadata = thinkingCompletedAt && thinkingStartedAt;
 
+  // Don't render if user disabled reasoning display
+  if (!reasoningPrefs.showByDefault) return null;
+
+  // Don't show during streaming if user disabled
+  if (isThinking && !reasoningPrefs.showDuringStreaming) return null;
+
   if (!displayReasoning && !hasReasoningMetadata && !isThinking) return null;
 
-  const thinkingDuration =
+  const thinkingDurationMs =
     thinkingCompletedAt && thinkingStartedAt
-      ? ((thinkingCompletedAt - thinkingStartedAt) / 1000).toFixed(1)
+      ? thinkingCompletedAt - thinkingStartedAt
       : null;
 
   return (
@@ -57,7 +81,11 @@ export function ReasoningBlock({
           <>
             <Brain className="w-4 h-4" />
             <span>
-              Thought for {thinkingDuration}s
+              {thinkingDurationMs !== null ? (
+                <>Thought for {formatDuration(thinkingDurationMs)}</>
+              ) : (
+                <>Reasoning</>
+              )}
               {reasoningTokens && ` (${reasoningTokens} tokens)`}
             </span>
           </>

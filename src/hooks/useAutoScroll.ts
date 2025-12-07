@@ -25,6 +25,18 @@ export function useAutoScroll(
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  // Detect prefers-reduced-motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) =>
+      setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
 
   const checkIfAtBottom = useCallback(
     (container: HTMLElement): boolean => {
@@ -42,11 +54,13 @@ export function useAutoScroll(
       if (!container) return false;
 
       isAutoScrolling.current = true;
+      // Respect prefers-reduced-motion
+      const actualBehavior = prefersReducedMotion ? "auto" : behavior;
       const target = container.scrollHeight - container.clientHeight;
-      container.scrollTo({ top: target, behavior });
+      container.scrollTo({ top: target, behavior: actualBehavior });
 
       // Verify after animation completes
-      const verifyTimeout = behavior === "smooth" ? animationDuration : 0;
+      const verifyTimeout = actualBehavior === "smooth" ? animationDuration : 0;
       setTimeout(() => {
         isAutoScrolling.current = false;
         if (!container) return;
@@ -69,7 +83,7 @@ export function useAutoScroll(
 
       return true;
     },
-    [animationDuration, checkIfAtBottom, userScrolledUp],
+    [animationDuration, checkIfAtBottom, userScrolledUp, prefersReducedMotion],
   );
 
   // Handle user scroll events

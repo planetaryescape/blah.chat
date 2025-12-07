@@ -8,7 +8,6 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig: NextConfig = {
   reactCompiler: true,
   serverExternalPackages: ["pino", "pino-pretty"],
-
 };
 
 export default withBundleAnalyzer(nextConfig);

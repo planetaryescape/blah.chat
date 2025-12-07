@@ -23,7 +23,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useMutation } from "convex/react";
-import { Archive, Edit, MoreVertical, Pin, Star, Trash2 } from "lucide-react";
+import { Archive, Edit, GitBranch, MoreVertical, Pin, Star, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
@@ -122,6 +122,31 @@ export function ConversationItem({
                   className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                 />
               </div>
+            )}
+
+            {/* Branch indicator button */}
+            {!isSelectionMode && conversation.parentConversationId && conversation.parentMessageId && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="flex-shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(
+                        `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`
+                      );
+                    }}
+                    aria-label="Go to parent conversation"
+                  >
+                    <GitBranch className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Branched conversation - click to go to source</p>
+                </TooltipContent>
+              </Tooltip>
             )}
 
             <div className="flex-1 truncate">

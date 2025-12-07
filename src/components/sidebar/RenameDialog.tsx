@@ -24,6 +24,7 @@ export function RenameDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [title, setTitle] = useState(conversation.title || "");
+  // @ts-ignore - Convex type instantiation depth issue
   const renameConversation = useMutation(api.conversations.rename);
 
   const handleSave = async () => {

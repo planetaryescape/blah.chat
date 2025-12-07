@@ -1,20 +1,24 @@
 import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
 import { getModel } from "@/lib/ai/registry";
+import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { openai } from "@ai-sdk/openai";
-import {
-  streamText,
-  wrapLanguageModel,
-  extractReasoningMiddleware,
-  type CoreMessage,
-} from "ai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { generateText, streamText, type CoreMessage } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalAction, type ActionCtx } from "./_generated/server";
+import { action, internalAction, type ActionCtx } from "./_generated/server";
 import { buildBasePromptOptions, getBasePrompt } from "./lib/prompts/base";
-import { formatMemoriesByCategory, truncateMemories } from "./lib/prompts/formatting";
+import {
+  formatMemoriesByCategory,
+  truncateMemories,
+} from "./lib/prompts/formatting";
 import { calculateConversationTokensAsync } from "./tokens/counting";
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
 
 export * as image from "./generation/image";
 
@@ -27,15 +31,18 @@ function getMemoryLimit(content: string): number {
   if (content.length > 100) return 10;
 
   // Explicit memory references
-  const memoryKeywords = /\b(remember|recall|you (said|mentioned|told)|we (discussed|talked)|earlier|before|previous|last time|my (preference|project|usual))\b/i;
+  const memoryKeywords =
+    /\b(remember|recall|you (said|mentioned|told)|we (discussed|talked)|earlier|before|previous|last time|my (preference|project|usual))\b/i;
   if (memoryKeywords.test(content)) return 10;
 
   // Context questions
-  const contextQuestions = /\b(what|when|where|why|how) (did|do|does|is|was|were|can|should)\b/i;
+  const contextQuestions =
+    /\b(what|when|where|why|how) (did|do|does|is|was|were|can|should)\b/i;
   if (contextQuestions.test(content)) return 10;
 
   // Continuation words (minimal context)
-  const continuations = /^(yes|no|ok|sure|continue|go on|tell me more|what else|and\?|explain|elaborate)\b/i;
+  const continuations =
+    /^(yes|no|ok|sure|continue|go on|tell me more|what else|and\?|explain|elaborate)\b/i;
   if (continuations.test(content) && content.length > 20) return 3;
 
   // Very short messages (greetings, acknowledgments) - skip
@@ -122,7 +129,7 @@ async function buildSystemPrompts(
     try {
       // Phase 2B: Caching + selective retrieval
       const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-      const memoryLimit = getMemoryLimit(args.userMessage);
+      const memoryLimit = 3; // Always fetch 3 critical memories (tool handles rest)
       let memories: any[] = [];
 
       if (memoryLimit > 0) {
@@ -131,17 +138,23 @@ async function buildSystemPrompts(
         const cacheValid =
           conversation?.cachedMemoryIds &&
           conversation?.lastMemoryFetchAt &&
-          (now - conversation.lastMemoryFetchAt) < CACHE_TTL_MS;
+          now - conversation.lastMemoryFetchAt < CACHE_TTL_MS;
 
         if (cacheValid) {
           // Cache HIT - fetch full docs from IDs
           const cachedIds = conversation!.cachedMemoryIds!;
           // @ts-ignore
-          memories = (await Promise.all(
-            cachedIds.map(id => ctx.runQuery(internal.memories.getMemoryById, { id }))
-          )).filter(m => m !== null);
+          memories = (
+            await Promise.all(
+              cachedIds.map((id: Id<"memories">) =>
+                ctx.runQuery(internal.memories.getMemoryById, { id }),
+              ),
+            )
+          ).filter((m: Doc<"memories"> | null) => m !== null);
 
-          console.log(`[Memory] Cache HIT: ${memories.length} memories, age=${Math.round((now - conversation!.lastMemoryFetchAt!) / 1000)}s`);
+          console.log(
+            `[Memory] Cache HIT: ${memories.length} memories, age=${Math.round((now - conversation!.lastMemoryFetchAt!) / 1000)}s`,
+          );
         } else {
           // Cache MISS - fetch fresh + update cache
           // @ts-ignore
@@ -155,7 +168,7 @@ async function buildSystemPrompts(
           );
 
           // Store IDs in cache
-          const memoryIds = memories.map(m => m._id);
+          const memoryIds = memories.map((m) => m._id);
           // @ts-ignore
           await ctx.runMutation(internal.conversations.updateMemoryCache, {
             id: args.conversationId,
@@ -163,25 +176,38 @@ async function buildSystemPrompts(
             lastMemoryFetchAt: now,
           });
 
-          console.log(`[Memory] Cache MISS: fetched ${memories.length} memories, limit=${memoryLimit}`);
+          console.log(
+            `[Memory] Cache MISS: fetched ${memories.length} memories, limit=${memoryLimit}`,
+          );
         }
       } else {
-        console.log(`[Memory] Skipped retrieval: "${args.userMessage.slice(0, 50)}..."`);
+        console.log(
+          `[Memory] Skipped retrieval: "${args.userMessage.slice(0, 50)}..."`,
+        );
       }
 
       console.log(`[Memory] Found ${memories.length} memories`);
 
       if (memories.length > 0) {
         // Calculate 15% budget
-        const maxMemoryTokens = Math.floor(args.modelConfig.contextWindow * 0.15);
-        console.log(`[Memory] Budget: ${maxMemoryTokens} tokens (15% of ${args.modelConfig.contextWindow})`);
+        const maxMemoryTokens = Math.floor(
+          args.modelConfig.contextWindow * 0.15,
+        );
+        console.log(
+          `[Memory] Budget: ${maxMemoryTokens} tokens (15% of ${args.modelConfig.contextWindow})`,
+        );
 
         // Truncate by priority
         const truncated = truncateMemories(memories, maxMemoryTokens);
-        console.log(`[Memory] Truncated ${memories.length} → ${truncated.length} memories`);
+        console.log(
+          `[Memory] Truncated ${memories.length} → ${truncated.length} memories`,
+        );
 
         memoryContentForTracking = formatMemoriesByCategory(truncated);
-        console.log("[Memory] Formatted content length:", memoryContentForTracking.length);
+        console.log(
+          "[Memory] Formatted content length:",
+          memoryContentForTracking.length,
+        );
         console.log("[Memory] Formatted content:", memoryContentForTracking);
 
         if (memoryContentForTracking) {
@@ -262,7 +288,12 @@ export const generateResponse = internalAction({
 
       // 5. Build system prompts (or use override for consolidation)
       const systemPromptsResult = args.systemPromptOverride
-        ? { messages: [{ role: "system" as const, content: args.systemPromptOverride }], memoryContent: null }
+        ? {
+            messages: [
+              { role: "system" as const, content: args.systemPromptOverride },
+            ],
+            memoryContent: null,
+          }
         : await buildSystemPrompts(ctx, {
             userId: args.userId,
             conversationId: args.conversationId,
@@ -339,96 +370,46 @@ export const generateResponse = internalAction({
       // 7. Combine: system prompts FIRST, then history
       const allMessages = [...systemPrompts, ...history];
 
-      // 8. Detect reasoning capability
-      const isReasoningModel =
-        modelConfig?.supportsThinkingEffort ||
-        modelConfig?.capabilities?.includes("thinking") ||
-        modelConfig?.capabilities?.includes("extended-thinking");
+      // 8. Build reasoning options (unified for all providers)
+      const reasoningResult =
+        args.thinkingEffort && modelConfig?.reasoning
+          ? buildReasoningOptions(modelConfig, args.thinkingEffort)
+          : null;
 
-      // Use Responses API for OpenAI reasoning models to get summaries
-      const useResponsesAPI =
-        args.thinkingEffort &&
-        modelConfig?.provider === "openai" &&
-        modelConfig?.supportsThinkingEffort;
+      // 9. Get model (with Responses API if needed for OpenAI)
+      const model = getModel(args.modelId, reasoningResult?.useResponsesAPI);
 
-      // Get model from registry (with Responses API for OpenAI reasoning)
-      const model = getModel(args.modelId, useResponsesAPI);
+      // 10. Apply middleware (e.g., DeepSeek tag extraction)
+      const finalModel = reasoningResult?.applyMiddleware
+        ? reasoningResult.applyMiddleware(model)
+        : model;
 
-      const needsTagExtraction = args.modelId.includes("deepseek");
-
-      // Wrap DeepSeek models with middleware to extract <think> tags
-      let finalModel = model;
-      if (needsTagExtraction) {
-        finalModel = wrapLanguageModel({
-          model,
-          middleware: extractReasoningMiddleware({ tagName: "think" }),
-        });
-      }
-
-      // 9. Build streamText options
+      // 11. Build streamText options
       const options: any = {
-        model: finalModel, // Use wrapped model for DeepSeek
+        model: finalModel,
         messages: allMessages,
+        maxSteps: 5,
+        onStepFinish: async (step) => {
+          // No-op: tools disabled, keeping callback for future use
+        },
       };
 
-      // OpenAI reasoning effort (GPT-5, o1, o3)
-      if (
-        args.thinkingEffort &&
-        modelConfig?.supportsThinkingEffort &&
-        modelConfig.provider === "openai"
-      ) {
+      // 13. Apply provider options (single source!)
+      if (reasoningResult?.providerOptions) {
+        options.providerOptions = reasoningResult.providerOptions;
         console.log(
-          `[OpenAI] Enabling reasoning effort: ${args.thinkingEffort} for model: ${args.modelId}`,
-        );
-        options.providerOptions = {
-          openai: {
-            reasoningEffort: args.thinkingEffort,
-            reasoningSummary: "detailed",
-          },
-        };
-      }
-
-      // Anthropic extended thinking budget
-      if (
-        args.thinkingEffort &&
-        modelConfig?.capabilities.includes("extended-thinking")
-      ) {
-        const budgets = { low: 5000, medium: 15000, high: 30000 };
-        options.providerOptions = {
-          anthropic: {
-            thinking: {
-              type: "enabled",
-              budgetTokens: budgets[args.thinkingEffort],
-            },
-          },
-        };
-        options.headers = {
-          "anthropic-beta": "interleaved-thinking-2025-05-14",
-        };
-      }
-
-      // Google Gemini thinking models (experimental - may need API verification)
-      if (
-        args.thinkingEffort &&
-        modelConfig?.capabilities?.includes("thinking") &&
-        modelConfig.provider === "google"
-      ) {
-        // Note: Gemini thinking support may require different API parameters
-        console.log(
-          `[Gemini] Thinking effort requested but implementation needs verification`,
+          `[Reasoning] Applied provider options for ${args.modelId}:`,
+          reasoningResult.providerOptions,
         );
       }
 
-      // Generic thinking models (xAI, Perplexity, Groq, etc.)
-      if (
-        args.thinkingEffort &&
-        modelConfig?.capabilities?.includes("thinking") &&
-        !["openai", "anthropic", "google"].includes(modelConfig.provider)
-      ) {
-        console.warn(
-          `[${modelConfig.provider}] Thinking effort requested but no specific implementation exists. Model may not produce reasoning output.`,
-        );
+      // 14. Apply headers (e.g., Anthropic beta)
+      if (reasoningResult?.headers) {
+        options.headers = reasoningResult.headers;
       }
+
+      // 14. Detect if reasoning model (check config, not flags)
+      const isReasoningModel = !!modelConfig?.reasoning;
 
       // Mark thinking phase started for reasoning models
       if (isReasoningModel && args.thinkingEffort) {
@@ -601,6 +582,54 @@ export const generateResponse = internalAction({
         messageId: args.assistantMessageId,
         error: error instanceof Error ? error.message : "Unknown error",
       });
+      throw error;
+    }
+  },
+});
+
+/**
+ * Summarize selected text using AI
+ */
+export const summarizeSelection = action({
+  args: {
+    text: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Create abort controller with 30s timeout
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 30000);
+
+    try {
+      // Generate summary using Grok 4.1 Fast
+      const result = await generateText({
+        model: openrouter("x-ai/grok-4.1-fast"),
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a helpful assistant that provides concise summaries. Summarize the following text in 1-2 sentences, focusing on the key points.",
+          },
+          {
+            role: "user",
+            content: `Summarize this text:\n\n${args.text}`,
+          },
+        ],
+        abortSignal: abortController.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return { summary: result.text };
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Handle timeout specifically
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          "Summary generation timed out. Please try again with a shorter selection.",
+        );
+      }
+
+      // Re-throw other errors
       throw error;
     }
   },

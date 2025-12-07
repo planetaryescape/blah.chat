@@ -31,6 +31,34 @@ export const create = mutation({
       updatedAt: Date.now(),
     });
 
+    // Update user stats for progressive hints
+    const stats = await ctx.db
+      .query("userStats")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+
+    if (stats) {
+      await ctx.db.patch(stats._id, {
+        totalConversations: stats.totalConversations + 1,
+        messagesInCurrentConvo: 0, // Reset for new conversation
+        lastUpdated: Date.now(),
+      });
+    } else {
+      // Auto-create stats if missing
+      await ctx.db.insert("userStats", {
+        userId: user._id,
+        totalMessages: 0,
+        totalConversations: 1,
+        totalSearches: 0,
+        totalBookmarks: 0,
+        longMessageCount: 0,
+        messagesInCurrentConvo: 0,
+        consecutiveSearches: 0,
+        promptPatternCount: {},
+        lastUpdated: Date.now(),
+      });
+    }
+
     return conversationId;
   },
 });
@@ -351,6 +379,20 @@ export const clearMemoryCache = internalMutation({
   },
 });
 
+export const updateExtractionCursor = internalMutation({
+  args: {
+    id: v.id("conversations"),
+    lastExtractedMessageId: v.id("messages"),
+    lastMemoryExtractionAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      lastExtractedMessageId: args.lastExtractedMessageId,
+      lastMemoryExtractionAt: args.lastMemoryExtractionAt,
+    });
+  },
+});
+
 export const cleanupEmptyConversations = mutation({
   args: {
     keepOne: v.optional(v.boolean()),
@@ -371,10 +413,31 @@ export const cleanupEmptyConversations = mutation({
       (a, b) => b.lastMessageAt - a.lastMessageAt,
     );
 
-    // Find empty conversations
-    const emptyConversations = sorted.filter(
-      (c) => (c.messageCount || 0) === 0,
-    );
+    // Find empty conversations by counting actual messages
+    // (Don't trust cached messageCount - may be out of sync)
+    const emptyConversations = [];
+    for (const conv of sorted) {
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
+        .collect();
+
+      const actualMessageCount = messages.length;
+
+      // Log warning if messageCount is out of sync
+      if (conv.messageCount !== actualMessageCount) {
+        console.warn(
+          `messageCount mismatch for conversation ${conv._id}: ` +
+            `cached=${conv.messageCount}, actual=${actualMessageCount}`,
+        );
+        // Sync messageCount to actual value
+        await ctx.db.patch(conv._id, { messageCount: actualMessageCount });
+      }
+
+      if (actualMessageCount === 0) {
+        emptyConversations.push(conv);
+      }
+    }
 
     // Determine which conversations to delete
     const toDelete = keepOne

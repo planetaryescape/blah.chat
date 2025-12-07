@@ -1,7 +1,9 @@
 import { Link } from "@tiptap/extension-link";
+import { Mathematics } from "@tiptap/extension-mathematics";
 import { Markdown } from "@tiptap/markdown";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { StarterKit } from "@tiptap/starter-kit";
+import "katex/dist/katex.min.css";
 
 export const createExtensions = (placeholder?: string) => [
   StarterKit.configure({
@@ -13,16 +15,7 @@ export const createExtensions = (placeholder?: string) => [
         class: "rounded-lg bg-muted p-4 font-mono text-sm",
       },
     },
-    bulletList: {
-      HTMLAttributes: {
-        class: "list-disc list-inside space-y-1",
-      },
-    },
-    orderedList: {
-      HTMLAttributes: {
-        class: "list-decimal list-inside space-y-1",
-      },
-    },
+    // Lists: rely on prose defaults, no custom classes needed
   }),
   Markdown.configure({
     markedOptions: {
@@ -34,6 +27,14 @@ export const createExtensions = (placeholder?: string) => [
     openOnClick: false,
     HTMLAttributes: {
       class: "text-blue-500 underline hover:text-blue-600",
+    },
+  }),
+  Mathematics.configure({
+    katexOptions: {
+      throwOnError: false,
+      errorColor: "hsl(var(--destructive))",
+      output: "mathml",
+      strict: "warn",
     },
   }),
   Placeholder.configure({

@@ -134,17 +134,20 @@ export const vectorSearch = internalAction({
         filter: (q) => q.eq("userId", args.userId),
       });
 
-      console.log(`[VectorSearch] Found ${results.length} results, top score: ${results[0]?._score}`);
+      console.log(
+        `[VectorSearch] Found ${results.length} results, top score: ${results[0]?._score}`,
+      );
 
       // Fetch full documents
       const memories: Doc<"memories">[] = await Promise.all(
         results.map(async (result) => {
+          // @ts-ignore - Convex type instantiation depth issue
           const memory = await ctx.runQuery(internal.memories.getMemoryById, {
             id: result._id,
           });
           return memory;
-        })
-      ).then(mems => mems.filter((m): m is Doc<"memories"> => m !== null));
+        }),
+      ).then((mems) => mems.filter((m: Doc<"memories"> | null): m is Doc<"memories"> => m !== null));
 
       // Client-side category filter if needed
       if (args.category) {
@@ -210,13 +213,17 @@ export const hybridSearch = internalAction({
 
         // Skip expired
         if (m.metadata?.expiresAt && m.metadata.expiresAt < now) {
-          console.log(`[Memory] Skipped expired: "${m.content.slice(0, 40)}..."`);
+          console.log(
+            `[Memory] Skipped expired: "${m.content.slice(0, 40)}..."`,
+          );
           return false;
         }
 
         // Skip superseded
         if (m.metadata?.supersededBy) {
-          console.log(`[Memory] Skipped superseded: "${m.content.slice(0, 40)}..."`);
+          console.log(
+            `[Memory] Skipped superseded: "${m.content.slice(0, 40)}..."`,
+          );
           return false;
         }
 

@@ -323,7 +323,10 @@ export default function MemoriesPage() {
                                     {memory.metadata?.confidence &&
                                       memory.metadata.confidence < 0.8 && (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20">
-                                          {Math.round(memory.metadata.confidence * 100)}% confidence
+                                          {Math.round(
+                                            memory.metadata.confidence * 100,
+                                          )}
+                                          % confidence
                                         </span>
                                       )}
 
@@ -331,7 +334,9 @@ export default function MemoriesPage() {
                                     {memory.metadata?.expiresAt && (
                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-500/20">
                                         Expires:{" "}
-                                        {new Date(memory.metadata.expiresAt).toLocaleDateString()}
+                                        {new Date(
+                                          memory.metadata.expiresAt,
+                                        ).toLocaleDateString()}
                                       </span>
                                     )}
 

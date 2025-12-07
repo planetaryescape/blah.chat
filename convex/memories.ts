@@ -56,7 +56,11 @@ export const create = internalMutation({
       // Phase 3: Confidence scoring
       confidence: v.optional(v.number()),
       verifiedBy: v.optional(
-        v.union(v.literal("auto"), v.literal("manual"), v.literal("consolidated"))
+        v.union(
+          v.literal("auto"),
+          v.literal("manual"),
+          v.literal("consolidated"),
+        ),
       ),
       // Phase 3: TTL & versioning
       expiresAt: v.optional(v.number()),
@@ -66,8 +70,8 @@ export const create = internalMutation({
           v.literal("contextual"),
           v.literal("preference"),
           v.literal("deadline"),
-          v.literal("temporary")
-        )
+          v.literal("temporary"),
+        ),
       ),
     }),
   },
@@ -609,9 +613,10 @@ Resolve pronouns intelligently:
 - "My colleague John" → "User's colleague John"
 - If ambiguous, preserve user's phrasing in quotes
 
-${cluster[0].metadata?.reasoning
-  ? `Original reasoning (preserve exactly): "${cluster[0].metadata.reasoning}"`
-  : `This memory has no existing reasoning. Generate a clear, specific 1-2 sentence explanation of why this fact matters for future interactions with the user. Focus on practical value - how will knowing this help you assist the user better?`
+${
+  cluster[0].metadata?.reasoning
+    ? `Original reasoning (preserve exactly): "${cluster[0].metadata.reasoning}"`
+    : `This memory has no existing reasoning. Generate a clear, specific 1-2 sentence explanation of why this fact matters for future interactions with the user. Focus on practical value - how will knowing this help you assist the user better?`
 }
 
 Return ONE memory with:
@@ -620,7 +625,7 @@ Return ONE memory with:
 - importance: ${cluster[0].metadata?.importance || 7}
 - sourceIds: ["${cluster[0]._id}"]
 - operation: "keep"
-- reasoning: ${cluster[0].metadata?.reasoning ? 'the preserved original reasoning from above' : 'your newly generated reasoning explaining why this fact is valuable'}`
+- reasoning: ${cluster[0].metadata?.reasoning ? "the preserved original reasoning from above" : "your newly generated reasoning explaining why this fact is valuable"}`
             : `Consolidate these related memories into atomic, self-contained units.
 
 Memories:
@@ -645,13 +650,15 @@ Return array of atomic memories with:
 IMPORTANT: sourceIds must contain the actual memory IDs shown above.
 
 Source memories with reasoning status:
-${cluster.map((m) => {
-  if (m.metadata?.reasoning) {
-    return `- [${m._id}]: HAS reasoning: "${m.metadata.reasoning}"`;
-  } else {
-    return `- [${m._id}]: NO reasoning - Content: "${m.content}" (generate reasoning explaining why this matters)`;
-  }
-}).join("\n")}`,
+${cluster
+  .map((m) => {
+    if (m.metadata?.reasoning) {
+      return `- [${m._id}]: HAS reasoning: "${m.metadata.reasoning}"`;
+    } else {
+      return `- [${m._id}]: NO reasoning - Content: "${m.content}" (generate reasoning explaining why this matters)`;
+    }
+  })
+  .join("\n")}`,
         });
 
         // 4. Delete original memories in cluster
@@ -671,11 +678,14 @@ ${cluster.map((m) => {
           });
 
           // Calculate expiration: inherit longest expiration (or none if any is permanent)
-          const expiresAt = cluster.reduce((longest: number | undefined, m) => {
-            if (!m.metadata?.expiresAt) return undefined; // Any permanent memory makes the consolidated one permanent
-            if (!longest) return m.metadata.expiresAt;
-            return Math.max(longest, m.metadata.expiresAt);
-          }, undefined as number | undefined);
+          const expiresAt = cluster.reduce(
+            (longest: number | undefined, m) => {
+              if (!m.metadata?.expiresAt) return undefined; // Any permanent memory makes the consolidated one permanent
+              if (!longest) return m.metadata.expiresAt;
+              return Math.max(longest, m.metadata.expiresAt);
+            },
+            undefined as number | undefined,
+          );
 
           // Insert new atomic memory
           await ctx.runMutation(internal.memories.create, {
@@ -736,5 +746,44 @@ export const deleteInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
+  },
+});
+
+/**
+ * Create memory from selected text (text selection context menu)
+ */
+export const createMemoryFromSelection = action({
+  args: {
+    content: v.string(),
+    sourceMessageId: v.optional(v.id("messages")),
+    sourceConversationId: v.optional(v.id("conversations")),
+  },
+  handler: async (ctx, args) => {
+    // Get current user via query
+    const user = await ctx.runQuery(api.users.getCurrentUser, {});
+    if (!user) throw new Error("User not found");
+
+    // Generate embedding using Vercel AI SDK
+    const { embedding } = await embed({
+      model: openai.embedding("text-embedding-3-small"),
+      value: args.content,
+    });
+
+    // Store memory with proper metadata
+    await ctx.runMutation(internal.memories.create, {
+      userId: user._id,
+      content: args.content,
+      embedding: embedding,
+      conversationId: args.sourceConversationId,
+      metadata: {
+        category: "user_profile", // Default, could make user-selectable
+        importance: 8,
+        confidence: 1.0,
+        verifiedBy: "manual",
+        version: 1,
+        extractedAt: Date.now(),
+        sourceConversationId: args.sourceConversationId,
+      },
+    });
   },
 });

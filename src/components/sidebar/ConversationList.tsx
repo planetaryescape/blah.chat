@@ -19,7 +19,16 @@ export function ConversationList({
   }
 
   return (
-    <div className="py-2" role="listbox" aria-label="Conversations">
+    <div
+      className="py-2"
+      role="listbox"
+      aria-label="Conversations"
+      aria-activedescendant={
+        selectedIndex >= 0
+          ? `conv-${conversations[selectedIndex]?._id}`
+          : undefined
+      }
+    >
       {conversations.map((conversation: any, index: number) => (
         <ConversationItem
           key={conversation._id}

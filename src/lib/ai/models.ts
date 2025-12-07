@@ -25,8 +25,8 @@ export interface ModelConfig {
     | "function-calling"
     | "thinking"
     | "extended-thinking"
+    | "image-generation"
   )[];
-  supportsThinkingEffort?: boolean;
   isLocal?: boolean;
   actualModelId?: string;
   reasoning?: ReasoningConfig;
@@ -43,7 +43,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 200000,
     pricing: { input: 5.0, output: 20.0, reasoning: 5.0 }, // Estimated based on flagship pricing
     capabilities: ["thinking", "vision", "function-calling"],
-    supportsThinkingEffort: true,
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
   },
   "openai:gpt-5-pro": {
     id: "openai:gpt-5-pro",
@@ -54,7 +59,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 200000,
     pricing: { input: 10.0, output: 40.0, reasoning: 10.0 }, // Estimated higher tier
     capabilities: ["thinking", "vision", "function-calling"],
-    supportsThinkingEffort: true,
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
   },
   "openai:gpt-5": {
     id: "openai:gpt-5",
@@ -65,7 +75,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 2.5, output: 10.0, reasoning: 2.5 },
     capabilities: ["thinking", "vision", "function-calling"],
-    supportsThinkingEffort: true,
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
   },
   "openai:gpt-5-mini": {
     id: "openai:gpt-5-mini",
@@ -105,7 +120,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 200000,
     pricing: { input: 15.0, output: 75.0, cached: 1.5 },
     capabilities: ["vision", "thinking", "extended-thinking"],
-    supportsThinkingEffort: true,
+    reasoning: {
+      type: "anthropic-extended-thinking",
+      budgetMapping: { low: 5000, medium: 15000, high: 30000 },
+      betaHeader: "interleaved-thinking-2025-05-14",
+    },
   },
   "anthropic:claude-sonnet-4-5-20250929": {
     id: "anthropic:claude-sonnet-4-5-20250929",
@@ -115,7 +134,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 200000,
     pricing: { input: 3.0, output: 15.0, cached: 0.3 },
     capabilities: ["vision", "thinking", "extended-thinking"],
-    supportsThinkingEffort: true,
+    reasoning: {
+      type: "anthropic-extended-thinking",
+      budgetMapping: { low: 5000, medium: 15000, high: 30000 },
+      betaHeader: "interleaved-thinking-2025-05-14",
+    },
   },
   "anthropic:claude-haiku-4-5-20251001": {
     id: "anthropic:claude-haiku-4-5-20251001",
@@ -132,16 +155,16 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "google:gemini-2.5-flash",
     provider: "google",
     name: "Gemini 2.5 Flash",
-    description: "Production model with thinking - fast, multimodal, 1M context",
+    description:
+      "Production model with thinking - fast, multimodal, 1M context",
     contextWindow: 1048576,
     pricing: {
       input: 0.15,
-      output: 0.60,
+      output: 0.6,
       cached: 0.019,
-      reasoning: 3.50, // Thinking output pricing (6x higher!)
+      reasoning: 3.5, // Thinking output pricing (6x higher!)
     },
     capabilities: ["vision", "function-calling", "thinking"],
-    supportsThinkingEffort: true,
     reasoning: {
       type: "google-thinking-budget",
       budgetMapping: {
@@ -155,15 +178,15 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "google:gemini-2.5-pro",
     provider: "google",
     name: "Gemini 2.5 Pro",
-    description: "Most capable with extended thinking - 2M context, best quality",
+    description:
+      "Most capable with extended thinking - 2M context, best quality",
     contextWindow: 2097152,
     pricing: {
       input: 1.25,
-      output: 5.00,
+      output: 5.0,
       cached: 0.31,
     },
     capabilities: ["vision", "function-calling", "thinking"],
-    supportsThinkingEffort: true,
     reasoning: {
       type: "google-thinking-budget",
       budgetMapping: {
@@ -181,7 +204,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 1048576,
     pricing: {
       input: 0.075,
-      output: 0.30,
+      output: 0.3,
       cached: 0.019,
     },
     capabilities: ["vision", "function-calling"],
@@ -207,6 +230,52 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 1048576,
     pricing: { input: 0, output: 0 },
     capabilities: ["vision"],
+  },
+
+  "google:gemini-3-pro": {
+    id: "google:gemini-3-pro",
+    name: "Gemini 3 Pro",
+    provider: "google",
+    contextWindow: 1048576, // 1M tokens
+    pricing: {
+      input: 2.0, // $2/MTok (≤200K context)
+      output: 12.0, // $12/MTok (≤200K context)
+      // Note: >200K is $4/$24 but flat pricing doesn't support tiering
+    },
+    capabilities: ["function-calling", "thinking"],
+    description: "Third-generation flagship model with advanced reasoning",
+    reasoning: {
+      type: "google-thinking-level",
+      levelMapping: {
+        low: "low",
+        medium: "medium",
+        high: "high",
+      },
+      includeThoughts: true,
+    },
+  },
+
+  "google:gemini-3-pro-image-preview": {
+    id: "google:gemini-3-pro-image-preview",
+    name: "Gemini 3 Pro Image (Nano Banana Pro)",
+    provider: "google",
+    contextWindow: 65536, // 65K tokens
+    pricing: {
+      input: 0.0, // Preview pricing - TBD
+      output: 0.0,
+    },
+    capabilities: ["image-generation", "vision", "thinking"],
+    description:
+      "Image generation model with advanced visual understanding and reasoning (marketing name: Nano Banana Pro)",
+    reasoning: {
+      type: "google-thinking-level",
+      levelMapping: {
+        low: "low",
+        medium: "medium",
+        high: "high",
+      },
+      includeThoughts: true,
+    },
   },
 
   // xAI
@@ -245,6 +314,19 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 256000,
     pricing: { input: 5.0, output: 15.0 },
     capabilities: ["thinking", "vision"],
+  },
+  "xai:grok-3-mini": {
+    id: "xai:grok-3-mini",
+    provider: "xai",
+    name: "Grok 3 Mini",
+    description: "Fast reasoning model with effort control",
+    contextWindow: 128000,
+    pricing: { input: 0.5, output: 1.5 },
+    capabilities: ["thinking"],
+    reasoning: {
+      type: "generic-reasoning-effort",
+      parameterName: "reasoning_effort",
+    },
   },
 
   // Perplexity
@@ -330,6 +412,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.5, output: 1.5 },
     capabilities: ["thinking"],
+    reasoning: {
+      type: "deepseek-tag-extraction",
+      tagName: "think",
+      applyMiddleware: true,
+    },
   },
   "openrouter:mistral-devstral": {
     id: "openrouter:mistral-devstral",
@@ -442,6 +529,36 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 131000,
     pricing: { input: 0.29, output: 0.59 },
     capabilities: ["function-calling", "thinking"],
+    reasoning: {
+      type: "generic-reasoning-effort",
+      parameterName: "reasoning_effort",
+    },
+  },
+  "groq:openai/gpt-4o-2024-11-20-reasoning": {
+    id: "groq:openai/gpt-4o-2024-11-20-reasoning",
+    provider: "groq",
+    name: "GPT-4o (Reasoning)",
+    description: "OpenAI GPT-4o with extended reasoning on Groq",
+    contextWindow: 128000,
+    pricing: { input: 5.0, output: 15.0 },
+    capabilities: ["thinking", "function-calling"],
+    reasoning: {
+      type: "generic-reasoning-effort",
+      parameterName: "reasoning_effort",
+    },
+  },
+  "groq:openai/gpt-4o-mini-2024-07-18-reasoning": {
+    id: "groq:openai/gpt-4o-mini-2024-07-18-reasoning",
+    provider: "groq",
+    name: "GPT-4o Mini (Reasoning)",
+    description: "OpenAI GPT-4o Mini with reasoning on Groq",
+    contextWindow: 128000,
+    pricing: { input: 0.15, output: 0.6 },
+    capabilities: ["thinking", "function-calling"],
+    reasoning: {
+      type: "generic-reasoning-effort",
+      parameterName: "reasoning_effort",
+    },
   },
   "groq:meta-llama/llama-4-maverick-17b-128e-instruct": {
     id: "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -478,11 +595,6 @@ const MODEL_ID_MIGRATIONS: Record<string, string> = {
     "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
   "groq:llama-4-scout-17b-16e-instruct":
     "groq:meta-llama/llama-4-scout-17b-16e-instruct",
-
-  // Google Gemini migrations
-  "google:gemini-3-pro-preview": "google:gemini-2.5-flash",
-  "google:gemini-3-deep-think": "google:gemini-2.5-pro",
-  "google:gemini-3-pro-image-preview": "google:gemini-2.0-flash-exp",
 };
 
 export function getModelConfig(modelId: string): ModelConfig | undefined {

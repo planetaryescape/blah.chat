@@ -7,116 +7,214 @@ import { analytics } from "@/lib/analytics";
  * Enhances KaTeX-rendered math elements with copy-to-clipboard buttons
  * Works with Streamdown's built-in math rendering (rehype-katex)
  *
- * Adds interactive copy buttons to display math equations
- * Extracts LaTeX source from MathML annotations
+ * Phase 4D enhancements:
+ * - Keyboard shortcuts (Cmd/Ctrl+C on focused equation)
+ * - Inline math support (not just display)
+ * - Multi-format clipboard (LaTeX + clean HTML + MathML)
  */
 export function useMathCopyButtons<T extends HTMLElement = HTMLElement>(
   containerRef: React.RefObject<T | null>,
 ) {
   const addedButtonsRef = useRef<Set<Element>>(new Set());
 
+  // Keyboard shortcut handler
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl+C on focused math element
+      if ((e.metaKey || e.ctrlKey) && e.key === "c") {
+        const target = e.target as HTMLElement;
+        if (
+          target.classList.contains("katex") ||
+          target.classList.contains("katex-display")
+        ) {
+          const annotation = target.querySelector(
+            'annotation[encoding="application/x-tex"]',
+          );
+          const latex = annotation?.textContent;
+          if (latex) {
+            e.preventDefault();
+            copyToClipboard(latex, target);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeydown);
+    return () => document.removeEventListener("keydown", handleKeydown);
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Find all display math blocks (skip inline)
-    const mathElements =
+    // Find all math elements (display + inline)
+    const displayMath =
       containerRef.current.querySelectorAll(".katex-display");
+    const inlineMath = containerRef.current.querySelectorAll(
+      ".katex:not(.katex-display)",
+    );
 
-    mathElements.forEach((mathElement) => {
-      // Skip if already enhanced
+    // Process display math with visible buttons
+    displayMath.forEach((mathElement) => {
       if (addedButtonsRef.current.has(mathElement)) return;
 
-      // Extract LaTeX source from MathML annotation
       const annotation = mathElement.querySelector(
         'annotation[encoding="application/x-tex"]',
       );
       const latexSource = annotation?.textContent || "";
-
       if (!latexSource) return;
 
       // Wrap in interactive container
       const wrapper = document.createElement("div");
       wrapper.className = "group relative";
 
-      // Move math element into wrapper
       mathElement.parentNode?.insertBefore(wrapper, mathElement);
       wrapper.appendChild(mathElement);
 
-      // Create copy button with safe DOM methods
+      // Create copy button
       const button = document.createElement("button");
       button.className =
         "absolute right-2 top-2 h-8 w-8 flex items-center justify-center rounded-md border border-border bg-background opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-accent hover:text-accent-foreground";
       button.setAttribute("aria-label", "Copy LaTeX source");
       button.setAttribute("type", "button");
 
-      // Create SVG icons using safe DOM methods
       const copyIcon = createCopyIcon();
       const checkIcon = createCheckIcon();
-
       button.appendChild(copyIcon);
       button.appendChild(checkIcon);
 
-      // Copy handler
       button.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        try {
-          const wrappedSource = `$$${latexSource}$$`;
-
-          // Try dual clipboard (plain + HTML)
-          if (navigator.clipboard && ClipboardItem) {
-            const katexHtml =
-              mathElement.querySelector(".katex-html")?.innerHTML;
-
-            if (katexHtml) {
-              const htmlBlob = new Blob([katexHtml], { type: "text/html" });
-              const textBlob = new Blob([wrappedSource], {
-                type: "text/plain",
-              });
-
-              await navigator.clipboard.write([
-                new ClipboardItem({
-                  "text/plain": textBlob,
-                  "text/html": htmlBlob,
-                }),
-              ]);
-            } else {
-              await navigator.clipboard.writeText(wrappedSource);
-            }
-          } else {
-            await navigator.clipboard.writeText(wrappedSource);
-          }
-
-          // Visual feedback
-          copyIcon.classList.add("hidden");
-          checkIcon.classList.remove("hidden");
-
-          setTimeout(() => {
-            copyIcon.classList.remove("hidden");
-            checkIcon.classList.add("hidden");
-          }, 2000);
-
-          // Track analytics
-          analytics.track("math_copied", {
-            format: "both",
-            equationLength: latexSource.length,
-          });
-        } catch (error) {
-          console.error("Failed to copy math:", error);
-          // Fallback
-          try {
-            await navigator.clipboard.writeText(`$$${latexSource}$$`);
-          } catch (fallbackError) {
-            console.error("Fallback copy also failed:", fallbackError);
-          }
-        }
+        await handleCopy(latexSource, mathElement, copyIcon, checkIcon, true);
       });
 
       wrapper.appendChild(button);
       addedButtonsRef.current.add(mathElement);
     });
+
+    // Process inline math with focus support
+    inlineMath.forEach((mathElement) => {
+      if (addedButtonsRef.current.has(mathElement)) return;
+
+      const annotation = mathElement.querySelector(
+        'annotation[encoding="application/x-tex"]',
+      );
+      const latexSource = annotation?.textContent || "";
+      if (!latexSource) return;
+
+      // Make inline math focusable for keyboard copy
+      mathElement.setAttribute("tabindex", "0");
+      mathElement.setAttribute("role", "button");
+      mathElement.setAttribute("aria-label", `Math: ${latexSource}`);
+
+      // Add inline copy button (shows on hover/focus)
+      const button = document.createElement("button");
+      button.className = "inline-math-copy";
+      button.setAttribute("aria-label", "Copy LaTeX");
+      button.setAttribute("type", "button");
+
+      const copyIcon = createCopyIcon();
+      button.appendChild(copyIcon);
+
+      button.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await copyToClipboard(latexSource, mathElement);
+      });
+
+      mathElement.appendChild(button);
+      addedButtonsRef.current.add(mathElement);
+    });
   }, [containerRef]);
+}
+
+/**
+ * Copy LaTeX to clipboard with multi-format support
+ */
+async function copyToClipboard(
+  latex: string,
+  element: Element,
+): Promise<void> {
+  const isDisplay = element.classList.contains("katex-display");
+
+  try {
+    // Prepare formats
+    const wrappedLatex = isDisplay ? `$$${latex}$$` : `\\(${latex}\\)`;
+
+    // Clean HTML (remove background gradients, keep structure)
+    const katexHtml = element.querySelector(".katex-html");
+    const cleanHtml = katexHtml
+      ? isDisplay
+        ? `<div class="math-display">${katexHtml.innerHTML}</div>`
+        : `<span class="math-inline">${katexHtml.innerHTML}</span>`
+      : "";
+
+    // Multi-format clipboard
+    if (navigator.clipboard && ClipboardItem) {
+      const items: Record<string, Blob> = {
+        "text/plain": new Blob([wrappedLatex], { type: "text/plain" }),
+      };
+
+      if (cleanHtml) {
+        items["text/html"] = new Blob([cleanHtml], { type: "text/html" });
+      }
+
+      // Optional: MathML for compatible apps
+      if ("MathMLElement" in window && latex) {
+        try {
+          const mathml = `<math><annotation encoding="application/x-tex">${latex}</annotation></math>`;
+          items["application/mathml+xml"] = new Blob([mathml], {
+            type: "application/mathml+xml",
+          });
+        } catch {
+          // MathML generation failed - non-critical
+        }
+      }
+
+      await navigator.clipboard.write([new ClipboardItem(items)]);
+    } else {
+      // Fallback to plain text
+      await navigator.clipboard.writeText(wrappedLatex);
+    }
+
+    // Track analytics
+    analytics.track("math_copied", {
+      format: cleanHtml ? "both" : "latex",
+      equationLength: latex.length,
+    });
+  } catch (error) {
+    console.error("Failed to copy math:", error);
+    // Final fallback
+    try {
+      await navigator.clipboard.writeText(
+        isDisplay ? `$$${latex}$$` : `\\(${latex}\\)`,
+      );
+    } catch (fallbackError) {
+      console.error("Fallback copy failed:", fallbackError);
+    }
+  }
+}
+
+/**
+ * Handle copy with visual feedback
+ */
+async function handleCopy(
+  latex: string,
+  element: Element,
+  copyIcon: SVGSVGElement,
+  checkIcon: SVGSVGElement,
+  isDisplay: boolean,
+): Promise<void> {
+  await copyToClipboard(latex, element);
+
+  // Visual feedback
+  copyIcon.classList.add("hidden");
+  checkIcon.classList.remove("hidden");
+
+  setTimeout(() => {
+    copyIcon.classList.remove("hidden");
+    checkIcon.classList.add("hidden");
+  }, 2000);
 }
 
 /**

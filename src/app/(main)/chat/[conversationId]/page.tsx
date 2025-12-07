@@ -3,25 +3,31 @@
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
+import { ModelBadge } from "@/components/chat/ModelBadge";
+import { ModelFeatureHint } from "@/components/chat/ModelFeatureHint";
+import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
+import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { Button } from "@/components/ui/button";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/models";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
+import { useCallback } from "react";
 
 export default function ChatPage({
   params,
@@ -61,9 +67,13 @@ export default function ChatPage({
   const [showModelNamesOverride, setShowModelNamesOverride] = useState<
     boolean | null
   >(null);
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
+  const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
 
   const { isActive, selectedModels, startComparison, exitComparison } =
     useComparisonMode();
+  const { isMobile, isTouchDevice } = useMobileDetect();
 
   const recordVote = useMutation(api.votes.recordVote);
   const createConsolidation = useMutation(
@@ -73,6 +83,28 @@ export default function ChatPage({
     api.conversations.consolidateInSameChat,
   );
   const updateModelMutation = useMutation(api.conversations.updateModel);
+
+  const handleModelChange = useCallback(
+    async (modelId: string) => {
+      // Optimistic update
+      setSelectedModel(modelId);
+
+      // Persist to DB if conversation exists
+      if (conversationId) {
+        try {
+          await updateModelMutation({
+            conversationId,
+            model: modelId,
+          });
+        } catch (error) {
+          console.error("Failed to persist model:", error);
+          // UI already updated, user expects change to stick
+        }
+      }
+      // New conversations: model saved when first message sent (chat.ts:75)
+    },
+    [conversationId, updateModelMutation],
+  );
 
   const handleVote = async (winnerId: string, rating: string) => {
     const msg = messages?.find((m: Doc<"messages">) => m._id === winnerId);
@@ -141,19 +173,12 @@ export default function ChatPage({
     }
   }, [conversation?.model]);
 
-  // Keyboard shortcuts
+  // Quick model switcher keyboard shortcut (⌘J)
   useEffect(() => {
-    const handleKeyboard = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "m") {
-        e.preventDefault();
-        document
-          .querySelector("[data-model-selector]")
-          ?.dispatchEvent(new Event("click", { bubbles: true }));
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyboard);
-    return () => window.removeEventListener("keydown", handleKeyboard);
+    const handler = () => setQuickSwitcherOpen(true);
+    window.addEventListener("open-quick-model-switcher", handler);
+    return () =>
+      window.removeEventListener("open-quick-model-switcher", handler);
   }, []);
 
   // Redirect if conversation not found
@@ -162,6 +187,17 @@ export default function ChatPage({
       router.push("/app");
     }
   }, [conversation, router]);
+
+  // Autofocus input when navigating to conversation
+  useEffect(() => {
+    if (!conversationId || isMobile || isTouchDevice) return;
+
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("focus-chat-input"));
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [conversationId, isMobile, isTouchDevice]);
 
   if (!conversationId || conversation === undefined || messages === undefined) {
     return (
@@ -180,7 +216,7 @@ export default function ChatPage({
   );
 
   const modelConfig = getModelConfig(selectedModel);
-  const showThinkingEffort = modelConfig?.supportsThinkingEffort;
+  const showThinkingEffort = !!modelConfig?.reasoning;
   const hasMessages = messages.length > 0;
   const messageCount = conversation?.messageCount || 0;
 
@@ -265,6 +301,19 @@ export default function ChatPage({
           </TooltipProvider>
         </div>
 
+        <ModelBadge
+          modelId={isActive ? undefined : selectedModel}
+          isComparison={isActive}
+          comparisonCount={selectedModels.length}
+          onClick={() => {
+            if (isActive) {
+              setComparisonDialogOpen(true);
+            } else {
+              setModelSelectorOpen(true);
+            }
+          }}
+        />
+
         <div className="flex items-center gap-2">
           {messageCount >= 3 && (
             <ExtractMemoriesButton conversationId={conversationId} />
@@ -278,26 +327,45 @@ export default function ChatPage({
 
       <VirtualizedMessageList
         messages={messages}
+        selectedModel={selectedModel}
         onVote={handleVote}
         onConsolidate={handleConsolidate}
         onToggleModelNames={handleToggleModelNames}
         showModelNames={showModelNames}
       />
 
-      <ChatInput
-        conversationId={conversationId}
-        isGenerating={isGenerating}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
-        onThinkingEffortChange={setThinkingEffort}
-        attachments={attachments}
-        onAttachmentsChange={setAttachments}
-        isComparisonMode={isActive}
-        selectedModels={selectedModels}
-        onStartComparison={startComparison}
-        onExitComparison={exitComparison}
-        isEmpty={messages?.length === 0}
+      <div className="relative px-4 pb-4">
+        {!isActive && <ModelFeatureHint modelId={selectedModel} />}
+        <ProgressiveHints
+          messageCount={messages?.length ?? 0}
+          conversationCount={filteredConversations?.length ?? 0}
+        />
+        <ChatInput
+          conversationId={conversationId}
+          isGenerating={isGenerating}
+          selectedModel={selectedModel}
+          onModelChange={handleModelChange}
+          thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
+          onThinkingEffortChange={setThinkingEffort}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          isComparisonMode={isActive}
+          selectedModels={selectedModels}
+          onStartComparison={startComparison}
+          onExitComparison={exitComparison}
+          isEmpty={messages?.length === 0}
+          modelSelectorOpen={modelSelectorOpen}
+          onModelSelectorOpenChange={setModelSelectorOpen}
+          comparisonDialogOpen={comparisonDialogOpen}
+          onComparisonDialogOpenChange={setComparisonDialogOpen}
+        />
+      </div>
+
+      <QuickModelSwitcher
+        open={quickSwitcherOpen}
+        onOpenChange={setQuickSwitcherOpen}
+        currentModel={selectedModel}
+        onSelectModel={handleModelChange}
       />
     </div>
   );

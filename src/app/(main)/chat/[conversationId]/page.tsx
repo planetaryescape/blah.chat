@@ -8,6 +8,7 @@ import { ModelFeatureHint } from "@/components/chat/ModelFeatureHint";
 import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
+import { BranchBadge } from "@/components/chat/BranchBadge";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
@@ -321,6 +322,7 @@ export default function ChatPage({
           {hasMessages && (
             <ContextWindowIndicator conversationId={conversationId} />
           )}
+          <BranchBadge conversationId={conversationId} />
           {hasMessages && <ShareDialog conversationId={conversationId} />}
           <ConversationHeaderMenu conversation={conversation} />
         </div>

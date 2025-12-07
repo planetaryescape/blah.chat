@@ -4,6 +4,7 @@ import { Clock, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface RecentSearchesProps {
   recentSearches: string[];
@@ -47,22 +48,30 @@ export function RecentSearches({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1">
-        {recentSearches.map((search, index) => (
-          <button
-            key={`${search}-${index}`}
-            onClick={() => onSelectSearch(search)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors group text-left"
-          >
-            <span className="text-sm truncate flex-1 font-mono">{search}</span>
-            <Badge
-              variant="secondary"
-              className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              Search
-            </Badge>
-          </button>
-        ))}
+      <CardContent className="relative">
+        <ScrollArea className="max-h-[400px]">
+          <div className="space-y-1 pr-4">
+            {recentSearches.map((search, index) => (
+              <button
+                key={`${search}-${index}`}
+                onClick={() => onSelectSearch(search)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors group text-left"
+              >
+                <span className="text-sm truncate flex-1 font-mono">
+                  {search}
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  Search
+                </Badge>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+        {/* Fade gradient for scroll affordance */}
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none" />
       </CardContent>
     </Card>
   );

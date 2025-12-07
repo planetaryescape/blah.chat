@@ -2,71 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { trackMathRendering } from "@/lib/analytics/mathMetrics";
-
-/**
- * Pattern-based LaTeX classification for ARIA descriptions
- * Analyzes LaTeX source to provide meaningful descriptions for screen readers
- */
-function getAriaDescription(latex: string): string {
-  // Integration and calculus
-  if (latex.includes("\\int")) return "Integral expression";
-  if (latex.includes("\\oint")) return "Contour integral";
-  if (latex.includes("\\partial")) return "Partial derivative";
-  if (latex.includes("\\nabla")) return "Gradient or del operator";
-
-  // Summation and products
-  if (latex.includes("\\sum")) return "Summation";
-  if (latex.includes("\\prod")) return "Product";
-
-  // Fractions and roots
-  if (latex.includes("\\frac")) return "Fraction";
-  if (latex.includes("\\sqrt")) return "Square root or radical";
-
-  // Linear algebra
-  if (
-    latex.includes("matrix") ||
-    latex.includes("pmatrix") ||
-    latex.includes("bmatrix")
-  )
-    return "Matrix";
-  if (latex.includes("\\det")) return "Determinant";
-  if (latex.includes("\\vec")) return "Vector";
-
-  // Limits and asymptotic notation
-  if (latex.includes("\\lim")) return "Limit";
-  if (latex.includes("\\infty")) return "Expression with infinity";
-
-  // Sets and logic
-  if (latex.includes("\\cup") || latex.includes("\\cap"))
-    return "Set operation";
-  if (latex.includes("\\subset") || latex.includes("\\supset"))
-    return "Set inclusion";
-  if (latex.includes("\\forall") || latex.includes("\\exists"))
-    return "Logical quantifier";
-
-  // Arrows and implications
-  if (
-    latex.includes("\\rightarrow") ||
-    latex.includes("\\Rightarrow") ||
-    latex.includes("\\to")
-  )
-    return "Implication or mapping";
-
-  // Greek letters (common in probability/statistics)
-  if (latex.includes("\\alpha") || latex.includes("\\beta"))
-    return "Greek letter expression";
-  if (latex.includes("\\theta") || latex.includes("\\phi"))
-    return "Angle or parameter";
-  if (latex.includes("\\mu") || latex.includes("\\sigma"))
-    return "Statistical expression";
-
-  // Chemistry (mhchem)
-  if (latex.includes("\\ce")) return "Chemical formula or equation";
-  if (latex.includes("\\pu")) return "Physical unit";
-
-  // Fallback
-  return "Mathematical expression";
-}
+import { getDescription } from "@/lib/math/descriptions";
 
 /**
  * Enhances KaTeX-rendered math elements with ARIA accessibility attributes

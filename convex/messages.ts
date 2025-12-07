@@ -191,6 +191,32 @@ export const updatePartialContent = internalMutation({
   },
 });
 
+/**
+ * Update source metadata after OpenGraph enrichment
+ */
+export const updateSourceMetadata = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    metadata: v.array(
+      v.object({
+        sourceId: v.string(),
+        ogTitle: v.optional(v.string()),
+        ogDescription: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
+        favicon: v.optional(v.string()),
+        domain: v.string(),
+        fetchedAt: v.optional(v.number()),
+        error: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      sourceMetadata: args.metadata,
+    });
+  },
+});
+
 export const markThinkingStarted = internalMutation({
   args: { messageId: v.id("messages") },
   handler: async (ctx, args) => {
@@ -256,6 +282,28 @@ export const completeMessage = internalMutation({
     reasoningTokens: v.optional(v.number()),
     cost: v.number(),
     tokensPerSecond: v.optional(v.number()),
+    toolCalls: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          name: v.string(),
+          arguments: v.string(),
+          result: v.optional(v.string()),
+          timestamp: v.number(),
+        }),
+      ),
+    ),
+    sources: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          url: v.string(),
+          publishedDate: v.optional(v.string()),
+          snippet: v.optional(v.string()),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
@@ -272,6 +320,10 @@ export const completeMessage = internalMutation({
       reasoningTokens: args.reasoningTokens,
       cost: args.cost,
       tokensPerSecond: args.tokensPerSecond,
+      toolCalls: args.toolCalls,
+      partialToolCalls: undefined, // Clear loading state
+      sources: args.sources,
+      partialSources: undefined, // Clear streaming sources
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -307,6 +359,26 @@ export const completeMessage = internalMutation({
   },
 });
 
+export const updatePartialToolCalls = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    partialToolCalls: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        arguments: v.string(),
+        timestamp: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      partialToolCalls: args.partialToolCalls,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const markError = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -316,6 +388,7 @@ export const markError = internalMutation({
     await ctx.db.patch(args.messageId, {
       status: "error",
       error: args.error,
+      partialToolCalls: undefined, // Clear loading state
       updatedAt: Date.now(),
     });
   },

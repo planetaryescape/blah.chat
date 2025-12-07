@@ -54,6 +54,23 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  // Check if children includes a DialogTitle to satisfy Radix accessibility requirements
+  const hasTitle = React.Children.toArray(children).some((child) => {
+    if (React.isValidElement(child)) {
+      // Check for DialogTitle component or DialogHeader containing DialogTitle
+      return (
+        child.type === DialogTitle ||
+        (child.type === DialogHeader &&
+          React.Children.toArray((child.props as any).children).some(
+            (headerChild) =>
+              React.isValidElement(headerChild) &&
+              headerChild.type === DialogTitle,
+          ))
+      );
+    }
+    return false;
+  });
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -65,6 +82,11 @@ function DialogContent({
         )}
         {...props}
       >
+        {!hasTitle && (
+          <DialogPrimitive.Title className="sr-only">
+            Dialog
+          </DialogPrimitive.Title>
+        )}
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close

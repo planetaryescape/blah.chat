@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
 import "./globals.css";
+import "katex/dist/katex.min.css";
+import "@/styles/math.css";
 
 const syne = Syne({
   variable: "--font-syne",

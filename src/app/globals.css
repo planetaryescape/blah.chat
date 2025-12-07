@@ -74,7 +74,7 @@
   --destructive: oklch(60% 0.2 25);
   --destructive-foreground: oklch(98% 0 0);
 
-  --border: oklch(85% 0.03 80);
+  --border: oklch(80% 0.03 80); /* Improved from 85% for WCAG AA 3:1 contrast */
   --input: oklch(92% 0.01 80);
   --ring: oklch(60% 0.16 70);
 
@@ -239,6 +239,35 @@
   h6 {
     @apply font-display tracking-tight;
   }
+
+  ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+/* Screen reader only - WCAG 2.1 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.focus\:not-sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }
 
 /* Custom Animations */

@@ -19,8 +19,6 @@ export default async function Image() {
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#191024",
-        background:
-          "radial-gradient(circle at 0% 0%, #8B5CF633, transparent 50%), radial-gradient(circle at 100% 100%, #22D3EE33, transparent 50%), #191024",
       }}
     >
       {/* Brand Name */}

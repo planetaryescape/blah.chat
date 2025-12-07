@@ -5,6 +5,7 @@ import { CustomInstructionsForm } from "@/components/settings/CustomInstructions
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
 import { MemorySettings } from "@/components/settings/MemorySettings";
 import { MessageLimitSettings } from "@/components/settings/MessageLimitSettings";
+import { ReasoningSettings } from "@/components/settings/ReasoningSettings";
 import { SearchSettings } from "@/components/settings/SearchSettings";
 import { STTSettings } from "@/components/settings/STTSettings";
 import { UISettings } from "@/components/settings/UISettings";
@@ -22,6 +23,11 @@ const SETTINGS_SECTIONS = [
     id: "ui",
     label: "Interface",
     component: UISettings,
+  },
+  {
+    id: "reasoning",
+    label: "Reasoning",
+    component: ReasoningSettings,
   },
   {
     id: "voice",

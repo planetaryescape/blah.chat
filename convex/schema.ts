@@ -67,6 +67,8 @@ export default defineSchema({
     // Phase 2B: Memory caching
     cachedMemoryIds: v.optional(v.array(v.id("memories"))),
     lastMemoryFetchAt: v.optional(v.number()),
+    // Incremental extraction cursor
+    lastExtractedMessageId: v.optional(v.id("messages")),
     // Token usage tracking
     tokenUsage: v.optional(
       v.object({
@@ -171,6 +173,9 @@ export default defineSchema({
     // Performance metrics
     firstTokenAt: v.optional(v.number()), // When first token received
     tokensPerSecond: v.optional(v.number()), // Calculated TPS
+    // Memory extraction tracking
+    memoryExtracted: v.optional(v.boolean()),
+    memoryExtractedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -207,8 +212,8 @@ export default defineSchema({
         v.union(
           v.literal("auto"),
           v.literal("manual"),
-          v.literal("consolidated")
-        )
+          v.literal("consolidated"),
+        ),
       ),
       // Phase 3: TTL & versioning
       expiresAt: v.optional(v.number()), // timestamp, null = permanent
@@ -219,8 +224,8 @@ export default defineSchema({
           v.literal("contextual"), // 7 days
           v.literal("preference"), // never
           v.literal("deadline"), // completion + 7 days
-          v.literal("temporary") // 1 day
-        )
+          v.literal("temporary"), // 1 day
+        ),
       ),
     }),
     createdAt: v.number(),
@@ -271,6 +276,55 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_message", ["messageId"])
     .index("by_conversation", ["conversationId"]),
+
+  snippets: defineTable({
+    userId: v.id("users"),
+    text: v.string(),
+    sourceMessageId: v.id("messages"),
+    sourceConversationId: v.id("conversations"),
+    note: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_message", ["sourceMessageId"])
+    .index("by_conversation", ["sourceConversationId"])
+    .searchIndex("search_text", {
+      searchField: "text",
+      filterFields: ["userId"],
+    }),
+
+  notes: defineTable({
+    userId: v.id("users"),
+    title: v.string(), // auto-generated from first line or user-editable
+    content: v.string(), // markdown (source of truth)
+    htmlContent: v.optional(v.string()), // cached HTML for display
+
+    // Source tracking (optional - message/conversation this came from)
+    sourceMessageId: v.optional(v.id("messages")),
+    sourceConversationId: v.optional(v.id("conversations")),
+    sourceSelectionText: v.optional(v.string()), // original text if from summary
+
+    // Metadata
+    tags: v.optional(v.array(v.string())),
+    suggestedTags: v.optional(v.array(v.string())), // AI-generated suggestions
+    isPinned: v.boolean(),
+
+    // Sharing
+    shareId: v.optional(v.string()), // unique ID for public share URL
+    isPublic: v.optional(v.boolean()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_updated", ["userId", "updatedAt"]) // for recent notes sorting
+    .index("by_source_message", ["sourceMessageId"]) // optional cleanup
+    .index("by_share_id", ["shareId"]) // for public access
+    .searchIndex("search_notes", {
+      searchField: "content",
+      filterFields: ["userId"],
+    }),
 
   shares: defineTable({
     userId: v.id("users"),
@@ -364,4 +418,39 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_comparison", ["comparisonGroupId"]),
+
+  // Onboarding & Discoverability
+  userOnboarding: defineTable({
+    userId: v.id("users"),
+    tourCompleted: v.boolean(),
+    tourCompletedAt: v.optional(v.number()),
+    tourSkipped: v.boolean(),
+    tourSkippedAt: v.optional(v.number()),
+    tourStep: v.optional(v.number()), // Resume from step if interrupted
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  dismissedHints: defineTable({
+    userId: v.id("users"),
+    featureId: v.string(), // "memory-extraction", "comparison-mode", etc.
+    dismissedAt: v.number(),
+    viewCount: v.number(), // How many times shown before dismissed
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_feature", ["userId", "featureId"]),
+
+  userStats: defineTable({
+    userId: v.id("users"),
+    totalMessages: v.number(),
+    totalConversations: v.number(),
+    totalSearches: v.number(),
+    totalBookmarks: v.number(),
+    longMessageCount: v.number(), // Messages > 200 chars (for voice hint)
+    messagesInCurrentConvo: v.number(), // For branching hint
+    consecutiveSearches: v.number(), // For hybrid search hint
+    promptPatternCount: v.any(), // Track repeated patterns for templates hint
+    lastUpdated: v.number(),
+  }).index("by_user", ["userId"]),
 });

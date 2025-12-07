@@ -1,5 +1,8 @@
 import { google } from "@ai-sdk/google";
-import { generateText } from "ai";
+import { streamText } from "ai";
+import { getModelConfig } from "@/lib/ai/models";
+import { calculateCost } from "@/lib/ai/pricing";
+import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
@@ -11,10 +14,35 @@ export const generateImage = internalAction({
     prompt: v.string(),
     model: v.optional(v.string()),
     referenceImageStorageId: v.optional(v.string()),
+    thinkingEffort: v.optional(
+      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ),
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
-    const model = args.model || "gemini-2.0-flash-exp";
+    const model = args.model || "gemini-3-pro-image-preview";
+
+    // Get model config
+    const modelConfig = getModelConfig(model);
+    if (!modelConfig) {
+      throw new Error(`Model ${model} not found in config`);
+    }
+
+    // Build reasoning options if thinking effort specified
+    const reasoningResult =
+      args.thinkingEffort && modelConfig.reasoning
+        ? buildReasoningOptions(modelConfig, args.thinkingEffort)
+        : null;
+
+    const isReasoningModel = !!reasoningResult;
+
+    // Mark thinking started
+    if (isReasoningModel && args.thinkingEffort) {
+      // @ts-ignore - Convex internal mutation type inference issue
+      await ctx.runMutation(internal.messages.markThinkingStarted, {
+        messageId: args.messageId,
+      });
+    }
 
     try {
       // Build message content with text prompt
@@ -48,7 +76,7 @@ export const generateImage = internalAction({
       // Strip provider prefix for Google SDK
       const geminiModel = model.replace(/^google:/, "");
 
-      const result = await generateText({
+      const result = streamText({
         model: google(geminiModel),
         system:
           "You are a precise image generation API. Your ONLY task is to generate the requested image based on the inputs. You MUST NOT output any conversational text, markdown, or explanations. Return ONLY the image file or the raw Base64 string.",
@@ -58,31 +86,104 @@ export const generateImage = internalAction({
             content: messagesContent as any,
           },
         ],
+        ...(reasoningResult?.providerOptions || {}), // Apply thinking config
       });
 
+      // Stream processing
+      let accumulated = "";
+      let reasoningBuffer = "";
+      let lastUpdate = Date.now();
+      let lastReasoningUpdate = Date.now();
+      const UPDATE_INTERVAL = 200; // Throttle DB updates
+
+      for await (const chunk of result.fullStream) {
+        const now = Date.now();
+
+        // Handle reasoning chunks
+        if (chunk.type === "reasoning-delta") {
+          reasoningBuffer += chunk.text;
+
+          if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
+            await ctx.runMutation(internal.messages.updatePartialReasoning, {
+              messageId: args.messageId,
+              partialReasoning: reasoningBuffer,
+            });
+            lastReasoningUpdate = now;
+          }
+        }
+
+        // Handle text chunks
+        if (chunk.type === "text-delta") {
+          accumulated += chunk.text;
+
+          if (now - lastUpdate >= UPDATE_INTERVAL) {
+            await ctx.runMutation(internal.messages.updatePartialContent, {
+              messageId: args.messageId,
+              partialContent: accumulated,
+            });
+            lastUpdate = now;
+          }
+        }
+      }
+
       const generationTime = Date.now() - generationStart;
+      console.log(`[Image Gen] Stream completed in ${generationTime}ms`);
 
-      // Extract image from response - try files first, then text fallback
+      // Get token usage
+      const usage = await result.usage;
+      console.log(`[Image Gen] Token usage:`, {
+        input: usage.inputTokens,
+        output: usage.outputTokens,
+        reasoning: usage.reasoningTokens,
+      });
+
+      // Extract final thinking
+      const reasoningOutputs = await result.reasoning;
+      const finalReasoning =
+        reasoningOutputs && reasoningOutputs.length > 0
+          ? reasoningOutputs.map((r) => r.text).join("\n")
+          : undefined;
+
+      // Complete thinking if present
+      if (finalReasoning && finalReasoning.trim().length > 0) {
+        console.log(
+          `[Image Gen] Completing thinking (${finalReasoning.length} chars)`,
+        );
+        await ctx.runMutation(internal.messages.completeThinking, {
+          messageId: args.messageId,
+          reasoning: finalReasoning,
+          reasoningTokens: usage.reasoningTokens || 0,
+        });
+      }
+
+      // Extract image (KEY: streamText returns files after stream!)
+      console.log(`[Image Gen] Extracting files from result...`);
+      const files = await result.files;
+      console.log(`[Image Gen] Files received:`, files?.length || 0);
       let imageBuffer: Buffer;
-
-      const files = result.files || (result as any).experimental_output?.files;
 
       if (files && files.length > 0) {
         const file = files[0];
-        if ((file as any).base64Data) {
+
+        // Handle Uint8Array format
+        if ((file as any).uint8Array) {
+          imageBuffer = Buffer.from((file as any).uint8Array);
+        }
+        // Handle base64Data format
+        else if ((file as any).base64Data) {
           imageBuffer = Buffer.from((file as any).base64Data, "base64");
         } else {
-          throw new Error("No base64 data in file response");
+          throw new Error("No image data in file response");
         }
-      } else if (result.text) {
-        // Clean up potential markdown/formatting
-        let cleanText = result.text
+      } else {
+        // Fallback to text parsing
+        const text = await result.text;
+        let cleanText = text
           .replace(/```/g, "")
           .replace(/^base64\n/, "")
           .replace(/\n/g, "")
           .trim();
 
-        // Extract base64 pattern if text is chatty
         if (cleanText.includes(" ")) {
           const base64Match = cleanText.match(/([A-Za-z0-9+/]{100,}={0,2})/);
           if (base64Match) {
@@ -95,21 +196,34 @@ export const generateImage = internalAction({
         } else {
           throw new Error("Invalid base64 response from model");
         }
-      } else {
-        throw new Error("No image generated in response");
       }
 
       // Store in Convex file storage
+      console.log(
+        `[Image Gen] Storing image (${imageBuffer.byteLength} bytes)...`,
+      );
       const storageId = await ctx.storage.store(
         new Blob([new Uint8Array(imageBuffer)], { type: "image/png" }),
       );
+      console.log(`[Image Gen] Image stored with ID: ${storageId}`);
 
       const totalTime = Date.now() - startTime;
 
-      // Estimated cost (Gemini image generation - approximate)
-      const cost = 0.0025; // $0.0025 per image (approximate)
+      // Calculate cost (includes reasoning tokens!)
+      const inputTokens = usage.inputTokens ?? 0;
+      const outputTokens = usage.outputTokens ?? 0;
+      const reasoningTokens = usage.reasoningTokens ?? 0;
+
+      const cost = calculateCost(
+        model,
+        inputTokens,
+        outputTokens,
+        undefined, // cachedTokens
+        reasoningTokens,
+      );
 
       // Update message with image attachment
+      console.log(`[Image Gen] Adding attachment to message...`);
       // @ts-ignore
       await ctx.runMutation(internal.messages.addAttachment, {
         messageId: args.messageId,
@@ -123,10 +237,25 @@ export const generateImage = internalAction({
             prompt: args.prompt,
             model: args.model,
             generationTime,
-            totalTime: Date.now() - startTime,
+            totalTime,
             cost,
           },
         },
+      });
+
+      // Complete message with content + tokens
+      const finalContent = accumulated || `Generated image: ${args.prompt}`;
+      console.log(
+        `[Image Gen] Completing message with content: "${finalContent.substring(0, 50)}..."`,
+      );
+      await ctx.runMutation(internal.messages.completeMessage, {
+        messageId: args.messageId,
+        content: finalContent,
+        reasoning: finalReasoning,
+        inputTokens,
+        outputTokens,
+        reasoningTokens,
+        cost,
       });
 
       // Track usage
@@ -146,6 +275,10 @@ export const generateImage = internalAction({
         });
       }
 
+      console.log(
+        `[Image Gen] ✅ SUCCESS - Total time: ${totalTime}ms, Cost: $${cost.toFixed(4)}`,
+      );
+
       return {
         success: true,
         storageId,
@@ -155,11 +288,10 @@ export const generateImage = internalAction({
     } catch (error) {
       console.error("Image generation error:", error);
 
-      await ctx.runMutation(internal.messages.updatePartial, {
+      // Use markError to properly set status="error" and clear state
+      await ctx.runMutation(internal.messages.markError, {
         messageId: args.messageId,
-        updates: {
-          error: `Image generation failed: ${error instanceof Error ? error.message : String(error)}`,
-        },
+        error: `Image generation failed: ${error instanceof Error ? error.message : String(error)}`,
       });
 
       throw error;

@@ -10,4 +10,11 @@ crons.daily(
   internal.memories.expiration.markExpired,
 );
 
+// Run every 15 minutes to process inactive conversations
+crons.interval(
+  "extract-inactive-conversations",
+  { minutes: 15 },
+  internal.memories.extract.processInactiveConversations,
+);
+
 export default crons;

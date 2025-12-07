@@ -4,6 +4,15 @@ import { internalMutation, internalQuery, query } from "./_generated/server";
 
 export * as embeddings from "./messages/embeddings";
 
+export const get = internalQuery({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.messageId);
+  },
+});
+
 export const create = internalMutation({
   args: {
     conversationId: v.id("conversations"),
@@ -60,6 +69,41 @@ export const create = internalMutation({
       await ctx.db.patch(args.conversationId, {
         messageCount: (conversation.messageCount || 0) + 1,
       });
+    }
+
+    // Update user stats for progressive hints (only for user messages)
+    if (args.role === "user" && args.content) {
+      const stats = await ctx.db
+        .query("userStats")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .first();
+
+      const isLongMessage = args.content.length > 200;
+
+      if (stats) {
+        await ctx.db.patch(stats._id, {
+          totalMessages: stats.totalMessages + 1,
+          longMessageCount: isLongMessage
+            ? stats.longMessageCount + 1
+            : stats.longMessageCount,
+          messagesInCurrentConvo: stats.messagesInCurrentConvo + 1,
+          lastUpdated: Date.now(),
+        });
+      } else {
+        // Auto-create stats if missing
+        await ctx.db.insert("userStats", {
+          userId: args.userId,
+          totalMessages: 1,
+          totalConversations: 0,
+          totalSearches: 0,
+          totalBookmarks: 0,
+          longMessageCount: isLongMessage ? 1 : 0,
+          messagesInCurrentConvo: 1,
+          consecutiveSearches: 0,
+          promptPatternCount: {},
+          lastUpdated: Date.now(),
+        });
+      }
     }
 
     // Schedule embedding generation for complete messages with content
@@ -376,5 +420,97 @@ export const getOriginalResponses = query({
       )
       .filter((q) => q.eq(q.field("role"), "assistant"))
       .collect();
+  },
+});
+
+// Get the last assistant message in a conversation (for focus restoration)
+export const getLastAssistantMessage = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("role"), "assistant"))
+      .order("desc")
+      .first();
+  },
+});
+
+// Memory extraction queries
+export const listUnextracted = internalQuery({
+  args: {
+    conversationId: v.id("conversations"),
+    afterMessageId: v.optional(v.id("messages")),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("memoryExtracted"), false),
+          q.eq(q.field("memoryExtracted"), undefined),
+        ),
+      );
+
+    // If cursor provided, only get messages after it
+    if (args.afterMessageId) {
+      const cursorMsg = await ctx.db.get(args.afterMessageId);
+      if (cursorMsg) {
+        query = query.filter((q) =>
+          q.gt(q.field("_creationTime"), cursorMsg._creationTime),
+        );
+      }
+    }
+
+    return await query.take(args.limit);
+  },
+});
+
+export const listExtracted = internalQuery({
+  args: {
+    conversationId: v.id("conversations"),
+    beforeMessageId: v.id("messages"),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const beforeMsg = await ctx.db.get(args.beforeMessageId);
+    if (!beforeMsg) return [];
+
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("memoryExtracted"), true),
+          q.lt(q.field("_creationTime"), beforeMsg._creationTime),
+        ),
+      )
+      .order("desc")
+      .take(args.limit);
+  },
+});
+
+export const markExtracted = internalMutation({
+  args: {
+    messageIds: v.array(v.id("messages")),
+    extractedAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await Promise.all(
+      args.messageIds.map((id) =>
+        ctx.db.patch(id, {
+          memoryExtracted: true,
+          memoryExtractedAt: args.extractedAt,
+        }),
+      ),
+    );
   },
 });

@@ -140,10 +140,10 @@ export const sendMessage = mutation({
         .collect()
         .then((msgs) => msgs.length);
 
-      // Trigger extraction if we've hit the interval
+      // Trigger extraction if we've hit the interval (30s debounce)
       if (userMessageCount > 0 && userMessageCount % interval === 0) {
         await ctx.scheduler.runAfter(
-          0,
+          30 * 1000, // 30 seconds debounce
           internal.memories.extract.extractMemories,
           {
             conversationId,

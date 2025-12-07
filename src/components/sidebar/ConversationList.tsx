@@ -1,14 +1,18 @@
-import { ConversationItem } from "./ConversationItem";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { ConversationItem } from "./ConversationItem";
 
 export function ConversationList({
   conversations,
   selectedIndex = -1,
   onClearSelection,
+  selectedIds = [],
+  onToggleSelection,
 }: {
   conversations: Doc<"conversations">[];
   selectedIndex?: number;
   onClearSelection?: () => void;
+  selectedIds?: string[];
+  onToggleSelection?: (id: string) => void;
 }) {
   if (conversations.length === 0) {
     return (
@@ -17,6 +21,8 @@ export function ConversationList({
       </div>
     );
   }
+
+  const isSelectionMode = selectedIds && selectedIds.length > 0;
 
   return (
     <div
@@ -36,6 +42,9 @@ export function ConversationList({
           index={index}
           selectedIndex={selectedIndex}
           onClearSelection={onClearSelection}
+          isSelectionMode={isSelectionMode}
+          isSelectedById={selectedIds?.includes(conversation._id)}
+          onToggleSelection={onToggleSelection}
         />
       ))}
     </div>

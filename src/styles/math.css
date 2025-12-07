@@ -1,0 +1,80 @@
+/* Math/LaTeX Styling - matches blah.chat design aesthetic */
+@layer base {
+  /* Inline math - subtle highlight like inline code */
+  .katex {
+    font-size: 1.05em;
+    color: hsl(var(--primary));
+  }
+
+  /* Display math - distinctive background matching code blocks */
+  .katex-display {
+    margin: 1.5em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1rem;
+
+    /* Gradient background matching existing code block style */
+    background: linear-gradient(
+      135deg,
+      hsl(var(--muted) / 0.5) 0%,
+      hsl(var(--muted) / 0.3) 100%
+    );
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--border) / 0.3);
+
+    /* Subtle glow - distinctive, not generic */
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.05);
+  }
+
+  /* Horizontal scrollbar for long equations */
+  .katex-display::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .katex-display::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.2);
+    border-radius: 4px;
+  }
+
+  .katex-display::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.3);
+    border-radius: 4px;
+  }
+
+  .katex-display::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 640px) {
+    .katex-display {
+      padding: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .katex {
+      font-size: 1em;
+    }
+  }
+
+  /* Error styling - matches destructive theme */
+  .katex-error {
+    color: hsl(var(--destructive));
+    background: hsl(var(--destructive) / 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  /* Accessibility - hide MathML visually but keep for screen readers */
+  .katex .mathjax-a11y {
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}

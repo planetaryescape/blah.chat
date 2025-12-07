@@ -4,7 +4,7 @@ import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { api, internal } from "./_generated/api";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import {
   action,
   internalAction,
@@ -217,6 +217,73 @@ export const listAll = query({
     return memories;
   },
 });
+
+export const listFiltered = query({
+  args: {
+    category: v.optional(v.string()),
+    sortBy: v.optional(v.string()),
+    searchQuery: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) return [];
+
+    // Search if query provided
+    if (args.searchQuery && args.searchQuery.length > 0) {
+      const searchResults = await ctx.db
+        .query("memories")
+        .withSearchIndex("search_content", (q) =>
+          q.search("content", args.searchQuery!).eq("userId", user._id),
+        )
+        .take(100);
+
+      let results = searchResults;
+      if (args.category) {
+        results = results.filter((m) => m.metadata?.category === args.category);
+      }
+
+      return sortMemories(results, args.sortBy || "date");
+    }
+
+    // No search - use index
+    let memories = await ctx.db
+      .query("memories")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(1000);
+
+    if (args.category) {
+      memories = memories.filter((m) => m.metadata?.category === args.category);
+    }
+
+    return sortMemories(memories, args.sortBy || "date");
+  },
+});
+
+function sortMemories(memories: Doc<"memories">[], sortBy: string) {
+  const sorted = [...memories];
+
+  switch (sortBy) {
+    case "importance":
+      return sorted.sort(
+        (a, b) => (b.metadata?.importance || 0) - (a.metadata?.importance || 0),
+      );
+    case "confidence":
+      return sorted.sort(
+        (a, b) => (b.metadata?.confidence || 0) - (a.metadata?.confidence || 0),
+      );
+    case "date":
+    default:
+      return sorted.sort((a, b) => b.createdAt - a.createdAt);
+  }
+}
 
 export const deleteMemory = mutation({
   args: {
@@ -687,11 +754,22 @@ ${cluster
             undefined as number | undefined,
           );
 
+          // Collect all source message IDs from cluster
+          const allSourceMessageIds = cluster.reduce((acc, mem) => {
+            if (mem.sourceMessageId) acc.push(mem.sourceMessageId);
+            if (mem.sourceMessageIds) acc.push(...mem.sourceMessageIds);
+            return acc;
+          }, [] as Id<"messages">[]);
+
+          // Dedupe
+          const uniqueIds = [...new Set(allSourceMessageIds)];
+
           // Insert new atomic memory
           await ctx.runMutation(internal.memories.create, {
             userId: cluster[0].userId,
             content: consolidated.content,
             embedding: embeddingResult.embedding,
+            sourceMessageIds: uniqueIds.length > 0 ? uniqueIds : undefined,
             metadata: {
               category: consolidated.category,
               importance: consolidated.importance,
@@ -703,7 +781,7 @@ ${cluster
               extractedAt: Date.now(),
               sourceConversationId: cluster[0].conversationId,
             },
-          });
+          } as any);
 
           createdCount++;
         }

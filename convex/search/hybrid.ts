@@ -9,7 +9,7 @@ import type { Doc } from "../_generated/dataModel";
 /**
  * Hybrid search using RRF (Reciprocal Rank Fusion)
  * Combines full-text + vector search
- * Falls back to full-text only if hybrid search is disabled
+ * Always uses hybrid search (both FTS and semantic)
  */
 export const hybridSearch = action({
   args: {
@@ -37,12 +37,7 @@ export const hybridSearch = action({
       limit: 40, // Fetch more for RRF merging
     });
 
-    // 2. If hybrid search disabled, return text-only results
-    if (!user.preferences.enableHybridSearch) {
-      return textResults.slice(0, limit);
-    }
-
-    // 3. Vector search (only if enabled)
+    // 2. Vector search (always enabled for hybrid search)
     try {
       const { embedding } = await embed({
         model: openai.embedding("text-embedding-3-small"),
@@ -59,7 +54,7 @@ export const hybridSearch = action({
         limit: 40,
       });
 
-      // 4. RRF merge
+      // 3. RRF merge
       return mergeWithRRF(textResults, vectorResults, limit);
     } catch (error) {
       console.error("Vector search failed, falling back to text-only:", error);

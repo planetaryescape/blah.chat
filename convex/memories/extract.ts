@@ -343,6 +343,7 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
           content: fact.content,
           embedding: embedding,
           conversationId: args.conversationId,
+          sourceMessageIds: unextractedMessages.map((m) => m._id),
           metadata: {
             category: fact.category,
             importance: fact.importance,
@@ -355,7 +356,7 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
             extractedAt: extractedAt,
             sourceConversationId: args.conversationId,
           },
-        });
+        } as any);
 
         storedCount++;
       }

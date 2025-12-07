@@ -1,14 +1,14 @@
 // @ts-nocheck
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
-  mutation,
-  query,
   internalMutation,
   internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
-import { getCurrentUserOrCreate, getCurrentUser } from "./lib/userSync";
+import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 export const create = mutation({
   args: {
@@ -699,6 +699,90 @@ export const bulkArchive = mutation({
     }
 
     return { archivedCount: args.conversationIds.length };
+  },
+});
+
+export const bulkPin = mutation({
+  args: { conversationIds: v.array(v.id("conversations")) },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    for (const convId of args.conversationIds) {
+      const conv = await ctx.db.get(convId);
+      if (!conv || conv.userId !== user._id) {
+        throw new Error("Unauthorized or not found");
+      }
+
+      await ctx.db.patch(convId, {
+        pinned: true,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { pinnedCount: args.conversationIds.length };
+  },
+});
+
+export const bulkUnpin = mutation({
+  args: { conversationIds: v.array(v.id("conversations")) },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    for (const convId of args.conversationIds) {
+      const conv = await ctx.db.get(convId);
+      if (!conv || conv.userId !== user._id) {
+        throw new Error("Unauthorized or not found");
+      }
+
+      await ctx.db.patch(convId, {
+        pinned: false,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { unpinnedCount: args.conversationIds.length };
+  },
+});
+
+export const bulkStar = mutation({
+  args: { conversationIds: v.array(v.id("conversations")) },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    for (const convId of args.conversationIds) {
+      const conv = await ctx.db.get(convId);
+      if (!conv || conv.userId !== user._id) {
+        throw new Error("Unauthorized or not found");
+      }
+
+      await ctx.db.patch(convId, {
+        starred: true,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { starredCount: args.conversationIds.length };
+  },
+});
+
+export const bulkUnstar = mutation({
+  args: { conversationIds: v.array(v.id("conversations")) },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    for (const convId of args.conversationIds) {
+      const conv = await ctx.db.get(convId);
+      if (!conv || conv.userId !== user._id) {
+        throw new Error("Unauthorized or not found");
+      }
+
+      await ctx.db.patch(convId, {
+        starred: false,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { unstarredCount: args.conversationIds.length };
   },
 });
 

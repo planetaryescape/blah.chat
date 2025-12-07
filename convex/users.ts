@@ -130,6 +130,13 @@ export const updatePreferences = mutation({
           v.literal("groq"),
         ),
       ),
+      reasoning: v.optional(
+        v.object({
+          showByDefault: v.optional(v.boolean()),
+          autoExpand: v.optional(v.boolean()),
+          showDuringStreaming: v.optional(v.boolean()),
+        }),
+      ),
     }),
   },
   handler: async (ctx, args) => {

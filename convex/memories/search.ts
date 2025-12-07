@@ -92,6 +92,62 @@ Response:`;
   }
 }
 
+// Get identity memories (always injected, no query needed)
+export const getIdentityMemories = internalQuery({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    const identityCategories = ["identity", "preference", "relationship"];
+    const now = Date.now();
+
+    // Fetch all memories for user, then filter in JavaScript
+    // (Convex FilterBuilder doesn't support isNull checks)
+    const allMemories = await ctx.db
+      .query("memories")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Filter by quality and category
+    const filtered = allMemories.filter((m) => {
+      // Skip low confidence
+      if (m.metadata?.confidence && m.metadata.confidence < MIN_CONFIDENCE) {
+        return false;
+      }
+
+      // Skip expired
+      if (m.metadata?.expiresAt && m.metadata.expiresAt < now) {
+        return false;
+      }
+
+      // Skip superseded
+      if (m.metadata?.supersededBy) {
+        return false;
+      }
+
+      // Only identity categories
+      if (
+        !m.metadata?.category ||
+        !identityCategories.includes(m.metadata.category)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Take limit
+    const limited = filtered.slice(0, limit);
+
+    console.log(
+      `[Identity] Loaded ${limited.length} identity memories (from ${allMemories.length} total)`,
+    );
+    return limited;
+  },
+});
+
 // Keyword search using search index
 export const keywordSearch = internalQuery({
   args: {
@@ -147,7 +203,11 @@ export const vectorSearch = internalAction({
           });
           return memory;
         }),
-      ).then((mems) => mems.filter((m: Doc<"memories"> | null): m is Doc<"memories"> => m !== null));
+      ).then((mems) =>
+        mems.filter(
+          (m: Doc<"memories"> | null): m is Doc<"memories"> => m !== null,
+        ),
+      );
 
       // Client-side category filter if needed
       if (args.category) {

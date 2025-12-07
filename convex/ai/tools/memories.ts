@@ -1,4 +1,5 @@
 import { tool } from "ai";
+import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -9,30 +10,28 @@ import type { Id } from "../../_generated/dataModel";
  */
 export function createMemorySearchTool(ctx: ActionCtx, userId: Id<"users">) {
   return tool({
-    description:
-      "Search user's memory bank for relevant context. Use when user references past conversations, preferences, or specific details not in current context.",
-    parameters: {
-      $schema: "http://json-schema.org/draft-07/schema#" as const,
-      type: "object" as const,
-      properties: {
-        query: {
-          type: "string" as const,
-          description: "Search query (keywords or semantic meaning)",
-        },
-        category: {
-          type: "string" as const,
-          enum: ["preference", "fact", "relationship", "goal", "context"] as const,
-          description: "Memory category to filter by",
-        },
-        limit: {
-          type: "number" as const,
-          description: "Max results to return",
-          default: 5,
-        },
-      },
-      required: ["query"] as const,
-      additionalProperties: false as const,
-    },
+    description: `Retrieve past conversation facts and context from memory bank. Call when user asks about:
+- Past discussions: "What did I say about X?", "the project I mentioned"
+- Specific facts/events: "When did I...", "What was the result of..."
+- Project/goal details: "What are the specs for...", "How did we decide to..."
+
+DO NOT call for:
+- User's identity, name, preferences, relationships (already provided in system prompt)
+- General knowledge questions (use your training)
+- Greetings, confirmations, simple chit-chat
+
+Multi-turn usage: You can call this tool multiple times to refine/clarify results if needed.
+
+Categories: fact=events/decisions, context=discussions, goal=objectives, project=work details.
+Preference/identity/relationship memories are pre-loaded.`,
+    inputSchema: z.object({
+      query: z.string().describe("Search query (keywords or semantic meaning)"),
+      category: z
+        .enum(["preference", "fact", "relationship", "goal", "context"])
+        .optional()
+        .describe("Memory category to filter by"),
+      limit: z.number().optional().default(5).describe("Max results to return"),
+    }),
     // @ts-ignore - Convex internal API + AI SDK type inference causes "excessively deep" errors
     execute: async (input) => {
       const { query, category, limit = 5 } = input;
@@ -49,24 +48,24 @@ export function createMemorySearchTool(ctx: ActionCtx, userId: Id<"users">) {
         );
 
         if (memories.length === 0) {
-          return JSON.stringify({ found: 0, memories: [] });
+          return { found: 0, memories: [] };
         }
 
-        return JSON.stringify({
+        return {
           found: memories.length,
           memories: memories.map((m: any) => ({
             content: m.content,
             category: m.metadata?.category || "context",
             importance: m.metadata?.importance || 0,
           })),
-        });
+        };
       } catch (error) {
         console.error("[Tool] Memory search failed:", error);
-        return JSON.stringify({
+        // Return empty results for graceful degradation
+        return {
           found: 0,
           memories: [],
-          error: "Failed to search memories",
-        });
+        };
       }
     },
   });

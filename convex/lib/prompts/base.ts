@@ -4,7 +4,9 @@ interface BasePromptOptions {
   hasVision: boolean;
   hasThinking: boolean;
   hasExtendedThinking: boolean;
+  hasFunctionCalling: boolean;
   provider: string;
+  prefetchedMemories: string | null;
 }
 
 export function getBasePrompt(options: BasePromptOptions): string {
@@ -21,9 +23,33 @@ export function getBasePrompt(options: BasePromptOptions): string {
 ${capabilities}
 
 ## Memory System
-- Access to long-term memories from past conversations
-- Memories retrieved by relevance to current context
-- Reference naturally when helpful, don't force
+- **Auto-loaded**: Your identity memories (user's name, preferences, relationships) are always provided
+
+${
+  options.hasFunctionCalling
+    ? `- **On-demand tool**: Use searchMemories tool for past conversation context
+
+### When to call searchMemories:
+1. User explicitly references past: "What did I say about...", "Remember when..."
+2. User asks for project/goal details not in identity memories
+3. User asks about events, decisions, or prior conversation context
+
+### When NOT to call:
+- User's identity, name, preferences, relationships (already provided)
+- General knowledge questions (use your training)
+- Greetings, confirmations, simple responses
+
+### Examples:
+✅ "What did we discuss about the React refactor?" → searchMemories(query: "React refactor")
+✅ "What are the specs for the API project?" → searchMemories(query: "API project specs", category: "project")
+❌ "What's my name?" → Answer from identity memories (already loaded)
+❌ "Hello!" → Simple greeting (no search needed)`
+    : options.prefetchedMemories
+      ? `- **Pre-loaded context**: Relevant memories from past conversations (no tool available)
+
+Note: These are pre-fetched based on your current message. You cannot search for additional memories.`
+      : "- No additional memory context available for this model"
+}
 
 ## Tone
 - Conversational and genuine
@@ -65,7 +91,7 @@ function getProviderOptimizations(provider: string): string {
 
 export function buildBasePromptOptions(
   modelConfig: ModelConfig,
-): BasePromptOptions {
+): Omit<BasePromptOptions, "hasFunctionCalling" | "prefetchedMemories"> {
   return {
     hasVision: modelConfig.capabilities.includes("vision"),
     hasThinking: modelConfig.capabilities.includes("thinking"),

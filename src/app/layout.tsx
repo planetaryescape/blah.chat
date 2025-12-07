@@ -1,8 +1,10 @@
 import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
+import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import "@/styles/math.css";
@@ -171,8 +173,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Toaster />
+            <AnalyticsProvider>
+              <NuqsAdapter>{children}</NuqsAdapter>
+              <Toaster />
+            </AnalyticsProvider>
           </ThemeProvider>
         </ConvexClerkProvider>
       </body>

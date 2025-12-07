@@ -6,34 +6,94 @@ import { NoteFilters } from "@/components/notes/NoteFilters";
 import { NoteList } from "@/components/notes/NoteList";
 import { NoteListSkeleton } from "@/components/notes/NoteListSkeleton";
 import { NoteSearch } from "@/components/notes/NoteSearch";
+import { TagManagement } from "@/components/notes/TagManagement";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  useQueryState,
+  parseAsString,
+  parseAsBoolean,
+  parseAsArrayOf,
+  parseAsStringEnum,
+} from "nuqs";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-export default function NotesPage() {
-  const [selectedNoteId, setSelectedNoteId] = useState<Id<"notes"> | null>(
-    null,
+function NotesPageContent() {
+  // URL-persisted state
+  const [filterPinned, setFilterPinned] = useQueryState(
+    "pinned",
+    parseAsBoolean.withDefault(false),
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterPinned, setFilterPinned] = useState(false);
+
+  const [selectedTags, setSelectedTags] = useQueryState(
+    "tags",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+
+  const [tagFilterMode, setTagFilterMode] = useQueryState(
+    "mode",
+    parseAsStringEnum(["AND", "OR"]).withDefault("AND"),
+  );
+
+  // Search with debouncing
+  const [searchParam, setSearchParam] = useQueryState(
+    "q",
+    parseAsString.withDefault(""),
+  );
+  const searchQuery = useDebounce(searchParam, 300);
+
+  // Note ID with type casting for Convex
+  const [noteIdParam, setNoteIdParam] = useQueryState(
+    "note",
+    parseAsString.withDefault(""),
+  );
+
+  const selectedNoteId = useMemo(() => {
+    return noteIdParam ? (noteIdParam as Id<"notes">) : null;
+  }, [noteIdParam]);
+
+  const setSelectedNoteId = useCallback(
+    (id: Id<"notes"> | null) => {
+      setNoteIdParam(id || "");
+    },
+    [setNoteIdParam],
+  );
+
+  // Local state (not shareable)
   const [mobileView, setMobileView] = useState<"list" | "editor">("list");
 
   const { isMobile } = useMobileDetect();
 
   // @ts-ignore - Convex type instantiation depth issue
   const notes = useQuery(api.notes.searchNotes, {
-    searchQuery,
+    searchQuery, // Debounced searchParam
     filterPinned: filterPinned || undefined,
+    filterTags: selectedTags.length > 0 ? selectedTags : undefined,
+    tagFilterMode,
   });
 
   // @ts-ignore - Convex type instantiation depth issue
   const createNote = useMutation(api.notes.createNote);
+
+  // Validate selected note exists
+  const selectedNote = useMemo(() => {
+    if (!selectedNoteId || !notes) return null;
+    return notes.find((n) => n._id === selectedNoteId);
+  }, [selectedNoteId, notes]);
+
+  // Clear invalid selection from URL
+  useEffect(() => {
+    if (selectedNoteId && notes && !selectedNote) {
+      setSelectedNoteId(null);
+    }
+  }, [selectedNoteId, notes, selectedNote, setSelectedNoteId]);
 
   // Create new note handler
   const createNewNote = async () => {
@@ -55,7 +115,7 @@ export default function NotesPage() {
   useEffect(() => {
     const handleNewNote = () => createNewNote();
     const handleClearSelection = () => {
-      setSelectedNoteId(null);
+      setSelectedNoteId(null); // Clears from URL
       if (isMobile) setMobileView("list");
     };
 
@@ -66,7 +126,7 @@ export default function NotesPage() {
       window.removeEventListener("create-new-note", handleNewNote);
       window.removeEventListener("clear-note-selection", handleClearSelection);
     };
-  }, [isMobile]);
+  }, [isMobile, setSelectedNoteId]);
 
   // Handle note selection
   const handleNoteSelect = (noteId: Id<"notes">) => {
@@ -101,14 +161,18 @@ export default function NotesPage() {
               </div>
 
               <NoteSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onClear={() => setSearchQuery("")}
+                value={searchParam}
+                onChange={setSearchParam}
+                onClear={() => setSearchParam("")}
               />
 
               <NoteFilters
                 filterPinned={filterPinned}
                 onTogglePinned={() => setFilterPinned(!filterPinned)}
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+                tagFilterMode={tagFilterMode}
+                onTagFilterModeChange={setTagFilterMode}
               />
 
               <p className="text-sm text-muted-foreground">
@@ -123,7 +187,7 @@ export default function NotesPage() {
             {notes === undefined ? (
               <NoteListSkeleton />
             ) : notes.length === 0 ? (
-              searchQuery || filterPinned ? (
+              searchParam || filterPinned || selectedTags.length > 0 ? (
                 <EmptyState variant="no-results" />
               ) : (
                 <EmptyState variant="no-notes" onCreateNote={createNewNote} />
@@ -154,8 +218,8 @@ export default function NotesPage() {
             </Button>
           </div>
           <div className="flex-1 overflow-hidden">
-            {selectedNoteId ? (
-              <NoteEditor noteId={selectedNoteId} />
+            {selectedNote?._id ? (
+              <NoteEditor noteId={selectedNote._id} />
             ) : (
               <EmptyState variant="no-selection" onCreateNote={createNewNote} />
             )}
@@ -185,21 +249,27 @@ export default function NotesPage() {
           </div>
 
           <NoteSearch
-            value={searchQuery}
-            onChange={setSearchQuery}
-            onClear={() => setSearchQuery("")}
+            value={searchParam}
+            onChange={setSearchParam}
+            onClear={() => setSearchParam("")}
           />
 
           <NoteFilters
             filterPinned={filterPinned}
             onTogglePinned={() => setFilterPinned(!filterPinned)}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            tagFilterMode={tagFilterMode}
+            onTagFilterModeChange={setTagFilterMode}
           />
+
+          <TagManagement />
 
           <p className="text-sm text-muted-foreground">
             {notes ? (
               `${notes.length} ${notes.length === 1 ? "note" : "notes"}`
             ) : (
-               <Skeleton className="h-4 w-20 inline-block" />
+              <Skeleton className="h-4 w-20 inline-block" />
             )}
           </p>
         </div>
@@ -208,7 +278,7 @@ export default function NotesPage() {
           {notes === undefined ? (
             <NoteListSkeleton />
           ) : notes.length === 0 ? (
-            searchQuery || filterPinned ? (
+            searchParam || filterPinned || selectedTags.length > 0 ? (
               <EmptyState variant="no-results" />
             ) : (
               <EmptyState variant="no-notes" onCreateNote={createNewNote} />
@@ -225,12 +295,20 @@ export default function NotesPage() {
 
       {/* Main Content: Editor or Empty State */}
       <main className="flex-1">
-        {selectedNoteId ? (
-          <NoteEditor noteId={selectedNoteId} />
+        {selectedNote?._id ? (
+          <NoteEditor noteId={selectedNote._id} />
         ) : (
           <EmptyState variant="no-selection" onCreateNote={createNewNote} />
         )}
       </main>
     </div>
+  );
+}
+
+export default function NotesPage() {
+  return (
+    <Suspense fallback={<NoteListSkeleton />}>
+      <NotesPageContent />
+    </Suspense>
   );
 }

@@ -155,8 +155,8 @@ export function MarkdownContent({
   // Enhance math blocks with copy buttons (Phase 4)
   useMathCopyButtons(containerRef);
 
-  // Add ARIA accessibility to math elements (Phase 5)
-  useMathAccessibility(containerRef);
+  // Add ARIA accessibility to math elements (Phase 4C - enhanced)
+  useMathAccessibility(containerRef, isStreaming);
 
   // Show cursor while streaming OR buffer is draining
   const showCursor = isStreaming || hasBufferedContent;

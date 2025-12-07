@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "blah-chat-recent-searches";
-const MAX_RECENT_SEARCHES = 8;
+const MAX_RECENT_SEARCHES = 6;
 
 export function useRecentSearches() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);

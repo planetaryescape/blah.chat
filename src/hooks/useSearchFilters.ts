@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  useQueryStates,
+  parseAsString,
+  parseAsInteger,
+  parseAsStringLiteral,
+} from "nuqs";
 import type { Id } from "@/convex/_generated/dataModel";
 
 export interface SearchFilters {
@@ -10,48 +15,43 @@ export interface SearchFilters {
 }
 
 export function useSearchFilters() {
-  const searchParams = useSearchParams();
+  const [params, setParams] = useQueryStates({
+    conversation: parseAsString,
+    from: parseAsInteger,
+    to: parseAsInteger,
+    type: parseAsStringLiteral(["user", "assistant"] as const),
+  });
 
-  const filters = useMemo<SearchFilters>(() => {
-    const conversationParam = searchParams.get("conversation");
-    const fromParam = searchParams.get("from");
-    const toParam = searchParams.get("to");
-    const typeParam = searchParams.get("type");
-
-    return {
-      conversationId: conversationParam
-        ? (conversationParam as Id<"conversations">)
+  const filters = useMemo<SearchFilters>(
+    () => ({
+      conversationId: params.conversation
+        ? (params.conversation as Id<"conversations">)
         : undefined,
-      dateFrom: fromParam ? Number.parseInt(fromParam, 10) : undefined,
-      dateTo: toParam ? Number.parseInt(toParam, 10) : undefined,
-      messageType:
-        typeParam === "user" || typeParam === "assistant"
-          ? typeParam
-          : undefined,
-    };
-  }, [searchParams]);
+      dateFrom: params.from ?? undefined,
+      dateTo: params.to ?? undefined,
+      messageType: params.type ?? undefined,
+    }),
+    [params],
+  );
 
   const setFilter = (key: keyof SearchFilters, value: string | null) => {
-    const params = new URLSearchParams(searchParams.toString());
+    // Map filter keys to URL param keys
+    const paramKey = {
+      conversationId: "conversation",
+      dateFrom: "from",
+      dateTo: "to",
+      messageType: "type",
+    }[key] as "conversation" | "from" | "to" | "type";
 
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-
-    // Update URL without full page reload
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    window.history.pushState({}, "", newUrl);
+    setParams({ [paramKey]: value });
   };
 
   const clearFilters = () => {
-    const newUrl = window.location.pathname;
-    window.history.pushState({}, "", newUrl);
+    setParams({ conversation: null, from: null, to: null, type: null });
   };
 
-  const hasActiveFilters = Object.values(filters).some(
-    (value) => value !== undefined,
+  const hasActiveFilters = Object.values(params).some(
+    (value) => value !== null,
   );
 
   return {

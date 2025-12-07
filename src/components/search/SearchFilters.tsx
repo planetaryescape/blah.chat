@@ -1,32 +1,15 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import {
-  X,
-  Plus,
-  Info,
-  Sparkles,
-  Calendar,
-  User,
-  Bot,
-  MessageSquare,
-  Pin,
-} from "lucide-react";
+import { X, Plus, Calendar, User, Bot, MessageSquare, Pin } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -80,10 +63,6 @@ export function SearchFilters({
   hasActiveFilters,
   onFilterChange,
 }: SearchFiltersProps) {
-  // @ts-ignore - Convex nested types cause "excessively deep" error - ignore, no actual issue
-  const currentUser = useQuery(api.users.getCurrentUser);
-  const updatePreferences = useMutation(api.users.updatePreferences);
-
   const [conversationSearch, setConversationSearch] = useState("");
   const debouncedSearch = useDebouncedValue(conversationSearch, 300);
 
@@ -97,21 +76,6 @@ export function SearchFilters({
   const [messageType, setMessageType] = useState<string>(
     filters.messageType || "all",
   );
-
-  const enableHybridSearch =
-    currentUser?.preferences?.enableHybridSearch ?? false;
-
-  const handleToggleHybrid = async (checked: boolean) => {
-    try {
-      await updatePreferences({
-        preferences: {
-          enableHybridSearch: checked,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to update hybrid search preference:", error);
-    }
-  };
 
   const handleDatePresetChange = (value: string) => {
     setDatePreset(value);
@@ -154,57 +118,35 @@ export function SearchFilters({
     }
   };
 
+  // Count active filters for badge
+  const activeFiltersCount = [
+    filters.conversationId,
+    filters.dateFrom,
+    filters.messageType,
+  ].filter(Boolean).length;
+
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
-      {/* Active filter chips + Add filter button */}
+      {/* Filter button + Active chips */}
       <div className="flex items-center gap-2 flex-wrap flex-1">
-        {hasActiveFilters && (
-          <>
-            {filters.conversationId && (
-              <FilterChip
-                label="Conversation"
-                value={
-                  conversations?.find(
-                    (c: any) => c._id === filters.conversationId,
-                  )?.title || "Unknown"
-                }
-                onRemove={() => onClearFilters()}
-              />
-            )}
-            {filters.dateFrom && (
-              <FilterChip
-                label="Date Range"
-                value="Custom"
-                onRemove={() => onClearFilters()}
-              />
-            )}
-            {filters.messageType && (
-              <FilterChip
-                label="Type"
-                value={
-                  filters.messageType === "user"
-                    ? "User Messages"
-                    : "AI Responses"
-                }
-                onRemove={() => onClearFilters()}
-              />
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearFilters}
-              className="h-7 text-xs"
-            >
-              Clear all
-            </Button>
-          </>
-        )}
-
+        {/* Add filter button (now first in DOM order) */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-7 text-xs">
-              <Plus className="w-3 h-3 mr-1" />
-              Add filter
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 whitespace-nowrap h-7 text-xs"
+            >
+              <Plus className="w-3 h-3" />
+              Filters
+              {activeFiltersCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1 h-5 min-w-5 px-1.5 text-[10px]"
+                >
+                  {activeFiltersCount}
+                </Badge>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-4" align="start" side="bottom">
@@ -375,44 +317,54 @@ export function SearchFilters({
             </div>
           </PopoverContent>
         </Popover>
-      </div>
 
-      {/* Hybrid search toggle */}
-      <TooltipProvider>
-        <Tooltip>
-          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1.5 border border-border/40">
-            <Sparkles
-              className={cn(
-                "w-4 h-4 transition-colors",
-                enableHybridSearch
-                  ? "text-primary animate-pulse"
-                  : "text-muted-foreground",
+        {/* Active filter chips (after button with separator) */}
+        {activeFiltersCount > 0 && (
+          <>
+            <div className="h-6 w-px bg-border" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Active:</span>
+              {filters.conversationId && (
+                <FilterChip
+                  label="Conversation"
+                  value={
+                    conversations?.find(
+                      (c: any) => c._id === filters.conversationId,
+                    )?.title || "Unknown"
+                  }
+                  onRemove={() => onClearFilters()}
+                />
               )}
-            />
-            <Label
-              htmlFor="hybrid-toggle"
-              className="text-xs font-medium cursor-pointer"
-            >
-              Hybrid
-            </Label>
-            <Switch
-              id="hybrid-toggle"
-              checked={enableHybridSearch}
-              onCheckedChange={handleToggleHybrid}
-              className="scale-75"
-            />
-            <TooltipTrigger asChild>
-              <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
-          </div>
-          <TooltipContent>
-            <p className="max-w-xs text-xs">
-              Combines keyword search with AI-powered semantic search for better
-              results
-            </p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+              {filters.dateFrom && (
+                <FilterChip
+                  label="Date Range"
+                  value="Custom"
+                  onRemove={() => onClearFilters()}
+                />
+              )}
+              {filters.messageType && (
+                <FilterChip
+                  label="Type"
+                  value={
+                    filters.messageType === "user"
+                      ? "User Messages"
+                      : "AI Responses"
+                  }
+                  onRemove={() => onClearFilters()}
+                />
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearFilters}
+                className="h-7 text-xs"
+              >
+                Clear all
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

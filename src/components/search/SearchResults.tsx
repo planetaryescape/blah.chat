@@ -243,7 +243,7 @@ function SearchResultCard({
 
         {/* Card content */}
         <Link
-          href={`/chat/${message.conversationId}`}
+          href={`/chat/${message.conversationId}?messageId=${message._id}#message-${message._id}`}
           className="flex-1 min-w-0"
         >
           <div className="flex items-start justify-between mb-3">

@@ -22,9 +22,9 @@ export function NoteListItem({ note, isSelected, onClick }: NoteListItemProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+      className={`w-full text-left p-3 border-b border-border/40 transition-colors duration-200 ${
         isSelected
-          ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
+          ? "bg-primary/5 text-primary"
           : "hover:bg-muted/50 text-foreground"
       }`}
     >

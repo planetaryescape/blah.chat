@@ -20,6 +20,7 @@ import {
   List,
   ListOrdered,
   Redo,
+  Sigma,
   Undo,
 } from "lucide-react";
 
@@ -79,6 +80,22 @@ export function NoteToolbar({ editor }: NoteToolbarProps) {
     const url = window.prompt("Enter URL:");
     if (url) {
       editor.chain().focus().setLink({ href: url }).run();
+    }
+  };
+
+  const addMath = () => {
+    const latex = window.prompt("Enter LaTeX formula (e.g., E = mc^2):");
+    if (latex) {
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "mathematics",
+          attrs: {
+            latex,
+          },
+        })
+        .run();
     }
   };
 
@@ -174,6 +191,13 @@ export function NoteToolbar({ editor }: NoteToolbarProps) {
             icon={<Code2 className="h-4 w-4" />}
             tooltip="Code Block"
             shortcut="⌘⌥C"
+          />
+          <ToolbarButton
+            onClick={addMath}
+            isActive={editor.isActive("mathematics")}
+            icon={<Sigma className="h-4 w-4" />}
+            tooltip="Math/LaTeX"
+            shortcut="⌘M"
           />
         </div>
 

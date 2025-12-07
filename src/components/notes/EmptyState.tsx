@@ -34,12 +34,17 @@ export function EmptyState({
               Start Your Collection
             </h3>
             <p className="text-muted-foreground text-balance">
-              Capture ideas, save important snippets, or start writing your next masterpiece.
+              Capture ideas, save important snippets, or start writing your next
+              masterpiece.
             </p>
           </div>
 
           {onCreateNote && (
-            <Button onClick={onCreateNote} size="lg" className="rounded-full px-8 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
+            <Button
+              onClick={onCreateNote}
+              size="lg"
+              className="rounded-full px-8 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+            >
               <PenLine className="mr-2 h-4 w-4" />
               Create First Note
             </Button>
@@ -96,19 +101,25 @@ export function EmptyState({
             Select a note to view
           </h2>
           <p className="text-muted-foreground text-lg text-balance leading-relaxed">
-            Choose a note from the sidebar to start editing, or create a new one to capture your thoughts.
+            Choose a note from the sidebar to start editing, or create a new one
+            to capture your thoughts.
           </p>
         </div>
 
         <div className="pt-4">
-           {onCreateNote ? (
-             <Button onClick={onCreateNote} size="lg" variant="outline" className="rounded-full px-8 border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all duration-300">
+          {onCreateNote ? (
+            <Button
+              onClick={onCreateNote}
+              size="lg"
+              variant="outline"
+              className="rounded-full px-8 border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all duration-300"
+            >
               <PenLine className="mr-2 h-4 w-4" />
               Create New Note
             </Button>
-           ) : (
-             <div className="h-8" />
-           )}
+          ) : (
+            <div className="h-8" />
+          )}
         </div>
       </motion.div>
     </div>

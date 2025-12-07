@@ -51,13 +51,44 @@ interface AnalyticsEvent {
     hasPassword?: boolean;
     expiresIn?: number;
   };
+  note_shared: {
+    hasPassword?: boolean;
+    expiresIn?: number;
+  };
   search_performed: {
     type: "keyword" | "semantic" | "hybrid";
     resultCount: number;
   };
+  conversation_action: {
+    action:
+      | "delete"
+      | "archive"
+      | "pin"
+      | "unpin"
+      | "star"
+      | "unstar"
+      | "auto_rename";
+    source: "command_palette" | "header_menu" | "sidebar";
+    conversationId: string;
+  };
   error_occurred: {
     error: string;
     context?: string;
+  };
+  math_rendered: {
+    displayMode: boolean;
+    equationLength: number;
+    renderTimeMs?: number;
+    isStreaming: boolean;
+  };
+  math_error: {
+    error: string;
+    latexSnippet: string; // First 100 chars
+    isStreaming: boolean;
+  };
+  math_copied: {
+    format: "latex" | "html" | "both";
+    equationLength: number;
   };
 }
 

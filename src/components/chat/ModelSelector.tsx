@@ -2,22 +2,22 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-    getModelConfig,
-    getModelsByProvider,
-    type ModelConfig,
+  getModelConfig,
+  getModelsByProvider,
+  type ModelConfig,
 } from "@/lib/ai/models";
 import { getOllamaModelConfigs } from "@/lib/ai/ollama";
 import { cn } from "@/lib/utils";

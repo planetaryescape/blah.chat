@@ -119,7 +119,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     description: "Most capable Claude for complex tasks",
     contextWindow: 200000,
     pricing: { input: 15.0, output: 75.0, cached: 1.5 },
-    capabilities: ["vision", "thinking", "extended-thinking"],
+    capabilities: [
+      "vision",
+      "function-calling",
+      "thinking",
+      "extended-thinking",
+    ],
     reasoning: {
       type: "anthropic-extended-thinking",
       budgetMapping: { low: 5000, medium: 15000, high: 30000 },
@@ -133,7 +138,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     description: "Balanced performance and speed",
     contextWindow: 200000,
     pricing: { input: 3.0, output: 15.0, cached: 0.3 },
-    capabilities: ["vision", "thinking", "extended-thinking"],
+    capabilities: [
+      "vision",
+      "function-calling",
+      "thinking",
+      "extended-thinking",
+    ],
     reasoning: {
       type: "anthropic-extended-thinking",
       budgetMapping: { low: 5000, medium: 15000, high: 30000 },

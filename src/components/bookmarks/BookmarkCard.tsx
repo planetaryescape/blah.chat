@@ -34,7 +34,9 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
 
   const handleNavigate = () => {
     if (bookmark.conversation) {
-      router.push(`/chat/${bookmark.conversationId}`);
+      router.push(
+        `/chat/${bookmark.conversationId}?messageId=${bookmark.messageId}`,
+      );
     }
   };
 

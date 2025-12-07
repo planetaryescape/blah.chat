@@ -1,10 +1,14 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Component, type ReactNode } from "react";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import { Streamdown } from "streamdown";
-import { CodeBlock } from "./CodeBlock";
+import { cn } from "@/lib/utils";
+import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
+import { CodeBlock } from "./CodeBlock";
+import { MathBlock } from "./MathBlock";
 
 interface CodeBlockErrorBoundaryProps {
   children: ReactNode;
@@ -68,6 +72,27 @@ interface MarkdownContentProps {
 }
 
 /**
+ * KaTeX configuration for rehype-katex plugin
+ * Note: displayMode and throwOnError are omitted (handled by rehype-katex)
+ * Chemistry notation (\ce, \pu) enabled via mhchem import above
+ */
+const katexOptions = {
+  errorColor: "hsl(var(--destructive))",
+  output: "mathml" as const, // Accessibility via MathML
+  strict: "warn" as const, // Warn on unsupported commands
+  // Common math shortcuts
+  macros: {
+    "\\RR": "\\mathbb{R}",
+    "\\NN": "\\mathbb{N}",
+    "\\ZZ": "\\mathbb{Z}",
+    "\\QQ": "\\mathbb{Q}",
+    "\\CC": "\\mathbb{C}",
+    "\\abs": "\\left|#1\\right|",
+    "\\norm": "\\left\\|#1\\right\\|",
+  },
+};
+
+/**
  * Standard components for Streamdown - no animation classes
  * Animation is handled by character-level reveal in useStreamBuffer
  */
@@ -92,6 +117,25 @@ const markdownComponents = {
       <CodeBlockErrorBoundary code={code} language={language}>
         <CodeBlock code={code} language={language} />
       </CodeBlockErrorBoundary>
+    );
+  },
+
+  // Custom math renderer with copy-to-clipboard
+  math: ({
+    value,
+    displayMode,
+    children,
+  }: {
+    value?: string;
+    displayMode?: boolean;
+    children?: ReactNode;
+  }) => {
+    return (
+      <MathBlock
+        source={value || ""}
+        rendered={children}
+        displayMode={displayMode}
+      />
     );
   },
 };
@@ -124,7 +168,13 @@ export function MarkdownContent({
 
   return (
     <div className={cn("markdown-content prose", showCursor && "streaming")}>
-      <Streamdown children={displayContent} components={markdownComponents} />
+      <Streamdown
+        components={markdownComponents}
+        remarkPlugins={[[remarkMath, { singleDollarTextMath: false }]]}
+        rehypePlugins={[[rehypeKatex, katexOptions]]}
+      >
+        {displayContent}
+      </Streamdown>
       {showCursor && <span className="streaming-cursor" aria-hidden="true" />}
     </div>
   );

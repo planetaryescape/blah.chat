@@ -3,6 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
@@ -108,23 +113,37 @@ export function ComparisonView({
           )}
           <div className="flex items-center gap-1 ml-auto">
             {!hideConsolidateButton && (
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={onToggleModelNames}
-                className="h-8 w-8"
-              >
-                {showModelNames ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={onToggleModelNames}
+                    className="h-8 w-8"
+                  >
+                    {showModelNames ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{showModelNames ? "Hide" : "Show"} model names</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {onExit && (
-              <Button size="icon" variant="ghost" onClick={onExit}>
-                <X className="w-4 h-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="ghost" onClick={onExit}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Exit comparison (Esc)</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>

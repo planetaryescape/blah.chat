@@ -406,13 +406,15 @@ export const branchFromMessage = mutation({
     );
     const messagesToCopy = sortedMessages.slice(0, branchIndex + 1);
 
-    // Create new conversation
+    // Create new conversation with parent references
     const newConversationId = await ctx.runMutation(
       internal.conversations.createInternal,
       {
         userId: user._id,
         model: sourceConversation.model,
         title: args.title || `Branch from: ${sourceConversation.title}`,
+        parentConversationId: sourceMessage.conversationId,
+        parentMessageId: args.messageId,
       },
     );
 

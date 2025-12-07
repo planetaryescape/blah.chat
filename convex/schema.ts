@@ -90,11 +90,15 @@ export default defineSchema({
     ),
     messageCount: v.optional(v.number()),
     lastMessageAt: v.number(),
+    // Branching support
+    parentConversationId: v.optional(v.id("conversations")),
+    parentMessageId: v.optional(v.id("messages")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_parent_conversation", ["parentConversationId"])
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "archived"],

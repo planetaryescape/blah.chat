@@ -1,42 +1,43 @@
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { Button } from "@/components/ui/button";
-import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { api } from "@/convex/_generated/api";
 import { useConversationContext } from "@/contexts/ConversationContext";
+import { api } from "@/convex/_generated/api";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { UserButton } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import {
-    BarChart3,
-    Bookmark,
-    Brain,
-    FileText,
-    FolderKanban,
-    MoreHorizontal,
-    Plus,
-    Search,
-    Settings,
+  BarChart3,
+  Bookmark,
+  Brain,
+  FileText,
+  FolderKanban,
+  Keyboard,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,12 +51,13 @@ const MENU_ITEMS = [
   { icon: FileText, label: "Templates", href: "/templates" },
   { icon: BarChart3, label: "Usage", href: "/usage" },
   { icon: Bookmark, label: "Bookmarks", href: "/bookmarks" },
+  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
 export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
-  // @ts-ignore
+  // @ts-ignore - Convex type instantiation depth issue
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const router = useRouter();
@@ -89,9 +91,9 @@ export function AppSidebar() {
   }, [filteredConversations, setFilteredConversations]);
 
   // Arrow key navigation
-  const { selectedIndex, clearSelection } = useListKeyboardNavigation({
+  const { selectedIndex, clearSelection } = useListKeyboardNavigation<any>({
     items: filteredConversations || [],
-    onSelect: (conv) => {
+    onSelect: (conv: any) => {
       router.push(`/chat/${conv._id}`);
       clearSelection();
     },
@@ -103,9 +105,14 @@ export function AppSidebar() {
   const overflowItems = isMobile ? MENU_ITEMS.slice(3) : [];
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="pt-6 px-4">
-        <div className="flex items-center justify-between px-2">
+    <Sidebar
+      collapsible="icon"
+      data-tour="sidebar"
+      role="navigation"
+      aria-label="Main navigation and conversations"
+    >
+      <SidebarHeader className="pt-6 px-4 group-data-[collapsible=icon]:px-2">
+        <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           <Link
             href="/app"
             className="hidden group-data-[collapsible=icon]:hidden sm:block hover:opacity-80 transition-opacity"
@@ -128,27 +135,35 @@ export function AppSidebar() {
         <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
           <Button
             onClick={handleNewChat}
-            className="w-full bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between"
-            size="sm"
+            className="w-full bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9"
+            data-tour="new-chat"
           >
             <span className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               New Chat
             </span>
-            <ShortcutBadge keys={["mod", "shift", "N"]} />
+            <ShortcutBadge keys={["mod", "shift", "O"]} />
           </Button>
         </div>
-
       </SidebarHeader>
 
       <SidebarContent>
         <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2 group-data-[collapsible=icon]:hidden">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+          <div
+            role="search"
+            aria-label="Search conversations"
+            className="relative"
+          >
+            <Search
+              className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <Input
+              type="search"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search conversations"
               className="pl-8 h-9 text-sm bg-background/50 border-sidebar-border focus:border-primary/50 transition-colors"
             />
           </div>

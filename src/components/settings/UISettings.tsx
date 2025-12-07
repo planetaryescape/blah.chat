@@ -12,12 +12,15 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function UISettings() {
+  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePreferences = useMutation(api.users.updatePreferences);
+  const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
 
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
     useState(false);
@@ -118,6 +121,31 @@ export function UISettings() {
             checked={showModelNamesDuringComparison}
             onCheckedChange={handleShowModelNamesChange}
           />
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t">
+          <div className="space-y-0.5">
+            <Label>Onboarding Tour</Label>
+            <p className="text-sm text-muted-foreground">
+              Restart the first-time user walkthrough
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                await resetOnboarding();
+                toast.success("Tour reset! Reload to see it again.");
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } catch (error) {
+                toast.error("Failed to reset tour");
+              }
+            }}
+          >
+            Restart Tour
+          </Button>
         </div>
       </CardContent>
     </Card>

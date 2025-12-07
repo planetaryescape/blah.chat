@@ -2,16 +2,16 @@
 @layer base {
   /* Inline math - subtle highlight like inline code */
   .katex {
-    font-size: 1.05em;
+    font-size: clamp(0.95rem, 0.9rem + 0.5vw, 1.21rem);
     color: hsl(var(--primary));
   }
 
   /* Display math - distinctive background matching code blocks */
   .katex-display {
-    margin: 1.5em 0;
+    margin: clamp(1rem, 1.5vw + 0.5rem, 1.5rem) 0;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 1rem;
+    padding: clamp(0.75rem, 2vw, 1.5rem);
 
     /* Gradient background matching existing code block style */
     background: linear-gradient(
@@ -30,9 +30,9 @@
     content-visibility: auto;
   }
 
-  /* Horizontal scrollbar for long equations */
+  /* Horizontal scrollbar for long equations - responsive */
   .katex-display::-webkit-scrollbar {
-    height: 8px;
+    height: clamp(6px, 1vw, 8px);
   }
 
   .katex-display::-webkit-scrollbar-track {
@@ -49,16 +49,9 @@
     background: hsl(var(--primary) / 0.5);
   }
 
-  /* Mobile responsive */
-  @media (max-width: 640px) {
-    .katex-display {
-      padding: 0.75rem;
-      margin: 1rem 0;
-    }
-
-    .katex {
-      font-size: 1em;
-    }
+  /* Mobile optimizations - momentum scrolling */
+  .katex-display {
+    -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
   }
 
   /* Error styling - matches destructive theme */

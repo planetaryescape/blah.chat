@@ -12,6 +12,7 @@ import { EmptyScreen } from "./EmptyScreen";
 
 interface MessageListProps {
   messages: Doc<"messages">[];
+  selectedModel?: string;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -20,6 +21,7 @@ interface MessageListProps {
 
 export function MessageList({
   messages,
+  selectedModel,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -112,6 +114,7 @@ export function MessageList({
     return (
       <div className="flex items-center justify-center h-full">
         <EmptyScreen
+          selectedModel={selectedModel}
           onClick={(val) => {
             // Ideally this would populate the input, but for now we essentially do nothing or could trigger a send via a prop if we refactor MessageList to support it.
             // Since MessageList doesn't control the input, we might need to lift this up or just let the user copy.
@@ -133,6 +136,10 @@ export function MessageList({
     <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
       <div
         ref={containerRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Chat message history"
+        aria-atomic="false"
         className="flex-1 w-full min-w-0 overflow-y-auto p-4 space-y-4 relative"
         style={{
           contain: "layout style paint",
@@ -192,8 +199,9 @@ export function MessageList({
           className="absolute bottom-4 right-8 rounded-full shadow-lg transition-all duration-200 z-10"
           size="icon"
           onClick={() => scrollToBottom("smooth")}
+          aria-label="Scroll to bottom"
         >
-          <ArrowDown className="w-4 h-4" />
+          <ArrowDown className="w-4 h-4" aria-hidden="true" />
         </Button>
       )}
     </div>

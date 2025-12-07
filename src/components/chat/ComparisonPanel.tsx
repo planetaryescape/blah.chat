@@ -17,7 +17,10 @@ interface ComparisonPanelProps {
 }
 
 export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
-  ({ message, index, showModelName, onVote, isVoted, hasVoted, duration }, ref) => {
+  (
+    { message, index, showModelName, onVote, isVoted, hasVoted, duration },
+    ref,
+  ) => {
     const isGenerating = ["pending", "generating"].includes(message.status);
     const displayContent = message.partialContent || message.content || "";
     const modelName = message.model?.split(":")[1] || message.model;

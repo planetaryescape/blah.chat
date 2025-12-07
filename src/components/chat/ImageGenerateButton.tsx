@@ -12,12 +12,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { analytics } from "@/lib/analytics";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { useAction, useMutation } from "convex/react";
 import { ImageIcon, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { ModelSelector } from "./ModelSelector";
 
 interface ImageGenerateButtonProps {
   conversationId: Id<"conversations">;
@@ -38,8 +47,27 @@ export function ImageGenerateButton({
 }: ImageGenerateButtonProps) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(initialPrompt);
+  const [selectedModel, setSelectedModel] = useState(
+    "google:gemini-3-pro-image-preview",
+  );
+  const [thinkingEffort, setThinkingEffort] = useState<
+    "low" | "medium" | "high"
+  >("medium");
 
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Filter to image generation models
+  const imageModels = useMemo(
+    () =>
+      Object.values(MODEL_CONFIG).filter((m) =>
+        m.capabilities.includes("image-generation"),
+      ),
+    [],
+  );
+
+  // Check if selected model supports thinking
+  const selectedModelConfig = MODEL_CONFIG[selectedModel];
+  const supportsThinking = !!selectedModelConfig?.reasoning;
   // @ts-ignore
   const sendMessage = useMutation(api.chat.sendMessage as any);
 
@@ -57,13 +85,15 @@ export function ImageGenerateButton({
         await sendMessage({
           conversationId,
           content: prompt.trim(),
-          modelId: "google:gemini-2.0-flash-exp", // Default image gen model
+          modelId: selectedModel,
         });
       } else {
         await generateImage({
           conversationId,
           messageId,
           prompt: prompt.trim(),
+          model: selectedModel,
+          thinkingEffort: supportsThinking ? thinkingEffort : undefined,
         });
       }
 
@@ -123,6 +153,34 @@ export function ImageGenerateButton({
               }}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="model">Image Model</Label>
+            <ModelSelector
+              value={selectedModel}
+              onChange={setSelectedModel}
+              className="w-full"
+            />
+          </div>
+          {supportsThinking && (
+            <div className="space-y-2">
+              <Label htmlFor="thinking-effort">Thinking Effort</Label>
+              <Select
+                value={thinkingEffort}
+                onValueChange={(v) =>
+                  setThinkingEffort(v as "low" | "medium" | "high")
+                }
+              >
+                <SelectTrigger id="thinking-effort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low - Fast</SelectItem>
+                  <SelectItem value="medium">Medium - Balanced</SelectItem>
+                  <SelectItem value="high">High - Creative</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button

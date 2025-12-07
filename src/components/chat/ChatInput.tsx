@@ -2,6 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
@@ -31,8 +36,8 @@ import { X } from "lucide-react";
 import { ComparisonTrigger } from "./ComparisonTrigger";
 import { ModelSelector } from "./ModelSelector";
 import {
-    ThinkingEffortSelector,
-    type ThinkingEffort,
+  ThinkingEffortSelector,
+  type ThinkingEffort,
 } from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
@@ -49,6 +54,10 @@ interface ChatInputProps {
   onStartComparison?: (models: string[]) => void;
   onExitComparison?: () => void;
   isEmpty?: boolean;
+  modelSelectorOpen?: boolean;
+  onModelSelectorOpenChange?: (open: boolean) => void;
+  comparisonDialogOpen?: boolean;
+  onComparisonDialogOpenChange?: (open: boolean) => void;
 }
 
 export function ChatInput({
@@ -65,6 +74,10 @@ export function ChatInput({
   onStartComparison,
   onExitComparison,
   isEmpty = false,
+  modelSelectorOpen,
+  onModelSelectorOpenChange,
+  comparisonDialogOpen,
+  onComparisonDialogOpenChange,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -76,6 +89,9 @@ export function ChatInput({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [showRateLimitDialog, setShowRateLimitDialog] = useState(false);
+  const [lastCompletedMessageId, setLastCompletedMessageId] = useState<
+    string | null
+  >(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -86,13 +102,16 @@ export function ChatInput({
   const sendMessage = useMutation(api.chat.sendMessage);
   const stopGeneration = useMutation(api.chat.stopGeneration);
   const user = useQuery(api.users.getCurrentUser);
+  const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
+    conversationId,
+  });
 
   const isExpanded = input.length > 50;
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
   const supportsVision = modelConfig?.capabilities?.includes("vision") ?? false;
-  const supportsThinking = modelConfig?.supportsThinkingEffort ?? false;
+  const supportsThinking = !!modelConfig?.reasoning;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +152,28 @@ export function ChatInput({
       e.preventDefault();
       handleSubmit(e);
     }
+
+    // Cmd/Ctrl+$ - Insert math block template
+    if ((e.metaKey || e.ctrlKey) && e.key === "$") {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = input.substring(0, start);
+      const after = input.substring(end);
+
+      const template = "$$\n\n$$";
+      const newValue = before + template + after;
+      setInput(newValue);
+
+      // Position cursor inside math block (after $$\n)
+      setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + 3;
+      }, 0);
+    }
   };
 
   const handleStop = async (e: React.MouseEvent) => {
@@ -171,6 +212,18 @@ export function ChatInput({
     };
   }, []);
 
+  // Handle focus restoration after dialogs close (e.g., QuickModelSwitcher)
+  useEffect(() => {
+    const handleFocusInput = () => {
+      textareaRef.current?.focus();
+    };
+
+    window.addEventListener("focus-chat-input", handleFocusInput);
+    return () => {
+      window.removeEventListener("focus-chat-input", handleFocusInput);
+    };
+  }, []);
+
   // Autofocus on empty state (skip mobile/touch)
   useEffect(() => {
     if (isEmpty && !isMobile && !isTouchDevice && textareaRef.current) {
@@ -180,6 +233,25 @@ export function ChatInput({
       return () => clearTimeout(timer);
     }
   }, [isEmpty, isMobile, isTouchDevice]);
+
+  // Auto-focus input after AI message generation completes
+  useEffect(() => {
+    if (
+      !isMobile &&
+      lastAssistantMessage?.status === "complete" &&
+      lastAssistantMessage._id !== lastCompletedMessageId &&
+      document.activeElement?.tagName !== "INPUT" &&
+      document.activeElement?.tagName !== "TEXTAREA"
+    ) {
+      setLastCompletedMessageId(lastAssistantMessage._id);
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [
+    lastAssistantMessage?.status,
+    lastAssistantMessage?._id,
+    lastCompletedMessageId,
+    isMobile,
+  ]);
 
   // Dynamic placeholder based on model capabilities
   const getPlaceholder = () => {
@@ -201,13 +273,15 @@ export function ChatInput({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
+        role="search"
+        aria-label="Send message to AI"
         className={cn(
           "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
-          "bg-zinc-900/90 backdrop-blur-xl border border-white/10", // Darker, more grounded background like T3
+          "bg-background/80 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/50 dark:border-white/10", // Theme aware background
           "rounded-3xl", // More rounded
           isFocused
-            ? "shadow-glow ring-1 ring-white/10"
-            : "shadow-lg hover:shadow-xl hover:border-white/20",
+            ? "shadow-glow ring-1 ring-ring/10 dark:ring-white/10"
+            : "shadow-lg hover:shadow-xl hover:border-border/80 dark:hover:border-white/20",
         )}
       >
         {/* Attachment previews */}
@@ -245,11 +319,20 @@ export function ChatInput({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={getPlaceholder()}
+              aria-label="Message input"
+              aria-describedby="input-hint"
+              aria-multiline="true"
               className="resize-none min-h-[50px] py-3 px-2 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
               rows={1}
               disabled={isSending || uploading} // Removed isGenerating
+              data-tour="input"
             />
           )}
+
+          {/* Hidden keyboard hint */}
+          <div id="input-hint" className="sr-only">
+            Type your message. Press Enter to send, Shift+Enter for new line.
+          </div>
 
           {/* Send button & Mic (right side) */}
           <div className="pb-1.5 pr-1 flex items-center gap-1">
@@ -265,59 +348,77 @@ export function ChatInput({
             {(supportsVision ||
               (typeof window !== "undefined" &&
                 "webkitSpeechRecognition" in window)) && (
-              <VoiceInput
-                ref={voiceInputRef}
-                onTranscript={async (text, autoSend) => {
-                  setIsTranscribing(false);
-                  if (autoSend && text.trim()) {
-                    setIsSending(true);
-                    try {
-                      await sendMessage({
-                        conversationId,
-                        content: text.trim(),
-                        ...(isComparisonMode
-                          ? { models: selectedModels }
-                          : { modelId: selectedModel }),
-                        thinkingEffort,
-                        attachments:
-                          attachments.length > 0 ? attachments : undefined,
-                      });
-                      onAttachmentsChange([]);
-                    } catch (error) {
-                      if (
-                        error instanceof Error &&
-                        error.message.includes("Daily message limit")
-                      ) {
-                        setShowRateLimitDialog(true);
-                      } else {
-                        console.error("Failed to send message:", error);
-                      }
-                    } finally {
-                      setIsSending(false);
-                    }
-                  } else {
-                    setInput((prev) =>
-                      prev.trim() ? `${prev} ${text}` : text,
-                    );
-                  }
-                }}
-                onRecordingStateChange={(recording, stream) => {
-                  setIsRecording(recording);
-                  setRecordingStream(stream || null);
-                  if (!recording && stream) setIsTranscribing(true);
-                }}
-                isDisabled={isSending || uploading} // Removed isGenerating
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <VoiceInput
+                      ref={voiceInputRef}
+                      onTranscript={async (text, autoSend) => {
+                        setIsTranscribing(false);
+                        if (autoSend && text.trim()) {
+                          setIsSending(true);
+                          try {
+                            await sendMessage({
+                              conversationId,
+                              content: text.trim(),
+                              ...(isComparisonMode
+                                ? { models: selectedModels }
+                                : { modelId: selectedModel }),
+                              thinkingEffort,
+                              attachments:
+                                attachments.length > 0
+                                  ? attachments
+                                  : undefined,
+                            });
+                            onAttachmentsChange([]);
+                          } catch (error) {
+                            if (
+                              error instanceof Error &&
+                              error.message.includes("Daily message limit")
+                            ) {
+                              setShowRateLimitDialog(true);
+                            } else {
+                              console.error("Failed to send message:", error);
+                            }
+                          } finally {
+                            setIsSending(false);
+                          }
+                        } else {
+                          setInput((prev) =>
+                            prev.trim() ? `${prev} ${text}` : text,
+                          );
+                        }
+                      }}
+                      onRecordingStateChange={(recording, stream) => {
+                        setIsRecording(recording);
+                        setRecordingStream(stream || null);
+                        if (!recording && stream) setIsTranscribing(true);
+                      }}
+                      isDisabled={isSending || uploading} // Removed isGenerating
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Voice input</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             <Button
-              type={isGenerating ? "button" : (isRecording ? "button" : "submit")}
+              type={isGenerating ? "button" : isRecording ? "button" : "submit"}
               size="icon"
               onClick={
                 isGenerating
                   ? handleStop
-                  : (isRecording
-                      ? () => voiceInputRef.current?.stopRecording("send")
-                      : undefined)
+                  : isRecording
+                    ? () => voiceInputRef.current?.stopRecording("send")
+                    : undefined
+              }
+              aria-label={
+                isGenerating
+                  ? "Stop generating response"
+                  : isRecording
+                    ? "Stop recording and send"
+                    : "Send message"
               }
               className={cn(
                 "h-10 w-10 rounded-full transition-all duration-300 shadow-lg",
@@ -334,11 +435,11 @@ export function ChatInput({
               }
             >
               {isSending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
               ) : isGenerating ? (
-                <Square className="w-4 h-4 fill-current" />
+                <Square className="w-4 h-4 fill-current" aria-hidden="true" />
               ) : (
-                <Send className="w-5 h-5 ml-0.5" />
+                <Send className="w-5 h-5 ml-0.5" aria-hidden="true" />
               )}
             </Button>
           </div>
@@ -347,13 +448,22 @@ export function ChatInput({
         <div className="px-4 pb-2 flex justify-between items-center">
           <div className="flex items-center gap-2 flex-wrap">
             {supportsVision && (
-              <FileUpload
-                conversationId={conversationId}
-                attachments={attachments}
-                onAttachmentsChange={onAttachmentsChange}
-                uploading={uploading}
-                setUploading={setUploading}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <FileUpload
+                      conversationId={conversationId}
+                      attachments={attachments}
+                      onAttachmentsChange={onAttachmentsChange}
+                      uploading={uploading}
+                      setUploading={setUploading}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Upload files</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {isComparisonMode && onExitComparison ? (
               <Badge
@@ -374,6 +484,8 @@ export function ChatInput({
               <ModelSelector
                 value={selectedModel}
                 onChange={onModelChange}
+                open={modelSelectorOpen}
+                onOpenChange={onModelSelectorOpenChange}
                 className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
               />
             )}
@@ -390,6 +502,8 @@ export function ChatInput({
               <ComparisonTrigger
                 onStartComparison={onStartComparison}
                 isActive={isComparisonMode}
+                open={comparisonDialogOpen}
+                onOpenChange={onComparisonDialogOpenChange}
               />
             )}
           </div>

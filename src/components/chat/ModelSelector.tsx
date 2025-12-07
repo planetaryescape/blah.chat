@@ -10,6 +10,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
     getModelConfig,
     getModelsByProvider,
     type ModelConfig,
@@ -124,48 +129,79 @@ export function ModelSelector({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button
-            variant="ghost"
-            data-model-selector
-            className={cn(
-              "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5",
-              className,
-            )}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="truncate hidden sm:inline">
-              {currentModel?.name || "Select model"}
-            </span>
-            <ChevronDown className="w-3 h-3 opacity-50 flex-shrink-0" />
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                data-model-selector
+                data-tour="model-selector"
+                className={cn(
+                  "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5",
+                  className,
+                )}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="truncate hidden sm:inline">
+                  {currentModel?.name || "Select model"}
+                </span>
+                <ChevronDown className="w-3 h-3 opacity-50 flex-shrink-0" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Select model (⌘J)</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col bg-background/80 backdrop-blur-xl border-white/10 p-0 gap-0 overflow-hidden shadow-2xl sm:rounded-2xl ring-1 ring-white/10">
         <DialogHeader className="px-4 py-4 sm:px-6 sm:py-5 border-b border-white/5 flex-shrink-0 space-y-3 sm:space-y-4 bg-background/50">
           <div className="flex flex-col gap-1 sm:gap-1.5 pr-8 sm:pr-0">
-            <DialogTitle className="font-display text-lg sm:text-2xl font-semibold tracking-tight">
+            <DialogTitle
+              id="model-selector-title"
+              className="font-display text-lg sm:text-2xl font-semibold tracking-tight"
+            >
               {title}
             </DialogTitle>
             {description && (
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p
+                id="model-selector-desc"
+                className="text-xs sm:text-sm text-muted-foreground"
+              >
                 {description}
               </p>
             )}
           </div>
           <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <label htmlFor="model-search" className="sr-only">
+              Search models by name or description
+            </label>
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-focus-within:text-primary transition-colors"
+              aria-hidden="true"
+            />
             <Input
+              id="model-search"
+              type="search"
               placeholder="Search models..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search AI models"
+              aria-controls="model-list"
               className="pl-9 h-9 sm:h-10 bg-secondary/50 border-transparent focus:bg-background text-sm sm:text-base focus:border-primary/20 transition-all duration-200"
             />
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent bg-gradient-to-b from-background/50 to-background/80">
+        <div
+          id="model-list"
+          role="region"
+          aria-labelledby="model-selector-title"
+          className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent bg-gradient-to-b from-background/50 to-background/80"
+        >
           <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
             {Object.entries(filteredModelsByProvider).map(
               ([provider, models], pIdx) => {
@@ -291,7 +327,7 @@ function ModelCard({
           </span>
 
           <div className="flex gap-1">
-            {model.supportsThinkingEffort && (
+            {model.reasoning && (
               <div
                 className="flex items-center justify-center p-1 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20"
                 title="Supports Thinking"

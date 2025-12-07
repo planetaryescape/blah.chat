@@ -13,6 +13,7 @@ import { EmptyScreen } from "./EmptyScreen";
 
 interface VirtualizedMessageListProps {
   messages: Doc<"messages">[];
+  selectedModel?: string;
   autoScroll?: boolean;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
@@ -22,6 +23,7 @@ interface VirtualizedMessageListProps {
 
 export function VirtualizedMessageList({
   messages,
+  selectedModel,
   autoScroll = true,
   onVote,
   onConsolidate,
@@ -125,6 +127,7 @@ export function VirtualizedMessageList({
     return (
       <div className="flex items-center justify-center h-full">
         <EmptyScreen
+          selectedModel={selectedModel}
           onClick={(val: string) => {
             const event = new CustomEvent("insert-prompt", { detail: val });
             window.dispatchEvent(event);
@@ -143,6 +146,10 @@ export function VirtualizedMessageList({
       <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
         <div
           ref={containerRef}
+          role="log"
+          aria-live="polite"
+          aria-label="Chat message history"
+          aria-atomic="false"
           className="flex-1 w-full min-w-0 overflow-y-auto relative"
           style={{
             contain: "layout style paint",
@@ -150,31 +157,16 @@ export function VirtualizedMessageList({
           }}
         >
           <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
-          <AnimatePresence mode="popLayout">
-            {grouped.map((item, index) => {
-              if (item.type === "message") {
-                const nextItem = grouped[index + 1];
-                const nextMessage =
-                  nextItem?.type === "message" ? nextItem.data : undefined;
+            <AnimatePresence mode="popLayout">
+              {grouped.map((item, index) => {
+                if (item.type === "message") {
+                  const nextItem = grouped[index + 1];
+                  const nextMessage =
+                    nextItem?.type === "message" ? nextItem.data : undefined;
 
-                return (
-                  <motion.div
-                    key={item.data._id}
-                    layout
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  >
-                    <ChatMessage
-                      message={item.data}
-                      nextMessage={nextMessage}
-                    />
-                  </motion.div>
-                );
-              } else {
-                // Comparison block: user message + comparison panels
-                return (
-                  <Fragment key={item.id}>
+                  return (
                     <motion.div
-                      key={item.userMessage._id}
+                      key={item.data._id}
                       layout
                       transition={{
                         type: "spring",
@@ -182,31 +174,50 @@ export function VirtualizedMessageList({
                         stiffness: 200,
                       }}
                     >
-                      <ChatMessage message={item.userMessage} />
-                    </motion.div>
-                    <motion.div
-                      key={`comparison-${item.id}`}
-                      layout
-                      transition={{
-                        type: "spring",
-                        damping: 25,
-                        stiffness: 200,
-                      }}
-                    >
-                      <ComparisonView
-                        assistantMessages={item.assistantMessages}
-                        comparisonGroupId={item.id}
-                        showModelNames={showModelNames}
-                        onVote={onVote || (() => {})}
-                        onConsolidate={onConsolidate || (() => {})}
-                        onToggleModelNames={onToggleModelNames || (() => {})}
+                      <ChatMessage
+                        message={item.data}
+                        nextMessage={nextMessage}
                       />
                     </motion.div>
-                  </Fragment>
-                );
-              }
-            })}
-          </AnimatePresence>
+                  );
+                } else {
+                  // Comparison block: user message + comparison panels
+                  return (
+                    <Fragment key={item.id}>
+                      <motion.div
+                        key={item.userMessage._id}
+                        layout
+                        transition={{
+                          type: "spring",
+                          damping: 25,
+                          stiffness: 200,
+                        }}
+                      >
+                        <ChatMessage message={item.userMessage} />
+                      </motion.div>
+                      <motion.div
+                        key={`comparison-${item.id}`}
+                        layout
+                        transition={{
+                          type: "spring",
+                          damping: 25,
+                          stiffness: 200,
+                        }}
+                      >
+                        <ComparisonView
+                          assistantMessages={item.assistantMessages}
+                          comparisonGroupId={item.id}
+                          showModelNames={showModelNames}
+                          onVote={onVote || (() => {})}
+                          onConsolidate={onConsolidate || (() => {})}
+                          onToggleModelNames={onToggleModelNames || (() => {})}
+                        />
+                      </motion.div>
+                    </Fragment>
+                  );
+                }
+              })}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -215,8 +226,9 @@ export function VirtualizedMessageList({
             className="absolute bottom-4 right-8 rounded-full shadow-lg transition-all duration-200 z-10"
             size="icon"
             onClick={() => scrollToBottom("smooth")}
+            aria-label="Scroll to bottom"
           >
-            <ArrowDown className="w-4 h-4" />
+            <ArrowDown className="w-4 h-4" aria-hidden="true" />
           </Button>
         )}
       </div>
@@ -227,6 +239,10 @@ export function VirtualizedMessageList({
     <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
       <div
         ref={containerRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Chat message history"
+        aria-atomic="false"
         className="flex-1 w-full min-w-0 overflow-y-auto relative"
         style={{
           contain: "layout style paint",
@@ -296,8 +312,9 @@ export function VirtualizedMessageList({
           className="absolute bottom-4 right-8 rounded-full shadow-lg transition-all duration-200 z-10"
           size="icon"
           onClick={() => scrollToBottom("smooth")}
+          aria-label="Scroll to bottom"
         >
-          <ArrowDown className="w-4 h-4" />
+          <ArrowDown className="w-4 h-4" aria-hidden="true" />
         </Button>
       )}
     </div>

@@ -163,17 +163,20 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         size="sm"
         onClick={toggleRecording}
         disabled={isDisabled || isProcessing || !user}
+        aria-label={
+          isRecording ? "Stop recording" : `Start voice input (${sttProvider})`
+        }
         className={cn(
           "transition-all duration-300",
           isRecording
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "",
         )}
-        title={
-          isRecording ? "Stop recording" : `Start voice input (${sttProvider})`
-        }
       >
-        <div className="relative w-4 h-4 flex items-center justify-center">
+        <div
+          className="relative w-4 h-4 flex items-center justify-center"
+          aria-hidden="true"
+        >
           <div
             className={cn(
               "absolute inset-0 flex items-center justify-center transition-all duration-300 transform",

@@ -3,10 +3,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -23,6 +23,7 @@ import { ComparisonView } from "./ComparisonView";
 import { MarkdownContent } from "./MarkdownContent";
 import { MessageActions } from "./MessageActions";
 import { ReasoningBlock } from "./ReasoningBlock";
+import { ToolCallDisplay } from "./ToolCallDisplay";
 
 interface ChatMessageProps {
   message: Doc<"messages">;
@@ -41,7 +42,9 @@ export const ChatMessage = memo(
     const isError = message.status === "error";
 
     // Mutations for keyboard shortcuts
+    // @ts-ignore - Convex type inference depth issue
     const regenerate = useMutation(api.chat.regenerate);
+    // @ts-ignore - Convex type inference depth issue
     const deleteMsg = useMutation(api.chat.deleteMessage);
     const createBookmark = useMutation(api.bookmarks.create);
 
@@ -62,7 +65,7 @@ export const ChatMessage = memo(
     const modelName =
       modelConfig?.name || message.model?.split(":")[1] || message.model;
     const isThinkingModel =
-      modelConfig?.supportsThinkingEffort ||
+      !!modelConfig?.reasoning ||
       modelConfig?.capabilities?.includes("extended-thinking") ||
       modelConfig?.capabilities?.includes("thinking") ||
       false;
@@ -147,6 +150,17 @@ export const ChatMessage = memo(
             }
             break;
 
+          case "n":
+            // Save as note (no modifier)
+            if (!isMod) {
+              e.preventDefault();
+              const event = new CustomEvent("save-message-as-note", {
+                detail: { messageId: message._id },
+              });
+              window.dispatchEvent(event);
+            }
+            break;
+
           case "delete":
           case "backspace":
             // Delete message and focus next
@@ -155,9 +169,9 @@ export const ChatMessage = memo(
               try {
                 await deleteMsg({ messageId: message._id });
                 // Focus next message sibling
-                const nextSibling = messageRef.current?.parentElement
-                  ?.nextElementSibling?.querySelector(
-                    "[tabindex=\"0\"]",
+                const nextSibling =
+                  messageRef.current?.parentElement?.nextElementSibling?.querySelector(
+                    '[tabindex="0"]',
                   ) as HTMLElement;
                 nextSibling?.focus();
                 toast.success("Message deleted");
@@ -220,9 +234,12 @@ export const ChatMessage = memo(
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={cn(
+            "chat-message",
             isUser ? userMessageClass : assistantMessageClass,
             isFocused && "ring-2 ring-primary/50",
           )}
+          data-message-id={message._id}
+          data-message-role={message.role}
           initial={!isGenerating ? { opacity: 0, y: 20, scale: 0.95 } : false}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={
@@ -262,6 +279,10 @@ export const ChatMessage = memo(
                   reasoningTokens={message.reasoningTokens}
                   isThinking={isGenerating && !!message.partialReasoning}
                 />
+              )}
+
+              {message.toolCalls && message.toolCalls.length > 0 && (
+                <ToolCallDisplay toolCalls={message.toolCalls} />
               )}
 
               {displayContent ? (
@@ -388,7 +409,7 @@ export const ChatMessage = memo(
                                 className={cn(
                                   "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
                                   message.status === "generating" &&
-                                    "animate-pulse"
+                                    "animate-pulse",
                                 )}
                               >
                                 TTFT: {formatTTFT(ttft)}
@@ -442,13 +463,34 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
-              {/* Screen reader announcement */}
-              {!isUser && message.status === "complete" && (
-                <div className="sr-only" role="status" aria-live="polite">
-                  {ttft && `Response generated in ${formatTTFT(ttft)}`}
-                  {message.tokensPerSecond &&
-                    ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
-                </div>
+              {/* Enhanced status announcements */}
+              {!isUser && (
+                <>
+                  {/* Generating */}
+                  {message.status === "generating" && (
+                    <div role="status" aria-live="polite" className="sr-only">
+                      {isThinkingModel
+                        ? "AI is thinking about your question"
+                        : "AI is generating a response"}
+                    </div>
+                  )}
+
+                  {/* Complete */}
+                  {message.status === "complete" && (
+                    <div role="status" aria-live="polite" className="sr-only">
+                      {ttft && `Response generated in ${formatTTFT(ttft)}`}
+                      {message.tokensPerSecond &&
+                        ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
+                    </div>
+                  )}
+
+                  {/* Error - assertive for immediate attention */}
+                  {message.status === "error" && (
+                    <div role="alert" aria-live="assertive" className="sr-only">
+                      Error generating response: {message.error}
+                    </div>
+                  )}
+                </>
               )}
 
               {!isGenerating && (

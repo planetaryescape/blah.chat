@@ -1,9 +1,9 @@
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Zap } from "lucide-react";
@@ -36,12 +36,12 @@ export function ThinkingEffortSelector({
         )}
       >
         <SelectValue placeholder="Reasoning effort">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
-                {efforts.find((e) => e.value === value)?.label}
+              {efforts.find((e) => e.value === value)?.label}
             </span>
-            </div>
+          </div>
         </SelectValue>
       </SelectTrigger>
       <SelectContent>

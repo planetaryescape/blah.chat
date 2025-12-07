@@ -19,6 +19,11 @@ interface ToolCall {
   timestamp: number;
 }
 
+interface ToolCallDisplayProps {
+  toolCalls?: ToolCall[];
+  partialToolCalls?: Omit<ToolCall, "result">[];
+}
+
 type ToolCallState = "executing" | "complete" | "error";
 
 function getCallState(call: ToolCall): ToolCallState {
@@ -32,14 +37,28 @@ function getCallState(call: ToolCall): ToolCallState {
   return "complete";
 }
 
-export function ToolCallDisplay({ toolCalls }: { toolCalls: ToolCall[] }) {
+export function ToolCallDisplay({
+  toolCalls,
+  partialToolCalls,
+}: ToolCallDisplayProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  if (!toolCalls || toolCalls.length === 0) return null;
+  // Merge partial (loading) and complete calls
+  const allCalls = [
+    ...(partialToolCalls?.map((tc) => ({ ...tc, result: undefined })) || []),
+    ...(toolCalls || []),
+  ];
+
+  // Deduplicate by ID (completed overwrites partial)
+  const uniqueCalls = Array.from(
+    new Map(allCalls.map((tc) => [tc.id, tc])).values(),
+  );
+
+  if (uniqueCalls.length === 0) return null;
 
   return (
     <div className="space-y-2 my-3">
-      {toolCalls.map((call) => {
+      {uniqueCalls.map((call) => {
         const isExpanded = expanded[call.id] ?? false;
         const state = getCallState(call);
 

@@ -1,14 +1,15 @@
 "use client";
 
-import { Component, type ReactNode } from "react";
-import rehypeKatex from "rehype-katex";
-import remarkMath from "remark-math";
+import { Component, type ReactNode, memo, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
+import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
+import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { CodeBlock } from "./CodeBlock";
 import { MathBlock } from "./MathBlock";
+import { MathErrorBoundary } from "./MathErrorBoundary";
 
 interface CodeBlockErrorBoundaryProps {
   children: ReactNode;
@@ -78,8 +79,8 @@ interface MarkdownContentProps {
  */
 const katexOptions = {
   errorColor: "hsl(var(--destructive))",
-  output: "mathml" as const, // Accessibility via MathML
-  strict: "warn" as const, // Warn on unsupported commands
+  output: "htmlAndMathml" as const, // Both visual HTML + accessible MathML
+  strict: "ignore" as const, // Continue rendering on unsupported commands (resilient for streaming)
   // Common math shortcuts
   macros: {
     "\\RR": "\\mathbb{R}",
@@ -95,6 +96,11 @@ const katexOptions = {
 /**
  * Standard components for Streamdown - no animation classes
  * Animation is handled by character-level reveal in useStreamBuffer
+ *
+ * Math support via Streamdown's built-in remark-math + rehype-katex:
+ * - Display: $$...$$
+ * - Inline: \(...\)
+ * - Chemistry: $$\ce{H2O}$$ (mhchem extension loaded above)
  */
 const markdownComponents = {
   code: ({
@@ -119,25 +125,6 @@ const markdownComponents = {
       </CodeBlockErrorBoundary>
     );
   },
-
-  // Custom math renderer with copy-to-clipboard
-  math: ({
-    value,
-    displayMode,
-    children,
-  }: {
-    value?: string;
-    displayMode?: boolean;
-    children?: ReactNode;
-  }) => {
-    return (
-      <MathBlock
-        source={value || ""}
-        rendered={children}
-        displayMode={displayMode}
-      />
-    );
-  },
 };
 
 /**
@@ -152,6 +139,8 @@ export function MarkdownContent({
   content,
   isStreaming = false,
 }: MarkdownContentProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Buffer hook smoothly reveals characters from server chunks
   const { displayContent, hasBufferedContent } = useStreamBuffer(
     content,
@@ -163,19 +152,39 @@ export function MarkdownContent({
     },
   );
 
+  // Enhance math blocks with copy buttons (Phase 4)
+  useMathCopyButtons(containerRef);
+
+  // Add ARIA accessibility to math elements (Phase 5)
+  useMathAccessibility(containerRef);
+
   // Show cursor while streaming OR buffer is draining
   const showCursor = isStreaming || hasBufferedContent;
 
   return (
-    <div className={cn("markdown-content prose", showCursor && "streaming")}>
-      <Streamdown
-        components={markdownComponents}
-        remarkPlugins={[[remarkMath, { singleDollarTextMath: false }]]}
-        rehypePlugins={[[rehypeKatex, katexOptions]]}
-      >
-        {displayContent}
-      </Streamdown>
+    <div
+      ref={containerRef}
+      className={cn("markdown-content prose", showCursor && "streaming")}
+    >
+      <MathErrorBoundary>
+        <Streamdown
+          components={markdownComponents}
+          parseIncompleteMarkdown={isStreaming}
+        >
+          {displayContent}
+        </Streamdown>
+      </MathErrorBoundary>
       {showCursor && <span className="streaming-cursor" aria-hidden="true" />}
     </div>
   );
 }
+
+/**
+ * Memoized version of MarkdownContent to prevent unnecessary re-renders
+ * Only re-renders when content or streaming state changes
+ */
+export const MarkdownContentMemo = memo(
+  MarkdownContent,
+  (prev, next) =>
+    prev.content === next.content && prev.isStreaming === next.isStreaming,
+);

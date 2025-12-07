@@ -5,7 +5,7 @@ import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
-import { Fragment, useEffect, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
@@ -19,6 +19,8 @@ interface VirtualizedMessageListProps {
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
   showModelNames: boolean;
+  highlightMessageId?: string;
+  syncScroll?: boolean;
 }
 
 export function VirtualizedMessageList({
@@ -29,12 +31,17 @@ export function VirtualizedMessageList({
   onConsolidate,
   onToggleModelNames,
   showModelNames,
+  highlightMessageId,
+  syncScroll = true,
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
     useAutoScroll({
       threshold: 100,
       animationDuration: 400,
     });
+
+  // Track if we've scrolled to highlighted message
+  const scrolledToHighlight = useRef(false);
 
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
@@ -109,18 +116,91 @@ export function VirtualizedMessageList({
 
   const virtualItems = virtualizer.getVirtualItems();
 
+  // Scroll to highlighted message - non-virtualized (<50 messages)
+  useEffect(() => {
+    if (
+      !highlightMessageId ||
+      scrolledToHighlight.current ||
+      grouped.length > 50
+    )
+      return;
+
+    const scrollToMessage = () => {
+      const element = document.getElementById(`message-${highlightMessageId}`);
+      if (!element) {
+        setTimeout(scrollToMessage, 100); // Retry
+        return;
+      }
+
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      element.classList.add("message-highlight");
+      setTimeout(() => element.classList.remove("message-highlight"), 2000);
+
+      scrolledToHighlight.current = true;
+    };
+
+    scrollToMessage();
+  }, [highlightMessageId, grouped.length]);
+
+  // Scroll to highlighted message - virtualized (>50 messages)
+  useEffect(() => {
+    if (
+      !highlightMessageId ||
+      scrolledToHighlight.current ||
+      grouped.length <= 50
+    )
+      return;
+
+    const targetIndex = grouped.findIndex((item) => {
+      if (item.type === "message") return item.data._id === highlightMessageId;
+      if (item.type === "comparison") {
+        return (
+          item.userMessage._id === highlightMessageId ||
+          item.assistantMessages.some((m) => m._id === highlightMessageId)
+        );
+      }
+      return false;
+    });
+
+    if (targetIndex === -1) return;
+
+    virtualizer.scrollToIndex(targetIndex, {
+      align: "start",
+      behavior: "smooth",
+    });
+
+    setTimeout(() => {
+      const element = document.getElementById(`message-${highlightMessageId}`);
+      if (element) {
+        element.classList.add("message-highlight");
+        setTimeout(() => element.classList.remove("message-highlight"), 2000);
+      }
+    }, 500);
+
+    scrolledToHighlight.current = true;
+  }, [highlightMessageId, grouped, virtualizer]);
+
+  // Reset scroll tracking when highlightMessageId changes
+  useEffect(() => {
+    scrolledToHighlight.current = false;
+  }, [highlightMessageId]);
+
   // Scroll on new content
   useEffect(() => {
+    // Skip auto-scroll if highlighting a specific message from URL
+    if (highlightMessageId) return;
+
     // Only auto-scroll if user is at bottom and autoScroll enabled
     if (autoScroll && isAtBottom) {
       scrollToBottom("smooth");
     }
   }, [
     messages.length,
-    messages[messages.length - 1]?.partialContent,
+    messages[messages.length - 1]?.partialContent ?? null,
     autoScroll,
     isAtBottom,
     scrollToBottom,
+    highlightMessageId,
   ]);
 
   if (messages.length === 0) {
@@ -154,6 +234,7 @@ export function VirtualizedMessageList({
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
+            scrollPaddingTop: "80px",
           }}
         >
           <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
@@ -247,6 +328,7 @@ export function VirtualizedMessageList({
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
+          scrollPaddingTop: "80px",
         }}
       >
         <div

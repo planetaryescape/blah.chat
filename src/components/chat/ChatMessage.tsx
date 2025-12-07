@@ -20,9 +20,10 @@ import { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
-import { MarkdownContent } from "./MarkdownContent";
+import { MarkdownContentMemo } from "./MarkdownContent";
 import { MessageActions } from "./MessageActions";
 import { ReasoningBlock } from "./ReasoningBlock";
+import { SourceList } from "./SourceList";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 
 interface ChatMessageProps {
@@ -224,12 +225,13 @@ export const ChatMessage = memo(
     return (
       <div
         className={cn(
-          "flex w-full mb-6",
+          "flex w-full mb-10",
           isUser ? "justify-end" : "justify-start",
         )}
       >
         <motion.div
           ref={messageRef}
+          id={`message-${message._id}`}
           tabIndex={0}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -269,24 +271,31 @@ export const ChatMessage = memo(
             </div>
           ) : (
             <>
-              {/* Reasoning block - shows thinking for reasoning models */}
-              {message.role === "assistant" && (
-                <ReasoningBlock
-                  reasoning={message.reasoning}
-                  partialReasoning={message.partialReasoning}
-                  thinkingStartedAt={message.thinkingStartedAt}
-                  thinkingCompletedAt={message.thinkingCompletedAt}
-                  reasoningTokens={message.reasoningTokens}
-                  isThinking={isGenerating && !!message.partialReasoning}
+              {/* Reasoning block - shows thinking for reasoning models or if reasoning content exists */}
+              {message.role === "assistant" &&
+                (isThinkingModel ||
+                  message.reasoning ||
+                  message.partialReasoning) && (
+                  <ReasoningBlock
+                    reasoning={message.reasoning}
+                    partialReasoning={message.partialReasoning}
+                    thinkingStartedAt={message.thinkingStartedAt}
+                    thinkingCompletedAt={message.thinkingCompletedAt}
+                    reasoningTokens={message.reasoningTokens}
+                    isThinking={isGenerating && !!message.partialReasoning}
+                  />
+                )}
+
+              {(message.toolCalls?.length ||
+                message.partialToolCalls?.length) && (
+                <ToolCallDisplay
+                  toolCalls={message.toolCalls}
+                  partialToolCalls={message.partialToolCalls}
                 />
               )}
 
-              {message.toolCalls && message.toolCalls.length > 0 && (
-                <ToolCallDisplay toolCalls={message.toolCalls} />
-              )}
-
               {displayContent ? (
-                <MarkdownContent
+                <MarkdownContentMemo
                   content={displayContent}
                   isStreaming={isGenerating}
                 />
@@ -310,6 +319,11 @@ export const ChatMessage = memo(
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
+              )}
+
+              {/* Source citations */}
+              {message.sources && message.sources.length > 0 && (
+                <SourceList sources={message.sources} />
               )}
 
               {message.attachments &&
@@ -367,7 +381,7 @@ export const ChatMessage = memo(
                 (message.status === "complete" ||
                   message.status === "generating") &&
                 modelName && (
-                  <div className="absolute -bottom-5 left-4 flex items-center gap-2 transition-opacity duration-300">
+                  <div className="absolute -bottom-7 left-4 flex items-center gap-2 transition-opacity duration-300">
                     {/* Model name */}
                     <Badge
                       variant="outline"
@@ -460,6 +474,44 @@ export const ChatMessage = memo(
                           </Tooltip>
                         </TooltipProvider>
                       )}
+
+                    {/* Token count badge */}
+                    {(message.inputTokens !== undefined ||
+                      message.outputTokens !== undefined) && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                            >
+                              {message.inputTokens || 0}/
+                              {message.outputTokens || 0}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs">
+                              <div className="font-semibold">Token Count</div>
+                              <div className="text-muted-foreground">
+                                Input:{" "}
+                                {message.inputTokens?.toLocaleString() || 0}
+                              </div>
+                              <div className="text-muted-foreground">
+                                Output:{" "}
+                                {message.outputTokens?.toLocaleString() || 0}
+                              </div>
+                              <div className="text-muted-foreground font-semibold mt-1">
+                                Total:{" "}
+                                {(
+                                  (message.inputTokens || 0) +
+                                  (message.outputTokens || 0)
+                                ).toLocaleString()}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 )}
 

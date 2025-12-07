@@ -1,7 +1,8 @@
 "use client";
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { analytics } from "@/lib/analytics";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Command } from "cmdk";
 import { useMutation, useQuery } from "convex/react";
 import {
@@ -19,13 +20,14 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { setTheme } = useTheme();
+  const listRef = useRef<HTMLDivElement>(null);
   // @ts-ignore
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
@@ -79,6 +81,7 @@ export function CommandPalette() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="p-0 gap-0 max-w-2xl overflow-hidden bg-transparent border-0 shadow-2xl">
+        <DialogTitle className="sr-only">Command Menu</DialogTitle>
         <div className="surface-glass-strong rounded-xl border border-border/40 overflow-hidden">
           <Command className="bg-transparent">
             <div className="flex items-center border-b border-border/40 px-3">
@@ -100,11 +103,12 @@ export function CommandPalette() {
                 <Command.Item
                   onSelect={handleNewChat}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
+                  aria-keyshortcuts="Meta+Shift+O"
                 >
                   <MessageSquarePlus className="h-4 w-4" />
                   <span>New Chat</span>
                   <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                    ⌘⇧N
+                    ⌘⇧O
                   </kbd>
                 </Command.Item>
                 <Command.Item
@@ -124,6 +128,7 @@ export function CommandPalette() {
                 <Command.Item
                   onSelect={() => handleNavigate("/settings")}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
+                  aria-keyshortcuts="Meta+,"
                 >
                   <Settings className="h-4 w-4" />
                   <span>Settings</span>
@@ -151,6 +156,7 @@ export function CommandPalette() {
                   {groupedConversations.pinned.map((conv: any) => (
                     <Command.Item
                       key={conv._id}
+                      value={conv._id}
                       onSelect={() => handleNavigate(`/chat/${conv._id}`)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
                     >
@@ -161,15 +167,16 @@ export function CommandPalette() {
                 </Command.Group>
               )}
 
-              {/* Recent Conversations (limit to 30 for performance) */}
+              {/* Recent Conversations (no limit - virtualized for performance) */}
               {groupedConversations.recent.length > 0 && (
                 <Command.Group
                   heading="Recent Conversations"
                   className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
                 >
-                  {groupedConversations.recent.slice(0, 30).map((conv: any) => (
+                  {groupedConversations.recent.map((conv: any) => (
                     <Command.Item
                       key={conv._id}
+                      value={conv._id}
                       onSelect={() => handleNavigate(`/chat/${conv._id}`)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
                     >
@@ -180,15 +187,16 @@ export function CommandPalette() {
                 </Command.Group>
               )}
 
-              {/* Archived Conversations (limit to 10) */}
+              {/* Archived Conversations (no limit) */}
               {groupedConversations.archived.length > 0 && (
                 <Command.Group
                   heading="Archived"
                   className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
                 >
-                  {groupedConversations.archived.slice(0, 10).map((conv: any) => (
+                  {groupedConversations.archived.map((conv: any) => (
                     <Command.Item
                       key={conv._id}
+                      value={conv._id}
                       onSelect={() => handleNavigate(`/chat/${conv._id}`)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
                     >

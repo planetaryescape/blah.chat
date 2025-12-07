@@ -8,6 +8,7 @@ import { api } from "../../convex/_generated/api";
 export function useKeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
+  // @ts-ignore - Convex type inference depth issue
   const createConversation = useMutation(api.conversations.create);
   const { filteredConversations } = useConversationContext();
 
@@ -36,8 +37,8 @@ export function useKeyboardShortcuts() {
       // Cmd+K - Command palette (handled in CommandPalette component)
       // This is just a placeholder
 
-      // Cmd+Shift+N - New chat
-      if (isMod && e.shiftKey && e.key === "N") {
+      // Cmd+Shift+O - New chat
+      if (isMod && e.shiftKey && e.key === "O") {
         e.preventDefault();
         try {
           const conversationId = await createConversation({
@@ -48,6 +49,12 @@ export function useKeyboardShortcuts() {
         } catch (error) {
           console.error("Failed to create conversation:", error);
         }
+      }
+
+      // Cmd+J - Quick model switcher
+      if (isMod && e.key === "j") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("open-quick-model-switcher"));
       }
 
       // Cmd+, - Settings
@@ -94,9 +101,24 @@ export function useKeyboardShortcuts() {
         navigateConversation("next");
       }
 
+      // Notes page shortcuts
+      if (pathname?.startsWith("/notes")) {
+        // Cmd+Shift+N - New note
+        if (isMod && e.shiftKey && e.key.toLowerCase() === "n") {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("create-new-note"));
+        }
+
+        // Esc - Clear selection / go back to list
+        if (e.key === "Escape") {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("clear-note-selection"));
+        }
+      }
+
       // Esc - Go back / Close modals (handled by individual components)
-      if (e.key === "Escape") {
-        // Allow default behavior
+      if (e.key === "Escape" && !pathname?.startsWith("/notes")) {
+        // Allow default behavior for non-notes pages
       }
     };
 
@@ -128,7 +150,7 @@ export function useKeyboardShortcuts() {
 export const KEYBOARD_SHORTCUTS = {
   global: {
     "Cmd/Ctrl + K": "Open command palette",
-    "Cmd/Ctrl + Shift + N": "New chat",
+    "Cmd/Ctrl + Shift + O": "New chat",
     "Cmd/Ctrl + 1-9": "Jump to conversation 1-9",
     "Cmd/Ctrl + [": "Previous conversation",
     "Cmd/Ctrl + ]": "Next conversation",
@@ -138,8 +160,19 @@ export const KEYBOARD_SHORTCUTS = {
     Esc: "Close dialogs/modals",
   },
   chat: {
-    "Cmd/Ctrl + M": "Model selector",
+    "Cmd/Ctrl + J": "Quick model switcher",
     Enter: "Send message",
     "Shift + Enter": "New line",
+  },
+  notes: {
+    "Cmd/Ctrl + Shift + N": "New note",
+    "Cmd/Ctrl + S": "Save note (manual)",
+    Esc: "Clear selection",
+  },
+  messageActions: {
+    R: "Regenerate response (hover message first)",
+    C: "Copy message",
+    B: "Bookmark message",
+    Delete: "Delete message",
   },
 } as const;

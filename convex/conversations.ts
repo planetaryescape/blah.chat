@@ -132,6 +132,8 @@ export const createInternal = internalMutation({
     userId: v.id("users"),
     model: v.string(),
     title: v.optional(v.string()),
+    parentConversationId: v.optional(v.id("conversations")),
+    parentMessageId: v.optional(v.id("messages")),
   },
   handler: async (ctx, args) => {
     const conversationId = await ctx.db.insert("conversations", {
@@ -143,6 +145,8 @@ export const createInternal = internalMutation({
       starred: false,
       messageCount: 0,
       lastMessageAt: Date.now(),
+      parentConversationId: args.parentConversationId,
+      parentMessageId: args.parentMessageId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -970,5 +974,25 @@ export const consolidateInSameChat = mutation({
     });
 
     return { messageId: consolidatedMessageId };
+  },
+});
+
+export const getChildBranches = query({
+  args: {
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    // Get child conversations that branch from this conversation
+    const childBranches = await ctx.db
+      .query("conversations")
+      .withIndex("by_parent_conversation", (q) =>
+        q.eq("parentConversationId", args.conversationId),
+      )
+      .filter((q) => q.eq(q.field("userId"), user._id))
+      .collect();
+
+    return childBranches;
   },
 });

@@ -7,6 +7,7 @@ import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ModelFeatureHint } from "@/components/chat/ModelFeatureHint";
 import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
 import { ShareDialog } from "@/components/chat/ShareDialog";
+import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
@@ -25,9 +26,10 @@ import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/models";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 import { useCallback } from "react";
+import { useQueryState, parseAsBoolean } from "nuqs";
 
 export default function ChatPage({
   params,
@@ -37,6 +39,8 @@ export default function ChatPage({
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightMessageId = searchParams.get("messageId") || undefined;
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
@@ -64,9 +68,19 @@ export default function ChatPage({
       size: number;
     }>
   >([]);
-  const [showModelNamesOverride, setShowModelNamesOverride] = useState<
-    boolean | null
-  >(null);
+
+  // URL state for comparison view toggles
+  const [showModelNames, setShowModelNames] = useQueryState(
+    "showModelNames",
+    parseAsBoolean.withDefault(
+      user?.preferences?.showModelNamesDuringComparison ?? false,
+    ),
+  );
+  const [syncScroll, setSyncScroll] = useQueryState(
+    "syncScroll",
+    parseAsBoolean.withDefault(true),
+  );
+
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
@@ -150,20 +164,6 @@ export default function ChatPage({
       });
       router.push(`/chat/${newConvId}`);
     }
-  };
-
-  // Compute effective showModelNames (local override takes precedence)
-  const showModelNames =
-    showModelNamesOverride ??
-    user?.preferences?.showModelNamesDuringComparison ??
-    false;
-
-  const handleToggleModelNames = () => {
-    setShowModelNamesOverride((prev) => {
-      const current =
-        prev ?? user?.preferences?.showModelNamesDuringComparison ?? false;
-      return !current;
-    });
   };
 
   // Sync with conversation model on load
@@ -322,6 +322,7 @@ export default function ChatPage({
             <ContextWindowIndicator conversationId={conversationId} />
           )}
           {hasMessages && <ShareDialog conversationId={conversationId} />}
+          <ConversationHeaderMenu conversation={conversation} />
         </div>
       </header>
 
@@ -330,8 +331,10 @@ export default function ChatPage({
         selectedModel={selectedModel}
         onVote={handleVote}
         onConsolidate={handleConsolidate}
-        onToggleModelNames={handleToggleModelNames}
-        showModelNames={showModelNames}
+        onToggleModelNames={() => setShowModelNames(!showModelNames)}
+        showModelNames={showModelNames ?? false}
+        syncScroll={syncScroll ?? true}
+        highlightMessageId={highlightMessageId}
       />
 
       <div className="relative px-4 pb-4">

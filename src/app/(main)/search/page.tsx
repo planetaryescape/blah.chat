@@ -9,30 +9,37 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
-import { useSearchQuery } from "@/hooks/useSearchQuery";
-import { Suspense, useEffect, useRef, useState } from "react";
-
-const PAGE_SIZE = 20;
+import { useSearchState } from "@/hooks/useSearchState";
+import {
+  useSearchResults,
+  type SearchFilters as SearchFiltersType,
+} from "@/hooks/useSearchResults";
+import { Suspense, useEffect, useRef } from "react";
 
 function SearchPageContent() {
-  const [page, setPage] = useState(1);
-
+  // URL-persisted state
   const { filters, setFilter, clearFilters, hasActiveFilters } =
     useSearchFilters();
-  const { recentSearches, addSearch, clearRecent } = useRecentSearches();
+  const { queryParam, setQueryParam, debouncedQuery, page, setPage } =
+    useSearchState();
 
-  const {
-    inputValue,
-    setInputValue,
+  // Convert filters to SearchFiltersType format
+  const searchFilters: SearchFiltersType = {
+    conversation: filters.conversationId,
+    from: filters.dateFrom,
+    to: filters.dateTo,
+    type: filters.messageType,
+  };
+
+  // Data fetching
+  const { results, isSearching, hasMore } = useSearchResults(
     debouncedQuery,
-    results,
-    isSearching,
-    hasMore,
-  } = useSearchQuery({
-    ...filters,
-    limit: page * PAGE_SIZE,
-  });
+    searchFilters,
+    page,
+  );
 
+  // Local state
+  const { recentSearches, addSearch, clearRecent } = useRecentSearches();
   const {
     selectedCount,
     toggleSelection,
@@ -46,14 +53,18 @@ function SearchPageContent() {
     clearSelection();
   }, [debouncedQuery, filters, clearSelection]);
 
-  // Add to recent searches when query is submitted
-  const handleQueryChange = (newValue: string) => {
-    setInputValue(newValue);
-    if (newValue.trim() && debouncedQuery !== newValue.trim()) {
-      // Reset page when query changes
+  // Reset page when query or filters change
+  useEffect(() => {
+    if (page > 1) {
       setPage(1);
     }
-  };
+  }, [
+    debouncedQuery,
+    filters.conversationId,
+    filters.dateFrom,
+    filters.dateTo,
+    filters.messageType,
+  ]);
 
   // Track successful searches
   const prevQueryRef = useRef<string>("");
@@ -70,22 +81,19 @@ function SearchPageContent() {
   }, [debouncedQuery, results.length, isSearching, addSearch]);
 
   const handleSelectRecentSearch = (query: string) => {
-    setInputValue(query);
-    setPage(1);
+    setQueryParam(query);
   };
 
   const handleLoadMore = () => {
-    setPage((p) => p + 1);
+    setPage(page + 1);
   };
 
   const handleClearFilters = () => {
     clearFilters();
-    setPage(1);
   };
 
   const handleActionComplete = () => {
-    // Trigger search results refresh
-    setPage(1);
+    // Refresh results and clear selection
     clearSelection();
   };
 
@@ -100,8 +108,8 @@ function SearchPageContent() {
         <SearchHeader>
           <div className="space-y-4">
             <SearchBar
-              value={inputValue}
-              onChange={handleQueryChange}
+              value={queryParam}
+              onChange={setQueryParam}
               isSearching={isSearching}
               autoFocus
             />
@@ -118,7 +126,7 @@ function SearchPageContent() {
       <ScrollArea className="flex-1 w-full min-h-0">
         <div className="container mx-auto max-w-6xl px-4 py-8 relative">
           {/* Show recent searches when no query */}
-          {!debouncedQuery && !inputValue && (
+          {!debouncedQuery && !queryParam && (
             <RecentSearches
               recentSearches={recentSearches}
               onSelectSearch={handleSelectRecentSearch}
@@ -127,7 +135,7 @@ function SearchPageContent() {
           )}
 
           {/* Show results when searching */}
-          {(debouncedQuery || inputValue) && (
+          {(debouncedQuery || queryParam) && (
             <SearchResults
               results={results}
               isLoading={isSearching}

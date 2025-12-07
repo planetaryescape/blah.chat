@@ -2,6 +2,7 @@
 
 import { Logo } from "@/components/brand/Logo";
 import { ChatMessage } from "@/components/chat/ChatMessage";
+import { NoteShareView } from "@/components/notes/NoteShareView";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +17,7 @@ import { useAction, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { AlertCircle, Loader2, Lock, Share2 } from "lucide-react";
 import Link from "next/link";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { api } from "../../../../convex/_generated/api";
 
 export default function SharePage({
@@ -28,16 +29,46 @@ export default function SharePage({
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState("");
+  const [entityType, setEntityType] = useState<"conversation" | "note" | null>(
+    null,
+  );
 
-  // @ts-ignore
-  const share = useQuery(api.shares.get, { shareId });
-  const verifyShare = useAction(api.shares.verify);
+  // Try conversation share first
+  // @ts-ignore - Convex type instantiation depth issue
+  const conversationShare = useQuery(api.shares.get, { shareId });
+
+  // Try note share if conversation doesn't exist
+  // @ts-ignore - Convex type instantiation depth issue
+  const noteShare = useQuery(
+    api.notes.getByShareId,
+    conversationShare === null ? { shareId } : "skip",
+  );
+
+  // Determine entity type
+  useEffect(() => {
+    if (conversationShare !== undefined && conversationShare !== null) {
+      setEntityType("conversation");
+    } else if (noteShare !== undefined && noteShare !== null) {
+      setEntityType("note");
+    }
+  }, [conversationShare, noteShare]);
+
+  // Separate verify actions
+  // @ts-ignore - Convex type instantiation depth issue
+  const verifyConversationShare = useAction(api.shares.verify);
+  // @ts-ignore - Convex type instantiation depth issue
+  const verifyNoteShare = useAction(api.notes.verifyShare);
+
+  // Use the appropriate share
+  const share = entityType === "note" ? noteShare : conversationShare;
+  // @ts-ignore - Convex type instantiation depth issue
   const conversation = useQuery(
     api.conversations.get,
     verified && share && "conversationId" in share && share.conversationId
       ? { conversationId: share.conversationId }
       : "skip",
   );
+  // @ts-ignore - Convex type instantiation depth issue
   const messages = useQuery(
     api.messages.list,
     verified && share && "conversationId" in share && share.conversationId
@@ -47,10 +78,17 @@ export default function SharePage({
 
   const handleVerify = async () => {
     try {
-      await verifyShare({
-        shareId,
-        password: password || undefined,
-      });
+      if (entityType === "note" && noteShare?._id) {
+        await verifyNoteShare({
+          noteId: noteShare._id,
+          password: password || undefined,
+        });
+      } else {
+        await verifyConversationShare({
+          shareId,
+          password: password || undefined,
+        });
+      }
       setVerified(true);
       setError("");
     } catch (err) {
@@ -230,7 +268,11 @@ export default function SharePage({
 
   if (!verified) {
     // No password required, auto-verify
-    verifyShare({ shareId }).then(() => setVerified(true));
+    if (entityType === "note" && noteShare?._id) {
+      verifyNoteShare({ noteId: noteShare._id }).then(() => setVerified(true));
+    } else {
+      verifyConversationShare({ shareId }).then(() => setVerified(true));
+    }
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -241,6 +283,11 @@ export default function SharePage({
         </div>
       </div>
     );
+  }
+
+  // Render note share view if it's a note
+  if (entityType === "note" && verified && noteShare?._id) {
+    return <NoteShareView noteId={noteShare._id} />;
   }
 
   if (!conversation || !messages) {

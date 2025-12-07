@@ -335,6 +335,21 @@
   background-size: 1000px 100%;
 }
 
+@keyframes highlight-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0px transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 4px hsl(var(--primary));
+  }
+}
+
+.message-highlight {
+  animation: highlight-flash 2s ease-in-out;
+  border-radius: 8px;
+}
+
 /* Performance Optimizations */
 .prose {
   /* Prevent layout thrashing during streaming */

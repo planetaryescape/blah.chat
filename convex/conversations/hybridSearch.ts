@@ -14,6 +14,7 @@ export const hybridSearch = action({
     query: v.string(),
     limit: v.optional(v.number()),
     includeArchived: v.optional(v.boolean()),
+    projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -41,13 +42,54 @@ export const hybridSearch = action({
       );
 
       // 3. Merge with RRF
-      return mergeConversationsRRF(keywordResults, semanticResults, limit);
-    } catch (error) {
-      console.error(
-        "Semantic search failed, falling back to keyword-only:",
-        error,
+      let merged = mergeConversationsRRF(
+        keywordResults,
+        semanticResults,
+        limit * 2,
       );
-      return keywordResults.slice(0, limit);
+
+      // 4. Apply project filter AFTER RRF merge
+      if (args.projectId !== undefined) {
+        if (args.projectId === "none") {
+          merged = merged.filter((c) => c.projectId === undefined);
+        } else {
+          merged = merged.filter((c) => c.projectId === args.projectId);
+        }
+      }
+
+      return merged.slice(0, limit);
+    } catch (error) {
+      // Structured logging with context
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      console.error("Semantic search failed, using keyword fallback", {
+        error: errorMessage,
+        stack,
+        userId: user._id,
+        query: args.query.slice(0, 100),
+        timestamp: Date.now(),
+        projectFilter: args.projectId,
+      });
+
+      // Fallback to keyword-only (graceful degradation)
+      let results = keywordResults.slice(0, limit * 2);
+
+      // Apply project filter to fallback results
+      if (args.projectId !== undefined) {
+        if (args.projectId === "none") {
+          results = results.filter(
+            (c: Doc<"conversations">) => c.projectId === undefined,
+          );
+        } else {
+          results = results.filter(
+            (c: Doc<"conversations">) => c.projectId === args.projectId,
+          );
+        }
+      }
+
+      return results.slice(0, limit);
     }
   },
 });

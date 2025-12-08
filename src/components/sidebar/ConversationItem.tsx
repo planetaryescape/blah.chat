@@ -1,38 +1,50 @@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useMutation } from "convex/react";
-import { Archive, Edit, GitBranch, MoreVertical, Pin, Star, Trash2 } from "lucide-react";
+import { useAction, useMutation } from "convex/react";
+import {
+  Archive,
+  Edit,
+  GitBranch,
+  MoreVertical,
+  Pin,
+  Sparkles,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
+import { ProjectBadge } from "@/components/projects/ProjectBadge";
+import { useQueryState } from "nuqs";
 
 export function ConversationItem({
   conversation,
   index,
-  selectedIndex = -1,
+  selectedId,
   onClearSelection,
   isSelectionMode = false,
   isSelectedById = false,
@@ -40,7 +52,7 @@ export function ConversationItem({
 }: {
   conversation: Doc<"conversations">;
   index?: number;
-  selectedIndex?: number;
+  selectedId?: string | null;
   onClearSelection?: () => void;
   isSelectionMode?: boolean;
   isSelectedById?: boolean;
@@ -50,6 +62,7 @@ export function ConversationItem({
   const pathname = usePathname();
   const [showRename, setShowRename] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [_, setProjectFilter] = useQueryState("project");
 
   // @ts-ignore - Convex type inference depth issue
   const deleteConversation = useMutation(api.conversations.deleteConversation);
@@ -59,9 +72,11 @@ export function ConversationItem({
   const toggleStar = useMutation(api.conversations.toggleStar);
   // @ts-ignore - Convex type inference depth issue
   const archiveConversation = useMutation(api.conversations.archive);
+  // @ts-ignore - Convex type inference depth issue
+  const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const isActive = pathname === `/chat/${conversation._id}`;
-  const isSelected = index !== undefined && index === selectedIndex;
+  const isSelected = selectedId === conversation._id;
 
   const handleClick = (e: React.MouseEvent) => {
     if (isSelectionMode) {
@@ -89,6 +104,25 @@ export function ConversationItem({
     togglePin({ conversationId: conversation._id });
   };
 
+  const handleAutoRename = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      toast.loading("Generating title...", { id: "auto-rename" });
+      const results = await autoRenameAction({
+        conversationIds: [conversation._id],
+      });
+
+      if (results[0]?.success) {
+        toast.success("Conversation renamed", { id: "auto-rename" });
+      } else {
+        throw new Error(results[0]?.error || "Failed to generate title");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to auto-rename";
+      toast.error(msg, { id: "auto-rename" });
+    }
+  };
+
   return (
     <>
       <ContextMenu>
@@ -107,7 +141,7 @@ export function ConversationItem({
             )}
             onClick={handleClick}
             onMouseEnter={onClearSelection}
-            data-list-index={index}
+            data-list-id={conversation._id}
             role="option"
             aria-selected={isSelected}
             tabIndex={-1}
@@ -125,31 +159,33 @@ export function ConversationItem({
             )}
 
             {/* Branch indicator button */}
-            {!isSelectionMode && conversation.parentConversationId && conversation.parentMessageId && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(
-                        `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`
-                      );
-                    }}
-                    aria-label="Go to parent conversation"
-                  >
-                    <GitBranch className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Branched conversation - click to go to source</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            {!isSelectionMode &&
+              conversation.parentConversationId &&
+              conversation.parentMessageId && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="flex-shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(
+                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`,
+                        );
+                      }}
+                      aria-label="Go to parent conversation"
+                    >
+                      <GitBranch className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Branched conversation - click to go to source</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
 
-            <div className="flex-1 truncate">
+            <div className="flex-1 flex items-center gap-2 min-w-0">
               <p
                 className={cn(
                   "text-sm truncate",
@@ -158,6 +194,14 @@ export function ConversationItem({
               >
                 {conversation.title || "New conversation"}
               </p>
+              {conversation.projectId && (
+                <div className="flex-shrink-0">
+                  <ProjectBadge
+                    projectId={conversation.projectId}
+                    onClick={() => setProjectFilter(conversation.projectId!)}
+                  />
+                </div>
+              )}
             </div>
 
             {!isSelectionMode && index !== undefined && index < 9 && (
@@ -272,6 +316,10 @@ export function ConversationItem({
                       <Edit className="w-4 h-4 mr-2" />
                       Rename
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleAutoRename}>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Auto-rename
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={(e) => {
@@ -315,6 +363,11 @@ export function ConversationItem({
             <Edit className="w-4 h-4 mr-2" />
             Rename
           </ContextMenuItem>
+          <ContextMenuItem onClick={(e) => handleAutoRename(e as any)}>
+            <Sparkles className="w-4 h-4 mr-2" />
+            Auto-rename
+          </ContextMenuItem>
+          <ContextMenuSeparator />
           <ContextMenuItem
             onClick={() => onToggleSelection?.(conversation._id)}
           >

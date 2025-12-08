@@ -7,6 +7,7 @@ const crons = cronJobs();
 crons.daily(
   "mark-expired-memories",
   { hourUTC: 3, minuteUTC: 0 },
+  // @ts-ignore - Convex type instantiation depth issue
   internal.memories.expiration.markExpired,
 );
 
@@ -14,7 +15,16 @@ crons.daily(
 crons.interval(
   "extract-inactive-conversations",
   { minutes: 15 },
+  // @ts-ignore - Convex type instantiation depth issue
   internal.memories.extract.processInactiveConversations,
+);
+
+// Run monthly on the 1st at 2 AM UTC to rebuild project conversation arrays
+crons.monthly(
+  "rebuild-project-conversations",
+  { day: 1, hourUTC: 2, minuteUTC: 0 },
+  // @ts-ignore - Convex type instantiation depth issue
+  internal.projects.crons.rebuildAllProjects,
 );
 
 export default crons;

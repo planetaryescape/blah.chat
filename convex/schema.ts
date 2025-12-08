@@ -98,6 +98,7 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_projectId", ["projectId"])
     .index("by_parent_conversation", ["parentConversationId"])
     .searchIndex("search_title", {
       searchField: "title",
@@ -310,9 +311,13 @@ export default defineSchema({
     description: v.optional(v.string()),
     systemPrompt: v.optional(v.string()),
     conversationIds: v.array(v.id("conversations")),
+    isTemplate: v.optional(v.boolean()),
+    createdFrom: v.optional(v.id("projects")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_userId_isTemplate", ["userId", "isTemplate"]),
 
   files: defineTable({
     userId: v.id("users"),

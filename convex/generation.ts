@@ -3,12 +3,15 @@ import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
-import { generateText, streamText, type CoreMessage } from "ai";
+import { generateText, stepCountIs, streamText, type CoreMessage } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
-import { createMemorySearchTool } from "./ai/tools/memories";
+import { createCalculatorTool } from "./ai/tools/calculator";
+import { createDateTimeTool } from "./ai/tools/datetime";
+import { createMemorySaveTool, createMemorySearchTool } from "./ai/tools/memories";
+import { createWebSearchTool } from "./ai/tools/webSearch";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
     formatMemoriesByCategory,
@@ -526,16 +529,24 @@ export const generateResponse = internalAction({
       const options: any = {
         model: finalModel,
         messages: allMessages,
-        maxSteps: hasFunctionCalling ? 5 : 1, // No multi-turn for non-tool models
+        stopWhen: hasFunctionCalling ? stepCountIs(5) : undefined, // Multi-step tool calling
         providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
       };
 
       // Only add tools for capable models
       if (hasFunctionCalling) {
-        const memoryTool = createMemorySearchTool(ctx, args.userId);
+        const memorySearchTool = createMemorySearchTool(ctx, args.userId);
+        const memorySaveTool = createMemorySaveTool(ctx, args.userId);
+        const calculatorTool = createCalculatorTool();
+        const dateTimeTool = createDateTimeTool();
+        const webSearchTool = createWebSearchTool(ctx);
 
         options.tools = {
-          searchMemories: memoryTool,
+          searchMemories: memorySearchTool,
+          saveMemory: memorySaveTool,
+          calculator: calculatorTool,
+          datetime: dateTimeTool,
+          webSearch: webSearchTool,
         };
 
         options.onStepFinish = async (step: any) => {
@@ -614,9 +625,10 @@ export const generateResponse = internalAction({
         if (chunk.type === "tool-result") {
           const existing = toolCallsBuffer.get(chunk.toolCallId);
           if (existing) {
+            const resultValue = (chunk as any).result ?? (chunk as any).output;
             toolCallsBuffer.set(chunk.toolCallId, {
               ...existing,
-              result: JSON.stringify((chunk as any).result),
+              result: JSON.stringify(resultValue),
             });
 
             // Persist result immediately so frontend can show it
@@ -665,7 +677,7 @@ export const generateResponse = internalAction({
         }
       }
 
-      // 7. Get token usage
+      // Get final usage info
       const usage = await result.usage;
 
       // Complete thinking if reasoning present
@@ -717,7 +729,7 @@ export const generateResponse = internalAction({
             id: tc.toolCallId,
             name: tc.toolName,
             arguments: JSON.stringify(tc.input || tc.args),
-            result: stepResult ? JSON.stringify(stepResult.result) : undefined,
+            result: stepResult ? JSON.stringify(stepResult.result ?? stepResult.output) : undefined,
             timestamp: Date.now(),
           };
         });

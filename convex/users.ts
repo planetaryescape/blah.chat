@@ -130,6 +130,11 @@ export const updatePreferences = mutation({
           v.literal("groq"),
         ),
       ),
+      ttsEnabled: v.optional(v.boolean()),
+      ttsProvider: v.optional(v.string()),
+      ttsVoice: v.optional(v.string()),
+      ttsSpeed: v.optional(v.number()),
+      ttsAutoRead: v.optional(v.boolean()),
       reasoning: v.optional(
         v.object({
           showByDefault: v.optional(v.boolean()),

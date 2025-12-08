@@ -10,6 +10,7 @@ import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
+import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 import { useCallback } from "react";
 import { useQueryState, parseAsBoolean } from "nuqs";
+import { TTSProvider } from "@/contexts/TTSContext";
+import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 
 export default function ChatPage({
   params,
@@ -260,118 +263,127 @@ export default function ChatPage({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
-      <header className="flex items-center gap-4 px-4 py-3 border-b shrink-0">
-        <div className="flex items-center gap-1 flex-1 min-w-0">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={navigateToPrevious}
-                  disabled={isFirst}
-                  className="h-7 w-7 shrink-0"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Previous conversation (⌘[)</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    <TTSProvider defaultSpeed={user?.preferences?.ttsSpeed ?? 1}>
+      <div className="relative flex h-[100dvh] flex-col overflow-hidden">
+        <header className="flex items-center gap-4 border-b px-4 py-3 shrink-0">
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={navigateToPrevious}
+                    disabled={isFirst}
+                    className="h-7 w-7 shrink-0"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Previous conversation (⌘[)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          <h1 className="text-lg font-semibold truncate">
-            {conversation.title || "New Chat"}
-          </h1>
+            <h1 className="text-lg font-semibold truncate">
+              {conversation.title || "New Chat"}
+            </h1>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={navigateToNext}
-                  disabled={isLast}
-                  className="h-7 w-7 shrink-0"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Next conversation (⌘])</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={navigateToNext}
+                    disabled={isLast}
+                    className="h-7 w-7 shrink-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Next conversation (⌘])</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
-        <ModelBadge
-          modelId={isActive ? undefined : selectedModel}
-          isComparison={isActive}
-          comparisonCount={selectedModels.length}
-          onClick={() => {
-            if (isActive) {
-              setComparisonDialogOpen(true);
-            } else {
-              setModelSelectorOpen(true);
-            }
-          }}
-        />
+          <ModelBadge
+            modelId={isActive ? undefined : selectedModel}
+            isComparison={isActive}
+            comparisonCount={selectedModels.length}
+            onClick={() => {
+              if (isActive) {
+                setComparisonDialogOpen(true);
+              } else {
+                setModelSelectorOpen(true);
+              }
+            }}
+          />
 
-        <div className="flex items-center gap-2">
-          {messageCount >= 3 && (
-            <ExtractMemoriesButton conversationId={conversationId} />
-          )}
-          {hasMessages && (
-            <ContextWindowIndicator conversationId={conversationId} />
-          )}
-          <BranchBadge conversationId={conversationId} />
-          {hasMessages && <ShareDialog conversationId={conversationId} />}
-          <ConversationHeaderMenu conversation={conversation} />
-        </div>
-      </header>
+          <ProjectSelector
+            conversationId={conversationId}
+            currentProjectId={conversation.projectId}
+          />
 
-      <VirtualizedMessageList
-        messages={messages}
-        selectedModel={selectedModel}
-        onVote={handleVote}
-        onConsolidate={handleConsolidate}
-        onToggleModelNames={() => setShowModelNames(!showModelNames)}
-        showModelNames={showModelNames ?? false}
-        syncScroll={syncScroll ?? true}
-        highlightMessageId={highlightMessageId}
-      />
+          <div className="flex items-center gap-2">
+            {messageCount >= 3 && (
+              <ExtractMemoriesButton conversationId={conversationId} />
+            )}
+            {hasMessages && (
+              <ContextWindowIndicator conversationId={conversationId} />
+            )}
+            <BranchBadge conversationId={conversationId} />
+            {hasMessages && <ShareDialog conversationId={conversationId} />}
+            <ConversationHeaderMenu conversation={conversation} />
+          </div>
+        </header>
 
-      <div className="relative px-4 pb-4">
-        {!isActive && <ModelFeatureHint modelId={selectedModel} />}
-        <ProgressiveHints
-          messageCount={messages?.length ?? 0}
-          conversationCount={filteredConversations?.length ?? 0}
-        />
-        <ChatInput
-          conversationId={conversationId}
-          isGenerating={isGenerating}
+        <TTSPlayerBar />
+
+        <VirtualizedMessageList
+          messages={messages}
           selectedModel={selectedModel}
-          onModelChange={handleModelChange}
-          thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
-          onThinkingEffortChange={setThinkingEffort}
-          attachments={attachments}
-          onAttachmentsChange={setAttachments}
-          isComparisonMode={isActive}
-          selectedModels={selectedModels}
-          onStartComparison={startComparison}
-          onExitComparison={exitComparison}
-          isEmpty={messages?.length === 0}
-          modelSelectorOpen={modelSelectorOpen}
-          onModelSelectorOpenChange={setModelSelectorOpen}
-          comparisonDialogOpen={comparisonDialogOpen}
-          onComparisonDialogOpenChange={setComparisonDialogOpen}
+          onVote={handleVote}
+          onConsolidate={handleConsolidate}
+          onToggleModelNames={() => setShowModelNames(!showModelNames)}
+          showModelNames={showModelNames ?? false}
+          syncScroll={syncScroll ?? true}
+          highlightMessageId={highlightMessageId}
+        />
+
+        <div className="relative px-4 pb-4">
+          {!isActive && <ModelFeatureHint modelId={selectedModel} />}
+          <ProgressiveHints
+            messageCount={messages?.length ?? 0}
+            conversationCount={filteredConversations?.length ?? 0}
+          />
+          <ChatInput
+            conversationId={conversationId}
+            isGenerating={isGenerating}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
+            onThinkingEffortChange={setThinkingEffort}
+            attachments={attachments}
+            onAttachmentsChange={setAttachments}
+            isComparisonMode={isActive}
+            selectedModels={selectedModels}
+            onStartComparison={startComparison}
+            onExitComparison={exitComparison}
+            isEmpty={messages?.length === 0}
+            modelSelectorOpen={modelSelectorOpen}
+            onModelSelectorOpenChange={setModelSelectorOpen}
+            comparisonDialogOpen={comparisonDialogOpen}
+            onComparisonDialogOpenChange={setComparisonDialogOpen}
+          />
+        </div>
+
+        <QuickModelSwitcher
+          open={quickSwitcherOpen}
+          onOpenChange={setQuickSwitcherOpen}
+          currentModel={selectedModel}
+          onSelectModel={handleModelChange}
         />
       </div>
-
-      <QuickModelSwitcher
-        open={quickSwitcherOpen}
-        onOpenChange={setQuickSwitcherOpen}
-        currentModel={selectedModel}
-        onSelectModel={handleModelChange}
-      />
-    </div>
+    </TTSProvider>
   );
 }

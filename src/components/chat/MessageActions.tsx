@@ -5,7 +5,14 @@ import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
-import { Check, Copy, FileText, RotateCcw, Square } from "lucide-react";
+import {
+  Check,
+  Copy,
+  FileText,
+  GitBranch,
+  RotateCcw,
+  Square,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -19,6 +26,7 @@ import { MessageActionsMenu } from "./MessageActionsMenu";
 import { MessageActionsMenuMobile } from "./MessageActionsMenuMobile";
 import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { TTSButton } from "./TTSButton";
 
 interface MessageActionsProps {
   message: Doc<"messages">;
@@ -38,11 +46,14 @@ export function MessageActions({
   const user = useQuery(api.users.getCurrentUser as any);
   const retryMessage = useMutation(api.chat.retryMessage);
   const stop = useMutation(api.chat.stopGeneration);
+  const regenerate = useMutation(api.chat.regenerate);
+  const branchFromMessage = useMutation(api.chat.branchFromMessage);
   const { isMobile } = useMobileDetect();
 
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
   const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
+  const ttsEnabled = user?.preferences?.ttsEnabled ?? false;
   const shouldShowRetry =
     isUser && nextMessage?.status === "error" && !isGenerating;
 
@@ -67,6 +78,25 @@ export function MessageActions({
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBranch = async () => {
+    try {
+      const newConversationId = await branchFromMessage({
+        messageId: message._id,
+      });
+      router.push(`/chat/${newConversationId}`);
+    } catch (error) {
+      console.error("Failed to branch:", error);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    try {
+      await regenerate({ messageId: message._id });
+    } catch (error) {
+      console.error("Failed to regenerate:", error);
+    }
   };
 
   const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
@@ -183,7 +213,7 @@ export function MessageActions({
               conversationId={message.conversationId}
             />
 
-            {/* NEW: Save as Note Button */}
+            {/* Save as Note Button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -201,7 +231,63 @@ export function MessageActions({
               </TooltipContent>
             </Tooltip>
 
-            {/* Overflow Menu (Regenerate, Branch, Delete) */}
+            {/* Branch Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
+                  onClick={handleBranch}
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span className="sr-only">Branch</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Branch conversation (B)</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Regenerate Button - only for assistant messages when not generating */}
+            {!isUser && !isGenerating && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
+                    onClick={handleRegenerate}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span className="sr-only">Regenerate</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Regenerate response (R)</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* TTS Button - only for complete assistant messages when TTS is enabled */}
+            {!isUser &&
+              message.status === "complete" &&
+              ttsEnabled &&
+              (message.content || message.partialContent) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TTSButton
+                      text={message.content || message.partialContent || ""}
+                      messageId={message._id}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Play with text-to-speech</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+            {/* Overflow Menu (Delete only now) */}
             <MessageActionsMenu
               message={message}
               isGenerating={isGenerating}

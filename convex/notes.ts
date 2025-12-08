@@ -300,6 +300,27 @@ export const listNotes = query({
   },
 });
 
+export const getNotesFromMessage = query({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const notes = await ctx.db
+      .query("notes")
+      .withIndex("by_source_message", (q) =>
+        q.eq("sourceMessageId", args.messageId),
+      )
+      .filter((q) => q.eq(q.field("userId"), user._id))
+      .order("desc")
+      .collect();
+
+    return notes;
+  },
+});
+
 /**
  * Get tag statistics for the current user
  */

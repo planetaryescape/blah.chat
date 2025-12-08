@@ -22,6 +22,8 @@ import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
 import { MarkdownContentMemo } from "./MarkdownContent";
 import { MessageActions } from "./MessageActions";
+import { MessageBranchIndicator } from "./MessageBranchIndicator";
+import { MessageNotesIndicator } from "./MessageNotesIndicator";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
 import { ToolCallDisplay } from "./ToolCallDisplay";
@@ -544,6 +546,10 @@ export const ChatMessage = memo(
                   )}
                 </>
               )}
+
+              {/* Branch indicator */}
+              {!readOnly && <MessageBranchIndicator messageId={message._id} />}
+              {!readOnly && <MessageNotesIndicator messageId={message._id} />}
 
               {!isGenerating && (
                 <div

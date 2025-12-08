@@ -1015,3 +1015,26 @@ export const getChildBranches = query({
     return childBranches;
   },
 });
+
+export const getChildBranchesFromMessage = query({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    // Get child conversations that branch from this specific message
+    const childBranches = await ctx.db
+      .query("conversations")
+      .withIndex("by_parent_conversation")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("parentMessageId"), args.messageId),
+          q.eq(q.field("userId"), user._id),
+        ),
+      )
+      .collect();
+
+    return childBranches;
+  },
+});

@@ -1,15 +1,19 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-    AlertCircle,
-    CheckCircle2,
-    ChevronDown,
-    ChevronRight,
-    Loader2,
-    Search,
+  AlertCircle,
+  BookmarkPlus,
+  Calculator,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Globe,
+  Loader2,
+  Search,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 interface ToolCall {
   id: string;
@@ -31,10 +35,61 @@ function getCallState(call: ToolCall): ToolCallState {
 
   try {
     const parsed = JSON.parse(call.result);
-    if (parsed.error) return "error";
+    if (parsed.error || parsed.success === false) return "error";
   } catch {}
 
   return "complete";
+}
+
+function getToolIcon(toolName: string) {
+  switch (toolName) {
+    case "saveMemory":
+      return BookmarkPlus;
+    case "searchMemories":
+      return Search;
+    case "calculator":
+      return Calculator;
+    case "datetime":
+      return Calendar;
+    case "webSearch":
+      return Globe;
+    default:
+      return Search;
+  }
+}
+
+function getToolLabel(
+  toolName: string,
+  isExecuting: boolean,
+  result: any,
+): string {
+  switch (toolName) {
+    case "saveMemory":
+      if (isExecuting) return "Saving to memory...";
+      if (result?.success === false) return "Failed to save";
+      if (result?.duplicate) return "Already saved";
+      return "Saved to memory";
+    case "searchMemories":
+      if (isExecuting) return "Searching memories...";
+      return `Memory search (${result?.found || 0} result${result?.found !== 1 ? "s" : ""})`;
+    case "calculator":
+      if (isExecuting) return "Calculating...";
+      if (result?.success === false) return "Calculation error";
+      return `= ${result?.result}`;
+    case "datetime":
+      if (isExecuting) return "Getting date/time...";
+      if (result?.success === false) return "Date error";
+      if (result?.formatted) return result.formatted;
+      if (result?.readable) return result.readable;
+      return "Date/time";
+    case "webSearch":
+      if (isExecuting) return "Searching the web...";
+      if (result?.success === false) return "Search failed";
+      return `Web search (${result?.results?.length || 0} result${result?.results?.length !== 1 ? "s" : ""})`;
+    default:
+      if (isExecuting) return "Processing...";
+      return "Done";
+  }
 }
 
 export function ToolCallDisplay({
@@ -44,139 +99,233 @@ export function ToolCallDisplay({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   // Merge partial (loading) and complete calls
-  const allCalls = [
-    ...(partialToolCalls || []),
-    ...(toolCalls || []),
-  ];
+  const uniqueCalls = useMemo(() => {
+    const combined = [...(toolCalls || [])];
 
-  // Deduplicate by ID (completed overwrites partial)
-  const uniqueCalls = Array.from(
-    new Map(allCalls.map((tc) => [tc.id, tc])).values(),
-  );
+    if (partialToolCalls) {
+      for (const partial of partialToolCalls) {
+        if (!combined.some((c) => c.id === partial.id)) {
+          combined.push(partial as ToolCall);
+        }
+      }
+    }
+    return combined;
+  }, [toolCalls, partialToolCalls]);
 
   if (uniqueCalls.length === 0) return null;
 
-  return (
-    <div className="space-y-2 my-3">
-      {uniqueCalls.map((call) => {
-        const isExpanded = expanded[call.id] ?? false;
-        const state = getCallState(call);
+  const anyExecuting = uniqueCalls.some(
+    (c) => getCallState(c) === "executing",
+  );
+  const hasError = uniqueCalls.some((c) => getCallState(c) === "error");
+  const isAnyExpanded = Object.values(expanded).some(Boolean);
 
-        let parsedArgs: any;
-        let parsedResult: any;
+  // Get summary info for collapsed view
+  const getSummaryInfo = () => {
+    const searchCalls = uniqueCalls.filter((c) => c.name === "searchMemories");
+    const saveCalls = uniqueCalls.filter((c) => c.name === "saveMemory");
+
+    // Calculate total search results
+    const totalResults = searchCalls.reduce((sum, call) => {
+      if (call.result) {
         try {
-          parsedArgs = JSON.parse(call.arguments);
-          parsedResult = call.result ? JSON.parse(call.result) : null;
-        } catch {
-          parsedArgs = call.arguments;
-          parsedResult = call.result;
-        }
+          const parsed = JSON.parse(call.result);
+          return sum + (parsed.found || 0);
+        } catch {}
+      }
+      return sum;
+    }, 0);
 
-        const statusConfig = {
-          executing: {
-            icon: Loader2,
-            color: "text-blue-500",
-            label: "RUNNING",
-            animate: "animate-spin",
-          },
-          complete: {
-            icon: CheckCircle2,
-            color: "text-green-500",
-            label: "DONE",
-            animate: "",
-          },
-          error: {
-            icon: AlertCircle,
-            color: "text-red-500",
-            label: "ERROR",
-            animate: "",
-          },
-        }[state];
+    // Count successful saves
+    const savedCount = saveCalls.filter((c) => {
+      try {
+        const parsed = JSON.parse(c.result || "{}");
+        return parsed.success === true;
+      } catch {
+        return false;
+      }
+    }).length;
 
-        const StatusIcon = statusConfig.icon;
+    if (anyExecuting) {
+      const executingCall = uniqueCalls.find(
+        (c) => getCallState(c) === "executing",
+      );
+      return getToolLabel(executingCall?.name || "", true, null);
+    }
 
-        return (
-          <div
-            key={call.id}
-            className="border rounded-lg overflow-hidden bg-muted/30"
+    const parts = [];
+    if (searchCalls.length > 0) {
+      parts.push(
+        `${totalResults} memor${totalResults !== 1 ? "ies" : "y"} found`,
+      );
+    }
+    if (saveCalls.length > 0) {
+      parts.push(`${savedCount} saved`);
+    }
+    return parts.join(", ") || "Tool calls";
+  };
+
+  return (
+    <div className="my-3">
+      {/* Collapsed summary view */}
+      <div
+        className="flex items-center gap-2 cursor-pointer group"
+        onClick={() => {
+          const newState = !isAnyExpanded;
+          const newExpanded: Record<string, boolean> = {};
+          for (const call of uniqueCalls) {
+            newExpanded[call.id] = newState;
+          }
+          setExpanded(newExpanded);
+        }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const newState = !isAnyExpanded;
+            const newExpanded: Record<string, boolean> = {};
+            for (const call of uniqueCalls) {
+              newExpanded[call.id] = newState;
+            }
+            setExpanded(newExpanded);
+          }
+        }}
+        aria-expanded={isAnyExpanded}
+        aria-label={`${uniqueCalls.length} tool call${uniqueCalls.length === 1 ? "" : "s"}`}
+      >
+        {/* Status indicator */}
+        {anyExecuting ? (
+          <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+        ) : hasError ? (
+          <AlertCircle className="h-3 w-3 text-red-500" />
+        ) : (
+          <CheckCircle2 className="h-3 w-3 text-green-500" />
+        )}
+
+        <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+          {getSummaryInfo()}
+        </span>
+
+        <div className="flex-1 border-t border-dashed border-border/40 group-hover:border-border/60 transition-colors" />
+
+        {isAnyExpanded ? (
+          <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+        ) : (
+          <ChevronRight className="h-3 w-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+        )}
+      </div>
+
+      {/* Expanded details */}
+      <AnimatePresence>
+        {isAnyExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+            className="overflow-hidden"
           >
-            <button
-              type="button"
-              onClick={() =>
-                setExpanded((prev) => ({ ...prev, [call.id]: !prev[call.id] }))
-              }
-              className="w-full px-3 py-2 flex items-center gap-2 hover:bg-muted/50 transition-colors"
-            >
-              {isExpanded ? (
-                <ChevronDown className="w-4 h-4 shrink-0" />
-              ) : (
-                <ChevronRight className="w-4 h-4 shrink-0" />
-              )}
+            <div className="mt-2 space-y-2 pl-2">
+              {uniqueCalls.map((call) => {
+                const state = getCallState(call);
+                const ToolIcon = getToolIcon(call.name);
 
-              <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
+                let parsedArgs: any;
+                let parsedResult: any;
+                try {
+                  parsedArgs = JSON.parse(call.arguments);
+                  parsedResult = call.result ? JSON.parse(call.result) : null;
+                } catch {
+                  parsedArgs = call.arguments;
+                  parsedResult = call.result;
+                }
 
-              <span className="font-medium text-sm">{call.name}</span>
-
-              <Badge variant="outline" className="ml-auto text-xs">
-                <StatusIcon
-                  className={`w-3 h-3 mr-1 ${statusConfig.color} ${statusConfig.animate}`}
-                />
-                {statusConfig.label}
-              </Badge>
-
-              {parsedResult?.found !== undefined && state === "complete" && (
-                <span className="text-xs text-muted-foreground">
-                  {parsedResult.found} result
-                  {parsedResult.found !== 1 ? "s" : ""}
-                </span>
-              )}
-            </button>
-
-            {isExpanded && (
-              <div className="px-3 pb-3 space-y-2 text-sm border-t">
-                <div className="mt-2">
-                  <div className="font-medium text-muted-foreground mb-1">
-                    Query:
-                  </div>
-                  <div className="pl-3 border-l-2 text-xs font-mono">
-                    {parsedArgs.query}
-                  </div>
-                </div>
-
-                {parsedResult && (
-                  <div>
-                    <div className="font-medium text-muted-foreground mb-1">
-                      Results:
-                    </div>
-                    <div className="pl-3 border-l-2 space-y-1 max-h-64 overflow-y-auto">
-                      {parsedResult.memories?.map((mem: any, i: number) => (
-                        <div key={i} className="text-xs py-1">
-                          <span className="font-medium text-primary">
-                            [{mem.category}]
-                          </span>{" "}
-                          <span className="text-muted-foreground">
-                            {mem.content}
+                // Render based on tool type
+                if (call.name === "saveMemory") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium text-muted-foreground">
+                          {state === "executing"
+                            ? "Saving..."
+                            : parsedResult?.success
+                              ? "Saved"
+                              : parsedResult?.duplicate
+                                ? "Already exists"
+                                : "Failed"}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {parsedArgs?.content && (
+                          <span className="italic">
+                            "{parsedArgs.content}"
                           </span>
-                        </div>
-                      ))}
-                      {parsedResult.found === 0 && (
-                        <div className="text-muted-foreground text-xs">
-                          No memories found
-                        </div>
-                      )}
-                      {state === "error" && (
-                        <div className="text-red-500 text-xs">
-                          {parsedResult.error || "Tool execution failed"}
+                        )}
+                      </div>
+                      {parsedResult?.message && state !== "executing" && (
+                        <div
+                          className={
+                            parsedResult.success
+                              ? "text-green-500"
+                              : "text-amber-500"
+                          }
+                        >
+                          {parsedResult.message}
                         </div>
                       )}
                     </div>
+                  );
+                }
+
+                // Default: searchMemories
+                return (
+                  <div
+                    key={call.id}
+                    className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-mono text-muted-foreground">
+                        {parsedArgs?.query}
+                      </span>
+                    </div>
+
+                    {parsedResult && (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {parsedResult.memories?.map((mem: any, i: number) => (
+                          <div key={i} className="py-0.5">
+                            <span className="font-medium text-primary">
+                              [{mem.category}]
+                            </span>{" "}
+                            <span className="text-muted-foreground">
+                              {mem.content}
+                            </span>
+                          </div>
+                        ))}
+                        {parsedResult.found === 0 && (
+                          <div className="text-muted-foreground">
+                            No memories found
+                          </div>
+                        )}
+                        {state === "error" && (
+                          <div className="text-red-500">
+                            {parsedResult.error || "Tool execution failed"}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -3,10 +3,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -582,6 +582,8 @@ export const ChatMessage = memo(
       prev.message._id === next.message._id &&
       prev.message.partialContent === next.message.partialContent &&
       prev.message.status === next.message.status &&
+      prev.message.toolCalls === next.message.toolCalls &&
+      prev.message.partialToolCalls === next.message.partialToolCalls &&
       prev.nextMessage?.status === next.nextMessage?.status
     );
   },

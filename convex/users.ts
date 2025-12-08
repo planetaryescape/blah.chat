@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalQuery } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const createUser = mutation({
   args: {
@@ -170,14 +170,39 @@ export const updateCustomInstructions = mutation({
     aboutUser: v.string(),
     responseStyle: v.string(),
     enabled: v.boolean(),
+    // New personalization fields
+    baseStyleAndTone: v.optional(
+      v.union(
+        v.literal("default"),
+        v.literal("professional"),
+        v.literal("friendly"),
+        v.literal("candid"),
+        v.literal("quirky"),
+        v.literal("efficient"),
+        v.literal("nerdy"),
+        v.literal("cynical"),
+      ),
+    ),
+    nickname: v.optional(v.string()),
+    occupation: v.optional(v.string()),
+    moreAboutYou: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
-    // Validate length (3000 chars max each)
+    // Validate length limits
     if (args.aboutUser.length > 3000 || args.responseStyle.length > 3000) {
       throw new Error("Max 3000 characters per field");
+    }
+    if (args.nickname && args.nickname.length > 100) {
+      throw new Error("Nickname must be 100 characters or less");
+    }
+    if (args.occupation && args.occupation.length > 200) {
+      throw new Error("Occupation must be 200 characters or less");
+    }
+    if (args.moreAboutYou && args.moreAboutYou.length > 3000) {
+      throw new Error("More about you must be 3000 characters or less");
     }
 
     const user = await ctx.db
@@ -194,12 +219,17 @@ export const updateCustomInstructions = mutation({
           aboutUser: args.aboutUser,
           responseStyle: args.responseStyle,
           enabled: args.enabled,
+          baseStyleAndTone: args.baseStyleAndTone,
+          nickname: args.nickname,
+          occupation: args.occupation,
+          moreAboutYou: args.moreAboutYou,
         },
       },
       updatedAt: Date.now(),
     });
   },
 });
+
 
 export const updateBudgetSettings = mutation({
   args: {

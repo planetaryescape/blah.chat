@@ -1,14 +1,15 @@
 "use node";
 
-import { action } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
+import { action } from "./_generated/server";
 
 /**
- * Generate speech from text using configured TTS provider
+ * Generate speech from text using Deepgram
  *
- * Provider: Deepgram Aura (streaming REST API)
+ * Note: Deepgram has a 2000 character limit per request.
+ * For longer texts, the client should chunk the text and call this action multiple times.
  */
 export const generateSpeech = action({
   args: {
@@ -27,22 +28,20 @@ export const generateSpeech = action({
       throw new Error("No text provided for TTS");
     }
 
-    // 2. Get provider from preferences (default: deepgram)
     const provider = "deepgram" as const;
     const charCount = args.text.length;
-    let audioBuffer: ArrayBuffer;
-    let cost: number = charCount * 0.000003; // $0.000003/char
+    const cost: number = charCount * 0.000003; // $0.000003/char
 
-    // 3. Call Deepgram TTS (REST speak endpoint)
+    // 2. Setup Deepgram config
     const voice: string =
       args.voice ?? user.preferences.ttsVoice ?? "aura-asteria-en";
-    const tempo =
-      args.speed ?? user.preferences.ttsSpeed ?? 1; // Deepgram supports 0.5x-2x
+    const tempo = args.speed ?? user.preferences.ttsSpeed ?? 1;
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
       throw new Error("DEEPGRAM_API_KEY is not set");
     }
 
+    // 3. Call Deepgram TTS
     const url = new URL("https://api.deepgram.com/v1/speak");
     url.searchParams.set("model", voice);
     url.searchParams.set("encoding", "mp3");
@@ -58,9 +57,7 @@ export const generateSpeech = action({
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
-      body: JSON.stringify({
-        text: args.text,
-      }),
+      body: JSON.stringify({ text: args.text }),
     });
 
     if (!response.ok) {
@@ -71,7 +68,7 @@ export const generateSpeech = action({
       throw new Error(`Deepgram API error ${response.status}: ${detail}`);
     }
 
-    audioBuffer = await response.arrayBuffer();
+    const audioBuffer = await response.arrayBuffer();
 
     // 4. Track cost
     // @ts-ignore - Type instantiation depth issue with Convex types

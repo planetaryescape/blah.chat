@@ -43,8 +43,9 @@ export default function ChatPage({
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const highlightMessageId = searchParams.get("messageId") || undefined;
+  // useSearchParams is used in a Client Component but not wrapped in Suspense
+  // This will be addressed by moving search param handling to a separate Server Component wrapper
+  const highlightMessageId = undefined;
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(

@@ -1,14 +1,10 @@
+import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 // Constants for memory retrieval
 const MIN_CONFIDENCE = 0.7; // Filter memories below 70% confidence
@@ -64,7 +60,7 @@ Response:`;
 
   try {
     const result = await generateText({
-      model: openrouter("x-ai/grok-4.1-fast"),
+      model: groq("openai/gpt-oss-120b"),
       prompt,
       temperature: 0,
     });
@@ -84,7 +80,6 @@ Response:`;
     }
 
     const reranked = indices.map((i) => candidates[i]);
-    console.log(`[Rerank] Reranked ${candidates.length} candidates`);
     return reranked;
   } catch (error) {
     console.error("[Rerank] Failed, using original order:", error);
@@ -141,9 +136,6 @@ export const getIdentityMemories = internalQuery({
     // Take limit
     const limited = filtered.slice(0, limit);
 
-    console.log(
-      `[Identity] Loaded ${limited.length} identity memories (from ${allMemories.length} total)`,
-    );
     return limited;
   },
 });
@@ -189,10 +181,6 @@ export const vectorSearch = internalAction({
         limit: args.limit,
         filter: (q) => q.eq("userId", args.userId),
       });
-
-      console.log(
-        `[VectorSearch] Found ${results.length} results, top score: ${results[0]?._score}`,
-      );
 
       // Fetch full documents
       const memories: Doc<"memories">[] = await Promise.all(
@@ -273,17 +261,11 @@ export const hybridSearch = internalAction({
 
         // Skip expired
         if (m.metadata?.expiresAt && m.metadata.expiresAt < now) {
-          console.log(
-            `[Memory] Skipped expired: "${m.content.slice(0, 40)}..."`,
-          );
           return false;
         }
 
         // Skip superseded
         if (m.metadata?.supersededBy) {
-          console.log(
-            `[Memory] Skipped superseded: "${m.content.slice(0, 40)}..."`,
-          );
           return false;
         }
 

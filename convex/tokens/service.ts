@@ -110,6 +110,7 @@ class OpenAITokenCounter implements TokenCountService {
 class AnthropicTokenCounter implements TokenCountService {
   private client: Anthropic;
   private model: string;
+  private errorLogged = false;
 
   constructor(modelId: string) {
     this.client = new Anthropic({
@@ -126,10 +127,13 @@ class AnthropicTokenCounter implements TokenCountService {
       // Count as single user message
       return await this.countMessages([{ role: "user", content: text }]);
     } catch (error) {
-      console.warn(
-        `Anthropic token counting failed for ${this.model}:`,
-        error instanceof Error ? error.message : error,
-      );
+      if (!this.errorLogged) {
+        this.errorLogged = true;
+        console.warn(
+          `Anthropic token counting failed for ${this.model}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }
       return estimateTokens(text);
     }
   }
@@ -153,10 +157,13 @@ class AnthropicTokenCounter implements TokenCountService {
 
       return result.input_tokens;
     } catch (error) {
-      console.warn(
-        `Anthropic token counting failed for ${this.model}:`,
-        error instanceof Error ? error.message : error,
-      );
+      if (!this.errorLogged) {
+        this.errorLogged = true;
+        console.warn(
+          `Anthropic token counting failed for ${this.model}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }
       // Fallback to estimation
       return messages.reduce((total, msg) => {
         const content =
@@ -175,6 +182,7 @@ class AnthropicTokenCounter implements TokenCountService {
 class GoogleTokenCounter implements TokenCountService {
   private genAI: GoogleGenerativeAI;
   private model: string;
+  private errorLogged = false;
 
   constructor(modelId: string) {
     this.genAI = new GoogleGenerativeAI(
@@ -190,10 +198,13 @@ class GoogleTokenCounter implements TokenCountService {
     try {
       return await this.countMessages([{ role: "user", content: text }]);
     } catch (error) {
-      console.warn(
-        `Google token counting failed for ${this.model}:`,
-        error instanceof Error ? error.message : error,
-      );
+      if (!this.errorLogged) {
+        this.errorLogged = true;
+        console.warn(
+          `Google token counting failed for ${this.model}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }
       return estimateTokens(text);
     }
   }
@@ -218,10 +229,13 @@ class GoogleTokenCounter implements TokenCountService {
       const result = await geminiModel.countTokens({ contents });
       return result.totalTokens;
     } catch (error) {
-      console.warn(
-        `Google token counting failed for ${this.model}:`,
-        error instanceof Error ? error.message : error,
-      );
+      if (!this.errorLogged) {
+        this.errorLogged = true;
+        console.warn(
+          `Google token counting failed for ${this.model}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }
       // Fallback to estimation
       return messages.reduce((total, msg) => {
         const content =

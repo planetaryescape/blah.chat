@@ -1,13 +1,9 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 type Message = Doc<"messages">;
 
@@ -101,7 +97,7 @@ export const generateTitle = internalAction({
 
       // Generate title with full context
       const result = streamText({
-        model: openrouter("x-ai/grok-4-fast"),
+        model: groq("openai/gpt-oss-20b"),
         prompt: `Generate a 3-5 word title for this conversation.
 
 ${conversationText}

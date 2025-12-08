@@ -1,12 +1,8 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 export const bulkAutoRename = action({
   args: {
@@ -44,7 +40,7 @@ export const bulkAutoRename = action({
 
           // 2. Generate title
           const result: any = await generateText({
-            model: openrouter("x-ai/grok-4.1-fast"),
+            model: groq("openai/gpt-oss-20b"),
             messages: [
               {
                 role: "system",

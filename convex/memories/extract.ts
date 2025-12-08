@@ -1,15 +1,11 @@
+import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
@@ -75,11 +71,16 @@ async function isMemoryDuplicate(
 
     // Calculate cosine similarity for each
     for (const memory of similarMemories) {
+      // Skip memories without embeddings or mismatched dimensions
+      if (
+        !memory.embedding ||
+        memory.embedding.length !== newEmbedding.length
+      ) {
+        continue;
+      }
+
       const similarity = cosineSimilarity(newEmbedding, memory.embedding);
       if (similarity > SIMILARITY_THRESHOLD) {
-        console.log(
-          `Duplicate detected: "${newContent}" similar to "${memory.content}" (similarity: ${similarity.toFixed(3)})`,
-        );
         return true;
       }
     }
@@ -125,9 +126,6 @@ export const extractMemories = internalAction({
       const content = unextractedMessages[0].content || "";
       if (content.length < 20) {
         // ~5 words
-        console.log(
-          `[Extraction] Skipping: single short message (${content.length} chars)`,
-        );
         return { extracted: 0 };
       }
     }
@@ -139,17 +137,7 @@ export const extractMemories = internalAction({
     const estimatedTokens = totalContent.length / 4; // rough estimate
     if (estimatedTokens < 100) {
       // Lowered from 500
-      console.log(
-        `[Extraction] Skipping: only ~${Math.round(estimatedTokens)} tokens`,
-      );
       return { extracted: 0 };
-    }
-
-    // Log processing for short sessions
-    if (unextractedMessages.length < 3) {
-      console.log(
-        `[Extraction] Short session: processing ${unextractedMessages.length} messages`,
-      );
     }
 
     // 5. Include previous 5 extracted messages for context continuity
@@ -190,7 +178,7 @@ export const extractMemories = internalAction({
 
     try {
       const result = await generateObject({
-        model: openrouter("x-ai/grok-4.1-fast"),
+        model: groq("openai/gpt-oss-120b"),
         schema: memorySchema,
         prompt: `You are a CONSERVATIVE memory system. Extract ONLY facts that pass all these tests:
 
@@ -291,18 +279,8 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
       );
 
       if (qualityFacts.length === 0) {
-        console.log(
-          "No facts met quality thresholds (importance >= 7, confidence >= 0.7)",
-        );
         return { extracted: 0 };
       }
-
-      // Log extracted facts with confidence and reasoning
-      qualityFacts.forEach((fact, idx) => {
-        console.log(
-          `[Extraction ${idx + 1}/${qualityFacts.length}] "${fact.content.slice(0, 40)}..." | Confidence: ${(fact.confidence * 100).toFixed(0)}% | Importance: ${fact.importance} | Reasoning: "${fact.reasoning.slice(0, 40)}..."`,
-        );
-      });
 
       // 4. Generate embeddings (batch)
       const embeddingResult = await embedMany({
@@ -333,7 +311,6 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
         );
 
         if (isDuplicate) {
-          console.log(`Skipping duplicate memory: "${fact.content}"`);
           continue;
         }
 
@@ -356,7 +333,7 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
             extractedAt: extractedAt,
             sourceConversationId: args.conversationId,
           },
-        } as any);
+        });
 
         storedCount++;
       }
@@ -416,7 +393,6 @@ export const processInactiveConversations = internalAction({
     );
 
     if (candidates.length === 0) {
-      console.log("[Cron] No inactive conversations with unextracted messages");
       return { processed: 0 };
     }
 
@@ -511,10 +487,6 @@ export const findInactiveConversations = internalQuery({
 
     // Sort by lastMessageAt (oldest inactive first = highest priority)
     candidates.sort((a, b) => a.lastMessageAt - b.lastMessageAt);
-
-    console.log(
-      `[Query] Found ${candidates.length} inactive conversations with unextracted messages`,
-    );
 
     return candidates;
   },

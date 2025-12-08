@@ -56,7 +56,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       useResponsesAPI: true,
     },
   },
-  "openai:gpt-5-pro": {
+  /* "openai:gpt-5-pro": {
     id: "openai:gpt-5-pro",
     provider: "openai",
     name: "GPT-5 Pro",
@@ -71,7 +71,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       summaryLevel: "detailed",
       useResponsesAPI: true,
     },
-  },
+  }, */
   "openai:gpt-5": {
     id: "openai:gpt-5",
     provider: "openai",
@@ -409,6 +409,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.59, output: 0.79 },
     capabilities: ["function-calling"],
+    actualModelId: "llama-3.3-70b-instruct",
   },
 
   // OpenRouter Top Picks
@@ -555,6 +556,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 204800,
     pricing: { input: 0.3, output: 1.2 },
     capabilities: ["vision", "function-calling"],
+    actualModelId: "minimax-m2",
   },
 
   // DeepSeek Models

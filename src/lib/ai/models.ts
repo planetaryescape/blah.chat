@@ -11,7 +11,12 @@ export interface ModelConfig {
     | "ollama"
     | "openrouter"
     | "groq"
-    | "cerebras";
+    | "cerebras"
+    | "minimax"
+    | "deepseek"
+    | "kimi"
+    | "zai"
+    | "meta";
   name: string;
   description?: string;
   contextWindow: number;
@@ -395,26 +400,18 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.2, output: 0.2 },
     capabilities: [],
   },
+  // Meta Models (via Vercel AI Gateway)
+  "meta:llama-3.3-70b": {
+    id: "meta:llama-3.3-70b",
+    provider: "meta",
+    name: "Llama 3.3 70B",
+    description: "Enhanced reasoning, tool use, multilingual. 128K context.",
+    contextWindow: 128000,
+    pricing: { input: 0.59, output: 0.79 },
+    capabilities: ["function-calling"],
+  },
 
   // OpenRouter Top Picks
-  "openrouter:llama-4-maverick": {
-    id: "openrouter:llama-4-maverick",
-    provider: "openrouter",
-    name: "Llama 4 Maverick",
-    description: "Powerful open model from Meta",
-    contextWindow: 128000,
-    pricing: { input: 0.7, output: 0.9 },
-    capabilities: ["vision"],
-  },
-  "openrouter:llama-4-behemoth": {
-    id: "openrouter:llama-4-behemoth",
-    provider: "openrouter",
-    name: "Llama 4 Behemoth",
-    description: "Meta's most powerful model",
-    contextWindow: 128000,
-    pricing: { input: 2.0, output: 3.0 },
-    capabilities: ["vision"],
-  },
   "openrouter:deepseek-v3": {
     id: "openrouter:deepseek-v3",
     provider: "openrouter",
@@ -457,43 +454,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: [],
   },
 
-  // Groq - Production
-  "groq:llama-3.1-8b-instant": {
-    id: "groq:llama-3.1-8b-instant",
-    provider: "groq",
-    name: "Llama 3.1 8B Instant",
-    description: "Ultra-fast 8B model (560 T/sec)",
-    contextWindow: 128000,
-    pricing: { input: 0.05, output: 0.08 },
-    capabilities: ["function-calling"],
-  },
-  "groq:llama-3.3-70b-versatile": {
-    id: "groq:llama-3.3-70b-versatile",
-    provider: "groq",
-    name: "Llama 3.3 70B Versatile",
-    description: "Balanced 70B model with tool use",
-    contextWindow: 128000,
-    pricing: { input: 0.59, output: 0.79 },
-    capabilities: ["function-calling"],
-  },
-  "groq:meta-llama/llama-guard-4-12b": {
-    id: "groq:meta-llama/llama-guard-4-12b",
-    provider: "groq",
-    name: "Llama Guard 4 12B",
-    description: "Content moderation (1200 T/sec)",
-    contextWindow: 128000,
-    pricing: { input: 0.2, output: 0.2 },
-    capabilities: [],
-  },
-  "groq:openai/gpt-oss-120b": {
-    id: "groq:openai/gpt-oss-120b",
-    provider: "groq",
-    name: "GPT-OSS 120B",
-    description: "OpenAI flagship open MoE",
-    contextWindow: 128000,
-    pricing: { input: 0.15, output: 0.75 },
-    capabilities: ["function-calling"],
-  },
   "groq:openai/gpt-oss-20b": {
     id: "groq:openai/gpt-oss-20b",
     provider: "groq",
@@ -532,65 +492,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 3.0 },
     capabilities: ["function-calling"],
   },
-  "groq:qwen/qwen3-32b": {
-    id: "groq:qwen/qwen3-32b",
-    provider: "groq",
-    name: "Qwen3 32B (Preview)",
-    description: "Dual-mode reasoning + dialogue",
-    contextWindow: 131000,
-    pricing: { input: 0.29, output: 0.59 },
-    capabilities: ["function-calling", "thinking"],
-    reasoning: {
-      type: "generic-reasoning-effort",
-      parameterName: "reasoning_effort",
-    },
-  },
-  "groq:openai/gpt-4o-2024-11-20-reasoning": {
-    id: "groq:openai/gpt-4o-2024-11-20-reasoning",
-    provider: "groq",
-    name: "GPT-4o (Reasoning)",
-    description: "OpenAI GPT-4o with extended reasoning on Groq",
-    contextWindow: 128000,
-    pricing: { input: 5.0, output: 15.0 },
-    capabilities: ["thinking", "function-calling"],
-    reasoning: {
-      type: "generic-reasoning-effort",
-      parameterName: "reasoning_effort",
-    },
-  },
-  "groq:openai/gpt-4o-mini-2024-07-18-reasoning": {
-    id: "groq:openai/gpt-4o-mini-2024-07-18-reasoning",
-    provider: "groq",
-    name: "GPT-4o Mini (Reasoning)",
-    description: "OpenAI GPT-4o Mini with reasoning on Groq",
-    contextWindow: 128000,
-    pricing: { input: 0.15, output: 0.6 },
-    capabilities: ["thinking", "function-calling"],
-    reasoning: {
-      type: "generic-reasoning-effort",
-      parameterName: "reasoning_effort",
-    },
-  },
 
-  // Cerebras Models (Ultra-Fast Inference)
-  "cerebras:llama3.1-8b": {
-    id: "cerebras:llama3.1-8b",
-    provider: "cerebras",
-    name: "Llama 3.1 8B",
-    description: "Ultra-fast 8B model. ~2,200 tok/s. Production.",
-    contextWindow: 8192,
-    pricing: { input: 0.1, output: 0.1 },
-    capabilities: ["function-calling"],
-  },
-  "cerebras:llama-3.3-70b": {
-    id: "cerebras:llama-3.3-70b",
-    provider: "cerebras",
-    name: "Llama 3.3 70B",
-    description: "High-performance 70B. ~2,100 tok/s. Production.",
-    contextWindow: 8192,
-    pricing: { input: 0.85, output: 1.2 },
-    capabilities: ["function-calling"],
-  },
+
   "cerebras:gpt-oss-120b": {
     id: "cerebras:gpt-oss-120b",
     provider: "cerebras",
@@ -631,51 +534,80 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       parameterName: "reasoning_level",
     },
   },
-  "cerebras:zai-glm-4.6": {
-    id: "cerebras:zai-glm-4.6",
-    provider: "cerebras",
-    name: "ZAI GLM 4.6 357B",
-    description: "Largest model. 357B params. ~1,000 tok/s. Preview.",
-    contextWindow: 8192,
-    pricing: { input: 2.25, output: 2.75 },
+
+  // Z.AI Models
+  "zai:glm-4.6": {
+    id: "zai:glm-4.6",
+    provider: "zai",
+    name: "GLM 4.6",
+    description: "Z.ai flagship. Coding, reasoning, agents. 200K context.",
+    contextWindow: 200000,
+    pricing: { input: 0.45, output: 1.8 },
     capabilities: ["function-calling"],
   },
 
-  "groq:meta-llama/llama-4-maverick-17b-128e-instruct": {
-    id: "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
-    provider: "groq",
-    name: "Llama 4 Maverick (Preview)",
-    description: "17B MoE multimodal (400B total)",
-    contextWindow: 131000,
-    pricing: { input: 0.2, output: 0.6 },
+  // MiniMax Models
+  "minimax:m2": {
+    id: "minimax:m2",
+    provider: "minimax",
+    name: "MiniMax M2",
+    description: "230B MoE (10B active). Best value for coding & agents.",
+    contextWindow: 204800,
+    pricing: { input: 0.3, output: 1.2 },
     capabilities: ["vision", "function-calling"],
   },
-  "groq:meta-llama/llama-4-scout-17b-16e-instruct": {
-    id: "groq:meta-llama/llama-4-scout-17b-16e-instruct",
-    provider: "groq",
-    name: "Llama 4 Scout (Preview)",
-    description: "Fast 17B multimodal (750 T/sec)",
-    contextWindow: 131000,
-    pricing: { input: 0.11, output: 0.34 },
-    capabilities: ["vision", "function-calling"],
+
+  // DeepSeek Models
+  "deepseek:deepseek-r1": {
+    id: "deepseek:deepseek-r1",
+    provider: "deepseek",
+    name: "DeepSeek R1",
+    description: "671B MoE reasoning model. Extended thinking.",
+    contextWindow: 128000,
+    pricing: { input: 0.55, output: 2.19 },
+    capabilities: ["thinking", "function-calling"],
+    reasoning: {
+      type: "deepseek-tag-extraction",
+      tagName: "think",
+      applyMiddleware: true,
+    },
+  },
+
+  // Kimi Models
+  "kimi:kimi-k2-thinking": {
+    id: "kimi:kimi-k2-thinking",
+    provider: "kimi",
+    name: "Kimi K2 Thinking",
+    description: "1T MoE (32B active). 256K context with deep reasoning.",
+    contextWindow: 256000,
+    pricing: { input: 0.6, output: 2.4 },
+    capabilities: ["thinking", "function-calling"],
   },
 };
 
 // Migration map: old model IDs → new model IDs (vendor prefixes added)
 const MODEL_ID_MIGRATIONS: Record<string, string> = {
   // Groq migrations
-  "groq:llama-guard-4-12b": "groq:meta-llama/llama-guard-4-12b",
-  "groq:gpt-oss-120b": "groq:openai/gpt-oss-120b",
   "groq:gpt-oss-20b": "groq:openai/gpt-oss-20b",
   "groq:groq-compound": "groq:groq/compound",
   "groq:groq-compound-mini": "groq:groq/compound-mini",
   "groq:moonshotai-kimi-k2-instruct-0905":
     "groq:moonshotai/kimi-k2-instruct-0905",
-  "groq:qwen-qwen3-32b": "groq:qwen/qwen3-32b",
-  "groq:llama-4-maverick-17b-128e-instruct":
-    "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
-  "groq:llama-4-scout-17b-16e-instruct":
-    "groq:meta-llama/llama-4-scout-17b-16e-instruct",
+  // Redirect all Llama models to single meta:llama-3.3-70b
+  "groq:llama-3.1-8b-instant": "meta:llama-3.3-70b",
+  "groq:llama-3.3-70b-versatile": "meta:llama-3.3-70b",
+  "cerebras:llama3.1-8b": "meta:llama-3.3-70b",
+  "cerebras:llama-3.3-70b": "meta:llama-3.3-70b",
+  "groq:meta-llama/llama-guard-4-12b": "meta:llama-3.3-70b",
+  "groq:meta-llama/llama-4-maverick-17b-128e-instruct": "meta:llama-3.3-70b",
+  "groq:meta-llama/llama-4-scout-17b-16e-instruct": "meta:llama-3.3-70b",
+  "openrouter:llama-4-maverick": "meta:llama-3.3-70b",
+  "openrouter:llama-4-behemoth": "meta:llama-3.3-70b",
+  // Redirect removed Groq models to Cerebras equivalents (via Gateway)
+  "groq:openai/gpt-oss-120b": "cerebras:gpt-oss-120b",
+  "groq:gpt-oss-120b": "cerebras:gpt-oss-120b",
+  "groq:qwen/qwen3-32b": "cerebras:qwen-3-32b",
+  "groq:qwen-qwen3-32b": "cerebras:qwen-3-32b",
 };
 
 export function getModelConfig(modelId: string): ModelConfig | undefined {

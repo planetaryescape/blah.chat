@@ -15,7 +15,7 @@ Personal AI chat assistant - self-hosted ChatGPT alternative with multi-model su
 - **Framework**: Next.js 15 (App Router), React 19, TypeScript
 - **Database**: Convex (real-time, vector search)
 - **Auth**: Clerk
-- **AI**: Vercel AI SDK (OpenAI, Anthropic, Google, Ollama)
+- **AI**: Vercel AI SDK with Gateway (OpenAI, Anthropic, Google, Groq, Cerebras, xAI, Perplexity, OpenRouter, Ollama)
 - **UI**: shadcn/ui, Tailwind CSS v4, Framer Motion
 - **Linting/Formatting**: Biome
 - **Package Manager**: Bun
@@ -216,12 +216,10 @@ CONVEX_DEPLOY_KEY=
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
 CLERK_WEBHOOK_SECRET=
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-GOOGLE_GENERATIVE_AI_API_KEY=
+AI_GATEWAY_API_KEY=  # Vercel AI Gateway (replaces individual provider keys)
 ```
 
-Optional: Ollama, PostHog, TTS providers.
+Optional: Ollama (for local models), PostHog, TTS providers.
 
 ---
 

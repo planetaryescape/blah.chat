@@ -11,8 +11,8 @@ import { action, internalAction, type ActionCtx } from "./_generated/server";
 import { createMemorySearchTool } from "./ai/tools/memories";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
-  formatMemoriesByCategory,
-  truncateMemories,
+    formatMemoriesByCategory,
+    truncateMemories,
 } from "./lib/prompts/formatting";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
@@ -293,7 +293,6 @@ function extractSources(providerMetadata: any):
       }).filter(s => s.url && s.url.length > 0);
     }
 
-    console.warn("[Sources] No sources found in metadata:", JSON.stringify(providerMetadata, null, 2));
     return undefined;
   } catch (error) {
     console.warn("[Sources] Failed to extract sources:", error);
@@ -528,13 +527,7 @@ export const generateResponse = internalAction({
         model: finalModel,
         messages: allMessages,
         maxSteps: hasFunctionCalling ? 5 : 1, // No multi-turn for non-tool models
-        providerOptions: {
-          ...getGatewayOptions(args.modelId, args.userId, ["chat"]),
-          perplexity: {
-            returnCitations: true, // Request citations explicitly
-            return_citations: true, // Snake case fallback just in case
-          },
-        },
+        providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
       };
 
       // Only add tools for capable models
@@ -599,6 +592,13 @@ export const generateResponse = internalAction({
       const UPDATE_INTERVAL = 200; // ms
 
       for await (const chunk of result.fullStream) {
+        // console.log("[Stream] Chunk type:", chunk.type);
+        if (chunk.type === "tool-call") {
+             console.log("[Stream] Processing tool-call chunk:", JSON.stringify(chunk, null, 2));
+        }
+        if (chunk.type === "tool-result") {
+             console.log("[Stream] Processing tool-result chunk:", JSON.stringify(chunk, null, 2));
+        }
         const now = Date.now();
 
         // Handle tool invocations for loading state
@@ -615,6 +615,23 @@ export const generateResponse = internalAction({
             messageId: args.assistantMessageId,
             partialToolCalls: Array.from(toolCallsBuffer.values()),
           });
+        }
+
+        // Handle tool results (streaming results to frontend)
+        if (chunk.type === "tool-result") {
+          const existing = toolCallsBuffer.get(chunk.toolCallId);
+          if (existing) {
+            toolCallsBuffer.set(chunk.toolCallId, {
+              ...existing,
+              result: JSON.stringify((chunk as any).result),
+            });
+
+            // Persist result immediately so frontend can show it
+            await ctx.runMutation(internal.messages.updatePartialToolCalls, {
+              messageId: args.assistantMessageId,
+              partialToolCalls: Array.from(toolCallsBuffer.values()),
+            });
+          }
         }
 
         // Handle reasoning chunks
@@ -714,12 +731,10 @@ export const generateResponse = internalAction({
 
       // Extract provider metadata (e.g. Gemini thought signatures)
       const providerMetadata = await result.providerMetadata;
-      console.log("[Generation] Raw providerMetadata:", JSON.stringify(providerMetadata, null, 2));
 
       // Extract sources from response (Perplexity, web search models)
       // Must pass the resolved providerMetadata, not the stream result
       const sources = extractSources(providerMetadata);
-      console.log("[Generation] Extracted sources:", JSON.stringify(sources, null, 2));
 
       // Handle image generation (files in result)
       // This supports Gemini image models called via standard chat

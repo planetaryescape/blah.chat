@@ -189,6 +189,7 @@ export default defineSchema({
           id: v.string(),
           name: v.string(),
           arguments: v.string(),
+          result: v.optional(v.string()),
           timestamp: v.number(),
         }),
       ),

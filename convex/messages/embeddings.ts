@@ -1,13 +1,38 @@
-import { v } from "convex/values";
-import {
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "../_generated/server";
-import { internal } from "../_generated/api";
-import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
-import type { Id } from "../_generated/dataModel";
+import { embed, generateText } from "ai";
+import { v } from "convex/values";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { internal } from "../_generated/api";
+import {
+    internalAction,
+    internalMutation,
+    internalQuery,
+} from "../_generated/server";
+
+// text-embedding-3-small has 8192 token limit (~4 chars/token on average)
+const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
+
+/**
+ * Summarize large text for embedding using GPT-OSS 120B
+ */
+async function summarizeForEmbedding(text: string): Promise<string> {
+  try {
+    const result = await generateText({
+      model: aiGateway("cerebras/gpt-oss-120b"),
+      providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, [
+        "embedding-summarize",
+      ]),
+      maxOutputTokens: 500,
+      prompt:
+        "Summarize this text in 2-3 sentences, preserving the key topics and information for semantic search:\n\n" +
+        text.slice(0, 15000),
+    });
+    return result.text || text.slice(0, MAX_EMBEDDING_CHARS);
+  } catch {
+    // Fallback to truncation if summarization fails
+    return text.slice(0, MAX_EMBEDDING_CHARS);
+  }
+}
 
 /**
  * Generate embeddings for new messages (triggered after message creation)
@@ -23,13 +48,23 @@ export const generateEmbedding = internalAction({
     }
 
     try {
+      // For large messages, summarize first using GPT-OSS 120B
+      let contentToEmbed = args.content;
+      if (args.content.length > MAX_EMBEDDING_CHARS) {
+        console.log(
+          `Message ${args.messageId} too large (${args.content.length} chars), summarizing...`,
+        );
+        contentToEmbed = await summarizeForEmbedding(args.content);
+      }
+
       // Generate embedding
       const { embedding } = await embed({
         model: openai.embedding("text-embedding-3-small"),
-        value: args.content,
+        value: contentToEmbed,
       });
 
       // Store embedding
+      // @ts-ignore - Convex type instantiation depth issue
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {
         messageId: args.messageId,
         embedding,
@@ -92,11 +127,17 @@ export const generateBatchEmbeddings = internalAction({
       return { done: !result.continueCursor, processed: 0 };
     }
 
-    // Generate embeddings individually (embed doesn't support batch)
+    // Generate embeddings individually
     for (const msg of validMessages) {
+      // Summarize large messages first
+      let contentToEmbed = msg.content!;
+      if (contentToEmbed.length > MAX_EMBEDDING_CHARS) {
+        contentToEmbed = await summarizeForEmbedding(contentToEmbed);
+      }
+
       const { embedding } = await embed({
         model: openai.embedding("text-embedding-3-small"),
-        value: msg.content!,
+        value: contentToEmbed,
       });
 
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {

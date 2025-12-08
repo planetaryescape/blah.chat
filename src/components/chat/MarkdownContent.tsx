@@ -1,15 +1,14 @@
 "use client";
 
-import { Component, type ReactNode, memo, useRef } from "react";
-import { Streamdown } from "streamdown";
+import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
+import { useMathAccessibility } from "@/hooks/useMathAccessibility";
+import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
+import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import { useStreamBuffer } from "@/hooks/useStreamBuffer";
-import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
-import { useMathAccessibility } from "@/hooks/useMathAccessibility";
-import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
+import { Component, type ReactNode, memo, useRef } from "react";
+import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
-import { MathBlock } from "./MathBlock";
 import { MathErrorBoundary } from "./MathErrorBoundary";
 import { MathSkeleton } from "./MathSkeleton";
 
@@ -127,6 +126,34 @@ const markdownComponents = {
       </CodeBlockErrorBoundary>
     );
   },
+  a: ({ href, children, ...props }: any) => {
+    // Handle citation links [1] -> #source-1
+    if (href?.startsWith("#source-")) {
+      return (
+        <a
+          href={href}
+          className="citation-link"
+          onClick={(e) => {
+            e.preventDefault();
+            const element = document.querySelector(href);
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }}
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    }
+
+    // Default external link
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+        {children}
+      </a>
+    );
+  },
 };
 
 /**
@@ -137,15 +164,46 @@ const markdownComponents = {
  * - Buffer smoothly reveals characters at 200 chars/sec via RAF
  * - Prevents layout shifts and jarring appearance during streaming
  */
+/**
+ * Process text to linkify citations [n] -> [[n]](#source-n)
+ * Skips code blocks to avoid breaking code.
+ */
+function processCitations(text: string): string {
+  // fast path
+  if (!text.includes("[")) return text;
+
+  // Split by code blocks
+  const parts = text.split(/(`{3}[\s\S]*?`{3}|`[^`\n]+`)/);
+
+  return parts
+    .map((part) => {
+      // If it starts with ` it's code, return distinct
+      if (part.startsWith("`")) return part;
+
+      // Replace [1], [2] etc with link
+      return part.replace(
+        /\[(\d+)\]/g,
+        "[$1](#source-$1)"
+      );
+    })
+    .join("");
+}
+
 export function MarkdownContent({
   content,
   isStreaming = false,
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Process citations before buffering
+  // This ensures the buffer sees the "final" linkified version
+  // If a [1] appears, the processed content will change non-monotonically
+  // prompting useStreamBuffer to reset buffer and show the new content immediately
+  const processedContent = processCitations(content);
+
   // Buffer hook smoothly reveals characters from server chunks
   const { displayContent, hasBufferedContent } = useStreamBuffer(
-    content,
+    processedContent,
     isStreaming,
     {
       charsPerSecond: 200,

@@ -32,6 +32,7 @@ export function SourceList({ sources }: SourceListProps) {
           return (
             <a
               key={source.id}
+              id={`source-${source.id}`}
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"

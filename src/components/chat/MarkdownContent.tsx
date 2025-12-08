@@ -7,9 +7,11 @@ import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
+import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { CodeBlock } from "./CodeBlock";
 import { MathBlock } from "./MathBlock";
 import { MathErrorBoundary } from "./MathErrorBoundary";
+import { MathSkeleton } from "./MathSkeleton";
 
 interface CodeBlockErrorBoundaryProps {
   children: ReactNode;
@@ -152,7 +154,14 @@ export function MarkdownContent({
     },
   );
 
-  // Enhance math blocks with copy buttons (Phase 4)
+  // Phase 4A: Lazy rendering for mobile performance
+  const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
+    threshold: 0.01,
+    rootMargin: "50px 0px",
+    mobileOnly: true,
+  });
+
+  // Enhance math blocks with copy buttons (Phase 4D)
   useMathCopyButtons(containerRef);
 
   // Add ARIA accessibility to math elements (Phase 4C - enhanced)
@@ -160,6 +169,19 @@ export function MarkdownContent({
 
   // Show cursor while streaming OR buffer is draining
   const showCursor = isStreaming || hasBufferedContent;
+
+  // Detect if content has math (simple heuristic)
+  const hasMath =
+    displayContent.includes("$$") || displayContent.includes("\\(");
+
+  // Show skeleton on mobile while waiting for intersection
+  if (isMobile && hasMath && !isRendered) {
+    return (
+      <div ref={observeRef} className="markdown-content prose">
+        <MathSkeleton isDisplay />
+      </div>
+    );
+  }
 
   return (
     <div

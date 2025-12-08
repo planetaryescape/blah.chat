@@ -168,7 +168,8 @@ export const mathPatterns: MathPattern[] = [
   // Normal distribution
   {
     regex: /\\mathcal\{N\}\((.+?),\s*(.+?)\)/,
-    describe: (m) => `Normal distribution with mean ${m[1]} and variance ${m[2]}`,
+    describe: (m) =>
+      `Normal distribution with mean ${m[1]} and variance ${m[2]}`,
   },
 
   // ========== FRACTIONS & ROOTS ==========

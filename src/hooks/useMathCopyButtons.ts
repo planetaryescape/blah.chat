@@ -47,8 +47,7 @@ export function useMathCopyButtons<T extends HTMLElement = HTMLElement>(
     if (!containerRef.current) return;
 
     // Find all math elements (display + inline)
-    const displayMath =
-      containerRef.current.querySelectorAll(".katex-display");
+    const displayMath = containerRef.current.querySelectorAll(".katex-display");
     const inlineMath = containerRef.current.querySelectorAll(
       ".katex:not(.katex-display)",
     );
@@ -131,10 +130,7 @@ export function useMathCopyButtons<T extends HTMLElement = HTMLElement>(
 /**
  * Copy LaTeX to clipboard with multi-format support
  */
-async function copyToClipboard(
-  latex: string,
-  element: Element,
-): Promise<void> {
+async function copyToClipboard(latex: string, element: Element): Promise<void> {
   const isDisplay = element.classList.contains("katex-display");
 
   try {

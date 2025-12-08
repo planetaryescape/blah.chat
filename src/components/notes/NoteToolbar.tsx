@@ -10,6 +10,7 @@ import {
 import type { Editor } from "@tiptap/react";
 import {
   Bold,
+  CheckSquare,
   Code,
   Code2,
   Heading1,
@@ -21,6 +22,9 @@ import {
   ListOrdered,
   Redo,
   Sigma,
+  Table as TableIcon,
+  TableProperties,
+  Trash2,
   Undo,
 } from "lucide-react";
 
@@ -174,6 +178,12 @@ export function NoteToolbar({ editor }: NoteToolbarProps) {
             tooltip="Ordered List"
             shortcut="⌘⇧7"
           />
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            isActive={editor.isActive("taskList")}
+            icon={<CheckSquare className="h-4 w-4" />}
+            tooltip="Task List"
+          />
         </div>
 
         {/* Insert */}
@@ -199,6 +209,40 @@ export function NoteToolbar({ editor }: NoteToolbarProps) {
             tooltip="Math/LaTeX"
             shortcut="⌘M"
           />
+        </div>
+
+        {/* Table Operations */}
+        <div className="flex items-center gap-0.5 pr-2 border-r border-border">
+          <ToolbarButton
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
+            }
+            icon={<TableIcon className="h-4 w-4" />}
+            tooltip="Insert Table (3×3)"
+          />
+          {editor.isActive("table") && (
+            <>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().addColumnBefore().run()}
+                icon={<TableProperties className="h-4 w-4" />}
+                tooltip="Add Column Before"
+              />
+              <ToolbarButton
+                onClick={() => editor.chain().focus().addRowAfter().run()}
+                icon={<TableProperties className="h-4 w-4 rotate-90" />}
+                tooltip="Add Row After"
+              />
+              <ToolbarButton
+                onClick={() => editor.chain().focus().deleteTable().run()}
+                icon={<Trash2 className="h-4 w-4 text-destructive" />}
+                tooltip="Delete Table"
+              />
+            </>
+          )}
         </div>
 
         {/* History */}

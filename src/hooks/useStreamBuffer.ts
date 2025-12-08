@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { getNextCompleteToken } from "@/lib/utils/markdownTokens";
+import { useEffect, useRef, useState } from "react";
 
 export interface StreamBufferOptions {
   /**
@@ -76,14 +76,17 @@ export function useStreamBuffer(
   useEffect(() => {
     // Detect new content from server
     if (serverContent !== lastServerContentRef.current) {
-      if (serverContent.length > lastServerContentRef.current.length) {
+      if (
+        serverContent.length > lastServerContentRef.current.length &&
+        serverContent.startsWith(lastServerContentRef.current)
+      ) {
         // Server sent new chunk - add to buffer
         const newChunk = serverContent.slice(
           lastServerContentRef.current.length,
         );
         bufferRef.current += newChunk;
-      } else if (serverContent.length < lastServerContentRef.current.length) {
-        // Content replaced entirely (e.g., conversation switched)
+      } else {
+        // Content replaced or changed non-monotonically (e.g. edits, citation expansion)
         // Reset everything
         setDisplayContent(serverContent);
         bufferRef.current = "";

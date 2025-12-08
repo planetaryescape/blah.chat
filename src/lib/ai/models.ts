@@ -10,7 +10,8 @@ export interface ModelConfig {
     | "perplexity"
     | "ollama"
     | "openrouter"
-    | "groq";
+    | "groq"
+    | "cerebras";
   name: string;
   description?: string;
   contextWindow: number;
@@ -570,6 +571,76 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       parameterName: "reasoning_effort",
     },
   },
+
+  // Cerebras Models (Ultra-Fast Inference)
+  "cerebras:llama3.1-8b": {
+    id: "cerebras:llama3.1-8b",
+    provider: "cerebras",
+    name: "Llama 3.1 8B",
+    description: "Ultra-fast 8B model. ~2,200 tok/s. Production.",
+    contextWindow: 8192,
+    pricing: { input: 0.1, output: 0.1 },
+    capabilities: ["function-calling"],
+  },
+  "cerebras:llama-3.3-70b": {
+    id: "cerebras:llama-3.3-70b",
+    provider: "cerebras",
+    name: "Llama 3.3 70B",
+    description: "High-performance 70B. ~2,100 tok/s. Production.",
+    contextWindow: 8192,
+    pricing: { input: 0.85, output: 1.2 },
+    capabilities: ["function-calling"],
+  },
+  "cerebras:gpt-oss-120b": {
+    id: "cerebras:gpt-oss-120b",
+    provider: "cerebras",
+    name: "GPT-OSS 120B",
+    description: "Fastest model available. ~3,000 tok/s. Production.",
+    contextWindow: 8192,
+    pricing: { input: 0.35, output: 0.75 },
+    capabilities: ["function-calling"],
+  },
+  "cerebras:qwen-3-32b": {
+    id: "cerebras:qwen-3-32b",
+    provider: "cerebras",
+    name: "Qwen 3 32B",
+    description: "Efficient 32B model. ~2,600 tok/s. Production.",
+    contextWindow: 8192,
+    pricing: { input: 0.4, output: 0.8 },
+    capabilities: ["function-calling"],
+  },
+  "cerebras:qwen-3-235b-a22b-instruct-2507": {
+    id: "cerebras:qwen-3-235b-a22b-instruct-2507",
+    provider: "cerebras",
+    name: "Qwen 3 235B Instruct",
+    description: "Large instruct model. ~1,400 tok/s. Preview.",
+    contextWindow: 8192,
+    pricing: { input: 0.6, output: 1.2 },
+    capabilities: ["function-calling"],
+  },
+  "cerebras:qwen-3-235b-a22b-thinking-2507": {
+    id: "cerebras:qwen-3-235b-a22b-thinking-2507",
+    provider: "cerebras",
+    name: "Qwen 3 235B Thinking",
+    description: "Reasoning model with native thinking. ~1,000 tok/s. Preview.",
+    contextWindow: 8192,
+    pricing: { input: 0.6, output: 1.2 },
+    capabilities: ["function-calling", "thinking"],
+    reasoning: {
+      type: "generic-reasoning-effort",
+      parameterName: "reasoning_level",
+    },
+  },
+  "cerebras:zai-glm-4.6": {
+    id: "cerebras:zai-glm-4.6",
+    provider: "cerebras",
+    name: "ZAI GLM 4.6 357B",
+    description: "Largest model. 357B params. ~1,000 tok/s. Preview.",
+    contextWindow: 8192,
+    pricing: { input: 2.25, output: 2.75 },
+    capabilities: ["function-calling"],
+  },
+
   "groq:meta-llama/llama-4-maverick-17b-128e-instruct": {
     id: "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
     provider: "groq",

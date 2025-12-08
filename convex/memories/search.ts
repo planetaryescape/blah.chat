@@ -228,7 +228,6 @@ export const hybridSearch = internalAction({
     const searchLimit = Math.min(limit * 4, 40); // RRF needs more results
 
     try {
-      console.log(`[HybridSearch] Starting search for query: "${args.query}"`);
       // 1. Generate embedding for vector search
       const { embedding } = await embed({
         model: openai.embedding("text-embedding-3-small"),
@@ -283,14 +282,10 @@ export const hybridSearch = internalAction({
       const candidates = filtered.slice(0, 20);
 
       // 6. Rerank with LLM
-      console.log(`[HybridSearch] Reranking ${candidates.length} candidates`);
       const reranked = await rerankMemories(args.query, candidates);
-      console.log(`[HybridSearch] Rerank complete, returning ${reranked.length} results`);
 
       // 7. Return top N after reranking
-      const finalResults = reranked.slice(0, limit);
-      console.log(`[HybridSearch] Returning full results:`, JSON.stringify(finalResults, null, 2));
-      return finalResults;
+      return reranked.slice(0, limit);
     } catch (error) {
       console.error("Hybrid search failed:", error);
       // Fallback to empty results on error

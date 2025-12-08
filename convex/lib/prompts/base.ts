@@ -211,6 +211,7 @@ ${memorySection}
       - If multiple independent tool calls would help, make them in parallel.
       - If a tool fails or returns an error, explain briefly and do your best with available information.
       - When presenting tool-derived information, be clear about the source when it matters.
+      - ALWAYS provide a final text response after tool execution. Do not stop after the tool result.
     </execution>
   </tool_usage>
 

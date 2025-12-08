@@ -9,7 +9,10 @@
  */
 
 import type * as ai_generateTitle from "../ai/generateTitle.js";
+import type * as ai_tools_calculator from "../ai/tools/calculator.js";
+import type * as ai_tools_datetime from "../ai/tools/datetime.js";
 import type * as ai_tools_memories from "../ai/tools/memories.js";
+import type * as ai_tools_webSearch from "../ai/tools/webSearch.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as chat from "../chat.js";
 import type * as conversations from "../conversations.js";
@@ -22,11 +25,17 @@ import type * as generation from "../generation.js";
 import type * as generation_image from "../generation/image.js";
 import type * as lib_prompts_base from "../lib/prompts/base.js";
 import type * as lib_prompts_formatting from "../lib/prompts/formatting.js";
+import type * as lib_prompts_operational_imageGeneration from "../lib/prompts/operational/imageGeneration.js";
+import type * as lib_prompts_operational_memoryExtraction from "../lib/prompts/operational/memoryExtraction.js";
+import type * as lib_prompts_operational_summarization from "../lib/prompts/operational/summarization.js";
+import type * as lib_prompts_operational_tagExtraction from "../lib/prompts/operational/tagExtraction.js";
+import type * as lib_prompts_operational_titleGeneration from "../lib/prompts/operational/titleGeneration.js";
 import type * as lib_userSync from "../lib/userSync.js";
 import type * as memories from "../memories.js";
 import type * as memories_expiration from "../memories/expiration.js";
 import type * as memories_extract from "../memories/extract.js";
 import type * as memories_mutations from "../memories/mutations.js";
+import type * as memories_save from "../memories/save.js";
 import type * as memories_search from "../memories/search.js";
 import type * as messages from "../messages.js";
 import type * as messages_embeddings from "../messages/embeddings.js";
@@ -48,6 +57,7 @@ import type * as templates from "../templates.js";
 import type * as templates_builtIn from "../templates/builtIn.js";
 import type * as tokens_counting from "../tokens/counting.js";
 import type * as tokens_service from "../tokens/service.js";
+import type * as tools_webSearch from "../tools/webSearch.js";
 import type * as transcription from "../transcription.js";
 import type * as tts from "../tts.js";
 import type * as usage from "../usage.js";
@@ -65,7 +75,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "ai/generateTitle": typeof ai_generateTitle;
+  "ai/tools/calculator": typeof ai_tools_calculator;
+  "ai/tools/datetime": typeof ai_tools_datetime;
   "ai/tools/memories": typeof ai_tools_memories;
+  "ai/tools/webSearch": typeof ai_tools_webSearch;
   bookmarks: typeof bookmarks;
   chat: typeof chat;
   conversations: typeof conversations;
@@ -78,11 +91,17 @@ declare const fullApi: ApiFromModules<{
   "generation/image": typeof generation_image;
   "lib/prompts/base": typeof lib_prompts_base;
   "lib/prompts/formatting": typeof lib_prompts_formatting;
+  "lib/prompts/operational/imageGeneration": typeof lib_prompts_operational_imageGeneration;
+  "lib/prompts/operational/memoryExtraction": typeof lib_prompts_operational_memoryExtraction;
+  "lib/prompts/operational/summarization": typeof lib_prompts_operational_summarization;
+  "lib/prompts/operational/tagExtraction": typeof lib_prompts_operational_tagExtraction;
+  "lib/prompts/operational/titleGeneration": typeof lib_prompts_operational_titleGeneration;
   "lib/userSync": typeof lib_userSync;
   memories: typeof memories;
   "memories/expiration": typeof memories_expiration;
   "memories/extract": typeof memories_extract;
   "memories/mutations": typeof memories_mutations;
+  "memories/save": typeof memories_save;
   "memories/search": typeof memories_search;
   messages: typeof messages;
   "messages/embeddings": typeof messages_embeddings;
@@ -104,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "templates/builtIn": typeof templates_builtIn;
   "tokens/counting": typeof tokens_counting;
   "tokens/service": typeof tokens_service;
+  "tools/webSearch": typeof tools_webSearch;
   transcription: typeof transcription;
   tts: typeof tts;
   usage: typeof usage;

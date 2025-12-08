@@ -36,7 +36,6 @@ Preference/identity/relationship memories are pre-loaded.`,
     execute: async (input) => {
       const { query, category, limit = 5 } = input;
       try {
-        console.log("[Tool] Executing memory search:", { query, category });
         const memories = await ctx.runAction(
           // @ts-ignore - Convex type instantiation depth issue
           internal.memories.search.hybridSearch,

@@ -592,13 +592,6 @@ export const generateResponse = internalAction({
       const UPDATE_INTERVAL = 200; // ms
 
       for await (const chunk of result.fullStream) {
-        // console.log("[Stream] Chunk type:", chunk.type);
-        if (chunk.type === "tool-call") {
-             console.log("[Stream] Processing tool-call chunk:", JSON.stringify(chunk, null, 2));
-        }
-        if (chunk.type === "tool-result") {
-             console.log("[Stream] Processing tool-result chunk:", JSON.stringify(chunk, null, 2));
-        }
         const now = Date.now();
 
         // Handle tool invocations for loading state

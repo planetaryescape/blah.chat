@@ -1,4 +1,5 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { createCerebras } from "@ai-sdk/cerebras";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
@@ -30,6 +31,10 @@ const ollama = createOpenAI({
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
+});
+
+const cerebras = createCerebras({
+  apiKey: process.env.CEREBRAS_API_KEY ?? "",
 });
 
 export function getModel(modelId: string, useResponsesAPI = false) {
@@ -79,6 +84,8 @@ export function getModel(modelId: string, useResponsesAPI = false) {
       return ollama(actualModel);
     case "groq":
       return groq(actualModel);
+    case "cerebras":
+      return cerebras(actualModel);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }

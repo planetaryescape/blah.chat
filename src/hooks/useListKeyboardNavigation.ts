@@ -6,6 +6,7 @@ export interface UseListKeyboardNavigationOptions<T> {
   enabled?: boolean;
   loop?: boolean;
   scrollIntoView?: boolean;
+  getItemId: (item: T) => string;
 }
 
 export function useListKeyboardNavigation<T>({
@@ -14,12 +15,13 @@ export function useListKeyboardNavigation<T>({
   enabled = true,
   loop = false,
   scrollIntoView = true,
+  getItemId,
 }: UseListKeyboardNavigationOptions<T>) {
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const clearSelection = useCallback(() => {
-    setSelectedIndex(-1);
+    setSelectedId(null);
   }, []);
 
   const handleKeyDown = useCallback(
@@ -36,37 +38,41 @@ export function useListKeyboardNavigation<T>({
         return;
       }
 
-      let newIndex = selectedIndex;
+      // Find current index from selected ID
+      const currentIndex = selectedId
+        ? items.findIndex((item) => getItemId(item) === selectedId)
+        : -1;
+      let newIndex = currentIndex;
 
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
           newIndex =
-            selectedIndex >= items.length - 1
+            currentIndex >= items.length - 1
               ? loop
                 ? 0
-                : selectedIndex
-              : selectedIndex + 1;
+                : currentIndex
+              : currentIndex + 1;
           break;
 
         case "ArrowUp":
           e.preventDefault();
           newIndex =
-            selectedIndex <= 0
+            currentIndex <= 0
               ? loop
                 ? items.length - 1
                 : 0
-              : selectedIndex - 1;
+              : currentIndex - 1;
           break;
 
         case "PageDown":
           e.preventDefault();
-          newIndex = Math.min(selectedIndex + 10, items.length - 1);
+          newIndex = Math.min(currentIndex + 10, items.length - 1);
           break;
 
         case "PageUp":
           e.preventDefault();
-          newIndex = Math.max(selectedIndex - 10, 0);
+          newIndex = Math.max(currentIndex - 10, 0);
           break;
 
         case "Home":
@@ -80,9 +86,9 @@ export function useListKeyboardNavigation<T>({
           break;
 
         case "Enter":
-          if (selectedIndex >= 0) {
+          if (currentIndex >= 0) {
             e.preventDefault();
-            onSelect(items[selectedIndex]);
+            onSelect(items[currentIndex]);
           }
           return;
 
@@ -95,27 +101,30 @@ export function useListKeyboardNavigation<T>({
           return;
       }
 
-      setSelectedIndex(newIndex);
+      const newItem = items[newIndex];
+      if (newItem) {
+        const newId = getItemId(newItem);
+        setSelectedId(newId);
 
-      // Scroll into view with debounce
-      if (scrollIntoView) {
-        clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-          const element = document.querySelector(
-            `[data-list-index="${newIndex}"]`,
-          );
-          element?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        }, 50);
+        // Scroll into view with debounce
+        if (scrollIntoView) {
+          clearTimeout(scrollTimeoutRef.current);
+          scrollTimeoutRef.current = setTimeout(() => {
+            const element = document.querySelector(`[data-list-id="${newId}"]`);
+            element?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          }, 50);
+        }
       }
     },
     [
       items,
-      selectedIndex,
+      selectedId,
       enabled,
       loop,
       onSelect,
       clearSelection,
       scrollIntoView,
+      getItemId,
     ],
   );
 
@@ -130,8 +139,8 @@ export function useListKeyboardNavigation<T>({
   }, [handleKeyDown, enabled]);
 
   return {
-    selectedIndex,
-    setSelectedIndex,
+    selectedId,
+    setSelectedId,
     clearSelection,
   };
 }

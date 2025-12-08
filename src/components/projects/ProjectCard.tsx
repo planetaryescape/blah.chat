@@ -7,14 +7,17 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit, FolderOpen } from "lucide-react";
+import { Trash2, Edit, FolderOpen, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { ProjectForm } from "./ProjectForm";
+import { ProjectStats } from "./ProjectStats";
+import { BulkConversationAssigner } from "./BulkConversationAssigner";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +50,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
   const deleteProject = useMutation(api.projects.deleteProject);
 
   const handleDelete = async () => {
@@ -88,22 +92,22 @@ export function ProjectCard({ project }: ProjectCardProps) {
               </div>
             )}
 
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                {project.conversationIds.length} conversation
-                {project.conversationIds.length === 1 ? "" : "s"}
-              </span>
-            </div>
-
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsEditOpen(true)}
+                onClick={() => setIsManageOpen(true)}
                 className="flex-1"
               >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
+                <Users className="w-4 h-4 mr-2" />
+                Manage
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditOpen(true)}
+              >
+                <Edit className="w-4 h-4" />
               </Button>
               <Button
                 variant="outline"
@@ -116,7 +120,17 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </div>
           </div>
         </CardContent>
+        <CardFooter className="pt-0">
+          <ProjectStats projectId={project._id} />
+        </CardFooter>
       </Card>
+
+      <BulkConversationAssigner
+        open={isManageOpen}
+        onOpenChange={setIsManageOpen}
+        projectId={project._id}
+        projectName={project.name}
+      />
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>

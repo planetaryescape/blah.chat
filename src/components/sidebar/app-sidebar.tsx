@@ -30,6 +30,8 @@ import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import { useAction, useMutation, useQuery } from "convex/react";
+import { useQueryState } from "nuqs";
+import { ProjectFilter } from "@/components/projects/ProjectFilter";
 import {
   BarChart3,
   Bookmark,
@@ -66,8 +68,13 @@ const MENU_ITEMS = [
 
 export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useQueryState("project");
+
   // @ts-ignore - Convex type instantiation depth issue
-  const conversations = useQuery(api.conversations.list, {});
+  const conversations = useQuery(api.conversations.list, {
+    projectId:
+      (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
+  });
   const createConversation = useMutation(api.conversations.create);
 
   // Bulk actions mutations
@@ -137,7 +144,7 @@ export function AppSidebar() {
   }, [filteredConversations, setFilteredConversations]);
 
   // Arrow key navigation
-  const { selectedIndex, clearSelection } = useListKeyboardNavigation<any>({
+  const { selectedId, clearSelection } = useListKeyboardNavigation<any>({
     items: filteredConversations || [],
     onSelect: (conv: any) => {
       // If in selection mode, select it? Or just navigate?
@@ -147,6 +154,7 @@ export function AppSidebar() {
     },
     enabled: true,
     loop: true,
+    getItemId: (conv: any) => conv._id,
   });
 
   const displayedItems = isMobile ? MENU_ITEMS.slice(0, 3) : MENU_ITEMS;
@@ -332,8 +340,12 @@ export function AppSidebar() {
 
           {conversationsExpanded && (
             <>
-              {/* Search box - now inside group, below label */}
-              <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2">
+              {/* Project filter and search box - now inside group, below label */}
+              <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2 space-y-2">
+                <ProjectFilter
+                  value={projectFilter}
+                  onChange={setProjectFilter}
+                />
                 <div
                   role="search"
                   aria-label="Search conversations"
@@ -380,7 +392,7 @@ export function AppSidebar() {
 
                 <ConversationList
                   conversations={filteredConversations || []}
-                  selectedIndex={selectedIndex}
+                  selectedId={selectedId}
                   onClearSelection={clearSelection}
                   selectedIds={selectedIds}
                   onToggleSelection={toggleSelection}

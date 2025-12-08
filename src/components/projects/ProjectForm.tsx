@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
   const [name, setName] = useState(project?.name || "");
   const [description, setDescription] = useState(project?.description || "");
   const [systemPrompt, setSystemPrompt] = useState(project?.systemPrompt || "");
+  const [isTemplate, setIsTemplate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createProject = useMutation(api.projects.create);
@@ -54,8 +56,9 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           name: name.trim(),
           description: description.trim() || undefined,
           systemPrompt: systemPrompt.trim() || undefined,
+          isTemplate,
         });
-        toast.success("Project created");
+        toast.success(isTemplate ? "Template created" : "Project created");
       }
       onSuccess?.();
     } catch (error) {
@@ -109,6 +112,22 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           {systemPrompt.length}/3000 characters
         </p>
       </div>
+
+      {!isEditing && (
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="isTemplate"
+            checked={isTemplate}
+            onCheckedChange={(checked) => setIsTemplate(checked as boolean)}
+          />
+          <Label
+            htmlFor="isTemplate"
+            className="text-sm font-normal cursor-pointer"
+          >
+            Save as template (reusable configuration)
+          </Label>
+        </div>
+      )}
 
       <div className="flex gap-2 justify-end">
         <Button type="submit" disabled={isSubmitting}>

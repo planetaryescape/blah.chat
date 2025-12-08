@@ -2,6 +2,8 @@
 
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
+import { ProjectsEmptyState } from "@/components/projects/ProjectsEmptyState";
+import { TemplateManager } from "@/components/projects/TemplateManager";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,26 +54,33 @@ export default function ProjectsPage() {
 
       {/* Scrollable Content */}
       <ScrollArea className="flex-1 w-full min-h-0">
-        <div className="container mx-auto max-w-6xl px-4 py-8">
-          {projects === undefined ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading projects...
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No projects yet</p>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Project
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {projects.map((project: any) => (
-                <ProjectCard key={project._id} project={project} />
-              ))}
-            </div>
-          )}
+        <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
+          {/* Templates Section */}
+          <TemplateManager />
+
+          {/* Projects Section */}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">
+              Your Projects
+            </h2>
+            {projects === undefined ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Loading projects...
+              </div>
+            ) : projects.filter((p: any) => !p.isTemplate).length === 0 ? (
+              <ProjectsEmptyState
+                onCreateProject={() => setIsCreateOpen(true)}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {projects
+                  .filter((p: any) => !p.isTemplate)
+                  .map((project: any) => (
+                    <ProjectCard key={project._id} project={project} />
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
       </ScrollArea>
 

@@ -83,6 +83,7 @@ export const list = query({
   args: {
     searchQuery: v.optional(v.string()),
     limit: v.optional(v.number()),
+    projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -99,9 +100,18 @@ export const list = query({
             .eq("archived", false),
         );
 
-      const results = args.limit
+      let results = args.limit
         ? await query.take(args.limit)
         : await query.collect();
+
+      // Apply project filter
+      if (args.projectId !== undefined) {
+        if (args.projectId === "none") {
+          results = results.filter((c) => !c.projectId);
+        } else {
+          results = results.filter((c) => c.projectId === args.projectId);
+        }
+      }
 
       return results.sort((a, b) => {
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -110,10 +120,19 @@ export const list = query({
     }
 
     // DEFAULT MODE: Recent conversations
-    const query = ctx.db
+    let query = ctx.db
       .query("conversations")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .filter((q) => q.eq(q.field("archived"), false));
+
+    // Apply project filter
+    if (args.projectId !== undefined) {
+      if (args.projectId === "none") {
+        query = query.filter((q) => q.eq(q.field("projectId"), undefined));
+      } else {
+        query = query.filter((q) => q.eq(q.field("projectId"), args.projectId));
+      }
+    }
 
     const convos = args.limit
       ? await query.take(args.limit)

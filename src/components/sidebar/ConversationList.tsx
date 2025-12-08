@@ -3,13 +3,13 @@ import { ConversationItem } from "./ConversationItem";
 
 export function ConversationList({
   conversations,
-  selectedIndex = -1,
+  selectedId = null,
   onClearSelection,
   selectedIds = [],
   onToggleSelection,
 }: {
   conversations: Doc<"conversations">[];
-  selectedIndex?: number;
+  selectedId?: string | null;
   onClearSelection?: () => void;
   selectedIds?: string[];
   onToggleSelection?: (id: string) => void;
@@ -29,18 +29,14 @@ export function ConversationList({
       className="py-2"
       role="listbox"
       aria-label="Conversations"
-      aria-activedescendant={
-        selectedIndex >= 0
-          ? `conv-${conversations[selectedIndex]?._id}`
-          : undefined
-      }
+      aria-activedescendant={selectedId ? `conv-${selectedId}` : undefined}
     >
       {conversations.map((conversation: any, index: number) => (
         <ConversationItem
           key={conversation._id}
           conversation={conversation}
           index={index}
-          selectedIndex={selectedIndex}
+          selectedId={selectedId}
           onClearSelection={onClearSelection}
           isSelectionMode={isSelectionMode}
           isSelectedById={selectedIds?.includes(conversation._id)}

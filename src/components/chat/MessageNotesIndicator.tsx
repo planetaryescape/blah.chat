@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
-import { ChevronDown, ChevronRight, FileText } from "lucide-react";
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface MessageNotesIndicatorProps {
   messageId: Id<"messages">;
@@ -19,9 +19,13 @@ export function MessageNotesIndicator({
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const notes = useQuery(api.notes.getNotesFromMessage, {
-    messageId,
-  });
+  const notes = useQuery(
+    // @ts-ignore - Convex type instantiation depth issue
+    api.notes.getNotesFromMessage,
+    {
+      messageId,
+    },
+  );
 
   if (!notes || notes.length === 0) {
     return null;
@@ -44,7 +48,7 @@ export function MessageNotesIndicator({
         aria-label={`${notes.length} note${notes.length === 1 ? "" : "s"} from this message`}
       >
         <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-          {notes.length}
+          Notes ({notes.length})
         </span>
         <div className="flex-1 border-t border-dashed border-border/40 group-hover:border-border/60 transition-colors" />
         {isExpanded ? (

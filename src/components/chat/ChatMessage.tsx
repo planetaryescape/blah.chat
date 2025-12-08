@@ -301,27 +301,29 @@ export const ChatMessage = memo(
                   content={displayContent}
                   isStreaming={isGenerating}
                 />
-              ) : isThinkingModel ? (
-                <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                  <span>Thinking...</span>
-                </div>
-              ) : (
-                <div className="flex gap-1 items-center h-6">
-                  <span
-                    className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  />
-                  <span
-                    className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  />
-                  <span
-                    className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  />
-                </div>
-              )}
+              ) : isGenerating ? (
+                isThinkingModel ? (
+                  <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                    <span>Thinking...</span>
+                  </div>
+                ) : (
+                  <div className="flex gap-1 items-center h-6">
+                    <span
+                      className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
+                  </div>
+                )
+              ) : null}
 
               {/* Source citations */}
               {message.sources && message.sources.length > 0 && (

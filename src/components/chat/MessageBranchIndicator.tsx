@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, GitBranch } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 
 interface MessageBranchIndicatorProps {
   messageId: Id<"messages">;
@@ -20,6 +20,7 @@ export function MessageBranchIndicator({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const childBranches = useQuery(
+    // @ts-ignore - Convex type instantiation depth issue
     api.conversations.getChildBranchesFromMessage,
     {
       messageId,
@@ -49,7 +50,7 @@ export function MessageBranchIndicator({
         aria-label={`${childBranches.length} branch${childBranches.length === 1 ? "" : "es"} from this message`}
       >
         <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-          {childBranches.length}
+          Branches ({childBranches.length})
         </span>
         <div className="flex-1 border-t border-dashed border-border/40 group-hover:border-border/60 transition-colors" />
         {isExpanded ? (

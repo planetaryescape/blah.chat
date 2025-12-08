@@ -290,6 +290,12 @@ export async function getTokenCounter(
       return new AnthropicTokenCounter(modelId);
     case "google":
       return new GoogleTokenCounter(modelId);
+    case "cerebras":
+      // Cerebras models use Llama tokenizers, same as OpenAI
+      return new OpenAITokenCounter(modelId);
+    case "groq":
+      // Groq models use OpenAI-compatible tokenizers
+      return new OpenAITokenCounter(modelId);
     case "ollama":
       // Most Ollama models use GPT-compatible tokenizers
       return new OpenAITokenCounter(modelId);

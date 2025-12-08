@@ -4,13 +4,13 @@ import { api } from "@/convex/_generated/api";
 import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
 import { useAction } from "convex/react";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+    type ReactNode,
 } from "react";
 import { toast } from "sonner";
 
@@ -64,10 +64,12 @@ export function TTSProvider({
   children: ReactNode;
   defaultSpeed?: number;
 }) {
-  // @ts-ignore - Convex type instantiation depth issue
-  const generateSpeech: (
+  // Workaround for Convex type instantiation depth issue (TS2589)
+  // Access via bracket notation to bypass deep type inference
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generateSpeech = useAction((api as any).tts.generateSpeech) as (
     args: GenerateSpeechInput,
-  ) => Promise<GenerateSpeechResult> = useAction(api.tts.generateSpeech);
+  ) => Promise<GenerateSpeechResult>;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);

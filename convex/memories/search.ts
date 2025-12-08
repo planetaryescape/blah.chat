@@ -1,7 +1,7 @@
-import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
@@ -60,9 +60,10 @@ Response:`;
 
   try {
     const result = await generateText({
-      model: groq("openai/gpt-oss-120b"),
+      model: aiGateway("cerebras/gpt-oss-120b"),
       prompt,
       temperature: 0,
+      providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-rerank"]),
     });
 
     const indices = result.text

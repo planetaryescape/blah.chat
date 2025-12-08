@@ -18,6 +18,22 @@ export default defineSchema({
           aboutUser: v.string(),
           responseStyle: v.string(),
           enabled: v.boolean(),
+          // New personalization fields
+          baseStyleAndTone: v.optional(
+            v.union(
+              v.literal("default"),
+              v.literal("professional"),
+              v.literal("friendly"),
+              v.literal("candid"),
+              v.literal("quirky"),
+              v.literal("efficient"),
+              v.literal("nerdy"),
+              v.literal("cynical"),
+            ),
+          ),
+          nickname: v.optional(v.string()), // max 100 chars
+          occupation: v.optional(v.string()), // max 200 chars
+          moreAboutYou: v.optional(v.string()), // max 3000 chars
         }),
       ),
       // Search settings
@@ -177,6 +193,8 @@ export default defineSchema({
         }),
       ),
     ),
+    // Provider specific metadata (e.g. Gemini thought signatures)
+    providerMetadata: v.optional(v.any()),
     // Branching support
     parentMessageId: v.optional(v.id("messages")),
     branchLabel: v.optional(v.string()),

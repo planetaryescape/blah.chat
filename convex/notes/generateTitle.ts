@@ -1,7 +1,7 @@
-import { v } from "convex/values";
-import { action } from "../_generated/server";
 import { generateText } from "ai";
-import { groq } from "@ai-sdk/groq";
+import { v } from "convex/values";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { action } from "../_generated/server";
 
 /**
  * Generate a concise, descriptive title for a note using AI
@@ -18,7 +18,7 @@ export const generateTitle = action({
 
     try {
       const result = await generateText({
-        model: groq("openai/gpt-oss-20b"),
+        model: aiGateway("cerebras/gpt-oss-120b"),
         messages: [
           {
             role: "system",
@@ -31,6 +31,7 @@ export const generateTitle = action({
           },
         ],
         temperature: 0.7,
+        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["title-generation"]),
       });
 
       // Clean up any markdown, quotes, or extra formatting

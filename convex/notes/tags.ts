@@ -1,9 +1,9 @@
-import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
-import { z } from "zod";
 import { v } from "convex/values";
-import { internalAction, internalMutation } from "../_generated/server";
+import { z } from "zod";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
+import { internalAction, internalMutation } from "../_generated/server";
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),
@@ -30,9 +30,10 @@ export const extractTags = internalAction({
 
       // @ts-ignore - AI SDK type inference issue
       const result = await generateObject({
-        model: groq("openai/gpt-oss-20b"),
+        model: aiGateway("cerebras/gpt-oss-120b"),
         schema: tagSchema,
         temperature: 0.3,
+        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["tag-extraction"]),
         prompt: `Extract 3-5 concise tags from this note content.
 
 RULES:

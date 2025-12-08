@@ -1,8 +1,8 @@
-import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
@@ -121,11 +121,26 @@ export const extractMemories = internalAction({
       },
     )) as Doc<"messages">[];
 
+    const markAsProcessed = async () => {
+      if (unextractedMessages.length === 0) return;
+      await ctx.runMutation(internal.messages.markExtracted, {
+        messageIds: unextractedMessages.map((m) => m._id),
+        extractedAt: Date.now(),
+      });
+      await ctx.runMutation(internal.conversations.updateExtractionCursor, {
+        id: args.conversationId,
+        lastExtractedMessageId:
+          unextractedMessages[unextractedMessages.length - 1]._id,
+        lastMemoryExtractionAt: Date.now(),
+      });
+    };
+
     // 3. Skip if single message with very low content (likely "thanks" / "ok")
     if (unextractedMessages.length === 1) {
       const content = unextractedMessages[0].content || "";
       if (content.length < 20) {
         // ~5 words
+        await markAsProcessed();
         return { extracted: 0 };
       }
     }
@@ -137,6 +152,7 @@ export const extractMemories = internalAction({
     const estimatedTokens = totalContent.length / 4; // rough estimate
     if (estimatedTokens < 100) {
       // Lowered from 500
+      await markAsProcessed();
       return { extracted: 0 };
     }
 
@@ -154,14 +170,10 @@ export const extractMemories = internalAction({
     // 6. Build extraction context (5 old + N new)
     const extractionWindow = [...contextMessages, ...unextractedMessages];
 
-    // 7. Extract facts with grok-4.1-fast via OpenRouter
+    // 7. Extract facts with gpt-oss-120b via Cerebras Gateway
     const conversationText: string = extractionWindow
       .map((m: Doc<"messages">) => `${m.role}: ${m.content || ""}`)
       .join("\n\n");
-
-    console.log(
-      `[Extraction] Processing ${unextractedMessages.length} new messages (${contextMessages.length} context)`,
-    );
 
     // 8. Get existing memories for context
     const existingMemories = await ctx.runQuery(
@@ -178,8 +190,9 @@ export const extractMemories = internalAction({
 
     try {
       const result = await generateObject({
-        model: groq("openai/gpt-oss-120b"),
+        model: aiGateway("cerebras/gpt-oss-120b"),
         schema: memorySchema,
+        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-extraction"]),
         prompt: `You are a CONSERVATIVE memory system. Extract ONLY facts that pass all these tests:
 
 1. **Usefulness test**: Would this fact be useful 6+ months from now?
@@ -264,10 +277,13 @@ ${existingMemoriesText}
 Conversation:
 ${conversationText}
 
-Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (7-10 only), reasoning (1-2 sentences explaining why this fact matters long-term), confidence (0.7-1.0), and expirationHint if applicable.`,
+Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (7-10 only), reasoning (1-2 sentences explaining why this fact matters long-term), confidence (0.7-1.0), and expirationHint if applicable.
+
+CRITICAL JSON FORMAT: Return {"facts": [...]} where facts is a DIRECT array of objects. DO NOT nest facts inside an "items" property. Example: {"facts": [{"content": "...", "category": "...", ...}]}`,
       });
 
       if (result.object.facts.length === 0) {
+        await markAsProcessed();
         return { extracted: 0 };
       }
 
@@ -279,6 +295,7 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
       );
 
       if (qualityFacts.length === 0) {
+        await markAsProcessed();
         return { extracted: 0 };
       }
 
@@ -354,18 +371,7 @@ Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (
       });
 
       // 8. Mark messages as extracted
-      await ctx.runMutation(internal.messages.markExtracted, {
-        messageIds: unextractedMessages.map((m) => m._id),
-        extractedAt: Date.now(),
-      });
-
-      // 9. Update conversation cursor
-      await ctx.runMutation(internal.conversations.updateExtractionCursor, {
-        id: args.conversationId,
-        lastExtractedMessageId:
-          unextractedMessages[unextractedMessages.length - 1]._id,
-        lastMemoryExtractionAt: Date.now(),
-      });
+      await markAsProcessed();
 
       return { extracted: storedCount };
     } catch (error) {

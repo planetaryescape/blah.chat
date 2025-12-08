@@ -1,9 +1,10 @@
 "use client";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useConversationActions } from "@/hooks/useConversationActions";
 import { analytics } from "@/lib/analytics";
 import { createActionItems } from "@/lib/command-palette-actions";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { cn } from "@/lib/utils";
 import { Command } from "cmdk";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
@@ -15,8 +16,6 @@ import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
 import { RenameDialog } from "./sidebar/RenameDialog";
-import { useConversationActions } from "@/hooks/useConversationActions";
-import { cn } from "@/lib/utils";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -239,6 +238,34 @@ export function CommandPalette() {
                   >
                     {filteredActions
                       .filter((a) => a.group === "actions")
+                      .map((action) => (
+                        <Command.Item
+                          key={action.id}
+                          value={action.id}
+                          onSelect={action.onSelect}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
+                          aria-keyshortcuts={action.shortcut}
+                        >
+                          <action.icon className="h-4 w-4" />
+                          <span>{action.label}</span>
+                          {action.shortcut && (
+                            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                              {action.shortcut}
+                            </kbd>
+                          )}
+                        </Command.Item>
+                      ))}
+                  </Command.Group>
+                )}
+
+                {filteredActions.filter((a) => a.group === "navigation").length >
+                  0 && (
+                  <Command.Group
+                    heading="Navigation"
+                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
+                  >
+                    {filteredActions
+                      .filter((a) => a.group === "navigation")
                       .map((action) => (
                         <Command.Item
                           key={action.id}

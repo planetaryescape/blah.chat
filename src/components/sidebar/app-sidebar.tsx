@@ -1,5 +1,6 @@
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
+import { ProjectFilter } from "@/components/projects/ProjectFilter";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,8 +31,6 @@ import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { useQueryState } from "nuqs";
-import { ProjectFilter } from "@/components/projects/ProjectFilter";
 import {
   BarChart3,
   Bookmark,
@@ -48,6 +47,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { BulkActionBar } from "./BulkActionBar";
@@ -118,10 +118,14 @@ export function AppSidebar() {
   }, [conversationsExpanded]);
 
   const handleNewChat = async () => {
-    // Check if most recent conversation is empty
-    const mostRecent = conversations?.[0];
-    if (mostRecent && mostRecent.messageCount === 0) {
-      router.push(`/chat/${mostRecent._id}`);
+    // Check if most recent unpinned conversation is empty
+    const mostRecentUnpinned = conversations?.find((c: any) => !c.pinned);
+
+    // If the most recent unpinned chat is empty, reuse it
+    // Note: We also check if it's relatively recent (optional, but good practice)
+    // but for now just strict empty check on top unpinned
+    if (mostRecentUnpinned && mostRecentUnpinned.messageCount === 0) {
+      router.push(`/chat/${mostRecentUnpinned._id}`);
       return;
     }
 

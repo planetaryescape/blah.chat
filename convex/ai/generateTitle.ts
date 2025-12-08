@@ -1,6 +1,6 @@
-import { groq } from "@ai-sdk/groq";
 import { streamText } from "ai";
 import { v } from "convex/values";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
@@ -97,12 +97,13 @@ export const generateTitle = internalAction({
 
       // Generate title with full context
       const result = streamText({
-        model: groq("openai/gpt-oss-20b"),
+        model: aiGateway("cerebras/gpt-oss-120b"),
         prompt: `Generate a 3-5 word title for this conversation.
 
 ${conversationText}
 
 Title (no quotes):`,
+        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["title-generation"]),
       });
 
       let title = "";

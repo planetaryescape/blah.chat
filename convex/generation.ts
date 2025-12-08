@@ -1,16 +1,15 @@
+import { aiGateway, getGatewayOptions } from "@/lib/ai/gateway";
 import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
-import { getModel } from "@/lib/ai/registry";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
-import { groq } from "@ai-sdk/groq";
-import { openai } from "@ai-sdk/openai";
+import { getModel } from "@/lib/ai/registry";
 import { generateText, streamText, type CoreMessage } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
 import { createMemorySearchTool } from "./ai/tools/memories";
-import { buildBasePromptOptions, getBasePrompt } from "./lib/prompts/base";
+import { getBasePrompt } from "./lib/prompts/base";
 import {
   formatMemoriesByCategory,
   truncateMemories,
@@ -68,11 +67,62 @@ async function buildSystemPrompts(
 
   // 1. User custom instructions (highest priority)
   if (user?.preferences?.customInstructions?.enabled) {
-    const { aboutUser, responseStyle } = user.preferences.customInstructions;
-    systemMessages.push({
-      role: "system",
-      content: `About the user:\n${aboutUser}\n\nResponse style:\n${responseStyle}`,
-    });
+    const {
+      aboutUser,
+      responseStyle,
+      baseStyleAndTone,
+      nickname,
+      occupation,
+      moreAboutYou,
+    } = user.preferences.customInstructions;
+
+    // Build personalization sections
+    const sections: string[] = [];
+
+    // User identity section
+    const identityParts: string[] = [];
+    if (nickname) identityParts.push(`Name: ${nickname}`);
+    if (occupation) identityParts.push(`Role: ${occupation}`);
+    if (identityParts.length > 0) {
+      sections.push(`## User Identity\n${identityParts.join("\n")}`);
+    }
+
+    // About the user
+    if (aboutUser || moreAboutYou) {
+      const aboutSections: string[] = [];
+      if (aboutUser) aboutSections.push(aboutUser);
+      if (moreAboutYou) aboutSections.push(moreAboutYou);
+      sections.push(`## About the User\n${aboutSections.join("\n\n")}`);
+    }
+
+    // Response style
+    if (responseStyle) {
+      sections.push(`## Response Style\n${responseStyle}`);
+    }
+
+    // Base style and tone directive
+    if (baseStyleAndTone && baseStyleAndTone !== "default") {
+      const toneDescriptions: Record<string, string> = {
+        professional: "Be polished and precise. Use formal language and structured responses.",
+        friendly: "Be warm and chatty. Use casual language and show enthusiasm.",
+        candid: "Be direct and encouraging. Get straight to the point while being supportive.",
+        quirky: "Be playful and imaginative. Use creative language and unexpected analogies.",
+        efficient: "Be concise and plain. Minimize words, maximize clarity.",
+        nerdy: "Be exploratory and enthusiastic. Dive deep into technical details.",
+        cynical: "Be critical and sarcastic. Question assumptions, use dry humor.",
+      };
+      const toneDirective = toneDescriptions[baseStyleAndTone];
+      if (toneDirective) {
+        sections.push(`## Tone Directive\n${toneDirective}`);
+      }
+    }
+
+    if (sections.length > 0) {
+      systemMessages.push({
+        role: "system",
+        content: sections.join("\n\n"),
+      });
+    }
   }
 
   // 2. Project context (if conversation is in a project)
@@ -136,11 +186,13 @@ async function buildSystemPrompts(
     });
   }
 
-  // 6. Base identity (foundation)
+  // 6. Base identity (foundation) - with dynamic date injection
+  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
   const basePromptOptions = {
-    ...buildBasePromptOptions(args.modelConfig),
+    modelConfig: args.modelConfig,
     hasFunctionCalling: args.hasFunctionCalling,
     prefetchedMemories: args.prefetchedMemories,
+    currentDate,
   };
   const basePrompt = getBasePrompt(basePromptOptions);
 
@@ -149,12 +201,15 @@ async function buildSystemPrompts(
     content: basePrompt,
   });
 
+
   return { messages: systemMessages, memoryContent: memoryContentForTracking };
 }
 
 // Helper function to extract sources/citations from AI SDK response
 // Perplexity models (via OpenRouter) return search results in metadata
-function extractSources(result: any):
+// Helper function to extract sources/citations from AI SDK response
+// Perplexity models (via OpenRouter) return search results in metadata
+function extractSources(providerMetadata: any):
   | Array<{
       id: string;
       title: string;
@@ -163,17 +218,19 @@ function extractSources(result: any):
       snippet?: string;
     }>
   | undefined {
+  if (!providerMetadata) return undefined;
+
   try {
     // Check experimental provider metadata (AI SDK standard location)
-    const providerMeta =
-      result.experimental_providerMetadata?.openrouter ||
-      result.experimental_providerMetadata;
+    // Note: When passed directly, providerMetadata IS the metadata object
+    const openRouterMeta = providerMetadata.openrouter || providerMetadata;
 
+    // 1. OpenRouter / Perplexity format
     if (
-      providerMeta?.search_results &&
-      Array.isArray(providerMeta.search_results)
+      openRouterMeta?.search_results &&
+      Array.isArray(openRouterMeta.search_results)
     ) {
-      return providerMeta.search_results.map((r: any, i: number) => ({
+      return openRouterMeta.search_results.map((r: any, i: number) => ({
         id: `${i + 1}`, // Sequential IDs for citation markers
         title: r.title || r.name || "Untitled Source",
         url: r.url,
@@ -182,21 +239,61 @@ function extractSources(result: any):
       }));
     }
 
-    // Fallback: check raw response for search_results
-    const rawSources =
-      result.rawResponse?.search_results || result.citations || result.sources;
+    // 2. Perplexity Native (official provider)
+    const perplexityMeta = providerMetadata.perplexity || providerMetadata;
+    const perplexitySources = perplexityMeta?.citations;
 
-    if (rawSources && Array.isArray(rawSources)) {
-      return rawSources.map((r: any, i: number) => ({
-        id: `${i + 1}`,
-        title: r.title || r.name || "Untitled Source",
-        url: r.url,
-        publishedDate: r.date || r.published_date,
-        snippet: r.snippet || r.description,
-      }));
+    if (perplexitySources && Array.isArray(perplexitySources)) {
+       return perplexitySources.map((r: any, i: number) => {
+        if (typeof r === "string") {
+          return {
+            id: `${i + 1}`,
+            title: r,
+            url: r,
+            snippet: undefined,
+            publishedDate: undefined,
+          };
+        }
+        return {
+          id: `${i + 1}`,
+          title: r.title || "Untitled Source",
+          url: r.url,
+          snippet: r.snippet,
+        };
+       }).filter(s => s.url);
     }
 
-    // No sources found
+    // 3. Generic Citations/Sources (OpenRouter/Other)
+    const genericSources =
+      openRouterMeta?.citations ||
+      openRouterMeta?.sources ||
+      providerMetadata?.citations ||
+      providerMetadata?.sources ||
+      // Sometimes it might be deeply nested in a 'extra' or similar field
+      (providerMetadata as any)?.extra?.citations;
+
+    if (genericSources && Array.isArray(genericSources)) {
+      return genericSources.map((r: any, i: number) => {
+         if (typeof r === "string") {
+          return {
+            id: `${i + 1}`,
+            title: r,
+            url: r,
+            snippet: undefined,
+            publishedDate: undefined,
+          };
+        }
+        return {
+          id: `${i + 1}`,
+          title: r.title || r.name || "Untitled Source",
+          url: r.url || r.uri || "",
+          publishedDate: r.date || r.published_date,
+          snippet: r.snippet || r.description,
+        };
+      }).filter(s => s.url && s.url.length > 0);
+    }
+
+    console.warn("[Sources] No sources found in metadata:", JSON.stringify(providerMetadata, null, 2));
     return undefined;
   } catch (error) {
     console.warn("[Sources] Failed to extract sources:", error);
@@ -251,6 +348,8 @@ export const generateResponse = internalAction({
       if (!modelConfig) {
         throw new Error(`Model ${args.modelId} not found in configuration`);
       }
+
+
 
       // 5. Check for vision and function-calling capabilities
       const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
@@ -357,6 +456,7 @@ export const generateResponse = internalAction({
               return {
                 role: m.role as "user" | "assistant" | "system",
                 content: m.content || "",
+                providerMetadata: m.providerMetadata,
               };
             }
 
@@ -366,6 +466,7 @@ export const generateResponse = internalAction({
               return {
                 role: m.role as "user" | "assistant" | "system",
                 content: m.content || "",
+                providerMetadata: m.providerMetadata,
               };
             }
 
@@ -400,6 +501,7 @@ export const generateResponse = internalAction({
             return {
               role: m.role as "user" | "assistant" | "system",
               content: contentParts,
+              providerMetadata: m.providerMetadata,
             };
           }),
       );
@@ -426,6 +528,13 @@ export const generateResponse = internalAction({
         model: finalModel,
         messages: allMessages,
         maxSteps: hasFunctionCalling ? 5 : 1, // No multi-turn for non-tool models
+        providerOptions: {
+          ...getGatewayOptions(args.modelId, args.userId, ["chat"]),
+          perplexity: {
+            returnCitations: true, // Request citations explicitly
+            return_citations: true, // Snake case fallback just in case
+          },
+        },
       };
 
       // Only add tools for capable models
@@ -455,9 +564,12 @@ export const generateResponse = internalAction({
         };
       }
 
-      // 13. Apply provider options (single source!)
+      // 13. Apply provider options (merge with gateway options)
       if (reasoningResult?.providerOptions) {
-        options.providerOptions = reasoningResult.providerOptions;
+        options.providerOptions = {
+          ...options.providerOptions,
+          ...reasoningResult.providerOptions,
+        };
       }
 
       // 14. Apply headers (e.g., Anthropic beta)
@@ -600,8 +712,69 @@ export const generateResponse = internalAction({
           };
         });
 
+      // Extract provider metadata (e.g. Gemini thought signatures)
+      const providerMetadata = await result.providerMetadata;
+      console.log("[Generation] Raw providerMetadata:", JSON.stringify(providerMetadata, null, 2));
+
       // Extract sources from response (Perplexity, web search models)
-      const sources = extractSources(result);
+      // Must pass the resolved providerMetadata, not the stream result
+      const sources = extractSources(providerMetadata);
+      console.log("[Generation] Extracted sources:", JSON.stringify(sources, null, 2));
+
+      // Handle image generation (files in result)
+      // This supports Gemini image models called via standard chat
+      try {
+        const files = await result.files;
+        if (files && files.length > 0) {
+          console.log("[Generation] Processing generated files:", files.length);
+
+          for (const file of files) {
+             let imageBytes: Uint8Array;
+
+             // Handle Uint8Array format
+             if ((file as any).uint8Array) {
+               imageBytes = (file as any).uint8Array;
+             }
+             // Handle base64Data format
+             else if ((file as any).base64Data) {
+               const binaryString = atob((file as any).base64Data);
+               const len = binaryString.length;
+               imageBytes = new Uint8Array(len);
+               for (let i = 0; i < len; i++) {
+                 imageBytes[i] = binaryString.charCodeAt(i);
+               }
+             } else {
+               console.warn("[Generation] Unknown file format:", file);
+               continue;
+             }
+
+             // Store in Convex file storage
+             const storageId = await ctx.storage.store(
+               new Blob([imageBytes as any], { type: "image/png" }),
+             );
+
+             // Add attachment to message
+             // @ts-ignore
+             await ctx.runMutation(internal.messages.addAttachment, {
+               messageId: args.assistantMessageId,
+               attachment: {
+                 type: "image",
+                 storageId,
+                 name: "generated-image.png",
+                 size: imageBytes.byteLength,
+                 mimeType: "image/png",
+                 metadata: {
+                   prompt: lastUserMsg?.content || "",
+                   model: args.modelId,
+                   generationTime: Date.now() - generationStartTime,
+                 },
+               },
+             });
+          }
+        }
+      } catch (error) {
+        console.error("[Generation] Error processing generated files:", error);
+      }
 
       // 9. Final completion
       await ctx.runMutation(internal.messages.completeMessage, {
@@ -615,6 +788,7 @@ export const generateResponse = internalAction({
         tokensPerSecond,
         toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined,
         sources,
+        providerMetadata,
       });
 
       // Trigger OpenGraph enrichment for sources (background job)
@@ -701,9 +875,9 @@ export const summarizeSelection = action({
     const timeoutId = setTimeout(() => abortController.abort(), 30000);
 
     try {
-      // Generate summary using GPT-OSS 20B
+      // Generate summary using GPT-OSS 20B via gateway
       const result = await generateText({
-        model: groq("openai/gpt-oss-20b"),
+        model: aiGateway("cerebras/gpt-oss-120b"),
         messages: [
           {
             role: "system",
@@ -716,6 +890,7 @@ export const summarizeSelection = action({
           },
         ],
         abortSignal: abortController.signal,
+        providerOptions: getGatewayOptions(undefined, undefined, ["summary"]),
       });
 
       clearTimeout(timeoutId);

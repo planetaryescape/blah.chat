@@ -143,6 +143,27 @@
     color: var(--primary-hover);
   }
 
+  /* Citation Links [1] */
+  .prose a[href^="#source-"] {
+    text-decoration: none;
+    font-size: 0.75em;
+    vertical-align: super;
+    margin: 0 0.1em;
+    padding: 0 0.3em;
+    border-radius: 0.25rem;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .prose a[href^="#source-"]:hover {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
   /* Code */
   .prose code {
     font-family: var(--font-mono);
@@ -155,24 +176,21 @@
     border: 1px solid color-mix(in oklch, var(--foreground) 10%, transparent);
   }
 
-  /* Dark mode: boost inline code contrast against chat bubbles */
+  /* Dark mode: Bespoke inline code styling with slate/violet aesthetic */
   .dark .prose code {
-    background: color-mix(
-      in oklch,
-      var(--foreground) 16%,
-      var(--background) 84%
+    /* Subtle gradient background with slate undertone */
+    background: linear-gradient(
+      135deg,
+      oklch(28% 0.03 260) 0%,
+      oklch(25% 0.02 260) 100%
     );
-    color: oklch(98% 0 0);
-    border-color: color-mix(
-      in oklch,
-      var(--foreground) 18%,
-      transparent 82%
-    );
-    box-shadow: 0 0 0 1px color-mix(
-        in oklch,
-        var(--foreground) 6%,
-        transparent
-      );
+    /* Soft, readable text with slight warmth */
+    color: oklch(88% 0.02 260);
+    /* Refined border with subtle glow */
+    border: 1px solid oklch(35% 0.04 260);
+    box-shadow:
+      inset 0 1px 0 oklch(40% 0.02 260 / 0.15),
+      0 1px 2px oklch(0% 0 0 / 0.2);
   }
 
   .prose pre {

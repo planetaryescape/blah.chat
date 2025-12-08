@@ -1,11 +1,7 @@
 import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { generateText } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
+import { groq } from "@ai-sdk/groq";
 
 /**
  * Generate a concise, descriptive title for a note using AI
@@ -22,7 +18,7 @@ export const generateTitle = action({
 
     try {
       const result = await generateText({
-        model: openrouter("x-ai/grok-4.1-fast"),
+        model: groq("openai/gpt-oss-20b"),
         messages: [
           {
             role: "system",

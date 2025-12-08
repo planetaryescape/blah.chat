@@ -1,13 +1,9 @@
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { groq } from "@ai-sdk/groq";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { v } from "convex/values";
 import { internalAction, internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),
@@ -34,7 +30,7 @@ export const extractTags = internalAction({
 
       // @ts-ignore - AI SDK type inference issue
       const result = await generateObject({
-        model: openrouter("x-ai/grok-4.1-fast"),
+        model: groq("openai/gpt-oss-20b"),
         schema: tagSchema,
         temperature: 0.3,
         prompt: `Extract 3-5 concise tags from this note content.

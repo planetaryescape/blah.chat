@@ -127,15 +127,9 @@ export const generateImage = internalAction({
       }
 
       const generationTime = Date.now() - generationStart;
-      console.log(`[Image Gen] Stream completed in ${generationTime}ms`);
 
       // Get token usage
       const usage = await result.usage;
-      console.log(`[Image Gen] Token usage:`, {
-        input: usage.inputTokens,
-        output: usage.outputTokens,
-        reasoning: usage.reasoningTokens,
-      });
 
       // Extract final thinking
       const reasoningOutputs = await result.reasoning;
@@ -146,9 +140,6 @@ export const generateImage = internalAction({
 
       // Complete thinking if present
       if (finalReasoning && finalReasoning.trim().length > 0) {
-        console.log(
-          `[Image Gen] Completing thinking (${finalReasoning.length} chars)`,
-        );
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.messageId,
           reasoning: finalReasoning,
@@ -157,9 +148,7 @@ export const generateImage = internalAction({
       }
 
       // Extract image (KEY: streamText returns files after stream!)
-      console.log(`[Image Gen] Extracting files from result...`);
       const files = await result.files;
-      console.log(`[Image Gen] Files received:`, files?.length || 0);
       let imageBuffer: Buffer;
 
       if (files && files.length > 0) {
@@ -199,13 +188,9 @@ export const generateImage = internalAction({
       }
 
       // Store in Convex file storage
-      console.log(
-        `[Image Gen] Storing image (${imageBuffer.byteLength} bytes)...`,
-      );
       const storageId = await ctx.storage.store(
         new Blob([new Uint8Array(imageBuffer)], { type: "image/png" }),
       );
-      console.log(`[Image Gen] Image stored with ID: ${storageId}`);
 
       const totalTime = Date.now() - startTime;
 
@@ -223,7 +208,6 @@ export const generateImage = internalAction({
       );
 
       // Update message with image attachment
-      console.log(`[Image Gen] Adding attachment to message...`);
       // @ts-ignore
       await ctx.runMutation(internal.messages.addAttachment, {
         messageId: args.messageId,
@@ -245,9 +229,6 @@ export const generateImage = internalAction({
 
       // Complete message with content + tokens
       const finalContent = accumulated || `Generated image: ${args.prompt}`;
-      console.log(
-        `[Image Gen] Completing message with content: "${finalContent.substring(0, 50)}..."`,
-      );
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.messageId,
         content: finalContent,
@@ -274,10 +255,6 @@ export const generateImage = internalAction({
           cost,
         });
       }
-
-      console.log(
-        `[Image Gen] ✅ SUCCESS - Total time: ${totalTime}ms, Cost: $${cost.toFixed(4)}`,
-      );
 
       return {
         success: true,

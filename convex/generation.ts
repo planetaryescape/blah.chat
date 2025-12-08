@@ -2,8 +2,8 @@ import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
 import { calculateCost } from "@/lib/ai/pricing";
 import { getModel } from "@/lib/ai/registry";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
+import { groq } from "@ai-sdk/groq";
 import { openai } from "@ai-sdk/openai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, streamText, type CoreMessage } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
@@ -16,10 +16,6 @@ import {
   truncateMemories,
 } from "./lib/prompts/formatting";
 import { calculateConversationTokensAsync } from "./tokens/counting";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 export * as image from "./generation/image";
 
@@ -111,19 +107,12 @@ async function buildSystemPrompts(
       },
     );
 
-    console.log(
-      `[Identity] Loaded ${identityMemories.length} identity memories`,
-    );
-
     if (identityMemories.length > 0) {
       // Calculate 10% budget for identity memories (conservative)
       const maxMemoryTokens = Math.floor(args.modelConfig.contextWindow * 0.1);
 
       // Truncate by priority
       const truncated = truncateMemories(identityMemories, maxMemoryTokens);
-      console.log(
-        `[Identity] Truncated ${identityMemories.length} → ${truncated.length} memories`,
-      );
 
       memoryContentForTracking = formatMemoriesByCategory(truncated);
 
@@ -132,7 +121,6 @@ async function buildSystemPrompts(
           role: "system",
           content: `## Identity & Preferences\n\n${memoryContentForTracking}`,
         });
-        console.log("[Identity] Injected identity memories into system prompt");
       }
     }
   } catch (error) {
@@ -146,9 +134,6 @@ async function buildSystemPrompts(
       role: "system",
       content: `## Contextual Memories\n\n${args.prefetchedMemories}`,
     });
-    console.log(
-      "[Contextual Memories] Injected pre-fetched memories into system prompt",
-    );
   }
 
   // 6. Base identity (foundation)
@@ -272,10 +257,6 @@ export const generateResponse = internalAction({
       const hasFunctionCalling =
         modelConfig.capabilities?.includes("function-calling") ?? false;
 
-      console.log(
-        `[Tools] Model ${args.modelId} function-calling: ${hasFunctionCalling}`,
-      );
-
       // 6. Pre-fetch contextual memories for non-tool models
       let prefetchedMemories: string | null = null;
 
@@ -285,10 +266,6 @@ export const generateResponse = internalAction({
           const searchQuery = (lastUserMsg.content || "").slice(0, 500); // Cap query length
 
           if (searchQuery.trim()) {
-            console.log(
-              `[Memory Pre-fetch] Searching for non-tool model: "${searchQuery.slice(0, 50)}..."`,
-            );
-
             // Search all non-identity categories
             const searchResults = await ctx.runAction(
               internal.memories.search.hybridSearch,
@@ -302,9 +279,9 @@ export const generateResponse = internalAction({
 
             // Filter out identity memories (already loaded separately)
             const contextMemories = searchResults.filter(
-              (m) =>
+              (m: { metadata?: { category?: string } }) =>
                 !["identity", "preference", "relationship"].includes(
-                  m.metadata?.category,
+                  m.metadata?.category ?? "",
                 ),
             );
 
@@ -316,13 +293,19 @@ export const generateResponse = internalAction({
               const memoryCharBudget = memoryTokenBudget * 4;
 
               let formatted = contextMemories
-                .map((m) => {
-                  const cat = m.metadata?.category || "general";
-                  const timestamp = new Date(
-                    m._creationTime,
-                  ).toLocaleDateString();
-                  return `[${cat}] (${timestamp}) ${m.content}`;
-                })
+                .map(
+                  (m: {
+                    metadata?: { category?: string };
+                    _creationTime: number;
+                    content: string;
+                  }) => {
+                    const cat = m.metadata?.category || "general";
+                    const timestamp = new Date(
+                      m._creationTime,
+                    ).toLocaleDateString();
+                    return `[${cat}] (${timestamp}) ${m.content}`;
+                  },
+                )
                 .join("\n\n");
 
               // Truncate if exceeds budget
@@ -333,11 +316,6 @@ export const generateResponse = internalAction({
               }
 
               prefetchedMemories = formatted;
-              console.log(
-                `[Memory Pre-fetch] Loaded ${contextMemories.length} memories (${formatted.length} chars)`,
-              );
-            } else {
-              console.log(`[Memory Pre-fetch] No contextual memories found`);
             }
           }
         } catch (error) {
@@ -459,12 +437,6 @@ export const generateResponse = internalAction({
         };
 
         options.onStepFinish = async (step: any) => {
-          console.log(
-            "[Tool] Step finished:",
-            step.stepType,
-            step.toolCalls?.length,
-          );
-
           if (step.toolCalls && step.toolCalls.length > 0) {
             const completedCalls = step.toolCalls.map((tc: any) => ({
               id: tc.toolCallId,
@@ -478,7 +450,6 @@ export const generateResponse = internalAction({
               timestamp: Date.now(),
             }));
 
-            console.log("[Tool] Completed calls:", completedCalls);
             // Phase 2 will add immediate persistence here
           }
         };
@@ -487,10 +458,6 @@ export const generateResponse = internalAction({
       // 13. Apply provider options (single source!)
       if (reasoningResult?.providerOptions) {
         options.providerOptions = reasoningResult.providerOptions;
-        console.log(
-          `[Reasoning] Applied provider options for ${args.modelId}:`,
-          reasoningResult.providerOptions,
-        );
       }
 
       // 14. Apply headers (e.g., Anthropic beta)
@@ -581,18 +548,10 @@ export const generateResponse = internalAction({
 
       // Complete thinking if reasoning present
       const reasoningOutputs = await result.reasoning;
-      console.log(
-        `[Reasoning] Model: ${args.modelId}, Outputs:`,
-        reasoningOutputs,
-      );
       const finalReasoning =
         reasoningOutputs && reasoningOutputs.length > 0
           ? reasoningOutputs.map((r) => r.text).join("\n")
           : undefined;
-
-      console.log(
-        `[Reasoning] Final reasoning length: ${finalReasoning?.length || 0}, reasoning tokens: ${usage.reasoningTokens || 0}`,
-      );
 
       if (finalReasoning && finalReasoning.trim().length > 0) {
         await ctx.runMutation(internal.messages.completeThinking, {
@@ -641,15 +600,8 @@ export const generateResponse = internalAction({
           };
         });
 
-      console.log("[Tool] All tool calls to persist:", allToolCalls.length);
-
       // Extract sources from response (Perplexity, web search models)
       const sources = extractSources(result);
-      if (sources) {
-        console.log(
-          `[Sources] Extracted ${sources.length} sources from response`,
-        );
-      }
 
       // 9. Final completion
       await ctx.runMutation(internal.messages.completeMessage, {
@@ -674,9 +626,6 @@ export const generateResponse = internalAction({
             messageId: args.assistantMessageId,
             sources: sources.map((s) => ({ id: s.id, url: s.url })),
           },
-        );
-        console.log(
-          `[Sources] Scheduled OpenGraph enrichment for ${sources.length} sources`,
         );
       }
 
@@ -752,9 +701,9 @@ export const summarizeSelection = action({
     const timeoutId = setTimeout(() => abortController.abort(), 30000);
 
     try {
-      // Generate summary using Grok 4.1 Fast
+      // Generate summary using GPT-OSS 20B
       const result = await generateText({
-        model: openrouter("x-ai/grok-4.1-fast"),
+        model: groq("openai/gpt-oss-20b"),
         messages: [
           {
             role: "system",

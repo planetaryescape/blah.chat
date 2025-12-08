@@ -47,6 +47,7 @@ export const create = internalMutation({
     content: v.string(),
     embedding: v.array(v.float64()),
     conversationId: v.optional(v.id("conversations")),
+    sourceMessageIds: v.optional(v.array(v.id("messages"))),
     metadata: v.object({
       category: v.string(),
       importance: v.number(),
@@ -81,6 +82,7 @@ export const create = internalMutation({
       content: args.content,
       embedding: args.embedding,
       conversationId: args.conversationId,
+      sourceMessageIds: args.sourceMessageIds,
       metadata: args.metadata,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -781,7 +783,7 @@ ${cluster
               extractedAt: Date.now(),
               sourceConversationId: cluster[0].conversationId,
             },
-          } as any);
+          });
 
           createdCount++;
         }

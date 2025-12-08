@@ -658,7 +658,7 @@ Have AI responses read aloud:
 Implementation options:
 
 - Browser native: Web Speech API (free, works offline)
-- Cloud: Google Cloud TTS, ElevenLabs, OpenAI TTS (better quality)
+- Cloud: Deepgram Aura (current), Google Cloud TTS, OpenAI TTS (better quality)
 - Let user choose in settings
 
 Features:
@@ -1790,9 +1790,8 @@ NEXT_PUBLIC_POSTHOG_HOST=
 EMBEDDING_API_KEY=
 EMBEDDING_MODEL= # e.g., text-embedding-3-small
 
-# Text-to-Speech (optional cloud providers)
-ELEVENLABS_API_KEY=
-OPENAI_TTS_API_KEY= # Can reuse OPENAI_API_KEY
+# Text-to-Speech (Deepgram Aura)
+DEEPGRAM_API_KEY=
 
 # Ollama (optional, defaults shown)
 OLLAMA_BASE_URL=http://localhost:11434

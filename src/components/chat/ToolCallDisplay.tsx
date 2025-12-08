@@ -2,12 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertCircle,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-  Search,
+    AlertCircle,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Loader2,
+    Search,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,7 +21,7 @@ interface ToolCall {
 
 interface ToolCallDisplayProps {
   toolCalls?: ToolCall[];
-  partialToolCalls?: Omit<ToolCall, "result">[];
+  partialToolCalls?: (Omit<ToolCall, "result"> & { result?: string })[];
 }
 
 type ToolCallState = "executing" | "complete" | "error";
@@ -45,7 +45,7 @@ export function ToolCallDisplay({
 
   // Merge partial (loading) and complete calls
   const allCalls = [
-    ...(partialToolCalls?.map((tc) => ({ ...tc, result: undefined })) || []),
+    ...(partialToolCalls || []),
     ...(toolCalls || []),
   ];
 

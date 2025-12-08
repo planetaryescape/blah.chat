@@ -1,8 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { internal } from "../../_generated/api";
-import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
+import type { ActionCtx } from "../../_generated/server";
 
 /**
  * Create memory search tool with closure over ActionCtx.
@@ -36,6 +36,7 @@ Preference/identity/relationship memories are pre-loaded.`,
     execute: async (input) => {
       const { query, category, limit = 5 } = input;
       try {
+        console.log("[Tool] Executing memory search:", { query, category });
         const memories = await ctx.runAction(
           // @ts-ignore - Convex type instantiation depth issue
           internal.memories.search.hybridSearch,

@@ -304,6 +304,7 @@ export const completeMessage = internalMutation({
         }),
       ),
     ),
+    providerMetadata: v.optional(v.any()), // New field for thought signatures
   },
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
@@ -324,6 +325,7 @@ export const completeMessage = internalMutation({
       partialToolCalls: undefined, // Clear loading state
       sources: args.sources,
       partialSources: undefined, // Clear streaming sources
+      providerMetadata: args.providerMetadata, // Save provider metadata
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -367,6 +369,7 @@ export const updatePartialToolCalls = internalMutation({
         id: v.string(),
         name: v.string(),
         arguments: v.string(),
+        result: v.optional(v.string()),
         timestamp: v.number(),
       }),
     ),

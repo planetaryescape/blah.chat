@@ -50,32 +50,37 @@ export function BranchBadge({ conversationId }: BranchBadgeProps) {
             Branched conversations ({childBranches.length})
           </p>
           <div className="space-y-0.5">
-            {childBranches.map((branch) => (
-              <Button
-                key={branch._id}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start h-auto py-2 px-2 text-left font-normal"
-                onClick={() => {
-                  router.push(`/chat/${branch._id}`);
-                }}
-              >
-                <div className="flex items-start gap-2 w-full min-w-0">
-                  <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{branch.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(branch.createdAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+            {childBranches.map(
+              (branch: { _id: string; title: string; createdAt: number }) => (
+                <Button
+                  key={branch._id}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start h-auto py-2 px-2 text-left font-normal"
+                  onClick={() => {
+                    router.push(`/chat/${branch._id}`);
+                  }}
+                >
+                  <div className="flex items-start gap-2 w-full min-w-0">
+                    <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{branch.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(branch.createdAt).toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Button>
-            ))}
+                </Button>
+              ),
+            )}
           </div>
         </div>
       </PopoverContent>

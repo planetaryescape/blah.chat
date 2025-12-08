@@ -412,7 +412,7 @@ export const branchFromMessage = mutation({
       {
         userId: user._id,
         model: sourceConversation.model,
-        title: args.title || `Branch from: ${sourceConversation.title}`,
+        title: args.title || sourceConversation.title,
         parentConversationId: sourceMessage.conversationId,
         parentMessageId: args.messageId,
       },

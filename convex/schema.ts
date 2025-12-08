@@ -39,6 +39,12 @@ export default defineSchema({
           v.literal("groq"),
         ),
       ), // default "openai"
+      // TTS settings
+      ttsEnabled: v.optional(v.boolean()), // default false
+      ttsProvider: v.optional(v.string()), // "deepgram"
+      ttsVoice: v.optional(v.string()),
+      ttsSpeed: v.optional(v.number()), // default 1.0
+      ttsAutoRead: v.optional(v.boolean()), // default false
       // Comparison settings
       showModelNamesDuringComparison: v.optional(v.boolean()), // default false
       // Reasoning display settings

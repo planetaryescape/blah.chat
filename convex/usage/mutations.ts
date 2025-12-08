@@ -90,3 +90,25 @@ export const recordTextGeneration = internalMutation({
     }
   },
 });
+
+export const recordTTS = internalMutation({
+  args: {
+    userId: v.id("users"),
+    model: v.string(), // e.g., "deepgram:tts"
+    characterCount: v.number(),
+    cost: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const date = new Date().toISOString().split("T")[0];
+
+    await ctx.db.insert("usageRecords", {
+      userId: args.userId,
+      date,
+      model: args.model,
+      inputTokens: 0,
+      outputTokens: args.characterCount, // Track chars as "output tokens"
+      cost: args.cost,
+      messageCount: 1,
+    });
+  },
+});

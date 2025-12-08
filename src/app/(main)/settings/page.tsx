@@ -89,12 +89,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Desktop View: Tabs */}
-      <div className="hidden md:block">
+      <div className="hidden md:block h-[calc(100vh-160px)]">
         <Tabs
           defaultValue="personalization"
-          className="w-full flex flex-col gap-6"
+          className="w-full h-full flex flex-col"
         >
-          <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 rounded-lg overflow-x-auto flex-wrap gap-1">
+          <TabsList className="flex-shrink-0 w-full justify-start h-auto p-1 bg-muted/50 rounded-lg overflow-x-auto flex-wrap gap-1">
             {SETTINGS_SECTIONS.map((section: any) => (
               <TabsTrigger
                 key={section.id}
@@ -106,13 +106,17 @@ export default function SettingsPage() {
             ))}
           </TabsList>
 
-          {SETTINGS_SECTIONS.map((section: any) => (
-            <TabsContent key={section.id} value={section.id} className="mt-0">
-              <div className="bg-card border rounded-xl p-6 shadow-sm">
-                <section.component />
-              </div>
-            </TabsContent>
-          ))}
+          <div className="flex-1 min-h-0 mt-6 overflow-y-auto rounded-lg border border-border/60 bg-muted/10">
+            <div className="p-4">
+              {SETTINGS_SECTIONS.map((section: any) => (
+                <TabsContent key={section.id} value={section.id} className="mt-0">
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <section.component />
+                  </div>
+                </TabsContent>
+              ))}
+            </div>
+          </div>
         </Tabs>
       </div>
     </div>

@@ -1,9 +1,9 @@
-import { v } from "convex/values";
-import { query, action, internalQuery } from "../_generated/server";
-import { internal, api } from "../_generated/api";
-import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { embed } from "ai";
+import { v } from "convex/values";
+import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
+import { action, internalQuery } from "../_generated/server";
 
 /**
  * Hybrid search for conversations
@@ -34,11 +34,17 @@ export const hybridSearch = action({
 
     // 2. Semantic search on recent messages, group by conversation
     try {
+      // Generate embedding in ACTION (not query) since it requires network call
+      const { embedding } = await embed({
+        model: openai.embedding("text-embedding-3-small"),
+        value: query,
+      });
+
       const semanticResults: any = await ctx.runQuery(
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore - Convex type instantiation depth issue
-        internal.conversations.hybridSearch.semanticSearch,
-        { query, userId: user._id, limit: 40, includeArchived },
+        internal.conversations.hybridSearch.semanticSearchWithEmbedding,
+        { embedding, userId: user._id, limit: 40, includeArchived },
       );
 
       // 3. Merge with RRF
@@ -123,21 +129,16 @@ export const keywordSearch = internalQuery({
 
 /**
  * Semantic search via message content, grouped by conversation
+ * Accepts pre-computed embedding (generated in action, since queries can't make network calls)
  */
-export const semanticSearch = internalQuery({
+export const semanticSearchWithEmbedding = internalQuery({
   args: {
-    query: v.string(),
+    embedding: v.array(v.number()),
     userId: v.id("users"),
     limit: v.number(),
     includeArchived: v.boolean(),
   },
   handler: async (ctx, args) => {
-    // Generate embedding for query
-    const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
-      value: args.query,
-    });
-
     // Vector search on messages, group by conversationId
     const messages = await ctx.db
       .query("messages")
@@ -149,7 +150,7 @@ export const semanticSearch = internalQuery({
     const scored = messages
       .map((msg) => ({
         message: msg,
-        score: msg.embedding ? cosineSimilarity(embedding, msg.embedding) : 0,
+        score: msg.embedding ? cosineSimilarity(args.embedding, msg.embedding) : 0,
       }))
       .sort((a, b) => b.score - a.score);
 

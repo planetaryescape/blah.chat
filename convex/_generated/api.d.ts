@@ -16,6 +16,7 @@ import type * as conversations from "../conversations.js";
 import type * as conversations_actions from "../conversations/actions.js";
 import type * as conversations_hybridSearch from "../conversations/hybridSearch.js";
 import type * as crons from "../crons.js";
+import type * as debug from "../debug.js";
 import type * as files from "../files.js";
 import type * as generation from "../generation.js";
 import type * as generation_image from "../generation/image.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "conversations/actions": typeof conversations_actions;
   "conversations/hybridSearch": typeof conversations_hybridSearch;
   crons: typeof crons;
+  debug: typeof debug;
   files: typeof files;
   generation: typeof generation;
   "generation/image": typeof generation_image;

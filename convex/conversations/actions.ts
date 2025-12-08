@@ -1,6 +1,6 @@
-import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import { v } from "convex/values";
+import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 
@@ -20,6 +20,7 @@ export const bulkAutoRename = action({
         try {
           // 1. Get messages to find context
           const messages: any = await ctx.runQuery(
+          // @ts-ignore - Convex type instantiation depth issue
             internal.messages.listInternal,
             {
               conversationId,
@@ -40,7 +41,7 @@ export const bulkAutoRename = action({
 
           // 2. Generate title
           const result: any = await generateText({
-            model: groq("openai/gpt-oss-20b"),
+            model: aiGateway("cerebras/gpt-oss-120b"),
             messages: [
               {
                 role: "system",
@@ -53,9 +54,23 @@ export const bulkAutoRename = action({
               },
             ],
             temperature: 0.7,
+            providerOptions: getGatewayOptions(undefined, undefined, [
+              "title-generation",
+            ]),
           });
 
-          const title: string = result.text
+          // Handle undefined result - use optional chaining for safety
+          const rawText = result?.text;
+          if (!rawText) {
+            console.error("AI Gateway returned no text for conversation", conversationId);
+            return {
+              id: conversationId,
+              success: false,
+              error: "No title generated",
+            };
+          }
+
+          const title: string = rawText
             .trim()
             .replace(/^["']|["']$/g, "")
             .replace(/\.$/, "");
@@ -72,6 +87,15 @@ export const bulkAutoRename = action({
             `Failed to rename conversation ${conversationId}:`,
             error,
           );
+          // Log additional debug info for undefined text issue
+          if (
+            error instanceof Error &&
+            error.message.includes("Cannot read properties of undefined")
+          ) {
+            console.error(
+              "Debug info - result undefined error in title generation",
+            );
+          }
           return { id: conversationId, success: false, error: String(error) };
         }
       });

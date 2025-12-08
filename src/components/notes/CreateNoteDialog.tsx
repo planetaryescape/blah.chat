@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAction, useMutation } from "convex/react";
@@ -52,7 +51,7 @@ export function CreateNoteDialog({
   useEffect(() => {
     if (open) {
       setContent(initialContent);
-      setTitle(""); // Reset title when dialog opens
+      setTitle("");
     }
   }, [open, initialContent]);
 
@@ -110,7 +109,7 @@ export function CreateNoteDialog({
       onOpenChange(false);
 
       // Navigate to notes page with this note selected
-      router.push(`/notes?id=${noteId}`);
+      router.push(`/notes?note=${noteId}`);
     } catch (error) {
       console.error("Failed to save note:", error);
       toast.error("Failed to save note");
@@ -125,11 +124,11 @@ export function CreateNoteDialog({
         <DialogHeader>
           <DialogTitle>Save as Note</DialogTitle>
           <DialogDescription>
-            Create a new note from this content. You can edit it later.
+            Create a new note. You can edit it in the notes page.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title (optional)</Label>
             <div className="flex gap-2">
@@ -161,17 +160,6 @@ export function CreateNoteDialog({
                 )}
               </Button>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="content">Content</Label>
-            <Textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your note..."
-              className="min-h-[200px] font-mono text-sm"
-            />
           </div>
 
           {sourceMessageId && (

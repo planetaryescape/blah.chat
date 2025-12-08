@@ -85,7 +85,7 @@ function NotesPageContent() {
   // Validate selected note exists
   const selectedNote = useMemo(() => {
     if (!selectedNoteId || !notes) return null;
-    return notes.find((n) => n._id === selectedNoteId);
+    return notes.find((n: { _id: string }) => n._id === selectedNoteId);
   }, [selectedNoteId, notes]);
 
   // Clear invalid selection from URL

@@ -152,6 +152,27 @@
     padding: 0.2em 0.4em;
     border-radius: 0.25rem;
     color: var(--foreground);
+    border: 1px solid color-mix(in oklch, var(--foreground) 10%, transparent);
+  }
+
+  /* Dark mode: boost inline code contrast against chat bubbles */
+  .dark .prose code {
+    background: color-mix(
+      in oklch,
+      var(--foreground) 16%,
+      var(--background) 84%
+    );
+    color: oklch(98% 0 0);
+    border-color: color-mix(
+      in oklch,
+      var(--foreground) 18%,
+      transparent 82%
+    );
+    box-shadow: 0 0 0 1px color-mix(
+        in oklch,
+        var(--foreground) 6%,
+        transparent
+      );
   }
 
   .prose pre {

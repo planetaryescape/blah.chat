@@ -1,22 +1,23 @@
 "use client";
 
+import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { CommandPalette } from "@/components/CommandPalette";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
+    SidebarProvider,
+    SidebarTrigger,
+    useSidebar,
 } from "@/components/ui/sidebar";
-import { api } from "@/convex/_generated/api";
 import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
+import { api } from "@/convex/_generated/api";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Suspense } from "react";
 
 function Header() {
   const { open } = useSidebar();
@@ -96,7 +97,9 @@ export default function MainLayout({
 
         <SidebarProvider>
           <div className="flex w-full h-[100dvh] overflow-hidden">
-            <AppSidebar />
+            <Suspense fallback={null}>
+              <AppSidebar />
+            </Suspense>
             <main
               id="main-content"
               className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"

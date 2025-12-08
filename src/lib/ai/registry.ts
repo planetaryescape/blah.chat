@@ -57,8 +57,6 @@ export function getModel(modelId: string, useResponsesAPI = false) {
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
-
-
 }
 
 export const DEFAULT_MODEL = "openai:gpt-5.1";

@@ -1,22 +1,18 @@
 import { openai } from "@ai-sdk/openai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
+import { aiGateway, getGatewayOptions } from "../src/lib/ai/gateway";
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import {
-  action,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
+    action,
+    internalAction,
+    internalMutation,
+    internalQuery,
+    mutation,
+    query,
 } from "./_generated/server";
-
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-});
 
 const rephrasedMemorySchema = z.object({
   content: z.string(),
@@ -36,7 +32,7 @@ const consolidatedMemoriesSchema = z.object({
       importance: z.number().min(1).max(10),
       sourceIds: z.array(z.string()),
       operation: z.enum(["merge", "dedupe", "keep"]),
-      reasoning: z.string().min(10).max(300), // Required: Preserve/combine from sources
+      reasoning: z.string().min(10).max(1000), // Required: Preserve/combine from sources
     }),
   ),
 });
@@ -523,8 +519,9 @@ export const migrateUserMemories = action({
       try {
         // 3. Use LLM to rephrase
         const result = await generateObject({
-          model: openrouter("x-ai/grok-4.1-fast"),
+          model: aiGateway("cerebras/gpt-oss-120b"),
           schema: rephrasedMemorySchema,
+          providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-rephrase"]),
           prompt: `Rephrase this memory to third-person perspective for AI context injection.
 
 Original memory: "${memory.content}"
@@ -655,8 +652,9 @@ export const consolidateUserMemories = action({
         const isSingleMemory = cluster.length === 1;
 
         const result = await generateObject({
-          model: openrouter("x-ai/grok-4.1-fast"),
+          model: aiGateway("cerebras/gpt-oss-120b"),
           schema: consolidatedMemoriesSchema,
+          providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-consolidation"]),
           prompt: isSingleMemory
             ? `Rephrase this memory to third-person perspective for AI context injection.
 

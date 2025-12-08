@@ -248,6 +248,29 @@ Optional: Ollama (for local models), PostHog, TTS providers.
 
 ---
 
+## AI SDK Tool Calling (Vercel AI SDK v5)
+
+**Multi-step tool calling** requires `stopWhen` parameter, NOT `maxSteps`:
+
+```typescript
+import { streamText, stepCountIs } from "ai";
+
+const result = streamText({
+  model,
+  messages,
+  tools: { myTool },
+  stopWhen: stepCountIs(5), // Continue until 5 steps OR no more tool calls
+});
+```
+
+**Key learnings**:
+- `maxSteps` is deprecated/different behavior in v5
+- `stopWhen: stepCountIs(N)` enables proper multi-step continuation
+- Tool results use `output` property, not `result` (in step data)
+- Always check `finishReason` and step count in logs for debugging
+
+---
+
 ## Additional Context
 
 - React Compiler enabled: `reactCompiler: true` in `next.config.ts`

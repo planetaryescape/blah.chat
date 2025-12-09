@@ -1,5 +1,6 @@
 import { aiGateway, getGatewayOptions } from "@/lib/ai/gateway";
 
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig, type ModelConfig } from "@/lib/ai/utils";
@@ -1010,8 +1011,10 @@ export const summarizeSelection = action({
 
     try {
       // Generate summary using GPT-OSS 120B via gateway
+      // TODO: Move this model config to constants or arguments
+      const summarizationModel = MODEL_CONFIG["openai:gpt-oss-120b"];
       const result = await generateText({
-        model: aiGateway("cerebras/gpt-oss-120b"),
+        model: aiGateway(summarizationModel.id),
         messages: [
           {
             role: "system",
@@ -1023,7 +1026,7 @@ export const summarizeSelection = action({
           },
         ],
         abortSignal: abortController.signal,
-        providerOptions: getGatewayOptions(undefined, undefined, ["summary"]),
+        providerOptions: getGatewayOptions(summarizationModel.id, undefined, ["summary"]),
       });
 
       clearTimeout(timeoutId);

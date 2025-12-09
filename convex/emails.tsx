@@ -1,12 +1,12 @@
 "use node";
 import {
-  Html,
-  Head,
   Body,
+  Button,
   Container,
+  Head,
+  Html,
   Section,
   Text,
-  Button,
 } from "@react-email/components";
 
 export function BudgetWarningEmail({
@@ -46,8 +46,7 @@ export function BudgetWarningEmail({
             </Text>
             <Text style={{ fontSize: "14px", color: "#6b7280" }}>
               • Spent: <strong>${spent.toFixed(2)}</strong>
-              <br />
-              • Budget: <strong>${budget.toFixed(2)}</strong>
+              <br />• Budget: <strong>${budget.toFixed(2)}</strong>
               <br />• Remaining: <strong>${(budget - spent).toFixed(2)}</strong>
             </Text>
             <Button

@@ -1,3 +1,4 @@
+import type { ProviderName } from "./providers";
 import type { ReasoningConfig } from "./reasoning/types";
 
 export interface ModelConfig {
@@ -41,27 +42,14 @@ export interface ModelConfig {
   providerOrder?: string[];
   /** Mark preview/beta/experimental models */
   isExperimental?: boolean;
+  /** Knowledge cutoff date for the model (e.g., "November 2025", "Real-time search") */
+  knowledgeCutoff?: string;
+  /** Preferred provider SDK to use. Defaults to "gateway" (Vercel AI Gateway) */
+  preferredProvider?: ProviderName;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // OpenAI
-
-  /* "openai:gpt-5-pro": {
-    id: "openai:gpt-5-pro",
-    provider: "openai",
-    name: "GPT-5 Pro",
-    description:
-      "Version of GPT-5 that produces smarter and more precise responses",
-    contextWindow: 200000,
-    pricing: { input: 10.0, output: 40.0, reasoning: 10.0 }, // Estimated higher tier
-    capabilities: ["thinking", "vision", "function-calling"],
-    reasoning: {
-      type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
-      summaryLevel: "detailed",
-      useResponsesAPI: true,
-    },
-  }, */
 
   // GPT-5.1 Family (November 2025)
   "openai:gpt-5.1": {
@@ -79,6 +67,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       summaryLevel: "detailed",
       useResponsesAPI: true,
     },
+    knowledgeCutoff: "November 2025",
   },
   "openai:gpt-5.1-mini": {
     id: "openai:gpt-5.1-mini",
@@ -88,6 +77,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.25, output: 2.0, cached: 0.025 },
     capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "November 2025",
   },
   "openai:gpt-5.1-nano": {
     id: "openai:gpt-5.1-nano",
@@ -97,6 +87,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.05, output: 0.4, cached: 0.005 },
     capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "November 2025",
   },
   "openai:gpt-5.1-codex": {
     id: "openai:gpt-5.1-codex",
@@ -112,6 +103,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       summaryLevel: "detailed",
       useResponsesAPI: true,
     },
+    knowledgeCutoff: "November 2025",
   },
   "openai:gpt-5.1-thinking": {
     id: "openai:gpt-5.1-thinking",
@@ -132,6 +124,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       summaryLevel: "detailed",
       useResponsesAPI: true,
     },
+    knowledgeCutoff: "November 2025",
   },
   "openai:gpt-5.1-instant": {
     id: "openai:gpt-5.1-instant",
@@ -142,6 +135,29 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.25, output: 2.0, cached: 0.025 },
     capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "November 2025",
+  },
+  "openai:gpt-oss-20b": {
+    id: "openai:gpt-oss-20b",
+    provider: "openai",
+    name: "GPT-OSS 20B",
+    description:
+      "Compact MoE optimized for low-latency and edge deployments (1000 T/sec)",
+    contextWindow: 131000,
+    pricing: { input: 0.1, output: 0.5 },
+    capabilities: ["function-calling"],
+    providerOrder: ["cerebras", "groq"],
+  },
+  "openai:gpt-oss-120b": {
+    id: "openai:gpt-oss-120b",
+    provider: "openai",
+    name: "GPT-OSS 120B",
+    description:
+      "Extremely capable general-purpose LLM with strong, controllable reasoning",
+    contextWindow: 131000,
+    pricing: { input: 0.15, output: 0.6 },
+    capabilities: ["function-calling", "thinking"],
+    providerOrder: ["cerebras", "groq", "fireworks"],
   },
 
   // Anthropic
@@ -163,6 +179,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       budgetMapping: { low: 5000, medium: 15000, high: 30000 },
       betaHeader: "interleaved-thinking-2025-05-14",
     },
+    knowledgeCutoff: "April 2025",
   },
   "anthropic:claude-sonnet-4.5": {
     id: "anthropic:claude-sonnet-4.5",
@@ -182,6 +199,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       budgetMapping: { low: 5000, medium: 15000, high: 30000 },
       betaHeader: "interleaved-thinking-2025-05-14",
     },
+    knowledgeCutoff: "April 2025",
   },
   "anthropic:claude-haiku-4.5": {
     id: "anthropic:claude-haiku-4.5",
@@ -191,6 +209,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 200000,
     pricing: { input: 1.0, output: 5.0, cached: 0.1 },
     capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "April 2025",
   },
 
   // Google
@@ -216,6 +235,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
         high: 24576,
       },
     },
+    knowledgeCutoff: "January 2025",
   },
   "google:gemini-2.5-pro": {
     id: "google:gemini-2.5-pro",
@@ -238,6 +258,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
         high: 24576,
       },
     },
+    knowledgeCutoff: "January 2025",
   },
   "google:gemini-2.0-flash": {
     id: "google:gemini-2.0-flash",
@@ -251,6 +272,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       cached: 0.019,
     },
     capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "August 2024",
   },
   "google:gemini-2.0-flash-lite": {
     id: "google:gemini-2.0-flash-lite",
@@ -264,6 +286,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       cached: 0.0095,
     },
     capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "August 2024",
   },
   "google:gemini-2.0-flash-exp": {
     id: "google:gemini-2.0-flash-exp",
@@ -274,6 +297,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0, output: 0 },
     capabilities: ["vision"],
     isExperimental: true,
+    knowledgeCutoff: "August 2024",
   },
 
   "google:gemini-3-pro-preview": {
@@ -299,6 +323,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       },
       includeThoughts: true,
     },
+    knowledgeCutoff: "August 2025",
   },
 
   "google:gemini-3-pro-image": {
@@ -323,6 +348,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       },
       includeThoughts: true,
     },
+    knowledgeCutoff: "August 2025",
   },
 
   // xAI - Note: Vercel AI Gateway uses "xai/model-name" format
@@ -335,6 +361,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 2.0, output: 8.0 },
     capabilities: ["function-calling"],
     actualModelId: "grok-4-fast-non-reasoning",
+    knowledgeCutoff: "July 2025",
   },
 
   "xai:grok-4.1-fast": {
@@ -346,6 +373,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 4.0 },
     capabilities: ["function-calling"],
     actualModelId: "grok-4.1-fast-non-reasoning",
+    knowledgeCutoff: "July 2025",
   },
   "xai:grok-4.1-fast-reasoning": {
     id: "xai:grok-4.1-fast-reasoning",
@@ -356,6 +384,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 4.0 },
     capabilities: ["thinking", "function-calling"],
     actualModelId: "grok-4.1-fast-reasoning",
+    knowledgeCutoff: "July 2025",
   },
   "xai:grok-code-fast-1": {
     id: "xai:grok-code-fast-1",
@@ -365,6 +394,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.5, output: 2.0 },
     capabilities: ["thinking"],
+    knowledgeCutoff: "July 2025",
   },
 
   // Perplexity (Only 4 models available in Vercel AI Gateway)
@@ -376,6 +406,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 127000,
     pricing: { input: 2.0, output: 8.0 },
     capabilities: ["thinking"],
+    knowledgeCutoff: "Real-time search",
   },
   "perplexity:sonar-pro": {
     id: "perplexity:sonar-pro",
@@ -385,6 +416,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 127000,
     pricing: { input: 3.0, output: 15.0 },
     capabilities: [],
+    knowledgeCutoff: "Real-time search",
   },
 
   "perplexity:sonar-reasoning": {
@@ -395,6 +427,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 127000,
     pricing: { input: 1.0, output: 5.0 },
     capabilities: ["thinking"],
+    knowledgeCutoff: "Real-time search",
   },
   "perplexity:sonar": {
     id: "perplexity:sonar",
@@ -404,6 +437,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 127000,
     pricing: { input: 1.0, output: 1.0 },
     capabilities: [],
+    knowledgeCutoff: "Real-time search",
   },
   // Meta Models (via Vercel AI Gateway)
   "meta:llama-3.3-70b": {
@@ -439,6 +473,16 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
 
   // Mistral Models (via Vercel AI Gateway)
+  "mistral:mistral-large-3": {
+    id: "mistral:mistral-large-3",
+    provider: "mistral",
+    name: "Mistral Large 3",
+    description:
+      "Most capable Mistral model. Sparse MoE with 41B active / 675B total params.",
+    contextWindow: 256000,
+    pricing: { input: 0.5, output: 1.5 },
+    capabilities: ["function-calling", "vision"],
+  },
   "mistral:devstral-small": {
     id: "mistral:devstral-small",
     provider: "mistral",
@@ -450,6 +494,16 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
 
   // Alibaba Qwen Models (via Vercel AI Gateway)
+  "alibaba:qwen3-max": {
+    id: "alibaba:qwen3-max",
+    provider: "alibaba",
+    name: "Qwen 3 Max",
+    description:
+      "SOTA agent and tool invocation. Specialized for complex agentic scenarios.",
+    contextWindow: 262000,
+    pricing: { input: 1.2, output: 6.0, cached: 0.24 },
+    capabilities: ["function-calling", "thinking"],
+  },
   "alibaba:qwen3-coder-480b": {
     id: "alibaba:qwen3-coder-480b",
     provider: "alibaba",
@@ -460,81 +514,74 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["function-calling"],
   },
 
-  "groq:openai/gpt-oss-20b": {
-    id: "groq:openai/gpt-oss-20b",
-    provider: "groq",
-    name: "GPT-OSS 20B",
-    description: "Compact MoE (1000 T/sec)",
+  // Moonshot AI Kimi Models (via Vercel AI Gateway)
+  "moonshotai:kimi-k2": {
+    id: "moonshotai:kimi-k2",
+    provider: "kimi",
+    name: "Kimi K2",
+    description:
+      "1T MoE (32B active). Optimized for agentic tool use, reasoning, and code synthesis.",
     contextWindow: 131000,
-    pricing: { input: 0.1, output: 0.5 },
+    pricing: { input: 0.6, output: 2.5 },
     capabilities: ["function-calling"],
-    providerOrder: ["groq", "cerebras"],
+    providerOrder: ["deepinfra", "fireworks"],
   },
-  "groq:groq/compound": {
-    id: "groq:groq/compound",
-    provider: "groq",
-    name: "Groq Compound",
-    description: "Multi-tool agentic system (web + code)",
-    contextWindow: 128000,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["function-calling"],
-    isExperimental: true,
-  },
-  "groq:groq/compound-mini": {
-    id: "groq:groq/compound-mini",
-    provider: "groq",
-    name: "Groq Compound Mini",
-    description: "Single-tool agentic (3x faster)",
-    contextWindow: 128000,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["function-calling"],
-    isExperimental: true,
-  },
-
-  // Groq - Preview
-  "groq:moonshotai/kimi-k2-instruct-0905": {
-    id: "groq:moonshotai/kimi-k2-instruct-0905",
-    provider: "groq",
-    name: "Kimi K2 Instruct (Preview)",
-    description: "1T MoE with 262K context",
+  "moonshotai:kimi-k2-thinking": {
+    id: "moonshotai:kimi-k2-thinking",
+    provider: "kimi",
+    name: "Kimi K2 Thinking",
+    description:
+      "Advanced thinking agent. 200-300 sequential tool calls. SOTA on HLE, BrowseComp.",
     contextWindow: 262000,
-    pricing: { input: 1.0, output: 3.0 },
-    capabilities: ["function-calling"],
-  },
-
-  // OpenAI OSS Models (via Gateway)
-
-  "cerebras:qwen-3-32b": {
-    id: "cerebras:qwen-3-32b",
-    provider: "cerebras",
-    name: "Qwen 3 32B",
-    description: "Efficient 32B model. ~2,600 tok/s. Production.",
-    contextWindow: 131072,
-    pricing: { input: 0.4, output: 0.8 },
-    capabilities: ["function-calling"],
-    providerOrder: ["cerebras", "groq"],
-  },
-  "cerebras:qwen-3-235b-a22b-instruct-2507": {
-    id: "cerebras:qwen-3-235b-a22b-instruct-2507",
-    provider: "cerebras",
-    name: "Qwen 3 235B Instruct",
-    description: "Large instruct model. ~1,400 tok/s. Preview.",
-    contextWindow: 131072,
-    pricing: { input: 0.6, output: 1.2 },
-    capabilities: ["function-calling"],
-  },
-  "cerebras:qwen-3-235b-a22b-thinking-2507": {
-    id: "cerebras:qwen-3-235b-a22b-thinking-2507",
-    provider: "cerebras",
-    name: "Qwen 3 235B Thinking",
-    description: "Reasoning model with native thinking. ~1,000 tok/s. Preview.",
-    contextWindow: 131072,
-    pricing: { input: 0.6, output: 1.2 },
+    pricing: { input: 0.6, output: 2.5, cached: 0.15 },
     capabilities: ["function-calling", "thinking"],
-    reasoning: {
-      type: "generic-reasoning-effort",
-      parameterName: "reasoning_level",
-    },
+    providerOrder: ["fireworks", "deepinfra"],
+  },
+
+  // MiniMax Models (via Vercel AI Gateway)
+  "minimax:minimax-m2": {
+    id: "minimax:minimax-m2",
+    provider: "minimax",
+    name: "MiniMax M2",
+    description:
+      "Compact MoE (230B total / 10B active). Elite coding and agentic performance.",
+    contextWindow: 205000,
+    pricing: { input: 0.3, output: 1.2, cached: 0.03 },
+    capabilities: ["function-calling"],
+    providerOrder: ["deepinfra"],
+  },
+
+  // Z.ai GLM Models (via Vercel AI Gateway)
+  "zai:glm-4.6": {
+    id: "zai:glm-4.6",
+    provider: "zai",
+    name: "GLM 4.6",
+    description:
+      "Latest GLM. Enhanced coding, long-context, reasoning, and agentic applications.",
+    contextWindow: 200000,
+    pricing: { input: 0.45, output: 1.8, cached: 0.11 },
+    capabilities: ["function-calling"],
+    providerOrder: ["deepinfra", "fireworks"],
+  },
+  "zai:glm-4.6v-flash": {
+    id: "zai:glm-4.6v-flash",
+    provider: "zai",
+    name: "GLM 4.6V Flash",
+    description:
+      "Multimodal vision model. SOTA visual understanding. Low-latency.",
+    contextWindow: 128000,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["vision", "function-calling"],
+  },
+  "zai:glm-4.5-air": {
+    id: "zai:glm-4.5-air",
+    provider: "zai",
+    name: "GLM 4.5 Air",
+    description:
+      "Lightweight MoE (106B total / 12B active). Agent-oriented foundation model.",
+    contextWindow: 128000,
+    pricing: { input: 0.2, output: 1.1 },
+    capabilities: ["function-calling"],
   },
 
   // DeepSeek Models
@@ -552,6 +599,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       tagName: "think",
       applyMiddleware: true,
     },
+    knowledgeCutoff: "November 2024",
   },
   "deepseek:deepseek-v3.2": {
     id: "deepseek:deepseek-v3.2",

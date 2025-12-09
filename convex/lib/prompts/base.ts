@@ -9,12 +9,13 @@ interface BasePromptOptions {
 
 // Knowledge cutoff dates by provider/model family
 const KNOWLEDGE_CUTOFFS: Record<string, string> = {
-  // OpenAI
-  "openai:gpt-5-pro": "October 2024",
-  "openai:gpt-5": "October 2024",
-  "openai:gpt-5-mini": "October 2024",
-  "openai:gpt-5-nano": "October 2024",
-  "openai:gpt-4.1": "December 2023",
+  // OpenAI GPT-5.1 Family (November 2025)
+  "openai:gpt-5.1": "November 2025",
+  "openai:gpt-5.1-mini": "November 2025",
+  "openai:gpt-5.1-nano": "November 2025",
+  "openai:gpt-5.1-codex": "November 2025",
+  "openai:gpt-5.1-thinking": "November 2025",
+  "openai:gpt-5.1-instant": "November 2025",
 
   // Anthropic
   "anthropic:claude-opus-4-5-20251101": "April 2025",
@@ -37,11 +38,9 @@ const KNOWLEDGE_CUTOFFS: Record<string, string> = {
   "xai:grok-4": "July 2025",
   "xai:grok-3-mini": "March 2025",
 
-  // Perplexity (real-time search, but base knowledge)
-  "perplexity:sonar-pro-search": "Real-time search",
+  // Perplexity (real-time search - 4 models available in Vercel AI Gateway)
   "perplexity:sonar-reasoning-pro": "Real-time search",
   "perplexity:sonar-pro": "Real-time search",
-  "perplexity:sonar-deep-research": "Real-time search",
   "perplexity:sonar-reasoning": "Real-time search",
   "perplexity:sonar": "Real-time search",
 

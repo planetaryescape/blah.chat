@@ -3,10 +3,15 @@ import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { MODEL_CONFIG } from "../../src/lib/ai/models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
 import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
+
+// Model configuration for memory extraction
+const EXTRACTION_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
@@ -191,9 +196,9 @@ export const extractMemories = internalAction({
 
     try {
       const result = await generateObject({
-        model: aiGateway("cerebras/gpt-oss-120b"),
+        model: aiGateway(EXTRACTION_MODEL.id),
         schema: memorySchema,
-        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-extraction"]),
+        providerOptions: getGatewayOptions(EXTRACTION_MODEL.id, undefined, ["memory-extraction"]),
         prompt: buildMemoryExtractionPrompt(existingMemoriesText, conversationText),
       });
 
@@ -216,7 +221,7 @@ export const extractMemories = internalAction({
 
       // 4. Generate embeddings (batch)
       const embeddingResult = await embedMany({
-        model: openai.embedding("text-embedding-3-small"),
+        model: openai.embedding(EMBEDDING_MODEL),
         values: qualityFacts.map((f) => f.content),
       });
 

@@ -2,9 +2,13 @@ import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { MODEL_CONFIG } from "../../src/lib/ai/models";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 import { buildTagExtractionPrompt } from "../lib/prompts/operational/tagExtraction";
+
+// Model configuration
+const TAG_EXTRACTION_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),
@@ -31,10 +35,10 @@ export const extractTags = internalAction({
 
       // @ts-ignore - AI SDK type inference issue
       const result = await generateObject({
-        model: aiGateway("cerebras/gpt-oss-120b"),
+        model: aiGateway(TAG_EXTRACTION_MODEL.id),
         schema: tagSchema,
         temperature: 0.3,
-        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["tag-extraction"]),
+        providerOptions: getGatewayOptions(TAG_EXTRACTION_MODEL.id, undefined, ["tag-extraction"]),
         prompt: buildTagExtractionPrompt(content),
       });
 

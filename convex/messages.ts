@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, internalQuery, query } from "./_generated/server";
+import { getCurrentUser } from "./lib/userSync";
 
 export * as embeddings from "./messages/embeddings";
 
@@ -130,6 +131,15 @@ export const create = internalMutation({
 export const list = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    // Security: Verify user owns the conversation before returning messages
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      return [];
+    }
+
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -472,15 +482,26 @@ export const addToolCalls = internalMutation({
 export const getComparisonGroup = query({
   args: { comparisonGroupId: v.string() },
   handler: async (ctx, { comparisonGroupId }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    // Security: Verify user owns the conversation containing these messages
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
-    return await ctx.db
+    const messages = await ctx.db
       .query("messages")
       .withIndex("by_comparison_group", (q) =>
         q.eq("comparisonGroupId", comparisonGroupId),
       )
       .collect();
+
+    // Verify ownership of the conversation
+    if (messages.length > 0) {
+      const conversation = await ctx.db.get(messages[0].conversationId);
+      if (!conversation || conversation.userId !== user._id) {
+        return [];
+      }
+    }
+
+    return messages;
   },
 });
 
@@ -488,8 +509,18 @@ export const getComparisonGroup = query({
 export const getOriginalResponses = query({
   args: { consolidatedMessageId: v.id("messages") },
   handler: async (ctx, { consolidatedMessageId }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    // Security: Verify user owns the conversation containing this message
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    // First verify ownership of the consolidated message
+    const consolidatedMessage = await ctx.db.get(consolidatedMessageId);
+    if (!consolidatedMessage) return [];
+
+    const conversation = await ctx.db.get(consolidatedMessage.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      return [];
+    }
 
     // Fetch all assistant messages linked to this consolidated message
     return await ctx.db
@@ -506,6 +537,15 @@ export const getOriginalResponses = query({
 export const getLastAssistantMessage = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, { conversationId }) => {
+    // Security: Verify user owns the conversation
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      return null;
+    }
+
     return await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>

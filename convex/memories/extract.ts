@@ -1,8 +1,9 @@
+import { getModel } from "@/lib/ai/registry";
 import { openai } from "@ai-sdk/openai";
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { MEMORY_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -103,6 +104,7 @@ export const extractMemories = internalAction({
   handler: async (ctx, args): Promise<{ extracted: number }> => {
     // 1. Get conversation with cursor
     const conversation = await ctx.runQuery(
+      // @ts-ignore - Convex query type instantiation depth issue
       internal.conversations.getInternal,
       {
         id: args.conversationId,
@@ -171,7 +173,7 @@ export const extractMemories = internalAction({
     // 6. Build extraction context (5 old + N new)
     const extractionWindow = [...contextMessages, ...unextractedMessages];
 
-    // 7. Extract facts with meta:llama-3.3-70b
+    // 7. Extract facts
     const conversationText: string = extractionWindow
       .map((m: Doc<"messages">) => `${m.role}: ${m.content || ""}`)
       .join("\n\n");
@@ -191,11 +193,13 @@ export const extractMemories = internalAction({
 
     try {
       const result = await generateObject({
-        model: aiGateway(MEMORY_EXTRACTION_MODEL.id),
+        model: getModel(MEMORY_EXTRACTION_MODEL.id),
         schema: memorySchema,
-        providerOptions: getGatewayOptions(MEMORY_EXTRACTION_MODEL.id, undefined, [
-          "memory-extraction",
-        ]),
+        providerOptions: getGatewayOptions(
+          MEMORY_EXTRACTION_MODEL.id,
+          undefined,
+          ["memory-extraction"],
+        ),
         prompt: buildMemoryExtractionPrompt(
           existingMemoriesText,
           conversationText,

@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { aiGateway, getGatewayOptions } from "../src/lib/ai/gateway";
+import { getGatewayOptions } from "../src/lib/ai/gateway";
 import { MEMORY_PROCESSING_MODEL } from "../src/lib/ai/operational-models";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -167,6 +167,7 @@ export const internalList = internalQuery({
   },
 });
 
+import { getModel } from "@/lib/ai/registry";
 import { paginationOptsValidator } from "convex/server";
 
 export const list = query({
@@ -522,11 +523,13 @@ export const migrateUserMemories = action({
       try {
         // 3. Use LLM to rephrase
         const result = await generateObject({
-          model: aiGateway(MEMORY_PROCESSING_MODEL.id),
+          model: getModel(MEMORY_PROCESSING_MODEL.id),
           schema: rephrasedMemorySchema,
-          providerOptions: getGatewayOptions(MEMORY_PROCESSING_MODEL.id, undefined, [
-            "memory-rephrase",
-          ]),
+          providerOptions: getGatewayOptions(
+            MEMORY_PROCESSING_MODEL.id,
+            undefined,
+            ["memory-rephrase"],
+          ),
           prompt: `Rephrase this memory to third-person perspective for AI context injection.
 
 Original memory: "${memory.content}"
@@ -562,6 +565,7 @@ Return ONLY the rephrased content, no explanation or additional text.`,
         });
 
         // 5. Update memory
+        // @ts-ignore - Convex mutation type instantiation depth issue
         await ctx.runMutation(internal.memories.updateWithEmbedding, {
           id: memory._id,
           content: result.object.content,
@@ -593,6 +597,7 @@ export const consolidateUserMemories = action({
 
     // 1. Fetch all user memories
     const memories: Doc<"memories">[] = await ctx.runQuery(
+      // @ts-ignore - Convex query type instantiation depth issue
       api.memories.listAll,
     );
 
@@ -614,6 +619,7 @@ export const consolidateUserMemories = action({
 
       // Find similar memories using vector search
       const similarMemories = await ctx.runAction(
+       // @ts-ignore - Convex action type instantiation depth issue
         internal.memories.searchByEmbedding,
         {
           userId: memory.userId,
@@ -656,11 +662,13 @@ export const consolidateUserMemories = action({
         const isSingleMemory = cluster.length === 1;
 
         const result = await generateObject({
-          model: aiGateway(MEMORY_PROCESSING_MODEL.id),
+          model: getModel(MEMORY_PROCESSING_MODEL.id),
           schema: consolidatedMemoriesSchema,
-          providerOptions: getGatewayOptions(MEMORY_PROCESSING_MODEL.id, undefined, [
-            "memory-consolidation",
-          ]),
+          providerOptions: getGatewayOptions(
+            MEMORY_PROCESSING_MODEL.id,
+            undefined,
+            ["memory-consolidation"],
+          ),
           prompt: isSingleMemory
             ? `Rephrase this memory to third-person perspective for AI context injection.
 

@@ -1,10 +1,10 @@
 "use node";
-import { components, internal } from "../_generated/api";
 import { Resend } from "@convex-dev/resend";
-import { internalAction } from "../_generated/server";
-import { v } from "convex/values";
 import { render } from "@react-email/render";
-import { BudgetWarningEmail, ApiCreditsExhaustedEmail } from "../emails";
+import { v } from "convex/values";
+import { components, internal } from "../_generated/api";
+import { internalAction } from "../_generated/server";
+import { ApiCreditsExhaustedEmail, BudgetWarningEmail } from "../emails";
 
 export const resend = new Resend(components.resend, {
   testMode: false, // Set to true for testing with delivered@resend.dev
@@ -36,8 +36,7 @@ export const sendBudgetAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail =
-      adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
 
     // Render email
     const html = await render(
@@ -96,8 +95,7 @@ export const sendApiCreditsAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail =
-      adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
 
     // Render email
     const html = await render(

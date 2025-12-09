@@ -25,9 +25,12 @@ export async function getCurrentUserOrCreate(
       imageUrl: identity.pictureUrl,
       preferences: {
         theme: "dark",
-        defaultModel: "gpt-4o",
+        defaultModel: "cerebras:qwen-3-32b",
+        favoriteModels: [],
         sendOnEnter: true,
       },
+      dailyMessageCount: 0,
+      lastMessageDate: new Date().toISOString().split("T")[0],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });

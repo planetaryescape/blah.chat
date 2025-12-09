@@ -4,6 +4,7 @@ import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
+import { buildTagExtractionPrompt } from "../lib/prompts/operational/tagExtraction";
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),
@@ -34,17 +35,7 @@ export const extractTags = internalAction({
         schema: tagSchema,
         temperature: 0.3,
         providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["tag-extraction"]),
-        prompt: `Extract 3-5 concise tags from this note content.
-
-RULES:
-- Lowercase only
-- 1-2 words max per tag
-- Focus on topics, technologies, or key concepts
-- Use kebab-case for multi-word tags (e.g., "api-design")
-- No generic tags like "help", "code", "general"
-
-Content:
-${content}`,
+        prompt: buildTagExtractionPrompt(content),
       });
 
       // Clean and validate tags

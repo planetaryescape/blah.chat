@@ -5,20 +5,20 @@ import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 /**
  * Get onboarding state for current user
- * Returns tour completion status or null if not initialized
+ * Returns undefined if not authenticated, null if authenticated but not initialized, or onboarding state
  */
 export const getOnboardingState = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return null;
+    if (!user) return undefined; // Not authenticated yet
 
     const onboarding = await ctx.db
       .query("userOnboarding")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .first();
 
-    return onboarding || null;
+    return onboarding || null; // Authenticated but not initialized
   },
 });
 

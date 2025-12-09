@@ -8,8 +8,7 @@ import type { Doc } from "../_generated/dataModel";
 
 /**
  * Hybrid search using RRF (Reciprocal Rank Fusion)
- * Combines full-text + vector search
- * Always uses hybrid search (both FTS and semantic)
+ * Combines full-text + vector search when enabled by admin
  */
 export const hybridSearch = action({
   args: {
@@ -26,6 +25,10 @@ export const hybridSearch = action({
 
     const limit = args.limit || 20;
 
+    // Check admin settings for hybrid search
+    const adminSettings = await ctx.runQuery(api.adminSettings.get, {});
+    const hybridSearchEnabled = adminSettings?.enableHybridSearch ?? false;
+
     // 1. Full-text search (always enabled)
     const textResults: any = await ctx.runQuery(api.search.fullTextSearch, {
       query: args.query,
@@ -34,10 +37,14 @@ export const hybridSearch = action({
       dateFrom: args.dateFrom,
       dateTo: args.dateTo,
       messageType: args.messageType,
-      limit: 40, // Fetch more for RRF merging
+      limit: hybridSearchEnabled ? 40 : limit, // Fetch more for RRF merging if hybrid
     });
 
-    // 2. Vector search (always enabled for hybrid search)
+    // 2. Vector search (only if enabled by admin)
+    if (!hybridSearchEnabled) {
+      return textResults.slice(0, limit);
+    }
+
     try {
       const { embedding } = await embed({
         model: openai.embedding("text-embedding-3-small"),

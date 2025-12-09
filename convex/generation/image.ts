@@ -1,11 +1,11 @@
-import { getModelConfig } from "@/lib/ai/models";
-import { calculateCost } from "@/lib/ai/pricing";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
+import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
 
 export const generateImage = internalAction({
   args: {
@@ -20,7 +20,7 @@ export const generateImage = internalAction({
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
-    const model = args.model || "gemini-3-pro-image-preview";
+    const model = args.model || "gemini-3-pro-image";
 
     // Get model config
     const modelConfig = getModelConfig(model);
@@ -78,8 +78,7 @@ export const generateImage = internalAction({
 
       const result = streamText({
         model: google(geminiModel),
-        system:
-          "You are a precise image generation API. Your ONLY task is to generate the requested image based on the inputs. You MUST NOT output any conversational text, markdown, or explanations. Return ONLY the image file or the raw Base64 string.",
+        system: IMAGE_GENERATION_SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
@@ -201,10 +200,12 @@ export const generateImage = internalAction({
 
       const cost = calculateCost(
         model,
-        inputTokens,
-        outputTokens,
-        undefined, // cachedTokens
-        reasoningTokens,
+        {
+          inputTokens,
+          outputTokens,
+          cachedTokens: undefined,
+          reasoningTokens,
+        },
       );
 
       // Update message with image attachment

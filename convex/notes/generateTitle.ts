@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { action } from "../_generated/server";
+import { NOTE_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 /**
  * Generate a concise, descriptive title for a note using AI
@@ -19,17 +20,10 @@ export const generateTitle = action({
     try {
       const result = await generateText({
         model: aiGateway("cerebras/gpt-oss-120b"),
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful assistant that generates concise, descriptive titles for notes. Generate a title that captures the main topic or purpose of the note in 3-8 words. Return ONLY the title text, nothing else.",
-          },
-          {
-            role: "user",
-            content: `Generate a title for this note:\n\n${truncatedContent}`,
-          },
-        ],
+        prompt: `${NOTE_TITLE_PROMPT}
+
+Note content:
+${truncatedContent}`,
         temperature: 0.7,
         providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["title-generation"]),
       });

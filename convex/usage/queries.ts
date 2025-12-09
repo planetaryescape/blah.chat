@@ -127,13 +127,17 @@ export const getMonthlyTotal = query({
     );
     const totalRequests = records.length;
 
+    // Get budget from admin settings
+    const adminSettings = await ctx.db.query("adminSettings").first();
+    const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 0;
+
     return {
       cost: totalCost,
       tokens: totalTokens,
       requests: totalRequests,
-      budget: user.monthlyBudget || 0,
-      percentUsed: user.monthlyBudget
-        ? (totalCost / user.monthlyBudget) * 100
+      budget: monthlyBudget,
+      percentUsed: monthlyBudget
+        ? (totalCost / monthlyBudget) * 100
         : 0,
     };
   },

@@ -1,11 +1,11 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { FolderOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { FolderOpen } from "lucide-react";
 
 interface ProjectBadgeProps {
   projectId: Id<"projects">;
@@ -13,8 +13,11 @@ interface ProjectBadgeProps {
   collapsed?: boolean;
 }
 
-export function ProjectBadge({ projectId, onClick, collapsed }: ProjectBadgeProps) {
-  // @ts-ignore
+export function ProjectBadge({
+  projectId,
+  onClick,
+  collapsed,
+}: ProjectBadgeProps) {
   const project = useQuery(api.projects.get, { id: projectId });
 
   if (!project) {
@@ -33,7 +36,7 @@ export function ProjectBadge({ projectId, onClick, collapsed }: ProjectBadgeProp
         "text-xs cursor-pointer transition-all duration-200",
         collapsed
           ? "px-0.5 py-0 bg-transparent opacity-30 hover:opacity-100 hover:bg-secondary/80"
-          : "hover:bg-secondary/80"
+          : "hover:bg-secondary/80",
       )}
       onClick={(e) => {
         if (onClick) {

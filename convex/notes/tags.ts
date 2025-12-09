@@ -2,21 +2,22 @@ import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { MODEL_CONFIG } from "../../src/lib/ai/models";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 import { buildTagExtractionPrompt } from "../lib/prompts/operational/tagExtraction";
+
+// Model configuration
+const TAG_EXTRACTION_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),
 });
 
-// @ts-ignore - Convex + AI SDK type instantiation depth issue
 export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
-  // @ts-ignore - Convex + AI SDK type inference issue
   handler: async (ctx, { noteId }) => {
     // Get note content
-    // @ts-ignore - Convex type instantiation depth issue
     const note = await ctx.runQuery(internal.notes.getInternal, { noteId });
     if (!note) throw new Error("Note not found");
 
@@ -29,12 +30,13 @@ export const extractTags = internalAction({
       // Truncate to first 1000 chars for cost optimization
       const content = note.content.slice(0, 1000) as string;
 
-      // @ts-ignore - AI SDK type inference issue
       const result = await generateObject({
-        model: aiGateway("cerebras/gpt-oss-120b"),
+        model: aiGateway(TAG_EXTRACTION_MODEL.id),
         schema: tagSchema,
         temperature: 0.3,
-        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["tag-extraction"]),
+        providerOptions: getGatewayOptions(TAG_EXTRACTION_MODEL.id, undefined, [
+          "tag-extraction",
+        ]),
         prompt: buildTagExtractionPrompt(content),
       });
 
@@ -45,7 +47,6 @@ export const extractTags = internalAction({
         .slice(0, 5);
 
       // Update note with suggested tags
-      // @ts-ignore - Convex type instantiation depth issue
       await ctx.runMutation(internal.notes.tags.updateSuggestedTags, {
         noteId,
         suggestedTags: tags,

@@ -1,13 +1,13 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, GitBranch } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface MessageBranchIndicatorProps {
   messageId: Id<"messages">;
@@ -20,7 +20,6 @@ export function MessageBranchIndicator({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const childBranches = useQuery(
-    // @ts-ignore - Convex type instantiation depth issue
     api.conversations.getChildBranchesFromMessage,
     {
       messageId,

@@ -1,17 +1,17 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { GitBranch } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import { GitBranch } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 interface BranchBadgeProps {
   conversationId: Id<"conversations">;

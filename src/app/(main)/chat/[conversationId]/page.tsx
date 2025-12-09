@@ -1,25 +1,31 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
+import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
 import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ModelFeatureHint } from "@/components/chat/ModelFeatureHint";
 import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
 import { ShareDialog } from "@/components/chat/ShareDialog";
-import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
+import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
@@ -28,11 +34,6 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
 
 export default function ChatPage({
   params,
@@ -48,7 +49,6 @@ export default function ChatPage({
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
-    // @ts-ignore - Convex type inference depth issue with conditional skip
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -61,6 +61,20 @@ export default function ChatPage({
   const [selectedModel, setSelectedModel] = useState<string>(
     conversation?.model || user?.preferences.defaultModel || "openai:gpt-5",
   );
+
+  // Update local model state when conversation loads
+  useEffect(() => {
+    if (conversation?.model) {
+      setSelectedModel(conversation.model);
+    } else if (user?.preferences.defaultModel) {
+      // Fallback to user preference if conversation is loading or doesn't specify
+      // Only if we haven't set a model yet (checking against default)
+      if (selectedModel === "openai:gpt-5") {
+        setSelectedModel(user.preferences.defaultModel);
+      }
+    }
+  }, [conversation?.model, user?.preferences.defaultModel]);
+
   const [thinkingEffort, setThinkingEffort] =
     useState<ThinkingEffort>("medium");
   const [attachments, setAttachments] = useState<
@@ -170,13 +184,6 @@ export default function ChatPage({
     }
   };
 
-  // Sync with conversation model on load
-  useEffect(() => {
-    if (conversation?.model) {
-      setSelectedModel(conversation.model);
-    }
-  }, [conversation?.model]);
-
   // Quick model switcher keyboard shortcut (⌘J)
   useEffect(() => {
     const handler = () => setQuickSwitcherOpen(true);
@@ -185,7 +192,7 @@ export default function ChatPage({
       window.removeEventListener("open-quick-model-switcher", handler);
   }, []);
 
-  // Redirect if conversation not found
+  // Redirect if conversation is confirmed to be null (deleted/invalid)
   useEffect(() => {
     if (conversation === null) {
       router.push("/app");
@@ -203,25 +210,18 @@ export default function ChatPage({
     return () => clearTimeout(timer);
   }, [conversationId, isMobile, isTouchDevice]);
 
-  if (!conversationId || conversation === undefined || messages === undefined) {
-    return (
-      <div className="flex items-center justify-center h-full">Loading...</div>
-    );
-  }
-
-  if (conversation === null) {
-    return null;
-  }
-
-  const isGenerating = messages.some(
-    (m: Doc<"messages">) =>
-      m.role === "assistant" &&
-      ["pending", "generating"].includes(m.status || ""),
-  );
+  // Derived state that handles loading gracefully
+  const isGenerating =
+    messages?.some(
+      (m: Doc<"messages">) =>
+        m.role === "assistant" &&
+        ["pending", "generating"].includes(m.status || ""),
+    ) ?? false;
 
   const modelConfig = getModelConfig(selectedModel);
   const showThinkingEffort = !!modelConfig?.reasoning;
-  const hasMessages = messages.length > 0;
+  const hasMessages = (messages?.length ?? 0) > 0;
+  // If conversation is loading, default to 0 count
   const messageCount = conversation?.messageCount || 0;
 
   // Navigation helpers
@@ -285,7 +285,7 @@ export default function ChatPage({
             </TooltipProvider>
 
             <h1 className="text-lg font-semibold truncate">
-              {conversation.title || "New Chat"}
+              {conversation?.title || "New Chat"}
             </h1>
 
             <TooltipProvider>
@@ -321,34 +321,42 @@ export default function ChatPage({
 
           <ProjectSelector
             conversationId={conversationId}
-            currentProjectId={conversation.projectId}
+            currentProjectId={conversation?.projectId ?? undefined}
           />
 
           <div className="flex items-center gap-2">
-            {messageCount >= 3 && (
+            {conversationId && messageCount >= 3 && (
               <ExtractMemoriesButton conversationId={conversationId} />
             )}
-            {hasMessages && (
+            {hasMessages && conversationId && (
               <ContextWindowIndicator conversationId={conversationId} />
             )}
-            <BranchBadge conversationId={conversationId} />
-            {hasMessages && <ShareDialog conversationId={conversationId} />}
-            <ConversationHeaderMenu conversation={conversation} />
+            {conversationId && <BranchBadge conversationId={conversationId} />}
+            {hasMessages && conversationId && (
+              <ShareDialog conversationId={conversationId} />
+            )}
+            {conversation && (
+              <ConversationHeaderMenu conversation={conversation} />
+            )}
           </div>
         </header>
 
         <TTSPlayerBar />
 
-        <VirtualizedMessageList
-          messages={messages}
-          selectedModel={selectedModel}
-          onVote={handleVote}
-          onConsolidate={handleConsolidate}
-          onToggleModelNames={() => setShowModelNames(!showModelNames)}
-          showModelNames={showModelNames ?? false}
-          syncScroll={syncScroll ?? true}
-          highlightMessageId={highlightMessageId}
-        />
+        {messages === undefined ? (
+          <MessageListSkeleton />
+        ) : (
+          <VirtualizedMessageList
+            messages={messages}
+            selectedModel={selectedModel}
+            onVote={handleVote}
+            onConsolidate={handleConsolidate}
+            onToggleModelNames={() => setShowModelNames(!showModelNames)}
+            showModelNames={showModelNames ?? false}
+            syncScroll={syncScroll ?? true}
+            highlightMessageId={highlightMessageId}
+          />
+        )}
 
         <div className="relative px-4 pb-4">
           {!isActive && <ModelFeatureHint modelId={selectedModel} />}

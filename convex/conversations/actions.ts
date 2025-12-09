@@ -1,9 +1,13 @@
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { MODEL_CONFIG } from "../../src/lib/ai/models";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
+
+// Model configuration
+const TITLE_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
 
 export const bulkAutoRename = action({
   args: {
@@ -21,7 +25,6 @@ export const bulkAutoRename = action({
         try {
           // 1. Get messages to find context
           const messages: any = await ctx.runQuery(
-          // @ts-ignore - Convex type instantiation depth issue
             internal.messages.listInternal,
             {
               conversationId,
@@ -29,7 +32,6 @@ export const bulkAutoRename = action({
           );
 
           // Find first user message
-          // @ts-ignore
           const userMessage = messages.find((m: any) => m.role === "user");
 
           if (!userMessage) {
@@ -42,13 +44,13 @@ export const bulkAutoRename = action({
 
           // 2. Generate title
           const result: any = await generateText({
-            model: aiGateway("cerebras/gpt-oss-120b"),
+            model: aiGateway(TITLE_MODEL.id),
             prompt: `${CONVERSATION_TITLE_PROMPT}
 
 First user message:
 ${userMessage.content}`,
             temperature: 0.7,
-            providerOptions: getGatewayOptions(undefined, undefined, [
+            providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, [
               "title-generation",
             ]),
           });
@@ -56,7 +58,10 @@ ${userMessage.content}`,
           // Handle undefined result - use optional chaining for safety
           const rawText = result?.text;
           if (!rawText) {
-            console.error("AI Gateway returned no text for conversation", conversationId);
+            console.error(
+              "AI Gateway returned no text for conversation",
+              conversationId,
+            );
             return {
               id: conversationId,
               success: false,

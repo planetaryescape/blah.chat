@@ -1,5 +1,8 @@
 "use client";
 
+import { useAction } from "convex/react";
+import { AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,9 +12,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useAction } from "convex/react";
-import { AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface SummarizePopoverProps {
   open: boolean;
@@ -30,7 +30,6 @@ export function SummarizePopover({
   position,
   onSaveAsNote,
 }: SummarizePopoverProps) {
-  // @ts-ignore - Convex type instantiation depth issue
   const summarizeSelection = useAction(api.generation.summarizeSelection);
 
   const [summary, setSummary] = useState("");

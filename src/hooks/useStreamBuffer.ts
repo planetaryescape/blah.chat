@@ -1,5 +1,5 @@
-import { getNextCompleteToken } from "@/lib/utils/markdownTokens";
 import { useEffect, useRef, useState } from "react";
+import { getNextCompleteToken } from "@/lib/utils/markdownTokens";
 
 export interface StreamBufferOptions {
   /**

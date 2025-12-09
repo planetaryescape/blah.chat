@@ -1,12 +1,12 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { analytics } from "@/lib/analytics";
 import { useAction, useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
 
 export function useConversationActions(
   conversationId: Id<"conversations"> | null,
@@ -15,15 +15,10 @@ export function useConversationActions(
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  // @ts-ignore
   const deleteMutation = useMutation(api.conversations.deleteConversation);
-  // @ts-ignore
   const archiveMutation = useMutation(api.conversations.archive);
-  // @ts-ignore
   const togglePinMutation = useMutation(api.conversations.togglePin);
-  // @ts-ignore
   const toggleStarMutation = useMutation(api.conversations.toggleStar);
-  // @ts-ignore
   const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const handleDelete = async () => {

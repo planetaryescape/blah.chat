@@ -1,7 +1,9 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
+import { FileText, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,9 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileText, Plus } from "lucide-react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { api } from "@/convex/_generated/api";
 
 export function TemplateManager() {
   const templates = useQuery(api.projects.listTemplates);

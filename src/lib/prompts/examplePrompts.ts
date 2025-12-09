@@ -153,4 +153,3 @@ export function getPromptsForModel(modelId: string | undefined): PromptResult {
 
 // Export for testing/reference
 export { CAPABILITY_PROMPTS, SUGGESTED_PROMPTS };
-

@@ -1,7 +1,6 @@
 import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
-import { internal } from "./_generated/api";
 
 export const transcribeAudio = action({
   args: {
@@ -10,7 +9,6 @@ export const transcribeAudio = action({
   },
   handler: async (ctx, args) => {
     // Get current user
-    // @ts-ignore - Convex type instantiation depth issue
     const user = await ctx.runQuery(api.users.getCurrentUser, {});
     if (!user) {
       throw new Error("Unauthorized");
@@ -111,7 +109,6 @@ export const transcribeAudio = action({
     }
 
     // Track cost
-    // @ts-ignore - Convex type instantiation depth issue
     await ctx.runMutation(internal.usage.mutations.recordTranscription, {
       userId: user._id,
       model: `${provider}:stt`,

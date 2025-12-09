@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Pin } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { TagFilter } from "./TagFilter";
 
 interface NoteFiltersProps {

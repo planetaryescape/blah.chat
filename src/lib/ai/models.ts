@@ -62,14 +62,16 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       useResponsesAPI: true,
     },
   }, */
-  "openai:gpt-5": {
-    id: "openai:gpt-5",
+
+  // GPT-5.1 Family (November 2025)
+  "openai:gpt-5.1": {
+    id: "openai:gpt-5.1",
     provider: "openai",
-    name: "GPT-5",
+    name: "GPT-5.1",
     description:
-      "Previous intelligent reasoning model for coding and agentic tasks.",
-    contextWindow: 128000,
-    pricing: { input: 2.5, output: 10.0, reasoning: 2.5 },
+      "Latest flagship with adaptive reasoning and 24h prompt caching",
+    contextWindow: 256000,
+    pricing: { input: 1.25, output: 10.0, cached: 0.125 },
     capabilities: ["thinking", "vision", "function-calling"],
     reasoning: {
       type: "openai-reasoning-effort",
@@ -78,32 +80,67 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       useResponsesAPI: true,
     },
   },
-  "openai:gpt-5-mini": {
-    id: "openai:gpt-5-mini",
+  "openai:gpt-5.1-mini": {
+    id: "openai:gpt-5.1-mini",
     provider: "openai",
-    name: "GPT-5 Mini",
+    name: "GPT-5.1 Mini",
+    description: "Compact variant of GPT-5.1 for cost-efficient tasks",
+    contextWindow: 128000,
+    pricing: { input: 0.25, output: 2.0, cached: 0.025 },
+    capabilities: ["vision", "function-calling"],
+  },
+  "openai:gpt-5.1-nano": {
+    id: "openai:gpt-5.1-nano",
+    provider: "openai",
+    name: "GPT-5.1 Nano",
+    description: "Smallest, fastest GPT-5.1 variant",
+    contextWindow: 128000,
+    pricing: { input: 0.05, output: 0.4, cached: 0.005 },
+    capabilities: ["vision", "function-calling"],
+  },
+  "openai:gpt-5.1-codex": {
+    id: "openai:gpt-5.1-codex",
+    provider: "openai",
+    name: "GPT-5.1 Codex",
+    description: "GPT-5.1 optimized for agentic coding tasks",
+    contextWindow: 256000,
+    pricing: { input: 1.25, output: 10.0, cached: 0.125 },
+    capabilities: ["thinking", "function-calling"],
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
+  },
+  "openai:gpt-5.1-thinking": {
+    id: "openai:gpt-5.1-thinking",
+    provider: "openai",
+    name: "GPT-5.1 Thinking",
+    description: "Extended thinking mode for complex multi-step reasoning",
+    contextWindow: 256000,
+    pricing: { input: 1.25, output: 10.0, reasoning: 1.25, cached: 0.125 },
+    capabilities: [
+      "thinking",
+      "extended-thinking",
+      "vision",
+      "function-calling",
+    ],
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
+  },
+  "openai:gpt-5.1-instant": {
+    id: "openai:gpt-5.1-instant",
+    provider: "openai",
+    name: "GPT-5.1 Instant",
     description:
-      "A faster, cost-efficient version of GPT-5 for well-defined tasks",
+      "Fast conversational variant with improved tone and personalization",
     contextWindow: 128000,
-    pricing: { input: 0.15, output: 0.6, cached: 0.075 },
-    capabilities: ["vision", "function-calling"],
-  },
-  "openai:gpt-5-nano": {
-    id: "openai:gpt-5-nano",
-    provider: "openai",
-    name: "GPT-5 Nano",
-    description: "Fastest, most cost-efficient version of GPT-5",
-    contextWindow: 128000,
-    pricing: { input: 0.05, output: 0.2, cached: 0.025 },
-    capabilities: ["vision", "function-calling"],
-  },
-  "openai:gpt-4.1-mini": {
-    id: "openai:gpt-4.1-mini",
-    provider: "openai",
-    name: "GPT-4.1 Mini",
-    description: "Smartest non-reasoning model - compact variant",
-    contextWindow: 1000000,
-    pricing: { input: 0.4, output: 1.6, cached: 0.1 },
+    pricing: { input: 0.25, output: 2.0, cached: 0.025 },
     capabilities: ["vision", "function-calling"],
   },
 
@@ -114,7 +151,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     name: "Claude 4.5 Opus",
     description: "Most capable Claude for complex tasks",
     contextWindow: 200000,
-    pricing: { input: 15.0, output: 75.0, cached: 1.5 },
+    pricing: { input: 5.0, output: 25.0, cached: 0.5 },
     capabilities: [
       "vision",
       "function-calling",
@@ -152,7 +189,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     name: "Claude 4.5 Haiku",
     description: "Fast and cost-effective",
     contextWindow: 200000,
-    pricing: { input: 0.25, output: 1.25, cached: 0.03 }, // Estimated pricing
+    pricing: { input: 1.0, output: 5.0, cached: 0.1 },
     capabilities: ["vision", "function-calling"],
   },
 
@@ -250,7 +287,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       // Note: >200K is $4/$24 but flat pricing doesn't support tiering
     },
     capabilities: ["function-calling", "thinking"],
-    description: "Third-generation flagship model with advanced reasoning (experimental)",
+    description:
+      "Third-generation flagship model with advanced reasoning (experimental)",
     isExperimental: true,
     reasoning: {
       type: "google-thinking-level",
@@ -329,23 +367,14 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["thinking"],
   },
 
-  // Perplexity
-  "perplexity:sonar-pro-search": {
-    id: "perplexity:sonar-pro-search",
-    provider: "perplexity",
-    name: "Sonar Pro Search",
-    description: "Advanced agentic search with multi-step reasoning",
-    contextWindow: 127000,
-    pricing: { input: 3.0, output: 3.0 }, // Estimated pricing, verify if possible
-    capabilities: ["thinking"],
-  },
+  // Perplexity (Only 4 models available in Vercel AI Gateway)
   "perplexity:sonar-reasoning-pro": {
     id: "perplexity:sonar-reasoning-pro",
     provider: "perplexity",
     name: "Sonar Reasoning Pro",
     description: "DeepSeek R1 powered reasoning with CoT",
     contextWindow: 127000,
-    pricing: { input: 2.0, output: 8.0 }, // Estimated
+    pricing: { input: 2.0, output: 8.0 },
     capabilities: ["thinking"],
   },
   "perplexity:sonar-pro": {
@@ -354,25 +383,17 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     name: "Sonar Pro",
     description: "Advanced search with grounding",
     contextWindow: 127000,
-    pricing: { input: 1.0, output: 1.0 },
+    pricing: { input: 3.0, output: 15.0 },
     capabilities: [],
   },
-  "perplexity:sonar-deep-research": {
-    id: "perplexity:sonar-deep-research",
-    provider: "perplexity",
-    name: "Sonar Deep Research",
-    description: "Multi-step retrieval and synthesis for complex topics",
-    contextWindow: 127000,
-    pricing: { input: 2.0, output: 2.0 },
-    capabilities: ["thinking"],
-  },
+
   "perplexity:sonar-reasoning": {
     id: "perplexity:sonar-reasoning",
     provider: "perplexity",
     name: "Sonar Reasoning",
     description: "Fast real-time reasoning",
     contextWindow: 127000,
-    pricing: { input: 0.5, output: 0.5 },
+    pricing: { input: 1.0, output: 5.0 },
     capabilities: ["thinking"],
   },
   "perplexity:sonar": {
@@ -381,7 +402,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     name: "Sonar",
     description: "Lightweight, fast search",
     contextWindow: 127000,
-    pricing: { input: 0.2, output: 0.2 },
+    pricing: { input: 1.0, output: 1.0 },
     capabilities: [],
   },
   // Meta Models (via Vercel AI Gateway)
@@ -399,7 +420,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "meta:llama-4-maverick",
     provider: "meta",
     name: "Llama 4 Maverick 17B",
-    description: "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
+    description:
+      "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
     contextWindow: 128000,
     pricing: { input: 0.2, output: 0.6 },
     capabilities: ["vision", "function-calling"],
@@ -437,7 +459,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.35, output: 1.4 },
     capabilities: ["function-calling"],
   },
-
 
   "groq:openai/gpt-oss-20b": {
     id: "groq:openai/gpt-oss-20b",
@@ -480,7 +501,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 3.0 },
     capabilities: ["function-calling"],
   },
-
 
   // OpenAI OSS Models (via Gateway)
   "openai:gpt-oss-120b": {
@@ -526,8 +546,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   },
 
-
-
   // DeepSeek Models
   "deepseek:deepseek-r1": {
     id: "deepseek:deepseek-r1",
@@ -548,7 +566,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "deepseek:deepseek-v3.2",
     provider: "deepseek",
     name: "DeepSeek V3.2",
-    description: "Official successor to V3.2-Exp. Combined thinking + tool use.",
+    description:
+      "Official successor to V3.2-Exp. Combined thinking + tool use.",
     contextWindow: 128000,
     pricing: { input: 0.27, output: 1.1 },
     capabilities: ["thinking", "function-calling"],
@@ -572,7 +591,4 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       applyMiddleware: true,
     },
   },
-
 };
-
-

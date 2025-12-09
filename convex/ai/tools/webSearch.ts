@@ -35,16 +35,14 @@ Returns top results with titles, URLs, and content snippets.`,
         .describe("Number of results to return (1-10)"),
     }),
 
-    // @ts-ignore - Convex internal API type issues
     execute: async ({ query, maxResults = 5 }) => {
       try {
         const result = await ctx.runAction(
-          // @ts-ignore - Convex type instantiation depth issue
           internal.tools.webSearch.search,
           {
             query,
             maxResults: Math.min(maxResults, 10),
-          }
+          },
         );
 
         return result;
@@ -52,8 +50,7 @@ Returns top results with titles, URLs, and content snippets.`,
         console.error("[Tool] Web search failed:", error);
         return {
           success: false,
-          error:
-            error instanceof Error ? error.message : "Web search failed",
+          error: error instanceof Error ? error.message : "Web search failed",
         };
       }
     },

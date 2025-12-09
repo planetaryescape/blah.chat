@@ -1,5 +1,10 @@
 "use client";
 
+import commandScore from "command-score";
+import { useQuery } from "convex/react";
+import { Check, Sparkles, Star, X, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,16 +18,10 @@ import {
 } from "@/components/ui/command";
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
+import { useRecentModels } from "@/hooks/useRecentModels";
 import { sortModels } from "@/lib/ai/sortModels";
-import {
-  getModelsByProvider,
-  type ModelConfig,
-} from "@/lib/ai/utils";
+import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { Check, Sparkles, Star, X, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface QuickModelSwitcherProps {
   open: boolean;
@@ -47,7 +46,7 @@ export function QuickModelSwitcher({
 }: QuickModelSwitcherProps) {
   const modelsByProvider = getModelsByProvider();
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
-  // @ts-ignore - Convex type instantiation depth issue
+  const { recents, addRecent } = useRecentModels();
   const user = useQuery(api.users.getCurrentUser);
 
   // Multi-select state
@@ -60,10 +59,16 @@ export function QuickModelSwitcher({
   }, [open, mode, selectedModels]);
 
   const allModels = Object.values(modelsByProvider).flat();
-  const { defaultModel, favorites: favModels, rest } = sortModels(
+  const {
+    defaultModel,
+    favorites: favModels,
+    recents: recentModels,
+    rest,
+  } = sortModels(
     allModels,
     user?.preferences?.defaultModel,
     favorites,
+    recents,
   );
 
   const restByProvider = rest.reduce(
@@ -89,6 +94,7 @@ export function QuickModelSwitcher({
         return [...prev, modelId];
       });
     } else {
+      addRecent(modelId);
       onSelectModel(modelId);
       onOpenChange(false);
       setTimeout(() => {
@@ -112,6 +118,7 @@ export function QuickModelSwitcher({
       <CommandItem
         key={model.id}
         value={model.id}
+        keywords={[model.name, model.provider, model.description || ""]}
         onSelect={() => handleSelect(model.id)}
         className="flex items-center gap-3 px-3 py-2.5"
       >
@@ -176,18 +183,29 @@ export function QuickModelSwitcher({
               ${model.pricing.input}/{model.pricing.output}
             </div>
           )}
-          <Star
-            className={cn(
-              "h-4 w-4 cursor-pointer",
-              isFavorite(model.id)
-                ? "fill-yellow-500 text-yellow-500"
-                : "text-muted-foreground/40",
-            )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 hover:bg-transparent"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               toggleFavorite(model.id);
             }}
-          />
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <Star
+              className={cn(
+                "h-4 w-4",
+                isFavorite(model.id)
+                  ? "fill-yellow-500 text-yellow-500"
+                  : "text-muted-foreground/40",
+              )}
+            />
+          </Button>
         </div>
       </CommandItem>
     );
@@ -203,91 +221,111 @@ export function QuickModelSwitcher({
           className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5"
         >
           <span className="max-w-[120px] truncate">
-            {allModels.find((m) => m.id === currentModel)?.name || "Select model"}
+            {allModels.find((m) => m.id === currentModel)?.name ||
+              "Select model"}
           </span>
         </Button>
       )}
 
-      <CommandDialog open={open} onOpenChange={onOpenChange}>
+      <CommandDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        commandProps={{
+          filter: (value, search, keywords) => {
+            const extendValue = value + " " + (keywords?.join(" ") || "");
+            const score = commandScore(extendValue, search);
+            return score;
+          },
+        }}
+      >
         <CommandInput placeholder="Search models..." />
 
-      {/* Multi-select chips */}
-      {mode === "multiple" && internalSelected.length > 0 && (
-        <div className="flex gap-2 px-3 py-2 border-b flex-wrap">
-          {internalSelected.map((id) => {
-            const model = allModels.find((m) => m.id === id);
-            return (
-              <Badge key={id} variant="secondary" className="gap-1">
-                {model?.name}
-                <X
-                  className="h-3 w-3 cursor-pointer"
-                  onClick={() => {
-                    setInternalSelected((prev) =>
-                      prev.filter((i) => i !== id),
-                    );
-                  }}
-                />
-              </Badge>
-            );
-          })}
-        </div>
-      )}
-
-      <CommandList className="max-h-[400px]">
-        <CommandEmpty>No models found.</CommandEmpty>
-
-        {/* Default Model */}
-        {defaultModel && (
-          <CommandGroup heading="Default">
-            {renderModelItem(defaultModel, true)}
-          </CommandGroup>
-        )}
-
-        {/* Favorites */}
-        {favModels.length > 0 && (
-          <CommandGroup heading="Favorites">
-            {favModels.map((model) => renderModelItem(model))}
-          </CommandGroup>
-        )}
-
-        {(defaultModel || favModels.length > 0) && <CommandSeparator />}
-
-        {/* Rest by provider */}
-        {Object.entries(restByProvider).map(([provider, models]) => (
-          <CommandGroup
-            key={provider}
-            heading={provider.charAt(0).toUpperCase() + provider.slice(1)}
-          >
-            {models.map((model) => renderModelItem(model))}
-          </CommandGroup>
-        ))}
-      </CommandList>
-
-      {/* Footer for multi-select */}
-      {mode === "multiple" && (
-        <div className="border-t p-3 flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
-            {internalSelected.length}/4 selected
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              size="sm"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={internalSelected.length === 0}
-              size="sm"
-            >
-              Compare Models
-            </Button>
+        {/* Multi-select chips */}
+        {mode === "multiple" && internalSelected.length > 0 && (
+          <div className="flex gap-2 px-3 py-2 border-b flex-wrap">
+            {internalSelected.map((id) => {
+              const model = allModels.find((m) => m.id === id);
+              return (
+                <Badge key={id} variant="secondary" className="gap-1">
+                  {model?.name}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => {
+                      setInternalSelected((prev) =>
+                        prev.filter((i) => i !== id),
+                      );
+                    }}
+                  />
+                </Badge>
+              );
+            })}
           </div>
-        </div>
-      )}
-    </CommandDialog>
+        )}
+
+        <CommandList className="max-h-[400px]">
+          <CommandEmpty>No models found.</CommandEmpty>
+
+          {/* Default Model */}
+          {defaultModel && (
+            <CommandGroup heading="Default">
+              {renderModelItem(defaultModel, true)}
+            </CommandGroup>
+          )}
+
+          {/* Favorites */}
+          {favModels.length > 0 && (
+            <CommandGroup heading="Favorites">
+              {favModels.map((model) => renderModelItem(model))}
+            </CommandGroup>
+          )}
+
+          {/* Recents */}
+          {recentModels.length > 0 && (
+            <CommandGroup heading="Recent">
+              {recentModels.map((model) => renderModelItem(model))}
+            </CommandGroup>
+          )}
+
+          {(defaultModel ||
+            favModels.length > 0 ||
+            recentModels.length > 0) && <CommandSeparator />}
+
+          {/* Rest by provider */}
+          {Object.entries(restByProvider).map(([provider, models]) => (
+            <CommandGroup
+              key={provider}
+              heading={provider.charAt(0).toUpperCase() + provider.slice(1)}
+            >
+              {models.map((model) => renderModelItem(model))}
+            </CommandGroup>
+          ))}
+        </CommandList>
+
+        {/* Footer for multi-select */}
+        {mode === "multiple" && (
+          <div className="border-t p-3 flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
+              {internalSelected.length}/4 selected
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirm}
+                disabled={internalSelected.length === 0}
+                size="sm"
+              >
+                Compare Models
+              </Button>
+            </div>
+          </div>
+        )}
+      </CommandDialog>
     </>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
 
+import { Keyboard, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KEYBOARD_SHORTCUTS } from "@/hooks/useKeyboardShortcuts";
 import { getModifierKey } from "@/lib/utils/platform";
-import { Keyboard, Search } from "lucide-react";
-import { useMemo, useState } from "react";
 
 // Helper to parse shortcut string into display parts
 function parseShortcut(shortcut: string): string {

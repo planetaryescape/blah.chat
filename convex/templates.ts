@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getCurrentUserOrCreate, getCurrentUser } from "./lib/userSync";
+import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 export const create = mutation({
   args: {

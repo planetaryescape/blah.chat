@@ -6,9 +6,8 @@ import { MemorySettings } from "@/components/settings/MemorySettings";
 import { ReasoningSettings } from "@/components/settings/ReasoningSettings";
 import { STTSettings } from "@/components/settings/STTSettings";
 import { UISettings } from "@/components/settings/UISettings";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SETTINGS_SECTIONS = [
   {

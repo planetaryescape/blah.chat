@@ -18,7 +18,6 @@ export const hybridSearch = action({
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore - Convex type instantiation depth issue
     const user: any = await ctx.runQuery(api.users.getCurrentUser, {});
     if (!user) return [];
 
@@ -27,7 +26,6 @@ export const hybridSearch = action({
     // 1. Keyword search on conversation titles
     const keywordResults: any = await ctx.runQuery(
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore - Convex type instantiation depth issue
       internal.conversations.hybridSearch.keywordSearch,
       { query, userId: user._id, limit: 40, includeArchived },
     );
@@ -42,7 +40,6 @@ export const hybridSearch = action({
 
       const semanticResults: any = await ctx.runQuery(
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - Convex type instantiation depth issue
         internal.conversations.hybridSearch.semanticSearchWithEmbedding,
         { embedding, userId: user._id, limit: 40, includeArchived },
       );
@@ -111,7 +108,7 @@ export const keywordSearch = internalQuery({
     includeArchived: v.boolean(),
   },
   handler: async (ctx, args) => {
-    let results = await ctx.db
+    const results = await ctx.db
       .query("conversations")
       .withSearchIndex("search_title", (q) => q.search("title", args.query))
       .filter((q) => {
@@ -150,7 +147,9 @@ export const semanticSearchWithEmbedding = internalQuery({
     const scored = messages
       .map((msg) => ({
         message: msg,
-        score: msg.embedding ? cosineSimilarity(args.embedding, msg.embedding) : 0,
+        score: msg.embedding
+          ? cosineSimilarity(args.embedding, msg.embedding)
+          : 0,
       }))
       .sort((a, b) => b.score - a.score);
 

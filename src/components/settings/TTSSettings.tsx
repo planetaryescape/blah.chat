@@ -1,24 +1,24 @@
 "use client";
 
+import { Info } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Info } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface TTSSettingsProps {
   ttsEnabled: boolean;
@@ -221,8 +221,8 @@ export function TTSSettings({
                   credits and pay-as-you-go billing.
                 </p>
                 <p className="mt-1">
-                  <strong>Deepgram:</strong> Best value, natural quality.
-                  Other TTS providers were removed to keep costs predictable.
+                  <strong>Deepgram:</strong> Best value, natural quality. Other
+                  TTS providers were removed to keep costs predictable.
                 </p>
               </div>
             </div>

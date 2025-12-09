@@ -1,15 +1,15 @@
 "use client";
 
-import { useMobileDetect } from "@/hooks/useMobileDetect";
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
 
 interface SelectionState {
   text: string;

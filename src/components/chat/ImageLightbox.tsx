@@ -1,18 +1,18 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Minus,
+  Plus,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-    ChevronLeft,
-    ChevronRight,
-    Download,
-    Minus,
-    Plus,
-    X,
-} from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface ImageLightboxProps {
   images: Array<{ url: string; name: string }>;
@@ -179,10 +179,10 @@ export function ImageLightbox({
                 alt={currentImage.name}
                 className="object-contain"
                 style={{
-                  maxWidth: zoomLevel === 0 ? '100%' : 'none',
-                  maxHeight: zoomLevel === 0 ? '100%' : 'none',
-                  width: zoomLevel > 0 ? `${ZOOM_LEVELS[zoomLevel]}%` : 'auto',
-                  height: zoomLevel > 0 ? 'auto' : 'auto',
+                  maxWidth: zoomLevel === 0 ? "100%" : "none",
+                  maxHeight: zoomLevel === 0 ? "100%" : "none",
+                  width: zoomLevel > 0 ? `${ZOOM_LEVELS[zoomLevel]}%` : "auto",
+                  height: zoomLevel > 0 ? "auto" : "auto",
                   transition: "all 0.2s ease-out",
                 }}
               />

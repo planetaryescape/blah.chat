@@ -3,11 +3,11 @@ import { nanoid } from "nanoid";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import {
-    action,
-    internalMutation,
-    internalQuery,
-    mutation,
-    query,
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
@@ -96,7 +96,6 @@ export const createNote = mutation({
 
     // Schedule tag extraction (async, non-blocking)
     if (args.content.length >= 50) {
-      // @ts-ignore - Convex type instantiation depth issue
       await ctx.scheduler.runAfter(0, internal.notes.tags.extractTags, {
         noteId,
       });
@@ -139,7 +138,6 @@ export const updateNote = mutation({
 
     // Re-extract tags if content changed significantly
     if (updates.content && updates.content.length >= 50) {
-      // @ts-ignore - Convex type instantiation depth issue
       await ctx.scheduler.runAfter(0, internal.notes.tags.extractTags, {
         noteId,
       });

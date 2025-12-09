@@ -1,18 +1,16 @@
 "use client";
 
-import { BookmarkCard } from "@/components/bookmarks/BookmarkCard";
-import { Input } from "@/components/ui/input";
 import { useQuery } from "convex/react";
 import { Bookmark, Search } from "lucide-react";
 import { Suspense, useMemo, useState } from "react";
-import { api } from "../../../../convex/_generated/api";
-
+import { BookmarkCard } from "@/components/bookmarks/BookmarkCard";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "../../../../convex/_generated/api";
 
 export const dynamic = "force-dynamic";
 
 function BookmarksPageContent() {
-  // @ts-ignore - Convex type instantiation depth issue
   const bookmarks = useQuery(api.bookmarks.list);
   const [searchQuery, setSearchQuery] = useState("");
 

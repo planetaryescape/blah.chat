@@ -1,8 +1,8 @@
 "use client";
 
+import { forwardRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { forwardRef } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 import { VotingControls } from "./VotingControls";
 

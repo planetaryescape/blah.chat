@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense, useEffect, useRef } from "react";
 import { RecentSearches } from "@/components/search/RecentSearches";
 import { SearchBar } from "@/components/search/SearchBar";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -9,12 +10,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
-import { useSearchState } from "@/hooks/useSearchState";
 import {
-  useSearchResults,
   type SearchFilters as SearchFiltersType,
+  useSearchResults,
 } from "@/hooks/useSearchResults";
-import { Suspense, useEffect, useRef } from "react";
+import { useSearchState } from "@/hooks/useSearchState";
 
 function SearchPageContent() {
   // URL-persisted state

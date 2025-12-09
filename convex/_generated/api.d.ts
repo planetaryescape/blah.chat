@@ -26,6 +26,7 @@ import type * as conversations_hybridSearch from "../conversations/hybridSearch.
 import type * as crons from "../crons.js";
 import type * as debug from "../debug.js";
 import type * as feedback from "../feedback.js";
+import type * as feedback_triage from "../feedback/triage.js";
 import type * as files from "../files.js";
 import type * as generation from "../generation.js";
 import type * as generation_image from "../generation/image.js";
@@ -107,6 +108,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   debug: typeof debug;
   feedback: typeof feedback;
+  "feedback/triage": typeof feedback_triage;
   files: typeof files;
   generation: typeof generation;
   "generation/image": typeof generation_image;

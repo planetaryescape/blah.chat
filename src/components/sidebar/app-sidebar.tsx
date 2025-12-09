@@ -1,56 +1,56 @@
-import { Logo } from "@/components/brand/Logo";
-import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
-import { ProjectFilter } from "@/components/projects/ProjectFilter";
-import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { ShortcutBadge } from "@/components/ui/shortcut-badge";
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar,
-} from "@/components/ui/sidebar";
-import { useConversationContext } from "@/contexts/ConversationContext";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
-import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
-    BarChart3,
-    Bookmark,
-    Brain,
-    ChevronDown,
-    FileText,
-    FolderKanban,
-    Keyboard,
-    MoreHorizontal,
-    NotebookPen,
-    Plus,
-    Search,
-    Settings,
-    Shield,
+  BarChart3,
+  Bookmark,
+  Brain,
+  ChevronDown,
+  FileText,
+  FolderKanban,
+  Keyboard,
+  MoreHorizontal,
+  NotebookPen,
+  Plus,
+  Search,
+  Settings,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Logo } from "@/components/brand/Logo";
+import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
+import { ProjectFilter } from "@/components/projects/ProjectFilter";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { ShortcutBadge } from "@/components/ui/shortcut-badge";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
+import { cn } from "@/lib/utils";
 import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { ConversationList } from "./ConversationList";
@@ -71,7 +71,6 @@ export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
-  // @ts-ignore - Convex type instantiation depth issue
   const conversations = useQuery(api.conversations.list, {
     projectId:
       (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
@@ -79,19 +78,12 @@ export function AppSidebar() {
   const createConversation = useMutation(api.conversations.create);
 
   // Bulk actions mutations
-  // @ts-ignore
   const bulkDelete = useMutation(api.conversations.bulkDelete);
-  // @ts-ignore
   const bulkArchive = useMutation(api.conversations.bulkArchive);
-  // @ts-ignore
   const bulkPin = useMutation(api.conversations.bulkPin);
-  // @ts-ignore
   const bulkUnpin = useMutation(api.conversations.bulkUnpin);
-  // @ts-ignore
   const bulkStar = useMutation(api.conversations.bulkStar);
-  // @ts-ignore
   const bulkUnstar = useMutation(api.conversations.bulkUnstar);
-  // @ts-ignore
   const bulkAutoRename = useAction(api.conversations.actions.bulkAutoRename);
 
   const router = useRouter();
@@ -265,7 +257,6 @@ export function AppSidebar() {
   const handleBulkAutoRename = async () => {
     try {
       toast.info("Generating titles...");
-      // @ts-ignore
       const results = await bulkAutoRename({
         conversationIds: selectedIds as Id<"conversations">[],
       });
@@ -463,7 +454,10 @@ export function AppSidebar() {
           {isAdmin && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Admin Dashboard">
-                <Link href="/admin/feedback" className="text-amber-500 hover:text-amber-400">
+                <Link
+                  href="/admin/feedback"
+                  className="text-amber-500 hover:text-amber-400"
+                >
                   <Shield className="w-4 h-4" />
                   <span>Admin Dashboard</span>
                 </Link>

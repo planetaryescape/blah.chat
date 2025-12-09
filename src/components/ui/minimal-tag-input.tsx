@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { Plus, Tag, X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +23,6 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { getTagLabel, normalizeTag, validateTag } from "@/lib/utils/tagUtils";
-import { useMutation } from "convex/react";
-import { Plus, Tag, X } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 interface MinimalTagInputProps {
   noteId: Id<"notes">;
@@ -38,9 +38,7 @@ export function MinimalTagInput({
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
-  // @ts-ignore - Convex type instantiation depth issue
   const addTag = useMutation(api.notes.addTag);
-  // @ts-ignore - Convex type instantiation depth issue
   const removeTag = useMutation(api.notes.removeTag);
 
   const handleAddTag = async (tag: string) => {

@@ -1,10 +1,10 @@
 "use client";
 
+import { Loader2, Search, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Loader2, Search, X } from "lucide-react";
-import { useEffect, useRef } from "react";
 
 interface SearchBarProps {
   value: string;

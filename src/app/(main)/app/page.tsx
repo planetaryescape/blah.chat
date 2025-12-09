@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { DEFAULT_MODEL } from "@/lib/ai/registry";
 import {
   Authenticated,
   Unauthenticated,
@@ -11,6 +9,8 @@ import {
 } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { api } from "@/convex/_generated/api";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
 
 export default function AppPage() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export default function AppPage() {
   const createConversation = useMutation(api.conversations.create);
   const conversations = useQuery(api.conversations.list, {});
   const navigationStarted = useRef(false);
+  const { newChatModel, isLoading: modelLoading } = useNewChatModel();
 
   // Redirect unauthenticated users to sign-in
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function AppPage() {
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
     if (conversations === undefined) return; // Query loading
+    if (modelLoading) return; // Wait for model preference to load
     if (navigationStarted.current) return; // Already navigating
 
     // Check sessionStorage to prevent rapid re-creation across remounts
@@ -56,17 +58,25 @@ export default function AppPage() {
         return;
       }
 
-      // Create new conversation
+      // Create new conversation with user's preferred model
       sessionStorage.setItem(lastCreationKey, now.toString());
       const conversationId = await createConversation({
-        model: DEFAULT_MODEL,
+        model: newChatModel,
         title: "New Chat",
       });
       router.push(`/chat/${conversationId}`);
     };
 
     handleNavigation();
-  }, [isAuthenticated, isLoading, conversations, router, createConversation]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    conversations,
+    router,
+    createConversation,
+    newChatModel,
+    modelLoading,
+  ]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

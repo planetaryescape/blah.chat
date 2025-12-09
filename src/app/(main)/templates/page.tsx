@@ -1,5 +1,7 @@
 "use client";
 
+import { Plus } from "lucide-react";
+import { useState } from "react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
@@ -10,17 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
-import { useState } from "react";
 
 const CATEGORIES = ["all", "coding", "writing", "analysis", "creative"];
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-
-import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
 
 // ... imports
 
@@ -29,11 +28,9 @@ export default function TemplatesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasSeeded, setHasSeeded] = useState(false);
 
-  // FIXME: Convex useQuery type inference excessively deep - intentionally ignored, do not remove @ts-ignore
-  // @ts-ignore
+  // FIXME: Convex useQuery type inference excessively deep - intentionally ignored, do not remove @ts-expect-error
   const templates = useQuery(
-    // FIXME: Convex API type inference excessively deep - intentionally ignored, do not remove @ts-ignore
-    // @ts-ignore
+    // FIXME: Convex API type inference excessively deep - intentionally ignored, do not remove @ts-expect-error
     api.templates.list,
     selectedCategory === "all" ? {} : { category: selectedCategory },
   );

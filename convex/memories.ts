@@ -3,16 +3,21 @@ import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../src/lib/ai/gateway";
+import { MODEL_CONFIG } from "../src/lib/ai/models";
 import { api, internal } from "./_generated/api";
-import { Doc, Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
-    action,
-    internalAction,
-    internalMutation,
-    internalQuery,
-    mutation,
-    query,
+  action,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
+
+// Model configuration
+const MEMORY_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const EMBEDDING_MODEL = "text-embedding-3-small";
 
 const rephrasedMemorySchema = z.object({
   content: z.string(),
@@ -140,7 +145,6 @@ export const searchByEmbedding = internalAction({
     });
 
     const ids = results.map((r) => r._id);
-    // @ts-ignore - Convex type instantiation depth issue
     const memories = await ctx.runQuery(internal.memories.getMemoriesByIds, {
       ids,
     });
@@ -503,7 +507,6 @@ export const migrateUserMemories = action({
 
     // 1. Fetch user's memories (listAll already handles user lookup + filtering)
     const memories: Doc<"memories">[] = await ctx.runQuery(
-      // @ts-ignore - Convex type instantiation depth issue
       api.memories.listAll,
     );
 
@@ -519,9 +522,11 @@ export const migrateUserMemories = action({
       try {
         // 3. Use LLM to rephrase
         const result = await generateObject({
-          model: aiGateway("cerebras/gpt-oss-120b"),
+          model: aiGateway(MEMORY_MODEL.id),
           schema: rephrasedMemorySchema,
-          providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-rephrase"]),
+          providerOptions: getGatewayOptions(MEMORY_MODEL.id, undefined, [
+            "memory-rephrase",
+          ]),
           prompt: `Rephrase this memory to third-person perspective for AI context injection.
 
 Original memory: "${memory.content}"
@@ -552,7 +557,7 @@ Return ONLY the rephrased content, no explanation or additional text.`,
 
         // 4. Generate new embedding
         const embeddingResult = await embed({
-          model: openai.embedding("text-embedding-3-small"),
+          model: openai.embedding(EMBEDDING_MODEL),
           value: result.object.content,
         });
 
@@ -587,7 +592,6 @@ export const consolidateUserMemories = action({
     if (!identity) throw new Error("Unauthorized");
 
     // 1. Fetch all user memories
-    // @ts-ignore - Convex type instantiation depth issue
     const memories: Doc<"memories">[] = await ctx.runQuery(
       api.memories.listAll,
     );
@@ -652,9 +656,11 @@ export const consolidateUserMemories = action({
         const isSingleMemory = cluster.length === 1;
 
         const result = await generateObject({
-          model: aiGateway("cerebras/gpt-oss-120b"),
+          model: aiGateway(MEMORY_MODEL.id),
           schema: consolidatedMemoriesSchema,
-          providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-consolidation"]),
+          providerOptions: getGatewayOptions(MEMORY_MODEL.id, undefined, [
+            "memory-consolidation",
+          ]),
           prompt: isSingleMemory
             ? `Rephrase this memory to third-person perspective for AI context injection.
 
@@ -740,7 +746,7 @@ ${cluster
         for (const consolidated of result.object.memories) {
           // Generate embedding for new content
           const embeddingResult = await embed({
-            model: openai.embedding("text-embedding-3-small"),
+            model: openai.embedding(EMBEDDING_MODEL),
             value: consolidated.content,
           });
 
@@ -843,7 +849,7 @@ export const createMemoryFromSelection = action({
 
     // Generate embedding using Vercel AI SDK
     const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
+      model: openai.embedding(EMBEDDING_MODEL),
       value: args.content,
     });
 

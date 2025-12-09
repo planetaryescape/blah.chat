@@ -1,14 +1,14 @@
 "use client";
 
+import { ArrowRight, Brain, Code2, Eye, Sparkles, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { ArrowRight, Sparkles, Brain, Eye, Zap, Code2 } from "lucide-react";
-import { useState, useEffect } from "react";
-import {
-  getPromptsForModel,
-  CAPABILITY_PROMPTS,
-} from "@/lib/prompts/examplePrompts";
 import type { PromptCategory } from "@/lib/prompts/examplePrompts";
+import {
+  CAPABILITY_PROMPTS,
+  getPromptsForModel,
+} from "@/lib/prompts/examplePrompts";
+import { cn } from "@/lib/utils";
 
 interface EmptyScreenProps {
   onClick: (value: string) => void;

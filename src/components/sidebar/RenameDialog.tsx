@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 
 export function RenameDialog({
   conversation,
@@ -24,7 +24,6 @@ export function RenameDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [title, setTitle] = useState(conversation.title || "");
-  // @ts-ignore - Convex type instantiation depth issue
   const renameConversation = useMutation(api.conversations.rename);
 
   const handleSave = async () => {

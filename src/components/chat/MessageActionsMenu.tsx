@@ -1,5 +1,7 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,8 +16,6 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
 
 interface MessageActionsMenuProps {
   message: Doc<"messages">;

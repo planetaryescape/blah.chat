@@ -1,4 +1,3 @@
-
 import { tool } from "ai";
 import { z } from "zod";
 import { internal } from "../../../_generated/api";
@@ -37,7 +36,7 @@ Preference/identity/relationship memories are pre-loaded.`,
       const { query, category, limit = 5 } = input;
       try {
         const memories = await ctx.runAction(
-          // @ts-ignore - Convex type instantiation depth issue
+          // @ts-expect-error - Convex type instantiation depth issue
           internal.memories.search.hybridSearch,
           {
             userId,

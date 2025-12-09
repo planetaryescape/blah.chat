@@ -1,7 +1,7 @@
-import { getModel } from "@/lib/ai/registry";
 import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { EMBEDDING_SUMMARIZATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
@@ -70,7 +70,7 @@ export const generateEmbedding = internalAction({
       });
 
       // Store embedding
-      // @ts-ignore - Convex mutation type instantiation depth issue
+      // @ts-expect-error - Convex mutation type instantiation depth issue
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {
         messageId: args.messageId,
         embedding,

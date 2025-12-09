@@ -1,6 +1,6 @@
-import { getModel } from "@/lib/ai/registry";
 import { generateText } from "ai";
 import { v } from "convex/values";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { action } from "../_generated/server";

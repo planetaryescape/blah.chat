@@ -183,7 +183,7 @@ export const vectorSearch = internalAction({
       // Fetch full documents
       const memories: Doc<"memories">[] = await Promise.all(
         results.map(async (result) => {
-          // @ts-ignore - Convex query type instantiation depth issue
+          // @ts-expect-error - Convex query type instantiation depth issue
           const memory = await ctx.runQuery(internal.memories.getMemoryById, {
             id: result._id,
           });

@@ -24,7 +24,7 @@ import { useNewChatModel } from "@/hooks/useNewChatModel";
 function Header() {
   const { open } = useSidebar();
   const router = useRouter();
-  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
+  // @ts-expect-error - Type instantiation is excessively deep and possibly infinite
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const { newChatModel } = useNewChatModel();

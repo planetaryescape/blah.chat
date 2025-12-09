@@ -1,39 +1,45 @@
 "use client";
 
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { api } from "@/convex/_generated/api";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
-import { getModelConfig, getModelsByProvider, isValidModel } from "@/lib/ai/utils";
 import { useMutation, useQuery } from "convex/react";
 import { Clock, Pin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { api } from "@/convex/_generated/api";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
+import {
+  getModelConfig,
+  getModelsByProvider,
+  isValidModel,
+} from "@/lib/ai/utils";
 
 export function DefaultModelSettings() {
-  // @ts-ignore - Convex type instantiation depth issue
+  // @ts-expect-error - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePrefs = useMutation(api.users.updatePreferences);
   const hasInitialized = useRef(false);
 
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
-  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">("fixed");
+  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(
+    "fixed",
+  );
 
   // Sync from user preferences OR auto-save default if not set
   useEffect(() => {
@@ -42,7 +48,11 @@ export function DefaultModelSettings() {
     const userDefaultModel = user.preferences?.defaultModel;
 
     // Check if user has a valid default model (exists in MODEL_CONFIG)
-    if (userDefaultModel && userDefaultModel.length > 0 && isValidModel(userDefaultModel)) {
+    if (
+      userDefaultModel &&
+      userDefaultModel.length > 0 &&
+      isValidModel(userDefaultModel)
+    ) {
       setSelectedModel(userDefaultModel);
     } else if (!hasInitialized.current) {
       // User has no default model, it's empty, or it's an invalid/deprecated model
@@ -57,7 +67,6 @@ export function DefaultModelSettings() {
       setSelectionMode(user.preferences.newChatModelSelection);
     }
   }, [user, updatePrefs]);
-
 
   const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);

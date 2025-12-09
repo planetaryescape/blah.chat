@@ -1,5 +1,17 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import {
+  Suspense,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
@@ -17,10 +29,10 @@ import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
@@ -30,18 +42,6 @@ import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import {
-    Suspense,
-    use,
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
 
 function ChatPageContent({
   params,
@@ -57,7 +57,7 @@ function ChatPageContent({
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
-    // @ts-ignore - Type instantiation is excessively deep and possibly infinite
+    // @ts-expect-error - Type instantiation is excessively deep and possibly infinite
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -90,7 +90,10 @@ function ChatPageContent({
     }
 
     // Fall back to user's default if it's valid
-    if (user?.preferences?.defaultModel && isValidModel(user.preferences.defaultModel)) {
+    if (
+      user?.preferences?.defaultModel &&
+      isValidModel(user.preferences.defaultModel)
+    ) {
       setSelectedModel(user.preferences.defaultModel);
       return;
     }

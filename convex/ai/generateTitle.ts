@@ -1,6 +1,6 @@
-import { getModel } from "@/lib/ai/registry";
 import { streamText } from "ai";
 import { v } from "convex/values";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
@@ -86,7 +86,7 @@ export const generateTitle = internalAction({
       // Get all messages in conversation
       // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
       const messages = await (ctx.runQuery as any)(
-        // @ts-ignore - Convex query type instantiation depth issue
+        // @ts-expect-error - Convex query type instantiation depth issue
         internal.messages.listInternal,
         { conversationId: args.conversationId },
       );

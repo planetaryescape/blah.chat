@@ -143,7 +143,7 @@ export const searchByEmbedding = internalAction({
     });
 
     const ids = results.map((r) => r._id);
-    // @ts-ignore - Convex query type instantiation depth issue
+    // @ts-expect-error - Convex query type instantiation depth issue
     const memories = await ctx.runQuery(internal.memories.getMemoriesByIds, {
       ids,
     });
@@ -167,8 +167,8 @@ export const internalList = internalQuery({
   },
 });
 
-import { getModel } from "@/lib/ai/registry";
 import { paginationOptsValidator } from "convex/server";
+import { getModel } from "@/lib/ai/registry";
 
 export const list = query({
   args: {
@@ -507,7 +507,7 @@ export const migrateUserMemories = action({
 
     // 1. Fetch user's memories (listAll already handles user lookup + filtering)
     const memories: Doc<"memories">[] = await (ctx.runQuery as any)(
-      // @ts-ignore - Convex query type instantiation depth issue
+      // @ts-expect-error - Convex query type instantiation depth issue
       api.memories.listAll,
     );
 
@@ -565,7 +565,7 @@ Return ONLY the rephrased content, no explanation or additional text.`,
         });
 
         // 5. Update memory
-        // @ts-ignore - Convex mutation type instantiation depth issue
+        // @ts-expect-error - Convex mutation type instantiation depth issue
         await ctx.runMutation(internal.memories.updateWithEmbedding, {
           id: memory._id,
           content: result.object.content,
@@ -597,7 +597,7 @@ export const consolidateUserMemories = action({
 
     // 1. Fetch all user memories
     const memories: Doc<"memories">[] = await ctx.runQuery(
-      // @ts-ignore - Convex query type instantiation depth issue
+      // @ts-expect-error - Convex query type instantiation depth issue
       api.memories.listAll,
     );
 
@@ -619,7 +619,7 @@ export const consolidateUserMemories = action({
 
       // Find similar memories using vector search
       const similarMemories = await ctx.runAction(
-       // @ts-ignore - Convex action type instantiation depth issue
+        // @ts-expect-error - Convex action type instantiation depth issue
         internal.memories.searchByEmbedding,
         {
           userId: memory.userId,

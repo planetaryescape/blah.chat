@@ -15,9 +15,7 @@ export function buildMemoryRerankPrompt(
   query: string,
   memories: { content: string }[],
 ): string {
-  const memoriesList = memories
-    .map((m, i) => `${i}. ${m.content}`)
-    .join("\n");
+  const memoriesList = memories.map((m, i) => `${i}. ${m.content}`).join("\n");
 
   return `Rerank these memories by relevance to query: "${query}"
 

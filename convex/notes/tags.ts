@@ -2,13 +2,10 @@ import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MODEL_CONFIG } from "../../src/lib/ai/models";
+import { TAG_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 import { buildTagExtractionPrompt } from "../lib/prompts/operational/tagExtraction";
-
-// Model configuration
-const TAG_EXTRACTION_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),

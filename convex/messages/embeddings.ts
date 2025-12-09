@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MODEL_CONFIG } from "../../src/lib/ai/models";
+import { EMBEDDING_SUMMARIZATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import {
   internalAction,
@@ -10,8 +10,6 @@ import {
   internalQuery,
 } from "../_generated/server";
 
-// Model configuration
-const SUMMARIZATION_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
@@ -23,8 +21,8 @@ const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
 async function summarizeForEmbedding(text: string): Promise<string> {
   try {
     const result = await generateText({
-      model: aiGateway(SUMMARIZATION_MODEL.id),
-      providerOptions: getGatewayOptions(SUMMARIZATION_MODEL.id, undefined, [
+      model: aiGateway(EMBEDDING_SUMMARIZATION_MODEL.id),
+      providerOptions: getGatewayOptions(EMBEDDING_SUMMARIZATION_MODEL.id, undefined, [
         "embedding-summarize",
       ]),
       maxOutputTokens: 500,

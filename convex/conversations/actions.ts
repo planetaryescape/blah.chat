@@ -1,13 +1,10 @@
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MODEL_CONFIG } from "../../src/lib/ai/models";
+import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
-
-// Model configuration
-const TITLE_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 
 export const bulkAutoRename = action({
   args: {
@@ -44,13 +41,13 @@ export const bulkAutoRename = action({
 
           // 2. Generate title
           const result: any = await generateText({
-            model: aiGateway(TITLE_MODEL.id),
+            model: aiGateway(TITLE_GENERATION_MODEL.id),
             prompt: `${CONVERSATION_TITLE_PROMPT}
 
 First user message:
 ${userMessage.content}`,
             temperature: 0.7,
-            providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, [
+            providerOptions: getGatewayOptions(TITLE_GENERATION_MODEL.id, undefined, [
               "title-generation",
             ]),
           });

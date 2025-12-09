@@ -61,10 +61,10 @@ Response:`;
 
   try {
     const result = await generateText({
-      model: getModel("cerebras:gpt-oss-120b"),
+      model: getModel("meta:llama-3.3-70b"),
       prompt,
       temperature: 0,
-      providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, [
+      providerOptions: getGatewayOptions("meta:llama-3.3-70b", undefined, [
         "memory-rerank",
       ]),
     });

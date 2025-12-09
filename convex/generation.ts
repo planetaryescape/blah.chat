@@ -1,5 +1,3 @@
-import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
@@ -9,9 +7,11 @@ import {
   getModelConfig,
   type ModelConfig,
 } from "@/lib/ai/utils";
+import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { type ActionCtx, action, internalAction } from "./_generated/server";
+import { action, type ActionCtx, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
@@ -20,7 +20,9 @@ import {
   createMemorySaveTool,
   createMemorySearchTool,
 } from "./ai/tools/memories";
+import { createProjectContextTool } from "./ai/tools/projectContext";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
+import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
@@ -57,6 +59,28 @@ async function downloadAttachment(
   return base64;
 }
 
+// Helper to detect "out of credits" errors from API providers
+function detectCreditsError(error: any): boolean {
+  const errorStr = String(error.message || error).toLowerCase();
+
+  // Check status codes
+  const hasPaymentStatusCode =
+    error.status === 402 || // Payment Required
+    error.status === 429; // Too Many Requests (rate limit)
+
+  // Check error message keywords
+  const hasCreditKeywords =
+    errorStr.includes("credit") ||
+    errorStr.includes("quota") ||
+    errorStr.includes("limit exceeded") ||
+    errorStr.includes("insufficient") ||
+    errorStr.includes("balance") ||
+    errorStr.includes("exceeded your");
+
+  // Combine both signals
+  return hasPaymentStatusCode || hasCreditKeywords;
+}
+
 // Helper function to build system prompts from multiple sources
 async function buildSystemPrompts(
   ctx: ActionCtx,
@@ -73,11 +97,16 @@ async function buildSystemPrompts(
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)
+  // @ts-ignore
+  const userPromise = ctx.runQuery(api.users.getCurrentUser, {});
+  // @ts-ignore
+  const conversationPromise = ctx.runQuery(internal.conversations.getInternal, {
+    id: args.conversationId,
+  });
+
   const [user, conversation] = await Promise.all([
-    ctx.runQuery(api.users.getCurrentUser, {}),
-    ctx.runQuery(internal.conversations.getInternal, {
-      id: args.conversationId,
-    }),
+    userPromise,
+    conversationPromise,
   ]);
 
   // 1. User custom instructions (highest priority)
@@ -586,6 +615,12 @@ export const generateResponse = internalAction({
           messageAttachments,
         );
         const codeExecutionTool = createCodeExecutionTool(ctx);
+        const weatherTool = createWeatherTool(ctx);
+        const projectContextTool = createProjectContextTool(
+          ctx,
+          args.userId,
+          args.conversationId,
+        );
 
         options.tools = {
           searchMemories: memorySearchTool,
@@ -596,7 +631,11 @@ export const generateResponse = internalAction({
           urlReader: urlReaderTool,
           fileDocument: fileDocumentTool,
           codeExecution: codeExecutionTool,
+          weather: weatherTool,
+          projectContext: projectContextTool,
         };
+
+
 
         options.onStepFinish = async (step: any) => {
           if (step.toolCalls && step.toolCalls.length > 0) {
@@ -634,6 +673,8 @@ export const generateResponse = internalAction({
       const isReasoningModel = !!modelConfig?.reasoning;
 
       // Mark thinking phase started for reasoning models
+
+
       if (isReasoningModel && args.thinkingEffort) {
         await ctx.runMutation(internal.messages.markThinkingStarted, {
           messageId: args.assistantMessageId,
@@ -923,6 +964,19 @@ export const generateResponse = internalAction({
         );
       }
     } catch (error) {
+      console.error("[Generation] Error:", error);
+
+      // Detect "out of credits" errors and send email alert
+      const isCreditsError = detectCreditsError(error);
+
+      if (isCreditsError) {
+        // Send immediate email alert (non-blocking)
+        await ctx.scheduler.runAfter(0, internal.lib.email.sendApiCreditsAlert, {
+          errorMessage: error instanceof Error ? error.message : String(error),
+          modelId: args.modelId,
+        });
+      }
+
       // Detect specific error types for user-friendly messages
       let userMessage = "An unexpected error occurred. Please try again.";
 
@@ -1030,7 +1084,7 @@ export const summarizeSelection = action({
     try {
       // Generate summary using GPT-OSS 120B via gateway
       // TODO: Move this model config to constants or arguments
-      const summarizationModel = MODEL_CONFIG["openai:gpt-oss-120b"];
+      const summarizationModel = MODEL_CONFIG["meta:llama-3.3-70b"];
       const result = await generateText({
         model: aiGateway(summarizationModel.id),
         messages: [

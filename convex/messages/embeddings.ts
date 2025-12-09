@@ -11,7 +11,7 @@ import {
 } from "../_generated/server";
 
 // Model configuration
-const SUMMARIZATION_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const SUMMARIZATION_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)

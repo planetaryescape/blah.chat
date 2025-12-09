@@ -6,7 +6,7 @@ import { action } from "../_generated/server";
 import { NOTE_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 // Use a fast, cost-effective model for title generation
-const TITLE_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const TITLE_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 
 /**
  * Generate a concise, descriptive title for a note using AI

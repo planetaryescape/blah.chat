@@ -8,7 +8,7 @@ import { internalAction, internalMutation } from "../_generated/server";
 import { buildTagExtractionPrompt } from "../lib/prompts/operational/tagExtraction";
 
 // Model configuration
-const TAG_EXTRACTION_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const TAG_EXTRACTION_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 
 const tagSchema = z.object({
   tags: z.array(z.string().min(2).max(30)).max(5),

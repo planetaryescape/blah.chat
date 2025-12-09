@@ -7,7 +7,7 @@ import { action } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 // Model configuration
-const TITLE_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const TITLE_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 
 export const bulkAutoRename = action({
   args: {

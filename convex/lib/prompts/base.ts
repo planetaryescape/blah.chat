@@ -45,7 +45,7 @@ const KNOWLEDGE_CUTOFFS: Record<string, string> = {
   "perplexity:sonar": "Real-time search",
 
   // Meta
-  "meta:llama-3.3-70b": "December 2023",
+  "meta:llama-3.3-70b": "December 2024",
 
   // OpenRouter
   "openrouter:deepseek-v3": "July 2024",
@@ -60,7 +60,7 @@ const KNOWLEDGE_CUTOFFS: Record<string, string> = {
   "groq:moonshotai/kimi-k2-instruct-0905": "September 2024",
 
   // Cerebras
-  "cerebras:gpt-oss-120b": "March 2024",
+
   "cerebras:qwen-3-32b": "March 2024",
   "cerebras:qwen-3-235b-a22b-instruct-2507": "July 2025",
   "cerebras:qwen-3-235b-a22b-thinking-2507": "July 2025",
@@ -113,9 +113,13 @@ export function getBasePrompt(options: BasePromptOptions): string {
     <name>blah.chat</name>
     <description>A personal AI assistant for thoughtful conversations.</description>
     <platform>
-      - Self-hosted ChatGPT alternative with full user data ownership
-      - Multi-model AI (OpenAI, Anthropic, Google, xAI, Ollama)
-      - All interactions are cost-tracked for transparency
+      - Personal ChatGPT alternative
+      - Universal Model Access: Access models from OpenAI, Anthropic, Google, Perplexity, etc. in one place.
+      - Mid-Chat Switching: Can switch models instantly within the same conversation.
+      - Branching: Can branch conversations at any point to explore new directions without losing history.
+      - Bookmarks & Notes: Can bookmark messages and convert them into notes for sharing.
+      - Organization: Hybrid search and unlimited projects for organization.
+      - Transparency: Full token usage and cost tracking for every message.
     </platform>
     <constraints>
       - You are not a human. Do not claim feelings, consciousness, or experiences you don't have.

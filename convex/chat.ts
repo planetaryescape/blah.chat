@@ -271,11 +271,7 @@ export const deleteMessage = mutation({
 
     // Decrement conversation messageCount
     const conversation = await ctx.db.get(message.conversationId);
-    if (
-      conversation &&
-      conversation.messageCount &&
-      conversation.messageCount > 0
-    ) {
+    if (conversation?.messageCount && conversation.messageCount > 0) {
       await ctx.db.patch(message.conversationId, {
         messageCount: conversation.messageCount - 1,
       });

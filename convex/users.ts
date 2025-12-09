@@ -110,6 +110,8 @@ export const updatePreferences = mutation({
       theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
       defaultModel: v.optional(v.string()),
       favoriteModels: v.optional(v.array(v.string())),
+      recentModels: v.optional(v.array(v.string())),
+      newChatModelSelection: v.optional(v.union(v.literal("fixed"), v.literal("recent"))),
       sendOnEnter: v.optional(v.boolean()),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),

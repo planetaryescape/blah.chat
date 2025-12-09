@@ -62,6 +62,20 @@ export const SUMMARIZATION_MODEL: ModelConfig =
 export const EMBEDDING_SUMMARIZATION_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
+/**
+ * Memory reranking for search results.
+ * Reorders memory candidates by relevance to query.
+ */
+export const MEMORY_RERANK_MODEL: ModelConfig =
+  MODEL_CONFIG["openai:gpt-oss-120b"];
+
+/**
+ * Feedback triage and categorization.
+ * Analyzes user feedback for priority, sentiment, and actionability.
+ */
+export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
+  MODEL_CONFIG["openai:gpt-oss-120b"];
+
 // ============================================================================
 // HELPER EXPORTS
 // ============================================================================
@@ -77,4 +91,6 @@ export const OPERATIONAL_MODELS = {
   tagExtraction: TAG_EXTRACTION_MODEL,
   summarization: SUMMARIZATION_MODEL,
   embeddingSummarization: EMBEDDING_SUMMARIZATION_MODEL,
+  memoryRerank: MEMORY_RERANK_MODEL,
+  feedbackTriage: FEEDBACK_TRIAGE_MODEL,
 } as const;

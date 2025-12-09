@@ -1,2 +1,2 @@
 // Re-export search functions
-export { hybridSearch, fullTextSearch, vectorSearch } from "./search/hybrid";
+export { fullTextSearch, hybridSearch, vectorSearch } from "./search/hybrid";

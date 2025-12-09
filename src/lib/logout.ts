@@ -5,22 +5,20 @@
 
 // Keys stored in localStorage that should be cleared on logout
 const LOCAL_STORAGE_KEYS_TO_CLEAR = [
-  'blah-hints-dismissed',
-  'conversationsExpanded',
-  'blah-recent-searches',
+  "blah-hints-dismissed",
+  "conversationsExpanded",
+  "blah-recent-searches",
 ] as const;
 
 // Prefix patterns for sessionStorage keys to clear
-const SESSION_STORAGE_PREFIXES = [
-  'modelHint-',
-] as const;
+const SESSION_STORAGE_PREFIXES = ["modelHint-"] as const;
 
 /**
  * Clears all user-specific data from browser storage
  * Should be called when user signs out to prevent data leakage
  */
 export function clearUserDataOnLogout(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     // 1. Clear specific localStorage keys
@@ -34,9 +32,9 @@ export function clearUserDataOnLogout(): void {
     // 3. Clear any IndexedDB databases if used (future-proofing)
     // Currently not used, but pattern is here for future implementation
 
-    console.log('[Logout] User data cleared from client storage');
+    console.log("[Logout] User data cleared from client storage");
   } catch (error) {
-    console.error('[Logout] Failed to clear user data:', error);
+    console.error("[Logout] Failed to clear user data:", error);
   }
 }
 
@@ -44,11 +42,11 @@ export function clearUserDataOnLogout(): void {
  * Clears only sessionStorage data (for quick cleanup without full logout)
  */
 export function clearSessionData(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     sessionStorage.clear();
   } catch (error) {
-    console.error('[Logout] Failed to clear session data:', error);
+    console.error("[Logout] Failed to clear session data:", error);
   }
 }

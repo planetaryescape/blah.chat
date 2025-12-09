@@ -1,10 +1,10 @@
-import { useMemo } from "react";
 import {
-  useQueryStates,
-  parseAsString,
   parseAsInteger,
+  parseAsString,
   parseAsStringLiteral,
+  useQueryStates,
 } from "nuqs";
+import { useMemo } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
 
 export interface SearchFilters {

@@ -1,9 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import {
   Check,
@@ -15,17 +11,20 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
+import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { cn } from "@/lib/utils";
 import { BookmarkButton } from "./BookmarkButton";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { MessageActionsMenuMobile } from "./MessageActionsMenuMobile";
-import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
-import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { TTSButton } from "./TTSButton";
 
 interface MessageActionsProps {
@@ -42,7 +41,6 @@ export function MessageActions({
   const [copied, setCopied] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
   const router = useRouter();
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser as any);
   const retryMessage = useMutation(api.chat.retryMessage);
   const stop = useMutation(api.chat.stopGeneration);

@@ -1,12 +1,18 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/convex/_generated/api";
 
 export function AdminSearchSettings() {
   const settings = useQuery(api.adminSettings.get);
@@ -75,15 +81,17 @@ export function AdminSearchSettings() {
             </li>
             <li>
               <strong>Hybrid search:</strong> Combines keywords with AI-powered
-              semantic understanding for more accurate results (slower, uses embeddings)
+              semantic understanding for more accurate results (slower, uses
+              embeddings)
             </li>
           </ul>
         </div>
 
         <div className="rounded-lg bg-muted/50 p-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> This setting applies globally to all users. Hybrid search requires
-            message embeddings and will use additional API quota.
+            <strong>Note:</strong> This setting applies globally to all users.
+            Hybrid search requires message embeddings and will use additional
+            API quota.
           </p>
         </div>
       </CardContent>

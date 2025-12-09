@@ -1,30 +1,29 @@
 "use client";
 
-import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { Plus, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
+import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
-    SidebarProvider,
-    SidebarTrigger,
-    useSidebar,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { api } from "@/convex/_generated/api";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Plus, Search } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { Suspense } from "react";
 
 function Header() {
   const { open } = useSidebar();
   const router = useRouter();
-  // @ts-ignore
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const { newChatModel } = useNewChatModel();

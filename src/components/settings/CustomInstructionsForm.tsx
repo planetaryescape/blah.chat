@@ -1,30 +1,30 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 type BaseStyleAndTone =
   | "default"
@@ -76,7 +76,6 @@ const STYLE_OPTIONS: {
 ];
 
 export function CustomInstructionsForm() {
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updateCustomInstructions = useMutation(
     api.users.updateCustomInstructions,
@@ -103,7 +102,9 @@ export function CustomInstructionsForm() {
       setAboutUser(ci.aboutUser || "");
       setResponseStyle(ci.responseStyle || "");
       setEnabled(ci.enabled ?? true);
-      setBaseStyleAndTone((ci.baseStyleAndTone as BaseStyleAndTone) || "default");
+      setBaseStyleAndTone(
+        (ci.baseStyleAndTone as BaseStyleAndTone) || "default",
+      );
       setNickname(ci.nickname || "");
       setOccupation(ci.occupation || "");
       setMoreAboutYou(ci.moreAboutYou || "");

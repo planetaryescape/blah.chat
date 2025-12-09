@@ -1,5 +1,7 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { FolderOpen } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -8,8 +10,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
-import { FolderOpen } from "lucide-react";
 
 interface ProjectFilterProps {
   value: string | null;
@@ -17,7 +17,6 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
-  // @ts-ignore
   const projects = useQuery(api.projects.list);
 
   const handleChange = (newValue: string) => {

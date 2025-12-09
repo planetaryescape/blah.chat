@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useMutation, useQuery, useAction } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { Check, Copy, Share2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -24,8 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Share2, Check, Copy } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { analytics } from "@/lib/analytics";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface NoteShareDialogProps {
   noteId: Id<"notes">;
@@ -38,11 +38,8 @@ export function NoteShareDialog({ noteId }: NoteShareDialogProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // @ts-ignore - Convex type instantiation depth issue
   const note = useQuery(api.notes.getNote, { noteId });
-  // @ts-ignore - Convex type instantiation depth issue
   const createShare = useAction(api.notes.createShare);
-  // @ts-ignore - Convex type instantiation depth issue
   const toggleShare = useMutation(api.notes.toggleShare);
 
   // Set share URL if exists

@@ -1,8 +1,8 @@
-import { buildReasoningOptions } from "@/lib/ai/reasoning";
-import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { v } from "convex/values";
+import { buildReasoningOptions } from "@/lib/ai/reasoning";
+import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
@@ -38,7 +38,6 @@ export const generateImage = internalAction({
 
     // Mark thinking started
     if (isReasoningModel && args.thinkingEffort) {
-      // @ts-ignore - Convex internal mutation type inference issue
       await ctx.runMutation(internal.messages.markThinkingStarted, {
         messageId: args.messageId,
       });
@@ -198,18 +197,14 @@ export const generateImage = internalAction({
       const outputTokens = usage.outputTokens ?? 0;
       const reasoningTokens = usage.reasoningTokens ?? 0;
 
-      const cost = calculateCost(
-        model,
-        {
-          inputTokens,
-          outputTokens,
-          cachedTokens: undefined,
-          reasoningTokens,
-        },
-      );
+      const cost = calculateCost(model, {
+        inputTokens,
+        outputTokens,
+        cachedTokens: undefined,
+        reasoningTokens,
+      });
 
       // Update message with image attachment
-      // @ts-ignore
       await ctx.runMutation(internal.messages.addAttachment, {
         messageId: args.messageId,
         attachment: {

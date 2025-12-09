@@ -1,9 +1,9 @@
 "use client";
 
-import { analytics } from "@/lib/analytics";
-import { clearUserDataOnLogout } from "@/lib/logout";
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
+import { analytics } from "@/lib/analytics";
+import { clearUserDataOnLogout } from "@/lib/logout";
 
 /**
  * AuthStateListener Component

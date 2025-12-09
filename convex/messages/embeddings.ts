@@ -5,9 +5,9 @@ import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { MODEL_CONFIG } from "../../src/lib/ai/models";
 import { internal } from "../_generated/api";
 import {
-    internalAction,
-    internalMutation,
-    internalQuery,
+  internalAction,
+  internalMutation,
+  internalQuery,
 } from "../_generated/server";
 
 // Model configuration
@@ -69,7 +69,6 @@ export const generateEmbedding = internalAction({
       });
 
       // Store embedding
-      // @ts-ignore - Convex type instantiation depth issue
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {
         messageId: args.messageId,
         embedding,

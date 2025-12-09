@@ -12,15 +12,17 @@ export function sortModels(
     .filter((m) => favoriteIds.includes(m.id) && m.id !== defaultModelId)
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const recents = models.filter(
-    (m) =>
-      recentIds.includes(m.id) &&
-      m.id !== defaultModelId &&
-      !favoriteIds.includes(m.id)
-  ).sort((a, b) => {
-    // Sort by index in recentIds to maintain recency order
-    return recentIds.indexOf(a.id) - recentIds.indexOf(b.id);
-  });
+  const recents = models
+    .filter(
+      (m) =>
+        recentIds.includes(m.id) &&
+        m.id !== defaultModelId &&
+        !favoriteIds.includes(m.id),
+    )
+    .sort((a, b) => {
+      // Sort by index in recentIds to maintain recency order
+      return recentIds.indexOf(a.id) - recentIds.indexOf(b.id);
+    });
 
   const rest = models.filter(
     (m) =>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
+import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -20,7 +20,6 @@ export function useSearchResults(
   const [hasMore, setHasMore] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - Convex type instantiation depth issue
   const hybridSearch = useAction(api.search.hybridSearch);
 
   // Execute search when query or filters change

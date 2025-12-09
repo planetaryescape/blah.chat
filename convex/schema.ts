@@ -16,7 +16,9 @@ export default defineSchema({
       defaultModel: v.string(),
       favoriteModels: v.optional(v.array(v.string())), // User's favorite models
       recentModels: v.optional(v.array(v.string())), // User's recently used models (max 3)
-      newChatModelSelection: v.optional(v.union(v.literal("fixed"), v.literal("recent"))), // How to select model for new chats
+      newChatModelSelection: v.optional(
+        v.union(v.literal("fixed"), v.literal("recent")),
+      ), // How to select model for new chats
       sendOnEnter: v.boolean(),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
@@ -607,31 +609,33 @@ export default defineSchema({
     ),
 
     // Priority (admin-assigned)
-    priority: v.optional(v.union(
-      v.literal("critical"),
-      v.literal("high"),
-      v.literal("medium"),
-      v.literal("low"),
-      v.literal("none"),
-    )),
+    priority: v.optional(
+      v.union(
+        v.literal("critical"),
+        v.literal("high"),
+        v.literal("medium"),
+        v.literal("low"),
+        v.literal("none"),
+      ),
+    ),
     // User-suggested urgency (when submitting)
-    userSuggestedUrgency: v.optional(v.union(
-      v.literal("urgent"),
-      v.literal("normal"),
-      v.literal("low"),
-    )),
+    userSuggestedUrgency: v.optional(
+      v.union(v.literal("urgent"), v.literal("normal"), v.literal("low")),
+    ),
 
     // Tags for categorization
     tags: v.optional(v.array(v.string())),
 
     // AI Triage suggestions
-    aiTriage: v.optional(v.object({
-      suggestedPriority: v.string(),
-      suggestedTags: v.array(v.string()),
-      possibleDuplicateId: v.optional(v.id("feedback")),
-      triageNotes: v.string(),
-      createdAt: v.number(),
-    })),
+    aiTriage: v.optional(
+      v.object({
+        suggestedPriority: v.string(),
+        suggestedTags: v.array(v.string()),
+        possibleDuplicateId: v.optional(v.id("feedback")),
+        triageNotes: v.string(),
+        createdAt: v.number(),
+      }),
+    ),
 
     // Assignment
     assignedTo: v.optional(v.id("users")),

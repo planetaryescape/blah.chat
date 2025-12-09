@@ -1,5 +1,10 @@
 "use client";
 
+import { useAction, useMutation } from "convex/react";
+import { Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,11 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
-import { Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface CreateNoteDialogProps {
   open: boolean;
@@ -37,9 +37,7 @@ export function CreateNoteDialog({
   sourceSelectionText,
 }: CreateNoteDialogProps) {
   const router = useRouter();
-  // @ts-ignore - Convex type instantiation depth issue
   const createNote = useMutation(api.notes.createNote);
-  // @ts-ignore - Convex type instantiation depth issue
   const generateTitle = useAction(api.notes.generateTitle.generateTitle);
 
   const [title, setTitle] = useState("");

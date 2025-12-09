@@ -1,16 +1,16 @@
 import { tool } from "ai";
 import {
-    addDays,
-    addHours,
-    addMinutes,
-    addMonths,
-    addWeeks,
-    addYears,
-    differenceInDays,
-    differenceInHours,
-    differenceInMinutes,
-    format,
-    parseISO,
+  addDays,
+  addHours,
+  addMinutes,
+  addMonths,
+  addWeeks,
+  addYears,
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  format,
+  parseISO,
 } from "date-fns";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { z } from "zod";
@@ -96,7 +96,7 @@ Operations:
               formatted: formatInTimeZone(
                 now,
                 timezone,
-                "EEEE, MMMM d, yyyy 'at' h:mm a zzz"
+                "EEEE, MMMM d, yyyy 'at' h:mm a zzz",
               ),
               timezone,
               components: {
@@ -194,7 +194,8 @@ Operations:
       } catch (error) {
         return {
           success: false,
-          error: error instanceof Error ? error.message : "Date operation failed",
+          error:
+            error instanceof Error ? error.message : "Date operation failed",
         };
       }
     },

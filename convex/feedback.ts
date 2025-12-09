@@ -12,8 +12,26 @@ export * as triage from "./feedback/triage";
 
 // Status values valid for each feedback type
 export const STATUS_BY_TYPE = {
-  bug: ["new", "triaging", "in-progress", "resolved", "verified", "closed", "wont-fix", "duplicate", "cannot-reproduce"],
-  feature: ["submitted", "under-review", "planned", "in-progress", "shipped", "declined", "maybe-later"],
+  bug: [
+    "new",
+    "triaging",
+    "in-progress",
+    "resolved",
+    "verified",
+    "closed",
+    "wont-fix",
+    "duplicate",
+    "cannot-reproduce",
+  ],
+  feature: [
+    "submitted",
+    "under-review",
+    "planned",
+    "in-progress",
+    "shipped",
+    "declined",
+    "maybe-later",
+  ],
   praise: ["received", "acknowledged", "shared"],
   other: ["new", "reviewed", "actioned", "closed"],
 } as const;
@@ -29,16 +47,29 @@ export const DEFAULT_STATUS_BY_TYPE = {
 // All possible status values for schema validation
 const statusValidator = v.union(
   // Bug statuses
-  v.literal("new"), v.literal("triaging"), v.literal("in-progress"),
-  v.literal("resolved"), v.literal("verified"), v.literal("closed"),
-  v.literal("wont-fix"), v.literal("duplicate"), v.literal("cannot-reproduce"),
+  v.literal("new"),
+  v.literal("triaging"),
+  v.literal("in-progress"),
+  v.literal("resolved"),
+  v.literal("verified"),
+  v.literal("closed"),
+  v.literal("wont-fix"),
+  v.literal("duplicate"),
+  v.literal("cannot-reproduce"),
   // Feature statuses
-  v.literal("submitted"), v.literal("under-review"), v.literal("planned"),
-  v.literal("shipped"), v.literal("declined"), v.literal("maybe-later"),
+  v.literal("submitted"),
+  v.literal("under-review"),
+  v.literal("planned"),
+  v.literal("shipped"),
+  v.literal("declined"),
+  v.literal("maybe-later"),
   // Praise statuses
-  v.literal("received"), v.literal("acknowledged"), v.literal("shared"),
+  v.literal("received"),
+  v.literal("acknowledged"),
+  v.literal("shared"),
   // General statuses
-  v.literal("reviewed"), v.literal("actioned"),
+  v.literal("reviewed"),
+  v.literal("actioned"),
 );
 
 const feedbackTypeValidator = v.union(
@@ -72,11 +103,9 @@ export const createFeedback = mutation({
     whatTheySaw: v.optional(v.string()),
     whatTheyExpected: v.optional(v.string()),
     screenshotStorageId: v.optional(v.id("_storage")),
-    userSuggestedUrgency: v.optional(v.union(
-      v.literal("urgent"),
-      v.literal("normal"),
-      v.literal("low"),
-    )),
+    userSuggestedUrgency: v.optional(
+      v.union(v.literal("urgent"), v.literal("normal"), v.literal("low")),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -106,10 +135,13 @@ export const createFeedback = mutation({
     });
 
     // Schedule AI auto-triage (runs asynchronously)
-    // @ts-ignore - Convex type instantiation depth issue
-    await ctx.scheduler.runAfter(0, internal.feedback.triage.autoTriageFeedback, {
-      feedbackId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.feedback.triage.autoTriageFeedback,
+      {
+        feedbackId,
+      },
+    );
 
     return feedbackId;
   },
@@ -276,11 +308,13 @@ export const listFeedback = query({
     priority: v.optional(priorityValidator),
     searchQuery: v.optional(v.string()),
     includeArchived: v.optional(v.boolean()),
-    sortBy: v.optional(v.union(
-      v.literal("createdAt"),
-      v.literal("updatedAt"),
-      v.literal("priority"),
-    )),
+    sortBy: v.optional(
+      v.union(
+        v.literal("createdAt"),
+        v.literal("updatedAt"),
+        v.literal("priority"),
+      ),
+    ),
     sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   handler: async (ctx, args) => {
@@ -314,21 +348,30 @@ export const listFeedback = query({
     // Text search on description, userName, userEmail
     if (args.searchQuery && args.searchQuery.trim()) {
       const query = args.searchQuery.toLowerCase().trim();
-      results = results.filter((f) =>
-        f.description.toLowerCase().includes(query) ||
-        f.userName.toLowerCase().includes(query) ||
-        f.userEmail.toLowerCase().includes(query) ||
-        f.page.toLowerCase().includes(query)
+      results = results.filter(
+        (f) =>
+          f.description.toLowerCase().includes(query) ||
+          f.userName.toLowerCase().includes(query) ||
+          f.userEmail.toLowerCase().includes(query) ||
+          f.page.toLowerCase().includes(query),
       );
     }
 
     // Sort by priority (custom order)
     if (args.sortBy === "priority") {
-      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3, none: 4 };
+      const priorityOrder = {
+        critical: 0,
+        high: 1,
+        medium: 2,
+        low: 3,
+        none: 4,
+      };
       results.sort((a, b) => {
         const aPriority = priorityOrder[a.priority || "none"];
         const bPriority = priorityOrder[b.priority || "none"];
-        return args.sortOrder === "asc" ? aPriority - bPriority : bPriority - aPriority;
+        return args.sortOrder === "asc"
+          ? aPriority - bPriority
+          : bPriority - aPriority;
       });
     }
 
@@ -421,10 +464,7 @@ export const getTagSuggestions = query({
       throw new Error("Unauthorized: Admin access required");
     }
 
-    let tags = await ctx.db
-      .query("feedbackTags")
-      .order("desc")
-      .collect();
+    let tags = await ctx.db.query("feedbackTags").order("desc").collect();
 
     // Filter by query if provided
     if (query && query.trim()) {

@@ -1,11 +1,11 @@
 "use client";
 
-import { AdminSidebar } from "@/components/sidebar/admin-sidebar";
-import { FeedbackButton } from "@/components/feedback/FeedbackButton";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
+import { AdminSidebar } from "@/components/sidebar/admin-sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function AdminLayout({
   children,

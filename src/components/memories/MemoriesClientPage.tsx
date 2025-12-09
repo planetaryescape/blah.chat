@@ -1,67 +1,66 @@
 "use client";
 
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { api } from "@/convex/_generated/api";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
-    Brain,
-    Calendar,
-    ExternalLink,
-    Eye,
-    EyeOff,
-    Loader2,
-    MoreVertical,
-    Trash2,
+  Brain,
+  Calendar,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Loader2,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
-    parseAsBoolean,
-    parseAsString,
-    parseAsStringEnum,
-    useQueryState,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryState,
 } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
-
 import { MemoryFilters } from "@/components/memories/MemoryFilters";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export function MemoriesClientPage() {
   const router = useRouter();
@@ -97,7 +96,6 @@ export function MemoriesClientPage() {
   // Debounced value (only triggers query after 300ms idle)
   const debouncedSearchQuery = useDebounce(searchParam, 300);
 
-  // @ts-ignore - Convex type instantiation depth issue
   const memories = useQuery(api.memories.listFiltered, {
     category: categoryFilter || undefined,
     sortBy: sortBy || undefined,
@@ -447,13 +445,18 @@ export function MemoriesClientPage() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete memory?</AlertDialogTitle>
+                                      <AlertDialogTitle>
+                                        Delete memory?
+                                      </AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        This will permanently delete this memory. This action cannot be undone.
+                                        This will permanently delete this
+                                        memory. This action cannot be undone.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => handleDelete(memory._id)}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

@@ -1,18 +1,18 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import DOMPurify from "dompurify";
+import { motion } from "framer-motion";
+import katex from "katex";
+import { FileText, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import DOMPurify from "dompurify";
-import { motion } from "framer-motion";
-import { FileText, Loader2 } from "lucide-react";
-import katex from "katex";
-import Link from "next/link";
-import { useEffect, useMemo, useRef } from "react";
 import "katex/dist/katex.min.css";
 
 interface NoteShareViewProps {
@@ -20,7 +20,6 @@ interface NoteShareViewProps {
 }
 
 export function NoteShareView({ noteId }: NoteShareViewProps) {
-  // @ts-ignore
   const note = useQuery(api.notes.getPublicNote, { noteId });
   const contentRef = useRef<HTMLDivElement>(null);
 

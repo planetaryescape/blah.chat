@@ -1,10 +1,10 @@
-import { v } from "convex/values";
-import { query, action } from "../_generated/server";
-import { api } from "../_generated/api";
-import { getCurrentUser } from "../lib/userSync";
-import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { embed } from "ai";
+import { v } from "convex/values";
+import { api } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
+import { action, query } from "../_generated/server";
+import { getCurrentUser } from "../lib/userSync";
 
 /**
  * Hybrid search using RRF (Reciprocal Rank Fusion)

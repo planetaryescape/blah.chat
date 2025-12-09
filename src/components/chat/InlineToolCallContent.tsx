@@ -66,7 +66,7 @@ export function InlineToolCallContent({
 
     // Check if any tool calls have position info
     const hasPositionInfo = sortedCalls.some(
-      (tc) => tc.textPosition !== undefined && tc.textPosition !== null
+      (tc) => tc.textPosition !== undefined && tc.textPosition !== null,
     );
 
     if (!hasPositionInfo) {

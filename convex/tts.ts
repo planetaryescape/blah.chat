@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 
 /**
@@ -19,7 +19,6 @@ export const generateSpeech = action({
   },
   handler: async (ctx, args) => {
     // 1. Get user + check TTS enabled
-    // @ts-ignore - Type instantiation depth issue with Convex types
     const user = await ctx.runQuery(api.users.getCurrentUser, {});
     if (!user?.preferences?.ttsEnabled) {
       throw new Error("TTS is disabled in user preferences");
@@ -71,7 +70,6 @@ export const generateSpeech = action({
     const audioBuffer = await response.arrayBuffer();
 
     // 4. Track cost
-    // @ts-ignore - Type instantiation depth issue with Convex types
     await ctx.runMutation(internal.usage.mutations.recordTTS, {
       userId: user._id,
       model: `${provider}:tts`,
@@ -85,9 +83,9 @@ export const generateSpeech = action({
     });
 
     // 5. Convert to base64 for storage/transfer
-    const audioBase64: string = Buffer.from(new Uint8Array(audioBuffer)).toString(
-      "base64",
-    );
+    const audioBase64: string = Buffer.from(
+      new Uint8Array(audioBuffer),
+    ).toString("base64");
 
     return {
       audioBase64,
@@ -98,5 +96,3 @@ export const generateSpeech = action({
     };
   },
 });
-
-

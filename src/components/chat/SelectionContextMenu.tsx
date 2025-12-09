@@ -1,23 +1,23 @@
 "use client";
 
+import { useAction, useMutation } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Brain,
+  type LucideIcon,
+  Quote,
+  Search,
+  Sparkles,
+  Tag,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 import { SummarizePopover } from "@/components/notes/SummarizePopover";
 import { useSelection } from "@/contexts/SelectionContext";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-    Brain,
-    Quote,
-    Search,
-    Sparkles,
-    Tag,
-    type LucideIcon,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { toast } from "sonner";
 
 interface MenuAction {
   id: string;
@@ -47,7 +47,6 @@ export function SelectionContextMenu() {
     useState<Id<"messages"> | null>(null);
 
   // Convex mutations and actions
-  // @ts-ignore - Convex type instantiation depth issue
   const createSnippet = useMutation(api.snippets.createSnippet);
   const createMemoryFromSelection = useAction(
     api.memories.createMemoryFromSelection,

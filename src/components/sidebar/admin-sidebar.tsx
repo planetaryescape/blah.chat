@@ -1,23 +1,23 @@
 "use client";
 
-import { Logo } from "@/components/brand/Logo";
-import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from "@/components/ui/sidebar";
 import { UserButton } from "@clerk/nextjs";
 import { ArrowLeft, MessageSquare, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Logo } from "@/components/brand/Logo";
+import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 const ADMIN_MENU_ITEMS = [
   { icon: MessageSquare, label: "Feedback", href: "/admin/feedback" },
@@ -29,11 +29,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar
-      collapsible="icon"
-      role="navigation"
-      aria-label="Admin navigation"
-    >
+    <Sidebar collapsible="icon" role="navigation" aria-label="Admin navigation">
       <SidebarHeader className="pt-6 px-4 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           <Link
@@ -52,7 +48,10 @@ export function AdminSidebar() {
             <Logo size="sm" showText={false} />
           </Link>
           <div className="sm:hidden">
-            <Link href="/admin/feedback" className="hover:opacity-80 transition-opacity">
+            <Link
+              href="/admin/feedback"
+              className="hover:opacity-80 transition-opacity"
+            >
               <Logo size="sm" showText={false} />
             </Link>
           </div>
@@ -87,7 +86,10 @@ export function AdminSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Back to App">
-              <Link href="/app" className="text-muted-foreground hover:text-foreground">
+              <Link
+                href="/app"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to App</span>
               </Link>

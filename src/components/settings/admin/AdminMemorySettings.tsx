@@ -1,13 +1,19 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export function AdminMemorySettings() {
   const settings = useQuery(api.adminSettings.get);
@@ -104,7 +110,8 @@ export function AdminMemorySettings() {
 
         <div className="rounded-lg bg-muted/50 p-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> These settings apply globally to all users. Changes take effect immediately.
+            <strong>Note:</strong> These settings apply globally to all users.
+            Changes take effect immediately.
           </p>
         </div>
       </CardContent>

@@ -1,15 +1,36 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
+import {
+  Archive,
+  ArrowDown,
+  ArrowUp,
+  Bug,
+  CheckSquare,
+  ChevronLeft,
+  Filter,
+  Heart,
+  Lightbulb,
+  MessageCircle,
+  MessageSquare,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/convex/_generated/api";
@@ -17,27 +38,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { formatDistanceToNow } from "date-fns";
-import {
-    Archive,
-    ArrowDown,
-    ArrowUp,
-    Bug,
-    CheckSquare,
-    ChevronLeft,
-    Filter,
-    Heart,
-    Lightbulb,
-    MessageCircle,
-    MessageSquare,
-    Search,
-    Sparkles,
-    X,
-} from "lucide-react";
-import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 
 // ============================================================================
 // TYPES & CONFIGURATIONS
@@ -48,77 +48,129 @@ type Priority = "critical" | "high" | "medium" | "low" | "none";
 
 // Status values by type for the dropdown
 const STATUS_BY_TYPE: Record<FeedbackType, string[]> = {
-  bug: ["new", "triaging", "in-progress", "resolved", "verified", "closed", "wont-fix", "duplicate", "cannot-reproduce"],
-  feature: ["submitted", "under-review", "planned", "in-progress", "shipped", "declined", "maybe-later"],
+  bug: [
+    "new",
+    "triaging",
+    "in-progress",
+    "resolved",
+    "verified",
+    "closed",
+    "wont-fix",
+    "duplicate",
+    "cannot-reproduce",
+  ],
+  feature: [
+    "submitted",
+    "under-review",
+    "planned",
+    "in-progress",
+    "shipped",
+    "declined",
+    "maybe-later",
+  ],
   praise: ["received", "acknowledged", "shared"],
   other: ["new", "reviewed", "actioned", "closed"],
 };
 
 // Human-readable status labels
 const STATUS_LABELS: Record<string, string> = {
-  "new": "New",
-  "triaging": "Triaging",
+  new: "New",
+  triaging: "Triaging",
   "in-progress": "In Progress",
-  "resolved": "Resolved",
-  "verified": "Verified",
-  "closed": "Closed",
+  resolved: "Resolved",
+  verified: "Verified",
+  closed: "Closed",
   "wont-fix": "Won't Fix",
-  "duplicate": "Duplicate",
+  duplicate: "Duplicate",
   "cannot-reproduce": "Cannot Reproduce",
-  "submitted": "Submitted",
+  submitted: "Submitted",
   "under-review": "Under Review",
-  "planned": "Planned",
-  "shipped": "Shipped",
-  "declined": "Declined",
+  planned: "Planned",
+  shipped: "Shipped",
+  declined: "Declined",
   "maybe-later": "Maybe Later",
-  "received": "Received",
-  "acknowledged": "Acknowledged",
-  "shared": "Shared",
-  "reviewed": "Reviewed",
-  "actioned": "Actioned",
+  received: "Received",
+  acknowledged: "Acknowledged",
+  shared: "Shared",
+  reviewed: "Reviewed",
+  actioned: "Actioned",
 };
 
 // Status colors
 const STATUS_COLORS: Record<string, string> = {
   // Bug statuses
-  "new": "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  "triaging": "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  new: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  triaging: "bg-orange-500/10 text-orange-500 border-orange-500/20",
   "in-progress": "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-  "resolved": "bg-green-500/10 text-green-500 border-green-500/20",
-  "verified": "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  "closed": "bg-gray-500/10 text-gray-500 border-gray-500/20",
+  resolved: "bg-green-500/10 text-green-500 border-green-500/20",
+  verified: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  closed: "bg-gray-500/10 text-gray-500 border-gray-500/20",
   "wont-fix": "bg-gray-500/10 text-gray-500 border-gray-500/20",
-  "duplicate": "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  duplicate: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   "cannot-reproduce": "bg-gray-500/10 text-gray-500 border-gray-500/20",
   // Feature statuses
-  "submitted": "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  submitted: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   "under-review": "bg-orange-500/10 text-orange-500 border-orange-500/20",
-  "planned": "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
-  "shipped": "bg-green-500/10 text-green-500 border-green-500/20",
-  "declined": "bg-red-500/10 text-red-500 border-red-500/20",
+  planned: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+  shipped: "bg-green-500/10 text-green-500 border-green-500/20",
+  declined: "bg-red-500/10 text-red-500 border-red-500/20",
   "maybe-later": "bg-gray-500/10 text-gray-500 border-gray-500/20",
   // Praise statuses
-  "received": "bg-pink-500/10 text-pink-500 border-pink-500/20",
-  "acknowledged": "bg-pink-500/10 text-pink-500 border-pink-500/20",
-  "shared": "bg-green-500/10 text-green-500 border-green-500/20",
+  received: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+  acknowledged: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+  shared: "bg-green-500/10 text-green-500 border-green-500/20",
   // General
-  "reviewed": "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  "actioned": "bg-green-500/10 text-green-500 border-green-500/20",
+  reviewed: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  actioned: "bg-green-500/10 text-green-500 border-green-500/20",
 };
 
-const TYPE_CONFIG: Record<FeedbackType, { label: string; icon: React.ReactNode; color: string }> = {
-  bug: { label: "Bug", icon: <Bug className="h-3 w-3" />, color: "bg-red-500/10 text-red-500" },
-  feature: { label: "Feature", icon: <Lightbulb className="h-3 w-3" />, color: "bg-purple-500/10 text-purple-500" },
-  praise: { label: "Praise", icon: <Heart className="h-3 w-3" />, color: "bg-pink-500/10 text-pink-500" },
-  other: { label: "Other", icon: <MessageCircle className="h-3 w-3" />, color: "bg-gray-500/10 text-gray-500" },
+const TYPE_CONFIG: Record<
+  FeedbackType,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  bug: {
+    label: "Bug",
+    icon: <Bug className="h-3 w-3" />,
+    color: "bg-red-500/10 text-red-500",
+  },
+  feature: {
+    label: "Feature",
+    icon: <Lightbulb className="h-3 w-3" />,
+    color: "bg-purple-500/10 text-purple-500",
+  },
+  praise: {
+    label: "Praise",
+    icon: <Heart className="h-3 w-3" />,
+    color: "bg-pink-500/10 text-pink-500",
+  },
+  other: {
+    label: "Other",
+    icon: <MessageCircle className="h-3 w-3" />,
+    color: "bg-gray-500/10 text-gray-500",
+  },
 };
 
 const PRIORITY_CONFIG: Record<Priority, { label: string; color: string }> = {
-  critical: { label: "Critical", color: "bg-red-500/10 text-red-500 border-red-500" },
-  high: { label: "High", color: "bg-orange-500/10 text-orange-500 border-orange-500" },
-  medium: { label: "Medium", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500" },
-  low: { label: "Low", color: "bg-green-500/10 text-green-500 border-green-500" },
-  none: { label: "None", color: "bg-gray-500/10 text-gray-500 border-gray-500" },
+  critical: {
+    label: "Critical",
+    color: "bg-red-500/10 text-red-500 border-red-500",
+  },
+  high: {
+    label: "High",
+    color: "bg-orange-500/10 text-orange-500 border-orange-500",
+  },
+  medium: {
+    label: "Medium",
+    color: "bg-yellow-500/10 text-yellow-500 border-yellow-500",
+  },
+  low: {
+    label: "Low",
+    color: "bg-green-500/10 text-green-500 border-green-500",
+  },
+  none: {
+    label: "None",
+    color: "bg-gray-500/10 text-gray-500 border-gray-500",
+  },
 };
 
 // ============================================================================
@@ -144,12 +196,27 @@ function FeedbackPageContent() {
   const { isMobile } = useMobileDetect();
 
   // URL-persisted filters
-  const [statusFilter, setStatusFilter] = useQueryState("status", parseAsString);
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsString,
+  );
   const [typeFilter, setTypeFilter] = useQueryState("type", parseAsString);
-  const [priorityFilter, setPriorityFilter] = useQueryState("priority", parseAsString);
-  const [searchParam, setSearchParam] = useQueryState("q", parseAsString.withDefault(""));
-  const [sortBy, setSortBy] = useQueryState("sort", parseAsString.withDefault("createdAt"));
-  const [sortOrder, setSortOrder] = useQueryState("order", parseAsString.withDefault("desc"));
+  const [priorityFilter, setPriorityFilter] = useQueryState(
+    "priority",
+    parseAsString,
+  );
+  const [searchParam, setSearchParam] = useQueryState(
+    "q",
+    parseAsString.withDefault(""),
+  );
+  const [sortBy, setSortBy] = useQueryState(
+    "sort",
+    parseAsString.withDefault("createdAt"),
+  );
+  const [sortOrder, setSortOrder] = useQueryState(
+    "order",
+    parseAsString.withDefault("desc"),
+  );
 
   // Debounced search
   const searchQuery = useDebounce(searchParam, 300);
@@ -162,7 +229,9 @@ function FeedbackPageContent() {
   const isSelectionMode = selectedIds.size > 0;
 
   // Check if any filters are active
-  const hasActiveFilters = Boolean(statusFilter || typeFilter || priorityFilter || searchParam);
+  const hasActiveFilters = Boolean(
+    statusFilter || typeFilter || priorityFilter || searchParam,
+  );
 
   // Clear all filters
   const clearFilters = () => {
@@ -172,20 +241,17 @@ function FeedbackPageContent() {
     setSearchParam("");
   };
 
-  // @ts-ignore - Convex type depth issue
   const feedbackList = useQuery(api.feedback.listFeedback, {
-    status: statusFilter as any || undefined,
-    feedbackType: typeFilter as any || undefined,
-    priority: priorityFilter as any || undefined,
+    status: (statusFilter as any) || undefined,
+    feedbackType: (typeFilter as any) || undefined,
+    priority: (priorityFilter as any) || undefined,
     searchQuery: searchQuery || undefined,
-    sortBy: sortBy as any || "createdAt",
-    sortOrder: sortOrder as any || "desc",
+    sortBy: (sortBy as any) || "createdAt",
+    sortOrder: (sortOrder as any) || "desc",
   });
 
-  // @ts-ignore - Convex type depth issue
   const feedbackCounts = useQuery(api.feedback.getFeedbackCounts, {});
 
-  // @ts-ignore - Convex type depth issue
   const selectedFeedback = useQuery(
     api.feedback.getFeedback,
     selectedId ? { feedbackId: selectedId } : "skip",
@@ -196,7 +262,6 @@ function FeedbackPageContent() {
   const bulkUpdateStatus = useMutation(api.feedback.bulkUpdateStatus);
 
   const archiveFeedback = useMutation(api.feedback.archiveFeedback);
-  // @ts-ignore - Convex type depth issue for triage
   const acceptTriage = useMutation(api.feedback.triage.acceptTriageSuggestion);
 
   const handleStatusChange = async (newStatus: string) => {
@@ -266,19 +331,21 @@ function FeedbackPageContent() {
     }
   };
 
-  const handleAcceptTriage = async (args: { acceptPriority?: boolean; acceptTags?: boolean }) => {
+  const handleAcceptTriage = async (args: {
+    acceptPriority?: boolean;
+    acceptTags?: boolean;
+  }) => {
     if (!selectedId) return;
     try {
       await acceptTriage({
         feedbackId: selectedId,
-        ...args
+        ...args,
       });
       toast.success("Applied AI suggestion");
     } catch (error) {
       toast.error("Failed to apply suggestion");
     }
   };
-
 
   // Toggle sort order
   const toggleSortOrder = useCallback(() => {
@@ -289,7 +356,10 @@ function FeedbackPageContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
@@ -326,7 +396,9 @@ function FeedbackPageContent() {
           break;
         case "/":
           e.preventDefault();
-          document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+          document
+            .querySelector<HTMLInputElement>("[data-search-input]")
+            ?.focus();
           break;
       }
     };
@@ -561,7 +633,10 @@ function FilterBar({
       {/* Filter dropdowns */}
       <div className="flex flex-wrap gap-2">
         {/* Type filter */}
-        <Select value={typeFilter || "all"} onValueChange={(v) => setTypeFilter(v === "all" ? null : v)}>
+        <Select
+          value={typeFilter || "all"}
+          onValueChange={(v) => setTypeFilter(v === "all" ? null : v)}
+        >
           <SelectTrigger className="w-[120px] h-8 text-xs">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
@@ -569,29 +644,36 @@ function FilterBar({
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="bug">
               <span className="flex items-center gap-1">
-                <Bug className="h-3 w-3" /> Bug {counts?.[`type_bug`] ? `(${counts[`type_bug`]})` : ""}
+                <Bug className="h-3 w-3" /> Bug{" "}
+                {counts?.[`type_bug`] ? `(${counts[`type_bug`]})` : ""}
               </span>
             </SelectItem>
             <SelectItem value="feature">
               <span className="flex items-center gap-1">
-                <Lightbulb className="h-3 w-3" /> Feature {counts?.[`type_feature`] ? `(${counts[`type_feature`]})` : ""}
+                <Lightbulb className="h-3 w-3" /> Feature{" "}
+                {counts?.[`type_feature`] ? `(${counts[`type_feature`]})` : ""}
               </span>
             </SelectItem>
             <SelectItem value="praise">
               <span className="flex items-center gap-1">
-                <Heart className="h-3 w-3" /> Praise {counts?.[`type_praise`] ? `(${counts[`type_praise`]})` : ""}
+                <Heart className="h-3 w-3" /> Praise{" "}
+                {counts?.[`type_praise`] ? `(${counts[`type_praise`]})` : ""}
               </span>
             </SelectItem>
             <SelectItem value="other">
               <span className="flex items-center gap-1">
-                <MessageCircle className="h-3 w-3" /> Other {counts?.[`type_other`] ? `(${counts[`type_other`]})` : ""}
+                <MessageCircle className="h-3 w-3" /> Other{" "}
+                {counts?.[`type_other`] ? `(${counts[`type_other`]})` : ""}
               </span>
             </SelectItem>
           </SelectContent>
         </Select>
 
         {/* Status filter */}
-        <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}>
+        <Select
+          value={statusFilter || "all"}
+          onValueChange={(v) => setStatusFilter(v === "all" ? null : v)}
+        >
           <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -599,14 +681,18 @@ function FilterBar({
             <SelectItem value="all">All Statuses</SelectItem>
             {availableStatuses.map((status) => (
               <SelectItem key={status} value={status}>
-                {STATUS_LABELS[status] || status} {counts?.[status] ? `(${counts[status]})` : ""}
+                {STATUS_LABELS[status] || status}{" "}
+                {counts?.[status] ? `(${counts[status]})` : ""}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         {/* Priority filter */}
-        <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? null : v)}>
+        <Select
+          value={priorityFilter || "all"}
+          onValueChange={(v) => setPriorityFilter(v === "all" ? null : v)}
+        >
           <SelectTrigger className="w-[120px] h-8 text-xs">
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
@@ -648,7 +734,12 @@ function FilterBar({
 
         {/* Clear filters */}
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8 px-2 text-xs"
+          >
             <X className="h-3 w-3 mr-1" />
             Clear
           </Button>
@@ -702,23 +793,42 @@ function FeedbackList({
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium truncate">{item.userName}</p>
                   {item.feedbackType && (
-                    <Badge variant="outline" className={cn("shrink-0 gap-1 text-[10px]", TYPE_CONFIG[item.feedbackType as FeedbackType]?.color)}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "shrink-0 gap-1 text-[10px]",
+                        TYPE_CONFIG[item.feedbackType as FeedbackType]?.color,
+                      )}
+                    >
                       {TYPE_CONFIG[item.feedbackType as FeedbackType]?.icon}
                       {TYPE_CONFIG[item.feedbackType as FeedbackType]?.label}
                     </Badge>
                   )}
                   {item.priority && item.priority !== "none" && (
-                    <Badge variant="outline" className={cn("shrink-0 text-[10px]", PRIORITY_CONFIG[item.priority as Priority]?.color)}>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "shrink-0 text-[10px]",
+                        PRIORITY_CONFIG[item.priority as Priority]?.color,
+                      )}
+                    >
                       {PRIORITY_CONFIG[item.priority as Priority]?.label}
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                <p className="text-sm text-muted-foreground truncate">
+                  {item.description}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {formatDistanceToNow(item.createdAt, { addSuffix: true })}
                 </p>
               </div>
-              <Badge className={cn("shrink-0 text-[10px]", STATUS_COLORS[item.status])}>
+              <Badge
+                className={cn(
+                  "shrink-0 text-[10px]",
+                  STATUS_COLORS[item.status],
+                )}
+              >
                 {STATUS_LABELS[item.status] || item.status}
               </Badge>
             </div>
@@ -749,9 +859,7 @@ function BulkActionBar({
 
   return (
     <div className="flex items-center gap-2 p-2 bg-primary/10 border-b">
-      <span className="text-sm font-medium">
-        {selectedCount} selected
-      </span>
+      <span className="text-sm font-medium">{selectedCount} selected</span>
 
       <Button
         variant="ghost"
@@ -801,10 +909,13 @@ function BulkActionBar({
 // Triage Panel Component
 function TriagePanel({
   feedback,
-  onAcceptTriage
+  onAcceptTriage,
 }: {
   feedback: any;
-  onAcceptTriage: (args: { acceptPriority?: boolean; acceptTags?: boolean }) => void;
+  onAcceptTriage: (args: {
+    acceptPriority?: boolean;
+    acceptTags?: boolean;
+  }) => void;
 }) {
   const triage = feedback.aiTriage;
   if (!triage) return null;
@@ -821,30 +932,38 @@ function TriagePanel({
 
       <div className="grid gap-3 text-sm">
         {/* Priority Suggestion */}
-        {triage.suggestedPriority && triage.suggestedPriority !== feedback.priority && (
-          <div className="flex items-center justify-between bg-background p-2 rounded border">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Priority:</span>
-              <Badge variant="outline" className={PRIORITY_CONFIG[triage.suggestedPriority as Priority]?.color}>
-                {PRIORITY_CONFIG[triage.suggestedPriority as Priority]?.label}
-              </Badge>
+        {triage.suggestedPriority &&
+          triage.suggestedPriority !== feedback.priority && (
+            <div className="flex items-center justify-between bg-background p-2 rounded border">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Priority:</span>
+                <Badge
+                  variant="outline"
+                  className={
+                    PRIORITY_CONFIG[triage.suggestedPriority as Priority]?.color
+                  }
+                >
+                  {PRIORITY_CONFIG[triage.suggestedPriority as Priority]?.label}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-6 text-xs hover:bg-violet-100 hover:text-violet-700 dark:hover:bg-violet-900/30 dark:hover:text-violet-300"
+                onClick={() => onAcceptTriage({ acceptPriority: true })}
+              >
+                Accept
+              </Button>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-6 text-xs hover:bg-violet-100 hover:text-violet-700 dark:hover:bg-violet-900/30 dark:hover:text-violet-300"
-              onClick={() => onAcceptTriage({ acceptPriority: true })}
-            >
-              Accept
-            </Button>
-          </div>
-        )}
+          )}
 
         {/* Tags Suggestion */}
         {triage.suggestedTags && triage.suggestedTags.length > 0 && (
           <div className="flex items-start justify-between bg-background p-2 rounded border">
             <div className="flex-1">
-              <span className="text-muted-foreground block mb-1 text-xs">Suggested Tags:</span>
+              <span className="text-muted-foreground block mb-1 text-xs">
+                Suggested Tags:
+              </span>
               <div className="flex flex-wrap gap-1">
                 {triage.suggestedTags.map((tag: string) => {
                   const isExisting = feedback.tags?.includes(tag);
@@ -866,7 +985,7 @@ function TriagePanel({
               className="h-6 text-xs mt-1 shrink-0 ml-2 hover:bg-violet-100 hover:text-violet-700 dark:hover:bg-violet-900/30 dark:hover:text-violet-300"
               onClick={() => onAcceptTriage({ acceptTags: true })}
             >
-               Add Tags
+              Add Tags
             </Button>
           </div>
         )}
@@ -875,13 +994,17 @@ function TriagePanel({
         <div className="grid grid-cols-2 gap-2 mt-1">
           {triage.sentiment && (
             <div className="bg-background p-2 rounded border">
-              <span className="text-[10px] text-muted-foreground block uppercase tracking-wider">Sentiment</span>
+              <span className="text-[10px] text-muted-foreground block uppercase tracking-wider">
+                Sentiment
+              </span>
               <span className="capitalize">{triage.sentiment}</span>
             </div>
           )}
           {triage.category && (
             <div className="bg-background p-2 rounded border">
-              <span className="text-[10px] text-muted-foreground block uppercase tracking-wider">Category</span>
+              <span className="text-[10px] text-muted-foreground block uppercase tracking-wider">
+                Category
+              </span>
               <span className="capitalize">{triage.category}</span>
             </div>
           )}
@@ -891,7 +1014,9 @@ function TriagePanel({
         {triage.triageNotes && (
           <div className="bg-background p-2 rounded border text-muted-foreground text-xs leading-relaxed">
             {triage.triageNotes.split(" | ").map((note: string, i: number) => (
-              <p key={i} className="mb-1 last:mb-0">{note}</p>
+              <p key={i} className="mb-1 last:mb-0">
+                {note}
+              </p>
             ))}
           </div>
         )}
@@ -909,14 +1034,16 @@ function FeedbackDetail({
   feedback: any;
   onStatusChange: (status: string) => void;
   onPriorityChange: (priority: Priority) => void;
-  onAcceptTriage: (args: { acceptPriority?: boolean; acceptTags?: boolean }) => void;
+  onAcceptTriage: (args: {
+    acceptPriority?: boolean;
+    acceptTags?: boolean;
+  }) => void;
 }) {
   const feedbackType = feedback.feedbackType as FeedbackType;
   const availableStatuses = STATUS_BY_TYPE[feedbackType] || [];
 
   return (
     <div className="space-y-6">
-
       {/* AI Triage Panel */}
       <TriagePanel feedback={feedback} onAcceptTriage={onAcceptTriage} />
 
@@ -926,7 +1053,10 @@ function FeedbackDetail({
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl font-semibold">{feedback.userName}</h2>
             {feedback.feedbackType && (
-              <Badge variant="outline" className={cn("gap-1", TYPE_CONFIG[feedbackType]?.color)}>
+              <Badge
+                variant="outline"
+                className={cn("gap-1", TYPE_CONFIG[feedbackType]?.color)}
+              >
                 {TYPE_CONFIG[feedbackType]?.icon}
                 {TYPE_CONFIG[feedbackType]?.label}
               </Badge>
@@ -934,13 +1064,17 @@ function FeedbackDetail({
           </div>
           <p className="text-sm text-muted-foreground">{feedback.userEmail}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Submitted {formatDistanceToNow(feedback.createdAt, { addSuffix: true })}
+            Submitted{" "}
+            {formatDistanceToNow(feedback.createdAt, { addSuffix: true })}
           </p>
         </div>
 
         {/* Status & Priority controls */}
         <div className="flex gap-2">
-          <Select value={feedback.priority || "none"} onValueChange={onPriorityChange as any}>
+          <Select
+            value={feedback.priority || "none"}
+            onValueChange={onPriorityChange as any}
+          >
             <SelectTrigger className="w-28">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
@@ -982,21 +1116,27 @@ function FeedbackDetail({
       {/* User suggested urgency */}
       {feedback.userSuggestedUrgency && (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-1">User Suggested Urgency</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+            User Suggested Urgency
+          </h3>
           <Badge variant="outline">{feedback.userSuggestedUrgency}</Badge>
         </div>
       )}
 
       {/* Description */}
       <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-1">Feedback</h3>
+        <h3 className="text-sm font-medium text-muted-foreground mb-1">
+          Feedback
+        </h3>
         <p className="whitespace-pre-wrap">{feedback.description}</p>
       </div>
 
       {/* What they did */}
       {feedback.whatTheyDid && (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-1">What they were trying to do</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+            What they were trying to do
+          </h3>
           <p className="whitespace-pre-wrap">{feedback.whatTheyDid}</p>
         </div>
       )}
@@ -1004,7 +1144,9 @@ function FeedbackDetail({
       {/* What they saw */}
       {feedback.whatTheySaw && (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-1">What they saw</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+            What they saw
+          </h3>
           <p className="whitespace-pre-wrap">{feedback.whatTheySaw}</p>
         </div>
       )}
@@ -1012,7 +1154,9 @@ function FeedbackDetail({
       {/* What they expected */}
       {feedback.whatTheyExpected && (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-1">What they expected</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+            What they expected
+          </h3>
           <p className="whitespace-pre-wrap">{feedback.whatTheyExpected}</p>
         </div>
       )}
@@ -1020,10 +1164,14 @@ function FeedbackDetail({
       {/* Tags */}
       {feedback.tags && feedback.tags.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+            Tags
+          </h3>
           <div className="flex flex-wrap gap-1">
             {feedback.tags.map((tag: string) => (
-              <Badge key={tag} variant="secondary">{tag}</Badge>
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
             ))}
           </div>
         </div>
@@ -1032,8 +1180,14 @@ function FeedbackDetail({
       {/* Screenshot */}
       {feedback.screenshotUrl ? (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Screenshot</h3>
-          <a href={feedback.screenshotUrl} target="_blank" rel="noopener noreferrer">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+            Screenshot
+          </h3>
+          <a
+            href={feedback.screenshotUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <img
               src={feedback.screenshotUrl}
               alt="Feedback screenshot"

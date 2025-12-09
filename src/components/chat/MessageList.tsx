@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import type { Doc } from "@/convex/_generated/dataModel";
-import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { Fragment, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import type { Doc } from "@/convex/_generated/dataModel";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { EmptyScreen } from "./EmptyScreen";

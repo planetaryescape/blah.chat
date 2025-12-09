@@ -1,10 +1,10 @@
 "use client";
 
+import { formatDistanceToNow } from "date-fns";
+import { Pin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { generateExcerpt } from "@/lib/tiptap/utils";
-import { formatDistanceToNow } from "date-fns";
-import { Pin } from "lucide-react";
 
 interface NoteListItemProps {
   note: Doc<"notes">;

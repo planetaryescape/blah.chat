@@ -1,5 +1,10 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
@@ -10,17 +15,17 @@ import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ModelFeatureHint } from "@/components/chat/ModelFeatureHint";
 import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
 import { ShareDialog } from "@/components/chat/ShareDialog";
-import { type ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
+import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
@@ -29,11 +34,6 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
 
 export default function ChatPage({
   params,
@@ -49,7 +49,6 @@ export default function ChatPage({
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
-    // @ts-ignore - Convex type inference depth issue with conditional skip
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -68,14 +67,13 @@ export default function ChatPage({
     if (conversation?.model) {
       setSelectedModel(conversation.model);
     } else if (user?.preferences.defaultModel) {
-       // Fallback to user preference if conversation is loading or doesn't specify
-       // Only if we haven't set a model yet (checking against default)
-       if (selectedModel === "openai:gpt-5") {
-          setSelectedModel(user.preferences.defaultModel);
-       }
+      // Fallback to user preference if conversation is loading or doesn't specify
+      // Only if we haven't set a model yet (checking against default)
+      if (selectedModel === "openai:gpt-5") {
+        setSelectedModel(user.preferences.defaultModel);
+      }
     }
   }, [conversation?.model, user?.preferences.defaultModel]);
-
 
   const [thinkingEffort, setThinkingEffort] =
     useState<ThinkingEffort>("medium");
@@ -213,11 +211,12 @@ export default function ChatPage({
   }, [conversationId, isMobile, isTouchDevice]);
 
   // Derived state that handles loading gracefully
-  const isGenerating = messages?.some(
-    (m: Doc<"messages">) =>
-      m.role === "assistant" &&
-      ["pending", "generating"].includes(m.status || ""),
-  ) ?? false;
+  const isGenerating =
+    messages?.some(
+      (m: Doc<"messages">) =>
+        m.role === "assistant" &&
+        ["pending", "generating"].includes(m.status || ""),
+    ) ?? false;
 
   const modelConfig = getModelConfig(selectedModel);
   const showThinkingEffort = !!modelConfig?.reasoning;

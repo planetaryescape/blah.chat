@@ -1,9 +1,9 @@
 "use client";
 
-import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
 import { useRef } from "react";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { NoteListItem } from "./NoteListItem";
 
 interface NoteListProps {

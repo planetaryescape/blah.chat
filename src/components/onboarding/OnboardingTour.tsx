@@ -1,9 +1,9 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import Joyride, { type CallBackProps, type Step } from "react-joyride";
+import { api } from "@/convex/_generated/api";
 
 const TOUR_STEPS: Step[] = [
   {
@@ -94,7 +94,6 @@ export function OnboardingTour() {
   const [run, setRun] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
 
-  // @ts-ignore - Convex type instantiation depth issue
   const onboarding = useQuery(api.onboarding.getOnboardingState);
   const initializeOnboarding = useMutation(api.onboarding.initializeOnboarding);
   const completeTour = useMutation(api.onboarding.completeTour);
@@ -113,7 +112,6 @@ export function OnboardingTour() {
     if (!onboarding) return;
 
     // Check if tour should run
-    // @ts-ignore - Type correctly inferred at runtime from userOnboarding table
     const shouldRun = !onboarding.tourCompleted && !onboarding.tourSkipped;
 
     // Disable on mobile (optional)

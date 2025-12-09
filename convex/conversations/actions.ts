@@ -25,7 +25,6 @@ export const bulkAutoRename = action({
         try {
           // 1. Get messages to find context
           const messages: any = await ctx.runQuery(
-          // @ts-ignore - Convex type instantiation depth issue
             internal.messages.listInternal,
             {
               conversationId,
@@ -33,7 +32,6 @@ export const bulkAutoRename = action({
           );
 
           // Find first user message
-          // @ts-ignore
           const userMessage = messages.find((m: any) => m.role === "user");
 
           if (!userMessage) {
@@ -60,7 +58,10 @@ ${userMessage.content}`,
           // Handle undefined result - use optional chaining for safety
           const rawText = result?.text;
           if (!rawText) {
-            console.error("AI Gateway returned no text for conversation", conversationId);
+            console.error(
+              "AI Gateway returned no text for conversation",
+              conversationId,
+            );
             return {
               id: conversationId,
               success: false,

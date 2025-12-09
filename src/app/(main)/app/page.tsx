@@ -1,16 +1,16 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { useNewChatModel } from "@/hooks/useNewChatModel";
 import {
-    Authenticated,
-    Unauthenticated,
-    useConvexAuth,
-    useMutation,
-    useQuery,
+  Authenticated,
+  Unauthenticated,
+  useConvexAuth,
+  useMutation,
+  useQuery,
 } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { api } from "@/convex/_generated/api";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
 
 export default function AppPage() {
   const router = useRouter();
@@ -68,7 +68,15 @@ export default function AppPage() {
     };
 
     handleNavigation();
-  }, [isAuthenticated, isLoading, conversations, router, createConversation, newChatModel, modelLoading]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    conversations,
+    router,
+    createConversation,
+    newChatModel,
+    modelLoading,
+  ]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

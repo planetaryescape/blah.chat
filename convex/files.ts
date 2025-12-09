@@ -56,7 +56,7 @@ export const getFileUrl = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    const file = files.find(f => f.storageId === args.storageId);
+    const file = files.find((f) => f.storageId === args.storageId);
     if (!file) return null;
 
     return await ctx.storage.getUrl(args.storageId);
@@ -92,15 +92,16 @@ export const getAttachmentUrls = query({
       .collect();
 
     // Convert to string set for comparison (storageId in files table is Id<"_storage">)
-    const userStorageIds = new Set(userFiles.map(f => String(f.storageId)));
+    const userStorageIds = new Set(userFiles.map((f) => String(f.storageId)));
 
     // Only return URLs for files the user owns
-    const validStorageIds = args.storageIds.filter(id => userStorageIds.has(id));
+    const validStorageIds = args.storageIds.filter((id) =>
+      userStorageIds.has(id),
+    );
 
     return Promise.all(
       validStorageIds.map(async (id) => ({
         storageId: id,
-        // @ts-ignore - id is validated as belonging to user's files
         url: await ctx.storage.getUrl(id),
       })),
     );

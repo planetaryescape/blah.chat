@@ -1,4 +1,4 @@
-import { useQueryState, parseAsString, parseAsInteger } from "nuqs";
+import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { useDebounce } from "./useDebounce";
 
 export function useSearchState() {

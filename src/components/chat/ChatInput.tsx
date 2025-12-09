@@ -1,5 +1,8 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Loader2, Quote, Send, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,9 +15,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { Loader2, Quote, Send, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
@@ -31,13 +31,13 @@ interface Attachment {
   size: number;
 }
 
-import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { ComparisonTrigger } from "./ComparisonTrigger";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
-  ThinkingEffortSelector,
   type ThinkingEffort,
+  ThinkingEffortSelector,
 } from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
@@ -99,7 +99,6 @@ export function ChatInput({
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const { isMobile, isTouchDevice } = useMobileDetect();
 
-  // @ts-ignore
   const sendMessage = useMutation(api.chat.sendMessage);
   const stopGeneration = useMutation(api.chat.stopGeneration);
   const user = useQuery(api.users.getCurrentUser);
@@ -221,7 +220,10 @@ export function ChatInput({
       textareaRef.current?.focus();
     };
 
-    window.addEventListener("quote-selection" as any, handleQuoteSelection as any);
+    window.addEventListener(
+      "quote-selection" as any,
+      handleQuoteSelection as any,
+    );
     return () => {
       window.removeEventListener(
         "quote-selection" as any,

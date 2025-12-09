@@ -1,8 +1,8 @@
 "use client";
 
-import { highlightCode, type HighlightResult } from "@/lib/highlighter";
-import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
+import { type HighlightResult, highlightCode } from "@/lib/highlighter";
+import { cn } from "@/lib/utils";
 import { ClientCodeControls } from "./ClientCodeControls";
 
 interface CodeBlockProps {

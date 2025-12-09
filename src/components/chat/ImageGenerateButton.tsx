@@ -1,29 +1,29 @@
 "use client";
 
+import { useAction, useMutation } from "convex/react";
+import { ImageIcon, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
-import { useAction, useMutation } from "convex/react";
-import { ImageIcon, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
@@ -68,7 +68,6 @@ export function ImageGenerateButton({
   // Check if selected model supports thinking
   const selectedModelConfig = MODEL_CONFIG[selectedModel];
   const supportsThinking = !!selectedModelConfig?.reasoning;
-  // @ts-ignore
   const sendMessage = useMutation(api.chat.sendMessage as any);
 
   const generateImage = useAction(

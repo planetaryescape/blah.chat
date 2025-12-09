@@ -1,4 +1,4 @@
-import { SearchX, Sparkles, Filter } from "lucide-react";
+import { Filter, SearchX, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 

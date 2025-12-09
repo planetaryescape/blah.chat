@@ -1,3 +1,18 @@
+import { useAction, useMutation } from "convex/react";
+import {
+  Archive,
+  Edit,
+  GitBranch,
+  MoreVertical,
+  Pin,
+  Sparkles,
+  Star,
+  Trash2,
+} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { useState } from "react";
+import { toast } from "sonner";
 import { ProjectBadge } from "@/components/projects/ProjectBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,21 +38,6 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation } from "convex/react";
-import {
-  Archive,
-  Edit,
-  GitBranch,
-  MoreVertical,
-  Pin,
-  Sparkles,
-  Star,
-  Trash2,
-} from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { useQueryState } from "nuqs";
-import { useState } from "react";
-import { toast } from "sonner";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
 
@@ -64,15 +64,10 @@ export function ConversationItem({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
-  // @ts-ignore - Convex type inference depth issue
   const deleteConversation = useMutation(api.conversations.deleteConversation);
-  // @ts-ignore - Convex type inference depth issue
   const togglePin = useMutation(api.conversations.togglePin);
-  // @ts-ignore - Convex type inference depth issue
   const toggleStar = useMutation(api.conversations.toggleStar);
-  // @ts-ignore - Convex type inference depth issue
   const archiveConversation = useMutation(api.conversations.archive);
-  // @ts-ignore - Convex type inference depth issue
   const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const isActive = pathname === `/chat/${conversation._id}`;

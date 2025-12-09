@@ -63,13 +63,13 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   }, */
 
-
   // GPT-5.1 Family (November 2025)
   "openai:gpt-5.1": {
     id: "openai:gpt-5.1",
     provider: "openai",
     name: "GPT-5.1",
-    description: "Latest flagship with adaptive reasoning and 24h prompt caching",
+    description:
+      "Latest flagship with adaptive reasoning and 24h prompt caching",
     contextWindow: 256000,
     pricing: { input: 1.25, output: 10.0, cached: 0.125 },
     capabilities: ["thinking", "vision", "function-calling"],
@@ -95,7 +95,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     name: "GPT-5.1 Nano",
     description: "Smallest, fastest GPT-5.1 variant",
     contextWindow: 128000,
-    pricing: { input: 0.05, output: 0.40, cached: 0.005 },
+    pricing: { input: 0.05, output: 0.4, cached: 0.005 },
     capabilities: ["vision", "function-calling"],
   },
   "openai:gpt-5.1-codex": {
@@ -120,7 +120,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     description: "Extended thinking mode for complex multi-step reasoning",
     contextWindow: 256000,
     pricing: { input: 1.25, output: 10.0, reasoning: 1.25, cached: 0.125 },
-    capabilities: ["thinking", "extended-thinking", "vision", "function-calling"],
+    capabilities: [
+      "thinking",
+      "extended-thinking",
+      "vision",
+      "function-calling",
+    ],
     reasoning: {
       type: "openai-reasoning-effort",
       effortMapping: { low: "low", medium: "medium", high: "high" },
@@ -132,7 +137,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "openai:gpt-5.1-instant",
     provider: "openai",
     name: "GPT-5.1 Instant",
-    description: "Fast conversational variant with improved tone and personalization",
+    description:
+      "Fast conversational variant with improved tone and personalization",
     contextWindow: 128000,
     pricing: { input: 0.25, output: 2.0, cached: 0.025 },
     capabilities: ["vision", "function-calling"],
@@ -281,7 +287,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       // Note: >200K is $4/$24 but flat pricing doesn't support tiering
     },
     capabilities: ["function-calling", "thinking"],
-    description: "Third-generation flagship model with advanced reasoning (experimental)",
+    description:
+      "Third-generation flagship model with advanced reasoning (experimental)",
     isExperimental: true,
     reasoning: {
       type: "google-thinking-level",
@@ -413,7 +420,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "meta:llama-4-maverick",
     provider: "meta",
     name: "Llama 4 Maverick 17B",
-    description: "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
+    description:
+      "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
     contextWindow: 128000,
     pricing: { input: 0.2, output: 0.6 },
     capabilities: ["vision", "function-calling"],
@@ -451,7 +459,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.35, output: 1.4 },
     capabilities: ["function-calling"],
   },
-
 
   "groq:openai/gpt-oss-20b": {
     id: "groq:openai/gpt-oss-20b",
@@ -494,7 +501,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 3.0 },
     capabilities: ["function-calling"],
   },
-
 
   // OpenAI OSS Models (via Gateway)
   "openai:gpt-oss-120b": {
@@ -540,8 +546,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   },
 
-
-
   // DeepSeek Models
   "deepseek:deepseek-r1": {
     id: "deepseek:deepseek-r1",
@@ -562,7 +566,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "deepseek:deepseek-v3.2",
     provider: "deepseek",
     name: "DeepSeek V3.2",
-    description: "Official successor to V3.2-Exp. Combined thinking + tool use.",
+    description:
+      "Official successor to V3.2-Exp. Combined thinking + tool use.",
     contextWindow: 128000,
     pricing: { input: 0.27, output: 1.1 },
     capabilities: ["thinking", "function-calling"],
@@ -586,7 +591,4 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       applyMiddleware: true,
     },
   },
-
 };
-
-

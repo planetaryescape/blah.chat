@@ -135,9 +135,7 @@ export function ToolCallDisplay({
 
   if (uniqueCalls.length === 0) return null;
 
-  const anyExecuting = uniqueCalls.some(
-    (c) => getCallState(c) === "executing",
-  );
+  const anyExecuting = uniqueCalls.some((c) => getCallState(c) === "executing");
   const hasError = uniqueCalls.some((c) => getCallState(c) === "error");
   const isAnyExpanded = Object.values(expanded).some(Boolean);
 
@@ -283,9 +281,7 @@ export function ToolCallDisplay({
                       </div>
                       <div className="text-muted-foreground">
                         {parsedArgs?.content && (
-                          <span className="italic">
-                            "{parsedArgs.content}"
-                          </span>
+                          <span className="italic">"{parsedArgs.content}"</span>
                         )}
                       </div>
                       {parsedResult?.message && state !== "executing" && (

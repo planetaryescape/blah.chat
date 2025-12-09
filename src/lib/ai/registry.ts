@@ -14,4 +14,3 @@ export function getModel(modelId: string, useResponsesAPI = false) {
 }
 
 export const DEFAULT_MODEL = "cerebras:qwen-3-32b"; // Fast (2600 tok/s), affordable, 131K context
-

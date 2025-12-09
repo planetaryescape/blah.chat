@@ -692,7 +692,7 @@ export default defineSchema({
     type: v.union(
       v.literal("budget_80_percent"),
       v.literal("budget_exceeded"),
-      v.literal("api_credits_exhausted")
+      v.literal("api_credits_exhausted"),
     ),
     recipientEmail: v.string(),
     sentAt: v.number(),
@@ -702,7 +702,7 @@ export default defineSchema({
         spentAmount: v.optional(v.number()),
         errorMessage: v.optional(v.string()),
         modelId: v.optional(v.string()),
-      })
+      }),
     ),
   }).index("by_type_sent", ["type", "sentAt"]),
 });

@@ -1,8 +1,8 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { internalAction } from "../_generated/server";
 
 export const get = internalAction({
   args: {
@@ -30,10 +30,9 @@ export const get = internalAction({
       }
 
       // 2. Get project details
-      const project: any = await ctx.runQuery(
-        internal.projects.getInternal,
-        { id: projectId },
-      );
+      const project: any = await ctx.runQuery(internal.projects.getInternal, {
+        id: projectId,
+      });
 
       if (!project) {
         return { success: false, error: "Project not found" };
@@ -62,7 +61,8 @@ export const get = internalAction({
             project: { name: project.name },
             notes: [],
             totalCount: 0,
-            message: "Notes listing available for conversations in this project",
+            message:
+              "Notes listing available for conversations in this project",
           };
         }
 
@@ -101,7 +101,10 @@ export const get = internalAction({
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to get project context",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to get project context",
       };
     }
   },

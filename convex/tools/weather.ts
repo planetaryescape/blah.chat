@@ -39,7 +39,7 @@ export const getWeather = internalAction({
       url.searchParams.set("current_weather", "true");
       url.searchParams.set(
         "daily",
-        "temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum"
+        "temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum",
       );
       url.searchParams.set("temperature_unit", units);
       url.searchParams.set("timezone", "auto");
@@ -74,7 +74,8 @@ export const getWeather = internalAction({
       return {
         success: false,
         location: city,
-        error: error instanceof Error ? error.message : "Failed to fetch weather",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch weather",
       };
     }
   },

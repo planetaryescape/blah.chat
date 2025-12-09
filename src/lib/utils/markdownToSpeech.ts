@@ -1,38 +1,36 @@
 "use client";
 
-import removeMarkdown from "remove-markdown";
+import { marked } from "marked";
 
 /**
- * Convert markdown into plain text that is optimized for TTS playback.
- * Uses the well-maintained `remove-markdown` library to strip formatting,
- * then applies additional TTS-specific transformations.
- *
- * @see https://www.npmjs.com/package/remove-markdown
+ * Convert markdown into plain text that is friendlier for TTS playback.
+ * Removes formatting characters and collapses whitespace so the reader
+ * doesn't narrate markdown syntax like asterisks or backticks.
  */
 export function markdownToSpeechText(markdown: string): string {
   const raw = markdown ?? "";
   if (!raw.trim()) return "";
 
-  // Use remove-markdown library with options optimized for TTS
-  let text = removeMarkdown(raw, {
-    stripListLeaders: true,     // Remove list bullets/numbers
-    listUnicodeChar: "",        // Don't replace bullets with unicode
-    gfm: true,                  // Support GitHub Flavored Markdown
-    useImgAltText: true,        // Keep image alt text
-  });
+  // Prefer a DOM-based strip so we preserve natural sentence breaks.
+  try {
+    const html = marked.parse(raw);
+    const container =
+      typeof document !== "undefined" ? document.createElement("div") : null;
 
-  // Additional TTS-specific transformations
-  // Handle common abbreviations for better TTS pronunciation
-  text = text.replace(/\be\.g\.\s*/gi, "for example, ");
-  text = text.replace(/\bi\.e\.\s*/gi, "that is, ");
-  text = text.replace(/\betc\.\s*/gi, "etcetera ");
-  text = text.replace(/\bvs\.\s*/gi, "versus ");
+    if (container) {
+      container.innerHTML = typeof html === "string" ? html : String(html);
+      const text =
+        container.textContent || container.innerText || container.innerHTML;
+      return text.replace(/\s+/g, " ").trim();
+    }
+  } catch (error) {
+    // Fall through to regex-based stripping below
+    console.error("Failed to strip markdown for TTS:", error);
+  }
 
-  // Remove any remaining URLs
-  text = text.replace(/https?:\/\/[^\s]+/g, "");
-
-  // Normalize whitespace
-  text = text.replace(/\s+/g, " ").trim();
-
-  return text;
+  // Fallback: simple markdown token removal
+  return raw
+    .replace(/[`*_>#\[\]\(\)\-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

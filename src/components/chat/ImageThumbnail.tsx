@@ -18,7 +18,7 @@ export function ImageThumbnail({ url, alt, onClick }: ImageThumbnailProps) {
       onClick={onClick}
       className={cn(
         "relative overflow-hidden rounded-md",
-        "w-30 h-30 aspect-square",
+        "w-48 h-48 aspect-square",
         "bg-surface-glass border border-border/20",
         "hover:border-border/40 hover:scale-105",
         "transition-all duration-200",

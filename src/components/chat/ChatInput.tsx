@@ -10,10 +10,10 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { getModelConfig } from "@/lib/ai/models";
+import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
-import { Loader2, Send, Square } from "lucide-react";
+import { Loader2, Quote, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
@@ -34,7 +34,7 @@ interface Attachment {
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { ComparisonTrigger } from "./ComparisonTrigger";
-import { ModelSelector } from "./ModelSelector";
+import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
   ThinkingEffortSelector,
   type ThinkingEffort,
@@ -92,6 +92,7 @@ export function ChatInput({
   const [lastCompletedMessageId, setLastCompletedMessageId] = useState<
     string | null
   >(null);
+  const [quote, setQuote] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -118,13 +119,13 @@ export function ChatInput({
     // Allow typing during generation, but prevent submission
     if (isGenerating) return;
 
-    if (!input.trim() || isSending || uploading) return;
+    if ((!input.trim() && !quote) || isSending || uploading) return;
 
     setIsSending(true);
     try {
       await sendMessage({
         conversationId,
-        content: input.trim(),
+        content: quote ? `> ${quote}\n\n${input.trim()}` : input.trim(),
         ...(isComparisonMode
           ? { models: selectedModels }
           : { modelId: selectedModel }),
@@ -132,6 +133,7 @@ export function ChatInput({
         attachments: attachments.length > 0 ? attachments : undefined,
       });
       setInput("");
+      setQuote(null);
       onAttachmentsChange([]);
     } catch (error) {
       if (
@@ -212,6 +214,22 @@ export function ChatInput({
     };
   }, []);
 
+  // Handle quote selection
+  useEffect(() => {
+    const handleQuoteSelection = (e: CustomEvent<string>) => {
+      setQuote(e.detail);
+      textareaRef.current?.focus();
+    };
+
+    window.addEventListener("quote-selection" as any, handleQuoteSelection as any);
+    return () => {
+      window.removeEventListener(
+        "quote-selection" as any,
+        handleQuoteSelection as any,
+      );
+    };
+  }, []);
+
   // Handle focus restoration after dialogs close (e.g., QuickModelSwitcher)
   useEffect(() => {
     const handleFocusInput = () => {
@@ -284,6 +302,29 @@ export function ChatInput({
             : "shadow-lg hover:shadow-xl hover:border-border/80 dark:hover:border-white/20",
         )}
       >
+        {/* Quote Preview */}
+        {quote && (
+          <div className="mx-2 mt-2 p-3 rounded-xl bg-muted/50 dark:bg-white/5 border border-border/50 dark:border-white/10 flex items-start gap-3 group relative">
+            <div className="shrink-0 mt-0.5">
+              <Quote className="w-4 h-4 text-primary/70" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-foreground/90 line-clamp-3 leading-relaxed font-medium">
+                {quote}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 -mr-1 -mt-1 opacity-60 group-hover:opacity-100 transition-opacity"
+              onClick={() => setQuote(null)}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+
         {/* Attachment previews */}
         {attachments.length > 0 && (
           <div className="px-4 pt-2">
@@ -422,14 +463,14 @@ export function ChatInput({
               }
               className={cn(
                 "h-10 w-10 rounded-full transition-all duration-300 shadow-lg",
-                (!input.trim() && !isRecording && !isGenerating) ||
+                (!input.trim() && !quote && !isRecording && !isGenerating) ||
                   isSending ||
                   uploading
                   ? "bg-muted text-muted-foreground opacity-50"
                   : "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/25",
               )}
               disabled={
-                (!input.trim() && !isRecording && !isGenerating) ||
+                (!input.trim() && !quote && !isRecording && !isGenerating) ||
                 isSending ||
                 uploading
               }
@@ -481,12 +522,13 @@ export function ChatInput({
                 </Button>
               </Badge>
             ) : (
-              <ModelSelector
-                value={selectedModel}
-                onChange={onModelChange}
-                open={modelSelectorOpen}
-                onOpenChange={onModelSelectorOpenChange}
-                className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium"
+              <QuickModelSwitcher
+                currentModel={selectedModel}
+                onSelectModel={onModelChange}
+                open={modelSelectorOpen ?? false}
+                onOpenChange={onModelSelectorOpenChange ?? (() => {})}
+                mode="single"
+                showTrigger={true}
               />
             )}
             {supportsThinking &&
@@ -514,7 +556,7 @@ export function ChatInput({
       <RateLimitDialog
         open={showRateLimitDialog}
         onOpenChange={setShowRateLimitDialog}
-        limit={user?.dailyMessageLimit || 50}
+        limit={50}
       />
     </div>
   );

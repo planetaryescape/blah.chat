@@ -1,33 +1,16 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
 import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
-import { useAction } from "convex/react";
 import {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
-    type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
 } from "react";
 import { toast } from "sonner";
-
-type GenerateSpeechInput = {
-  text: string;
-  voice?: string;
-  speed?: number;
-};
-
-type GenerateSpeechResult = {
-  audioBase64: string;
-  provider: string;
-  mimeType: string;
-  cost: number;
-  characterCount: number;
-  chunks?: number;
-};
 
 interface TTSState {
   isVisible: boolean;
@@ -62,8 +45,8 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-// Deepgram has 2000 char limit - chunk at sentence boundaries
-const CHUNK_LIMIT = 1900;
+// Low latency: chunk at individual sentences (~150-200 chars)
+const CHUNK_LIMIT = 200;
 
 function chunkText(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return [text];
@@ -90,11 +73,13 @@ function chunkText(text: string, maxChars: number): string[] {
       searchArea.lastIndexOf("?\n"),
     );
 
-    if (lastPeriod > maxChars * 0.5) {
+    if (lastPeriod > maxChars * 0.3) {
+       // Found a reasonable sentence boundary
       splitIndex = lastPeriod + 1;
     } else {
+      // Fall back to comma or space
       const lastComma = searchArea.lastIndexOf(", ");
-      if (lastComma > maxChars * 0.5) {
+      if (lastComma > maxChars * 0.3) {
         splitIndex = lastComma + 1;
       } else {
         const lastSpace = searchArea.lastIndexOf(" ");
@@ -111,13 +96,31 @@ function chunkText(text: string, maxChars: number): string[] {
   return chunks.filter((c) => c.length > 0);
 }
 
-function base64ToBlob(base64: string, mimeType: string): Blob {
-  const audioData = atob(base64);
-  const audioArray = new Uint8Array(audioData.length);
-  for (let i = 0; i < audioData.length; i++) {
-    audioArray[i] = audioData.charCodeAt(i);
+function getTTSUrl(text: string, voice?: string, speed?: number) {
+  let convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
+  let baseUrl = ""; // Start with relative
+
+  if (convexUrl) {
+    if (convexUrl.includes(".convex.cloud")) {
+      baseUrl = convexUrl.replace(".convex.cloud", ".convex.site");
+    } else {
+        baseUrl = convexUrl;
+    }
   }
-  return new Blob([audioArray], { type: mimeType });
+
+  // Use string concatenation to avoid build-time template literal parsing issues
+  const finalUrl = baseUrl ? baseUrl + "/tts" : "/tts";
+
+  // URL constructor requires base if path is relative.
+  // Use window.location.origin if available, otherwise localhost/dummy for build safety.
+  const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+  const url = new URL(finalUrl, base);
+
+  url.searchParams.set("text", text);
+  if (voice) url.searchParams.set("voice", voice);
+  if (speed) url.searchParams.set("speed", speed.toString());
+
+  return url.toString();
 }
 
 export function TTSProvider({
@@ -127,17 +130,15 @@ export function TTSProvider({
   children: ReactNode;
   defaultSpeed?: number;
 }) {
-  // @ts-ignore - Type instantiation is excessively deep
-  const generateSpeech: (
-    args: GenerateSpeechInput,
-  ) => Promise<GenerateSpeechResult> = useAction(api.tts.generateSpeech);
-
-  // Audio queue for streaming playback
-  const audioQueueRef = useRef<Blob[]>([]);
+  // MSE Refs
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaSourceRef = useRef<MediaSource | null>(null);
+  const sourceBufferRef = useRef<SourceBuffer | null>(null);
+  const bufferQueueRef = useRef<ArrayBuffer[]>([]);
+  const isAppendingRef = useRef(false);
   const objectUrlRef = useRef<string | null>(null);
+
   const speedRef = useRef(clamp(defaultSpeed ?? 1, 0.5, 2));
-  const isPlayingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [state, setState] = useState<TTSState>({
@@ -163,15 +164,30 @@ export function TTSProvider({
   const cleanupAudio = useCallback(() => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
-      currentAudioRef.current.src = "";
+      currentAudioRef.current.removeAttribute("src");
+      currentAudioRef.current.load();
     }
-    currentAudioRef.current = null;
-    audioQueueRef.current = [];
 
+    // Revoke Object URL
     if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
     }
+
+    // MSE Cleanup
+    if (mediaSourceRef.current) {
+        try {
+            if (mediaSourceRef.current.readyState === "open") {
+                mediaSourceRef.current.endOfStream();
+            }
+        } catch (e) {
+            // ignore
+        }
+        mediaSourceRef.current = null;
+    }
+    sourceBufferRef.current = null;
+    bufferQueueRef.current = [];
+    isAppendingRef.current = false;
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -181,7 +197,6 @@ export function TTSProvider({
 
   const close = useCallback(() => {
     cleanupAudio();
-    isPlayingRef.current = false;
     setState((prev) => ({
       ...prev,
       isVisible: false,
@@ -197,72 +212,23 @@ export function TTSProvider({
     }));
   }, [cleanupAudio]);
 
-  // Play next audio from queue
-  const playNextFromQueue = useCallback(async () => {
-    if (!isPlayingRef.current || audioQueueRef.current.length === 0) return;
-
-    const blob = audioQueueRef.current.shift();
-    if (!blob) return;
-
-    // Cleanup previous
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
+  // Process the buffer queue safely
+  const processBufferQueue = useCallback(() => {
+    if (
+        !sourceBufferRef.current ||
+        sourceBufferRef.current.updating ||
+        bufferQueueRef.current.length === 0
+    ) {
+        return;
     }
 
-    const audioUrl = URL.createObjectURL(blob);
-    objectUrlRef.current = audioUrl;
-
-    const audio = new Audio(audioUrl);
-    currentAudioRef.current = audio;
-
-    // @ts-ignore
-    if ("preservesPitch" in audio) {
-      // @ts-ignore
-      audio.preservesPitch = true;
-    }
-    audio.playbackRate = speedRef.current;
-
-    audio.ontimeupdate = () => {
-      setState((prev) => ({
-        ...prev,
-        currentTime: prev.currentTime + (audio.currentTime - (prev.currentTime % audio.duration || 0)),
-      }));
-    };
-
-    audio.onended = () => {
-      setState((prev) => ({
-        ...prev,
-        currentChunk: prev.currentChunk + 1,
-      }));
-      // Play next chunk if available
-      if (audioQueueRef.current.length > 0) {
-        playNextFromQueue();
-      } else {
-        // Check if still loading more chunks
-        setState((prev) => {
-          if (prev.currentChunk >= prev.totalChunks && !prev.isLoading) {
-            isPlayingRef.current = false;
-            return { ...prev, isPlaying: false, isStreaming: false };
-          }
-          return prev;
-        });
-      }
-    };
-
-    audio.onerror = (e) => {
-      console.error("Audio playback error:", e);
-      toast.error("Failed to play audio chunk");
-    };
-
-    try {
-      await audio.play();
-      setState((prev) => ({
-        ...prev,
-        isPlaying: true,
-        isLoading: prev.currentChunk < prev.totalChunks - 1,
-      }));
-    } catch (error) {
-      console.error("Failed to play audio:", error);
+    const buffer = bufferQueueRef.current.shift();
+    if (buffer) {
+        try {
+            sourceBufferRef.current.appendBuffer(buffer);
+        } catch (e) {
+            console.error("MSE appendBuffer failed", e);
+        }
     }
   }, []);
 
@@ -274,7 +240,6 @@ export function TTSProvider({
         return;
       }
 
-      // Cleanup previous playback
       cleanupAudio();
       abortControllerRef.current = new AbortController();
 
@@ -295,84 +260,147 @@ export function TTSProvider({
         isStreaming: totalChunks > 1,
       }));
 
-      isPlayingRef.current = true;
+      // Setup MSE
+      const mediaSource = new MediaSource();
+      mediaSourceRef.current = mediaSource;
+      const objectUrl = URL.createObjectURL(mediaSource);
+      objectUrlRef.current = objectUrl;
+
+      // Create Audio Element
+      const audio = new Audio();
+      audio.src = objectUrl;
+      currentAudioRef.current = audio;
+      audio.playbackRate = speedRef.current;
+      // @ts-ignore
+      if ("preservesPitch" in audio) { audio.preservesPitch = true; }
+
+      // Event Listeners
+      audio.ontimeupdate = () => {
+        setState((prev) => ({
+          ...prev,
+          currentTime: audio.currentTime,
+          duration: audio.duration, // MSE duration updates dynamically
+        }));
+      };
+
+      audio.onended = () => {
+         setState(prev => ({ ...prev, isPlaying: false, isStreaming: false }));
+      };
+
+      audio.onerror = (e) => {
+          console.error("Audio error", e);
+      };
+
+      // Wait for sourceopen
+      await new Promise<void>((resolve) => {
+          mediaSource.addEventListener("sourceopen", () => {
+             // Create SourceBuffer
+             try {
+                // Determine mime type. Deepgram mp3 is standard.
+                // Safari might prefer audio/mp4? Chrome likes audio/mpeg.
+                 const mime = MediaSource.isTypeSupported("audio/mpeg") ? "audio/mpeg" : "audio/mp4"; // Fallback logic if needed, but 'audio/mpeg' usually works for mp3 streamed via MSE in Chrome found elsewhere, ACTUALLY: MSE often requires 'audio/mpeg' wrapper (ADTS).
+                 // Deepgram returns raw MP3 frames usually.
+                 // NOTE: Raw MP3 in MSE is supported in Chrome/FF/Edge but NOT Safari. Safari requires MP4 container (ISOBMFF).
+                 // This is a known risk. If user is on Safari, this might fail without transcoding.
+                 // Assuming Chrome/Desktop for now as per 'mac' OS reported.
+
+                 const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+                 sourceBufferRef.current = sourceBuffer;
+
+                 sourceBuffer.addEventListener("updateend", () => {
+                     processBufferQueue();
+                 });
+                 resolve();
+             } catch (e) {
+                 console.error("MSE addSourceBuffer failed", e);
+                 toast.error("Browser does not support streaming audio playback.");
+                 resolve(); // Continue to allow failure handling
+             }
+          }, { once: true });
+      });
+
+      if (!sourceBufferRef.current) return;
 
       try {
-        // Generate and play chunks as they come
+        await audio.play();
+        setState(prev => ({ ...prev, isPlaying: true }));
+
+        // Fetch and append chunks
         for (let i = 0; i < chunks.length; i++) {
           if (abortControllerRef.current?.signal.aborted) break;
 
-          const chunk = chunks[i];
+          setState(prev => ({...prev, currentChunk: i + 1 }));
 
-          // Generate audio for this chunk
-          const result = await generateSpeech({
-            text: chunk,
-            speed: speedRef.current,
+          const chunk = chunks[i];
+          const ttsUrl = getTTSUrl(chunk, undefined, speedRef.current);
+
+          // Debug logs for CORS/fetch
+          // console.log("Fetching Chunk", i, ttsUrl);
+
+          const response = await fetch(ttsUrl, {
+             signal: abortControllerRef.current.signal
           });
 
+          if (!response.ok) {
+             console.error("TTS Fetch failed", response.status, response.statusText);
+             continue;
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
           if (abortControllerRef.current?.signal.aborted) break;
 
-          // Convert to blob and add to queue
-          const blob = base64ToBlob(result.audioBase64, result.mimeType);
-          audioQueueRef.current.push(blob);
+          // Push to queue and trigger processing
+          bufferQueueRef.current.push(arrayBuffer);
+          processBufferQueue();
 
-          // Start playing immediately when first chunk is ready
-          if (i === 0 && isPlayingRef.current) {
-            setState((prev) => ({ ...prev, isLoading: false }));
-            await playNextFromQueue();
-          }
-          // If currently idle (finished previous chunk), start next
-          else if (!currentAudioRef.current?.paused === false && audioQueueRef.current.length > 0) {
-            await playNextFromQueue();
+          if (i === 0) {
+             setState(prev => ({ ...prev, isLoading: false }));
           }
         }
+
+        // Wait for buffer to drain then signal EOS
+        const checkQueue = setInterval(() => {
+            if (abortControllerRef.current?.signal.aborted) {
+                clearInterval(checkQueue);
+                return;
+            }
+            if (bufferQueueRef.current.length === 0 && sourceBufferRef.current && !sourceBufferRef.current.updating) {
+                if (mediaSourceRef.current && mediaSourceRef.current.readyState === "open") {
+                    try {
+                       mediaSourceRef.current.endOfStream();
+                    } catch (e) { /* ignore */ }
+                }
+                clearInterval(checkQueue);
+                setState(prev => ({ ...prev, isLoading: false }));
+            }
+        }, 500);
+
       } catch (error) {
         if (abortControllerRef.current?.signal.aborted) return;
-
         console.error("TTS error:", error);
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          isPlaying: false,
-          isVisible: false,
-          isStreaming: false,
-        }));
-
-        if (error instanceof Error) {
-          if (error.message.includes("TTS disabled")) {
-            toast.error("Text-to-speech is disabled. Enable it in settings.");
-          } else {
-            toast.error(`TTS failed: ${error.message}`);
-          }
-        } else {
-          toast.error("Failed to generate speech");
-        }
+        toast.error("Failed to stream audio");
+        cleanupAudio();
       }
     },
-    [cleanupAudio, generateSpeech, playNextFromQueue],
+    [cleanupAudio, processBufferQueue],
   );
 
   const pause = useCallback(() => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
     }
-    isPlayingRef.current = false;
     setState((prev) => ({ ...prev, isPlaying: false }));
   }, []);
 
   const resume = useCallback(async () => {
-    isPlayingRef.current = true;
     if (currentAudioRef.current) {
       await currentAudioRef.current.play();
       setState((prev) => ({ ...prev, isPlaying: true }));
-    } else if (audioQueueRef.current.length > 0) {
-      await playNextFromQueue();
     }
-  }, [playNextFromQueue]);
+  }, []);
 
   const stop = useCallback(() => {
     cleanupAudio();
-    isPlayingRef.current = false;
     setState((prev) => ({
       ...prev,
       isPlaying: false,
@@ -389,8 +417,10 @@ export function TTSProvider({
       0,
       currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
     );
-    currentAudioRef.current.currentTime = target;
-    setState((prev) => ({ ...prev, currentTime: target }));
+    if (Number.isFinite(target)) {
+        currentAudioRef.current.currentTime = target;
+        setState((prev) => ({ ...prev, currentTime: target }));
+    }
   }, []);
 
   const seekTo = useCallback((time: number) => {
@@ -400,8 +430,10 @@ export function TTSProvider({
       0,
       currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
     );
-    currentAudioRef.current.currentTime = target;
-    setState((prev) => ({ ...prev, currentTime: target }));
+    if (Number.isFinite(target)) {
+        currentAudioRef.current.currentTime = target;
+        setState((prev) => ({ ...prev, currentTime: target }));
+    }
   }, []);
 
   const setSpeed = useCallback((speed: number) => {

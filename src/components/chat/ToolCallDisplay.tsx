@@ -9,6 +9,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Code,
+  ExternalLink,
+  FileText,
   Globe,
   Loader2,
   Search,
@@ -53,6 +56,12 @@ function getToolIcon(toolName: string) {
       return Calendar;
     case "webSearch":
       return Globe;
+    case "urlReader":
+      return ExternalLink;
+    case "fileDocument":
+      return FileText;
+    case "codeExecution":
+      return Code;
     default:
       return Search;
   }
@@ -86,6 +95,18 @@ function getToolLabel(
       if (isExecuting) return "Searching the web...";
       if (result?.success === false) return "Search failed";
       return `Web search (${result?.results?.length || 0} result${result?.results?.length !== 1 ? "s" : ""})`;
+    case "urlReader":
+      if (isExecuting) return "Reading URL...";
+      if (result?.success === false) return "Failed to read URL";
+      return `Read ${result?.url || "URL"} (${result?.wordCount || 0} words)`;
+    case "fileDocument":
+      if (isExecuting) return "Processing document...";
+      if (result?.success === false) return "Failed to process file";
+      return `${result?.fileName || "Document"} (${result?.wordCount || 0} words)`;
+    case "codeExecution":
+      if (isExecuting) return "Executing code...";
+      if (result?.success === false) return "Execution failed";
+      return `${result?.language || "Code"} executed (${result?.executionTime || 0}ms)`;
     default:
       if (isExecuting) return "Processing...";
       return "Done";

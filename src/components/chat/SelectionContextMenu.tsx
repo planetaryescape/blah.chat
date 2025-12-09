@@ -1,23 +1,23 @@
 "use client";
 
+import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
+import { SummarizePopover } from "@/components/notes/SummarizePopover";
 import { useSelection } from "@/contexts/SelectionContext";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Brain,
-  Quote,
-  Search,
-  Sparkles,
-  Tag,
-  type LucideIcon,
-} from "lucide-react";
-import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
-import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useAction, useMutation } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    Brain,
+    Quote,
+    Search,
+    Sparkles,
+    Tag,
+    type LucideIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { SummarizePopover } from "@/components/notes/SummarizePopover";
-import { CreateNoteDialog } from "@/components/notes/CreateNoteDialog";
 
 interface MenuAction {
   id: string;
@@ -87,11 +87,10 @@ export function SelectionContextMenu() {
 
   const handleQuote = () => {
     window.dispatchEvent(
-      new CustomEvent("insert-prompt", {
-        detail: `with reference to this: "${selection.text}" `,
+      new CustomEvent("quote-selection", {
+        detail: selection.text,
       }),
     );
-    toast.success("Text quoted in input");
     clearSelection();
   };
 

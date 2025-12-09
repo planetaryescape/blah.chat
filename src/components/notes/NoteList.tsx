@@ -1,10 +1,10 @@
 "use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { NoteListItem } from "./NoteListItem";
-import { useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
+import { useRef } from "react";
+import { NoteListItem } from "./NoteListItem";
 
 interface NoteListProps {
   notes: Doc<"notes">[];
@@ -18,7 +18,7 @@ export function NoteList({ notes, selectedNoteId, onSelect }: NoteListProps) {
   const virtualizer = useVirtualizer({
     count: notes.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 100, // Estimated height per note item
+    estimateSize: () => 120, // Estimated height per note item
     overscan: 5, // Render 5 extra items above/below viewport
   });
 

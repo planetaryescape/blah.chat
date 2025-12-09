@@ -1,8 +1,5 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import {
   Select,
   SelectContent,
@@ -10,6 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { FolderOpen } from "lucide-react";
 
 interface ProjectFilterProps {
@@ -18,6 +17,7 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
+  // @ts-ignore
   const projects = useQuery(api.projects.list);
 
   const handleChange = (newValue: string) => {
@@ -34,7 +34,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 
   return (
     <Select value={value || "all"} onValueChange={handleChange}>
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="w-full">
         <div className="flex items-center gap-2">
           <FolderOpen className="w-4 h-4" />
           <SelectValue placeholder="All projects" />

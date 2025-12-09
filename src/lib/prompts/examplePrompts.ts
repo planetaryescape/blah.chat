@@ -1,4 +1,4 @@
-import { getModelConfig } from "@/lib/ai/models";
+import { getModelConfig } from "@/lib/ai/utils";
 
 // Exact model matches (top models)
 const SUGGESTED_PROMPTS: Record<string, readonly string[]> = {
@@ -152,4 +152,5 @@ export function getPromptsForModel(modelId: string | undefined): PromptResult {
 }
 
 // Export for testing/reference
-export { SUGGESTED_PROMPTS, CAPABILITY_PROMPTS };
+export { CAPABILITY_PROMPTS, SUGGESTED_PROMPTS };
+

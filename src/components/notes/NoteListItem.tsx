@@ -22,13 +22,13 @@ export function NoteListItem({ note, isSelected, onClick }: NoteListItemProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left p-3 border-b border-border/40 transition-colors duration-200 ${
+      className={`w-full text-left px-4 py-4 border-b border-border/60 transition-colors duration-200 ${
         isSelected
-          ? "bg-primary/5 text-primary"
+          ? "bg-muted border-l-2 border-l-primary"
           : "hover:bg-muted/50 text-foreground"
       }`}
     >
-      <div className="flex items-start justify-between gap-2 mb-1">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-semibold text-sm line-clamp-1 flex-1">
           {note.title}
         </h3>
@@ -37,7 +37,7 @@ export function NoteListItem({ note, isSelected, onClick }: NoteListItemProps) {
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+      <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-3">
         {excerpt}
       </p>
 

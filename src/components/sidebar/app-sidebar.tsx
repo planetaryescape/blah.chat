@@ -3,26 +3,26 @@ import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { ProjectFilter } from "@/components/projects/ProjectFilter";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
 } from "@/components/ui/sidebar";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { api } from "@/convex/_generated/api";
@@ -32,18 +32,19 @@ import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
-  BarChart3,
-  Bookmark,
-  Brain,
-  ChevronDown,
-  FileText,
-  FolderKanban,
-  Keyboard,
-  MoreHorizontal,
-  NotebookPen,
-  Plus,
-  Search,
-  Settings,
+    BarChart3,
+    Bookmark,
+    Brain,
+    ChevronDown,
+    FileText,
+    FolderKanban,
+    Keyboard,
+    MoreHorizontal,
+    NotebookPen,
+    Plus,
+    Search,
+    Settings,
+    Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -96,6 +97,9 @@ export function AppSidebar() {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { setFilteredConversations } = useConversationContext();
+
+  // Check if current user is admin
+  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -301,7 +305,7 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
+        <div className="mt-4 group-data-[collapsible=icon]:hidden">
           <Button
             onClick={handleNewChat}
             className="w-full bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9"
@@ -452,6 +456,18 @@ export function AppSidebar() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </SidebarMenuItem>
+          )}
+
+          {/* Admin Dashboard - only visible to admins */}
+          {isAdmin && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Admin Dashboard">
+                <Link href="/admin/feedback" className="text-amber-500 hover:text-amber-400">
+                  <Shield className="w-4 h-4" />
+                  <span>Admin Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           )}
         </SidebarMenu>

@@ -2,31 +2,31 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
-import { analytics } from "@/lib/analytics";
 import { MODEL_CONFIG } from "@/lib/ai/models";
+import { analytics } from "@/lib/analytics";
 import { useAction, useMutation } from "convex/react";
 import { ImageIcon, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { ModelSelector } from "./ModelSelector";
+import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface ImageGenerateButtonProps {
   conversationId: Id<"conversations">;
@@ -48,7 +48,7 @@ export function ImageGenerateButton({
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedModel, setSelectedModel] = useState(
-    "google:gemini-3-pro-image-preview",
+    "google:gemini-3-pro-image",
   );
   const [thinkingEffort, setThinkingEffort] = useState<
     "low" | "medium" | "high"
@@ -155,10 +155,12 @@ export function ImageGenerateButton({
           </div>
           <div className="space-y-2">
             <Label htmlFor="model">Image Model</Label>
-            <ModelSelector
-              value={selectedModel}
-              onChange={setSelectedModel}
-              className="w-full"
+            <QuickModelSwitcher
+              currentModel={selectedModel}
+              onSelectModel={setSelectedModel}
+              open={false}
+              onOpenChange={() => {}}
+              mode="single"
             />
           </div>
           {supportsThinking && (

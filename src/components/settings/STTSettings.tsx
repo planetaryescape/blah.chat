@@ -1,27 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { TTSSettings } from "@/components/settings/TTSSettings";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { TTSSettings } from "./TTSSettings";
 
 export function STTSettings() {
   const user = useQuery(api.users.getCurrentUser);
@@ -150,7 +150,7 @@ export function STTSettings() {
         ttsVoice={user.preferences?.ttsVoice ?? "aura-asteria-en"}
         ttsSpeed={user.preferences?.ttsSpeed ?? 1.0}
         ttsAutoRead={user.preferences?.ttsAutoRead ?? false}
-        onSettingsChange={async (settings) => {
+        onSettingsChange={async (settings: any) => {
           try {
             await updatePreferences({ preferences: settings });
             toast.success("TTS settings updated!");

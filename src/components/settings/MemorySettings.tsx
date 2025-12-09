@@ -37,8 +37,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import {
@@ -70,8 +68,6 @@ export function MemorySettings() {
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
   const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
 
-  const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);
-  const [extractInterval, setExtractInterval] = useState(5);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newMemoryContent, setNewMemoryContent] = useState("");
   const [editingMemory, setEditingMemory] = useState<any>(null);
@@ -80,46 +76,6 @@ export function MemorySettings() {
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
-
-  useEffect(() => {
-    if (user?.preferences) {
-      setAutoExtractEnabled(user.preferences.autoMemoryExtractEnabled ?? true);
-      setExtractInterval(user.preferences.autoMemoryExtractInterval ?? 5);
-    }
-  }, [user]);
-
-  const handleToggleChange = async (checked: boolean) => {
-    setAutoExtractEnabled(checked);
-    try {
-      await updatePreferences({
-        preferences: {
-          autoMemoryExtractEnabled: checked,
-          autoMemoryExtractInterval: extractInterval,
-        },
-      });
-      toast.success("Memory settings saved!");
-    } catch (error) {
-      toast.error("Failed to save settings");
-      setAutoExtractEnabled(!checked);
-    }
-  };
-
-  const handleSliderChange = async (value: number[]) => {
-    const newInterval = value[0];
-    setExtractInterval(newInterval);
-    try {
-      await updatePreferences({
-        preferences: {
-          autoMemoryExtractEnabled: autoExtractEnabled,
-          autoMemoryExtractInterval: newInterval,
-        },
-      });
-      toast.success("Memory settings saved!");
-    } catch (error) {
-      toast.error("Failed to save settings");
-      setExtractInterval(extractInterval);
-    }
-  };
 
   const handleAddMemory = async () => {
     if (!newMemoryContent.trim()) return;
@@ -244,43 +200,6 @@ export function MemorySettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="auto-extract">Auto-extract memories</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically extract facts from conversations
-              </p>
-            </div>
-            <Switch
-              id="auto-extract"
-              checked={autoExtractEnabled}
-              onCheckedChange={handleToggleChange}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Extraction interval</Label>
-              <p className="text-sm text-muted-foreground">
-                Extract memories every {extractInterval} messages
-              </p>
-            </div>
-            <Slider
-              value={[extractInterval]}
-              onValueChange={(value) => setExtractInterval(value[0])}
-              onValueCommit={handleSliderChange}
-              min={3}
-              max={20}
-              step={1}
-              disabled={!autoExtractEnabled}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>3 messages</span>
-              <span>20 messages</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between border-t pt-4">
             <div className="space-y-0.5">
               <Label>Memory Actions</Label>
               <p className="text-sm text-muted-foreground">

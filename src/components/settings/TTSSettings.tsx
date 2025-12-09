@@ -11,15 +11,13 @@ import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
-    SelectGroup,
     SelectItem,
-    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Info, Star } from "lucide-react";
+import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface TTSSettingsProps {
@@ -37,93 +35,10 @@ interface TTSSettingsProps {
   }) => void;
 }
 
-// Deepgram Aura-2 voices - organized by language and gender
-const DEEPGRAM_VOICES = {
-  // Featured Aura-2 English voices (recommended)
-  featuredEnglish: [
-    { value: "aura-2-thalia-en", label: "Thalia", gender: "Female", style: "Versatile" },
-    { value: "aura-2-andromeda-en", label: "Andromeda", gender: "Female", style: "Expressive" },
-    { value: "aura-2-helena-en", label: "Helena", gender: "Female", style: "Warm" },
-    { value: "aura-2-apollo-en", label: "Apollo", gender: "Male", style: "Professional" },
-    { value: "aura-2-arcas-en", label: "Arcas", gender: "Male", style: "Calm" },
-    { value: "aura-2-aries-en", label: "Aries", gender: "Male", style: "Confident" },
-  ],
-  // All Aura-2 English voices
-  english: [
-    { value: "aura-2-amalthea-en", label: "Amalthea", gender: "Female", style: "Gentle" },
-    { value: "aura-2-asteria-en", label: "Asteria", gender: "Female", style: "Warm" },
-    { value: "aura-2-athena-en", label: "Athena", gender: "Female", style: "Authoritative" },
-    { value: "aura-2-atlas-en", label: "Atlas", gender: "Male", style: "Strong" },
-    { value: "aura-2-aurora-en", label: "Aurora", gender: "Female", style: "Bright" },
-    { value: "aura-2-callista-en", label: "Callista", gender: "Female", style: "Elegant" },
-    { value: "aura-2-cora-en", label: "Cora", gender: "Female", style: "Friendly" },
-    { value: "aura-2-cordelia-en", label: "Cordelia", gender: "Female", style: "Refined" },
-    { value: "aura-2-delia-en", label: "Delia", gender: "Female", style: "Sweet" },
-    { value: "aura-2-draco-en", label: "Draco", gender: "Male", style: "Deep" },
-    { value: "aura-2-electra-en", label: "Electra", gender: "Female", style: "Energetic" },
-    { value: "aura-2-harmonia-en", label: "Harmonia", gender: "Female", style: "Balanced" },
-    { value: "aura-2-hera-en", label: "Hera", gender: "Female", style: "Regal" },
-    { value: "aura-2-hermes-en", label: "Hermes", gender: "Male", style: "Quick" },
-    { value: "aura-2-hyperion-en", label: "Hyperion", gender: "Male", style: "Powerful" },
-    { value: "aura-2-iris-en", label: "Iris", gender: "Female", style: "Colorful" },
-    { value: "aura-2-janus-en", label: "Janus", gender: "Male", style: "Thoughtful" },
-    { value: "aura-2-juno-en", label: "Juno", gender: "Female", style: "Majestic" },
-    { value: "aura-2-jupiter-en", label: "Jupiter", gender: "Male", style: "Commanding" },
-    { value: "aura-2-luna-en", label: "Luna", gender: "Female", style: "Dreamy" },
-    { value: "aura-2-mars-en", label: "Mars", gender: "Male", style: "Bold" },
-    { value: "aura-2-minerva-en", label: "Minerva", gender: "Female", style: "Wise" },
-    { value: "aura-2-neptune-en", label: "Neptune", gender: "Male", style: "Flowing" },
-    { value: "aura-2-odysseus-en", label: "Odysseus", gender: "Male", style: "Storytelling" },
-    { value: "aura-2-ophelia-en", label: "Ophelia", gender: "Female", style: "Poetic" },
-    { value: "aura-2-orion-en", label: "Orion", gender: "Male", style: "Strong" },
-    { value: "aura-2-orpheus-en", label: "Orpheus", gender: "Male", style: "Musical" },
-    { value: "aura-2-pandora-en", label: "Pandora", gender: "Female", style: "Mysterious" },
-    { value: "aura-2-phoebe-en", label: "Phoebe", gender: "Female", style: "Bright" },
-    { value: "aura-2-pluto-en", label: "Pluto", gender: "Male", style: "Deep" },
-    { value: "aura-2-saturn-en", label: "Saturn", gender: "Male", style: "Steady" },
-    { value: "aura-2-selene-en", label: "Selene", gender: "Female", style: "Serene" },
-    { value: "aura-2-theia-en", label: "Theia", gender: "Female", style: "Radiant" },
-    { value: "aura-2-vesta-en", label: "Vesta", gender: "Female", style: "Warm" },
-    { value: "aura-2-zeus-en", label: "Zeus", gender: "Male", style: "Authoritative" },
-  ],
-  // Featured Aura-2 Spanish voices
-  featuredSpanish: [
-    { value: "aura-2-celeste-es", label: "Celeste", gender: "Female", style: "Clear" },
-    { value: "aura-2-estrella-es", label: "Estrella", gender: "Female", style: "Bright" },
-    { value: "aura-2-nestor-es", label: "Nestor", gender: "Male", style: "Warm" },
-  ],
-  // All Aura-2 Spanish voices
-  spanish: [
-    { value: "aura-2-sirio-es", label: "Sirio", gender: "Male", style: "Strong" },
-    { value: "aura-2-carina-es", label: "Carina", gender: "Female", style: "Friendly" },
-    { value: "aura-2-alvaro-es", label: "Alvaro", gender: "Male", style: "Professional" },
-    { value: "aura-2-diana-es", label: "Diana", gender: "Female", style: "Elegant", bilingual: true },
-    { value: "aura-2-aquila-es", label: "Aquila", gender: "Female", style: "Swift", bilingual: true },
-    { value: "aura-2-selena-es", label: "Selena", gender: "Female", style: "Melodic", bilingual: true },
-    { value: "aura-2-javier-es", label: "Javier", gender: "Male", style: "Natural", bilingual: true },
-  ],
-  // Legacy Aura-1 English voices (still available)
-  legacy: [
-    { value: "aura-asteria-en", label: "Asteria (v1)", gender: "Female", style: "Warm" },
-    { value: "aura-luna-en", label: "Luna (v1)", gender: "Female", style: "Expressive" },
-    { value: "aura-stella-en", label: "Stella (v1)", gender: "Female", style: "Professional" },
-    { value: "aura-athena-en", label: "Athena (v1)", gender: "Female", style: "Authoritative" },
-    { value: "aura-hera-en", label: "Hera (v1)", gender: "Female", style: "Friendly" },
-    { value: "aura-orion-en", label: "Orion (v1)", gender: "Male", style: "Confident" },
-    { value: "aura-arcas-en", label: "Arcas (v1)", gender: "Male", style: "Calm" },
-    { value: "aura-perseus-en", label: "Perseus (v1)", gender: "Male", style: "Energetic" },
-    { value: "aura-angus-en", label: "Angus (v1)", gender: "Male", style: "Irish accent" },
-    { value: "aura-orpheus-en", label: "Orpheus (v1)", gender: "Male", style: "Storytelling" },
-    { value: "aura-helios-en", label: "Helios (v1)", gender: "Male", style: "Warm" },
-    { value: "aura-zeus-en", label: "Zeus (v1)", gender: "Male", style: "Authoritative" },
-  ],
-};
-
 /**
  * TTS settings panel
  *
  * Provider: Deepgram Aura (pay-as-you-go, $200 free credits)
- * Now includes all 40+ Aura-2 voices across English and Spanish
  */
 export function TTSSettings({
   ttsEnabled,
@@ -135,17 +50,68 @@ export function TTSSettings({
 }: TTSSettingsProps) {
   const [localSpeed, setLocalSpeed] = useState(ttsSpeed);
 
+  // Voice options per provider
+  const voiceOptions = {
+    deepgram: [
+      // English Voices - Female
+      { value: "aura-asteria-en", label: "Asteria (Female, warm)" },
+      { value: "aura-luna-en", label: "Luna (Female, expressive)" },
+      { value: "aura-stella-en", label: "Stella (Female, professional)" },
+      { value: "aura-athena-en", label: "Athena (Female, authoritative)" },
+      { value: "aura-hera-en", label: "Hera (Female, friendly)" },
+      { value: "aura-amalthea-en", label: "Amalthea (Female, gentle)" },
+      { value: "aura-andromeda-en", label: "Andromeda (Female, clear)" },
+      { value: "aura-aurora-en", label: "Aurora (Female, soft)" },
+      { value: "aura-callista-en", label: "Callista (Female, powerful)" },
+      { value: "aura-cora-en", label: "Cora (Female, balanced)" },
+      { value: "aura-cordelia-en", label: "Cordelia (Female, sweet)" },
+      { value: "aura-delia-en", label: "Delia (Female, calm)" },
+      { value: "aura-electra-en", label: "Electra (Female, edgy)" },
+      { value: "aura-harmonia-en", label: "Harmonia (Female, musical)" },
+      { value: "aura-helena-en", label: "Helena (Female, classic)" },
+      { value: "aura-iris-en", label: "Iris (Female, bright)" },
+      { value: "aura-juno-en", label: "Juno (Female, mature)" },
+      { value: "aura-minerva-en", label: "Minerva (Female, wise)" },
+      { value: "aura-ophelia-en", label: "Ophelia (Female, dreamy)" },
+      { value: "aura-pandora-en", label: "Pandora (Female, mysterious)" },
+      { value: "aura-phoebe-en", label: "Phoebe (Female, energetic)" },
+      { value: "aura-selene-en", label: "Selene (Female, mysterious)" },
+      { value: "aura-thalia-en", label: "Thalia (Female, cheerful)" },
+      { value: "aura-theia-en", label: "Theia (Female, motherly)" },
+      { value: "aura-vesta-en", label: "Vesta (Female, homey)" },
+
+      // English Voices - Male
+      { value: "aura-orion-en", label: "Orion (Male, confident)" },
+      { value: "aura-arcas-en", label: "Arcas (Male, calm)" },
+      { value: "aura-perseus-en", label: "Perseus (Male, energetic)" },
+      { value: "aura-angus-en", label: "Angus (Male, Irish accent)" },
+      { value: "aura-orpheus-en", label: "Orpheus (Male, storytelling)" },
+      { value: "aura-helios-en", label: "Helios (Male, warm)" },
+      { value: "aura-zeus-en", label: "Zeus (Male, authoritative)" },
+      { value: "aura-apollo-en", label: "Apollo (Male, bold)" },
+      { value: "aura-aries-en", label: "Aries (Male, aggressive)" },
+      { value: "aura-atlas-en", label: "Atlas (Male, strong)" },
+      { value: "aura-draco-en", label: "Draco (Male, deep)" },
+      { value: "aura-hermes-en", label: "Hermes (Male, quick)" },
+      { value: "aura-hyperion-en", label: "Hyperion (Male, commanding)" },
+      { value: "aura-janus-en", label: "Janus (Male, dual)" },
+      { value: "aura-jupiter-en", label: "Jupiter (Male, kingly)" },
+      { value: "aura-mars-en", label: "Mars (Male, battle-ready)" },
+      { value: "aura-neptune-en", label: "Neptune (Male, vast)" },
+      { value: "aura-odysseus-en", label: "Odysseus (Male, clever)" },
+      { value: "aura-pluto-en", label: "Pluto (Male, dark)" },
+      { value: "aura-saturn-en", label: "Saturn (Male, old)" },
+    ],
+  };
+
+  const currentVoices = voiceOptions.deepgram;
+
   // Force provider to Deepgram now that other providers are removed
   useEffect(() => {
     if (ttsProvider !== "deepgram") {
       onSettingsChange({ ttsProvider: "deepgram" });
     }
   }, [ttsProvider, onSettingsChange]);
-
-  const formatVoiceLabel = (voice: { label: string; gender: string; style: string; bilingual?: boolean }) => {
-    const bilingual = voice.bilingual ? " 🌐" : "";
-    return `${voice.label} (${voice.gender}, ${voice.style})${bilingual}`;
-  };
 
   return (
     <Card>
@@ -179,7 +145,8 @@ export function TTSSettings({
             <div className="space-y-1">
               <Label>Provider</Label>
               <p className="text-sm text-muted-foreground">
-                Deepgram Aura-2 (40+ voices, pay-as-you-go with $200 free credits)
+                Deepgram Aura (pay-as-you-go, $200 free credits). Other TTS
+                providers have been removed.
               </p>
             </div>
 
@@ -191,69 +158,16 @@ export function TTSSettings({
                 onValueChange={(value) => onSettingsChange({ ttsVoice: value })}
               >
                 <SelectTrigger id="tts-voice">
-                  <SelectValue placeholder="Select a voice" />
+                  <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="max-h-80">
-                  {/* Featured English */}
-                  <SelectGroup>
-                    <SelectLabel className="flex items-center gap-1.5">
-                      <Star className="h-3 w-3 text-yellow-500" />
-                      Featured English
-                    </SelectLabel>
-                    {DEEPGRAM_VOICES.featuredEnglish.map((voice) => (
-                      <SelectItem key={voice.value} value={voice.value}>
-                        {formatVoiceLabel(voice)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  {/* All English Voices */}
-                  <SelectGroup>
-                    <SelectLabel>All English Voices</SelectLabel>
-                    {DEEPGRAM_VOICES.english.map((voice) => (
-                      <SelectItem key={voice.value} value={voice.value}>
-                        {formatVoiceLabel(voice)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  {/* Featured Spanish */}
-                  <SelectGroup>
-                    <SelectLabel className="flex items-center gap-1.5">
-                      <Star className="h-3 w-3 text-yellow-500" />
-                      Featured Spanish
-                    </SelectLabel>
-                    {DEEPGRAM_VOICES.featuredSpanish.map((voice) => (
-                      <SelectItem key={voice.value} value={voice.value}>
-                        {formatVoiceLabel(voice)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  {/* All Spanish Voices */}
-                  <SelectGroup>
-                    <SelectLabel>All Spanish Voices (🌐 = bilingual)</SelectLabel>
-                    {DEEPGRAM_VOICES.spanish.map((voice) => (
-                      <SelectItem key={voice.value} value={voice.value}>
-                        {formatVoiceLabel(voice)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-
-                  {/* Legacy Aura-1 */}
-                  <SelectGroup>
-                    <SelectLabel>Legacy (Aura v1)</SelectLabel>
-                    {DEEPGRAM_VOICES.legacy.map((voice) => (
-                      <SelectItem key={voice.value} value={voice.value}>
-                        {formatVoiceLabel(voice)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
+                <SelectContent>
+                  {currentVoices.map((voice) => (
+                    <SelectItem key={voice.value} value={voice.value}>
+                      {voice.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Choose from 50+ natural voices across English and Spanish
-              </p>
             </div>
 
             {/* Speed Control */}
@@ -303,11 +217,12 @@ export function TTSSettings({
               <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>
-                  <strong>Aura-2 voices</strong> offer improved quality and natural speech.
-                  Spanish voices marked with 🌐 can seamlessly switch between English and Spanish.
+                  Cost is tracked per character. Deepgram offers $200 free
+                  credits and pay-as-you-go billing.
                 </p>
-                <p>
-                  Cost is ~$0.003 per 1000 characters. Deepgram offers $200 free credits.
+                <p className="mt-1">
+                  <strong>Deepgram:</strong> Best value, natural quality.
+                  Other TTS providers were removed to keep costs predictable.
                 </p>
               </div>
             </div>

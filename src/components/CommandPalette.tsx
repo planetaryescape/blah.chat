@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useConversationActions } from "@/hooks/useConversationActions";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
 import { analytics } from "@/lib/analytics";
 import { createActionItems } from "@/lib/command-palette-actions";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ export function CommandPalette() {
     conversationId,
     "command_palette",
   );
+  const { newChatModel } = useNewChatModel();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -106,11 +108,11 @@ export function CommandPalette() {
   const handleNewChat = async () => {
     try {
       const conversationId = await createConversation({
-        model: "openai:gpt-4o",
+        model: newChatModel,
       });
       router.push(`/chat/${conversationId}`);
       setOpen(false);
-      analytics.track("conversation_started", { model: "openai:gpt-4o" });
+      analytics.track("conversation_started", { model: newChatModel });
     } catch (error) {
       console.error("Failed to create conversation:", error);
     }

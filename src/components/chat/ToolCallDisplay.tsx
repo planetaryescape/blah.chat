@@ -2,21 +2,21 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    AlertCircle,
-    BookmarkPlus,
-    Calculator,
-    Calendar,
-    CheckCircle2,
-    ChevronDown,
-    ChevronRight,
-    Cloud,
-    Code,
-    ExternalLink,
-    FileText,
-    FolderTree,
-    Globe,
-    Loader2,
-    Search
+  AlertCircle,
+  BookmarkPlus,
+  Calculator,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Cloud,
+  Code,
+  ExternalLink,
+  FileText,
+  FolderTree,
+  Globe,
+  Loader2,
+  Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -113,13 +113,16 @@ function getToolLabel(
       if (isExecuting) return "Executing code...";
       if (result?.success === false) return "Execution failed";
       return `${result?.language || "Code"} executed (${result?.executionTime || 0}ms)`;
-    case "weather":
+    case "weather": {
       if (isExecuting) return "Fetching weather...";
       if (result?.success === false) return "Weather unavailable";
       const temp = result?.current?.temperature;
       const units = result?.units === "fahrenheit" ? "°F" : "°C";
-      return result?.location ? `${result.location} • ${temp}${units}` : "Weather Forecast";
-    case "projectContext":
+      return result?.location
+        ? `${result.location} • ${temp}${units}`
+        : "Weather Forecast";
+    }
+    case "projectContext": {
       if (isExecuting) return "Loading project context...";
       if (result?.success === false) return "Project not found";
       const section = result?.section || "context";
@@ -133,8 +136,8 @@ function getToolLabel(
         return `${result?.totalCount || 0} conversation${result?.totalCount !== 1 ? "s" : ""}`;
       }
       return "Project context";
+    }
     default:
-
       if (isExecuting) return "Processing...";
       return "Done";
   }

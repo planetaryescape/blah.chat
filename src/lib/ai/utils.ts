@@ -20,7 +20,7 @@ const MODEL_ID_MIGRATIONS: Record<string, string> = {
   // Removed models - redirect to closest alternatives
   "zai:glm-4.6": "cerebras:qwen-3-32b", // Z.ai provider not in gateway
   "kimi:kimi-k2-thinking": "deepseek:deepseek-r1", // Kimi provider not in gateway, similar reasoning model
-  "minimax:m2": "openai:gpt-oss-120b", // MiniMax provider not in gateway, similar MoE model
+  "minimax:m2": "meta:llama-3.3-70b", // MiniMax provider not in gateway, similar MoE model
   "zhipu:glm-4.5-air": "cerebras:qwen-3-32b", // Zhipu provider not in gateway
   "xai:grok-4": "xai:grok-4-fast", // Only grok-4-fast variants in gateway
   "xai:grok-3-mini": "xai:grok-code-fast-1", // Grok 3 not found, use code-optimized variant
@@ -39,8 +39,8 @@ const MODEL_ID_MIGRATIONS: Record<string, string> = {
   "groq:meta-llama/llama-4-maverick-17b-128e-instruct": "meta:llama-3.3-70b",
   "groq:meta-llama/llama-4-scout-17b-16e-instruct": "meta:llama-3.3-70b",
   // Redirect removed Groq models to Cerebras equivalents (via Gateway)
-  "groq:openai/gpt-oss-120b": "openai:gpt-oss-120b",
-  "groq:gpt-oss-120b": "openai:gpt-oss-120b",
+  "groq:openai/gpt-oss-120b": "meta:llama-3.3-70b",
+  "groq:gpt-oss-120b": "meta:llama-3.3-70b",
   "groq:qwen/qwen3-32b": "cerebras:qwen-3-32b",
   "groq:qwen-qwen3-32b": "cerebras:qwen-3-32b",
   // OpenRouter → native provider migrations

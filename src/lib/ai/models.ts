@@ -503,16 +503,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
 
   // OpenAI OSS Models (via Gateway)
-  "openai:gpt-oss-120b": {
-    id: "openai:gpt-oss-120b",
-    provider: "openai",
-    name: "GPT-OSS 120B",
-    description: "Extremely capable general-purpose LLM with strong reasoning.",
-    contextWindow: 128000,
-    pricing: { input: 0.35, output: 0.75 },
-    capabilities: ["function-calling", "thinking"],
-    providerOrder: ["cerebras", "groq"],
-  },
+
   "cerebras:qwen-3-32b": {
     id: "cerebras:qwen-3-32b",
     provider: "cerebras",

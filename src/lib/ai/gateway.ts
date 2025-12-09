@@ -1,8 +1,4 @@
-import { gateway } from "./providers";
 import { getModelConfig } from "./utils";
-
-// Re-export for backward compatibility
-export const aiGateway = gateway;
 
 // Dynamic provider ordering based on model config
 // This is now derived from MODEL_CONFIG.providerOrder instead of hardcoded lists

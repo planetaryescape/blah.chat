@@ -66,7 +66,7 @@ export function getModel(modelId: string, providerOverride?: ProviderName) {
  */
 export function getModelWithProvider(
   modelId: string,
-  providerName: ProviderName
+  providerName: ProviderName,
 ) {
   return getModel(modelId, providerName);
 }

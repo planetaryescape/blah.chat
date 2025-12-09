@@ -1,3 +1,4 @@
+// biome-ignore lint/style/noNonNullAssertion: Required env var for Clerk auth
 export default {
   providers: [
     {

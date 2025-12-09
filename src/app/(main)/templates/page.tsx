@@ -28,9 +28,9 @@ export default function TemplatesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasSeeded, setHasSeeded] = useState(false);
 
-  // FIXME: Convex useQuery type inference excessively deep - intentionally ignored, do not remove @ts-expect-error
+  // FIXME: Convex useQuery type inference excessively deep - intentionally ignored, do not remove @ts-ignore
   const templates = useQuery(
-    // FIXME: Convex API type inference excessively deep - intentionally ignored, do not remove @ts-expect-error
+    // FIXME: Convex API type inference excessively deep - intentionally ignored, do not remove @ts-ignore
     api.templates.list,
     selectedCategory === "all" ? {} : { category: selectedCategory },
   );

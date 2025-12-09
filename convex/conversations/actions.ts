@@ -1,6 +1,7 @@
+import { getModel } from "@/lib/ai/registry";
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
@@ -21,7 +22,9 @@ export const bulkAutoRename = action({
       const batchPromises = batch.map(async (conversationId: any) => {
         try {
           // 1. Get messages to find context
-          const messages: any = await ctx.runQuery(
+          // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
+          const messages = await (ctx.runQuery as any)(
+            // @ts-ignore - Convex query type instantiation depth issue
             internal.messages.listInternal,
             {
               conversationId,
@@ -40,16 +43,18 @@ export const bulkAutoRename = action({
           }
 
           // 2. Generate title
-          const result: any = await generateText({
-            model: aiGateway(TITLE_GENERATION_MODEL.id),
+          const result = await generateText({
+            model: getModel(TITLE_GENERATION_MODEL.id),
             prompt: `${CONVERSATION_TITLE_PROMPT}
 
 First user message:
 ${userMessage.content}`,
             temperature: 0.7,
-            providerOptions: getGatewayOptions(TITLE_GENERATION_MODEL.id, undefined, [
-              "title-generation",
-            ]),
+            providerOptions: getGatewayOptions(
+              TITLE_GENERATION_MODEL.id,
+              undefined,
+              ["title-generation"],
+            ),
           });
 
           // Handle undefined result - use optional chaining for safety
@@ -96,7 +101,7 @@ ${userMessage.content}`,
         }
       });
 
-      const batchResults: any = await Promise.all(batchPromises);
+      const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
     }
 

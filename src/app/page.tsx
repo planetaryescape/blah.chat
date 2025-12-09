@@ -1,23 +1,23 @@
 "use client";
 
-import { Logo } from "@/components/brand/Logo";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
-    ArrowRight,
-    ChevronDown,
-    Code2,
-    Eye,
-    Mic,
-    ShieldCheck,
-    Users,
-    Webhook,
+  ArrowRight,
+  ChevronDown,
+  Code2,
+  Eye,
+  Mic,
+  ShieldCheck,
+  Users,
+  Webhook,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { Logo } from "@/components/brand/Logo";
+import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -198,8 +198,8 @@ export default function LandingPage() {
                   The Brain
                 </h3>
                 <p className="text-zinc-300 text-[10px] md:text-sm leading-tight line-clamp-2 md:line-clamp-none">
-                  OpenAI, Google, Anthropic, Perplexity.
-                  All models. Switch mid-chat. Universal access.
+                  OpenAI, Google, Anthropic, Perplexity. All models. Switch
+                  mid-chat. Universal access.
                 </p>
               </div>
             </div>
@@ -289,8 +289,7 @@ export default function LandingPage() {
                   The Library
                 </h3>
                 <p className="text-zinc-300 text-[10px] md:text-xs leading-tight">
-                  Hybrid Search. Projects. Bookmarks.
-                  Find anything, instantly.
+                  Hybrid Search. Projects. Bookmarks. Find anything, instantly.
                 </p>
               </div>
             </div>
@@ -335,8 +334,8 @@ export default function LandingPage() {
                   The Control
                 </h3>
                 <p className="text-zinc-300 text-[10px] md:text-xs leading-tight">
-                  Transparent Cost Tracking.
-                  Know exactly what you pay. NOTES & SHARING.
+                  Transparent Cost Tracking. Know exactly what you pay. NOTES &
+                  SHARING.
                 </p>
               </div>
             </div>

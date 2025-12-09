@@ -1,9 +1,9 @@
 "use client";
 
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
+import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
 import { MemorySettings } from "@/components/settings/MemorySettings";
-import { ReasoningSettings } from "@/components/settings/ReasoningSettings";
 import { STTSettings } from "@/components/settings/STTSettings";
 import { UISettings } from "@/components/settings/UISettings";
 import { Separator } from "@/components/ui/separator";
@@ -14,6 +14,11 @@ const SETTINGS_SECTIONS = [
     id: "personalization",
     label: "Personalization",
     component: CustomInstructionsForm,
+  },
+  {
+    id: "models",
+    label: "Models",
+    component: DefaultModelSettings,
   },
   {
     id: "ui",

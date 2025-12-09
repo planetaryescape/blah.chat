@@ -3,14 +3,12 @@ import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MODEL_CONFIG } from "../../src/lib/ai/models";
+import { MEMORY_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
 import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
 
-// Model configuration for memory extraction
-const EXTRACTION_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // Constants for memory extraction quality control
@@ -193,9 +191,9 @@ export const extractMemories = internalAction({
 
     try {
       const result = await generateObject({
-        model: aiGateway(EXTRACTION_MODEL.id),
+        model: aiGateway(MEMORY_EXTRACTION_MODEL.id),
         schema: memorySchema,
-        providerOptions: getGatewayOptions(EXTRACTION_MODEL.id, undefined, [
+        providerOptions: getGatewayOptions(MEMORY_EXTRACTION_MODEL.id, undefined, [
           "memory-extraction",
         ]),
         prompt: buildMemoryExtractionPrompt(

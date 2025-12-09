@@ -585,8 +585,8 @@ export const generateResponse = internalAction({
           ? buildReasoningOptions(modelConfig, args.thinkingEffort)
           : null;
 
-      // 9. Get model (with Responses API if needed for OpenAI)
-      const model = getModel(args.modelId, reasoningResult?.useResponsesAPI);
+      // 9. Get model
+      const model = getModel(args.modelId);
 
       // 10. Apply middleware (e.g., DeepSeek tag extraction)
       const finalModel = reasoningResult?.applyMiddleware
@@ -1083,8 +1083,7 @@ export const summarizeSelection = action({
 
     try {
       // Generate summary using GPT-OSS 120B via gateway
-      // TODO: Move this model config to constants or arguments
-      const summarizationModel = MODEL_CONFIG["meta:llama-3.3-70b"];
+      const summarizationModel = MODEL_CONFIG["openai:gpt-oss-120b"];
       const result = await generateText({
         model: aiGateway(summarizationModel.id),
         messages: [

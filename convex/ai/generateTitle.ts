@@ -1,14 +1,11 @@
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MODEL_CONFIG } from "../../src/lib/ai/models";
+import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
-
-// Model configuration
-const TITLE_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 
 type Message = Doc<"messages">;
 
@@ -88,10 +85,9 @@ export const generateTitle = internalAction({
       // Get all messages in conversation
       // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
       const messages = await (ctx.runQuery as any)(
-        internal.messages.listInternal as any,
-        {
-          conversationId: args.conversationId,
-        },
+        // @ts-ignore - Convex query type instantiation depth issue
+        internal.messages.listInternal,
+        { conversationId: args.conversationId },
       );
 
       // Apply smart truncation
@@ -104,12 +100,12 @@ export const generateTitle = internalAction({
 
       // Generate title with full context
       const result = streamText({
-        model: aiGateway(TITLE_MODEL.id),
+        model: aiGateway(TITLE_GENERATION_MODEL.id),
         prompt: `${CONVERSATION_TITLE_PROMPT}
 
 Conversation:
 ${conversationText}`,
-        providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, [
+        providerOptions: getGatewayOptions(TITLE_GENERATION_MODEL.id, undefined, [
           "title-generation",
         ]),
       });

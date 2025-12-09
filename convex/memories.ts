@@ -3,7 +3,7 @@ import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { aiGateway, getGatewayOptions } from "../src/lib/ai/gateway";
-import { MODEL_CONFIG } from "../src/lib/ai/models";
+import { MEMORY_PROCESSING_MODEL } from "../src/lib/ai/operational-models";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -15,8 +15,6 @@ import {
   query,
 } from "./_generated/server";
 
-// Model configuration
-const MEMORY_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
 const rephrasedMemorySchema = z.object({
@@ -145,6 +143,7 @@ export const searchByEmbedding = internalAction({
     });
 
     const ids = results.map((r) => r._id);
+    // @ts-ignore - Convex query type instantiation depth issue
     const memories = await ctx.runQuery(internal.memories.getMemoriesByIds, {
       ids,
     });
@@ -506,7 +505,8 @@ export const migrateUserMemories = action({
     if (!identity) throw new Error("Unauthorized");
 
     // 1. Fetch user's memories (listAll already handles user lookup + filtering)
-    const memories: Doc<"memories">[] = await ctx.runQuery(
+    const memories: Doc<"memories">[] = await (ctx.runQuery as any)(
+      // @ts-ignore - Convex query type instantiation depth issue
       api.memories.listAll,
     );
 
@@ -522,9 +522,9 @@ export const migrateUserMemories = action({
       try {
         // 3. Use LLM to rephrase
         const result = await generateObject({
-          model: aiGateway(MEMORY_MODEL.id),
+          model: aiGateway(MEMORY_PROCESSING_MODEL.id),
           schema: rephrasedMemorySchema,
-          providerOptions: getGatewayOptions(MEMORY_MODEL.id, undefined, [
+          providerOptions: getGatewayOptions(MEMORY_PROCESSING_MODEL.id, undefined, [
             "memory-rephrase",
           ]),
           prompt: `Rephrase this memory to third-person perspective for AI context injection.
@@ -656,9 +656,9 @@ export const consolidateUserMemories = action({
         const isSingleMemory = cluster.length === 1;
 
         const result = await generateObject({
-          model: aiGateway(MEMORY_MODEL.id),
+          model: aiGateway(MEMORY_PROCESSING_MODEL.id),
           schema: consolidatedMemoriesSchema,
-          providerOptions: getGatewayOptions(MEMORY_MODEL.id, undefined, [
+          providerOptions: getGatewayOptions(MEMORY_PROCESSING_MODEL.id, undefined, [
             "memory-consolidation",
           ]),
           prompt: isSingleMemory

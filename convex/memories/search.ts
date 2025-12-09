@@ -2,10 +2,12 @@ import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
+import { MEMORY_RERANK_MODEL } from "../../src/lib/ai/operational-models";
 import { getModel } from "../../src/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+import { buildMemoryRerankPrompt } from "../lib/prompts/operational/memoryRerank";
 
 // Constants for memory retrieval
 const MIN_CONFIDENCE = 0.7; // Filter memories below 70% confidence
@@ -49,22 +51,14 @@ async function rerankMemories(
 ): Promise<Doc<"memories">[]> {
   if (candidates.length <= 1) return candidates;
 
-  const prompt = `Rerank these memories by relevance to query: "${query}"
-
-Memories:
-${candidates.map((m, i) => `${i}. ${m.content}`).join("\n")}
-
-Return ONLY comma-separated indices in relevance order (most relevant first).
-Example: 3,0,5,1,2
-
-Response:`;
+  const prompt = buildMemoryRerankPrompt(query, candidates);
 
   try {
     const result = await generateText({
-      model: getModel("meta:llama-3.3-70b"),
+      model: getModel(MEMORY_RERANK_MODEL.id),
       prompt,
       temperature: 0,
-      providerOptions: getGatewayOptions("meta:llama-3.3-70b", undefined, [
+      providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
         "memory-rerank",
       ]),
     });
@@ -189,6 +183,7 @@ export const vectorSearch = internalAction({
       // Fetch full documents
       const memories: Doc<"memories">[] = await Promise.all(
         results.map(async (result) => {
+          // @ts-ignore - Convex query type instantiation depth issue
           const memory = await ctx.runQuery(internal.memories.getMemoryById, {
             id: result._id,
           });

@@ -1,7 +1,8 @@
+import { getModel } from "@/lib/ai/registry";
 import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
-import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { EMBEDDING_SUMMARIZATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import {
@@ -21,10 +22,12 @@ const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
 async function summarizeForEmbedding(text: string): Promise<string> {
   try {
     const result = await generateText({
-      model: aiGateway(EMBEDDING_SUMMARIZATION_MODEL.id),
-      providerOptions: getGatewayOptions(EMBEDDING_SUMMARIZATION_MODEL.id, undefined, [
-        "embedding-summarize",
-      ]),
+      model: getModel(EMBEDDING_SUMMARIZATION_MODEL.id),
+      providerOptions: getGatewayOptions(
+        EMBEDDING_SUMMARIZATION_MODEL.id,
+        undefined,
+        ["embedding-summarize"],
+      ),
       maxOutputTokens: 500,
       prompt:
         "Summarize this text in 2-3 sentences, preserving the key topics and information for semantic search:\n\n" +
@@ -67,6 +70,7 @@ export const generateEmbedding = internalAction({
       });
 
       // Store embedding
+      // @ts-ignore - Convex mutation type instantiation depth issue
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {
         messageId: args.messageId,
         embedding,

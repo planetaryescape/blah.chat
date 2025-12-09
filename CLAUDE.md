@@ -113,6 +113,13 @@ Per-message: `inputTokens`, `outputTokens`, `cost` (USD)
 Daily aggregates: `usageRecords` table
 Model pricing: config file (easy updates)
 
+### Dependency Management
+
+**Check before installing**: Before adding a new dependency, ALWAYS check `package.json` to see if:
+1. The dependency is already installed.
+2. A similar dependency (e.g., `date-fns` vs `dayjs`) is already present that can solve the problem.
+**Goal**: Minimize bundle size and avoid duplicate libraries doing the same thing.
+
 ---
 
 ## Project Structure
@@ -174,6 +181,27 @@ Do NOT use for:
 - Core message rendering
 - Streaming logic
 - State management
+
+### Prompt Management
+
+All LLM prompts must be centralized in `src/lib/prompts/`.
+- **Do not** hardcode prompts in Convex actions, API routes, or UI components.
+- Create a dedicated file for each feature (e.g., `triage.ts`, `memory.ts`).
+- Use named exports (e.g., `export const TRIAGE_PROMPT = ...`).
+- Import prompts into actions/functions where needed.
+- **Why**: Ensures centralized version control, easier editing, reusability, and consistency across the app.
+
+### Model Management
+
+All AI model definitions and configuration must live in `src/lib/ai/models.ts`.
+- **Do not** hardcode model IDs (e.g., `"gpt-4"`, `"claude-3-opus"`) in strings throughout the app.
+- Import `MODEL_CONFIG` from `@/lib/ai/models` and use the constants (e.g., `MODEL_CONFIG["openai:gpt-4o"].id`).
+- When calling `aiGateway`, `generateText`, etc., always use the configuration object.
+- **Why**:
+  - Single source of truth for model IDs, pricing, and capabilities.
+  - Easier to swap models globally (e.g., deprecating a model).
+  - Prevents typos and configuration drift.
+  - Simplifies integration with Vercel AI Gateway (provider order, parameters).
 
 ---
 

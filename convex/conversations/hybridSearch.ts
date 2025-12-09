@@ -17,7 +17,7 @@ export const hybridSearch = action({
     projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
-    // @ts-ignore - Convex query type instantiation depth issue
+    // @ts-expect-error - Convex query type instantiation depth issue
     const user: any = await ctx.runQuery(api.users.getCurrentUser, {});
     if (!user) return [];
 

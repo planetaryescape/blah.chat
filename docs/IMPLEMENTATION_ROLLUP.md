@@ -1,4 +1,4 @@
-# Implementation Rollup - blah.chat
+# blah.chat Implementation Rollup - blah.chat
 
 **Knowledge document for maintainers and future contributors**
 
@@ -16,7 +16,7 @@ Personal AI chat assistant - self-hosted ChatGPT alternative with:
 - **RAG Memory System**: Automatic fact extraction with hybrid semantic + full-text search
 - **Multi-Model Comparison**: Side-by-side responses with voting and consolidation
 - **Cost Tracking**: Per-message token accounting with budget alerts
-- **Data Ownership**: Export/import, shareable conversations, full data portability
+- **Data Portability**: Export/import, shareable conversations, full data archives
 
 ### Why These Choices
 

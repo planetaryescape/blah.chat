@@ -15,6 +15,7 @@ import {
 import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { api } from "@/convex/_generated/api";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,6 +27,7 @@ function Header() {
   // @ts-ignore
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
+  const { newChatModel } = useNewChatModel();
 
   const handleNewChat = async () => {
     // Check if most recent conversation is empty
@@ -35,9 +37,9 @@ function Header() {
       return;
     }
 
-    // Create new conversation
+    // Create new conversation with user's preferred model
     const conversationId = await createConversation({
-      model: "openai:gpt-5-mini",
+      model: newChatModel,
     });
     router.push(`/chat/${conversationId}`);
   };

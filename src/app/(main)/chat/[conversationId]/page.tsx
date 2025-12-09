@@ -1,10 +1,5 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
@@ -34,8 +29,13 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import { Suspense, use, useCallback, useEffect, useMemo, useState } from "react";
 
-export default function ChatPage({
+function ChatPageContent({
   params,
 }: {
   params: Promise<{ conversationId: Id<"conversations"> }>;
@@ -43,12 +43,13 @@ export default function ChatPage({
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
   const router = useRouter();
-  // useSearchParams is used in a Client Component but not wrapped in Suspense
-  // This will be addressed by moving search param handling to a separate Server Component wrapper
-  const highlightMessageId = undefined;
+  const searchParams = useSearchParams();
+  const highlightMessageId = searchParams.get("messageId") ?? undefined;
+
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
+    // @ts-ignore - Type instantiation is excessively deep and possibly infinite
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -393,5 +394,17 @@ export default function ChatPage({
         />
       </div>
     </TTSProvider>
+  );
+}
+
+export default function ChatPage({
+  params,
+}: {
+  params: Promise<{ conversationId: Id<"conversations"> }>;
+}) {
+  return (
+    <Suspense fallback={<MessageListSkeleton />}>
+      <ChatPageContent params={params} />
+    </Suspense>
   );
 }

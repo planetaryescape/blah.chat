@@ -16,7 +16,9 @@ import type * as ai_tools_codeExecution from "../ai/tools/codeExecution.js";
 import type * as ai_tools_datetime from "../ai/tools/datetime.js";
 import type * as ai_tools_fileDocument from "../ai/tools/fileDocument.js";
 import type * as ai_tools_memories from "../ai/tools/memories.js";
+import type * as ai_tools_projectContext from "../ai/tools/projectContext.js";
 import type * as ai_tools_urlReader from "../ai/tools/urlReader.js";
+import type * as ai_tools_weather from "../ai/tools/weather.js";
 import type * as ai_tools_webSearch from "../ai/tools/webSearch.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as chat from "../chat.js";
@@ -25,12 +27,15 @@ import type * as conversations_actions from "../conversations/actions.js";
 import type * as conversations_hybridSearch from "../conversations/hybridSearch.js";
 import type * as crons from "../crons.js";
 import type * as debug from "../debug.js";
+import type * as emails from "../emails.js";
 import type * as feedback from "../feedback.js";
 import type * as feedback_triage from "../feedback/triage.js";
 import type * as files from "../files.js";
 import type * as generation from "../generation.js";
 import type * as generation_image from "../generation/image.js";
 import type * as http from "../http.js";
+import type * as lib_email from "../lib/email.js";
+import type * as lib_emailMutations from "../lib/emailMutations.js";
 import type * as lib_prompts_base from "../lib/prompts/base.js";
 import type * as lib_prompts_formatting from "../lib/prompts/formatting.js";
 import type * as lib_prompts_index from "../lib/prompts/index.js";
@@ -67,11 +72,14 @@ import type * as sources from "../sources.js";
 import type * as sources_enrichment from "../sources/enrichment.js";
 import type * as templates from "../templates.js";
 import type * as templates_builtIn from "../templates/builtIn.js";
+import type * as test_testEmails from "../test/testEmails.js";
 import type * as tokens_counting from "../tokens/counting.js";
 import type * as tokens_service from "../tokens/service.js";
 import type * as tools_codeExecution from "../tools/codeExecution.js";
 import type * as tools_fileDocument from "../tools/fileDocument.js";
+import type * as tools_projectContext from "../tools/projectContext.js";
 import type * as tools_urlReader from "../tools/urlReader.js";
+import type * as tools_weather from "../tools/weather.js";
 import type * as tools_webSearch from "../tools/webSearch.js";
 import type * as transcription from "../transcription.js";
 import type * as tts from "../tts.js";
@@ -98,7 +106,9 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/datetime": typeof ai_tools_datetime;
   "ai/tools/fileDocument": typeof ai_tools_fileDocument;
   "ai/tools/memories": typeof ai_tools_memories;
+  "ai/tools/projectContext": typeof ai_tools_projectContext;
   "ai/tools/urlReader": typeof ai_tools_urlReader;
+  "ai/tools/weather": typeof ai_tools_weather;
   "ai/tools/webSearch": typeof ai_tools_webSearch;
   bookmarks: typeof bookmarks;
   chat: typeof chat;
@@ -107,12 +117,15 @@ declare const fullApi: ApiFromModules<{
   "conversations/hybridSearch": typeof conversations_hybridSearch;
   crons: typeof crons;
   debug: typeof debug;
+  emails: typeof emails;
   feedback: typeof feedback;
   "feedback/triage": typeof feedback_triage;
   files: typeof files;
   generation: typeof generation;
   "generation/image": typeof generation_image;
   http: typeof http;
+  "lib/email": typeof lib_email;
+  "lib/emailMutations": typeof lib_emailMutations;
   "lib/prompts/base": typeof lib_prompts_base;
   "lib/prompts/formatting": typeof lib_prompts_formatting;
   "lib/prompts/index": typeof lib_prompts_index;
@@ -149,11 +162,14 @@ declare const fullApi: ApiFromModules<{
   "sources/enrichment": typeof sources_enrichment;
   templates: typeof templates;
   "templates/builtIn": typeof templates_builtIn;
+  "test/testEmails": typeof test_testEmails;
   "tokens/counting": typeof tokens_counting;
   "tokens/service": typeof tokens_service;
   "tools/codeExecution": typeof tools_codeExecution;
   "tools/fileDocument": typeof tools_fileDocument;
+  "tools/projectContext": typeof tools_projectContext;
   "tools/urlReader": typeof tools_urlReader;
+  "tools/weather": typeof tools_weather;
   "tools/webSearch": typeof tools_webSearch;
   transcription: typeof transcription;
   tts: typeof tts;
@@ -192,4 +208,154 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  resend: {
+    lib: {
+      cancelEmail: FunctionReference<
+        "mutation",
+        "internal",
+        { emailId: string },
+        null
+      >;
+      cleanupAbandonedEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      cleanupOldEmails: FunctionReference<
+        "mutation",
+        "internal",
+        { olderThan?: number },
+        null
+      >;
+      createManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: Array<string> | string;
+        },
+        string
+      >;
+      get: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bcc?: Array<string>;
+          bounced?: boolean;
+          cc?: Array<string>;
+          clicked?: boolean;
+          complained: boolean;
+          createdAt: number;
+          deliveryDelayed?: boolean;
+          errorMessage?: string;
+          failed?: boolean;
+          finalizedAt: number;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          opened: boolean;
+          replyTo: Array<string>;
+          resendId?: string;
+          segment: number;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        } | null
+      >;
+      getStatus: FunctionReference<
+        "query",
+        "internal",
+        { emailId: string },
+        {
+          bounced: boolean;
+          clicked: boolean;
+          complained: boolean;
+          deliveryDelayed: boolean;
+          errorMessage: string | null;
+          failed: boolean;
+          opened: boolean;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        } | null
+      >;
+      handleEmailEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { event: any },
+        null
+      >;
+      sendEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          bcc?: Array<string>;
+          cc?: Array<string>;
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          html?: string;
+          options: {
+            apiKey: string;
+            initialBackoffMs: number;
+            onEmailEvent?: { fnHandle: string };
+            retryAttempts: number;
+            testMode: boolean;
+          };
+          replyTo?: Array<string>;
+          subject?: string;
+          template?: {
+            id: string;
+            variables?: Record<string, string | number>;
+          };
+          text?: string;
+          to: Array<string>;
+        },
+        string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
+        null
+      >;
+    };
+  };
+};

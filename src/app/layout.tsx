@@ -41,21 +41,20 @@ export const metadata: Metadata = {
     template: "%s | blah.chat",
   },
   description:
-    "Personal AI chat assistant - self-hosted ChatGPT alternative with multi-model support, RAG memory system, cost tracking, and full data ownership",
+    "Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude), mid-chat switching, conversation branching, and transparent cost tracking.",
   applicationName: "blah.chat",
 
   keywords: [
     "AI chat",
-    "self-hosted ChatGPT",
-    "ChatGPT alternative",
-    "multi-model AI",
-    "RAG memory",
-    "AI assistant",
+    "Multi-model AI",
+    "Conversation Branching",
+    "Hybrid Search",
+    "Model Switching",
     "OpenAI",
     "Claude",
     "Gemini",
-    "privacy-focused AI",
-    "cost tracking",
+    "Perplexity",
+    "Cost Tracking",
   ],
 
   authors: [{ name: "Planetary Escape (Pvt) Ltd" }],
@@ -89,13 +88,13 @@ export const metadata: Metadata = {
     siteName: "blah.chat",
     title: "blah.chat",
     description:
-      "Personal AI chat assistant - self-hosted ChatGPT alternative with multi-model support, RAG memory, and full data ownership",
+      "All models in one app. Switch mid-chat, branch conversations, and track costs transparently.",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "blah.chat - Self-hosted AI chat assistant",
+        alt: "blah.chat - Personal AI chat assistant",
       },
     ],
   },
@@ -103,7 +102,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "blah.chat",
-    description: "Personal AI chat assistant - self-hosted ChatGPT alternative",
+    description: "All models. Mid-chat switching. Total control.",
     images: ["/opengraph-image"],
   },
 
@@ -143,10 +142,12 @@ export default function RootLayout({
     description:
       "Personal AI chat assistant with multi-model support, RAG memory, and cost tracking",
     featureList: [
-      "Multi-model AI (OpenAI, Anthropic, Google, Ollama)",
-      "RAG-based memory system",
-      "Real-time cost tracking",
-      "Self-hosted data ownership",
+      "Universal Model Access (OpenAI, Google, Anthropic, Perplexity)",
+      "Mid-chat Model Switching",
+      "Conversation Branching",
+      "Hybrid Search & Projects",
+      "Transparent Cost Tracking",
+      "Running on cloud infrastructure",
       "Voice input and file uploads",
     ],
     author: {

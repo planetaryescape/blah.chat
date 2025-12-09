@@ -1,11 +1,7 @@
 "use client";
 
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Plus, Search } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { Suspense } from "react";
-import { CommandPalette } from "@/components/CommandPalette";
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
+import { CommandPalette } from "@/components/CommandPalette";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -20,10 +16,15 @@ import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { api } from "@/convex/_generated/api";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { Plus, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense } from "react";
 
 function Header() {
   const { open } = useSidebar();
   const router = useRouter();
+  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const { newChatModel } = useNewChatModel();
@@ -84,11 +85,6 @@ export default function MainLayout({
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
 
-  // Don't show sidebar when not authenticated
-  if (!isLoading && !isAuthenticated) {
-    return <>{children}</>;
-  }
-
   return (
     <SelectionProvider>
       <ConversationProvider>
@@ -102,33 +98,38 @@ export default function MainLayout({
           Skip to main content
         </a>
 
-        <SidebarProvider>
-          {isAdminRoute ? (
-            // Admin routes: let admin layout control structure
-            <div className="flex w-full h-[100dvh] overflow-hidden">
-              {children}
-            </div>
-          ) : (
-            // Regular routes: sidebar + main
-            <div className="flex w-full h-[100dvh] overflow-hidden">
-              <Suspense fallback={null}>
-                <AppSidebar />
-              </Suspense>
-              <main
-                id="main-content"
-                className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-                role="main"
-                aria-label="Chat interface"
-              >
-                <Header />
+        {/* Don't show sidebar when not authenticated */}
+        {!isLoading && !isAuthenticated ? (
+          <>{children}</>
+        ) : (
+          <SidebarProvider>
+            {isAdminRoute ? (
+              // Admin routes: let admin layout control structure
+              <div className="flex w-full h-[100dvh] overflow-hidden">
                 {children}
-              </main>
-            </div>
-          )}
-          <CommandPalette />
-          <OnboardingTour />
-          <SelectionContextMenu />
-        </SidebarProvider>
+              </div>
+            ) : (
+              // Regular routes: sidebar + main
+              <div className="flex w-full h-[100dvh] overflow-hidden">
+                <Suspense fallback={null}>
+                  <AppSidebar />
+                </Suspense>
+                <main
+                  id="main-content"
+                  className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
+                  role="main"
+                  aria-label="Chat interface"
+                >
+                  <Header />
+                  {children}
+                </main>
+              </div>
+            )}
+            <CommandPalette />
+            <OnboardingTour />
+            <SelectionContextMenu />
+          </SidebarProvider>
+        )}
       </ConversationProvider>
     </SelectionProvider>
   );

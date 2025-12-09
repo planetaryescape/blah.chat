@@ -4,9 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## Project: blah.chat
-
-Personal AI chat assistant - self-hosted ChatGPT alternative with multi-model support, RAG memory system, cost tracking, and full data ownership.
+## Project:- **Description**: Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude), mid-chat switching, conversation branching, and transparent cost tracking.
 
 ---
 
@@ -19,6 +17,14 @@ Personal AI chat assistant - self-hosted ChatGPT alternative with multi-model su
 - **UI**: shadcn/ui, Tailwind CSS v4, Framer Motion
 - **Linting/Formatting**: Biome
 - **Package Manager**: Bun
+
+**CRITICAL**: This project uses **Bun exclusively**. Never use npm, pnpm, yarn, or npx commands. Always use:
+- `bun install` (not `npm install`)
+- `bun add` (not `npm install <package>`)
+- `bunx` (not `npx`)
+- `bun run` for scripts
+
+If you see `package-lock.json`, delete it immediately - only `bun.lock` should exist.
 
 ---
 
@@ -90,6 +96,18 @@ Frontend: **always unwrap `.data`** before using.
 - **Schema**: See `docs/spec.md` lines 1302-1568 for full schema
 
 Key tables: `users`, `conversations`, `messages`, `memories`, `projects`, `bookmarks`, `shares`, `scheduledPrompts`, `usageRecords`
+
+### Email System
+
+All transactional emails MUST use React Email for consistent, beautiful rendering:
+- **Library**: `@react-email/components` + `@react-email/render`
+- **Provider**: Resend (via `@convex-dev/resend` component)
+- **Templates**: Store in `convex/emails.tsx` with Node runtime (`"use node"`)
+- **Components**: Use `<Html>`, `<Head>`, `<Body>`, `<Container>`, `<Section>`, `<Text>`, `<Button>`
+- **Styling**: Inline styles only (email clients don't support CSS classes)
+- **Testing**: Use `testMode: true` with `delivered@resend.dev` address
+
+**Never use plain text or raw HTML strings** - always use React Email components for all transactional emails.
 
 ### Memory System (RAG)
 

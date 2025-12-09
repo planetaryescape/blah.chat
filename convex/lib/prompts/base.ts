@@ -7,81 +7,6 @@ interface BasePromptOptions {
   currentDate: string;
 }
 
-// Knowledge cutoff dates by provider/model family
-const KNOWLEDGE_CUTOFFS: Record<string, string> = {
-  // OpenAI GPT-5.1 Family (November 2025)
-  "openai:gpt-5.1": "November 2025",
-  "openai:gpt-5.1-mini": "November 2025",
-  "openai:gpt-5.1-nano": "November 2025",
-  "openai:gpt-5.1-codex": "November 2025",
-  "openai:gpt-5.1-thinking": "November 2025",
-  "openai:gpt-5.1-instant": "November 2025",
-
-  // Anthropic
-  "anthropic:claude-opus-4-5-20251101": "April 2025",
-  "anthropic:claude-sonnet-4-5-20250929": "April 2025",
-  "anthropic:claude-haiku-4-5-20251001": "April 2025",
-
-  // Google
-  "google:gemini-2.5-flash": "January 2025",
-  "google:gemini-2.5-pro": "January 2025",
-  "google:gemini-2.0-flash": "August 2024",
-  "google:gemini-2.0-flash-lite": "August 2024",
-  "google:gemini-2.0-flash-exp": "August 2024",
-  "google:gemini-3-pro": "August 2025",
-  "google:gemini-3-pro-image": "August 2025",
-
-  // xAI
-  "xai:grok-4.1-fast": "July 2025",
-  "xai:grok-4-fast": "July 2025",
-  "xai:grok-code-fast-1": "July 2025",
-  "xai:grok-4": "July 2025",
-  "xai:grok-3-mini": "March 2025",
-
-  // Perplexity (real-time search - 4 models available in Vercel AI Gateway)
-  "perplexity:sonar-reasoning-pro": "Real-time search",
-  "perplexity:sonar-pro": "Real-time search",
-  "perplexity:sonar-reasoning": "Real-time search",
-  "perplexity:sonar": "Real-time search",
-
-  // Meta
-  "meta:llama-3.3-70b": "December 2024",
-
-  // OpenRouter
-  "openrouter:deepseek-v3": "July 2024",
-  "openrouter:mistral-devstral": "April 2024",
-  "openrouter:qwen-3-coder-free": "March 2024",
-  "openrouter:glm-4.5-air-free": "January 2024",
-
-  // Groq
-  "groq:openai/gpt-oss-20b": "March 2024",
-  "groq:groq/compound": "December 2024",
-  "groq:groq/compound-mini": "December 2024",
-  "groq:moonshotai/kimi-k2-instruct-0905": "September 2024",
-
-  // Cerebras
-
-  "cerebras:qwen-3-32b": "March 2024",
-  "cerebras:qwen-3-235b-a22b-instruct-2507": "July 2025",
-  "cerebras:qwen-3-235b-a22b-thinking-2507": "July 2025",
-
-  // Z.AI
-  "zai:glm-4.6": "June 2024",
-
-  // MiniMax
-  "minimax:m2": "October 2024",
-
-  // DeepSeek
-  "deepseek:deepseek-r1": "November 2024",
-
-  // Kimi
-  "kimi:kimi-k2-thinking": "September 2024",
-};
-
-function getKnowledgeCutoff(modelId: string): string {
-  return KNOWLEDGE_CUTOFFS[modelId] || "Unknown";
-}
-
 function formatContextWindow(contextWindow: number): string {
   if (contextWindow >= 1000000) {
     return `${(contextWindow / 1000000).toFixed(1)}M tokens`;
@@ -93,7 +18,7 @@ export function getBasePrompt(options: BasePromptOptions): string {
   const { modelConfig, hasFunctionCalling, prefetchedMemories, currentDate } =
     options;
 
-  const knowledgeCutoff = getKnowledgeCutoff(modelConfig.id);
+  const knowledgeCutoff = modelConfig.knowledgeCutoff || "Unknown";
   const contextWindowFormatted = formatContextWindow(modelConfig.contextWindow);
 
   // Build capabilities list based on model config

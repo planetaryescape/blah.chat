@@ -1,8 +1,6 @@
 <project>
 <overview>
-Project Name: blah.chat
-
-Build a personal AI chat assistant application that serves as a self-hosted alternative to ChatGPT. The core motivation is to have full control over the chat experience, reduce subscription costs by using API pricing, support multiple LLM providers in one interface, and implement a custom memory system using RAG that works exactly how I want it to.
+Project Name: blah.chat - A personal, SaaS ChatGPT alternative that provides: The core motivation is to have full control over the chat experience, reduce subscription costs by using API pricing, support multiple LLM providers in one interface, and implement a custom memory system using RAG that works exactly how I want it to.
 
 This is a serious, production-quality application for personal use. It should feel polished, distinctive, and delightful to use daily.
 </overview>
@@ -1812,7 +1810,7 @@ This is a personal tool that I'll use daily. Prioritize:
 5. The memory system - This is the killer feature that makes it personal
 6. Cost visibility - I need to always know what I'm spending
 7. Search - After months of use, finding past conversations is essential
-8. Data ownership - Export, import, backups. My data, my control.
+8. SaaS Convenience: No infrastructure to manage.
 
 Take your time to get the design right. I'd rather have a polished MVP with fewer features than a feature-complete app that looks generic.
 

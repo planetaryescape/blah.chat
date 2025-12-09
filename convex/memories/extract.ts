@@ -6,6 +6,7 @@ import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
 
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
@@ -193,93 +194,7 @@ export const extractMemories = internalAction({
         model: aiGateway("cerebras/gpt-oss-120b"),
         schema: memorySchema,
         providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-extraction"]),
-        prompt: `You are a CONSERVATIVE memory system. Extract ONLY facts that pass all these tests:
-
-1. **Usefulness test**: Would this fact be useful 6+ months from now?
-2. **Persistence test**: Is this a lasting trait/preference, not a one-off interaction?
-3. **Explicitness test**: Is this explicitly stated or repeatedly demonstrated?
-
-✅ CAPTURE ONLY:
-- Core identity: name, occupation, location, background
-- Lasting preferences: "I prefer X", "I always Y", "I never Z"
-- Active projects: concrete details, tech stacks, goals
-- Important relationships: team members, collaborators with context
-- Significant life context: major goals, challenges, commitments
-
-🔄 REPHRASING RULES:
-Convert all facts to third-person perspective for AI context injection:
-- "I am X" → "User is X"
-- "My wife is Jane" → "User's wife is named Jane"
-- "I prefer TypeScript" → "User prefers TypeScript"
-- "We're building a startup" → "User is building a startup"
-
-Preserve specifics:
-- Technical terms exactly: "Next.js 15", "gpt-4o", "React 19"
-- Version numbers: "TypeScript 5.3"
-- Project names: "blah.chat"
-- Quotes with attribution: "User mentioned: 'exact quote here'"
-
-Resolve pronouns intelligently:
-- "My colleague John" → "User's colleague John"
-- "She recommended X" → "[Name] recommended X" (or use context to clarify)
-- If ambiguous, preserve user's phrasing in quotes
-
-Let context guide rephrasing - prioritize clarity for AI consumption.
-
-❌ DO NOT CAPTURE:
-- One-off requests: "can you write a poem about X", "show me Y"
-- Questions out of curiosity: "what are the top Z"
-- Playful banter: casual jokes, random messages, test inputs
-- Temporary interests: single mentions without confirmation
-- Generic statements: facts without specific, personal details
-- Exploration: trying features, asking how things work
-
-IMPORTANCE SCORING (1-10):
-Rate each fact honestly:
-- 9-10: Critical identity (name, role, core values)
-- 7-8: Confirmed lasting preferences, active projects with details
-- 5-6: Useful context, relationships (DO NOT SAVE - below threshold)
-- 1-4: Ephemeral/generic (DO NOT SAVE)
-
-⚠️ ONLY return facts with importance >= 7. If nothing meets this bar, return empty array.
-
-CONFIDENCE SCORING (0.0-1.0):
-Rate certainty about this fact:
-- 0.9-1.0: Explicit statement, direct quote ("I am X", "My name is Y")
-- 0.7-0.9: Strong contextual evidence, repeated mentions
-- 0.5-0.7: Weak inference, single mention
-- Below 0.5: Speculation (DO NOT EXTRACT)
-
-Examples:
-- "I am a software engineer" → confidence: 1.0
-- "I prefer TypeScript over JavaScript" → confidence: 0.9
-- "I'm thinking about trying Rust" → confidence: 0.5 (don't extract)
-
-ONLY extract facts with confidence >= 0.7
-
-TEMPORAL CONTEXT (Expiration Hints):
-For time-sensitive facts, suggest expiration:
-- "contextual": Conversation-specific info (expires in 7 days)
-- "preference": User preferences (never expires)
-- "deadline": Time-bound tasks (completion + 7 days)
-- "temporary": One-time context (expires in 1 day)
-- "none": General knowledge (never expires)
-
-Examples:
-- "User is building v1.0" → "deadline"
-- "Deadline: Dec 2024" → "deadline"
-- "User prefers dark mode" → "preference"
-- "User mentioned TypeScript today" → "contextual"
-
-EXISTING MEMORIES (Do NOT duplicate):
-${existingMemoriesText}
-
-Conversation:
-${conversationText}
-
-Return JSON with facts that pass ALL tests above. REQUIRED: Include importance (7-10 only), reasoning (1-2 sentences explaining why this fact matters long-term), confidence (0.7-1.0), and expirationHint if applicable.
-
-CRITICAL JSON FORMAT: Return {"facts": [...]} where facts is a DIRECT array of objects. DO NOT nest facts inside an "items" property. Example: {"facts": [{"content": "...", "category": "...", ...}]}`,
+        prompt: buildMemoryExtractionPrompt(existingMemoriesText, conversationText),
       });
 
       if (result.object.facts.length === 0) {

@@ -1,8 +1,8 @@
-import { getModel } from "@/lib/ai/registry";
 import { openai } from "@ai-sdk/openai";
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { MEMORY_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
@@ -104,7 +104,7 @@ export const extractMemories = internalAction({
   handler: async (ctx, args): Promise<{ extracted: number }> => {
     // 1. Get conversation with cursor
     const conversation = await ctx.runQuery(
-      // @ts-ignore - Convex query type instantiation depth issue
+      // @ts-expect-error - Convex query type instantiation depth issue
       internal.conversations.getInternal,
       {
         id: args.conversationId,

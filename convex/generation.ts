@@ -1,3 +1,5 @@
+import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
@@ -7,11 +9,9 @@ import {
   getModelConfig,
   type ModelConfig,
 } from "@/lib/ai/utils";
-import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { action, type ActionCtx, internalAction } from "./_generated/server";
+import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
@@ -97,9 +97,9 @@ async function buildSystemPrompts(
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)
-  // @ts-ignore
+  // @ts-expect-error
   const userPromise = ctx.runQuery(api.users.getCurrentUser, {});
-  // @ts-ignore
+  // @ts-expect-error
   const conversationPromise = ctx.runQuery(internal.conversations.getInternal, {
     id: args.conversationId,
   });

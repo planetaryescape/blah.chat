@@ -51,7 +51,7 @@ export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
-    // @ts-ignore - Convex query type instantiation depth issue
+    // @ts-expect-error - Convex query type instantiation depth issue
     const feedback = await ctx.runQuery(internal.feedback.getFeedbackInternal, {
       feedbackId,
     });

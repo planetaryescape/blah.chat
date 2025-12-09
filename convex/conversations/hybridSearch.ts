@@ -25,7 +25,7 @@ export const hybridSearch = action({
 
     // 1. Keyword search on conversation titles
     const keywordResults: any = await ctx.runQuery(
-      // @ts-ignore - Convex query type instantiation depth issue
+      // @ts-expect-error - Convex query type instantiation depth issue
       internal.conversations.hybridSearch.keywordSearch,
       { query, userId: user._id, limit: 40, includeArchived },
     );

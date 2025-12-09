@@ -55,7 +55,7 @@ IMPORTANT: Rephrase content to third-person before saving:
       const { content, category, reasoning } = input;
       try {
         const result = await ctx.runAction(
-					// @ts-ignore - Convex type instantiation depth issue
+          // @ts-expect-error - Convex type instantiation depth issue
           internal.memories.save.saveFromTool,
           {
             userId,

@@ -1,7 +1,7 @@
-import { getModel } from "@/lib/ai/registry";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TAG_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
@@ -16,7 +16,7 @@ export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     // Get note content
-    // @ts-ignore - Convex query type instantiation depth issue
+    // @ts-expect-error - Convex query type instantiation depth issue
     const note = await ctx.runQuery(internal.notes.getInternal, { noteId });
     if (!note) throw new Error("Note not found");
 

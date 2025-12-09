@@ -1,6 +1,6 @@
-import { Eye, Sparkles, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { getModelConfig } from "./models";
+import { Eye, Sparkles, Zap } from "lucide-react";
+import { getModelConfig } from "./utils";
 
 /**
  * Get appropriate icon for a model based on its capabilities

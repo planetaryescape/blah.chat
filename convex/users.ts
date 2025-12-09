@@ -25,14 +25,10 @@ export const createUser = mutation({
       imageUrl: args.imageUrl,
       preferences: {
         theme: "dark",
-        defaultModel: "gpt-4o",
+        defaultModel: "cerebras:qwen-3-32b",
+        favoriteModels: [],
         sendOnEnter: true,
-        enableHybridSearch: false,
-        autoMemoryExtractEnabled: true,
-        autoMemoryExtractInterval: 5,
-        budgetHardLimitEnabled: true,
       },
-      dailyMessageLimit: 50,
       dailyMessageCount: 0,
       lastMessageDate: new Date().toISOString().split("T")[0],
       createdAt: Date.now(),
@@ -113,13 +109,10 @@ export const updatePreferences = mutation({
     preferences: v.object({
       theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
       defaultModel: v.optional(v.string()),
+      favoriteModels: v.optional(v.array(v.string())),
       sendOnEnter: v.optional(v.boolean()),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
-      enableHybridSearch: v.optional(v.boolean()),
-      autoMemoryExtractEnabled: v.optional(v.boolean()),
-      autoMemoryExtractInterval: v.optional(v.number()),
-      budgetHardLimitEnabled: v.optional(v.boolean()),
       alwaysShowMessageActions: v.optional(v.boolean()),
       sttEnabled: v.optional(v.boolean()),
       sttProvider: v.optional(
@@ -142,6 +135,7 @@ export const updatePreferences = mutation({
           showDuringStreaming: v.optional(v.boolean()),
         }),
       ),
+      showModelNamesDuringComparison: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {
@@ -231,53 +225,17 @@ export const updateCustomInstructions = mutation({
 });
 
 
-export const updateBudgetSettings = mutation({
+// Budget and limits are now controlled globally via admin settings
+// These mutations are deprecated and kept only for backward compatibility
+// Calling them will have no effect
+
+export const setDefaultModel = mutation({
   args: {
-    monthlyBudget: v.optional(v.number()),
-    budgetAlertThreshold: v.optional(v.number()),
-    budgetHardLimitEnabled: v.optional(v.boolean()),
+    modelId: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
-      .first();
-
-    if (!user) throw new Error("User not found");
-
-    const updates: any = { updatedAt: Date.now() };
-
-    if (args.monthlyBudget !== undefined) {
-      updates.monthlyBudget = args.monthlyBudget;
-    }
-    if (args.budgetAlertThreshold !== undefined) {
-      updates.budgetAlertThreshold = args.budgetAlertThreshold;
-    }
-    if (args.budgetHardLimitEnabled !== undefined) {
-      updates.preferences = {
-        ...user.preferences,
-        budgetHardLimitEnabled: args.budgetHardLimitEnabled,
-      };
-    }
-
-    await ctx.db.patch(user._id, updates);
-  },
-});
-
-export const updateDailyMessageLimit = mutation({
-  args: {
-    dailyMessageLimit: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-
-    if (args.dailyMessageLimit < 1 || args.dailyMessageLimit > 1000) {
-      throw new Error("Daily message limit must be between 1 and 1000");
-    }
 
     const user = await ctx.db
       .query("users")
@@ -287,7 +245,10 @@ export const updateDailyMessageLimit = mutation({
     if (!user) throw new Error("User not found");
 
     await ctx.db.patch(user._id, {
-      dailyMessageLimit: args.dailyMessageLimit,
+      preferences: {
+        ...user.preferences,
+        defaultModel: args.modelId,
+      },
       updatedAt: Date.now(),
     });
   },

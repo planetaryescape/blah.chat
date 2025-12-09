@@ -4,8 +4,11 @@ import { query } from "../_generated/server";
 export const checkBudget = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user?.monthlyBudget) {
+    // Get budget from admin settings
+    const adminSettings = await ctx.db.query("adminSettings").first();
+    const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 10;
+
+    if (monthlyBudget === 0) {
       return {
         allowed: true,
         totalSpend: 0,
@@ -26,14 +29,14 @@ export const checkBudget = query({
       .collect();
 
     const totalSpend = records.reduce((sum, r) => sum + r.cost, 0);
-    const percentUsed = totalSpend / user.monthlyBudget;
+    const percentUsed = totalSpend / monthlyBudget;
 
     return {
-      allowed: totalSpend < user.monthlyBudget,
+      allowed: totalSpend < monthlyBudget,
       totalSpend,
-      budget: user.monthlyBudget,
+      budget: monthlyBudget,
       percentUsed,
-      remaining: user.monthlyBudget - totalSpend,
+      remaining: monthlyBudget - totalSpend,
     };
   },
 });

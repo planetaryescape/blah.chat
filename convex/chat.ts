@@ -36,7 +36,10 @@ export const sendMessage = mutation({
 
     // PRE-FLIGHT CHECKS
 
-    // 1. Check daily message limit
+    // 1. Check daily message limit from admin settings
+    const adminSettings = await ctx.db.query("adminSettings").first();
+    const dailyLimit = adminSettings?.defaultDailyMessageLimit ?? 50;
+
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     if (user.lastMessageDate !== today) {
       // Reset counter for new day
@@ -47,13 +50,33 @@ export const sendMessage = mutation({
       user.dailyMessageCount = 0;
     }
 
-    const dailyLimit = user.dailyMessageLimit || 50;
     if ((user.dailyMessageCount || 0) >= dailyLimit) {
       throw new Error("Daily message limit reached. Come back tomorrow!");
     }
 
-    // 2. Check budget (if enabled)
-    // TODO: Re-enable budget check after convex schema migration
+    // 2. Check budget (if hard limit enabled)
+    const budgetHardLimit = adminSettings?.budgetHardLimitEnabled ?? true;
+    const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 10;
+
+    if (budgetHardLimit && monthlyBudget > 0) {
+      // Get current month's spending
+      const now = new Date();
+      const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+
+      const records = await ctx.db
+        .query("usageRecords")
+        .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+        .filter((q) => q.gte(q.field("date"), monthStart))
+        .collect();
+
+      const totalSpend = records.reduce((sum, r) => sum + r.cost, 0);
+
+      if (totalSpend >= monthlyBudget) {
+        throw new Error(
+          `Monthly budget of $${monthlyBudget} exceeded. You've spent $${totalSpend.toFixed(2)} this month.`
+        );
+      }
+    }
 
     // Determine models to use
     const modelsToUse = args.models || [
@@ -124,31 +147,33 @@ export const sendMessage = mutation({
     });
 
     // 9. Check if memory extraction should trigger (auto-extraction)
-    if (
-      conversationId &&
-      user.preferences?.autoMemoryExtractEnabled !== false
-    ) {
-      const interval = user.preferences?.autoMemoryExtractInterval || 5;
+    if (conversationId) {
+      // Get global admin settings for memory extraction
+      const adminSettings = await ctx.db.query("adminSettings").first();
+      const autoExtractEnabled = adminSettings?.autoMemoryExtractEnabled ?? true;
+      const interval = adminSettings?.autoMemoryExtractInterval ?? 5;
 
-      // Count user messages (turns) in this conversation
-      const userMessageCount = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) =>
-          q.eq("conversationId", conversationId),
-        )
-        .filter((q) => q.eq(q.field("role"), "user"))
-        .collect()
-        .then((msgs) => msgs.length);
+      if (autoExtractEnabled) {
+        // Count user messages (turns) in this conversation
+        const userMessageCount = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) =>
+            q.eq("conversationId", conversationId),
+          )
+          .filter((q) => q.eq(q.field("role"), "user"))
+          .collect()
+          .then((msgs) => msgs.length);
 
-      // Trigger extraction if we've hit the interval (30s debounce)
-      if (userMessageCount > 0 && userMessageCount % interval === 0) {
-        await ctx.scheduler.runAfter(
-          30 * 1000, // 30 seconds debounce
-          internal.memories.extract.extractMemories,
-          {
-            conversationId,
-          },
-        );
+        // Trigger extraction if we've hit the interval (30s debounce)
+        if (userMessageCount > 0 && userMessageCount % interval === 0) {
+          await ctx.scheduler.runAfter(
+            30 * 1000, // 30 seconds debounce
+            internal.memories.extract.extractMemories,
+            {
+              conversationId,
+            },
+          );
+        }
       }
     }
 

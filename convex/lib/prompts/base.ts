@@ -10,7 +10,6 @@ interface BasePromptOptions {
 // Knowledge cutoff dates by provider/model family
 const KNOWLEDGE_CUTOFFS: Record<string, string> = {
   // OpenAI
-  "openai:gpt-5.1": "October 2024",
   "openai:gpt-5-pro": "October 2024",
   "openai:gpt-5": "October 2024",
   "openai:gpt-5-mini": "October 2024",
@@ -29,7 +28,7 @@ const KNOWLEDGE_CUTOFFS: Record<string, string> = {
   "google:gemini-2.0-flash-lite": "August 2024",
   "google:gemini-2.0-flash-exp": "August 2024",
   "google:gemini-3-pro": "August 2025",
-  "google:gemini-3-pro-image-preview": "August 2025",
+  "google:gemini-3-pro-image": "August 2025",
 
   // xAI
   "xai:grok-4.1-fast": "July 2025",
@@ -209,6 +208,7 @@ ${memorySection}
 
     <execution>
       - If multiple independent tool calls would help, make them in parallel.
+      - If tool calls are DEPENDENT (one result feeds into the next), process them sequentially: call the first tool, explain what you learned, then call the next tool. This helps the user follow your reasoning.
       - If a tool fails or returns an error, explain briefly and do your best with available information.
       - When presenting tool-derived information, be clear about the source when it matters.
       - ALWAYS provide a final text response after tool execution. Do not stop after the tool result.
@@ -391,12 +391,6 @@ function getProviderOptimizations(modelConfig: ModelConfig): string {
     <gemini>Leverage your large context window effectively for long documents and complex conversations.</gemini>
   </provider_hints>`;
       }
-      break;
-    case "ollama":
-      providerSpecific = `
-  <provider_hints>
-    <local>Running locally — no cost tracking, privacy-first (data stays on machine).</local>
-  </provider_hints>`;
       break;
     case "perplexity":
       providerSpecific = `

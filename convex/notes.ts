@@ -1,15 +1,15 @@
 import { v } from "convex/values";
+import { nanoid } from "nanoid";
+import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import {
-  action,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
+    action,
+    internalMutation,
+    internalQuery,
+    mutation,
+    query,
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
-import type { Doc } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
-import { nanoid } from "nanoid";
 
 /**
  * Helper to verify note ownership
@@ -594,6 +594,16 @@ export const searchNotes = query({
         );
       });
     }
+
+    // Sort: Pinned first, then by Last Updated
+    notes.sort((a, b) => {
+      // 1. Pinned status
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+
+      // 2. Updated date (newest first)
+      return b.updatedAt - a.updatedAt;
+    });
 
     return notes;
   },

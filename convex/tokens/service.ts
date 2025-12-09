@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { encoding_for_model, type TiktokenModel } from "@dqbd/tiktoken";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { CoreMessage } from "ai";
 import { estimateTokens } from "./counting";
 
@@ -295,9 +295,6 @@ export async function getTokenCounter(
       return new OpenAITokenCounter(modelId);
     case "groq":
       // Groq models use OpenAI-compatible tokenizers
-      return new OpenAITokenCounter(modelId);
-    case "ollama":
-      // Most Ollama models use GPT-compatible tokenizers
       return new OpenAITokenCounter(modelId);
     default:
       // OpenRouter, xAI, Perplexity, unknown providers

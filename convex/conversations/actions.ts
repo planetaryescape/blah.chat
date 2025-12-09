@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
+import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 export const bulkAutoRename = action({
   args: {
@@ -42,17 +43,10 @@ export const bulkAutoRename = action({
           // 2. Generate title
           const result: any = await generateText({
             model: aiGateway("cerebras/gpt-oss-120b"),
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a helpful assistant that generates concise, descriptive titles for conversations. Generate a title that captures the main topic. Max 6 words. Return ONLY the title text.",
-              },
-              {
-                role: "user",
-                content: `Generate a title for this conversation based on the first user message:\n\n${userMessage.content}`,
-              },
-            ],
+            prompt: `${CONVERSATION_TITLE_PROMPT}
+
+First user message:
+${userMessage.content}`,
             temperature: 0.7,
             providerOptions: getGatewayOptions(undefined, undefined, [
               "title-generation",

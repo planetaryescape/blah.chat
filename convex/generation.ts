@@ -1,4 +1,4 @@
-import { aiGateway, getGatewayOptions } from "@/lib/ai/gateway";
+import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
@@ -635,8 +635,6 @@ export const generateResponse = internalAction({
           projectContext: projectContextTool,
         };
 
-
-
         options.onStepFinish = async (step: any) => {
           if (step.toolCalls && step.toolCalls.length > 0) {
             const completedCalls = step.toolCalls.map((tc: any) => ({
@@ -673,7 +671,6 @@ export const generateResponse = internalAction({
       const isReasoningModel = !!modelConfig?.reasoning;
 
       // Mark thinking phase started for reasoning models
-
 
       if (isReasoningModel && args.thinkingEffort) {
         await ctx.runMutation(internal.messages.markThinkingStarted, {
@@ -971,10 +968,15 @@ export const generateResponse = internalAction({
 
       if (isCreditsError) {
         // Send immediate email alert (non-blocking)
-        await ctx.scheduler.runAfter(0, internal.lib.email.sendApiCreditsAlert, {
-          errorMessage: error instanceof Error ? error.message : String(error),
-          modelId: args.modelId,
-        });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.lib.email.sendApiCreditsAlert,
+          {
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            modelId: args.modelId,
+          },
+        );
       }
 
       // Detect specific error types for user-friendly messages
@@ -1085,7 +1087,7 @@ export const summarizeSelection = action({
       // Generate summary using GPT-OSS 120B via gateway
       const summarizationModel = MODEL_CONFIG["openai:gpt-oss-120b"];
       const result = await generateText({
-        model: aiGateway(summarizationModel.id),
+        model: getModel(summarizationModel.id),
         messages: [
           {
             role: "system",

@@ -1,7 +1,8 @@
+import { getModel } from "@/lib/ai/registry";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TAG_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
@@ -15,6 +16,7 @@ export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     // Get note content
+    // @ts-ignore - Convex query type instantiation depth issue
     const note = await ctx.runQuery(internal.notes.getInternal, { noteId });
     if (!note) throw new Error("Note not found");
 
@@ -28,7 +30,7 @@ export const extractTags = internalAction({
       const content = note.content.slice(0, 1000) as string;
 
       const result = await generateObject({
-        model: aiGateway(TAG_EXTRACTION_MODEL.id),
+        model: getModel(TAG_EXTRACTION_MODEL.id),
         schema: tagSchema,
         temperature: 0.3,
         providerOptions: getGatewayOptions(TAG_EXTRACTION_MODEL.id, undefined, [

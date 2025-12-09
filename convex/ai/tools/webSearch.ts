@@ -37,13 +37,10 @@ Returns top results with titles, URLs, and content snippets.`,
 
     execute: async ({ query, maxResults = 5 }) => {
       try {
-        const result = await ctx.runAction(
-          internal.tools.webSearch.search,
-          {
-            query,
-            maxResults: Math.min(maxResults, 10),
-          },
-        );
+        const result = await ctx.runAction(internal.tools.webSearch.search, {
+          query,
+          maxResults: Math.min(maxResults, 10),
+        });
 
         return result;
       } catch (error) {

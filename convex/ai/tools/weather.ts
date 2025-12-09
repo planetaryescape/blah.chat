@@ -17,13 +17,12 @@ Returns current temperature, wind speed, weather conditions, and 3-day forecast.
       city: z
         .string()
         .describe(
-          "City name to get weather for (e.g., 'San Francisco', 'London', 'Tokyo')"
+          "City name to get weather for (e.g., 'San Francisco', 'London', 'Tokyo')",
         ),
       units: z
         .enum(["celsius", "fahrenheit"])
         .optional()
         .describe("Temperature unit (default: celsius)"),
-
     }),
     execute: async ({ city, units }) => {
       const result = await ctx.runAction(internal.tools.weather.getWeather, {

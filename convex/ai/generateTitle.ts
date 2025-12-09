@@ -1,6 +1,7 @@
+import { getModel } from "@/lib/ai/registry";
 import { streamText } from "ai";
 import { v } from "convex/values";
-import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
@@ -100,14 +101,16 @@ export const generateTitle = internalAction({
 
       // Generate title with full context
       const result = streamText({
-        model: aiGateway(TITLE_GENERATION_MODEL.id),
+        model: getModel(TITLE_GENERATION_MODEL.id),
         prompt: `${CONVERSATION_TITLE_PROMPT}
 
 Conversation:
 ${conversationText}`,
-        providerOptions: getGatewayOptions(TITLE_GENERATION_MODEL.id, undefined, [
-          "title-generation",
-        ]),
+        providerOptions: getGatewayOptions(
+          TITLE_GENERATION_MODEL.id,
+          undefined,
+          ["title-generation"],
+        ),
       });
 
       let title = "";

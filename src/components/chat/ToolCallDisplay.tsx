@@ -2,19 +2,21 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  BookmarkPlus,
-  Calculator,
-  Calendar,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Code,
-  ExternalLink,
-  FileText,
-  Globe,
-  Loader2,
-  Search,
+    AlertCircle,
+    BookmarkPlus,
+    Calculator,
+    Calendar,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Cloud,
+    Code,
+    ExternalLink,
+    FileText,
+    FolderTree,
+    Globe,
+    Loader2,
+    Search
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -62,6 +64,10 @@ function getToolIcon(toolName: string) {
       return FileText;
     case "codeExecution":
       return Code;
+    case "weather":
+      return Cloud;
+    case "projectContext":
+      return FolderTree;
     default:
       return Search;
   }
@@ -107,7 +113,28 @@ function getToolLabel(
       if (isExecuting) return "Executing code...";
       if (result?.success === false) return "Execution failed";
       return `${result?.language || "Code"} executed (${result?.executionTime || 0}ms)`;
+    case "weather":
+      if (isExecuting) return "Fetching weather...";
+      if (result?.success === false) return "Weather unavailable";
+      const temp = result?.current?.temperature;
+      const units = result?.units === "fahrenheit" ? "°F" : "°C";
+      return result?.location ? `${result.location} • ${temp}${units}` : "Weather Forecast";
+    case "projectContext":
+      if (isExecuting) return "Loading project context...";
+      if (result?.success === false) return "Project not found";
+      const section = result?.section || "context";
+      if (section === "context") {
+        return `Project: ${result?.project?.name || "Unknown"}`;
+      } else if (section === "notes") {
+        return `${result?.totalCount || 0} project note${result?.totalCount !== 1 ? "s" : ""}`;
+      } else if (section === "files") {
+        return `${result?.totalCount || 0} project file${result?.totalCount !== 1 ? "s" : ""}`;
+      } else if (section === "history") {
+        return `${result?.totalCount || 0} conversation${result?.totalCount !== 1 ? "s" : ""}`;
+      }
+      return "Project context";
     default:
+
       if (isExecuting) return "Processing...";
       return "Done";
   }

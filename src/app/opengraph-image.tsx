@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "blah.chat - Self-hosted AI chat assistant";
+export const alt = "blah.chat - Personal AI chat assistant";
 export const size = {
   width: 1200,
   height: 630,
@@ -44,7 +44,7 @@ export default async function Image() {
           textAlign: "center",
         }}
       >
-        Self-hosted AI · Multi-model · Full control
+        All Models · Branching · Full Control
       </div>
 
       {/* Company Attribution */}

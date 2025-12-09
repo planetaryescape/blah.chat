@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { ChevronDown, Hash, List, Network, X } from "lucide-react";
+import { useState } from "react";
 import { TagTree } from "@/components/notes/TagTree";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +21,9 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { buildTagTree, getTagLabel } from "@/lib/utils/tagUtils";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
-import { ChevronDown, Hash, List, Network, X } from "lucide-react";
-import { useState } from "react";
 
 interface TagFilterProps {
   selectedTags: string[];
@@ -40,7 +40,6 @@ export function TagFilter({
 }: TagFilterProps) {
   const [open, setOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"flat" | "tree">("tree");
-  // @ts-ignore - Convex type instantiation depth issue
   const tagStats =
     useQuery(api.notes.getTagStats) ||
     ([] as Array<{ tag: string; count: number }>);

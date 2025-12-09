@@ -1,16 +1,22 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { DollarSign, Loader2, MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { DollarSign, Loader2, MessageCircle } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export function AdminLimitsSettings() {
   const settings = useQuery(api.adminSettings.get);
@@ -72,7 +78,9 @@ export function AdminLimitsSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="budget">Default monthly budget per user (USD)</Label>
+            <Label htmlFor="budget">
+              Default monthly budget per user (USD)
+            </Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -131,9 +139,7 @@ export function AdminLimitsSettings() {
       <Card>
         <CardHeader>
           <CardTitle>Message Limits</CardTitle>
-          <CardDescription>
-            Daily message limits for all users
-          </CardDescription>
+          <CardDescription>Daily message limits for all users</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
@@ -158,7 +164,8 @@ export function AdminLimitsSettings() {
 
           <div className="rounded-lg bg-muted p-4">
             <p className="text-sm">
-              <strong>Note:</strong> Counters reset daily at midnight (user's local time).
+              <strong>Note:</strong> Counters reset daily at midnight (user's
+              local time).
             </p>
           </div>
         </CardContent>
@@ -166,9 +173,9 @@ export function AdminLimitsSettings() {
 
       <div className="rounded-lg bg-muted/50 p-4">
         <p className="text-sm text-muted-foreground">
-          <strong>Note:</strong> These settings apply globally to all users. Budget tracking
-          uses per-message cost from token usage. Costs may vary slightly from provider
-          billing due to rounding.
+          <strong>Note:</strong> These settings apply globally to all users.
+          Budget tracking uses per-message cost from token usage. Costs may vary
+          slightly from provider billing due to rounding.
         </p>
       </div>
 

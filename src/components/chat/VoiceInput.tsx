@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import { cn } from "@/lib/utils";
 import { useAction, useQuery } from "convex/react";
 import { Mic } from "lucide-react";
 import {
@@ -13,6 +10,9 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import { cn } from "@/lib/utils";
 
 interface VoiceInputProps {
   onTranscript: (text: string, autoSend: boolean) => void;
@@ -34,7 +34,6 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     const streamRef = useRef<MediaStream | null>(null);
     const stopModeRef = useRef<"preview" | "send" | null>(null);
 
-    // @ts-ignore
     const user = useQuery(api.users.getCurrentUser as any);
     const transcribeAudio = useAction(api.transcription.transcribeAudio);
 

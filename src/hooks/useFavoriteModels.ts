@@ -1,12 +1,11 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
 
 export function useFavoriteModels() {
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePrefs = useMutation(api.users.updatePreferences);
 

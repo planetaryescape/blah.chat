@@ -1,28 +1,35 @@
+import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "@/lib/ai/gateway";
-
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
-import { calculateCost, getModelConfig, type ModelConfig } from "@/lib/ai/utils";
-import { generateText, stepCountIs, streamText, type CoreMessage } from "ai";
-import { v } from "convex/values";
+import {
+  calculateCost,
+  getModelConfig,
+  type ModelConfig,
+} from "@/lib/ai/utils";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { action, internalAction, type ActionCtx } from "./_generated/server";
+import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
-import { createMemorySaveTool, createMemorySearchTool } from "./ai/tools/memories";
+import {
+  createMemorySaveTool,
+  createMemorySearchTool,
+} from "./ai/tools/memories";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWebSearchTool } from "./ai/tools/webSearch";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
-    formatMemoriesByCategory,
-    truncateMemories,
+  formatMemoriesByCategory,
+  truncateMemories,
 } from "./lib/prompts/formatting";
 import {
-    SUMMARIZATION_SYSTEM_PROMPT,
-    buildSummarizationPrompt,
+  buildSummarizationPrompt,
+  SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
@@ -67,9 +74,7 @@ async function buildSystemPrompts(
 
   // Parallelize context queries (user, project, conversation)
   const [user, conversation] = await Promise.all([
-    // @ts-ignore
     ctx.runQuery(api.users.getCurrentUser, {}),
-    // @ts-ignore
     ctx.runQuery(internal.conversations.getInternal, {
       id: args.conversationId,
     }),
@@ -113,13 +118,19 @@ async function buildSystemPrompts(
     // Base style and tone directive
     if (baseStyleAndTone && baseStyleAndTone !== "default") {
       const toneDescriptions: Record<string, string> = {
-        professional: "Be polished and precise. Use formal language and structured responses.",
-        friendly: "Be warm and chatty. Use casual language and show enthusiasm.",
-        candid: "Be direct and encouraging. Get straight to the point while being supportive.",
-        quirky: "Be playful and imaginative. Use creative language and unexpected analogies.",
+        professional:
+          "Be polished and precise. Use formal language and structured responses.",
+        friendly:
+          "Be warm and chatty. Use casual language and show enthusiasm.",
+        candid:
+          "Be direct and encouraging. Get straight to the point while being supportive.",
+        quirky:
+          "Be playful and imaginative. Use creative language and unexpected analogies.",
         efficient: "Be concise and plain. Minimize words, maximize clarity.",
-        nerdy: "Be exploratory and enthusiastic. Dive deep into technical details.",
-        cynical: "Be critical and sarcastic. Question assumptions, use dry humor.",
+        nerdy:
+          "Be exploratory and enthusiastic. Dive deep into technical details.",
+        cynical:
+          "Be critical and sarcastic. Question assumptions, use dry humor.",
       };
       const toneDirective = toneDescriptions[baseStyleAndTone];
       if (toneDirective) {
@@ -158,7 +169,6 @@ async function buildSystemPrompts(
 
   // 4. Identity memories (always loaded, instant)
   try {
-    // @ts-ignore
     const identityMemories: Doc<"memories">[] = await ctx.runQuery(
       internal.memories.search.getIdentityMemories,
       {
@@ -211,7 +221,6 @@ async function buildSystemPrompts(
     content: basePrompt,
   });
 
-
   return { messages: systemMessages, memoryContent: memoryContentForTracking };
 }
 
@@ -254,23 +263,25 @@ function extractSources(providerMetadata: any):
     const perplexitySources = perplexityMeta?.citations;
 
     if (perplexitySources && Array.isArray(perplexitySources)) {
-       return perplexitySources.map((r: any, i: number) => {
-        if (typeof r === "string") {
+      return perplexitySources
+        .map((r: any, i: number) => {
+          if (typeof r === "string") {
+            return {
+              id: `${i + 1}`,
+              title: r,
+              url: r,
+              snippet: undefined,
+              publishedDate: undefined,
+            };
+          }
           return {
             id: `${i + 1}`,
-            title: r,
-            url: r,
-            snippet: undefined,
-            publishedDate: undefined,
+            title: r.title || "Untitled Source",
+            url: r.url,
+            snippet: r.snippet,
           };
-        }
-        return {
-          id: `${i + 1}`,
-          title: r.title || "Untitled Source",
-          url: r.url,
-          snippet: r.snippet,
-        };
-       }).filter(s => s.url);
+        })
+        .filter((s) => s.url);
     }
 
     // 3. Generic Citations/Sources (OpenRouter/Other)
@@ -283,24 +294,26 @@ function extractSources(providerMetadata: any):
       (providerMetadata as any)?.extra?.citations;
 
     if (genericSources && Array.isArray(genericSources)) {
-      return genericSources.map((r: any, i: number) => {
-         if (typeof r === "string") {
+      return genericSources
+        .map((r: any, i: number) => {
+          if (typeof r === "string") {
+            return {
+              id: `${i + 1}`,
+              title: r,
+              url: r,
+              snippet: undefined,
+              publishedDate: undefined,
+            };
+          }
           return {
             id: `${i + 1}`,
-            title: r,
-            url: r,
-            snippet: undefined,
-            publishedDate: undefined,
+            title: r.title || r.name || "Untitled Source",
+            url: r.url || r.uri || "",
+            publishedDate: r.date || r.published_date,
+            snippet: r.snippet || r.description,
           };
-        }
-        return {
-          id: `${i + 1}`,
-          title: r.title || r.name || "Untitled Source",
-          url: r.url || r.uri || "",
-          publishedDate: r.date || r.published_date,
-          snippet: r.snippet || r.description,
-        };
-      }).filter(s => s.url && s.url.length > 0);
+        })
+        .filter((s) => s.url && s.url.length > 0);
     }
 
     return undefined;
@@ -346,15 +359,19 @@ export const generateResponse = internalAction({
       });
 
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
-      const requiresThoughtSignature = args.modelId.includes("gemini-3-pro-image");
+      const requiresThoughtSignature =
+        args.modelId.includes("gemini-3-pro-image");
       if (requiresThoughtSignature && messages.length > 1) {
         // Check if conversation started with a compatible model
-        const firstAssistantMsg = messages.find((m: Doc<"messages">) => m.role === "assistant" && m.model);
-        const conversationStartedWithGeminiImage = firstAssistantMsg?.model?.includes("gemini-3-pro-image");
+        const firstAssistantMsg = messages.find(
+          (m: Doc<"messages">) => m.role === "assistant" && m.model,
+        );
+        const conversationStartedWithGeminiImage =
+          firstAssistantMsg?.model?.includes("gemini-3-pro-image");
 
         if (!conversationStartedWithGeminiImage) {
           throw new Error(
-            "MODEL_SWITCH_NOT_ALLOWED: Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting. Please start a new chat to use this model."
+            "MODEL_SWITCH_NOT_ALLOWED: Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting. Please start a new chat to use this model.",
           );
         }
       }
@@ -374,8 +391,6 @@ export const generateResponse = internalAction({
       if (!modelConfig) {
         throw new Error(`Model ${args.modelId} not found in configuration`);
       }
-
-
 
       // 5. Check for vision and function-calling capabilities
       const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
@@ -735,15 +750,12 @@ export const generateResponse = internalAction({
       const outputTokens = usage.outputTokens ?? 0;
       const reasoningTokens = usage.reasoningTokens;
 
-      const cost = calculateCost(
-        args.modelId,
-        {
-          inputTokens,
-          outputTokens,
-          cachedTokens: undefined,
-          reasoningTokens,
-        },
-      );
+      const cost = calculateCost(args.modelId, {
+        inputTokens,
+        outputTokens,
+        cachedTokens: undefined,
+        reasoningTokens,
+      });
 
       // Calculate TPS (tokens per second)
       const endTime = Date.now();
@@ -766,7 +778,9 @@ export const generateResponse = internalAction({
             id: tc.toolCallId,
             name: tc.toolName,
             arguments: JSON.stringify(tc.input || tc.args),
-            result: stepResult ? JSON.stringify(stepResult.result ?? stepResult.output) : undefined,
+            result: stepResult
+              ? JSON.stringify(stepResult.result ?? stepResult.output)
+              : undefined,
             timestamp: Date.now(),
           };
         });
@@ -786,47 +800,46 @@ export const generateResponse = internalAction({
           console.log("[Generation] Processing generated files:", files.length);
 
           for (const file of files) {
-             let imageBytes: Uint8Array;
+            let imageBytes: Uint8Array;
 
-             // Handle Uint8Array format
-             if ((file as any).uint8Array) {
-               imageBytes = (file as any).uint8Array;
-             }
-             // Handle base64Data format
-             else if ((file as any).base64Data) {
-               const binaryString = atob((file as any).base64Data);
-               const len = binaryString.length;
-               imageBytes = new Uint8Array(len);
-               for (let i = 0; i < len; i++) {
-                 imageBytes[i] = binaryString.charCodeAt(i);
-               }
-             } else {
-               console.warn("[Generation] Unknown file format:", file);
-               continue;
-             }
+            // Handle Uint8Array format
+            if ((file as any).uint8Array) {
+              imageBytes = (file as any).uint8Array;
+            }
+            // Handle base64Data format
+            else if ((file as any).base64Data) {
+              const binaryString = atob((file as any).base64Data);
+              const len = binaryString.length;
+              imageBytes = new Uint8Array(len);
+              for (let i = 0; i < len; i++) {
+                imageBytes[i] = binaryString.charCodeAt(i);
+              }
+            } else {
+              console.warn("[Generation] Unknown file format:", file);
+              continue;
+            }
 
-             // Store in Convex file storage
-             const storageId = await ctx.storage.store(
-               new Blob([imageBytes as any], { type: "image/png" }),
-             );
+            // Store in Convex file storage
+            const storageId = await ctx.storage.store(
+              new Blob([imageBytes as any], { type: "image/png" }),
+            );
 
-             // Add attachment to message
-             // @ts-ignore
-             await ctx.runMutation(internal.messages.addAttachment, {
-               messageId: args.assistantMessageId,
-               attachment: {
-                 type: "image",
-                 storageId,
-                 name: "generated-image.png",
-                 size: imageBytes.byteLength,
-                 mimeType: "image/png",
-                 metadata: {
-                   prompt: lastUserMsg?.content || "",
-                   model: args.modelId,
-                   generationTime: Date.now() - generationStartTime,
-                 },
-               },
-             });
+            // Add attachment to message
+            await ctx.runMutation(internal.messages.addAttachment, {
+              messageId: args.assistantMessageId,
+              attachment: {
+                type: "image",
+                storageId,
+                name: "generated-image.png",
+                size: imageBytes.byteLength,
+                mimeType: "image/png",
+                metadata: {
+                  prompt: lastUserMsg?.content || "",
+                  model: args.modelId,
+                  generationTime: Date.now() - generationStartTime,
+                },
+              },
+            });
           }
         }
       } catch (error) {
@@ -920,7 +933,8 @@ export const generateResponse = internalAction({
 
         // Model switch not allowed (Gemini thought signature requirement)
         if (errorStr.includes("MODEL_SWITCH_NOT_ALLOWED")) {
-          userMessage = "Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting from the start. Please start a new chat to use this model.";
+          userMessage =
+            "Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting from the start. Please start a new chat to use this model.";
         }
         // Model not found error
         else if (
@@ -938,7 +952,8 @@ export const generateResponse = internalAction({
           errorStr.includes("too many requests") ||
           errorStr.includes("429")
         ) {
-          userMessage = "Rate limit exceeded. Please wait a moment and try again.";
+          userMessage =
+            "Rate limit exceeded. Please wait a moment and try again.";
         }
         // API key/auth error
         else if (
@@ -946,7 +961,8 @@ export const generateResponse = internalAction({
           errorStr.includes("401") ||
           errorStr.includes("API key")
         ) {
-          userMessage = "Authentication error. Please check your API configuration or contact support.";
+          userMessage =
+            "Authentication error. Please check your API configuration or contact support.";
         }
         // Gemini thought_signature / content format error
         else if (
@@ -954,14 +970,16 @@ export const generateResponse = internalAction({
           causeStr.includes("thought_signature") ||
           errorStr.includes("content position")
         ) {
-          userMessage = "This conversation has history from a different model that isn't compatible. Please start a new chat or try a different model.";
+          userMessage =
+            "This conversation has history from a different model that isn't compatible. Please start a new chat or try a different model.";
         }
         // Gateway/network error
         else if (
           errorStr.includes("network") ||
           errorStr.includes("ECONNREFUSED")
         ) {
-          userMessage = "Connection error. Please check your network and try again.";
+          userMessage =
+            "Connection error. Please check your network and try again.";
         }
         // Other gateway errors with specific messages
         else if (
@@ -976,7 +994,8 @@ export const generateResponse = internalAction({
           if (innerMessage && innerMessage.length < 200) {
             userMessage = innerMessage;
           } else {
-            userMessage = "A gateway error occurred. Please try again or use a different model.";
+            userMessage =
+              "A gateway error occurred. Please try again or use a different model.";
           }
         }
         // Fallback to original message if informative
@@ -1010,8 +1029,10 @@ export const summarizeSelection = action({
 
     try {
       // Generate summary using GPT-OSS 120B via gateway
+      // TODO: Move this model config to constants or arguments
+      const summarizationModel = MODEL_CONFIG["openai:gpt-oss-120b"];
       const result = await generateText({
-        model: aiGateway("cerebras/gpt-oss-120b"),
+        model: aiGateway(summarizationModel.id),
         messages: [
           {
             role: "system",
@@ -1023,7 +1044,9 @@ export const summarizeSelection = action({
           },
         ],
         abortSignal: abortController.signal,
-        providerOptions: getGatewayOptions(undefined, undefined, ["summary"]),
+        providerOptions: getGatewayOptions(summarizationModel.id, undefined, [
+          "summary",
+        ]),
       });
 
       clearTimeout(timeoutId);

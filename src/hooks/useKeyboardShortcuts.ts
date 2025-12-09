@@ -1,16 +1,17 @@
-import { useConversationContext } from "@/contexts/ConversationContext";
-import { analytics } from "@/lib/analytics";
 import { useMutation } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
+import { analytics } from "@/lib/analytics";
 import { api } from "../../convex/_generated/api";
 
 export function useKeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
-  // @ts-ignore - Convex type inference depth issue
   const createConversation = useMutation(api.conversations.create);
   const { filteredConversations } = useConversationContext();
+  const { newChatModel } = useNewChatModel();
 
   // Extract conversationId from pathname (e.g., /chat/xyz123)
   const conversationId = pathname?.startsWith("/chat/")
@@ -42,10 +43,10 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         try {
           const conversationId = await createConversation({
-            model: "openai:gpt-4o",
+            model: newChatModel,
           });
           router.push(`/chat/${conversationId}`);
-          analytics.track("conversation_started", { model: "openai:gpt-4o" });
+          analytics.track("conversation_started", { model: newChatModel });
         } catch (error) {
           console.error("Failed to create conversation:", error);
         }
@@ -62,8 +63,6 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         router.push("/settings");
       }
-
-
 
       // Cmd+F - Search (only outside of inputs)
       if (

@@ -32,7 +32,6 @@ Preference/identity/relationship memories are pre-loaded.`,
         .describe("Memory category to filter by"),
       limit: z.number().optional().default(5).describe("Max results to return"),
     }),
-    // @ts-ignore - Convex internal API + AI SDK type inference causes "excessively deep" errors
     execute: async (input) => {
       const { query, category, limit = 5 } = input;
       try {
@@ -118,12 +117,10 @@ IMPORTANT: Rephrase content to third-person before saving:
           "Brief explanation of why this is worth remembering long-term (1-2 sentences)",
         ),
     }),
-    // @ts-ignore - Convex internal API + AI SDK type inference causes "excessively deep" errors
     execute: async (input) => {
       const { content, category, reasoning } = input;
       try {
         const result = await ctx.runAction(
-          // @ts-ignore - Convex type instantiation depth issue
           internal.memories.save.saveFromTool,
           {
             userId,
@@ -144,4 +141,3 @@ IMPORTANT: Rephrase content to third-person before saving:
     },
   });
 }
-

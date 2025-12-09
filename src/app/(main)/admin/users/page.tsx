@@ -1,24 +1,24 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { Shield, Users } from "lucide-react";
 import { Suspense } from "react";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 function UsersListSkeleton() {
   return (
@@ -34,7 +34,6 @@ function UsersListSkeleton() {
 }
 
 function UsersPageContent() {
-  // @ts-ignore - Convex type depth issue
   const users = useQuery(api.admin.listUsers);
   const updateRole = useMutation(api.admin.updateUserRole);
 
@@ -77,13 +76,20 @@ function UsersPageContent() {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.imageUrl || undefined} alt={user.name} />
-                      <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarImage
+                        src={user.imageUrl || undefined}
+                        alt={user.name}
+                      />
+                      <AvatarFallback>
+                        {user.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{user.name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {user.email}
+                </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDistanceToNow(user.createdAt, { addSuffix: true })}
                 </TableCell>
@@ -94,7 +100,9 @@ function UsersPageContent() {
                     )}
                     <Switch
                       checked={user.isAdmin}
-                      onCheckedChange={(checked) => handleToggleAdmin(user._id, checked)}
+                      onCheckedChange={(checked) =>
+                        handleToggleAdmin(user._id, checked)
+                      }
                     />
                   </div>
                 </TableCell>

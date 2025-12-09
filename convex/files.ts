@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getCurrentUserOrCreate, getCurrentUser } from "./lib/userSync";
+import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 /**
  * Generate upload URL for file storage
@@ -41,23 +41,66 @@ export const saveFile = mutation({
 });
 
 /**
- * Get file URL for display/download
+ * Get file URL for display/download (requires ownership verification)
  */
 export const getFileUrl = query({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
+    // Security: Verify user owns a file with this storage ID
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    // Find file record to verify ownership
+    const files = await ctx.db
+      .query("files")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const file = files.find((f) => f.storageId === args.storageId);
+    if (!file) return null;
+
     return await ctx.storage.getUrl(args.storageId);
   },
 });
 
 /**
- * Get URLs for multiple attachments (batch fetch)
+ * Get URLs for multiple attachments (batch fetch with ownership verification)
+ * Only returns URLs for files the user owns or has access to via conversation
  */
 export const getAttachmentUrls = query({
-  args: { storageIds: v.array(v.string()) },
+  args: {
+    storageIds: v.array(v.string()),
+    conversationId: v.optional(v.id("conversations")),
+  },
   handler: async (ctx, args) => {
+    // Security: Verify user is authenticated
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    // If conversationId provided, verify ownership
+    if (args.conversationId) {
+      const conversation = await ctx.db.get(args.conversationId);
+      if (!conversation || conversation.userId !== user._id) {
+        return [];
+      }
+    }
+
+    // Get user's files to verify ownership
+    const userFiles = await ctx.db
+      .query("files")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // Convert to string set for comparison (storageId in files table is Id<"_storage">)
+    const userStorageIds = new Set(userFiles.map((f) => String(f.storageId)));
+
+    // Only return URLs for files the user owns
+    const validStorageIds = args.storageIds.filter((id) =>
+      userStorageIds.has(id),
+    );
+
     return Promise.all(
-      args.storageIds.map(async (id) => ({
+      validStorageIds.map(async (id) => ({
         storageId: id,
         url: await ctx.storage.getUrl(id),
       })),

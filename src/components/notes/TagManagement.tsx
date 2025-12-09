@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { ArrowRight, GitMerge, Pencil, Settings2, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +21,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import { getTagLabel } from "@/lib/utils/tagUtils";
-import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, GitMerge, Pencil, Settings2, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export function TagManagement() {
   const [open, setOpen] = useState(false);
@@ -33,14 +33,10 @@ export function TagManagement() {
   const [selectedMergeTags, setSelectedMergeTags] = useState<string[]>([]);
   const [mergeTargetTag, setMergeTargetTag] = useState("");
 
-  // @ts-ignore - Convex type instantiation depth issue
   const tagStats = useQuery(api.notes.getTagStats) || [];
-  // @ts-ignore
   const cooccurrence = useQuery(api.notes.getTagCooccurrence) || [];
 
-  // @ts-ignore
   const renameTag = useMutation(api.notes.renameTag);
-  // @ts-ignore
   const mergeTags = useMutation(api.notes.mergeTags);
 
   const handleRename = async () => {

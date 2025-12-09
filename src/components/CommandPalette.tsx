@@ -1,17 +1,18 @@
 "use client";
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useConversationActions } from "@/hooks/useConversationActions";
-import { analytics } from "@/lib/analytics";
-import { createActionItems } from "@/lib/command-palette-actions";
-import { cn } from "@/lib/utils";
 import { Command } from "cmdk";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
 import { matchSorter } from "match-sorter";
-import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useConversationActions } from "@/hooks/useConversationActions";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
+import { analytics } from "@/lib/analytics";
+import { createActionItems } from "@/lib/command-palette-actions";
+import { cn } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
@@ -30,10 +31,8 @@ export function CommandPalette() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const listRef = useRef<HTMLDivElement>(null);
-  // @ts-ignore
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
-  // @ts-ignore
   const hybridSearchAction = useAction(
     api.conversations.hybridSearch.hybridSearch,
   );
@@ -45,7 +44,6 @@ export function CommandPalette() {
 
   // Get current conversation if in chat
   const currentConversation = useQuery(
-    // @ts-ignore
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -55,6 +53,7 @@ export function CommandPalette() {
     conversationId,
     "command_palette",
   );
+  const { newChatModel } = useNewChatModel();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -106,11 +105,11 @@ export function CommandPalette() {
   const handleNewChat = async () => {
     try {
       const conversationId = await createConversation({
-        model: "openai:gpt-4o",
+        model: newChatModel,
       });
       router.push(`/chat/${conversationId}`);
       setOpen(false);
-      analytics.track("conversation_started", { model: "openai:gpt-4o" });
+      analytics.track("conversation_started", { model: newChatModel });
     } catch (error) {
       console.error("Failed to create conversation:", error);
     }
@@ -258,8 +257,8 @@ export function CommandPalette() {
                   </Command.Group>
                 )}
 
-                {filteredActions.filter((a) => a.group === "navigation").length >
-                  0 && (
+                {filteredActions.filter((a) => a.group === "navigation")
+                  .length > 0 && (
                   <Command.Group
                     heading="Navigation"
                     className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"

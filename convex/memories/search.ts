@@ -64,7 +64,9 @@ Response:`;
       model: getModel("cerebras:gpt-oss-120b"),
       prompt,
       temperature: 0,
-      providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["memory-rerank"]),
+      providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, [
+        "memory-rerank",
+      ]),
     });
 
     const indices = result.text
@@ -151,7 +153,7 @@ export const keywordSearch = internalQuery({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let results = await ctx.db
+    const results = await ctx.db
       .query("memories")
       .withSearchIndex("search_content", (q) => {
         let query = q.search("content", args.query);
@@ -187,7 +189,6 @@ export const vectorSearch = internalAction({
       // Fetch full documents
       const memories: Doc<"memories">[] = await Promise.all(
         results.map(async (result) => {
-          // @ts-ignore - Convex type instantiation depth issue
           const memory = await ctx.runQuery(internal.memories.getMemoryById, {
             id: result._id,
           });

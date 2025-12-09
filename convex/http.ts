@@ -28,7 +28,6 @@ http.route({
     const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
     // 1. Check Cache
-    // @ts-ignore
     const cached = await ctx.runQuery(internal.ttsCache.getCache, { hash });
 
     if (cached) {
@@ -38,7 +37,7 @@ http.route({
         return new Response(null, {
           status: 302,
           headers: {
-            "Location": storageUrl,
+            Location: storageUrl,
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET",
           },
@@ -51,7 +50,7 @@ http.route({
     if (!apiKey) {
       return new Response("Server misconfigured", {
         status: 500,
-        headers: { "Access-Control-Allow-Origin": "*" }
+        headers: { "Access-Control-Allow-Origin": "*" },
       });
     }
 
@@ -66,20 +65,20 @@ http.route({
     }
 
     const dgResponse = await fetch(dgUrl, {
-        method: "POST",
-        headers: {
-            Authorization: `Token ${apiKey}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
+      method: "POST",
+      headers: {
+        Authorization: `Token ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
     });
 
     if (!dgResponse.ok) {
-        return new Response(dgResponse.body, {
-            status: dgResponse.status,
-            statusText: dgResponse.statusText,
-            headers: { "Access-Control-Allow-Origin": "*" }
-        });
+      return new Response(dgResponse.body, {
+        status: dgResponse.status,
+        statusText: dgResponse.statusText,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      });
     }
 
     // 3. Streaming Response AND Cache
@@ -89,24 +88,25 @@ http.route({
 
     // Store in background (async)
     // Yes, we must await.
-    const storageId = await ctx.storage.store(new Blob([audioBuffer], { type: "audio/mpeg" }));
+    const storageId = await ctx.storage.store(
+      new Blob([audioBuffer], { type: "audio/mpeg" }),
+    );
 
-    // @ts-ignore
     await ctx.runMutation(internal.ttsCache.saveCache, {
-        hash,
-        storageId,
-        text,
-        voice,
-        speed: clampedSpeed,
-        format: "mp3",
+      hash,
+      storageId,
+      text,
+      voice,
+      speed: clampedSpeed,
+      format: "mp3",
     });
 
     return new Response(audioBuffer, {
-        headers: {
-            "Content-Type": "audio/mpeg",
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Access-Control-Allow-Origin": "*",
-        },
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
   }),
 });

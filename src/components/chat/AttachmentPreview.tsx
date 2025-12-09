@@ -1,7 +1,7 @@
 "use client";
 
+import { FileIcon, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { X, FileIcon, Image as ImageIcon } from "lucide-react";
 
 interface Attachment {
   type: "file" | "image" | "audio";

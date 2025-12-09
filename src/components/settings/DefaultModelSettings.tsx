@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Clock, Pin } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -7,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -17,26 +23,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
-import { getModelsByProvider } from "@/lib/ai/utils";
-import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { getModelConfig, getModelsByProvider } from "@/lib/ai/utils";
 
 export function DefaultModelSettings() {
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePrefs = useMutation(api.users.updatePreferences);
+
   const [selectedModel, setSelectedModel] = useState(
     user?.preferences?.defaultModel || "",
+  );
+  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(
+    user?.preferences?.newChatModelSelection ?? "fixed",
   );
 
   useEffect(() => {
     if (user?.preferences?.defaultModel) {
       setSelectedModel(user.preferences.defaultModel);
     }
-  }, [user?.preferences?.defaultModel]);
+    if (user?.preferences?.newChatModelSelection) {
+      setSelectionMode(user.preferences.newChatModelSelection);
+    }
+  }, [
+    user?.preferences?.defaultModel,
+    user?.preferences?.newChatModelSelection,
+  ]);
 
-  const handleChange = async (modelId: string) => {
+  const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);
     try {
       await updatePrefs({ preferences: { defaultModel: modelId } });
@@ -47,34 +59,107 @@ export function DefaultModelSettings() {
     }
   };
 
+  const handleModeChange = async (mode: "fixed" | "recent") => {
+    setSelectionMode(mode);
+    try {
+      await updatePrefs({ preferences: { newChatModelSelection: mode } });
+      toast.success(
+        mode === "fixed"
+          ? "New chats will use your default model"
+          : "New chats will use your most recent model",
+      );
+    } catch {
+      toast.error("Failed to update");
+      setSelectionMode(user?.preferences?.newChatModelSelection ?? "fixed");
+    }
+  };
+
   const modelsByProvider = getModelsByProvider();
+
+  // Get the most recent model name for display
+  const recentModelId = user?.preferences?.recentModels?.[0];
+  const recentModelName = recentModelId
+    ? getModelConfig(recentModelId)?.name || recentModelId
+    : "None yet";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Default Model</CardTitle>
-        <CardDescription>Model used for new conversations</CardDescription>
+        <CardTitle>New Chat Model</CardTitle>
+        <CardDescription>
+          Choose which model to use when starting a new conversation
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Select value={selectedModel} onValueChange={handleChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select model" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(modelsByProvider).map(([provider, models]) => (
-              <SelectGroup key={provider}>
-                <SelectLabel>
-                  {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                </SelectLabel>
-                {models.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.name}
-                  </SelectItem>
+      <CardContent className="space-y-6">
+        {/* Selection Mode */}
+        <RadioGroup
+          value={selectionMode}
+          onValueChange={(val) => handleModeChange(val as "fixed" | "recent")}
+          className="space-y-3"
+        >
+          <div className="flex items-start space-x-3">
+            <RadioGroupItem value="fixed" id="fixed" className="mt-1" />
+            <div className="space-y-1">
+              <Label
+                htmlFor="fixed"
+                className="flex items-center gap-2 font-medium cursor-pointer"
+              >
+                <Pin className="h-4 w-4" />
+                Fixed Model
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Always use your selected default model below
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3">
+            <RadioGroupItem value="recent" id="recent" className="mt-1" />
+            <div className="space-y-1">
+              <Label
+                htmlFor="recent"
+                className="flex items-center gap-2 font-medium cursor-pointer"
+              >
+                <Clock className="h-4 w-4" />
+                Most Recent Model
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically use the last model you used
+                {recentModelId && (
+                  <span className="ml-1 text-foreground/80">
+                    (currently:{" "}
+                    <span className="font-medium">{recentModelName}</span>)
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        </RadioGroup>
+
+        {/* Default Model Selector - shown when "fixed" is selected */}
+        {selectionMode === "fixed" && (
+          <div className="space-y-2 pt-2 border-t">
+            <Label>Default Model</Label>
+            <Select value={selectedModel} onValueChange={handleModelChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(modelsByProvider).map(([provider, models]) => (
+                  <SelectGroup key={provider}>
+                    <SelectLabel>
+                      {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                    </SelectLabel>
+                    {models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

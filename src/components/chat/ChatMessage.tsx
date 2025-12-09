@@ -1,23 +1,23 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { motion } from "framer-motion";
+import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
-import { useMutation, useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { FeedbackModal } from "../feedback/FeedbackModal";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
@@ -36,9 +36,7 @@ function ErrorDisplay({ error }: { error?: string }) {
     <div className="flex flex-col gap-3 p-1">
       <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
         <AlertCircle className="w-4 h-4" />
-        <span className="font-medium text-sm">
-          Unable to generate response
-        </span>
+        <span className="font-medium text-sm">Unable to generate response</span>
       </div>
       <div className="bg-muted/30 rounded-md p-3 border border-border/50">
         <p className="text-sm leading-relaxed opacity-90 break-words">
@@ -77,13 +75,10 @@ export const ChatMessage = memo(
     const isError = message.status === "error";
 
     // Mutations for keyboard shortcuts
-    // @ts-ignore - Convex type inference depth issue
     const regenerate = useMutation(api.chat.regenerate);
-    // @ts-ignore - Convex type inference depth issue
     const deleteMsg = useMutation(api.chat.deleteMessage);
     const createBookmark = useMutation(api.bookmarks.create);
 
-    // @ts-ignore
     const user = useQuery(api.users.getCurrentUser);
     const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
 
@@ -309,7 +304,9 @@ export const ChatMessage = memo(
                 )}
 
               {/* Inline tool calls and content - renders tool calls at their positions */}
-              {(displayContent || message.toolCalls?.length || message.partialToolCalls?.length) ? (
+              {displayContent ||
+              message.toolCalls?.length ||
+              message.partialToolCalls?.length ? (
                 <InlineToolCallContent
                   content={displayContent || ""}
                   toolCalls={message.toolCalls}

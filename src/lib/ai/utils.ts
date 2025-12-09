@@ -1,15 +1,20 @@
 import { MODEL_CONFIG, type ModelConfig } from "./models";
 export type { ModelConfig };
 
-
 // Migration map: old model IDs → new model IDs (vendor prefixes added)
 const MODEL_ID_MIGRATIONS: Record<string, string> = {
   // Anthropic date suffix removal (gateway compliance)
   "anthropic:claude-opus-4-5-20251101": "anthropic:claude-opus-4.5",
   "anthropic:claude-sonnet-4-5-20250929": "anthropic:claude-sonnet-4.5",
   "anthropic:claude-haiku-4-5-20251001": "anthropic:claude-haiku-4.5",
-  // OpenAI naming corrections
-  "openai:gpt-4.1": "openai:gpt-4.1-mini",
+  // OpenAI naming corrections (gpt-4.1 migrated to 5.1 family)
+  "openai:gpt-4.1": "openai:gpt-5.1-mini",
+  "openai:gpt-4.1-mini": "openai:gpt-5.1-mini",
+  // Legacy GPT-5 migrations
+  "openai:gpt-5": "openai:gpt-5.1",
+  "openai:gpt-5-mini": "openai:gpt-5.1-mini",
+  "openai:gpt-5-nano": "openai:gpt-5.1-nano",
+  "openai:gpt-5-codex": "openai:gpt-5.1-codex",
   // Google experimental naming
   "google:gemini-3-pro": "google:gemini-3-pro-preview",
   // Removed models - redirect to closest alternatives

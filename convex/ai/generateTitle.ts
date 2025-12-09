@@ -1,10 +1,14 @@
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { MODEL_CONFIG } from "../../src/lib/ai/models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
+
+// Model configuration
+const TITLE_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
 
 type Message = Doc<"messages">;
 
@@ -83,10 +87,12 @@ export const generateTitle = internalAction({
     try {
       // Get all messages in conversation
       // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
-      // @ts-ignore
-      const messages = await ctx.runQuery(internal.messages.listInternal, {
-        conversationId: args.conversationId,
-      });
+      const messages = await (ctx.runQuery as any)(
+        internal.messages.listInternal as any,
+        {
+          conversationId: args.conversationId,
+        },
+      );
 
       // Apply smart truncation
       const truncated = truncateMessages(messages, 16000);
@@ -98,12 +104,14 @@ export const generateTitle = internalAction({
 
       // Generate title with full context
       const result = streamText({
-        model: aiGateway("cerebras/gpt-oss-120b"),
+        model: aiGateway(TITLE_MODEL.id),
         prompt: `${CONVERSATION_TITLE_PROMPT}
 
 Conversation:
 ${conversationText}`,
-        providerOptions: getGatewayOptions("cerebras:gpt-oss-120b", undefined, ["title-generation"]),
+        providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, [
+          "title-generation",
+        ]),
       });
 
       let title = "";

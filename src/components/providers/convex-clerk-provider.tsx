@@ -2,8 +2,9 @@
 
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { AuthStateListener } from "./AuthStateListener";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -39,7 +40,7 @@ export function ConvexClerkProvider({
       }}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        {children}
+        <AuthStateListener>{children}</AuthStateListener>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );

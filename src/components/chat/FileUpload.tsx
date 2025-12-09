@@ -1,13 +1,13 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { Loader2, Upload } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -36,7 +36,6 @@ export function FileUpload({
   uploading: boolean;
   setUploading: (uploading: boolean) => void;
 }) {
-  // @ts-ignore - Type instantiation depth issue
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const saveFile = useMutation(api.files.saveFile);
 

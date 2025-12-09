@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import {
   DollarSign,
@@ -31,6 +23,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { api } from "@/convex/_generated/api";
 
 const COLORS = [
   "#8b5cf6",

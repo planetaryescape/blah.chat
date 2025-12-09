@@ -1,13 +1,13 @@
 "use client";
 
+import { ArrowLeftRight } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeftRight } from "lucide-react";
-import { useState } from "react";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface ComparisonTriggerProps {

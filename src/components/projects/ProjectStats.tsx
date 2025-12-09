@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
+import { Clock, MessageSquare } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Clock } from "lucide-react";
 
 interface ProjectStatsProps {
   projectId: Id<"projects">;

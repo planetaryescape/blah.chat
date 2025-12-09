@@ -1,12 +1,12 @@
+import { buildAnthropicReasoning } from "./handlers/anthropic";
+import { buildDeepSeekReasoning } from "./handlers/deepseek";
+import { buildGoogleReasoning } from "./handlers/google";
+import { buildOpenAIReasoning } from "./handlers/openai";
 import type {
   ReasoningConfig,
   ReasoningHandler,
   ThinkingEffort,
 } from "./types";
-import { buildAnthropicReasoning } from "./handlers/anthropic";
-import { buildDeepSeekReasoning } from "./handlers/deepseek";
-import { buildGoogleReasoning } from "./handlers/google";
-import { buildOpenAIReasoning } from "./handlers/openai";
 
 // Generic handler for simple providers (xAI, Perplexity, Groq)
 function buildGenericReasoning(

@@ -1,29 +1,9 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Trash2, Edit, FolderOpen, Users } from "lucide-react";
-import { toast } from "sonner";
+import { Edit, FolderOpen, Trash2, Users } from "lucide-react";
 import { useState } from "react";
-import { ProjectForm } from "./ProjectForm";
-import { ProjectStats } from "./ProjectStats";
-import { BulkConversationAssigner } from "./BulkConversationAssigner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +14,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { BulkConversationAssigner } from "./BulkConversationAssigner";
+import { ProjectForm } from "./ProjectForm";
+import { ProjectStats } from "./ProjectStats";
 
 interface ProjectCardProps {
   project: {

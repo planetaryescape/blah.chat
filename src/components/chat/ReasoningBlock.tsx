@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Brain, ChevronDown, Loader2 } from "lucide-react";
 import { useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Brain, ChevronDown, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/utils/formatMetrics";
@@ -25,7 +25,6 @@ export function ReasoningBlock({
   reasoningTokens,
   isThinking = false,
 }: ReasoningBlockProps) {
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
 
   // Get user preferences with defaults

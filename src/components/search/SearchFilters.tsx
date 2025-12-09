@@ -1,23 +1,10 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { Bot, Calendar, MessageSquare, Pin, Plus, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { X, Plus, Calendar, User, Bot, MessageSquare, Pin } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Command,
   CommandEmpty,
@@ -26,10 +13,23 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { api } from "@/convex/_generated/api";
 import type { SearchFilters as Filters } from "@/hooks/useSearchFilters";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
 
 interface SearchFiltersProps {
   filters: Filters;
@@ -66,7 +66,6 @@ export function SearchFilters({
   const [conversationSearch, setConversationSearch] = useState("");
   const debouncedSearch = useDebouncedValue(conversationSearch, 300);
 
-  // @ts-ignore - Convex nested types cause "excessively deep" error - ignore, no actual issue
   const conversations = useQuery(api.conversations.list, {
     searchQuery: debouncedSearch || undefined,
     limit: 20,

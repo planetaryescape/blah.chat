@@ -1,8 +1,8 @@
 "use client";
 
+import { Loader2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTTSPlayer } from "@/contexts/TTSContext";
-import { Volume2, VolumeX, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TTSButtonProps {

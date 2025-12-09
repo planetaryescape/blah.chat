@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import type { TagNode } from "@/lib/utils/tagUtils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import type { TagNode } from "@/lib/utils/tagUtils";
 
 interface TagTreeProps {
   tree: TagNode[];

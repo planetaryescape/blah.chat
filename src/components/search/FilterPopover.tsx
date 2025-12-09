@@ -1,13 +1,15 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { Bot, Calendar, MessageSquare, User } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -16,8 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, User, Bot, MessageSquare } from "lucide-react";
-import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { SearchFilters } from "@/hooks/useSearchFilters";
 
@@ -34,7 +34,6 @@ const DATE_PRESETS = [
 ] as const;
 
 export function FilterPopover({ filters, onFilterChange }: FilterPopoverProps) {
-  // @ts-ignore - Convex nested types cause "excessively deep" error - ignore, no actual issue
   const conversations = useQuery(api.conversations.list, {});
 
   const [datePreset, setDatePreset] = useState<string>("all");

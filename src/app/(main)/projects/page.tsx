@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { Plus } from "lucide-react";
+import { useState } from "react";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectsEmptyState } from "@/components/projects/ProjectsEmptyState";
@@ -11,12 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
-import { Plus } from "lucide-react";
-import { useState } from "react";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
 
 // ... imports
 

@@ -1,6 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+// NOTE: This must match the DEFAULT_MODEL_ID in src/lib/ai/operational-models.ts
+const DEFAULT_MODEL_FOR_NEW_USERS = "openai:gpt-oss-120b";
+
 export const createUser = mutation({
   args: {
     clerkId: v.string(),
@@ -25,7 +28,7 @@ export const createUser = mutation({
       imageUrl: args.imageUrl,
       preferences: {
         theme: "dark",
-        defaultModel: "cerebras:qwen-3-32b",
+        defaultModel: DEFAULT_MODEL_FOR_NEW_USERS,
         favoriteModels: [],
         sendOnEnter: true,
       },

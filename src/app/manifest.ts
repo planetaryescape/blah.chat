@@ -4,7 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "blah.chat",
     short_name: "blah.chat",
-    description: "Access all AI models, switch mid-chat, and branch conversations.",
+    description:
+      "Access all AI models, switch mid-chat, and branch conversations.",
     start_url: "/",
     display: "standalone",
     background_color: "#191024",

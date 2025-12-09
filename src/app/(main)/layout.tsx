@@ -1,7 +1,11 @@
 "use client";
 
-import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { Plus, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
+import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -16,10 +20,6 @@ import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { api } from "@/convex/_generated/api";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Plus, Search } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { Suspense } from "react";
 
 function Header() {
   const { open } = useSidebar();

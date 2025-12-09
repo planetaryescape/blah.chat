@@ -1,52 +1,63 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { Clock, Pin } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
-import { getModelConfig, getModelsByProvider } from "@/lib/ai/utils";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
+import { getModelConfig, getModelsByProvider, isValidModel } from "@/lib/ai/utils";
+import { useMutation, useQuery } from "convex/react";
+import { Clock, Pin } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export function DefaultModelSettings() {
+  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePrefs = useMutation(api.users.updatePreferences);
+  const hasInitialized = useRef(false);
 
-  const [selectedModel, setSelectedModel] = useState(
-    user?.preferences?.defaultModel || "",
-  );
-  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(
-    user?.preferences?.newChatModelSelection ?? "fixed",
-  );
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
+  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">("fixed");
 
+  // Sync from user preferences OR auto-save default if not set
   useEffect(() => {
-    if (user?.preferences?.defaultModel) {
-      setSelectedModel(user.preferences.defaultModel);
+    if (!user) return;
+
+    const userDefaultModel = user.preferences?.defaultModel;
+
+    // Check if user has a valid default model (exists in MODEL_CONFIG)
+    if (userDefaultModel && userDefaultModel.length > 0 && isValidModel(userDefaultModel)) {
+      setSelectedModel(userDefaultModel);
+    } else if (!hasInitialized.current) {
+      // User has no default model, it's empty, or it's an invalid/deprecated model
+      // Auto-save the system default
+      hasInitialized.current = true;
+      setSelectedModel(DEFAULT_MODEL_ID);
+      updatePrefs({ preferences: { defaultModel: DEFAULT_MODEL_ID } });
     }
-    if (user?.preferences?.newChatModelSelection) {
+
+    // Sync selection mode
+    if (user.preferences?.newChatModelSelection) {
       setSelectionMode(user.preferences.newChatModelSelection);
     }
-  }, [
-    user?.preferences?.defaultModel,
-    user?.preferences?.newChatModelSelection,
-  ]);
+  }, [user, updatePrefs]);
+
 
   const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);

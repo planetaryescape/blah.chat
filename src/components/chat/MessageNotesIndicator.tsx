@@ -19,12 +19,9 @@ export function MessageNotesIndicator({
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const notes = useQuery(
-    api.notes.getNotesFromMessage,
-    {
-      messageId,
-    },
-  );
+  const notes = useQuery(api.notes.getNotesFromMessage, {
+    messageId,
+  });
 
   if (!notes || notes.length === 0) {
     return null;

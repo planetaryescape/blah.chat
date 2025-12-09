@@ -17,10 +17,10 @@ import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
@@ -28,12 +28,20 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { getModelConfig } from "@/lib/ai/utils";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
+import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import { Suspense, use, useCallback, useEffect, useMemo, useState } from "react";
+import {
+    Suspense,
+    use,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
 function ChatPageContent({
   params,
@@ -59,22 +67,37 @@ function ChatPageContent({
   );
   const user = useQuery(api.users.getCurrentUser);
 
-  const [selectedModel, setSelectedModel] = useState<string>(
-    conversation?.model || user?.preferences.defaultModel || "openai:gpt-5",
-  );
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    // Initialize with conversation model if valid, else user preference if valid, else default
+    const conversationModel = conversation?.model;
+    const userDefaultModel = user?.preferences?.defaultModel;
 
-  // Update local model state when conversation loads
-  useEffect(() => {
-    if (conversation?.model) {
-      setSelectedModel(conversation.model);
-    } else if (user?.preferences.defaultModel) {
-      // Fallback to user preference if conversation is loading or doesn't specify
-      // Only if we haven't set a model yet (checking against default)
-      if (selectedModel === "openai:gpt-5") {
-        setSelectedModel(user.preferences.defaultModel);
-      }
+    if (conversationModel && isValidModel(conversationModel)) {
+      return conversationModel;
     }
-  }, [conversation?.model, user?.preferences.defaultModel]);
+    if (userDefaultModel && isValidModel(userDefaultModel)) {
+      return userDefaultModel;
+    }
+    return DEFAULT_MODEL_ID;
+  });
+
+  // Update local model state when conversation or user data loads
+  useEffect(() => {
+    // Prioritize conversation model if it's valid
+    if (conversation?.model && isValidModel(conversation.model)) {
+      setSelectedModel(conversation.model);
+      return;
+    }
+
+    // Fall back to user's default if it's valid
+    if (user?.preferences?.defaultModel && isValidModel(user.preferences.defaultModel)) {
+      setSelectedModel(user.preferences.defaultModel);
+      return;
+    }
+
+    // Ultimate fallback to system default
+    setSelectedModel(DEFAULT_MODEL_ID);
+  }, [conversation?.model, user?.preferences?.defaultModel]);
 
   const [thinkingEffort, setThinkingEffort] =
     useState<ThinkingEffort>("medium");

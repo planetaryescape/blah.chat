@@ -1,22 +1,29 @@
 import { aiGateway, getGatewayOptions } from "@/lib/ai/gateway";
-import { getModelConfig, type ModelConfig } from "@/lib/ai/models";
-import { calculateCost } from "@/lib/ai/pricing";
+
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost, getModelConfig, type ModelConfig } from "@/lib/ai/utils";
 import { generateText, stepCountIs, streamText, type CoreMessage } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
+import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
+import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import { createMemorySaveTool, createMemorySearchTool } from "./ai/tools/memories";
+import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWebSearchTool } from "./ai/tools/webSearch";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
     formatMemoriesByCategory,
     truncateMemories,
 } from "./lib/prompts/formatting";
+import {
+    SUMMARIZATION_SYSTEM_PROMPT,
+    buildSummarizationPrompt,
+} from "./lib/prompts/operational/summarization";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
 export * as image from "./generation/image";
@@ -338,12 +345,29 @@ export const generateResponse = internalAction({
         conversationId: args.conversationId,
       });
 
-      // 3. Get last user message for memory retrieval
+      // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
+      const requiresThoughtSignature = args.modelId.includes("gemini-3-pro-image");
+      if (requiresThoughtSignature && messages.length > 1) {
+        // Check if conversation started with a compatible model
+        const firstAssistantMsg = messages.find((m: Doc<"messages">) => m.role === "assistant" && m.model);
+        const conversationStartedWithGeminiImage = firstAssistantMsg?.model?.includes("gemini-3-pro-image");
+
+        if (!conversationStartedWithGeminiImage) {
+          throw new Error(
+            "MODEL_SWITCH_NOT_ALLOWED: Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting. Please start a new chat to use this model."
+          );
+        }
+      }
+
+      // 3. Get last user message for memory retrieval and attachments
       const lastUserMsg = messages
         .filter((m: Doc<"messages">) => m.role === "user")
         .sort(
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
+
+      // Extract attachments from last user message for file processing tool
+      const messageAttachments = lastUserMsg?.attachments;
 
       // 4. Get model config
       const modelConfig = getModelConfig(args.modelId);
@@ -540,6 +564,13 @@ export const generateResponse = internalAction({
         const calculatorTool = createCalculatorTool();
         const dateTimeTool = createDateTimeTool();
         const webSearchTool = createWebSearchTool(ctx);
+        const urlReaderTool = createUrlReaderTool(ctx);
+        const fileDocumentTool = createFileDocumentTool(
+          ctx,
+          args.conversationId,
+          messageAttachments,
+        );
+        const codeExecutionTool = createCodeExecutionTool(ctx);
 
         options.tools = {
           searchMemories: memorySearchTool,
@@ -547,6 +578,9 @@ export const generateResponse = internalAction({
           calculator: calculatorTool,
           datetime: dateTimeTool,
           webSearch: webSearchTool,
+          urlReader: urlReaderTool,
+          fileDocument: fileDocumentTool,
+          codeExecution: codeExecutionTool,
         };
 
         options.onStepFinish = async (step: any) => {
@@ -612,6 +646,7 @@ export const generateResponse = internalAction({
             name: chunk.toolName,
             arguments: JSON.stringify(chunk.input),
             timestamp: Date.now(),
+            textPosition: accumulated.length, // Track where in text this tool was called
           });
 
           // Immediately persist for loading state UI
@@ -702,10 +737,12 @@ export const generateResponse = internalAction({
 
       const cost = calculateCost(
         args.modelId,
-        inputTokens,
-        outputTokens,
-        undefined, // cachedTokens
-        reasoningTokens,
+        {
+          inputTokens,
+          outputTokens,
+          cachedTokens: undefined,
+          reasoningTokens,
+        },
       );
 
       // Calculate TPS (tokens per second)
@@ -873,9 +910,86 @@ export const generateResponse = internalAction({
         );
       }
     } catch (error) {
+      // Detect specific error types for user-friendly messages
+      let userMessage = "An unexpected error occurred. Please try again.";
+
+      if (error instanceof Error) {
+        const errorStr = error.message || "";
+        const errorName = error.name || "";
+        const causeStr = JSON.stringify((error as any).cause || {});
+
+        // Model switch not allowed (Gemini thought signature requirement)
+        if (errorStr.includes("MODEL_SWITCH_NOT_ALLOWED")) {
+          userMessage = "Gemini 3 Pro Image cannot be used mid-conversation because it requires special message formatting from the start. Please start a new chat to use this model.";
+        }
+        // Model not found error
+        else if (
+          errorStr.includes("not found") ||
+          errorName.includes("ModelNotFound") ||
+          causeStr.includes("model_not_found")
+        ) {
+          const modelMatch = errorStr.match(/Model '([^']+)'/);
+          const modelId = modelMatch ? modelMatch[1] : args.modelId;
+          userMessage = `The model "${modelId}" is not available. This may be a temporary issue or the model ID may have changed. Please try a different model or contact support.`;
+        }
+        // Rate limit error
+        else if (
+          errorStr.includes("rate limit") ||
+          errorStr.includes("too many requests") ||
+          errorStr.includes("429")
+        ) {
+          userMessage = "Rate limit exceeded. Please wait a moment and try again.";
+        }
+        // API key/auth error
+        else if (
+          errorStr.includes("unauthorized") ||
+          errorStr.includes("401") ||
+          errorStr.includes("API key")
+        ) {
+          userMessage = "Authentication error. Please check your API configuration or contact support.";
+        }
+        // Gemini thought_signature / content format error
+        else if (
+          errorStr.includes("thought_signature") ||
+          causeStr.includes("thought_signature") ||
+          errorStr.includes("content position")
+        ) {
+          userMessage = "This conversation has history from a different model that isn't compatible. Please start a new chat or try a different model.";
+        }
+        // Gateway/network error
+        else if (
+          errorStr.includes("network") ||
+          errorStr.includes("ECONNREFUSED")
+        ) {
+          userMessage = "Connection error. Please check your network and try again.";
+        }
+        // Other gateway errors with specific messages
+        else if (
+          errorName.includes("Gateway") ||
+          causeStr.includes("Gateway")
+        ) {
+          // Try to extract a readable message from the gateway error
+          const causeObj = (error as any).cause || {};
+          const innerMessage = causeObj.responseBody
+            ? JSON.parse(causeObj.responseBody)?.error?.message
+            : null;
+          if (innerMessage && innerMessage.length < 200) {
+            userMessage = innerMessage;
+          } else {
+            userMessage = "A gateway error occurred. Please try again or use a different model.";
+          }
+        }
+        // Fallback to original message if informative
+        else if (errorStr.length > 0 && errorStr.length < 200) {
+          userMessage = errorStr;
+        }
+      }
+
+      console.error("[Generation] Error:", error);
+
       await ctx.runMutation(internal.messages.markError, {
         messageId: args.assistantMessageId,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: userMessage,
       });
       throw error;
     }
@@ -895,18 +1009,17 @@ export const summarizeSelection = action({
     const timeoutId = setTimeout(() => abortController.abort(), 30000);
 
     try {
-      // Generate summary using GPT-OSS 20B via gateway
+      // Generate summary using GPT-OSS 120B via gateway
       const result = await generateText({
         model: aiGateway("cerebras/gpt-oss-120b"),
         messages: [
           {
             role: "system",
-            content:
-              "You are a helpful assistant that provides concise summaries. Summarize the following text in 1-2 sentences, focusing on the key points.",
+            content: SUMMARIZATION_SYSTEM_PROMPT,
           },
           {
             role: "user",
-            content: `Summarize this text:\n\n${args.text}`,
+            content: buildSummarizationPrompt(args.text),
           },
         ],
         abortSignal: abortController.signal,

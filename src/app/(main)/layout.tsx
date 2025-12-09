@@ -2,6 +2,7 @@
 
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { CommandPalette } from "@/components/CommandPalette";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
@@ -16,7 +17,7 @@ import { SelectionProvider } from "@/contexts/SelectionContext";
 import { api } from "@/convex/_generated/api";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Plus, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
 
 function Header() {
@@ -66,6 +67,9 @@ function Header() {
           </Button>
         </div>
       )}
+      <div className="ml-auto">
+        <FeedbackButton />
+      </div>
     </header>
   );
 }
@@ -76,6 +80,8 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const pathname = usePathname();
+  const isAdminRoute = pathname.startsWith("/admin");
 
   // Don't show sidebar when not authenticated
   if (!isLoading && !isAuthenticated) {
@@ -96,20 +102,28 @@ export default function MainLayout({
         </a>
 
         <SidebarProvider>
-          <div className="flex w-full h-[100dvh] overflow-hidden">
-            <Suspense fallback={null}>
-              <AppSidebar />
-            </Suspense>
-            <main
-              id="main-content"
-              className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-              role="main"
-              aria-label="Chat interface"
-            >
-              <Header />
+          {isAdminRoute ? (
+            // Admin routes: let admin layout control structure
+            <div className="flex w-full h-[100dvh] overflow-hidden">
               {children}
-            </main>
-          </div>
+            </div>
+          ) : (
+            // Regular routes: sidebar + main
+            <div className="flex w-full h-[100dvh] overflow-hidden">
+              <Suspense fallback={null}>
+                <AppSidebar />
+              </Suspense>
+              <main
+                id="main-content"
+                className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
+                role="main"
+                aria-label="Chat interface"
+              >
+                <Header />
+                {children}
+              </main>
+            </div>
+          )}
           <CommandPalette />
           <OnboardingTour />
           <SelectionContextMenu />

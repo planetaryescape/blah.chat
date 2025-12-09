@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { getModelConfig } from "@/lib/ai/models";
+import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import { useMutation, useQuery } from "convex/react";
@@ -18,15 +18,47 @@ import { motion } from "framer-motion";
 import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { FeedbackModal } from "../feedback/FeedbackModal";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
-import { MarkdownContentMemo } from "./MarkdownContent";
+import { InlineToolCallContent } from "./InlineToolCallContent";
 import { MessageActions } from "./MessageActions";
 import { MessageBranchIndicator } from "./MessageBranchIndicator";
 import { MessageNotesIndicator } from "./MessageNotesIndicator";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
-import { ToolCallDisplay } from "./ToolCallDisplay";
+
+// Error display component with feedback modal integration
+function ErrorDisplay({ error }: { error?: string }) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-3 p-1">
+      <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
+        <AlertCircle className="w-4 h-4" />
+        <span className="font-medium text-sm">
+          Unable to generate response
+        </span>
+      </div>
+      <div className="bg-muted/30 rounded-md p-3 border border-border/50">
+        <p className="text-sm leading-relaxed opacity-90 break-words">
+          {error}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <span>Try a different model or</span>
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
+          className="underline hover:text-foreground transition-colors cursor-pointer"
+        >
+          contact support
+        </button>
+      </div>
+      <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+    </div>
+  );
+}
 
 interface ChatMessageProps {
   message: Doc<"messages">;
@@ -258,19 +290,7 @@ export const ChatMessage = memo(
           aria-keyshortcuts="r b c delete"
         >
           {isError ? (
-            <div className="flex flex-col gap-3 p-1">
-              <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
-                <AlertCircle className="w-4 h-4" />
-                <span className="font-medium text-sm">
-                  Unable to generate response
-                </span>
-              </div>
-              <div className="bg-muted/30 rounded-md p-3 border border-border/50">
-                <p className="font-mono text-[11px] leading-relaxed opacity-80 break-words">
-                  {message.error}
-                </p>
-              </div>
-            </div>
+            <ErrorDisplay error={message.error} />
           ) : (
             <>
               {/* Reasoning block - shows thinking for reasoning models or if reasoning content exists */}
@@ -288,17 +308,12 @@ export const ChatMessage = memo(
                   />
                 )}
 
-              {(message.toolCalls?.length ||
-                message.partialToolCalls?.length) && (
-                <ToolCallDisplay
+              {/* Inline tool calls and content - renders tool calls at their positions */}
+              {(displayContent || message.toolCalls?.length || message.partialToolCalls?.length) ? (
+                <InlineToolCallContent
+                  content={displayContent || ""}
                   toolCalls={message.toolCalls}
                   partialToolCalls={message.partialToolCalls}
-                />
-              )}
-
-              {displayContent ? (
-                <MarkdownContentMemo
-                  content={displayContent}
                   isStreaming={isGenerating}
                 />
               ) : isGenerating ? (

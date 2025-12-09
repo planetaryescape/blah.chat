@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Minus,
-  Plus,
-  X,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    ChevronLeft,
+    ChevronRight,
+    Download,
+    Minus,
+    Plus,
+    X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ImageLightboxProps {
   images: Array<{ url: string; name: string }>;
@@ -107,9 +107,9 @@ export function ImageLightbox({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         className={cn(
-          "max-w-screen-xl w-full h-screen max-h-screen",
-          "p-0 border-0",
-          "bg-black/90 backdrop-blur-md",
+          "!max-w-none w-screen h-screen max-h-screen",
+          "p-0 border-0 rounded-none",
+          "bg-black/95 backdrop-blur-md",
         )}
         showCloseButton={false}
       >
@@ -162,24 +162,31 @@ export function ImageLightbox({
           </Button>
         </div>
 
-        {/* Image container */}
+        {/* Image container - scrollable when zoomed */}
         <div className="flex items-center justify-center w-full h-full overflow-auto p-4">
           <AnimatePresence mode="wait" custom={direction}>
-            <motion.img
+            <motion.div
               key={currentIndex}
-              src={currentImage.url}
-              alt={currentImage.name}
-              className="max-w-full max-h-full object-contain"
-              style={{
-                transform: `scale(${ZOOM_LEVELS[zoomLevel] / 100})`,
-                transition: "transform 0.2s ease-out",
-              }}
+              className="flex items-center justify-center min-w-full min-h-full"
               custom={direction}
               initial={{ opacity: 0, x: direction * 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction * -100 }}
               transition={{ duration: 0.2 }}
-            />
+            >
+              <img
+                src={currentImage.url}
+                alt={currentImage.name}
+                className="object-contain"
+                style={{
+                  maxWidth: zoomLevel === 0 ? '100%' : 'none',
+                  maxHeight: zoomLevel === 0 ? '100%' : 'none',
+                  width: zoomLevel > 0 ? `${ZOOM_LEVELS[zoomLevel]}%` : 'auto',
+                  height: zoomLevel > 0 ? 'auto' : 'auto',
+                  transition: "all 0.2s ease-out",
+                }}
+              />
+            </motion.div>
           </AnimatePresence>
         </div>
 

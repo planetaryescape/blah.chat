@@ -2,15 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getModelConfig } from "@/lib/ai/models";
 import { getModelIcon } from "@/lib/ai/icons";
-import { Grid } from "lucide-react";
+import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
+import { Grid } from "lucide-react";
 
 interface ModelBadgeProps {
   modelId?: string;

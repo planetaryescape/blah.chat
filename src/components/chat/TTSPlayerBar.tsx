@@ -9,11 +9,9 @@ import {
     Pause,
     Play,
     RotateCcw,
-    RotateCw,
-    Square,
     X
 } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -24,7 +22,7 @@ function formatTime(seconds: number) {
   return `${mins}:${secs}`;
 }
 
-const SPEED_OPTIONS = [1, 1.25, 1.5, 1.75, 2] as const;
+const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function TTSPlayerBar({ className }: { className?: string }) {
   const { state, pause, resume, stop, seekBy, seekTo, setSpeed, close } =
@@ -37,176 +35,194 @@ export function TTSPlayerBar({ className }: { className?: string }) {
     return Math.max(currentTime, 1);
   }, [duration, currentTime]);
 
-  const progressPercent = useMemo(() => {
-    if (progressMax <= 0) return 0;
-    return Math.min((currentTime / progressMax) * 100, 100);
-  }, [currentTime, progressMax]);
-
-  if (!isVisible && !isLoading) return null;
-
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     if (isLoading) return;
     if (isPlaying) {
       pause();
     } else {
       void resume();
     }
-  };
+  }, [isLoading, isPlaying, pause, resume]);
+
+  const cycleSpeed = useCallback(
+    (direction: "up" | "down") => {
+      const currentIndex = SPEED_OPTIONS.indexOf(speed);
+      let nextIndex;
+      if (direction === "up") {
+        nextIndex = (currentIndex + 1) % SPEED_OPTIONS.length;
+      } else {
+        nextIndex =
+          (currentIndex - 1 + SPEED_OPTIONS.length) % SPEED_OPTIONS.length;
+      }
+      setSpeed(SPEED_OPTIONS[nextIndex]);
+    },
+    [speed, setSpeed],
+  );
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case " ":
+          e.preventDefault();
+          handlePlayPause();
+          break;
+        case "escape":
+          e.preventDefault();
+          close();
+          break;
+        case "l":
+          e.preventDefault();
+          seekBy(15);
+          break;
+        case "h":
+          e.preventDefault();
+          seekBy(-15);
+          break;
+        case "k":
+          e.preventDefault();
+          cycleSpeed("up");
+          break;
+        case "j":
+          e.preventDefault();
+          cycleSpeed("down");
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isVisible, handlePlayPause, close, seekBy, cycleSpeed]);
+
+  if (!isVisible && !isLoading) return null;
 
   return (
     <div
       className={cn(
-        "pointer-events-none absolute left-0 right-0 top-[57px] z-40 px-3 sm:px-4",
+        "pointer-events-none fixed left-0 right-0 top-[76px] z-40 px-4",
+        "flex justify-center", // Center alignment
         className,
       )}
     >
-      {/* Modern floating player with glassmorphism */}
-      <div className="pointer-events-auto mx-auto max-w-3xl animate-in slide-in-from-top-2 duration-300">
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-background/80 shadow-xl backdrop-blur-xl">
-          {/* Gradient accent line */}
-          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+      <div
+        className={cn(
+          "pointer-events-auto flex w-full max-w-lg flex-col gap-0 overflow-hidden",
+          "rounded-2xl border border-white/20 bg-background/80 shadow-2xl backdrop-blur-xl",
+          "dark:border-white/10 dark:bg-black/60",
+          "transform transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-4",
+        )}
+      >
+        {/* Header / Meta */}
+        <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2.5">
+          <div className="flex items-center gap-3 overflow-hidden text-xs text-muted-foreground">
+            <span><kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">Space</kbd> Play/Pause</span>
+            <span><kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">K</kbd>/<kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">J</kbd> Speed</span>
+            <span><kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">H</kbd>/<kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">L</kbd> ±15s</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 rounded-full text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            onClick={close}
+            title="Close (Esc)"
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
 
-          {/* Progress bar background (subtle) */}
-          <div className="absolute inset-x-0 top-0.5 h-full bg-primary/5" style={{ width: `${progressPercent}%` }} />
+        {/* Main Controls Area */}
+        <div className="p-4">
+          {/* Progress Bar */}
+          <div className="mb-4 flex items-center gap-3">
+            <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">
+              {formatTime(currentTime)}
+            </span>
+            <Slider
+              value={[Math.min(currentTime, progressMax)]}
+              min={0}
+              max={progressMax}
+              step={0.1}
+              onValueChange={([val]) => seekTo(val)}
+              className="mt-0.5 flex-1 cursor-pointer"
+              aria-label="Seek"
+            />
+            <span className="w-9 text-xs tabular-nums text-muted-foreground">
+              {formatTime(duration)}
+            </span>
+          </div>
 
-          <div className="relative p-3">
-            {/* Main controls row */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Close button */}
+          {/* Buttons */}
+          <div className="flex items-center justify-between">
+            {/* Speed Control (Cyclic) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 min-w-[3rem] px-0 text-xs font-medium text-muted-foreground hover:text-foreground",
+                "rounded-full bg-secondary/50 hover:bg-secondary",
+              )}
+              onClick={() => cycleSpeed("up")}
+              title="Change Speed (J/K)"
+            >
+              {speed}x
+            </Button>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                onClick={close}
-                title="Close player"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-
-              {/* Skip back 15s */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 shrink-0 gap-1 rounded-full px-2 text-muted-foreground hover:text-foreground"
+                className="h-9 w-9 rounded-full text-foreground/80 hover:bg-primary/10 hover:text-primary"
                 onClick={() => seekBy(-15)}
                 disabled={isLoading}
-                title="Skip back 15 seconds"
+                title="Rewind 15s (H)"
               >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span className="text-xs font-medium">15</span>
+                <RotateCcw className="h-4 w-4" />
               </Button>
 
-              {/* Play/Pause - Primary action */}
               <Button
-                variant="default"
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-full shadow-md"
+                className="h-12 w-12 rounded-full shadow-lg shadow-primary/20 transition-transform active:scale-95"
                 onClick={handlePlayPause}
                 disabled={isLoading}
+                title={isPlaying ? "Pause (Space)" : "Play (Space)"}
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : isPlaying ? (
-                  <Pause className="h-5 w-5" />
+                  <Pause className="h-5 w-5 fill-current" />
                 ) : (
-                  <Play className="h-5 w-5 ml-0.5" />
+                  <Play className="h-5 w-5 fill-current ml-0.5" />
                 )}
-                <span className="sr-only">{isPlaying ? "Pause" : "Play"}</span>
               </Button>
 
-              {/* Skip forward 15s */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 shrink-0 gap-1 rounded-full px-2 text-muted-foreground hover:text-foreground"
-                onClick={() => seekBy(15)}
-                disabled={isLoading}
-                title="Skip forward 15 seconds"
-              >
-                <span className="text-xs font-medium">15</span>
-                <RotateCw className="h-3.5 w-3.5" />
-              </Button>
-
-              {/* Progress section */}
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="text-xs font-medium tabular-nums text-muted-foreground w-10 text-right">
-                  {formatTime(currentTime)}
-                </span>
-                <Slider
-                  value={[Math.min(currentTime, progressMax)]}
-                  min={0}
-                  max={progressMax}
-                  step={0.1}
-                  onValueChange={([val]) => seekTo(val)}
-                  className="flex-1"
-                  aria-label="Playback position"
-                />
-                <span className="text-xs font-medium tabular-nums text-muted-foreground w-10">
-                  {formatTime(duration)}
-                </span>
-              </div>
-
-              {/* Speed selector */}
-              <div className="hidden sm:flex items-center gap-0.5 rounded-full bg-muted/50 p-0.5">
-                {SPEED_OPTIONS.map((option) => (
-                  <Button
-                    key={option}
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-7 rounded-full px-2 text-xs font-medium transition-all",
-                      option === speed
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() => setSpeed(option)}
-                    disabled={isLoading}
-                  >
-                    {option}x
-                  </Button>
-                ))}
-              </div>
-
-              {/* Mobile speed indicator */}
-              <div className="flex sm:hidden items-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 rounded-full px-2 text-xs font-medium"
-                  onClick={() => {
-                    const currentIdx = SPEED_OPTIONS.indexOf(speed as typeof SPEED_OPTIONS[number]);
-                    const nextIdx = (currentIdx + 1) % SPEED_OPTIONS.length;
-                    setSpeed(SPEED_OPTIONS[nextIdx]);
-                  }}
-                  disabled={isLoading}
-                >
-                  {speed}x
-                </Button>
-              </div>
-
-              {/* Stop button */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-                onClick={stop}
+                className="h-9 w-9 rounded-full text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                onClick={() => seekBy(15)}
                 disabled={isLoading}
-                title="Stop playback"
+                title="Forward 15s (L)"
               >
-                <Square className="h-3.5 w-3.5" />
-                <span className="sr-only">Stop</span>
+                <div className="relative">
+                   <RotateCcw className="h-4 w-4 scale-x-[-1]" />
+                </div>
               </Button>
             </div>
 
-            {/* Preview text (optional - shows what's being read) */}
-            {state.previewText && (
-              <div className="mt-2 px-1">
-                <p className="text-xs text-muted-foreground/70 truncate italic">
-                  "{state.previewText}..."
-                </p>
-              </div>
-            )}
+            {/* Placeholder for symmetry or other action like Stop which is implicit in close */}
+             <div className="w-[3rem]" />
           </div>
         </div>
       </div>

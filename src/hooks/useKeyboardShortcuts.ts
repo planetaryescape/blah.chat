@@ -1,8 +1,8 @@
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { analytics } from "@/lib/analytics";
+import { useMutation } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 export function useKeyboardShortcuts() {
@@ -63,11 +63,7 @@ export function useKeyboardShortcuts() {
         router.push("/settings");
       }
 
-      // Cmd+B - Bookmarks
-      if (isMod && e.key === "b") {
-        e.preventDefault();
-        router.push("/bookmarks");
-      }
+
 
       // Cmd+F - Search (only outside of inputs)
       if (
@@ -155,7 +151,7 @@ export const KEYBOARD_SHORTCUTS = {
     "Cmd/Ctrl + [": "Previous conversation",
     "Cmd/Ctrl + ]": "Next conversation",
     "Cmd/Ctrl + ,": "Settings",
-    "Cmd/Ctrl + B": "Bookmarks",
+
     "Cmd/Ctrl + F": "Search",
     Esc: "Close dialogs/modals",
   },

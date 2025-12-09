@@ -1,3 +1,4 @@
+import { ProjectBadge } from "@/components/projects/ProjectBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -34,12 +35,11 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
-import { ProjectBadge } from "@/components/projects/ProjectBadge";
-import { useQueryState } from "nuqs";
 
 export function ConversationItem({
   conversation,
@@ -62,7 +62,7 @@ export function ConversationItem({
   const pathname = usePathname();
   const [showRename, setShowRename] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [_, setProjectFilter] = useQueryState("project");
+  const [projectFilter, setProjectFilter] = useQueryState("project");
 
   // @ts-ignore - Convex type inference depth issue
   const deleteConversation = useMutation(api.conversations.deleteConversation);
@@ -188,7 +188,7 @@ export function ConversationItem({
             <div className="flex-1 flex items-center gap-2 min-w-0">
               <p
                 className={cn(
-                  "text-sm truncate",
+                  "text-sm truncate flex-1",
                   isSelectedById && "text-primary font-medium",
                 )}
               >
@@ -199,6 +199,7 @@ export function ConversationItem({
                   <ProjectBadge
                     projectId={conversation.projectId}
                     onClick={() => setProjectFilter(conversation.projectId!)}
+                    collapsed={projectFilter === conversation.projectId}
                   />
                 </div>
               )}

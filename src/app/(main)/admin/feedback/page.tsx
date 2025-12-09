@@ -1,22 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -38,6 +21,23 @@ import {
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { cn } from "@/lib/utils";
 
 // ============================================================================
 // TYPES & CONFIGURATIONS
@@ -262,8 +262,9 @@ function FeedbackPageContent() {
   const bulkUpdateStatus = useMutation(api.feedback.bulkUpdateStatus);
 
   const archiveFeedback = useMutation(api.feedback.archiveFeedback);
-  const acceptTriage = useMutation((api.feedback as any).triage.acceptTriageSuggestion);
-
+  const acceptTriage = useMutation(
+    (api.feedback as any).triage.acceptTriageSuggestion,
+  );
 
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedId) return;

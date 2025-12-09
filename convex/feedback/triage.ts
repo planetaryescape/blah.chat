@@ -1,7 +1,8 @@
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { aiGateway, getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "../../src/lib/ai/gateway";
+import { FEEDBACK_TRIAGE_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 
@@ -39,7 +40,7 @@ const triageSchema = z.object({
     .describe("Any additional context or recommendations for the team"),
 });
 
-import { MODEL_CONFIG } from "../../src/lib/ai/models";
+import { getModel } from "@/lib/ai/registry";
 import { TRIAGE_PROMPT } from "../../src/lib/prompts/triage";
 
 // ============================================================================
@@ -50,6 +51,7 @@ export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
+    // @ts-ignore - Convex query type instantiation depth issue
     const feedback = await ctx.runQuery(internal.feedback.getFeedbackInternal, {
       feedbackId,
     });
@@ -89,15 +91,16 @@ export const autoTriageFeedback = internalAction({
 
       const feedbackContext = contextParts.join("\n");
 
-      // Generate triage using GPT-OSS 120B via Cerebras Gateway
-      const triageModel = MODEL_CONFIG["meta:llama-3.3-70b"];
+      // Generate triage using centralized model config
       const result = await generateObject({
-        model: aiGateway(triageModel.id),
+        model: getModel(FEEDBACK_TRIAGE_MODEL.id),
         schema: triageSchema,
         temperature: 0.3,
-        providerOptions: getGatewayOptions(triageModel.id, undefined, [
-          "feedback-triage",
-        ]),
+        providerOptions: getGatewayOptions(
+          FEEDBACK_TRIAGE_MODEL.id,
+          undefined,
+          ["feedback-triage"],
+        ),
         prompt: `${TRIAGE_PROMPT}
 
 ---

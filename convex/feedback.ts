@@ -6,8 +6,6 @@ import { getCurrentUser } from "./lib/userSync";
 // Re-export triage module
 export * as triage from "./feedback/triage";
 
-
-
 // ============================================================================
 // STATUS CONFIGURATIONS BY TYPE
 // ============================================================================

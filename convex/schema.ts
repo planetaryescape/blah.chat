@@ -7,9 +7,14 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     imageUrl: v.optional(v.string()),
+    isAdmin: v.optional(v.boolean()), // Admin role for accessing /admin routes
+    // Daily message tracking (stored per user, limit from admin settings)
+    dailyMessageCount: v.optional(v.number()),
+    lastMessageDate: v.optional(v.string()),
     preferences: v.object({
       theme: v.union(v.literal("light"), v.literal("dark")),
       defaultModel: v.string(),
+      favoriteModels: v.optional(v.array(v.string())), // User's favorite models
       sendOnEnter: v.boolean(),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
@@ -36,13 +41,6 @@ export default defineSchema({
           moreAboutYou: v.optional(v.string()), // max 3000 chars
         }),
       ),
-      // Search settings
-      enableHybridSearch: v.optional(v.boolean()), // default false
-      // Memory settings
-      autoMemoryExtractEnabled: v.optional(v.boolean()), // default true
-      autoMemoryExtractInterval: v.optional(v.number()), // default 5
-      // Budget settings
-      budgetHardLimitEnabled: v.optional(v.boolean()), // default true
       // UI settings
       alwaysShowMessageActions: v.optional(v.boolean()), // default false (show on hover)
       // STT settings
@@ -72,11 +70,6 @@ export default defineSchema({
         }),
       ),
     }),
-    monthlyBudget: v.optional(v.number()),
-    budgetAlertThreshold: v.optional(v.number()),
-    dailyMessageLimit: v.optional(v.number()), // default 50
-    dailyMessageCount: v.optional(v.number()),
-    lastMessageDate: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -180,6 +173,7 @@ export default defineSchema({
           arguments: v.string(),
           result: v.optional(v.string()),
           timestamp: v.number(),
+          textPosition: v.optional(v.number()), // Character position in content where tool was called
         }),
       ),
     ),
@@ -191,6 +185,7 @@ export default defineSchema({
           arguments: v.string(),
           result: v.optional(v.string()),
           timestamp: v.number(),
+          textPosition: v.optional(v.number()), // Character position in content where tool was called
         }),
       ),
     ),
@@ -548,4 +543,70 @@ export default defineSchema({
     promptPatternCount: v.any(), // Track repeated patterns for templates hint
     lastUpdated: v.number(),
   }).index("by_user", ["userId"]),
+
+  ttsCache: defineTable({
+    hash: v.string(), // sha256 of text+voice+speed
+    storageId: v.id("_storage"),
+    text: v.string(),
+    voice: v.string(),
+    speed: v.number(),
+    format: v.string(), // mp3, etc
+    createdAt: v.number(),
+    lastAccessedAt: v.number(),
+  }).index("by_hash", ["hash"]),
+
+  // User Feedback
+  feedback: defineTable({
+    userId: v.id("users"),
+    userEmail: v.string(),
+    userName: v.string(),
+    page: v.string(), // URL path when feedback was submitted
+    feedbackType: v.union(
+      v.literal("bug"),
+      v.literal("feature"),
+      v.literal("praise"),
+      v.literal("other"),
+    ),
+    description: v.string(), // Required: Main feedback text
+    // Bug-specific fields
+    whatTheyDid: v.optional(v.string()),
+    whatTheySaw: v.optional(v.string()),
+    whatTheyExpected: v.optional(v.string()),
+    screenshotStorageId: v.optional(v.id("_storage")),
+    status: v.union(
+      v.literal("new"),
+      v.literal("in-progress"),
+      v.literal("resolved"),
+      v.literal("wont-fix"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_type", ["feedbackType"])
+    .index("by_created", ["createdAt"]),
+
+  // Admin Settings (global platform settings)
+  adminSettings: defineTable({
+    // Memory extraction
+    autoMemoryExtractEnabled: v.boolean(),
+    autoMemoryExtractInterval: v.number(),
+
+    // Search settings
+    enableHybridSearch: v.boolean(),
+
+    // Budget settings
+    defaultMonthlyBudget: v.number(),
+    defaultBudgetAlertThreshold: v.number(),
+    budgetHardLimitEnabled: v.boolean(),
+
+    // Message limits
+    defaultDailyMessageLimit: v.number(),
+
+    // Future: General settings, Features
+
+    updatedBy: v.id("users"),
+    updatedAt: v.number(),
+  }),
 });

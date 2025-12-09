@@ -15,6 +15,8 @@ export default defineSchema({
       theme: v.union(v.literal("light"), v.literal("dark")),
       defaultModel: v.string(),
       favoriteModels: v.optional(v.array(v.string())), // User's favorite models
+      recentModels: v.optional(v.array(v.string())), // User's recently used models (max 3)
+      newChatModelSelection: v.optional(v.union(v.literal("fixed"), v.literal("recent"))), // How to select model for new chats
       sendOnEnter: v.boolean(),
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
@@ -575,19 +577,85 @@ export default defineSchema({
     whatTheySaw: v.optional(v.string()),
     whatTheyExpected: v.optional(v.string()),
     screenshotStorageId: v.optional(v.id("_storage")),
+
+    // Type-specific status values
     status: v.union(
+      // Bug statuses
       v.literal("new"),
+      v.literal("triaging"),
       v.literal("in-progress"),
       v.literal("resolved"),
+      v.literal("verified"),
+      v.literal("closed"),
       v.literal("wont-fix"),
+      v.literal("duplicate"),
+      v.literal("cannot-reproduce"),
+      // Feature statuses
+      v.literal("submitted"),
+      v.literal("under-review"),
+      v.literal("planned"),
+      v.literal("shipped"),
+      v.literal("declined"),
+      v.literal("maybe-later"),
+      // Praise statuses
+      v.literal("received"),
+      v.literal("acknowledged"),
+      v.literal("shared"),
+      // General statuses
+      v.literal("reviewed"),
+      v.literal("actioned"),
     ),
+
+    // Priority (admin-assigned)
+    priority: v.optional(v.union(
+      v.literal("critical"),
+      v.literal("high"),
+      v.literal("medium"),
+      v.literal("low"),
+      v.literal("none"),
+    )),
+    // User-suggested urgency (when submitting)
+    userSuggestedUrgency: v.optional(v.union(
+      v.literal("urgent"),
+      v.literal("normal"),
+      v.literal("low"),
+    )),
+
+    // Tags for categorization
+    tags: v.optional(v.array(v.string())),
+
+    // AI Triage suggestions
+    aiTriage: v.optional(v.object({
+      suggestedPriority: v.string(),
+      suggestedTags: v.array(v.string()),
+      possibleDuplicateId: v.optional(v.id("feedback")),
+      triageNotes: v.string(),
+      createdAt: v.number(),
+    })),
+
+    // Assignment
+    assignedTo: v.optional(v.id("users")),
+    archivedAt: v.optional(v.number()),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
     .index("by_type", ["feedbackType"])
-    .index("by_created", ["createdAt"]),
+    .index("by_created", ["createdAt"])
+    .index("by_priority", ["priority"])
+    .index("by_assigned", ["assignedTo"]),
+
+  // Feedback Tags (for autocomplete and management)
+  feedbackTags: defineTable({
+    name: v.string(),
+    color: v.optional(v.string()),
+    usageCount: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_name", ["name"])
+    .index("by_usage", ["usageCount"]),
 
   // Admin Settings (global platform settings)
   adminSettings: defineTable({

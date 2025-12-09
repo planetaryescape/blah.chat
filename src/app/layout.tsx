@@ -1,13 +1,14 @@
-import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import "./globals.css";
-import "katex/dist/katex.min.css";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "@/styles/math.css";
+import "katex/dist/katex.min.css";
+import type { Metadata, Viewport } from "next";
+import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import "./globals.css";
 
 const syne = Syne({
   variable: "--font-syne",
@@ -173,10 +174,12 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <AnalyticsProvider>
-              <NuqsAdapter>{children}</NuqsAdapter>
-              <Toaster />
-            </AnalyticsProvider>
+            <TooltipProvider>
+              <AnalyticsProvider>
+                <NuqsAdapter>{children}</NuqsAdapter>
+                <Toaster />
+              </AnalyticsProvider>
+            </TooltipProvider>
           </ThemeProvider>
         </ConvexClerkProvider>
       </body>

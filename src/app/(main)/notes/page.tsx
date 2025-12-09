@@ -1,5 +1,16 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft, Plus } from "lucide-react";
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryState,
+} from "nuqs";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/notes/EmptyState";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { NoteFilters } from "@/components/notes/NoteFilters";
@@ -13,17 +24,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, Plus } from "lucide-react";
-import {
-  useQueryState,
-  parseAsString,
-  parseAsBoolean,
-  parseAsArrayOf,
-  parseAsStringEnum,
-} from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 
 function NotesPageContent() {
   // URL-persisted state
@@ -71,7 +71,6 @@ function NotesPageContent() {
 
   const { isMobile } = useMobileDetect();
 
-  // @ts-ignore - Convex type instantiation depth issue
   const notes = useQuery(api.notes.searchNotes, {
     searchQuery, // Debounced searchParam
     filterPinned: filterPinned || undefined,
@@ -79,7 +78,6 @@ function NotesPageContent() {
     tagFilterMode,
   });
 
-  // @ts-ignore - Convex type instantiation depth issue
   const createNote = useMutation(api.notes.createNote);
 
   // Validate selected note exists

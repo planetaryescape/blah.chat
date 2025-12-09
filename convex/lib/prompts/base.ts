@@ -265,7 +265,9 @@ function buildCapabilities(
   const caps: string[] = [];
 
   if (modelConfig.capabilities.includes("vision")) {
-    caps.push('    <capability name="vision">Analyze images and PDFs</capability>');
+    caps.push(
+      '    <capability name="vision">Analyze images and PDFs</capability>',
+    );
   }
 
   if (modelConfig.capabilities.includes("extended-thinking")) {

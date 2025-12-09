@@ -1,5 +1,8 @@
 "use client";
 
+import { AlertCircle, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,9 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Clock, AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface RateLimitDialogProps {
   open: boolean;

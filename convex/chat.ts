@@ -73,7 +73,7 @@ export const sendMessage = mutation({
 
       if (totalSpend >= monthlyBudget) {
         throw new Error(
-          `Monthly budget of $${monthlyBudget} exceeded. You've spent $${totalSpend.toFixed(2)} this month.`
+          `Monthly budget of $${monthlyBudget} exceeded. You've spent $${totalSpend.toFixed(2)} this month.`,
         );
       }
     }
@@ -91,7 +91,6 @@ export const sendMessage = mutation({
     let conversationId = args.conversationId;
     if (!conversationId) {
       conversationId = await ctx.runMutation(
-        // @ts-ignore - Type instantiation depth issue with internal mutations
         internal.conversations.createInternal,
         {
           userId: user._id,
@@ -150,7 +149,8 @@ export const sendMessage = mutation({
     if (conversationId) {
       // Get global admin settings for memory extraction
       const adminSettings = await ctx.db.query("adminSettings").first();
-      const autoExtractEnabled = adminSettings?.autoMemoryExtractEnabled ?? true;
+      const autoExtractEnabled =
+        adminSettings?.autoMemoryExtractEnabled ?? true;
       const interval = adminSettings?.autoMemoryExtractInterval ?? 5;
 
       if (autoExtractEnabled) {

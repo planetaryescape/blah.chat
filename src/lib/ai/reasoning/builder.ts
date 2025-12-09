@@ -1,6 +1,6 @@
 import type { ModelConfig } from "../models";
-import type { ThinkingEffort } from "./types";
 import { REASONING_HANDLERS } from "./registry";
+import type { ThinkingEffort } from "./types";
 
 export interface ReasoningResult {
   providerOptions?: any;

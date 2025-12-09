@@ -1,8 +1,8 @@
 "use client";
 
+import { Check, Copy, UnfoldHorizontal, WrapText } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, WrapText, UnfoldHorizontal } from "lucide-react";
 
 export function ClientCodeControls({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);

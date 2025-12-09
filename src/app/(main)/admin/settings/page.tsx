@@ -1,10 +1,10 @@
 "use client";
 
-import { FeaturesSettings } from "@/components/settings/admin/FeaturesSettings";
-import { GeneralSettings } from "@/components/settings/admin/GeneralSettings";
 import { AdminLimitsSettings } from "@/components/settings/admin/AdminLimitsSettings";
 import { AdminMemorySettings } from "@/components/settings/admin/AdminMemorySettings";
 import { AdminSearchSettings } from "@/components/settings/admin/AdminSearchSettings";
+import { FeaturesSettings } from "@/components/settings/admin/FeaturesSettings";
+import { GeneralSettings } from "@/components/settings/admin/GeneralSettings";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 

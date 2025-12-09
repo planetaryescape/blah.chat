@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import { getModelCapabilityHints } from "@/lib/ai/icons";
-import { Button } from "@/components/ui/button";
 import { AnimatePresence, motion } from "framer-motion";
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { getModelCapabilityHints } from "@/lib/ai/icons";
 
 interface ModelFeatureHintProps {
   modelId: string;

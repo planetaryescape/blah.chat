@@ -1,30 +1,37 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import {
+  Bug,
+  Camera,
+  Heart,
+  Lightbulb,
+  Loader2,
+  MessageCircle,
+} from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
-import { Bug, Camera, Heart, Lightbulb, Loader2, MessageCircle } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
 
 type FeedbackType = "bug" | "feature" | "praise" | "other";
 
@@ -33,7 +40,10 @@ interface FeedbackModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const feedbackTypeConfig: Record<FeedbackType, { label: string; icon: React.ReactNode; description: string }> = {
+const feedbackTypeConfig: Record<
+  FeedbackType,
+  { label: string; icon: React.ReactNode; description: string }
+> = {
   bug: {
     label: "Report a Bug",
     icon: <Bug className="h-4 w-4" />,
@@ -58,7 +68,6 @@ const feedbackTypeConfig: Record<FeedbackType, { label: string; icon: React.Reac
 
 export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const pathname = usePathname();
-  // @ts-ignore - Convex type depth issue
   const user = useQuery(api.users.getCurrentUser);
   const createFeedback = useMutation(api.feedback.createFeedback);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
@@ -87,11 +96,17 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
       const { toPng } = await import("html-to-image");
 
       // Hide the modal temporarily for screenshot
-      const dialogOverlay = document.querySelector('[data-slot="dialog-overlay"]');
-      const dialogContent = document.querySelector('[data-slot="dialog-content"]');
+      const dialogOverlay = document.querySelector(
+        '[data-slot="dialog-overlay"]',
+      );
+      const dialogContent = document.querySelector(
+        '[data-slot="dialog-content"]',
+      );
 
-      if (dialogOverlay) (dialogOverlay as HTMLElement).style.visibility = "hidden";
-      if (dialogContent) (dialogContent as HTMLElement).style.visibility = "hidden";
+      if (dialogOverlay)
+        (dialogOverlay as HTMLElement).style.visibility = "hidden";
+      if (dialogContent)
+        (dialogContent as HTMLElement).style.visibility = "hidden";
 
       // Small delay to ensure modal is hidden
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -121,7 +136,10 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
         },
       });
 
-      console.log("[Feedback] Screenshot captured, data URL length:", dataUrl.length);
+      console.log(
+        "[Feedback] Screenshot captured, data URL length:",
+        dataUrl.length,
+      );
 
       // Restore modal
       if (dialogOverlay) (dialogOverlay as HTMLElement).style.visibility = "";
@@ -182,9 +200,18 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
         feedbackType,
         description: description.trim(),
         page: pathname,
-        whatTheyDid: feedbackType === "bug" && whatTheyDid.trim() ? whatTheyDid.trim() : undefined,
-        whatTheySaw: feedbackType === "bug" && whatTheySaw.trim() ? whatTheySaw.trim() : undefined,
-        whatTheyExpected: feedbackType === "bug" && whatTheyExpected.trim() ? whatTheyExpected.trim() : undefined,
+        whatTheyDid:
+          feedbackType === "bug" && whatTheyDid.trim()
+            ? whatTheyDid.trim()
+            : undefined,
+        whatTheySaw:
+          feedbackType === "bug" && whatTheySaw.trim()
+            ? whatTheySaw.trim()
+            : undefined,
+        whatTheyExpected:
+          feedbackType === "bug" && whatTheyExpected.trim()
+            ? whatTheyExpected.trim()
+            : undefined,
         screenshotStorageId: screenshotStorageId as any,
       });
 
@@ -252,21 +279,27 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
           {/* Feedback Type Selector */}
           <div className="space-y-2">
             <Label>What type of feedback?</Label>
-            <Select value={feedbackType} onValueChange={(v) => setFeedbackType(v as FeedbackType)}>
+            <Select
+              value={feedbackType}
+              onValueChange={(v) => setFeedbackType(v as FeedbackType)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(feedbackTypeConfig) as [FeedbackType, typeof feedbackTypeConfig.bug][]).map(
-                  ([type, config]) => (
-                    <SelectItem key={type} value={type}>
-                      <div className="flex items-center gap-2">
-                        {config.icon}
-                        <span>{config.label}</span>
-                      </div>
-                    </SelectItem>
-                  ),
-                )}
+                {(
+                  Object.entries(feedbackTypeConfig) as [
+                    FeedbackType,
+                    typeof feedbackTypeConfig.bug,
+                  ][]
+                ).map(([type, config]) => (
+                  <SelectItem key={type} value={type}>
+                    <div className="flex items-center gap-2">
+                      {config.icon}
+                      <span>{config.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -277,7 +310,8 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
           {/* Description (Required) */}
           <div className="space-y-2">
             <Label htmlFor="description">
-              {getDescriptionLabel()} <span className="text-destructive">*</span>
+              {getDescriptionLabel()}{" "}
+              <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="description"
@@ -343,7 +377,11 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>

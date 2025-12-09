@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  Archive,
+  Edit,
+  MoreHorizontal,
+  Pin,
+  Sparkles,
+  Star,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,16 +25,6 @@ import {
 } from "@/components/ui/tooltip";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useConversationActions } from "@/hooks/useConversationActions";
-import {
-  Archive,
-  Edit,
-  MoreHorizontal,
-  Pin,
-  Sparkles,
-  Star,
-  Trash2,
-} from "lucide-react";
-import { useState } from "react";
 import { DeleteConversationDialog } from "../sidebar/DeleteConversationDialog";
 import { RenameDialog } from "../sidebar/RenameDialog";
 

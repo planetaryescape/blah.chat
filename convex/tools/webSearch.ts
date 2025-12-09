@@ -50,7 +50,7 @@ export const search = internalAction({
       const data = await response.json();
 
       console.log(
-        `[WebSearch] Found ${data.results?.length || 0} results for: "${query}"`
+        `[WebSearch] Found ${data.results?.length || 0} results for: "${query}"`,
       );
 
       return {
@@ -68,8 +68,7 @@ export const search = internalAction({
       console.error("[WebSearch] Error:", error);
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Web search failed",
+        error: error instanceof Error ? error.message : "Web search failed",
       };
     }
   },

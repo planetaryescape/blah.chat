@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { MessageSquarePlus } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { FeedbackModal } from "./FeedbackModal";
 
 export function FeedbackButton() {

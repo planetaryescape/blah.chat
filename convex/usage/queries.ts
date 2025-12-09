@@ -136,9 +136,7 @@ export const getMonthlyTotal = query({
       tokens: totalTokens,
       requests: totalRequests,
       budget: monthlyBudget,
-      percentUsed: monthlyBudget
-        ? (totalCost / monthlyBudget) * 100
-        : 0,
+      percentUsed: monthlyBudget ? (totalCost / monthlyBudget) * 100 : 0,
     };
   },
 });

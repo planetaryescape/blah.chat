@@ -115,7 +115,6 @@ export const create = internalMutation({
     ) {
       await ctx.scheduler.runAfter(
         0,
-        // @ts-ignore
         internal.messages.embeddings.generateEmbedding,
         {
           messageId,

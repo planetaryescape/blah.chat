@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";

@@ -1,5 +1,7 @@
 "use client";
 
+import { Eye, EyeOff, Sparkles, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,8 +14,6 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
 import { cn } from "@/lib/utils";
-import { Eye, EyeOff, Sparkles, X } from "lucide-react";
-import { useMemo, useState } from "react";
 import { ComparisonPanel } from "./ComparisonPanel";
 import { ConsolidateDialog } from "./ConsolidateDialog";
 

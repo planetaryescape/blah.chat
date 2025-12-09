@@ -1,5 +1,5 @@
-import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 
 /**
  * Gets or creates a user from Clerk identity (for mutations)

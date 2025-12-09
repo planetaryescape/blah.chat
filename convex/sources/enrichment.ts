@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { internalAction } from "../_generated/server";
 
 /**
  * Enriches source citations with OpenGraph metadata
@@ -66,7 +66,6 @@ export const enrichSourceMetadata = internalAction({
     );
 
     // Update message with enriched metadata
-    // @ts-ignore - Circular type dependency between sources and api.d.ts (intermittent infinite depth error)
     await ctx.runMutation(internal.messages.updateSourceMetadata, {
       messageId,
       metadata,

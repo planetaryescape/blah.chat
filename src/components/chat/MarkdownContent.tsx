@@ -6,7 +6,7 @@ import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import { Component, type ReactNode, memo, useRef } from "react";
+import { Component, memo, type ReactNode, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
 import { MathErrorBoundary } from "./MathErrorBoundary";
@@ -181,10 +181,7 @@ function processCitations(text: string): string {
       if (part.startsWith("`")) return part;
 
       // Replace [1], [2] etc with link
-      return part.replace(
-        /\[(\d+)\]/g,
-        "[$1](#source-$1)"
-      );
+      return part.replace(/\[(\d+)\]/g, "[$1](#source-$1)");
     })
     .join("");
 }

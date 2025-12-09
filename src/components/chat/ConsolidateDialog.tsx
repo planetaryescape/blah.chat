@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { MODEL_CONFIG } from "@/lib/ai/models";
-import { useMemo, useState } from "react";
 
 type ConsolidationMode = "same-chat" | "new-chat";
 

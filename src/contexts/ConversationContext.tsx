@@ -1,7 +1,7 @@
 "use client";
 
+import { createContext, type ReactNode, useContext, useState } from "react";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { createContext, useContext, useState, type ReactNode } from "react";
 
 interface ConversationContextType {
   filteredConversations: Doc<"conversations">[] | undefined;

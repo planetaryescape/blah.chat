@@ -105,7 +105,6 @@ export const extractMemories = internalAction({
   handler: async (ctx, args): Promise<{ extracted: number }> => {
     // 1. Get conversation with cursor
     const conversation = await ctx.runQuery(
-      // @ts-ignore - Type instantiation depth issue with internal mutations
       internal.conversations.getInternal,
       {
         id: args.conversationId,
@@ -117,7 +116,6 @@ export const extractMemories = internalAction({
     }
 
     // 2. Query unextracted messages after cursor
-    // @ts-ignore
     const unextractedMessages = (await ctx.runQuery(
       internal.messages.listUnextracted,
       {
@@ -165,7 +163,6 @@ export const extractMemories = internalAction({
     // 5. Include previous 5 extracted messages for context continuity
     let contextMessages: Doc<"messages">[] = [];
     if (unextractedMessages.length > 0) {
-      // @ts-ignore
       contextMessages = (await ctx.runQuery(internal.messages.listExtracted, {
         conversationId: args.conversationId,
         beforeMessageId: unextractedMessages[0]._id,
@@ -198,8 +195,13 @@ export const extractMemories = internalAction({
       const result = await generateObject({
         model: aiGateway(EXTRACTION_MODEL.id),
         schema: memorySchema,
-        providerOptions: getGatewayOptions(EXTRACTION_MODEL.id, undefined, ["memory-extraction"]),
-        prompt: buildMemoryExtractionPrompt(existingMemoriesText, conversationText),
+        providerOptions: getGatewayOptions(EXTRACTION_MODEL.id, undefined, [
+          "memory-extraction",
+        ]),
+        prompt: buildMemoryExtractionPrompt(
+          existingMemoriesText,
+          conversationText,
+        ),
       });
 
       if (result.object.facts.length === 0) {

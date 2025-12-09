@@ -1,23 +1,22 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/convex/_generated/api";
 
 export function UISettings() {
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
@@ -45,7 +44,9 @@ export function UISettings() {
       if (user.preferences.reasoning) {
         setShowByDefault(user.preferences.reasoning.showByDefault ?? true);
         setAutoExpand(user.preferences.reasoning.autoExpand ?? false);
-        setShowDuringStreaming(user.preferences.reasoning.showDuringStreaming ?? true);
+        setShowDuringStreaming(
+          user.preferences.reasoning.showDuringStreaming ?? true,
+        );
       }
     }
   }, [user]);
@@ -210,58 +211,59 @@ export function UISettings() {
         </div>
 
         <div className="border-t pt-4 space-y-4">
-            <div className="space-y-1">
-                <h3 className="font-medium">Reasoning Display</h3>
-                <p className="text-sm text-muted-foreground">
-                    Control how AI thinking is displayed for reasoning models (o1/o3, DeepSeek R1)
-                </p>
-            </div>
+          <div className="space-y-1">
+            <h3 className="font-medium">Reasoning Display</h3>
+            <p className="text-sm text-muted-foreground">
+              Control how AI thinking is displayed for reasoning models (o1/o3,
+              DeepSeek R1)
+            </p>
+          </div>
 
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-                <Label htmlFor="show-reasoning">Show reasoning sections</Label>
-                <p className="text-sm text-muted-foreground">
+              <Label htmlFor="show-reasoning">Show reasoning sections</Label>
+              <p className="text-sm text-muted-foreground">
                 Display the thinking process when using reasoning models
-                </p>
+              </p>
             </div>
             <Switch
-                id="show-reasoning"
-                checked={showByDefault}
-                onCheckedChange={handleShowByDefaultChange}
+              id="show-reasoning"
+              checked={showByDefault}
+              onCheckedChange={handleShowByDefaultChange}
             />
-            </div>
+          </div>
 
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-                <Label htmlFor="auto-expand">Auto-expand reasoning</Label>
-                <p className="text-sm text-muted-foreground">
+              <Label htmlFor="auto-expand">Auto-expand reasoning</Label>
+              <p className="text-sm text-muted-foreground">
                 Automatically expand reasoning sections instead of keeping them
                 collapsed by default
-                </p>
+              </p>
             </div>
             <Switch
-                id="auto-expand"
-                checked={autoExpand}
-                onCheckedChange={handleAutoExpandChange}
+              id="auto-expand"
+              checked={autoExpand}
+              onCheckedChange={handleAutoExpandChange}
             />
-            </div>
+          </div>
 
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-                <Label htmlFor="show-streaming">
+              <Label htmlFor="show-streaming">
                 Show reasoning while generating
-                </Label>
-                <p className="text-sm text-muted-foreground">
+              </Label>
+              <p className="text-sm text-muted-foreground">
                 Display reasoning as it streams in real-time during AI response
                 generation
-                </p>
+              </p>
             </div>
             <Switch
-                id="show-streaming"
-                checked={showDuringStreaming}
-                onCheckedChange={handleShowDuringStreamingChange}
+              id="show-streaming"
+              checked={showDuringStreaming}
+              onCheckedChange={handleShowDuringStreamingChange}
             />
-            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t">

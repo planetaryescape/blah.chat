@@ -87,10 +87,12 @@ export const generateTitle = internalAction({
     try {
       // Get all messages in conversation
       // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
-      // @ts-ignore
-      const messages = await ctx.runQuery(internal.messages.listInternal, {
-        conversationId: args.conversationId,
-      });
+      const messages = await (ctx.runQuery as any)(
+        internal.messages.listInternal as any,
+        {
+          conversationId: args.conversationId,
+        },
+      );
 
       // Apply smart truncation
       const truncated = truncateMessages(messages, 16000);
@@ -107,7 +109,9 @@ export const generateTitle = internalAction({
 
 Conversation:
 ${conversationText}`,
-        providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, ["title-generation"]),
+        providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, [
+          "title-generation",
+        ]),
       });
 
       let title = "";

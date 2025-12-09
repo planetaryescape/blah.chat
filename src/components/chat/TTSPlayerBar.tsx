@@ -1,17 +1,11 @@
 "use client";
 
+import { Loader2, Pause, Play, RotateCcw, X } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useTTSPlayer } from "@/contexts/TTSContext";
 import { cn } from "@/lib/utils";
-import {
-    Loader2,
-    Pause,
-    Play,
-    RotateCcw,
-    X
-} from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -126,9 +120,32 @@ export function TTSPlayerBar({ className }: { className?: string }) {
         {/* Header / Meta */}
         <div className="flex items-center justify-between border-b border-white/5 bg-white/5 px-4 py-2.5">
           <div className="flex items-center gap-3 overflow-hidden text-xs text-muted-foreground">
-            <span><kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">Space</kbd> Play/Pause</span>
-            <span><kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">K</kbd>/<kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">J</kbd> Speed</span>
-            <span><kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">H</kbd>/<kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">L</kbd> ±15s</span>
+            <span>
+              <kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">
+                Space
+              </kbd>{" "}
+              Play/Pause
+            </span>
+            <span>
+              <kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">
+                K
+              </kbd>
+              /
+              <kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">
+                J
+              </kbd>{" "}
+              Speed
+            </span>
+            <span>
+              <kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">
+                H
+              </kbd>
+              /
+              <kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px]">
+                L
+              </kbd>{" "}
+              ±15s
+            </span>
           </div>
           <Button
             variant="ghost"
@@ -216,13 +233,13 @@ export function TTSPlayerBar({ className }: { className?: string }) {
                 title="Forward 15s (L)"
               >
                 <div className="relative">
-                   <RotateCcw className="h-4 w-4 scale-x-[-1]" />
+                  <RotateCcw className="h-4 w-4 scale-x-[-1]" />
                 </div>
               </Button>
             </div>
 
             {/* Placeholder for symmetry or other action like Stop which is implicit in close */}
-             <div className="w-[3rem]" />
+            <div className="w-[3rem]" />
           </div>
         </div>
       </div>

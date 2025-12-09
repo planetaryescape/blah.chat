@@ -1,5 +1,13 @@
 "use client";
 
+import { EditorContent, useEditor } from "@tiptap/react";
+import { useMutation, useQuery } from "convex/react";
+import { motion } from "framer-motion";
+import { ArrowUpRight, Loader2, MessageSquare, Pin } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import TextareaAutosize from "react-textarea-autosize";
+import { toast } from "sonner";
 import { NoteEditorSkeleton } from "@/components/notes/NoteEditorSkeleton";
 import { NoteShareDialog } from "@/components/notes/NoteShareDialog";
 import { NoteToolbar } from "@/components/notes/NoteToolbar";
@@ -10,25 +18,14 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { createExtensions } from "@/lib/tiptap/extensions";
 import { cn } from "@/lib/utils";
-import { EditorContent, useEditor } from "@tiptap/react";
-import { useMutation, useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import { ArrowUpRight, Loader2, MessageSquare, Pin } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import TextareaAutosize from "react-textarea-autosize";
-import { toast } from "sonner";
 
 interface NoteEditorProps {
   noteId: Id<"notes">;
 }
 
 export function NoteEditor({ noteId }: NoteEditorProps) {
-  // @ts-ignore - Convex type instantiation depth issue
   const note = useQuery(api.notes.getNote, { noteId });
-  // @ts-ignore - Convex type instantiation depth issue
   const updateNote = useMutation(api.notes.updateNote);
-  // @ts-ignore - Convex type instantiation depth issue
   const togglePin = useMutation(api.notes.togglePin);
 
   const { isMobile } = useMobileDetect();

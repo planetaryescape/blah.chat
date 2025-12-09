@@ -1,6 +1,15 @@
 "use client";
 
 import {
+  useAction,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
+import { Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -39,18 +48,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import {
-  useAction,
-  useMutation,
-  usePaginatedQuery,
-  useQuery,
-} from "convex/react";
-import { Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export function MemorySettings() {
-  // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePreferences = useMutation(api.users.updatePreferences);
   const {

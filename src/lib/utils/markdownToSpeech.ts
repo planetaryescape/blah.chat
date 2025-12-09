@@ -30,7 +30,7 @@ export function markdownToSpeechText(markdown: string): string {
 
   // Fallback: simple markdown token removal
   return raw
-    .replace(/[`*_>#\[\]\(\)\-]/g, " ")
+    .replace(/[`*_>#[\]()-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

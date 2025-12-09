@@ -1,7 +1,5 @@
 "use client";
 
-import { Logo } from "@/components/brand/Logo";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
@@ -18,6 +16,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { Logo } from "@/components/brand/Logo";
+import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
   const { isSignedIn, isLoaded } = useAuth();

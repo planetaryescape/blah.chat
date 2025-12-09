@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { FileText, Search, Sparkles, PenLine } from "lucide-react";
+import { FileText, PenLine, Search, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   variant?: "no-notes" | "no-selection" | "no-results";

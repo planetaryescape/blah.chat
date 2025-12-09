@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "blah-chat-recent-searches";
 const MAX_RECENT_SEARCHES = 6;

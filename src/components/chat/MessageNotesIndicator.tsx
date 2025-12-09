@@ -1,13 +1,13 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface MessageNotesIndicatorProps {
   messageId: Id<"messages">;
@@ -20,7 +20,6 @@ export function MessageNotesIndicator({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const notes = useQuery(
-    // @ts-ignore - Convex type instantiation depth issue
     api.notes.getNotesFromMessage,
     {
       messageId,

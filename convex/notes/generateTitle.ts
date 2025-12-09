@@ -29,7 +29,9 @@ export const generateTitle = action({
 Note content:
 ${truncatedContent}`,
         temperature: 0.7,
-        providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, ["title-generation"]),
+        providerOptions: getGatewayOptions(TITLE_MODEL.id, undefined, [
+          "title-generation",
+        ]),
       });
 
       // Clean up any markdown, quotes, or extra formatting

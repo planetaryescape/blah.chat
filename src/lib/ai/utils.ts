@@ -1,7 +1,6 @@
 import { MODEL_CONFIG, type ModelConfig } from "./models";
 export type { ModelConfig };
 
-
 // Migration map: old model IDs → new model IDs (vendor prefixes added)
 const MODEL_ID_MIGRATIONS: Record<string, string> = {
   // Anthropic date suffix removal (gateway compliance)

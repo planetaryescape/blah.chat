@@ -31,7 +31,7 @@ Examples:
       expression: z
         .string()
         .describe(
-          "Mathematical expression to evaluate (e.g., '15 * 847 / 100', 'sqrt(144)', 'pow(2, 10)')"
+          "Mathematical expression to evaluate (e.g., '15 * 847 / 100', 'sqrt(144)', 'pow(2, 10)')",
         ),
     }),
 
@@ -59,8 +59,7 @@ Examples:
         return {
           success: false,
           expression,
-          error:
-            error instanceof Error ? error.message : "Invalid expression",
+          error: error instanceof Error ? error.message : "Invalid expression",
         };
       }
     },

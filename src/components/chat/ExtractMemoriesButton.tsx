@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation } from "convex/react";
+import { Brain, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
-import { Brain, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 interface ExtractMemoriesButtonProps {
   conversationId: Id<"conversations">;

@@ -10,27 +10,33 @@ import { internalAction, internalMutation } from "../_generated/server";
 // ============================================================================
 
 const triageSchema = z.object({
-  priority: z.enum(["critical", "high", "medium", "low"]).describe(
-    "Urgency level based on impact, user frustration, and business importance"
-  ),
-  suggestedTags: z.array(z.string().min(2).max(30)).max(5).describe(
-    "Relevant categorical tags for this feedback"
-  ),
-  summary: z.string().max(100).describe(
-    "A brief one-line summary of the feedback"
-  ),
-  category: z.enum(["ux", "performance", "feature", "bug", "docs", "other"]).describe(
-    "Technical category of the feedback"
-  ),
-  actionable: z.boolean().describe(
-    "Whether this feedback contains specific, actionable items"
-  ),
-  sentiment: z.enum(["positive", "neutral", "negative", "frustrated"]).describe(
-    "Overall emotional tone of the feedback"
-  ),
-  notes: z.string().max(200).optional().describe(
-    "Any additional context or recommendations for the team"
-  ),
+  priority: z
+    .enum(["critical", "high", "medium", "low"])
+    .describe(
+      "Urgency level based on impact, user frustration, and business importance",
+    ),
+  suggestedTags: z
+    .array(z.string().min(2).max(30))
+    .max(5)
+    .describe("Relevant categorical tags for this feedback"),
+  summary: z
+    .string()
+    .max(100)
+    .describe("A brief one-line summary of the feedback"),
+  category: z
+    .enum(["ux", "performance", "feature", "bug", "docs", "other"])
+    .describe("Technical category of the feedback"),
+  actionable: z
+    .boolean()
+    .describe("Whether this feedback contains specific, actionable items"),
+  sentiment: z
+    .enum(["positive", "neutral", "negative", "frustrated"])
+    .describe("Overall emotional tone of the feedback"),
+  notes: z
+    .string()
+    .max(200)
+    .optional()
+    .describe("Any additional context or recommendations for the team"),
 });
 
 import { MODEL_CONFIG } from "../../src/lib/ai/models";
@@ -40,13 +46,10 @@ import { TRIAGE_PROMPT } from "../../src/lib/prompts/triage";
 // AUTO-TRIAGE ACTION
 // ============================================================================
 
-// @ts-ignore - Convex + AI SDK type instantiation depth issue
 export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
-  // @ts-ignore - Convex + AI SDK type inference issue
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
-    // @ts-ignore - Convex type instantiation issue
     const feedback = await ctx.runQuery(internal.feedback.getFeedbackInternal, {
       feedbackId,
     });
@@ -79,19 +82,22 @@ export const autoTriageFeedback = internalAction({
         contextParts.push(`What they expected: ${feedback.whatTheyExpected}`);
       }
       if (feedback.userSuggestedUrgency) {
-        contextParts.push(`User-suggested urgency: ${feedback.userSuggestedUrgency}`);
+        contextParts.push(
+          `User-suggested urgency: ${feedback.userSuggestedUrgency}`,
+        );
       }
 
       const feedbackContext = contextParts.join("\n");
 
       // Generate triage using GPT-OSS 120B via Cerebras Gateway
       const triageModel = MODEL_CONFIG["openai:gpt-oss-120b"];
-      // @ts-ignore - AI SDK type inference issue
       const result = await generateObject({
         model: aiGateway(triageModel.id),
         schema: triageSchema,
         temperature: 0.3,
-        providerOptions: getGatewayOptions(triageModel.id, undefined, ["feedback-triage"]),
+        providerOptions: getGatewayOptions(triageModel.id, undefined, [
+          "feedback-triage",
+        ]),
         prompt: `${TRIAGE_PROMPT}
 
 ---
@@ -114,7 +120,6 @@ Provide your triage assessment:`,
         triage.notes ? `Notes: ${triage.notes}` : null,
       ].filter(Boolean);
 
-      // @ts-ignore - Convex type instantiation depth issue
       await ctx.runMutation(internal.feedback.triage.updateAiTriage, {
         feedbackId,
         aiTriage: {
@@ -194,7 +199,9 @@ export const acceptTriageSuggestion = internalMutation({
     if (acceptTags && feedback.aiTriage.suggestedTags) {
       // Merge with existing tags
       const existingTags = feedback.tags || [];
-      const newTags = [...new Set([...existingTags, ...feedback.aiTriage.suggestedTags])];
+      const newTags = [
+        ...new Set([...existingTags, ...feedback.aiTriage.suggestedTags]),
+      ];
       updates.tags = newTags;
     }
 

@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { ImageThumbnail } from "./ImageThumbnail";
 import { Button } from "@/components/ui/button";
+import { ImageThumbnail } from "./ImageThumbnail";
 
 interface ImageGalleryItem {
   storageId: string;

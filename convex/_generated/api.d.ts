@@ -43,6 +43,7 @@ import type * as lib_prompts_operational_imageGeneration from "../lib/prompts/op
 import type * as lib_prompts_operational_memoryConsolidation from "../lib/prompts/operational/memoryConsolidation.js";
 import type * as lib_prompts_operational_memoryExtraction from "../lib/prompts/operational/memoryExtraction.js";
 import type * as lib_prompts_operational_memoryRephrase from "../lib/prompts/operational/memoryRephrase.js";
+import type * as lib_prompts_operational_memoryRerank from "../lib/prompts/operational/memoryRerank.js";
 import type * as lib_prompts_operational_summarization from "../lib/prompts/operational/summarization.js";
 import type * as lib_prompts_operational_tagExtraction from "../lib/prompts/operational/tagExtraction.js";
 import type * as lib_prompts_operational_titleGeneration from "../lib/prompts/operational/titleGeneration.js";
@@ -133,6 +134,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/operational/memoryConsolidation": typeof lib_prompts_operational_memoryConsolidation;
   "lib/prompts/operational/memoryExtraction": typeof lib_prompts_operational_memoryExtraction;
   "lib/prompts/operational/memoryRephrase": typeof lib_prompts_operational_memoryRephrase;
+  "lib/prompts/operational/memoryRerank": typeof lib_prompts_operational_memoryRerank;
   "lib/prompts/operational/summarization": typeof lib_prompts_operational_summarization;
   "lib/prompts/operational/tagExtraction": typeof lib_prompts_operational_tagExtraction;
   "lib/prompts/operational/titleGeneration": typeof lib_prompts_operational_titleGeneration;

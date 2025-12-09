@@ -8,15 +8,16 @@ export interface ModelConfig {
     | "google"
     | "xai"
     | "perplexity"
-    | "ollama"
-    | "openrouter"
     | "groq"
     | "cerebras"
     | "minimax"
     | "deepseek"
     | "kimi"
     | "zai"
-    | "meta";
+    | "meta"
+    | "mistral"
+    | "alibaba"
+    | "zhipu";
   name: string;
   description?: string;
   contextWindow: number;
@@ -36,26 +37,15 @@ export interface ModelConfig {
   isLocal?: boolean;
   actualModelId?: string;
   reasoning?: ReasoningConfig;
+  /** Fallback provider order for gateway routing (e.g., ["cerebras", "groq"]) */
+  providerOrder?: string[];
+  /** Mark preview/beta/experimental models */
+  isExperimental?: boolean;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // OpenAI
-  "openai:gpt-5.1": {
-    id: "openai:gpt-5.1",
-    provider: "openai",
-    name: "GPT-5.1",
-    description:
-      "The best model for coding and agentic tasks with configurable reasoning effort.",
-    contextWindow: 200000,
-    pricing: { input: 5.0, output: 20.0, reasoning: 5.0 }, // Estimated based on flagship pricing
-    capabilities: ["thinking", "vision", "function-calling"],
-    reasoning: {
-      type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
-      summaryLevel: "detailed",
-      useResponsesAPI: true,
-    },
-  },
+
   /* "openai:gpt-5-pro": {
     id: "openai:gpt-5-pro",
     provider: "openai",
@@ -107,19 +97,19 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.05, output: 0.2, cached: 0.025 },
     capabilities: ["vision", "function-calling"],
   },
-  "openai:gpt-4.1": {
-    id: "openai:gpt-4.1",
+  "openai:gpt-4.1-mini": {
+    id: "openai:gpt-4.1-mini",
     provider: "openai",
-    name: "GPT-4.1",
-    description: "Smartest non-reasoning model",
-    contextWindow: 128000,
-    pricing: { input: 1.0, output: 4.0 }, // Estimated
+    name: "GPT-4.1 Mini",
+    description: "Smartest non-reasoning model - compact variant",
+    contextWindow: 1000000,
+    pricing: { input: 0.4, output: 1.6, cached: 0.1 },
     capabilities: ["vision", "function-calling"],
   },
 
   // Anthropic
-  "anthropic:claude-opus-4-5-20251101": {
-    id: "anthropic:claude-opus-4-5-20251101",
+  "anthropic:claude-opus-4.5": {
+    id: "anthropic:claude-opus-4.5",
     provider: "anthropic",
     name: "Claude 4.5 Opus",
     description: "Most capable Claude for complex tasks",
@@ -137,8 +127,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       betaHeader: "interleaved-thinking-2025-05-14",
     },
   },
-  "anthropic:claude-sonnet-4-5-20250929": {
-    id: "anthropic:claude-sonnet-4-5-20250929",
+  "anthropic:claude-sonnet-4.5": {
+    id: "anthropic:claude-sonnet-4.5",
     provider: "anthropic",
     name: "Claude 4.5 Sonnet",
     description: "Balanced performance and speed",
@@ -156,8 +146,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       betaHeader: "interleaved-thinking-2025-05-14",
     },
   },
-  "anthropic:claude-haiku-4-5-20251001": {
-    id: "anthropic:claude-haiku-4-5-20251001",
+  "anthropic:claude-haiku-4.5": {
+    id: "anthropic:claude-haiku-4.5",
     provider: "anthropic",
     name: "Claude 4.5 Haiku",
     description: "Fast and cost-effective",
@@ -246,11 +236,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 1048576,
     pricing: { input: 0, output: 0 },
     capabilities: ["vision"],
+    isExperimental: true,
   },
 
-  "google:gemini-3-pro": {
-    id: "google:gemini-3-pro",
-    name: "Gemini 3 Pro",
+  "google:gemini-3-pro-preview": {
+    id: "google:gemini-3-pro-preview",
+    name: "Gemini 3 Pro (Preview)",
     provider: "google",
     contextWindow: 1048576, // 1M tokens
     pricing: {
@@ -259,7 +250,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       // Note: >200K is $4/$24 but flat pricing doesn't support tiering
     },
     capabilities: ["function-calling", "thinking"],
-    description: "Third-generation flagship model with advanced reasoning",
+    description: "Third-generation flagship model with advanced reasoning (experimental)",
+    isExperimental: true,
     reasoning: {
       type: "google-thinking-level",
       levelMapping: {
@@ -271,8 +263,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   },
 
-  "google:gemini-3-pro-image-preview": {
-    id: "google:gemini-3-pro-image-preview",
+  "google:gemini-3-pro-image": {
+    id: "google:gemini-3-pro-image",
     name: "Gemini 3 Pro Image (Nano Banana Pro)",
     provider: "google",
     contextWindow: 65536, // 65K tokens
@@ -283,6 +275,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["image-generation", "vision", "thinking"],
     description:
       "Image generation model with advanced visual understanding and reasoning (marketing name: Nano Banana Pro)",
+    isExperimental: true,
     reasoning: {
       type: "google-thinking-level",
       levelMapping: {
@@ -294,55 +287,46 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   },
 
-  // xAI
-  "xai:grok-4.1-fast": {
-    id: "xai:grok-4.1-fast",
-    provider: "xai",
-    name: "Grok 4.1 Fast",
-    description: "Best agentic tool-calling model",
-    contextWindow: 2000000,
-    pricing: { input: 0, output: 0 }, // Free on OpenRouter currently? Or check pricing. Assuming free/low cost based on "Fast"
-    capabilities: ["thinking", "function-calling"],
-  },
+  // xAI - Note: Vercel AI Gateway uses "xai/model-name" format
   "xai:grok-4-fast": {
     id: "xai:grok-4-fast",
     provider: "xai",
     name: "Grok 4 Fast",
-    description: "Fast reasoning model",
+    description: "Faster Grok 4 variant (non-reasoning)",
+    contextWindow: 256000,
+    pricing: { input: 2.0, output: 8.0 },
+    capabilities: ["function-calling"],
+    actualModelId: "grok-4-fast-non-reasoning",
+  },
+
+  "xai:grok-4.1-fast": {
+    id: "xai:grok-4.1-fast",
+    provider: "xai",
+    name: "Grok 4.1 Fast",
+    description: "Best agentic tool-calling model (non-reasoning)",
     contextWindow: 2000000,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["thinking"],
+    pricing: { input: 1.0, output: 4.0 },
+    capabilities: ["function-calling"],
+    actualModelId: "grok-4.1-fast-non-reasoning",
+  },
+  "xai:grok-4.1-fast-reasoning": {
+    id: "xai:grok-4.1-fast-reasoning",
+    provider: "xai",
+    name: "Grok 4.1 Fast (Reasoning)",
+    description: "Best agentic tool-calling model with reasoning",
+    contextWindow: 2000000,
+    pricing: { input: 1.0, output: 4.0 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "grok-4.1-fast-reasoning",
   },
   "xai:grok-code-fast-1": {
     id: "xai:grok-code-fast-1",
     provider: "xai",
-    name: "Grok Code Fast 1",
+    name: "Grok Code Fast",
     description: "Speedy reasoning for coding",
-    contextWindow: 128000, // Verify context window if possible, but 128k is safe bet or 2M? Search said "speedy and economical".
-    pricing: { input: 0, output: 0 },
-    capabilities: ["thinking"],
-  },
-  "xai:grok-4": {
-    id: "xai:grok-4",
-    provider: "xai",
-    name: "Grok 4",
-    description: "Advanced reasoning",
-    contextWindow: 256000,
-    pricing: { input: 5.0, output: 15.0 },
-    capabilities: ["thinking", "vision"],
-  },
-  "xai:grok-3-mini": {
-    id: "xai:grok-3-mini",
-    provider: "xai",
-    name: "Grok 3 Mini",
-    description: "Fast reasoning model with effort control",
     contextWindow: 128000,
-    pricing: { input: 0.5, output: 1.5 },
+    pricing: { input: 0.5, output: 2.0 },
     capabilities: ["thinking"],
-    reasoning: {
-      type: "generic-reasoning-effort",
-      parameterName: "reasoning_effort",
-    },
   },
 
   // Perplexity
@@ -409,51 +393,51 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.59, output: 0.79 },
     capabilities: ["function-calling"],
-    actualModelId: "llama-3.3-70b-instruct",
+    providerOrder: ["cerebras", "groq"],
   },
-
-  // OpenRouter Top Picks
-  "openrouter:deepseek-v3": {
-    id: "openrouter:deepseek-v3",
-    provider: "openrouter",
-    name: "DeepSeek v3",
-    description: "Top-tier coding and reasoning",
-    contextWindow: 128000,
-    pricing: { input: 0.5, output: 1.5 },
-    capabilities: ["thinking"],
-    reasoning: {
-      type: "deepseek-tag-extraction",
-      tagName: "think",
-      applyMiddleware: true,
-    },
-  },
-  "openrouter:mistral-devstral": {
-    id: "openrouter:mistral-devstral",
-    provider: "openrouter",
-    name: "Mistral Devstral",
-    description: "Optimized for development tasks",
+  "meta:llama-4-maverick": {
+    id: "meta:llama-4-maverick",
+    provider: "meta",
+    name: "Llama 4 Maverick 17B",
+    description: "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
     contextWindow: 128000,
     pricing: { input: 0.2, output: 0.6 },
-    capabilities: ["function-calling"],
+    capabilities: ["vision", "function-calling"],
+    providerOrder: ["cerebras", "groq"],
   },
-  "openrouter:qwen-3-coder-free": {
-    id: "openrouter:qwen-3-coder-free",
-    provider: "openrouter",
-    name: "Qwen 3 Coder (Free)",
-    description: "Specialized coding model",
-    contextWindow: 32000,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["function-calling"],
-  },
-  "openrouter:glm-4.5-air-free": {
-    id: "openrouter:glm-4.5-air-free",
-    provider: "openrouter",
-    name: "GLM-4.5 Air (Free)",
-    description: "Balanced performance model",
+  "meta:llama-4-scout": {
+    id: "meta:llama-4-scout",
+    provider: "meta",
+    name: "Llama 4 Scout 17B",
+    description: "Smaller Llama 4 MoE. Fast and efficient for general tasks.",
     contextWindow: 128000,
-    pricing: { input: 0, output: 0 },
-    capabilities: [],
+    pricing: { input: 0.1, output: 0.3 },
+    capabilities: ["function-calling"],
+    providerOrder: ["cerebras", "groq"],
   },
+
+  // Mistral Models (via Vercel AI Gateway)
+  "mistral:devstral-small": {
+    id: "mistral:devstral-small",
+    provider: "mistral",
+    name: "Mistral Devstral Small",
+    description: "Agentic LLM optimized for software engineering tasks.",
+    contextWindow: 128000,
+    pricing: { input: 0.1, output: 0.3 },
+    capabilities: ["function-calling"],
+  },
+
+  // Alibaba Qwen Models (via Vercel AI Gateway)
+  "alibaba:qwen3-coder-480b": {
+    id: "alibaba:qwen3-coder-480b",
+    provider: "alibaba",
+    name: "Qwen 3 Coder 480B",
+    description: "480B MoE coding specialist optimized for agentic tasks.",
+    contextWindow: 131072,
+    pricing: { input: 0.35, output: 1.4 },
+    capabilities: ["function-calling"],
+  },
+
 
   "groq:openai/gpt-oss-20b": {
     id: "groq:openai/gpt-oss-20b",
@@ -463,6 +447,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 131000,
     pricing: { input: 0.1, output: 0.5 },
     capabilities: ["function-calling"],
+    providerOrder: ["groq", "cerebras"],
   },
   "groq:groq/compound": {
     id: "groq:groq/compound",
@@ -472,6 +457,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0, output: 0 },
     capabilities: ["function-calling"],
+    isExperimental: true,
   },
   "groq:groq/compound-mini": {
     id: "groq:groq/compound-mini",
@@ -481,6 +467,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0, output: 0 },
     capabilities: ["function-calling"],
+    isExperimental: true,
   },
 
   // Groq - Preview
@@ -495,30 +482,33 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
   },
 
 
-  "cerebras:gpt-oss-120b": {
-    id: "cerebras:gpt-oss-120b",
-    provider: "cerebras",
+  // OpenAI OSS Models (via Gateway)
+  "openai:gpt-oss-120b": {
+    id: "openai:gpt-oss-120b",
+    provider: "openai",
     name: "GPT-OSS 120B",
-    description: "Fastest model available. ~3,000 tok/s. Production.",
-    contextWindow: 8192,
+    description: "Extremely capable general-purpose LLM with strong reasoning.",
+    contextWindow: 128000,
     pricing: { input: 0.35, output: 0.75 },
-    capabilities: ["function-calling"],
+    capabilities: ["function-calling", "thinking"],
+    providerOrder: ["cerebras", "groq"],
   },
   "cerebras:qwen-3-32b": {
     id: "cerebras:qwen-3-32b",
     provider: "cerebras",
     name: "Qwen 3 32B",
     description: "Efficient 32B model. ~2,600 tok/s. Production.",
-    contextWindow: 8192,
+    contextWindow: 131072,
     pricing: { input: 0.4, output: 0.8 },
     capabilities: ["function-calling"],
+    providerOrder: ["cerebras", "groq"],
   },
   "cerebras:qwen-3-235b-a22b-instruct-2507": {
     id: "cerebras:qwen-3-235b-a22b-instruct-2507",
     provider: "cerebras",
     name: "Qwen 3 235B Instruct",
     description: "Large instruct model. ~1,400 tok/s. Preview.",
-    contextWindow: 8192,
+    contextWindow: 131072,
     pricing: { input: 0.6, output: 1.2 },
     capabilities: ["function-calling"],
   },
@@ -527,7 +517,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     provider: "cerebras",
     name: "Qwen 3 235B Thinking",
     description: "Reasoning model with native thinking. ~1,000 tok/s. Preview.",
-    contextWindow: 8192,
+    contextWindow: 131072,
     pricing: { input: 0.6, output: 1.2 },
     capabilities: ["function-calling", "thinking"],
     reasoning: {
@@ -536,28 +526,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   },
 
-  // Z.AI Models
-  "zai:glm-4.6": {
-    id: "zai:glm-4.6",
-    provider: "zai",
-    name: "GLM 4.6",
-    description: "Z.ai flagship. Coding, reasoning, agents. 200K context.",
-    contextWindow: 200000,
-    pricing: { input: 0.45, output: 1.8 },
-    capabilities: ["function-calling"],
-  },
 
-  // MiniMax Models
-  "minimax:m2": {
-    id: "minimax:m2",
-    provider: "minimax",
-    name: "MiniMax M2",
-    description: "230B MoE (10B active). Best value for coding & agents.",
-    contextWindow: 204800,
-    pricing: { input: 0.3, output: 1.2 },
-    capabilities: ["vision", "function-calling"],
-    actualModelId: "minimax-m2",
-  },
 
   // DeepSeek Models
   "deepseek:deepseek-r1": {
@@ -568,6 +537,35 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.55, output: 2.19 },
     capabilities: ["thinking", "function-calling"],
+    providerOrder: ["cerebras", "groq"],
+    reasoning: {
+      type: "deepseek-tag-extraction",
+      tagName: "think",
+      applyMiddleware: true,
+    },
+  },
+  "deepseek:deepseek-v3.2": {
+    id: "deepseek:deepseek-v3.2",
+    provider: "deepseek",
+    name: "DeepSeek V3.2",
+    description: "Official successor to V3.2-Exp. Combined thinking + tool use.",
+    contextWindow: 128000,
+    pricing: { input: 0.27, output: 1.1 },
+    capabilities: ["thinking", "function-calling"],
+    reasoning: {
+      type: "deepseek-tag-extraction",
+      tagName: "think",
+      applyMiddleware: true,
+    },
+  },
+  "deepseek:deepseek-v3.2-thinking": {
+    id: "deepseek:deepseek-v3.2-thinking",
+    provider: "deepseek",
+    name: "DeepSeek V3.2 Thinking",
+    description: "Thinking mode of DeepSeek V3.2 for complex reasoning.",
+    contextWindow: 128000,
+    pricing: { input: 0.27, output: 1.1 },
+    capabilities: ["thinking"],
     reasoning: {
       type: "deepseek-tag-extraction",
       tagName: "think",
@@ -575,108 +573,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
   },
 
-  // Kimi Models
-  "kimi:kimi-k2-thinking": {
-    id: "kimi:kimi-k2-thinking",
-    provider: "kimi",
-    name: "Kimi K2 Thinking",
-    description: "1T MoE (32B active). 256K context with deep reasoning.",
-    contextWindow: 256000,
-    pricing: { input: 0.6, output: 2.4 },
-    capabilities: ["thinking", "function-calling"],
-  },
 };
 
-// Migration map: old model IDs → new model IDs (vendor prefixes added)
-const MODEL_ID_MIGRATIONS: Record<string, string> = {
-  // Groq migrations
-  "groq:gpt-oss-20b": "groq:openai/gpt-oss-20b",
-  "groq:groq-compound": "groq:groq/compound",
-  "groq:groq-compound-mini": "groq:groq/compound-mini",
-  "groq:moonshotai-kimi-k2-instruct-0905":
-    "groq:moonshotai/kimi-k2-instruct-0905",
-  // Redirect all Llama models to single meta:llama-3.3-70b
-  "groq:llama-3.1-8b-instant": "meta:llama-3.3-70b",
-  "groq:llama-3.3-70b-versatile": "meta:llama-3.3-70b",
-  "cerebras:llama3.1-8b": "meta:llama-3.3-70b",
-  "cerebras:llama-3.3-70b": "meta:llama-3.3-70b",
-  "groq:meta-llama/llama-guard-4-12b": "meta:llama-3.3-70b",
-  "groq:meta-llama/llama-4-maverick-17b-128e-instruct": "meta:llama-3.3-70b",
-  "groq:meta-llama/llama-4-scout-17b-16e-instruct": "meta:llama-3.3-70b",
-  "openrouter:llama-4-maverick": "meta:llama-3.3-70b",
-  "openrouter:llama-4-behemoth": "meta:llama-3.3-70b",
-  // Redirect removed Groq models to Cerebras equivalents (via Gateway)
-  "groq:openai/gpt-oss-120b": "cerebras:gpt-oss-120b",
-  "groq:gpt-oss-120b": "cerebras:gpt-oss-120b",
-  "groq:qwen/qwen3-32b": "cerebras:qwen-3-32b",
-  "groq:qwen-qwen3-32b": "cerebras:qwen-3-32b",
-};
 
-export function getModelConfig(modelId: string): ModelConfig | undefined {
-  // Check if migration needed
-  const migratedId = MODEL_ID_MIGRATIONS[modelId] || modelId;
-
-  // Return config if exists
-  if (MODEL_CONFIG[migratedId]) {
-    return MODEL_CONFIG[migratedId];
-  }
-
-  // Fallback for custom models not in config
-  // Extract provider and model name
-  const [provider, ...modelParts] = migratedId.split(":");
-  const modelName = modelParts.join(":");
-
-  if (provider && modelName) {
-    return {
-      id: migratedId,
-      provider: provider as ModelConfig["provider"],
-      name: modelName,
-      description: `Custom ${provider} model`,
-      contextWindow: 128000,
-      pricing: { input: 0, output: 0 },
-      capabilities: [],
-    };
-  }
-
-  return undefined;
-}
-
-export function getModelsByProvider() {
-  const grouped: Record<string, ModelConfig[]> = {};
-
-  for (const model of Object.values(MODEL_CONFIG)) {
-    if (!grouped[model.provider]) {
-      grouped[model.provider] = [];
-    }
-    grouped[model.provider].push(model);
-  }
-
-  return grouped;
-}
-
-export function calculateCost(
-  model: string,
-  usage: {
-    inputTokens: number;
-    outputTokens: number;
-    cachedTokens?: number;
-    reasoningTokens?: number;
-  },
-): number {
-  const config = MODEL_CONFIG[model];
-  if (!config || config.isLocal) return 0;
-
-  const inputCost = (usage.inputTokens / 1_000_000) * config.pricing.input;
-  const outputCost = (usage.outputTokens / 1_000_000) * config.pricing.output;
-  const cachedCost =
-    ((usage.cachedTokens || 0) / 1_000_000) * (config.pricing.cached || 0);
-  const reasoningCost =
-    ((usage.reasoningTokens || 0) / 1_000_000) *
-    (config.pricing.reasoning || 0);
-
-  return inputCost + outputCost + cachedCost + reasoningCost;
-}
-
-export function isValidModel(modelId: string): boolean {
-  return modelId in MODEL_CONFIG;
-}

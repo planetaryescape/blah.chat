@@ -1,10 +1,8 @@
-import { createGateway } from "@ai-sdk/gateway";
+import { gateway } from "./providers";
 import { getModelConfig } from "./utils";
 
-// Vercel AI Gateway configuration
-export const aiGateway = createGateway({
-  apiKey: process.env.AI_GATEWAY_API_KEY ?? "",
-});
+// Re-export for backward compatibility
+export const aiGateway = gateway;
 
 // Dynamic provider ordering based on model config
 // This is now derived from MODEL_CONFIG.providerOrder instead of hardcoded lists

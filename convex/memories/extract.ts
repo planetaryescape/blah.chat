@@ -10,7 +10,7 @@ import { internalAction, internalQuery } from "../_generated/server";
 import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
 
 // Model configuration for memory extraction
-const EXTRACTION_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const EXTRACTION_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // Constants for memory extraction quality control
@@ -173,7 +173,7 @@ export const extractMemories = internalAction({
     // 6. Build extraction context (5 old + N new)
     const extractionWindow = [...contextMessages, ...unextractedMessages];
 
-    // 7. Extract facts with gpt-oss-120b via Cerebras Gateway
+    // 7. Extract facts with meta:llama-3.3-70b
     const conversationText: string = extractionWindow
       .map((m: Doc<"messages">) => `${m.role}: ${m.content || ""}`)
       .join("\n\n");

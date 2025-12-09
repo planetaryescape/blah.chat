@@ -17,7 +17,7 @@ export const hybridSearch = action({
     projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error - Convex query type instantiation depth issue
     const user: any = await ctx.runQuery(api.users.getCurrentUser, {});
     if (!user) return [];
 
@@ -25,7 +25,7 @@ export const hybridSearch = action({
 
     // 1. Keyword search on conversation titles
     const keywordResults: any = await ctx.runQuery(
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error - Convex query type instantiation depth issue
       internal.conversations.hybridSearch.keywordSearch,
       { query, userId: user._id, limit: 40, includeArchived },
     );
@@ -39,7 +39,6 @@ export const hybridSearch = action({
       });
 
       const semanticResults: any = await ctx.runQuery(
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         internal.conversations.hybridSearch.semanticSearchWithEmbedding,
         { embedding, userId: user._id, limit: 40, includeArchived },
       );

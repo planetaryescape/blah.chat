@@ -1001,7 +1001,8 @@ export const getChildBranches = query({
     conversationId: v.id("conversations"),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUserOrCreate(ctx);
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
     // Get child conversations that branch from this conversation
     const childBranches = await ctx.db
@@ -1021,7 +1022,8 @@ export const getChildBranchesFromMessage = query({
     messageId: v.id("messages"),
   },
   handler: async (ctx, args) => {
-    const user = await getCurrentUserOrCreate(ctx);
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
     // Get child conversations that branch from this specific message
     const childBranches = await ctx.db

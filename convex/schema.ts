@@ -678,9 +678,31 @@ export default defineSchema({
     // Message limits
     defaultDailyMessageLimit: v.number(),
 
+    // Email alerts
+    alertEmail: v.string(),
+
     // Future: General settings, Features
 
     updatedBy: v.id("users"),
     updatedAt: v.number(),
   }),
+
+  // Email Alerts (for rate limiting notifications)
+  emailAlerts: defineTable({
+    type: v.union(
+      v.literal("budget_80_percent"),
+      v.literal("budget_exceeded"),
+      v.literal("api_credits_exhausted")
+    ),
+    recipientEmail: v.string(),
+    sentAt: v.number(),
+    metadata: v.optional(
+      v.object({
+        budgetAmount: v.optional(v.number()),
+        spentAmount: v.optional(v.number()),
+        errorMessage: v.optional(v.string()),
+        modelId: v.optional(v.string()),
+      })
+    ),
+  }).index("by_type_sent", ["type", "sentAt"]),
 });

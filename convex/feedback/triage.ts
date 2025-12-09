@@ -90,7 +90,7 @@ export const autoTriageFeedback = internalAction({
       const feedbackContext = contextParts.join("\n");
 
       // Generate triage using GPT-OSS 120B via Cerebras Gateway
-      const triageModel = MODEL_CONFIG["openai:gpt-oss-120b"];
+      const triageModel = MODEL_CONFIG["meta:llama-3.3-70b"];
       const result = await generateObject({
         model: aiGateway(triageModel.id),
         schema: triageSchema,

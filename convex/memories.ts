@@ -16,7 +16,7 @@ import {
 } from "./_generated/server";
 
 // Model configuration
-const MEMORY_MODEL = MODEL_CONFIG["openai:gpt-oss-120b"];
+const MEMORY_MODEL = MODEL_CONFIG["meta:llama-3.3-70b"];
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
 const rephrasedMemorySchema = z.object({

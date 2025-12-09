@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 
 /**
  * Get global admin settings
@@ -33,6 +33,7 @@ export const get = query({
         defaultBudgetAlertThreshold: 0.8,
         budgetHardLimitEnabled: true,
         defaultDailyMessageLimit: 50,
+        alertEmail: "blah.chat@bhekani.com",
       }
     );
   },
@@ -50,6 +51,7 @@ export const update = mutation({
     defaultBudgetAlertThreshold: v.optional(v.number()),
     budgetHardLimitEnabled: v.optional(v.boolean()),
     defaultDailyMessageLimit: v.optional(v.number()),
+    alertEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -87,11 +89,23 @@ export const update = mutation({
         defaultBudgetAlertThreshold: args.defaultBudgetAlertThreshold ?? 0.8,
         budgetHardLimitEnabled: args.budgetHardLimitEnabled ?? true,
         defaultDailyMessageLimit: args.defaultDailyMessageLimit ?? 50,
+        alertEmail: args.alertEmail ?? "blah.chat@bhekani.com",
         updatedBy: userId,
         updatedAt: Date.now(),
       });
     }
 
     return { success: true };
+  },
+});
+
+/**
+ * Internal query to get admin settings (no auth check)
+ * Used by email system and other internal functions
+ */
+export const getInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("adminSettings").first();
   },
 });

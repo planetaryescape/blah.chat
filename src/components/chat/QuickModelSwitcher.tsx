@@ -3,22 +3,24 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
 } from "@/components/ui/command";
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
+import { useRecentModels } from "@/hooks/useRecentModels";
 import { sortModels } from "@/lib/ai/sortModels";
 import {
-  getModelsByProvider,
-  type ModelConfig,
+    getModelsByProvider,
+    type ModelConfig,
 } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
+import commandScore from "command-score";
 import { useQuery } from "convex/react";
 import { Check, Sparkles, Star, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -47,6 +49,7 @@ export function QuickModelSwitcher({
 }: QuickModelSwitcherProps) {
   const modelsByProvider = getModelsByProvider();
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
+  const { recents, addRecent } = useRecentModels();
   // @ts-ignore - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
 
@@ -60,10 +63,11 @@ export function QuickModelSwitcher({
   }, [open, mode, selectedModels]);
 
   const allModels = Object.values(modelsByProvider).flat();
-  const { defaultModel, favorites: favModels, rest } = sortModels(
+  const { defaultModel, favorites: favModels, recents: recentModels, rest } = sortModels(
     allModels,
     user?.preferences?.defaultModel,
     favorites,
+    recents,
   );
 
   const restByProvider = rest.reduce(
@@ -89,6 +93,7 @@ export function QuickModelSwitcher({
         return [...prev, modelId];
       });
     } else {
+      addRecent(modelId);
       onSelectModel(modelId);
       onOpenChange(false);
       setTimeout(() => {
@@ -112,6 +117,7 @@ export function QuickModelSwitcher({
       <CommandItem
         key={model.id}
         value={model.id}
+        keywords={[model.name, model.provider, model.description || ""]}
         onSelect={() => handleSelect(model.id)}
         className="flex items-center gap-3 px-3 py-2.5"
       >
@@ -176,18 +182,29 @@ export function QuickModelSwitcher({
               ${model.pricing.input}/{model.pricing.output}
             </div>
           )}
-          <Star
-            className={cn(
-              "h-4 w-4 cursor-pointer",
-              isFavorite(model.id)
-                ? "fill-yellow-500 text-yellow-500"
-                : "text-muted-foreground/40",
-            )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 hover:bg-transparent"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               toggleFavorite(model.id);
             }}
-          />
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <Star
+              className={cn(
+                "h-4 w-4",
+                isFavorite(model.id)
+                  ? "fill-yellow-500 text-yellow-500"
+                  : "text-muted-foreground/40",
+              )}
+            />
+          </Button>
         </div>
       </CommandItem>
     );
@@ -208,7 +225,17 @@ export function QuickModelSwitcher({
         </Button>
       )}
 
-      <CommandDialog open={open} onOpenChange={onOpenChange}>
+      <CommandDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        commandProps={{
+          filter: (value, search, keywords) => {
+            const extendValue = value + " " + (keywords?.join(" ") || "");
+            const score = commandScore(extendValue, search);
+            return score;
+          },
+        }}
+      >
         <CommandInput placeholder="Search models..." />
 
       {/* Multi-select chips */}
@@ -250,7 +277,14 @@ export function QuickModelSwitcher({
           </CommandGroup>
         )}
 
-        {(defaultModel || favModels.length > 0) && <CommandSeparator />}
+        {/* Recents */}
+        {recentModels.length > 0 && (
+          <CommandGroup heading="Recent">
+            {recentModels.map((model) => renderModelItem(model))}
+          </CommandGroup>
+        )}
+
+        {(defaultModel || favModels.length > 0 || recentModels.length > 0) && <CommandSeparator />}
 
         {/* Rest by provider */}
         {Object.entries(restByProvider).map(([provider, models]) => (

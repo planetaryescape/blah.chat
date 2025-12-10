@@ -2,9 +2,9 @@
 import { Resend } from "@convex-dev/resend";
 import { render } from "@react-email/render";
 import { v } from "convex/values";
-import { components, internal } from "../_generated/api";
-import { internalAction } from "../_generated/server";
-import { ApiCreditsExhaustedEmail, BudgetWarningEmail } from "../emails";
+import { components, internal } from "../../_generated/api";
+import { internalAction } from "../../_generated/server";
+import { ApiCreditsExhaustedEmail, BudgetWarningEmail } from "../templates";
 
 export const resend = new Resend(components.resend, {
   testMode: false, // Set to true for testing with delivered@resend.dev
@@ -23,7 +23,7 @@ export const sendBudgetAlert = internalAction({
 
     // Check rate limit
     const canSend = await ctx.runMutation(
-      internal.lib.emailMutations.checkCanSend,
+      internal.emails.utils.mutations.checkCanSend,
       { type },
     );
     if (!canSend) {
@@ -58,7 +58,7 @@ export const sendBudgetAlert = internalAction({
     });
 
     // Record sent
-    await ctx.runMutation(internal.lib.emailMutations.recordSent, {
+    await ctx.runMutation(internal.emails.utils.mutations.recordSent, {
       type,
       recipientEmail,
       metadata: {
@@ -82,7 +82,7 @@ export const sendApiCreditsAlert = internalAction({
 
     // Check rate limit
     const canSend = await ctx.runMutation(
-      internal.lib.emailMutations.checkCanSend,
+      internal.emails.utils.mutations.checkCanSend,
       { type },
     );
     if (!canSend) {
@@ -114,7 +114,7 @@ export const sendApiCreditsAlert = internalAction({
     });
 
     // Record sent
-    await ctx.runMutation(internal.lib.emailMutations.recordSent, {
+    await ctx.runMutation(internal.emails.utils.mutations.recordSent, {
       type,
       recipientEmail,
       metadata: {

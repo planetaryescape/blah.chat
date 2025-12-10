@@ -102,10 +102,19 @@ Key tables: `users`, `conversations`, `messages`, `memories`, `projects`, `bookm
 All transactional emails MUST use React Email for consistent, beautiful rendering:
 - **Library**: `@react-email/components` + `@react-email/render`
 - **Provider**: Resend (via `@convex-dev/resend` component)
-- **Templates**: Store in `convex/emails.tsx` with Node runtime (`"use node"`)
-- **Components**: Use `<Html>`, `<Head>`, `<Body>`, `<Container>`, `<Section>`, `<Text>`, `<Button>`
+- **Templates**: Store in `convex/emails/templates/` with Node runtime (`"use node"`)
+- **Components**: Use shared components from `convex/emails/components/` (EmailContainer, EmailButton)
 - **Styling**: Inline styles only (email clients don't support CSS classes)
 - **Testing**: Use `testMode: true` with `delivered@resend.dev` address
+
+**Directory structure**:
+```
+convex/emails/
+├── templates/       # Individual email templates
+├── components/      # Shared email components
+├── utils/          # Email sending logic
+└── test/           # Email tests
+```
 
 **Never use plain text or raw HTML strings** - always use React Email components for all transactional emails.
 

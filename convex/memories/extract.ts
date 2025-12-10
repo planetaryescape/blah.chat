@@ -103,9 +103,8 @@ export const extractMemories = internalAction({
   },
   handler: async (ctx, args): Promise<{ extracted: number }> => {
     // 1. Get conversation with cursor
-    const conversation = await ctx.runQuery(
-      // @ts-expect-error - Convex query type instantiation depth issue
-      internal.conversations.getInternal,
+    const conversation: Doc<"conversations"> | null = await ctx.runQuery(
+      internal.lib.helpers.getConversation,
       {
         id: args.conversationId,
       },

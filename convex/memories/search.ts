@@ -181,18 +181,12 @@ export const vectorSearch = internalAction({
       });
 
       // Fetch full documents
-      const memories: Doc<"memories">[] = await Promise.all(
-        results.map(async (result) => {
-          // @ts-expect-error - Convex query type instantiation depth issue
-          const memory = await ctx.runQuery(internal.memories.getMemoryById, {
-            id: result._id,
-          });
-          return memory;
-        }),
-      ).then((mems) =>
-        mems.filter(
-          (m: Doc<"memories"> | null): m is Doc<"memories"> => m !== null,
-        ),
+      const ids = results.map((result) => result._id);
+      const memories: Doc<"memories">[] = await ctx.runQuery(
+        internal.lib.helpers.getMemoriesByIds,
+        {
+          ids,
+        },
       );
 
       // Client-side category filter if needed

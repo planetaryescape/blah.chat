@@ -143,10 +143,12 @@ export const searchByEmbedding = internalAction({
     });
 
     const ids = results.map((r) => r._id);
-    // @ts-expect-error - Convex query type instantiation depth issue
-    const memories = await ctx.runQuery(internal.memories.getMemoriesByIds, {
-      ids,
-    });
+    const memories: Doc<"memories">[] = await ctx.runQuery(
+      internal.lib.helpers.getMemoriesByIds,
+      {
+        ids,
+      },
+    );
 
     return memories;
   },
@@ -507,8 +509,6 @@ export const migrateUserMemories = action({
 
     // 1. Fetch user's memories (listAll already handles user lookup + filtering)
     const memories: Doc<"memories">[] = await (ctx.runQuery as any)(
-      // @ts-expect-error - Convex query type instantiation depth issue
-      api.memories.listAll,
     );
 
     if (memories.length === 0) {
@@ -565,7 +565,6 @@ Return ONLY the rephrased content, no explanation or additional text.`,
         });
 
         // 5. Update memory
-        // @ts-expect-error - Convex mutation type instantiation depth issue
         await ctx.runMutation(internal.memories.updateWithEmbedding, {
           id: memory._id,
           content: result.object.content,
@@ -595,10 +594,16 @@ export const consolidateUserMemories = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
+    const user: Doc<"users"> | null = await ctx.runQuery(
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
+    if (!user) throw new Error("User not found");
+
     // 1. Fetch all user memories
     const memories: Doc<"memories">[] = await ctx.runQuery(
-      // @ts-expect-error - Convex query type instantiation depth issue
-      api.memories.listAll,
+      internal.lib.helpers.listAllMemories,
+      { userId: user._id },
     );
 
     if (memories.length === 0) {
@@ -619,7 +624,6 @@ export const consolidateUserMemories = action({
 
       // Find similar memories using vector search
       const similarMemories = await ctx.runAction(
-        // @ts-expect-error - Convex action type instantiation depth issue
         internal.memories.searchByEmbedding,
         {
           userId: memory.userId,
@@ -852,7 +856,10 @@ export const createMemoryFromSelection = action({
   },
   handler: async (ctx, args) => {
     // Get current user via query
-    const user = await ctx.runQuery(api.users.getCurrentUser, {});
+    const user: Doc<"users"> | null = await ctx.runQuery(
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
     if (!user) throw new Error("User not found");
 
     // Generate embedding using Vercel AI SDK

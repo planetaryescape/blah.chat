@@ -16,7 +16,9 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
 
 export function AdminMemorySettings() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const settings = useQuery(api.adminSettings.get);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateSettings = useMutation(api.adminSettings.update);
 
   const [autoExtractEnabled, setAutoExtractEnabled] = useState(true);

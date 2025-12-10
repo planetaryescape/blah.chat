@@ -14,11 +14,17 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { analytics } from "@/lib/analytics";
 import { api } from "@/convex/_generated/api";
+import { cn } from "@/lib/utils";
+import type { ChatWidth } from "@/lib/utils/chatWidth";
 
 export function UISettings() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
 
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
@@ -30,6 +36,9 @@ export function UISettings() {
   const [showByDefault, setShowByDefault] = useState(true);
   const [autoExpand, setAutoExpand] = useState(false);
   const [showDuringStreaming, setShowDuringStreaming] = useState(true);
+
+  // Chat width setting
+  const [chatWidth, setChatWidth] = useState<ChatWidth>("standard");
 
   useEffect(() => {
     if (user?.preferences) {
@@ -48,6 +57,11 @@ export function UISettings() {
           user.preferences.reasoning.showDuringStreaming ?? true,
         );
       }
+
+      // Initialize chat width setting
+      if (user.preferences.chatWidth) {
+        setChatWidth(user.preferences.chatWidth as ChatWidth);
+      }
     }
   }, [user]);
 
@@ -60,6 +74,11 @@ export function UISettings() {
         },
       });
       toast.success("UI settings saved!");
+
+      analytics.track("ui_preference_changed", {
+        setting: "always_show_message_actions",
+        value: checked,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setAlwaysShowMessageActions(!checked);
@@ -75,6 +94,11 @@ export function UISettings() {
         } as any,
       });
       toast.success("UI settings saved!");
+
+      analytics.track("ui_preference_changed", {
+        setting: "show_model_names_during_comparison",
+        value: checked,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setShowModelNamesDuringComparison(!checked);
@@ -94,6 +118,11 @@ export function UISettings() {
         } as any,
       });
       toast.success("Reasoning settings saved!");
+
+      analytics.track("reasoning_display_changed", {
+        setting: "show_by_default",
+        value: checked,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setShowByDefault(!checked);
@@ -113,6 +142,11 @@ export function UISettings() {
         } as any,
       });
       toast.success("Reasoning settings saved!");
+
+      analytics.track("reasoning_display_changed", {
+        setting: "auto_expand",
+        value: checked,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setAutoExpand(!checked);
@@ -132,9 +166,32 @@ export function UISettings() {
         } as any,
       });
       toast.success("Reasoning settings saved!");
+
+      analytics.track("reasoning_display_changed", {
+        setting: "show_during_streaming",
+        value: checked,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setShowDuringStreaming(!checked);
+    }
+  };
+
+  const handleChatWidthChange = async (width: ChatWidth) => {
+    const previousWidth = chatWidth;
+    setChatWidth(width);
+    try {
+      await updatePreferences({
+        preferences: { chatWidth: width },
+      });
+      toast.success("Chat width updated!");
+
+      analytics.track("chat_width_changed", {
+        newWidth: width,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setChatWidth(chatWidth); // Rollback
     }
   };
 
@@ -159,23 +216,6 @@ export function UISettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="always-show-actions">
-              Always show message actions
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Show copy, regenerate, branch, and delete buttons on all messages
-              instead of only on hover
-            </p>
-          </div>
-          <Switch
-            id="always-show-actions"
-            checked={alwaysShowMessageActions}
-            onCheckedChange={handleAlwaysShowActionsChange}
-          />
-        </div>
-
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="always-show-actions">
@@ -263,6 +303,61 @@ export function UISettings() {
               checked={showDuringStreaming}
               onCheckedChange={handleShowDuringStreamingChange}
             />
+          </div>
+        </div>
+
+        <div className="border-t pt-4 space-y-4">
+          <div className="space-y-1">
+            <Label>Chat Width</Label>
+            <p className="text-sm text-muted-foreground">
+              Choose your preferred chat message width
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {(["narrow", "standard", "wide", "full"] as const).map((width) => (
+              <label
+                key={width}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
+                  chatWidth === width
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="chatWidth"
+                  value={width}
+                  checked={chatWidth === width}
+                  onChange={() => handleChatWidthChange(width)}
+                  className="sr-only"
+                />
+                <div className="flex-1 space-y-1">
+                  <div className="font-medium capitalize">{width}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {width === "narrow" && "~672px - Focused reading"}
+                    {width === "standard" && "~896px - Balanced (default)"}
+                    {width === "wide" && "~1152px - Spacious"}
+                    {width === "full" && "~95% width - Maximum space"}
+                  </div>
+                </div>
+                {/* Visual indicator */}
+                <div
+                  className="h-8 rounded border border-border/50 bg-muted/30"
+                  style={{
+                    width:
+                      width === "narrow"
+                        ? "40px"
+                        : width === "standard"
+                          ? "60px"
+                          : width === "wide"
+                            ? "80px"
+                            : "100px",
+                  }}
+                />
+              </label>
+            ))}
           </div>
         </div>
 

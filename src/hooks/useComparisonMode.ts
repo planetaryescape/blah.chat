@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { analytics } from "@/lib/analytics";
 
 export function useComparisonMode() {
   const [isActive, setIsActive] = useState(false);
@@ -16,12 +17,23 @@ export function useComparisonMode() {
     }
     setSelectedModels(models);
     setIsActive(true);
+
+    // Track comparison started
+    analytics.track("comparison_started", {
+      modelCount: models.length,
+      models: models.join(","),
+    });
   };
 
   const exitComparison = () => {
     setIsActive(false);
     setSelectedModels([]);
     setActiveComparisonId(null);
+
+    // Track comparison exited
+    analytics.track("comparison_exited", {
+      hadActiveComparison: !!activeComparisonId,
+    });
   };
 
   return {

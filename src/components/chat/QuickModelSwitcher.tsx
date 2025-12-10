@@ -19,6 +19,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
+import { analytics } from "@/lib/analytics";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
@@ -56,7 +57,15 @@ export function QuickModelSwitcher({
     if (open && mode === "multiple") {
       setInternalSelected(selectedModels || []);
     }
-  }, [open, mode, selectedModels]);
+
+    // Track quick switcher opened
+    if (open) {
+      analytics.track("quick_switcher_opened", {
+        mode,
+        currentModel,
+      });
+    }
+  }, [open, mode, selectedModels, currentModel]);
 
   const allModels = Object.values(modelsByProvider).flat();
   const {
@@ -97,6 +106,14 @@ export function QuickModelSwitcher({
       addRecent(modelId);
       onSelectModel(modelId);
       onOpenChange(false);
+
+      // Track model selection
+      analytics.track("model_selected", {
+        model: modelId,
+        previousModel: currentModel,
+        source: "quick_switcher",
+      });
+
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("focus-chat-input"));
       }, 0);
@@ -106,6 +123,12 @@ export function QuickModelSwitcher({
   const handleConfirm = () => {
     onSelectedModelsChange?.(internalSelected);
     onOpenChange(false);
+
+    // Track comparison models selection
+    analytics.track("comparison_models_selected", {
+      modelCount: internalSelected.length,
+      models: internalSelected.join(","),
+    });
   };
 
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {

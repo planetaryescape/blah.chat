@@ -13,6 +13,7 @@ import {
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
+import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { ComparisonPanel } from "./ComparisonPanel";
 import { ConsolidateDialog } from "./ConsolidateDialog";
@@ -94,11 +95,27 @@ export function ComparisonView({
       rating = "left_better"; // Placeholder - winner concept
     }
     onVote(winnerId, rating);
+
+    // Track comparison vote
+    const winnerMessage = sortedMessages.find((m) => m._id === winnerId);
+    analytics.track("comparison_voted", {
+      rating,
+      winnerModel: winnerMessage?.model,
+      modelCount: sortedMessages.length,
+      comparisonGroupId,
+    });
   };
 
   const handleConsolidate = (model: string, mode: ConsolidationMode) => {
     setShowConsolidateDialog(false);
     onConsolidate(model, mode);
+
+    // Track consolidation
+    analytics.track("consolidation_created", {
+      mode,
+      model,
+      modelCount: sortedMessages.length,
+    });
   };
 
   // Mobile: Tabs

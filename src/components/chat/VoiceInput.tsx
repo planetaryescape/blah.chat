@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { analytics } from "@/lib/analytics";
 
 interface VoiceInputProps {
   onTranscript: (text: string, autoSend: boolean) => void;
@@ -34,6 +35,7 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     const streamRef = useRef<MediaStream | null>(null);
     const stopModeRef = useRef<"preview" | "send" | null>(null);
 
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const user = useQuery(api.users.getCurrentUser as any);
     const transcribeAudio = useAction(api.transcription.transcribeAudio);
 
@@ -72,6 +74,11 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
             type: "audio/webm",
           });
 
+          // Track recording stopped
+          analytics.track("voice_recording_stopped", {
+            durationMs: audioBlob.size / 16,
+          });
+
           // Convert to base64
           const reader = new FileReader();
           reader.onloadend = async () => {
@@ -85,6 +92,11 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
 
               const autoSend = stopModeRef.current === "send";
               onTranscript(transcript, autoSend);
+
+              // Track successful transcription
+              analytics.track("transcription_completed", {
+                autoSendUsed: autoSend,
+              });
             } catch (error) {
               console.error("Transcription failed:", error);
               toast.error(
@@ -105,6 +117,9 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         mediaRecorderRef.current = recorder;
         setIsRecording(true);
         onRecordingStateChange?.(true, stream);
+
+        // Track recording started
+        analytics.track("voice_recording_started");
       } catch (error) {
         console.error("MediaRecorder failed:", error);
         toast.error("Microphone access denied");

@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -75,6 +75,7 @@ export const ChatMessage = memo(
     const isError = message.status === "error";
 
     // Mutations for keyboard shortcuts
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
     const regenerate = useMutation(api.chat.regenerate);
     const deleteMsg = useMutation(api.chat.deleteMessage);
     const createBookmark = useMutation(api.bookmarks.create);

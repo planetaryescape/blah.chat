@@ -1,3 +1,5 @@
+"use node";
+
 import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
@@ -12,11 +14,18 @@ import {
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, action, internalAction } from "./_generated/server";
+import { trackServerEvent } from "./lib/analytics";
+import {
+  captureException,
+  classifyStreamingError,
+  estimateWastedCost,
+} from "./lib/errorTracking";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import {
+  createMemoryDeleteTool,
   createMemorySaveTool,
   createMemorySearchTool,
 } from "./ai/tools/memories";
@@ -98,15 +107,14 @@ async function buildSystemPrompts(
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)
-  const [user, conversation]: [
-    Doc<"users"> | null,
-    Doc<"conversations"> | null,
-  ] = await Promise.all([
+  const [user, conversation] = await Promise.all([
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     ctx.runQuery(internal.lib.helpers.getCurrentUser, {}),
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     ctx.runQuery(internal.lib.helpers.getConversation, {
       id: args.conversationId,
     }),
-  ]);
+  ]) as [Doc<"users"> | null, Doc<"conversations"> | null];
 
   // 1. User custom instructions (highest priority)
   if (user?.preferences?.customInstructions?.enabled) {
@@ -372,6 +380,14 @@ export const generateResponse = internalAction({
     let firstTokenTime: number | undefined;
 
     try {
+      // Check message status to detect resilient generation (resumed after refresh)
+      const message = await ctx.runQuery(internal.messages.get, {
+        messageId: args.assistantMessageId,
+      });
+      const wasAlreadyGenerating = message?.status === "generating";
+      const isResumedAfterRefresh =
+        wasAlreadyGenerating && message?.partialContent;
+
       // 1. Mark generation started
       await ctx.runMutation(internal.messages.updatePartialContent, {
         messageId: args.assistantMessageId,
@@ -384,6 +400,30 @@ export const generateResponse = internalAction({
         status: "generating",
         generationStartedAt: generationStartTime,
       });
+
+      // Track streaming started or resumed
+      if (isResumedAfterRefresh) {
+        await trackServerEvent(
+          "generation_resumed_after_refresh",
+          {
+            model: args.modelId,
+            messageId: args.assistantMessageId,
+            conversationId: args.conversationId,
+            partialContentLength: message.partialContent?.length || 0,
+          },
+          args.userId,
+        );
+      } else {
+        await trackServerEvent(
+          "message_streaming_started",
+          {
+            model: args.modelId,
+            messageId: args.assistantMessageId,
+            conversationId: args.conversationId,
+          },
+          args.userId,
+        );
+      }
 
       // 2. Get conversation history
       const messages = await ctx.runQuery(internal.messages.listInternal, {
@@ -610,6 +650,7 @@ export const generateResponse = internalAction({
       if (hasFunctionCalling) {
         const memorySearchTool = createMemorySearchTool(ctx, args.userId);
         const memorySaveTool = createMemorySaveTool(ctx, args.userId);
+        const memoryDeleteTool = createMemoryDeleteTool(ctx, args.userId);
         const calculatorTool = createCalculatorTool();
         const dateTimeTool = createDateTimeTool();
         const webSearchTool = createWebSearchTool(ctx);
@@ -630,6 +671,7 @@ export const generateResponse = internalAction({
         options.tools = {
           searchMemories: memorySearchTool,
           saveMemory: memorySaveTool,
+          deleteMemory: memoryDeleteTool,
           calculator: calculatorTool,
           datetime: dateTimeTool,
           webSearch: webSearchTool,
@@ -907,6 +949,24 @@ export const generateResponse = internalAction({
         providerMetadata,
       });
 
+      // Track streaming completed with performance metrics
+      const generationTimeMs = Date.now() - generationStartTime;
+      const firstTokenLatencyMs = firstTokenTime
+        ? firstTokenTime - generationStartTime
+        : undefined;
+
+      await trackServerEvent(
+        "message_streaming_completed",
+        {
+          model: args.modelId,
+          messageId: args.assistantMessageId,
+          tokensPerSecond,
+          generationTimeMs,
+          firstTokenLatencyMs,
+        },
+        args.userId,
+      );
+
       // Trigger OpenGraph enrichment for sources (background job)
       if (sources && sources.length > 0) {
         await ctx.scheduler.runAfter(
@@ -971,8 +1031,37 @@ export const generateResponse = internalAction({
     } catch (error) {
       console.error("[Generation] Error:", error);
 
-      // Detect "out of credits" errors and send email alert
+      // Classify error type for AI-specific tracking
+      const errorType =
+        error instanceof Error ? classifyStreamingError(error) : "unknown";
       const isCreditsError = detectCreditsError(error);
+
+      // Calculate wasted cost if streaming failed mid-generation
+      const modelConfig = getModelConfig(args.modelId);
+      const wastedCost =
+        firstTokenTime && modelConfig?.pricing
+          ? estimateWastedCost(0, {
+              input: modelConfig.pricing.input,
+              output: modelConfig.pricing.output,
+            })
+          : 0;
+
+      // Comprehensive error tracking with AI-specific context
+      await captureException(
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          userId: args.userId,
+          conversationId: args.conversationId,
+          messageId: args.assistantMessageId,
+          model: args.modelId,
+          errorType,
+          context: "ai_generation",
+          severity: isCreditsError ? "error" : "warning",
+          wastedCost,
+          generationStartTime,
+          firstTokenTime,
+        },
+      );
 
       if (isCreditsError) {
         // Send immediate email alert (non-blocking)

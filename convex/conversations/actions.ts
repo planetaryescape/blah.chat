@@ -4,6 +4,7 @@ import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
@@ -24,19 +25,18 @@ export const bulkAutoRename = action({
       const batchPromises = batch.map(async (conversationId: any) => {
         try {
           // 1. Get messages to find context
-          // FIXME: Convex runQuery type inference causes "excessively deep" error with internal queries
-          // biome-ignore lint/suspicious/noExplicitAny: Complex Convex type inference issues
-          const messages = await (ctx.runQuery as any)(
-            // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-            internal.messages.listInternal,
+          const messages = await (ctx.runQuery as (
+            ref: any,
+            args: any,
+          ) => Promise<Doc<"messages">[]>)(
+            internal.messages.listInternal as any,
             {
               conversationId,
             },
           );
 
           // Find first user message
-          // biome-ignore lint/suspicious/noExplicitAny: Complex Convex type inference issues
-          const userMessage = messages.find((m: any) => m.role === "user");
+          const userMessage = messages.find((m) => m.role === "user");
 
           if (!userMessage) {
             return {

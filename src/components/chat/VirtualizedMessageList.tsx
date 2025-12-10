@@ -6,6 +6,8 @@ import { ArrowDown } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { cn } from "@/lib/utils";
+import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
@@ -21,6 +23,7 @@ interface VirtualizedMessageListProps {
   showModelNames: boolean;
   highlightMessageId?: string;
   syncScroll?: boolean;
+  chatWidth?: ChatWidth;
 }
 
 export function VirtualizedMessageList({
@@ -31,6 +34,7 @@ export function VirtualizedMessageList({
   onConsolidate,
   onToggleModelNames,
   showModelNames,
+  chatWidth,
   highlightMessageId,
   syncScroll = true,
 }: VirtualizedMessageListProps) {
@@ -230,7 +234,18 @@ export function VirtualizedMessageList({
             scrollPaddingTop: "80px",
           }}
         >
-          <div className="w-full max-w-4xl mx-auto p-4 space-y-4">
+          <div
+            className={cn(
+              "grid gap-4 p-4 transition-all duration-300 ease-out",
+              // Grid columns based on width preference
+              chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
+              chatWidth === "standard" &&
+                "grid-cols-[1fr_min(56rem,100%)_1fr]",
+              chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
+              chatWidth === "full" && "grid-cols-[1fr_min(95%,100%)_1fr]",
+              !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]", // fallback
+            )}
+          >
             <AnimatePresence mode="popLayout">
               {grouped.map((item, index) => {
                 if (item.type === "message") {
@@ -241,6 +256,7 @@ export function VirtualizedMessageList({
                   return (
                     <motion.div
                       key={item.data._id}
+                      className="col-start-2"
                       layout
                       transition={{
                         type: "spring",
@@ -260,6 +276,7 @@ export function VirtualizedMessageList({
                     <Fragment key={item.id}>
                       <motion.div
                         key={item.userMessage._id}
+                        className="col-start-2"
                         layout
                         transition={{
                           type: "spring",
@@ -271,6 +288,7 @@ export function VirtualizedMessageList({
                       </motion.div>
                       <motion.div
                         key={`comparison-${item.id}`}
+                        className="col-span-full"
                         layout
                         transition={{
                           type: "spring",
@@ -348,23 +366,38 @@ export function VirtualizedMessageList({
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
               >
-                <div className="w-full max-w-4xl mx-auto px-4 py-2">
+                <div
+                  className={cn(
+                    "grid gap-2 px-4 py-2 transition-all duration-300 ease-out",
+                    chatWidth === "narrow" &&
+                      "grid-cols-[1fr_min(42rem,100%)_1fr]",
+                    chatWidth === "standard" &&
+                      "grid-cols-[1fr_min(56rem,100%)_1fr]",
+                    chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
+                    chatWidth === "full" && "grid-cols-[1fr_min(95%,100%)_1fr]",
+                    !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+                  )}
+                >
                   {isMessage ? (
-                    <ChatMessage
-                      message={item.data}
-                      nextMessage={(() => {
-                        if (virtualItem.index + 1 >= grouped.length)
-                          return undefined;
-                        const nextItem = grouped[virtualItem.index + 1];
-                        return nextItem.type === "message"
-                          ? nextItem.data
-                          : undefined;
-                      })()}
-                    />
+                    <div className="col-start-2">
+                      <ChatMessage
+                        message={item.data}
+                        nextMessage={(() => {
+                          if (virtualItem.index + 1 >= grouped.length)
+                            return undefined;
+                          const nextItem = grouped[virtualItem.index + 1];
+                          return nextItem.type === "message"
+                            ? nextItem.data
+                            : undefined;
+                        })()}
+                      />
+                    </div>
                   ) : (
                     <>
-                      <ChatMessage message={item.userMessage} />
-                      <div className="mt-4">
+                      <div className="col-start-2">
+                        <ChatMessage message={item.userMessage} />
+                      </div>
+                      <div className="col-span-full mt-4">
                         <ComparisonView
                           assistantMessages={item.assistantMessages}
                           comparisonGroupId={item.id}

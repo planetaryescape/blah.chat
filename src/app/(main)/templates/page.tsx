@@ -20,6 +20,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 
 // ... imports
 
@@ -28,9 +29,8 @@ export default function TemplatesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasSeeded, setHasSeeded] = useState(false);
 
-  // FIXME: Convex useQuery type inference excessively deep - intentionally ignored, do not remove @ts-expect-error
-  const templates = useQuery(
-    // FIXME: Convex API type inference excessively deep - intentionally ignored, do not remove @ts-expect-error
+  // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+  const templates: Doc<"templates">[] | undefined = useQuery(
     api.templates.list,
     selectedCategory === "all" ? {} : { category: selectedCategory },
   );

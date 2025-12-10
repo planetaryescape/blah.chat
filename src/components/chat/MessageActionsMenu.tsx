@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
 
 interface MessageActionsMenuProps {
   message: Doc<"messages">;
@@ -24,11 +25,18 @@ interface MessageActionsMenuProps {
 }
 
 export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMsg = useMutation(api.chat.deleteMessage);
 
   const handleDelete = async () => {
     try {
       await deleteMsg({ messageId: message._id });
+
+      // Track message deletion
+      analytics.track("message_deleted", {
+        messageId: message._id,
+        conversationId: message.conversationId,
+      });
     } catch (error) {
       console.error("Failed to delete:", error);
     }

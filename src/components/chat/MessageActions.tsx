@@ -41,6 +41,7 @@ export function MessageActions({
   const [copied, setCopied] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
   const router = useRouter();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser as any);
   const retryMessage = useMutation(api.chat.retryMessage);
   const stop = useMutation(api.chat.stopGeneration);

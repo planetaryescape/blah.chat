@@ -15,10 +15,15 @@ export function useConversationActions(
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMutation = useMutation(api.conversations.deleteConversation);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const archiveMutation = useMutation(api.conversations.archive);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const togglePinMutation = useMutation(api.conversations.togglePin);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const toggleStarMutation = useMutation(api.conversations.toggleStar);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
   const handleDelete = async () => {

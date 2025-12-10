@@ -9,6 +9,7 @@ import { api } from "../../convex/_generated/api";
 export function useKeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConversation = useMutation(api.conversations.create);
   const { filteredConversations } = useConversationContext();
   const { newChatModel } = useNewChatModel();

@@ -1,8 +1,24 @@
+"use node";
+
 import Anthropic from "@anthropic-ai/sdk";
-import { encoding_for_model, type TiktokenModel } from "@dqbd/tiktoken";
+import type { TiktokenModel } from "@dqbd/tiktoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { CoreMessage } from "ai";
 import { estimateTokens } from "./counting";
+
+// Lazy import tiktoken to avoid WASM initialization errors
+let encoding_for_model: any = null;
+async function getTiktokenEncoder() {
+  if (!encoding_for_model) {
+    try {
+      const tiktoken = await import("@dqbd/tiktoken");
+      encoding_for_model = tiktoken.encoding_for_model;
+    } catch {
+      encoding_for_model = false; // Mark as unavailable
+    }
+  }
+  return encoding_for_model;
+}
 
 /**
  * Token counting service interface
@@ -47,7 +63,10 @@ class OpenAITokenCounter implements TokenCountService {
         tiktokenModel = "gpt-4o";
       }
 
-      const encoder = encoding_for_model(tiktokenModel);
+      const encoderFn = await getTiktokenEncoder();
+      if (!encoderFn) throw new Error("Tiktoken unavailable");
+
+      const encoder = encoderFn(tiktokenModel);
       const tokens = encoder.encode(text);
       const count = tokens.length;
       encoder.free();

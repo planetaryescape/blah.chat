@@ -39,6 +39,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const existingShare = useQuery(api.shares.getByConversation, {
     conversationId,
   });
@@ -66,7 +67,9 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
 
       analytics.track("conversation_shared", {
         hasPassword: !!password,
+        hasExpiry: !!expiresIn,
         expiresIn,
+        anonymizeEnabled: anonymize,
       });
     } catch (error) {
       console.error("Failed to create share:", error);

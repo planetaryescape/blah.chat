@@ -1,8 +1,12 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { ChatWidth } from "@/lib/utils/chatWidth";
 import {
   Archive,
   Edit,
+  Maximize2,
   MoreHorizontal,
   Pin,
   Sparkles,
@@ -10,12 +14,19 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -38,6 +49,23 @@ export function ConversationHeaderMenu({
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
+
+  const user = useQuery(api.users.getCurrentUser);
+  const updatePreferences = useMutation(api.users.updatePreferences);
+
+  const currentWidth =
+    (user?.preferences?.chatWidth as ChatWidth) || "standard";
+
+  const handleWidthChange = async (width: ChatWidth) => {
+    try {
+      await updatePreferences({
+        preferences: { chatWidth: width },
+      });
+      toast.success("Chat width updated");
+    } catch (error) {
+      toast.error("Failed to update width");
+    }
+  };
 
   return (
     <>
@@ -106,6 +134,35 @@ export function ConversationHeaderMenu({
             <Sparkles className="mr-2 h-4 w-4" />
             Auto-rename
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Maximize2 className="mr-2 h-4 w-4" />
+              Chat Width
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuLabel>Layout Width</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={currentWidth}
+                onValueChange={(value) => handleWidthChange(value as ChatWidth)}
+              >
+                <DropdownMenuRadioItem value="narrow">
+                  Narrow (672px)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="standard">
+                  Standard (896px)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="wide">
+                  Wide (1152px)
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="full">
+                  Full Width (95%)
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
 
           <DropdownMenuSeparator />
 

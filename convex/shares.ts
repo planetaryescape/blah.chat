@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import {
   action,
   internalMutation,
@@ -23,8 +24,10 @@ export const create = action({
     if (!identity) throw new Error("Unauthorized");
 
     // Get user from DB
-    // biome-ignore lint/suspicious/noExplicitAny: Convex context and query types
-    const user: any = await (ctx.runQuery as any)(
+    const user = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"users"> | null>)(
       internal.shares.getUserInternal,
       {
         clerkId: identity.subject,

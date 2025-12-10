@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { FEEDBACK_TRIAGE_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
 
 // ============================================================================
@@ -51,8 +52,10 @@ export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
-    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-    const feedback: Doc<"feedback"> | null = await ctx.runQuery(
+    const feedback = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"feedback"> | null>)(
       internal.lib.helpers.getFeedback,
       {
         feedbackId,

@@ -5,6 +5,7 @@ import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TAG_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
 import { buildTagExtractionPrompt } from "../lib/prompts/operational/tagExtraction";
 
@@ -16,9 +17,11 @@ export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     // Get note content
-    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-    const note: Doc<"notes"> | null = await ctx.runQuery(
-      internal.lib.helpers.getNote,
+    const note = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"notes"> | null>)(
+      internal.lib.helpers.getNote as any,
       { noteId },
     );
     if (!note) throw new Error("Note not found");

@@ -84,13 +84,13 @@ export const generateTitle = internalAction({
   handler: async (ctx, args) => {
     try {
       // Get all messages in conversation
-      const messages: Doc<"messages">[] = await ctx.runQuery(
-        // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+      const messages = ((await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.lib.helpers.getConversationMessages,
         {
           conversationId: args.conversationId,
         },
-      );
+      )) as Doc<"messages">[]);
 
       // Apply smart truncation
       const truncated = truncateMessages(messages, 16000);

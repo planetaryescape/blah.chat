@@ -97,16 +97,14 @@ async function buildSystemPrompts(
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)
-  // @ts-expect-error
-  const userPromise = ctx.runQuery(api.users.getCurrentUser, {});
-  // @ts-expect-error
-  const conversationPromise = ctx.runQuery(internal.conversations.getInternal, {
-    id: args.conversationId,
-  });
-
-  const [user, conversation] = await Promise.all([
-    userPromise,
-    conversationPromise,
+  const [user, conversation]: [
+    Doc<"users"> | null,
+    Doc<"conversations"> | null,
+  ] = await Promise.all([
+    ctx.runQuery(internal.lib.helpers.getCurrentUser, {}),
+    ctx.runQuery(internal.lib.helpers.getConversation, {
+      id: args.conversationId,
+    }),
   ]);
 
   // 1. User custom instructions (highest priority)
@@ -177,9 +175,12 @@ async function buildSystemPrompts(
 
   // 2. Project context (if conversation is in a project)
   if (conversation?.projectId) {
-    const project = await ctx.runQuery(internal.projects.getInternal, {
-      id: conversation.projectId,
-    });
+    const project: Doc<"projects"> | null = await ctx.runQuery(
+      internal.lib.helpers.getProject,
+      {
+        id: conversation.projectId,
+      },
+    );
     if (project?.systemPrompt) {
       systemMessages.push({
         role: "system",
@@ -970,7 +971,7 @@ export const generateResponse = internalAction({
         // Send immediate email alert (non-blocking)
         await ctx.scheduler.runAfter(
           0,
-          internal.lib.email.sendApiCreditsAlert,
+          internal.emails.utils.send.sendApiCreditsAlert,
           {
             errorMessage:
               error instanceof Error ? error.message : String(error),

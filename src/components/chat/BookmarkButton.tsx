@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { analytics } from "@/lib/analytics";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -43,6 +44,11 @@ export function BookmarkButton({
       try {
         await removeBookmark({ bookmarkId: existingBookmark._id });
         toast.success("Bookmark removed");
+
+        // Track bookmark deletion
+        analytics.track("bookmark_deleted", {
+          source: "message",
+        });
       } catch (_error) {
         toast.error("Failed to remove bookmark");
       }
@@ -53,21 +59,36 @@ export function BookmarkButton({
 
   const handleSaveBookmark = async () => {
     try {
+      const tagList = tags ? tags.split(",").map((t: any) => t.trim()) : undefined;
+
       if (isBookmarked && existingBookmark) {
         await updateBookmark({
           bookmarkId: existingBookmark._id,
           note: note || undefined,
-          tags: tags ? tags.split(",").map((t: any) => t.trim()) : undefined,
+          tags: tagList,
         });
         toast.success("Bookmark updated");
+
+        // Track bookmark update
+        analytics.track("bookmark_updated", {
+          hasNote: !!note,
+          tagCount: tagList?.length || 0,
+        });
       } else {
         await createBookmark({
           messageId,
           conversationId,
           note: note || undefined,
-          tags: tags ? tags.split(",").map((t: any) => t.trim()) : undefined,
+          tags: tagList,
         });
         toast.success("Bookmark created");
+
+        // Track bookmark creation
+        analytics.track("bookmark_created", {
+          source: "message",
+          hasNote: !!note,
+          tagCount: tagList?.length || 0,
+        });
       }
       setShowDialog(false);
       setNote("");

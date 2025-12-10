@@ -1,8 +1,10 @@
-import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MEMORY_RERANK_MODEL } from "../../src/lib/ai/operational-models";
+import {
+  EMBEDDING_MODEL,
+  MEMORY_RERANK_MODEL,
+} from "../../src/lib/ai/operational-models";
 import { getModel } from "../../src/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
@@ -221,7 +223,7 @@ export const hybridSearch = internalAction({
     try {
       // 1. Generate embedding for vector search
       const { embedding } = await embed({
-        model: openai.embedding("text-embedding-3-small"),
+        model: EMBEDDING_MODEL,
         value: args.query,
       });
 

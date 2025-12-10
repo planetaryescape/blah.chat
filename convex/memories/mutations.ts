@@ -1,6 +1,6 @@
-import { openai } from "@ai-sdk/openai";
 import { embedMany } from "ai";
 import { v } from "convex/values";
+import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
 import { mutation } from "../_generated/server";
 
 export const updateMemory = mutation({
@@ -33,7 +33,7 @@ export const updateMemory = mutation({
 
     // Generate new embedding for updated content
     const embeddingResult = await embedMany({
-      model: openai.embedding("text-embedding-3-small"),
+      model: EMBEDDING_MODEL,
       values: [args.content],
     });
 

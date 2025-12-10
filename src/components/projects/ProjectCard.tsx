@@ -29,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { analytics } from "@/lib/analytics";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { BulkConversationAssigner } from "./BulkConversationAssigner";
@@ -51,12 +52,18 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteProject = useMutation(api.projects.deleteProject);
 
   const handleDelete = async () => {
     try {
       await deleteProject({ id: project._id });
       toast.success("Project deleted");
+
+      // Track project deletion
+      analytics.track("project_deleted", {
+        conversationCount: project.conversationIds?.length || 0,
+      });
     } catch (error) {
       toast.error("Failed to delete project");
       console.error(error);

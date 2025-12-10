@@ -54,14 +54,18 @@ IMPORTANT: Rephrase content to third-person before saving:
     execute: async (input) => {
       const { content, category, reasoning } = input;
       try {
-        const result: { success: boolean; memoryId?: string } =
-          // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-          await ctx.runAction(internal.memories.save.saveFromTool, {
+        const result = await (ctx.runAction as (
+          ref: any,
+          args: any,
+        ) => Promise<{ success: boolean; memoryId?: string }>)(
+          internal.memories.save.saveFromTool,
+          {
             userId,
             content,
             category,
             reasoning,
-          });
+          },
+        );
 
         return result;
       } catch (error) {

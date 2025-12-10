@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  // Source maps for error tracking (PostHog)
+  // NOTE: Upload to PostHog with: bunx @posthog/plugin-source-maps upload
+  // Then delete from public build for security
+  productionBrowserSourceMaps: true,
 };
 
 export default withBundleAnalyzer(nextConfig);

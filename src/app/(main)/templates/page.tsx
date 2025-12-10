@@ -35,6 +35,7 @@ export default function TemplatesPage() {
     selectedCategory === "all" ? {} : { category: selectedCategory },
   );
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const seedBuiltIn = useMutation(api.templates.builtIn.seedBuiltInTemplates);
 
   useEffect(() => {

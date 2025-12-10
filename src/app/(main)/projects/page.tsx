@@ -20,6 +20,7 @@ import { api } from "@/convex/_generated/api";
 // ... imports
 
 export default function ProjectsPage() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const projects = useQuery(api.projects.list);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 

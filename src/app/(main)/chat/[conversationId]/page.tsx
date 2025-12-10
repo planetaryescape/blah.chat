@@ -42,6 +42,7 @@ import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
+import type { ChatWidth } from "@/lib/utils/chatWidth";
 
 function ChatPageContent({
   params,
@@ -56,15 +57,22 @@ function ChatPageContent({
 
   const { filteredConversations } = useConversationContext();
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const messages = useQuery(
     api.messages.list,
     conversationId ? { conversationId } : "skip",
   );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+
+  // Extract chat width preference
+  const chatWidth =
+    (user?.preferences?.chatWidth as ChatWidth | undefined) || "standard";
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     // Initialize with conversation model if valid, else user preference if valid, else default
@@ -133,13 +141,17 @@ function ChatPageContent({
     useComparisonMode();
   const { isMobile, isTouchDevice } = useMobileDetect();
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const recordVote = useMutation(api.votes.recordVote);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConsolidation = useMutation(
     api.conversations.createConsolidationConversation,
   );
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const consolidateInPlace = useMutation(
     api.conversations.consolidateInSameChat,
   );
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);
 
   const handleModelChange = useCallback(
@@ -375,6 +387,7 @@ function ChatPageContent({
           <VirtualizedMessageList
             messages={messages}
             selectedModel={selectedModel}
+            chatWidth={chatWidth}
             onVote={handleVote}
             onConsolidate={handleConsolidate}
             onToggleModelNames={() => setShowModelNames(!showModelNames)}
@@ -392,6 +405,7 @@ function ChatPageContent({
           />
           <ChatInput
             conversationId={conversationId}
+            chatWidth={chatWidth}
             isGenerating={isGenerating}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}

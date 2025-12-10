@@ -2,6 +2,8 @@
 
 import { Component, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { analytics } from "@/lib/analytics";
+import { classifyErrorSeverity, extractErrorContext } from "@/lib/errorUtils";
 
 interface Props {
   children: ReactNode;
@@ -25,7 +27,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught error:", error, errorInfo);
-    // TODO: Track to PostHog when analytics is integrated
+
+    // Track error to PostHog
+    try {
+      const severity = classifyErrorSeverity(error, "react_render");
+      const context = extractErrorContext(error, errorInfo);
+
+      analytics.captureException(error, {
+        severity,
+        componentStack: errorInfo.componentStack ?? undefined,
+        context: "react_render",
+        ...context,
+      });
+    } catch (trackingError) {
+      console.error("Failed to track error to PostHog:", trackingError);
+    }
   }
 
   render() {

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -80,8 +81,11 @@ export const ChatMessage = memo(
     const deleteMsg = useMutation(api.chat.deleteMessage);
     const createBookmark = useMutation(api.bookmarks.create);
 
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const user = useQuery(api.users.getCurrentUser);
     const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
+    const showStats = user?.preferences?.showMessageStatistics ?? true;
+    const features = useFeatureToggles();
 
     // Query for original responses if this is a consolidated message
     const originalResponses = useQuery(
@@ -108,9 +112,14 @@ export const ChatMessage = memo(
         : null;
     const isCached = ttft !== null && isCachedResponse(ttft);
 
+    // Phase 1: Fetch attachments from new table (dual-read)
+    const attachments = useQuery(api.messages.getAttachments, {
+      messageId: message._id,
+    });
+
     // Fetch URLs for attachments
     const attachmentStorageIds =
-      message.attachments?.map((a: any) => a.storageId) || [];
+      attachments?.map((a: any) => a.storageId) || [];
     const attachmentUrls = useQuery(
       api.files.getAttachmentUrls,
       attachmentStorageIds.length > 0
@@ -124,6 +133,16 @@ export const ChatMessage = memo(
         .filter((pair: any): pair is [string, string] => pair[1] !== null) ||
         [],
     );
+
+    // Phase 1: Fetch tool calls from new table (dual-read)
+    const allToolCalls = useQuery(api.messages.getToolCalls, {
+      messageId: message._id,
+      includePartial: true,
+    });
+
+    // Split into complete and partial for backward compatibility
+    const toolCalls = allToolCalls?.filter((tc: any) => !tc.isPartial);
+    const partialToolCalls = allToolCalls?.filter((tc: any) => tc.isPartial);
 
     // Keyboard shortcuts for focused messages
     useEffect(() => {
@@ -306,12 +325,12 @@ export const ChatMessage = memo(
 
               {/* Inline tool calls and content - renders tool calls at their positions */}
               {displayContent ||
-              message.toolCalls?.length ||
-              message.partialToolCalls?.length ? (
+              toolCalls?.length ||
+              partialToolCalls?.length ? (
                 <InlineToolCallContent
                   content={displayContent || ""}
-                  toolCalls={message.toolCalls}
-                  partialToolCalls={message.partialToolCalls}
+                  toolCalls={toolCalls}
+                  partialToolCalls={partialToolCalls}
                   isStreaming={isGenerating}
                 />
               ) : isGenerating ? (
@@ -338,21 +357,14 @@ export const ChatMessage = memo(
                 )
               ) : null}
 
-              {/* Source citations */}
-              {message.sources && message.sources.length > 0 && (
-                <SourceList sources={message.sources} />
-              )}
+              {/* Source citations (Phase 2: from normalized tables) */}
+              <SourceList messageId={message._id} />
 
-              {message.attachments &&
-                message.attachments.length > 0 &&
-                urlMap.size > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/10">
-                    <AttachmentRenderer
-                      attachments={message.attachments}
-                      urls={urlMap}
-                    />
-                  </div>
-                )}
+              {attachments && attachments.length > 0 && urlMap.size > 0 && (
+                <div className="mt-3 pt-3 border-t border-border/10">
+                  <AttachmentRenderer attachments={attachments} urls={urlMap} />
+                </div>
+              )}
 
               {/* Toggle for consolidated messages */}
               {message.isConsolidation &&
@@ -399,7 +411,7 @@ export const ChatMessage = memo(
                   message.status === "generating") &&
                 modelName && (
                   <div className="absolute -bottom-7 left-4 flex items-center gap-2 transition-opacity duration-300">
-                    {/* Model name */}
+                    {/* Model name - ALWAYS visible */}
                     <Badge
                       variant="outline"
                       className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
@@ -407,127 +419,136 @@ export const ChatMessage = memo(
                       {modelName}
                     </Badge>
 
-                    {/* TTFT badge */}
-                    {ttft !== null && (
-                      <TooltipProvider>
-                        {isCached ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                              >
-                                <Zap className="w-3 h-3 mr-1" />
-                                cached
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs">
-                                <div className="font-semibold">
-                                  Cached Response
-                                </div>
-                                <div className="text-muted-foreground">
-                                  Served instantly from cache
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
-                                  message.status === "generating" &&
-                                    "animate-pulse",
-                                )}
-                              >
-                                TTFT: {formatTTFT(ttft)}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs">
-                                <div className="font-semibold">
-                                  Time to First Token
-                                </div>
-                                <div className="text-muted-foreground">
-                                  {message.status === "generating"
-                                    ? "AI started responding"
-                                    : "How long until AI started responding"}
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
+                    {/* Statistics - conditional based on user preference */}
+                    {showStats && (
+                      <>
+                        {/* TTFT badge */}
+                        {ttft !== null && (
+                          <TooltipProvider>
+                            {isCached ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                                  >
+                                    <Zap className="w-3 h-3 mr-1" />
+                                    cached
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-xs">
+                                    <div className="font-semibold">
+                                      Cached Response
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                      Served instantly from cache
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
+                                      message.status === "generating" &&
+                                        "animate-pulse",
+                                    )}
+                                  >
+                                    TTFT: {formatTTFT(ttft)}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-xs">
+                                    <div className="font-semibold">
+                                      Time to First Token
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                      {message.status === "generating"
+                                        ? "AI started responding"
+                                        : "How long until AI started responding"}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </TooltipProvider>
                         )}
-                      </TooltipProvider>
-                    )}
 
-                    {/* TPS badge (completed only) */}
-                    {message.tokensPerSecond &&
-                      message.status === "complete" && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                              >
-                                TPS: {Math.round(message.tokensPerSecond)} t/s
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs">
-                                <div className="font-semibold">
-                                  Tokens Per Second
-                                </div>
-                                <div className="text-muted-foreground">
-                                  Generation speed:{" "}
-                                  {Math.round(message.tokensPerSecond)}{" "}
-                                  tokens/sec
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
+                        {/* TPS badge (completed only) */}
+                        {message.tokensPerSecond &&
+                          message.status === "complete" && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                                  >
+                                    TPS: {Math.round(message.tokensPerSecond)}{" "}
+                                    t/s
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-xs">
+                                    <div className="font-semibold">
+                                      Tokens Per Second
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                      Generation speed:{" "}
+                                      {Math.round(message.tokensPerSecond)}{" "}
+                                      tokens/sec
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
 
-                    {/* Token count badge */}
-                    {(message.inputTokens !== undefined ||
-                      message.outputTokens !== undefined) && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                            >
-                              {message.inputTokens || 0}/
-                              {message.outputTokens || 0}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-xs">
-                              <div className="font-semibold">Token Count</div>
-                              <div className="text-muted-foreground">
-                                Input:{" "}
-                                {message.inputTokens?.toLocaleString() || 0}
-                              </div>
-                              <div className="text-muted-foreground">
-                                Output:{" "}
-                                {message.outputTokens?.toLocaleString() || 0}
-                              </div>
-                              <div className="text-muted-foreground font-semibold mt-1">
-                                Total:{" "}
-                                {(
-                                  (message.inputTokens || 0) +
-                                  (message.outputTokens || 0)
-                                ).toLocaleString()}
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                        {/* Token count badge */}
+                        {(message.inputTokens !== undefined ||
+                          message.outputTokens !== undefined) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                                >
+                                  {message.inputTokens || 0}/
+                                  {message.outputTokens || 0}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs">
+                                  <div className="font-semibold">
+                                    Token Count
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    Input:{" "}
+                                    {message.inputTokens?.toLocaleString() || 0}
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    Output:{" "}
+                                    {message.outputTokens?.toLocaleString() ||
+                                      0}
+                                  </div>
+                                  <div className="text-muted-foreground font-semibold mt-1">
+                                    Total:{" "}
+                                    {(
+                                      (message.inputTokens || 0) +
+                                      (message.outputTokens || 0)
+                                    ).toLocaleString()}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -564,7 +585,9 @@ export const ChatMessage = memo(
 
               {/* Branch indicator */}
               {!readOnly && <MessageBranchIndicator messageId={message._id} />}
-              {!readOnly && <MessageNotesIndicator messageId={message._id} />}
+              {!readOnly && features.showNotes && (
+                <MessageNotesIndicator messageId={message._id} />
+              )}
 
               {!isGenerating && (
                 <div
@@ -595,8 +618,6 @@ export const ChatMessage = memo(
       prev.message._id === next.message._id &&
       prev.message.partialContent === next.message.partialContent &&
       prev.message.status === next.message.status &&
-      prev.message.toolCalls === next.message.toolCalls &&
-      prev.message.partialToolCalls === next.message.partialToolCalls &&
       prev.nextMessage?.status === next.nextMessage?.status
     );
   },

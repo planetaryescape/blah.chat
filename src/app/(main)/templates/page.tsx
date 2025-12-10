@@ -19,17 +19,28 @@ import { useMutation, useQuery } from "convex/react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 // ... imports
 
 export default function TemplatesPage() {
+  const features = useFeatureToggles();
+
+  // Route guard: show disabled page if templates feature is off
+  if (!features.showTemplates) {
+    return (
+      <DisabledFeaturePage featureName="Templates" settingKey="showTemplates" />
+    );
+  }
+
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasSeeded, setHasSeeded] = useState(false);
 
-  // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const templates: Doc<"templates">[] | undefined = useQuery(
     api.templates.list,
     selectedCategory === "all" ? {} : { category: selectedCategory },

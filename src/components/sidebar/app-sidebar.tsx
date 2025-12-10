@@ -49,22 +49,24 @@ import {
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
+import { useNewChat } from "@/hooks/useNewChat";
 import { cn } from "@/lib/utils";
 import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { ConversationList } from "./ConversationList";
 
 const MENU_ITEMS = [
-  { icon: Search, label: "Search", href: "/search" },
-  { icon: NotebookPen, label: "Notes", href: "/notes" },
-  { icon: Brain, label: "Memories", href: "/memories" },
-  { icon: FolderKanban, label: "Projects", href: "/projects" },
-  { icon: FileText, label: "Templates", href: "/templates" },
-  { icon: BarChart3, label: "Usage", href: "/usage" },
-  { icon: Bookmark, label: "Bookmarks", href: "/bookmarks" },
-  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts" },
-  { icon: Settings, label: "Settings", href: "/settings" },
+  { icon: Search, label: "Search", href: "/search", featureKey: null },
+  { icon: NotebookPen, label: "Notes", href: "/notes", featureKey: "showNotes" as const },
+  { icon: Brain, label: "Memories", href: "/memories", featureKey: null },
+  { icon: FolderKanban, label: "Projects", href: "/projects", featureKey: "showProjects" as const },
+  { icon: FileText, label: "Templates", href: "/templates", featureKey: "showTemplates" as const },
+  { icon: BarChart3, label: "Usage", href: "/usage", featureKey: null },
+  { icon: Bookmark, label: "Bookmarks", href: "/bookmarks", featureKey: "showBookmarks" as const },
+  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null },
+  { icon: Settings, label: "Settings", href: "/settings", featureKey: null },
 ];
 
 export function AppSidebar() {
@@ -75,7 +77,6 @@ export function AppSidebar() {
     projectId:
       (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
   });
-  const createConversation = useMutation(api.conversations.create);
 
   // Bulk actions mutations
   const bulkDelete = useMutation(api.conversations.bulkDelete);
@@ -89,9 +90,13 @@ export function AppSidebar() {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { setFilteredConversations } = useConversationContext();
+  const { startNewChat } = useNewChat();
 
   // Check if current user is admin
   const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
+
+  // Feature toggles for conditional sidebar items
+  const features = useFeatureToggles();
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -113,23 +118,8 @@ export function AppSidebar() {
     );
   }, [conversationsExpanded]);
 
-  const handleNewChat = async () => {
-    // Check if most recent unpinned conversation is empty
-    const mostRecentUnpinned = conversations?.find((c: any) => !c.pinned);
-
-    // If the most recent unpinned chat is empty, reuse it
-    // Note: We also check if it's relatively recent (optional, but good practice)
-    // but for now just strict empty check on top unpinned
-    if (mostRecentUnpinned && mostRecentUnpinned.messageCount === 0) {
-      router.push(`/chat/${mostRecentUnpinned._id}`);
-      return;
-    }
-
-    // Create new conversation
-    const conversationId = await createConversation({
-      model: "openai:gpt-5-mini",
-    });
-    router.push(`/chat/${conversationId}`);
+  const handleNewChat = () => {
+    startNewChat();
   };
 
   // Keyboard shortcuts removed - now centralized in useKeyboardShortcuts hook
@@ -157,8 +147,14 @@ export function AppSidebar() {
     getItemId: (conv: any) => conv._id,
   });
 
-  const displayedItems = isMobile ? MENU_ITEMS.slice(0, 3) : MENU_ITEMS;
-  const overflowItems = isMobile ? MENU_ITEMS.slice(3) : [];
+  // Filter menu items based on feature toggles
+  const visibleMenuItems = MENU_ITEMS.filter((item) => {
+    if (!item.featureKey) return true; // Always show items without featureKey
+    return features[item.featureKey]; // Show only if feature is enabled
+  });
+
+  const displayedItems = isMobile ? visibleMenuItems.slice(0, 3) : visibleMenuItems;
+  const overflowItems = isMobile ? visibleMenuItems.slice(3) : [];
 
   // Bulk action handlers
   const toggleSelection = (id: string) => {
@@ -341,10 +337,12 @@ export function AppSidebar() {
             <>
               {/* Project filter and search box - now inside group, below label */}
               <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2 space-y-2">
-                <ProjectFilter
-                  value={projectFilter}
-                  onChange={setProjectFilter}
-                />
+                {features.showProjects && (
+                  <ProjectFilter
+                    value={projectFilter}
+                    onChange={setProjectFilter}
+                  />
+                )}
                 <div
                   role="search"
                   aria-label="Search conversations"

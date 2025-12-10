@@ -6,11 +6,25 @@ import { Suspense, useMemo, useState } from "react";
 import { BookmarkCard } from "@/components/bookmarks/BookmarkCard";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { api } from "../../../../convex/_generated/api";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 export const dynamic = "force-dynamic";
 
 function BookmarksPageContent() {
+  const features = useFeatureToggles();
+
+  // Route guard: show disabled page if bookmarks feature is off
+  if (!features.showBookmarks) {
+    return (
+      <DisabledFeaturePage
+        featureName="Bookmarks"
+        settingKey="showBookmarks"
+      />
+    );
+  }
+
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const bookmarks = useQuery(api.bookmarks.list);
   const [searchQuery, setSearchQuery] = useState("");

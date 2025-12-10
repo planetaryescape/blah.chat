@@ -10,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
@@ -39,6 +40,7 @@ import { TTSProvider } from "@/contexts/TTSContext";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
@@ -73,6 +75,9 @@ function ChatPageContent({
   // Extract chat width preference
   const chatWidth =
     (user?.preferences?.chatWidth as ChatWidth | undefined) || "standard";
+
+  // Feature toggles for conditional UI elements
+  const features = useFeatureToggles();
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     // Initialize with conversation model if valid, else user preference if valid, else default
@@ -231,7 +236,20 @@ function ChatPageContent({
   }, []);
 
   // Redirect if conversation is confirmed to be null (deleted/invalid)
+  // Track if we've completed initial load to prevent premature redirects
+  const initialLoadComplete = useRef(false);
+
   useEffect(() => {
+    // Wait for query to finish loading (undefined = loading, null = not found)
+    if (conversation === undefined) {
+      initialLoadComplete.current = false;
+      return;
+    }
+
+    // Mark initial load complete
+    initialLoadComplete.current = true;
+
+    // Only redirect if truly null (deleted/invalid conversation)
     if (conversation === null) {
       router.push("/app");
     }
@@ -357,10 +375,12 @@ function ChatPageContent({
             }}
           />
 
-          <ProjectSelector
-            conversationId={conversationId}
-            currentProjectId={conversation?.projectId ?? undefined}
-          />
+          {features.showProjects && (
+            <ProjectSelector
+              conversationId={conversationId}
+              currentProjectId={conversation?.projectId ?? undefined}
+            />
+          )}
 
           <div className="flex items-center gap-2">
             {conversationId && messageCount >= 3 && (

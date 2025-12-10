@@ -70,7 +70,6 @@ export const generateEmbedding = internalAction({
       });
 
       // Store embedding
-      // @ts-expect-error - Convex mutation type instantiation depth issue
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {
         messageId: args.messageId,
         embedding,

@@ -19,7 +19,9 @@ export function getBasePrompt(options: BasePromptOptions): string {
     options;
 
   const knowledgeCutoff = modelConfig.knowledgeCutoff || "Unknown";
-  const contextWindowFormatted = formatContextWindow(modelConfig.contextWindow);
+  const _contextWindowFormatted = formatContextWindow(
+    modelConfig.contextWindow,
+  );
 
   // Build capabilities list based on model config
   const capabilities = buildCapabilities(modelConfig, hasFunctionCalling);

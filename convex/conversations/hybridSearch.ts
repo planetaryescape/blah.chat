@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { v } from "convex/values";
-import { api, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action, internalQuery } from "../_generated/server";
 
@@ -17,15 +17,16 @@ export const hybridSearch = action({
     projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
-    // @ts-expect-error - Convex query type instantiation depth issue
-    const user: any = await ctx.runQuery(api.users.getCurrentUser, {});
+    const user: Doc<"users"> | null = await ctx.runQuery(
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
     if (!user) return [];
 
     const { query, limit = 20, includeArchived = false } = args;
 
     // 1. Keyword search on conversation titles
-    const keywordResults: any = await ctx.runQuery(
-      // @ts-expect-error - Convex query type instantiation depth issue
+    const keywordResults = await ctx.runQuery(
       internal.conversations.hybridSearch.keywordSearch,
       { query, userId: user._id, limit: 40, includeArchived },
     );

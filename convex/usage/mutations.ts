@@ -112,20 +112,28 @@ export const recordTextGeneration = internalMutation({
       // Trigger emails if thresholds crossed
       if (percentUsed >= 1.0) {
         // Budget exceeded (100%)
-        await ctx.scheduler.runAfter(0, internal.lib.email.sendBudgetAlert, {
-          percentUsed: percentUsed * 100,
-          spent: totalSpent,
-          budget: monthlyBudget,
-          isExceeded: true,
-        });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.emails.utils.send.sendBudgetAlert,
+          {
+            percentUsed: percentUsed * 100,
+            spent: totalSpent,
+            budget: monthlyBudget,
+            isExceeded: true,
+          },
+        );
       } else if (percentUsed >= alertThreshold) {
         // Warning threshold (80%)
-        await ctx.scheduler.runAfter(0, internal.lib.email.sendBudgetAlert, {
-          percentUsed: percentUsed * 100,
-          spent: totalSpent,
-          budget: monthlyBudget,
-          isExceeded: false,
-        });
+        await ctx.scheduler.runAfter(
+          0,
+          internal.emails.utils.send.sendBudgetAlert,
+          {
+            percentUsed: percentUsed * 100,
+            spent: totalSpent,
+            budget: monthlyBudget,
+            isExceeded: false,
+          },
+        );
       }
     }
   },

@@ -7,6 +7,7 @@
  * Change models here - no need to hunt through the codebase!
  */
 
+import { openai } from "@ai-sdk/openai";
 import { MODEL_CONFIG, type ModelConfig } from "./models";
 
 // ============================================================================
@@ -77,6 +78,16 @@ export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
 // ============================================================================
+// EMBEDDING MODEL
+// ============================================================================
+
+/**
+ * Embedding model for vector search (memories, messages, conversations).
+ * Used to generate embeddings for semantic search across the application.
+ */
+export const EMBEDDING_MODEL = openai.embedding("text-embedding-3-small");
+
+// ============================================================================
 // HELPER EXPORTS
 // ============================================================================
 
@@ -93,4 +104,5 @@ export const OPERATIONAL_MODELS = {
   embeddingSummarization: EMBEDDING_SUMMARIZATION_MODEL,
   memoryRerank: MEMORY_RERANK_MODEL,
   feedbackTriage: FEEDBACK_TRIAGE_MODEL,
+  embedding: EMBEDDING_MODEL,
 } as const;

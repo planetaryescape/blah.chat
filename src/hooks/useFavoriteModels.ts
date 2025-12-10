@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 
 export function useFavoriteModels() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePrefs = useMutation(api.users.updatePreferences);
 
   const [localFavorites, setLocalFavorites] = useState<string[]>([]);

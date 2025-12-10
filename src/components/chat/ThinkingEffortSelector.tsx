@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 export type ThinkingEffort = "low" | "medium" | "high";
@@ -27,8 +28,18 @@ export function ThinkingEffortSelector({
   onChange,
   className,
 }: ThinkingEffortSelectorProps) {
+  const handleChange = (effort: ThinkingEffort) => {
+    onChange(effort);
+
+    // Track thinking effort selection
+    analytics.track("thinking_effort_selected", {
+      effort,
+      previousEffort: value,
+    });
+  };
+
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as ThinkingEffort)}>
+    <Select value={value} onValueChange={(v) => handleChange(v as ThinkingEffort)}>
       <SelectTrigger
         className={cn(
           "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1",

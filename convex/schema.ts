@@ -87,6 +87,11 @@ export default defineSchema({
       // Statistics display settings
       showMessageStatistics: v.optional(v.boolean()), // default true
       showComparisonStatistics: v.optional(v.boolean()), // default true
+      // Feature visibility toggles
+      showNotes: v.optional(v.boolean()), // default true
+      showTemplates: v.optional(v.boolean()), // default true
+      showProjects: v.optional(v.boolean()), // default true
+      showBookmarks: v.optional(v.boolean()), // default true
     }),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -166,47 +171,6 @@ export default defineSchema({
     thinkingCompletedAt: v.optional(v.number()),
     error: v.optional(v.string()),
     embedding: v.optional(v.array(v.float64())),
-    attachments: v.optional(
-      v.array(
-        v.object({
-          type: v.union(
-            v.literal("file"),
-            v.literal("image"),
-            v.literal("audio"),
-          ),
-          name: v.string(),
-          storageId: v.string(),
-          mimeType: v.string(),
-          size: v.number(),
-          metadata: v.optional(v.any()),
-        }),
-      ),
-    ),
-    // Tool calling support
-    toolCalls: v.optional(
-      v.array(
-        v.object({
-          id: v.string(),
-          name: v.string(),
-          arguments: v.string(),
-          result: v.optional(v.string()),
-          timestamp: v.number(),
-          textPosition: v.optional(v.number()), // Character position in content where tool was called
-        }),
-      ),
-    ),
-    partialToolCalls: v.optional(
-      v.array(
-        v.object({
-          id: v.string(),
-          name: v.string(),
-          arguments: v.string(),
-          result: v.optional(v.string()),
-          timestamp: v.number(),
-          textPosition: v.optional(v.number()), // Character position in content where tool was called
-        }),
-      ),
-    ),
     // Provider specific metadata (e.g. Gemini thought signatures)
     providerMetadata: v.optional(v.any()),
     // Branching support
@@ -292,6 +256,106 @@ export default defineSchema({
       searchField: "content",
       filterFields: ["conversationId", "userId", "role"],
     }),
+
+  // Phase 1: Normalized message attachments (extracted from messages.attachments[])
+  attachments: defineTable({
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"), // Denormalized for efficient filtering
+    userId: v.id("users"), // User scoping for multi-tenant queries
+    type: v.union(v.literal("image"), v.literal("file"), v.literal("audio")),
+    name: v.string(),
+    storageId: v.id("_storage"), // Fixed: was string, now proper ID type
+    mimeType: v.string(),
+    size: v.number(),
+    // Typed metadata (no more v.any())
+    metadata: v.optional(
+      v.object({
+        // Image metadata
+        width: v.optional(v.number()),
+        height: v.optional(v.number()),
+        // Audio metadata
+        duration: v.optional(v.number()),
+        // Generated image metadata
+        prompt: v.optional(v.string()),
+        model: v.optional(v.string()),
+        generationTime: v.optional(v.number()),
+      }),
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"])
+    .index("by_storage", ["storageId"]), // Find which messages use a file
+
+  // Phase 1: Normalized tool calls (consolidates toolCalls[] + partialToolCalls[])
+  toolCalls: defineTable({
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"), // Denormalized for filtering
+    userId: v.id("users"), // User scoping
+    toolCallId: v.string(), // AI SDK-generated unique ID
+    toolName: v.string(),
+    args: v.any(), // Native JSON (not stringified) - matches AI SDK v5
+    result: v.optional(v.any()), // Native JSON output
+    textPosition: v.optional(v.number()), // Character position for inline display
+    isPartial: v.boolean(), // Consolidates toolCalls vs partialToolCalls
+    timestamp: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"])
+    .index("by_message_partial", ["messageId", "isPartial"]), // Query streaming state
+
+  // Phase 2: Deduplicated source metadata by URL hash
+  sourceMetadata: defineTable({
+    urlHash: v.string(), // SHA-256(normalized_url).substring(0, 16)
+    url: v.string(),
+
+    // OpenGraph metadata
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    ogImage: v.optional(v.string()),
+    favicon: v.optional(v.string()),
+    siteName: v.optional(v.string()),
+
+    // Enrichment tracking
+    enriched: v.boolean(), // false on creation, true after fetch
+    enrichedAt: v.optional(v.number()),
+    enrichmentError: v.optional(v.string()),
+
+    // Metrics
+    firstSeenAt: v.number(),
+    lastAccessedAt: v.number(),
+    accessCount: v.number(), // how many sources reference this
+  })
+    .index("by_urlHash", ["urlHash"])
+    .index("by_url", ["url"]),
+
+  // Phase 2: Per-message source references
+  sources: defineTable({
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"), // Denormalized for conversation queries
+    userId: v.id("users"), // User scoping
+
+    position: v.number(), // 1, 2, 3 for [1], [2], [3] citation markers
+    provider: v.string(), // "openrouter" | "perplexity" | "generic"
+
+    // Provider-specific data (may differ from OG metadata)
+    title: v.optional(v.string()),
+    snippet: v.optional(v.string()),
+
+    // Link to deduplicated metadata
+    urlHash: v.string(),
+    url: v.string(), // Denormalized for convenience
+
+    isPartial: v.boolean(), // Future streaming support
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_conversation", ["conversationId", "createdAt"])
+    .index("by_urlHash", ["urlHash"])
+    .index("by_user", ["userId", "createdAt"]),
 
   memories: defineTable({
     userId: v.id("users"),
@@ -717,4 +781,48 @@ export default defineSchema({
       }),
     ),
   }).index("by_type_sent", ["type", "sentAt"]),
+
+  // Migration State Tracking (Stripe pattern - resumable migrations)
+  migrations: defineTable({
+    migrationId: v.string(), // e.g., "001_normalize_message_attachments"
+    name: v.string(), // Human-readable name
+    phase: v.union(
+      v.literal("schema"),
+      v.literal("backfill"),
+      v.literal("dual-write"),
+      v.literal("dual-read"),
+      v.literal("cleanup"),
+      v.literal("complete"),
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("rolled-back"),
+    ),
+    // Resumability checkpoint (cursor position, counts, etc.)
+    checkpoint: v.optional(
+      v.object({
+        cursor: v.optional(v.string()),
+        processedCount: v.number(),
+        successCount: v.number(),
+        errorCount: v.number(),
+        lastProcessedId: v.optional(v.string()),
+      }),
+    ),
+    // Progress tracking
+    totalRecords: v.optional(v.number()), // Estimated total
+    processedRecords: v.number(), // Current progress
+    // Metadata
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    executedBy: v.optional(v.string()), // Admin user or system
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_migration_id", ["migrationId"])
+    .index("by_status", ["status"])
+    .index("by_phase", ["phase"]),
 });

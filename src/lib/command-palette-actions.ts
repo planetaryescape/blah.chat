@@ -46,6 +46,10 @@ export const createActionItems = (params: {
   onTogglePin?: () => void;
   onToggleStar?: () => void;
   onAutoRename?: () => void;
+  showNotes?: boolean;
+  showTemplates?: boolean;
+  showProjects?: boolean;
+  showBookmarks?: boolean;
 }): ActionItem[] => [
   {
     id: "new-chat",
@@ -65,14 +69,18 @@ export const createActionItems = (params: {
     onSelect: () => params.handleNavigate("/search"),
     group: "navigation",
   },
-  {
-    id: "notes",
-    label: "Notes",
-    keywords: ["notes", "notebook", "go to", "navigate"],
-    icon: NotebookPen,
-    onSelect: () => params.handleNavigate("/notes"),
-    group: "navigation",
-  },
+  ...(params.showNotes !== false
+    ? [
+        {
+          id: "notes",
+          label: "Notes",
+          keywords: ["notes", "notebook", "go to", "navigate"],
+          icon: NotebookPen,
+          onSelect: () => params.handleNavigate("/notes"),
+          group: "navigation" as const,
+        },
+      ]
+    : []),
   {
     id: "memories",
     label: "Memories",
@@ -81,22 +89,30 @@ export const createActionItems = (params: {
     onSelect: () => params.handleNavigate("/memories"),
     group: "navigation",
   },
-  {
-    id: "projects",
-    label: "Projects",
-    keywords: ["projects", "folders", "organize", "go to", "navigate"],
-    icon: FolderKanban,
-    onSelect: () => params.handleNavigate("/projects"),
-    group: "navigation",
-  },
-  {
-    id: "templates",
-    label: "Templates",
-    keywords: ["templates", "prompts", "go to", "navigate"],
-    icon: FileText,
-    onSelect: () => params.handleNavigate("/templates"),
-    group: "navigation",
-  },
+  ...(params.showProjects !== false
+    ? [
+        {
+          id: "projects",
+          label: "Projects",
+          keywords: ["projects", "folders", "organize", "go to", "navigate"],
+          icon: FolderKanban,
+          onSelect: () => params.handleNavigate("/projects"),
+          group: "navigation" as const,
+        },
+      ]
+    : []),
+  ...(params.showTemplates !== false
+    ? [
+        {
+          id: "templates",
+          label: "Templates",
+          keywords: ["templates", "prompts", "go to", "navigate"],
+          icon: FileText,
+          onSelect: () => params.handleNavigate("/templates"),
+          group: "navigation" as const,
+        },
+      ]
+    : []),
   {
     id: "usage",
     label: "Usage",
@@ -105,14 +121,18 @@ export const createActionItems = (params: {
     onSelect: () => params.handleNavigate("/usage"),
     group: "navigation",
   },
-  {
-    id: "bookmarks",
-    label: "Bookmarks",
-    keywords: ["bookmarks", "saved", "favorites", "go to", "navigate"],
-    icon: Bookmark,
-    onSelect: () => params.handleNavigate("/bookmarks"),
-    group: "navigation",
-  },
+  ...(params.showBookmarks !== false
+    ? [
+        {
+          id: "bookmarks",
+          label: "Bookmarks",
+          keywords: ["bookmarks", "saved", "favorites", "go to", "navigate"],
+          icon: Bookmark,
+          onSelect: () => params.handleNavigate("/bookmarks"),
+          group: "navigation" as const,
+        },
+      ]
+    : []),
   {
     id: "shortcuts",
     label: "Shortcuts",

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { cn } from "@/lib/utils";
 import { BookmarkButton } from "./BookmarkButton";
@@ -48,6 +49,7 @@ export function MessageActions({
   const regenerate = useMutation(api.chat.regenerate);
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
   const { isMobile } = useMobileDetect();
+  const features = useFeatureToggles();
 
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
@@ -114,8 +116,8 @@ export function MessageActions({
             isGenerating={isGenerating}
             isUser={isUser}
             onCopy={handleCopy}
-            onSaveAsNote={() => setShowCreateNote(true)}
-            onBookmark={handleBookmark}
+            onSaveAsNote={features.showNotes ? () => setShowCreateNote(true) : undefined}
+            onBookmark={features.showBookmarks ? handleBookmark : undefined}
           />
         </div>
 
@@ -127,10 +129,12 @@ export function MessageActions({
           sourceConversationId={message.conversationId}
         />
 
-        <BookmarkButton
-          messageId={message._id}
-          conversationId={message.conversationId}
-        />
+        {features.showBookmarks && (
+          <BookmarkButton
+            messageId={message._id}
+            conversationId={message.conversationId}
+          />
+        )}
       </>
     );
   }
@@ -207,28 +211,32 @@ export function MessageActions({
             )}
 
             {/* Bookmark Button */}
-            <BookmarkButton
-              messageId={message._id}
-              conversationId={message.conversationId}
-            />
+            {features.showBookmarks && (
+              <BookmarkButton
+                messageId={message._id}
+                conversationId={message.conversationId}
+              />
+            )}
 
             {/* Save as Note Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                  onClick={() => setShowCreateNote(true)}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span className="sr-only">Save as Note</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Save as note (N)</p>
-              </TooltipContent>
-            </Tooltip>
+            {features.showNotes && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
+                    onClick={() => setShowCreateNote(true)}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span className="sr-only">Save as Note</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Save as note (N)</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             {/* Branch Button */}
             <Tooltip>

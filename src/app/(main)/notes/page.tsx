@@ -20,12 +20,21 @@ import { NoteSearch } from "@/components/notes/NoteSearch";
 import { TagManagement } from "@/components/notes/TagManagement";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 
 function NotesPageContent() {
+  const features = useFeatureToggles();
+
+  // Route guard: show disabled page if notes feature is off
+  if (!features.showNotes) {
+    return <DisabledFeaturePage featureName="Notes" settingKey="showNotes" />;
+  }
+
   // URL-persisted state
   const [filterPinned, setFilterPinned] = useQueryState(
     "pinned",

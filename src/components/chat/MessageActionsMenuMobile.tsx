@@ -32,8 +32,8 @@ interface MessageActionsMenuMobileProps {
   isGenerating: boolean;
   isUser: boolean;
   onCopy: () => void;
-  onSaveAsNote: () => void;
-  onBookmark: () => void;
+  onSaveAsNote?: () => void;
+  onBookmark?: () => void;
 }
 
 export function MessageActionsMenuMobile({
@@ -45,8 +45,11 @@ export function MessageActionsMenuMobile({
   onBookmark,
 }: MessageActionsMenuMobileProps) {
   const router = useRouter();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const regenerate = useMutation(api.chat.regenerate);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMsg = useMutation(api.chat.deleteMessage);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
 
   const handleRegenerate = async () => {
@@ -104,18 +107,23 @@ export function MessageActionsMenuMobile({
         </DropdownMenuItem>
 
         {/* Bookmark */}
-        <DropdownMenuItem onClick={onBookmark}>
-          <Bookmark className="mr-2 h-4 w-4" />
-          <span>Bookmark</span>
-        </DropdownMenuItem>
+        {onBookmark && (
+          <DropdownMenuItem onClick={onBookmark}>
+            <Bookmark className="mr-2 h-4 w-4" />
+            <span>Bookmark</span>
+          </DropdownMenuItem>
+        )}
 
         {/* Save as Note */}
-        <DropdownMenuItem onClick={onSaveAsNote}>
-          <FileText className="mr-2 h-4 w-4" />
-          <span>Save as Note</span>
-        </DropdownMenuItem>
+        {onSaveAsNote && (
+          <DropdownMenuItem onClick={onSaveAsNote}>
+            <FileText className="mr-2 h-4 w-4" />
+            <span>Save as Note</span>
+          </DropdownMenuItem>
+        )}
 
-        <DropdownMenuSeparator />
+        {/* Separator after optional actions */}
+        {(onBookmark || onSaveAsNote) && <DropdownMenuSeparator />}
 
         {/* Regenerate - only for assistant messages when not generating */}
         {!isUser && !isGenerating && (

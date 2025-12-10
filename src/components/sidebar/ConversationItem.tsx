@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { cn } from "@/lib/utils";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
@@ -63,6 +64,7 @@ export function ConversationItem({
   const [showRename, setShowRename] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [projectFilter, setProjectFilter] = useQueryState("project");
+  const features = useFeatureToggles();
 
   const deleteConversation = useMutation(api.conversations.deleteConversation);
   const togglePin = useMutation(api.conversations.togglePin);
@@ -94,9 +96,15 @@ export function ConversationItem({
     onToggleSelection?.(conversation._id);
   };
 
-  const handlePinClick = (e: React.MouseEvent) => {
+  const handlePinClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    togglePin({ conversationId: conversation._id });
+    try {
+      await togglePin({ conversationId: conversation._id });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to pin conversation";
+      toast.error(message);
+    }
   };
 
   const handleAutoRename = async (e: React.MouseEvent) => {
@@ -189,7 +197,7 @@ export function ConversationItem({
               >
                 {conversation.title || "New conversation"}
               </p>
-              {conversation.projectId && (
+              {features.showProjects && conversation.projectId && (
                 <div className="flex-shrink-0">
                   <ProjectBadge
                     projectId={conversation.projectId}
@@ -258,6 +266,7 @@ export function ConversationItem({
                       variant="ghost"
                       size="icon"
                       className="h-3 w-3 min-w-0 min-h-0 p-0"
+                      disabled={!conversation.pinned && conversation.messageCount === 0}
                       aria-label={
                         conversation.pinned
                           ? "Unpin conversation"
@@ -273,7 +282,13 @@ export function ConversationItem({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{conversation.pinned ? "Unpin" : "Pin"}</p>
+                    <p>
+                      {conversation.pinned
+                        ? "Unpin"
+                        : conversation.messageCount === 0
+                          ? "Cannot pin empty conversation"
+                          : "Pin"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
 
@@ -373,10 +388,25 @@ export function ConversationItem({
             </div>
           </ContextMenuItem>
           <ContextMenuItem
-            onClick={() => togglePin({ conversationId: conversation._id })}
+            disabled={!conversation.pinned && conversation.messageCount === 0}
+            onClick={async () => {
+              try {
+                await togglePin({ conversationId: conversation._id });
+              } catch (error) {
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to pin conversation";
+                toast.error(message);
+              }
+            }}
           >
             <Pin className="w-4 h-4 mr-2" />
-            {conversation.pinned ? "Unpin" : "Pin"}
+            {conversation.pinned
+              ? "Unpin"
+              : conversation.messageCount === 0
+                ? "Cannot pin empty"
+                : "Pin"}
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => toggleStar({ conversationId: conversation._id })}

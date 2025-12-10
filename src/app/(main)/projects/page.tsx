@@ -15,11 +15,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { api } from "@/convex/_generated/api";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 // ... imports
 
 export default function ProjectsPage() {
+  const features = useFeatureToggles();
+
+  // Route guard: show disabled page if projects feature is off
+  if (!features.showProjects) {
+    return (
+      <DisabledFeaturePage featureName="Projects" settingKey="showProjects" />
+    );
+  }
+
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const projects = useQuery(api.projects.list);
   const [isCreateOpen, setIsCreateOpen] = useState(false);

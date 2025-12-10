@@ -153,6 +153,10 @@ export const updatePreferences = mutation({
       ),
       showMessageStatistics: v.optional(v.boolean()),
       showComparisonStatistics: v.optional(v.boolean()),
+      showNotes: v.optional(v.boolean()),
+      showTemplates: v.optional(v.boolean()),
+      showProjects: v.optional(v.boolean()),
+      showBookmarks: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {

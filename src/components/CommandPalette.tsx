@@ -9,8 +9,8 @@ import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useConversationActions } from "@/hooks/useConversationActions";
-import { useNewChatModel } from "@/hooks/useNewChatModel";
-import { analytics } from "@/lib/analytics";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useNewChat } from "@/hooks/useNewChat";
 import { createActionItems } from "@/lib/command-palette-actions";
 import { cn } from "@/lib/utils";
 import { api } from "../../convex/_generated/api";
@@ -32,10 +32,11 @@ export function CommandPalette() {
   const { setTheme } = useTheme();
   const _listRef = useRef<HTMLDivElement>(null);
   const conversations = useQuery(api.conversations.list, {});
-  const createConversation = useMutation(api.conversations.create);
   const hybridSearchAction = useAction(
     api.conversations.hybridSearch.hybridSearch,
   );
+  const { startNewChat } = useNewChat();
+  const features = useFeatureToggles();
 
   // Extract conversationId from pathname
   const conversationId = pathname?.startsWith("/chat/")
@@ -44,6 +45,7 @@ export function CommandPalette() {
 
   // Get current conversation if in chat
   const currentConversation = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -53,7 +55,6 @@ export function CommandPalette() {
     conversationId,
     "command_palette",
   );
-  const { newChatModel } = useNewChatModel();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -102,17 +103,9 @@ export function CommandPalette() {
     return () => clearTimeout(timer);
   }, [searchQuery, hybridSearchAction]);
 
-  const handleNewChat = async () => {
-    try {
-      const conversationId = await createConversation({
-        model: newChatModel,
-      });
-      router.push(`/chat/${conversationId}`);
-      setOpen(false);
-      analytics.track("conversation_started", { model: newChatModel });
-    } catch (error) {
-      console.error("Failed to create conversation:", error);
-    }
+  const handleNewChat = () => {
+    startNewChat();
+    setOpen(false);
   };
 
   const handleNavigate = (path: string) => {
@@ -158,6 +151,10 @@ export function CommandPalette() {
           );
           setOpen(false);
         },
+        showNotes: features.showNotes,
+        showTemplates: features.showTemplates,
+        showProjects: features.showProjects,
+        showBookmarks: features.showBookmarks,
         onAutoRename: async () => {
           await conversationActions.handleAutoRename();
           setOpen(false);
@@ -170,6 +167,10 @@ export function CommandPalette() {
       conversationId,
       currentConversation,
       conversationActions,
+      features.showNotes,
+      features.showTemplates,
+      features.showProjects,
+      features.showBookmarks,
     ],
   );
 

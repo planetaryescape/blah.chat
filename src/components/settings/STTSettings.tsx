@@ -24,7 +24,9 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
 
 export function STTSettings() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 
   const [sttEnabled, setSttEnabled] = useState(true);

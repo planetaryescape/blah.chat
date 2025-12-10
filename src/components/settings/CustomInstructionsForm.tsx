@@ -76,7 +76,9 @@ const STYLE_OPTIONS: {
 ];
 
 export function CustomInstructionsForm() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateCustomInstructions = useMutation(
     api.users.updateCustomInstructions,
   );

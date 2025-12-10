@@ -57,7 +57,6 @@ function ChatPageContent({
   const { filteredConversations } = useConversationContext();
 
   const conversation = useQuery(
-    // @ts-expect-error - Type instantiation is excessively deep and possibly infinite
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );

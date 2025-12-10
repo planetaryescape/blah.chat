@@ -31,7 +31,6 @@ import {
 } from "@/lib/ai/utils";
 
 export function DefaultModelSettings() {
-  // @ts-expect-error - Convex type instantiation depth issue
   const user = useQuery(api.users.getCurrentUser);
   const updatePrefs = useMutation(api.users.updatePreferences);
   const hasInitialized = useRef(false);

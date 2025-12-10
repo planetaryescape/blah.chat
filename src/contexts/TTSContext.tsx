@@ -112,7 +112,7 @@ function getTTSUrl(text: string, voice?: string, speed?: number) {
   }
 
   // Use string concatenation to avoid build-time template literal parsing issues
-  const finalUrl = baseUrl ? baseUrl + "/tts" : "/tts";
+  const finalUrl = baseUrl ? `${baseUrl}/tts` : "/tts";
 
   // URL constructor requires base if path is relative.
   // Use window.location.origin if available, otherwise localhost/dummy for build safety.
@@ -184,7 +184,7 @@ export function TTSProvider({
         if (mediaSourceRef.current.readyState === "open") {
           mediaSourceRef.current.endOfStream();
         }
-      } catch (e) {
+      } catch (_e) {
         // ignore
       }
       mediaSourceRef.current = null;
@@ -305,7 +305,7 @@ export function TTSProvider({
             try {
               // Determine mime type. Deepgram mp3 is standard.
               // Safari might prefer audio/mp4? Chrome likes audio/mpeg.
-              const mime = MediaSource.isTypeSupported("audio/mpeg")
+              const _mime = MediaSource.isTypeSupported("audio/mpeg")
                 ? "audio/mpeg"
                 : "audio/mp4"; // Fallback logic if needed, but 'audio/mpeg' usually works for mp3 streamed via MSE in Chrome found elsewhere, ACTUALLY: MSE often requires 'audio/mpeg' wrapper (ADTS).
               // Deepgram returns raw MP3 frames usually.
@@ -390,7 +390,7 @@ export function TTSProvider({
             ) {
               try {
                 mediaSourceRef.current.endOfStream();
-              } catch (e) {
+              } catch (_e) {
                 /* ignore */
               }
             }

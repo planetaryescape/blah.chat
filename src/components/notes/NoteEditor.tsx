@@ -73,7 +73,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
     setTimeout(() => {
       isInitialLoad.current = false;
     }, 100);
-  }, [note?.content, editor]);
+  }, [note?.content, editor, note]);
 
   // Debounced auto-save
   const debouncedSave = (content: string, currentTitle: string) => {
@@ -126,7 +126,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editor, title, noteId]);
+  }, [editor, title, performSave]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

@@ -50,7 +50,7 @@ export function TemplateCard({ template }: TemplateCardProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const deleteTemplate = useMutation(api.templates.deleteTemplate);
   const incrementUsage = useMutation(api.templates.incrementUsage);
-  const router = useNextRouter();
+  const _router = useNextRouter();
 
   const handleDelete = async () => {
     try {

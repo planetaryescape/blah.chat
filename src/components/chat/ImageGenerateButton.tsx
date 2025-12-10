@@ -57,7 +57,7 @@ export function ImageGenerateButton({
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Filter to image generation models
-  const imageModels = useMemo(
+  const _imageModels = useMemo(
     () =>
       Object.values(MODEL_CONFIG).filter((m) =>
         m.capabilities.includes("image-generation"),

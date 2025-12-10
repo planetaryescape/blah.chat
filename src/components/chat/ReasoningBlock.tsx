@@ -83,7 +83,7 @@ export function ReasoningBlock({
               {thinkingDurationMs !== null ? (
                 <>Thought for {formatDuration(thinkingDurationMs)}</>
               ) : (
-                <>Reasoning</>
+                "Reasoning"
               )}
               {reasoningTokens && ` (${reasoningTokens} tokens)`}
             </span>

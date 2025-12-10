@@ -9,8 +9,11 @@ export const transcribeAudio = action({
   },
   handler: async (ctx, args) => {
     // Get current user
-    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-    const user = await ctx.runQuery(api.users.getCurrentUser, {});
+    const user = await ctx.runQuery(
+      // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+      api.users.getCurrentUser,
+      {},
+    );
     if (!user) {
       throw new Error("Unauthorized");
     }
@@ -110,6 +113,7 @@ export const transcribeAudio = action({
     }
 
     // Track cost
+    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
     await ctx.runMutation(internal.usage.mutations.recordTranscription, {
       userId: user._id,
       model: `${provider}:stt`,

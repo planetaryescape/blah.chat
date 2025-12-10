@@ -1,6 +1,6 @@
-import { getModel } from "@/lib/ai/registry";
 import { streamText } from "ai";
 import { v } from "convex/values";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
@@ -84,8 +84,8 @@ export const generateTitle = internalAction({
   handler: async (ctx, args) => {
     try {
       // Get all messages in conversation
-      // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
       const messages: Doc<"messages">[] = await ctx.runQuery(
+        // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
         internal.lib.helpers.getConversationMessages,
         {
           conversationId: args.conversationId,

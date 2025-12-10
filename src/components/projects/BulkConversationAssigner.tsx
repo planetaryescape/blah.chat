@@ -135,7 +135,7 @@ export function BulkConversationAssigner({
     }
   };
 
-  const clearSelection = () => {
+  const _clearSelection = () => {
     setSelectedIds(new Set());
   };
 

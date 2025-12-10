@@ -109,7 +109,7 @@ export function buildTagTree(
   for (const node of nodeMap.values()) {
     if (node.parent && nodeMap.has(node.parent)) {
       // Add to parent's children
-      nodeMap.get(node.parent)!.children.push(node);
+      nodeMap.get(node.parent)?.children.push(node);
     } else {
       // Root node
       rootNodes.push(node);

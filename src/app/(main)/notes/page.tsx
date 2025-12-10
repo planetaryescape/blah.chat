@@ -124,7 +124,7 @@ function NotesPageContent() {
       window.removeEventListener("create-new-note", handleNewNote);
       window.removeEventListener("clear-note-selection", handleClearSelection);
     };
-  }, [isMobile, setSelectedNoteId]);
+  }, [isMobile, setSelectedNoteId, createNewNote]);
 
   // Handle note selection
   const handleNoteSelect = (noteId: Id<"notes">) => {

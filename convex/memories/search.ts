@@ -14,6 +14,7 @@ const MIN_CONFIDENCE = 0.7; // Filter memories below 70% confidence
 
 // Helper: RRF (Reciprocal Rank Fusion) merging
 function applyRRF(
+  // biome-ignore lint/suspicious/noExplicitAny: Complex memory search result types
   textResults: any[],
   vectorResults: any[],
   k: number = 60,
@@ -66,8 +67,8 @@ async function rerankMemories(
     const indices = result.text
       .trim()
       .split(",")
-      .map((s) => parseInt(s.trim()))
-      .filter((i) => !isNaN(i) && i >= 0 && i < candidates.length);
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((i) => !Number.isNaN(i) && i >= 0 && i < candidates.length);
 
     // Fallback to original order if parsing fails
     if (indices.length === 0) {

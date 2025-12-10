@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, GitMerge, Pencil, Settings2, Trash2 } from "lucide-react";
+import { ArrowRight, GitMerge, Pencil, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";

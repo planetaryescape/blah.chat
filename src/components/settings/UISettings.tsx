@@ -282,7 +282,7 @@ export function UISettings() {
                 setTimeout(() => {
                   window.location.reload();
                 }, 1500);
-              } catch (error) {
+              } catch (_error) {
                 toast.error("Failed to reset tour");
               }
             }}

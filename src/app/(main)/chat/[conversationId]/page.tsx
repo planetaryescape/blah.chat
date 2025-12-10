@@ -120,7 +120,7 @@ function ChatPageContent({
       user?.preferences?.showModelNamesDuringComparison ?? false,
     ),
   );
-  const [syncScroll, setSyncScroll] = useQueryState(
+  const [syncScroll, _setSyncScroll] = useQueryState(
     "syncScroll",
     parseAsBoolean.withDefault(true),
   );

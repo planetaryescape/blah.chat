@@ -23,7 +23,7 @@ export function ExtractMemoriesButton({
     try {
       await triggerExtraction({ conversationId });
       toast.success("Memory extraction started! This may take a few moments.");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to start extraction");
     } finally {
       // Keep loading for a bit to indicate processing

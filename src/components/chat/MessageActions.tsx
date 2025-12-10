@@ -50,7 +50,7 @@ export function MessageActions({
 
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
-  const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
+  const _alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
   const ttsEnabled = user?.preferences?.ttsEnabled ?? false;
   const shouldShowRetry =
     isUser && nextMessage?.status === "error" && !isGenerating;
@@ -97,7 +97,7 @@ export function MessageActions({
     }
   };
 
-  const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
+  const [_bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
 
   const handleBookmark = () => {
     setBookmarkDialogOpen(true);

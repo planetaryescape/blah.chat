@@ -48,7 +48,7 @@ export function AdminLimitsSettings() {
         defaultDailyMessageLimit: dailyLimit,
       });
       toast.success("Limits and budget settings saved!");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to save settings");
     } finally {
       setIsLoading(false);

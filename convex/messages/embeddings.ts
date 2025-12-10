@@ -11,7 +11,7 @@ import {
   internalQuery,
 } from "../_generated/server";
 
-const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
+const _EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
 const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
@@ -100,6 +100,7 @@ export const generateBatchEmbeddings = internalAction({
     const batchSize = args.batchSize || 50;
 
     // Get messages without embeddings
+    // biome-ignore lint/suspicious/noExplicitAny: Convex query return types
     const result: any = await ctx.runQuery(
       internal.messages.embeddings.getMessagesWithoutEmbeddings,
       {
@@ -114,6 +115,7 @@ export const generateBatchEmbeddings = internalAction({
 
     // Filter out empty messages
     const validMessages = result.messages.filter(
+      // biome-ignore lint/suspicious/noExplicitAny: Message object types
       (m: any) => m.content && m.content.trim().length > 0,
     );
 
@@ -135,6 +137,7 @@ export const generateBatchEmbeddings = internalAction({
     // Generate embeddings individually
     for (const msg of validMessages) {
       // Summarize large messages first
+      // biome-ignore lint/style/noNonNullAssertion: Content is guaranteed to exist for valid messages
       let contentToEmbed = msg.content!;
       if (contentToEmbed.length > MAX_EMBEDDING_CHARS) {
         contentToEmbed = await summarizeForEmbedding(contentToEmbed);

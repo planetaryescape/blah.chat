@@ -350,7 +350,7 @@ export default function SharePage({
 
         {/* Messages */}
         <div className="space-y-6 pb-20">
-          {messages.map((message: any, index: number) => (
+          {messages.map((message: any, _index: number) => (
             <ChatMessage key={message._id} message={message} readOnly={true} />
           ))}
 

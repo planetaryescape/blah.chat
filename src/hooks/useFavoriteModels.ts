@@ -30,7 +30,7 @@ export function useFavoriteModels() {
     // Persist
     try {
       await updatePrefs({ preferences: { favoriteModels: updated } });
-    } catch (err) {
+    } catch (_err) {
       setLocalFavorites(current); // Rollback
       toast.error("Failed to update favorites");
     }

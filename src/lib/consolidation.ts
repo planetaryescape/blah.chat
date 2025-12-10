@@ -7,7 +7,7 @@ export function buildConsolidationPrompt(
   let prompt = `Here are ${responses.length} responses from ${modelList} about:\n\n`;
   prompt += `**Original prompt:** "${originalPrompt}"\n\n`;
 
-  for (const [idx, r] of responses.entries()) {
+  for (const [_idx, r] of responses.entries()) {
     prompt += `**Response from ${r.model}:**\n${r.content}\n\n`;
   }
 

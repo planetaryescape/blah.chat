@@ -15,8 +15,8 @@ const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
 const MIN_CONFIDENCE = 0.7; // Only save facts with 70%+ confidence
-const MIN_CONTENT_LENGTH = 10;
-const MAX_CONTENT_LENGTH = 500;
+const _MIN_CONTENT_LENGTH = 10;
+const _MAX_CONTENT_LENGTH = 500;
 const SIMILARITY_THRESHOLD = 0.85; // Cosine similarity threshold for duplicates
 
 // TTL configuration (in milliseconds)
@@ -61,15 +61,17 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 // Helper: Check if memory is duplicate using semantic similarity
 async function isMemoryDuplicate(
+  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   userId: string,
-  newContent: string,
+  _newContent: string,
   newEmbedding: number[],
 ): Promise<boolean> {
   try {
     // Query vector index for similar memories
     const similarMemories = await ctx.vectorSearch("memories", "by_embedding", {
       vector: newEmbedding,
+      // biome-ignore lint/suspicious/noExplicitAny: Convex query filter types
       filter: (q: any) => q.eq("userId", userId),
       limit: 5, // Check top 5 most similar
     });
@@ -187,6 +189,7 @@ export const extractMemories = internalAction({
     );
 
     const existingMemoriesText = existingMemories
+      // biome-ignore lint/suspicious/noExplicitAny: Memory object types
       .map((m: any) => `- ${m.content} (${m.metadata?.category || "general"})`)
       .join("\n");
 

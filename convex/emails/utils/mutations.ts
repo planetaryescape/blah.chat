@@ -3,6 +3,7 @@ import { internalMutation } from "../../_generated/server";
 
 // Check if we can send (rate limit: 1 per hour)
 async function canSendEmail(
+  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   type: "budget_80_percent" | "budget_exceeded" | "api_credits_exhausted",
 ): Promise<boolean> {
@@ -10,6 +11,7 @@ async function canSendEmail(
 
   const recentEmail = await ctx.db
     .query("emailAlerts")
+    // biome-ignore lint/suspicious/noExplicitAny: Convex query types
     .withIndex("by_type_sent", (q: any) =>
       q.eq("type", type).gt("sentAt", oneHourAgo),
     )
@@ -20,9 +22,11 @@ async function canSendEmail(
 
 // Record sent email
 async function recordSentEmail(
+  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   type: "budget_80_percent" | "budget_exceeded" | "api_credits_exhausted",
   recipientEmail: string,
+  // biome-ignore lint/suspicious/noExplicitAny: Email metadata types
   metadata: any,
 ) {
   await ctx.db.insert("emailAlerts", {

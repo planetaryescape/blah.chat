@@ -183,7 +183,7 @@ export function AppSidebar() {
       // Checking if pathname is in selectedIds is hard here without pathname hook,
       // but convex query update will trigger redirect in ConversationItem if needed?
       // ConversationItem handles redirect if *itself* is deleted.
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete conversations");
     }
   };
@@ -195,7 +195,7 @@ export function AppSidebar() {
       });
       toast.success(`Archived ${selectedIds.length} conversations`);
       setSelectedIds([]);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to archive conversations");
     }
   };
@@ -220,12 +220,12 @@ export function AppSidebar() {
         toast.success(`Pinned ${selectedIds.length} conversations`);
       }
       setSelectedIds([]);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update pin status");
     }
   };
 
-  const handleBulkUnpin = async () => {
+  const _handleBulkUnpin = async () => {
     // Handled by handleBulkPin directly via toggle logic
   };
 
@@ -249,7 +249,7 @@ export function AppSidebar() {
         toast.success(`Starred ${selectedIds.length} conversations`);
       }
       setSelectedIds([]);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update star status");
     }
   };
@@ -263,7 +263,7 @@ export function AppSidebar() {
       const successCount = results.filter((r: any) => r.success).length;
       toast.success(`Renamed ${successCount} conversations`);
       setSelectedIds([]);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to rename conversations");
     }
   };

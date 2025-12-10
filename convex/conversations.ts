@@ -95,6 +95,7 @@ export const list = query({
         .query("conversations")
         .withSearchIndex("search_title", (q) =>
           q
+            // biome-ignore lint/style/noNonNullAssertion: searchQuery is validated as required
             .search("title", args.searchQuery!)
             .eq("userId", user._id)
             .eq("archived", false),

@@ -23,6 +23,7 @@ export const create = action({
     if (!identity) throw new Error("Unauthorized");
 
     // Get user from DB
+    // biome-ignore lint/suspicious/noExplicitAny: Convex context and query types
     const user: any = await (ctx.runQuery as any)(
       internal.shares.getUserInternal,
       {

@@ -30,6 +30,7 @@ export function SummarizePopover({
   position,
   onSaveAsNote,
 }: SummarizePopoverProps) {
+  // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
   const summarizeSelection = useAction(api.generation.summarizeSelection);
 
   const [summary, setSummary] = useState("");
@@ -37,12 +38,6 @@ export function SummarizePopover({
   const [error, setError] = useState<string | null>(null);
 
   // Auto-generate summary when popover opens
-  useEffect(() => {
-    if (open && selectedText) {
-      generateSummary();
-    }
-  }, [open, selectedText]);
-
   const generateSummary = async () => {
     // Validate text length (max ~10k characters)
     if (selectedText.length > 10000) {
@@ -68,6 +63,12 @@ export function SummarizePopover({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (open && selectedText) {
+      generateSummary();
+    }
+  }, [open, selectedText]);
 
   const handleSaveAsNote = () => {
     onSaveAsNote(summary);

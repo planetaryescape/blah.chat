@@ -516,7 +516,7 @@ export const cleanupOrphanedTags = mutation({
   args: {
     tagsToDelete: v.array(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
 

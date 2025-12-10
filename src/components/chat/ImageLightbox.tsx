@@ -37,9 +37,27 @@ export function ImageLightbox({
   const hasMultiple = images.length > 1;
 
   // Reset zoom when image changes
+  const navigateNext = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const navigatePrev = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const zoomIn = () => {
+    setZoomLevel((prev) => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
+  };
+
+  const zoomOut = () => {
+    setZoomLevel((prev) => Math.max(prev - 1, 0));
+  };
+
   useEffect(() => {
     setZoomLevel(0);
-  }, [currentIndex]);
+  }, []);
 
   // Update index when initialIndex changes
   useEffect(() => {
@@ -66,25 +84,7 @@ export function ImageLightbox({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, currentIndex, zoomLevel, hasMultiple]);
-
-  const navigateNext = () => {
-    setDirection(1);
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const navigatePrev = () => {
-    setDirection(-1);
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const zoomIn = () => {
-    setZoomLevel((prev) => Math.min(prev + 1, ZOOM_LEVELS.length - 1));
-  };
-
-  const zoomOut = () => {
-    setZoomLevel((prev) => Math.max(prev - 1, 0));
-  };
+  }, [open, hasMultiple, navigateNext, navigatePrev, onClose, zoomIn, zoomOut]);
 
   const handleDownload = async () => {
     try {

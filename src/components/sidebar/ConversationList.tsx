@@ -30,6 +30,7 @@ export function ConversationList({
       role="listbox"
       aria-label="Conversations"
       aria-activedescendant={selectedId ? `conv-${selectedId}` : undefined}
+      tabIndex={0}
     >
       {conversations.map((conversation: any, index: number) => (
         <ConversationItem

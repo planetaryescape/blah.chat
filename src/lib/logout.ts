@@ -11,7 +11,7 @@ const LOCAL_STORAGE_KEYS_TO_CLEAR = [
 ] as const;
 
 // Prefix patterns for sessionStorage keys to clear
-const SESSION_STORAGE_PREFIXES = ["modelHint-"] as const;
+const _SESSION_STORAGE_PREFIXES = ["modelHint-"] as const;
 
 /**
  * Clears all user-specific data from browser storage

@@ -142,7 +142,7 @@ export function AudioWaveform({
       analyser.disconnect();
       audioContext.close();
     };
-  }, [stream, height]);
+  }, [stream]);
 
   return (
     <canvas

@@ -16,7 +16,7 @@ export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     // Get note content
-    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
     const note: Doc<"notes"> | null = await ctx.runQuery(
       internal.lib.helpers.getNote,
       { noteId },

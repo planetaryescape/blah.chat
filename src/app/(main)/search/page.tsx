@@ -51,20 +51,14 @@ function SearchPageContent() {
   // Clear selection when filter/search changes
   useEffect(() => {
     clearSelection();
-  }, [debouncedQuery, filters, clearSelection]);
+  }, [clearSelection]);
 
   // Reset page when query or filters change
   useEffect(() => {
     if (page > 1) {
       setPage(1);
     }
-  }, [
-    debouncedQuery,
-    filters.conversationId,
-    filters.dateFrom,
-    filters.dateTo,
-    filters.messageType,
-  ]);
+  }, [page, setPage]);
 
   // Track successful searches
   const prevQueryRef = useRef<string>("");

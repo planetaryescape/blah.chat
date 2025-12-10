@@ -183,7 +183,7 @@ export function VirtualizedMessageList({
   // Reset scroll tracking when highlightMessageId changes
   useEffect(() => {
     scrolledToHighlight.current = false;
-  }, [highlightMessageId]);
+  }, []);
 
   // Scroll on new content
   useEffect(() => {
@@ -194,14 +194,7 @@ export function VirtualizedMessageList({
     if (autoScroll && isAtBottom) {
       scrollToBottom("smooth");
     }
-  }, [
-    messages.length,
-    messages[messages.length - 1]?.partialContent ?? null,
-    autoScroll,
-    isAtBottom,
-    scrollToBottom,
-    highlightMessageId,
-  ]);
+  }, [autoScroll, isAtBottom, scrollToBottom, highlightMessageId]);
 
   if (messages.length === 0) {
     return (

@@ -4,7 +4,6 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";
-import { getCurrentUser } from "../lib/userSync";
 
 /**
  * Hybrid search using RRF (Reciprocal Rank Fusion)
@@ -30,12 +29,13 @@ export const hybridSearch = action({
     const limit = args.limit || 20;
 
     // Check admin settings for hybrid search
-    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
     const adminSettings = await ctx.runQuery(api.adminSettings.get, {});
     const hybridSearchEnabled = adminSettings?.enableHybridSearch ?? false;
 
     // 1. Full-text search (always enabled)
-    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    // biome-ignore lint/suspicious/noExplicitAny: Convex query return types
     const textResults: any = await ctx.runQuery(api.search.fullTextSearch, {
       query: args.query,
       userId: user._id,
@@ -57,7 +57,8 @@ export const hybridSearch = action({
         value: args.query,
       });
 
-      // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+      // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+      // biome-ignore lint/suspicious/noExplicitAny: Convex query return types
       const vectorResults: any = await ctx.runQuery(api.search.vectorSearch, {
         embedding,
         userId: user._id,

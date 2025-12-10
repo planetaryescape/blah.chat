@@ -222,7 +222,7 @@ function FeedbackPageContent() {
   const searchQuery = useDebounce(searchParam, 300);
 
   // Keyboard navigation index
-  const [keyboardIndex, setKeyboardIndex] = useState(-1);
+  const [_keyboardIndex, setKeyboardIndex] = useState(-1);
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -313,7 +313,7 @@ function FeedbackPageContent() {
       });
       toast.success(`Updated ${selectedIds.size} items`);
       clearSelection();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update status");
     }
   };
@@ -328,7 +328,7 @@ function FeedbackPageContent() {
       }
       toast.success(`Archived ${selectedIds.size} items`);
       clearSelection();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to archive items");
     }
   };
@@ -344,7 +344,7 @@ function FeedbackPageContent() {
         ...args,
       });
       toast.success("Applied AI suggestion");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to apply suggestion");
     }
   };
@@ -647,25 +647,25 @@ function FilterBar({
             <SelectItem value="bug">
               <span className="flex items-center gap-1">
                 <Bug className="h-3 w-3" /> Bug{" "}
-                {counts?.[`type_bug`] ? `(${counts[`type_bug`]})` : ""}
+                {counts?.type_bug ? `(${counts.type_bug})` : ""}
               </span>
             </SelectItem>
             <SelectItem value="feature">
               <span className="flex items-center gap-1">
                 <Lightbulb className="h-3 w-3" /> Feature{" "}
-                {counts?.[`type_feature`] ? `(${counts[`type_feature`]})` : ""}
+                {counts?.type_feature ? `(${counts.type_feature})` : ""}
               </span>
             </SelectItem>
             <SelectItem value="praise">
               <span className="flex items-center gap-1">
                 <Heart className="h-3 w-3" /> Praise{" "}
-                {counts?.[`type_praise`] ? `(${counts[`type_praise`]})` : ""}
+                {counts?.type_praise ? `(${counts.type_praise})` : ""}
               </span>
             </SelectItem>
             <SelectItem value="other">
               <span className="flex items-center gap-1">
                 <MessageCircle className="h-3 w-3" /> Other{" "}
-                {counts?.[`type_other`] ? `(${counts[`type_other`]})` : ""}
+                {counts?.type_other ? `(${counts.type_other})` : ""}
               </span>
             </SelectItem>
           </SelectContent>

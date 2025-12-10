@@ -9,7 +9,7 @@ export const executeCode = internalAction({
     language: v.union(v.literal("python"), v.literal("javascript")),
     timeout: v.optional(v.number()),
   },
-  handler: async (ctx, { code, language, timeout = 30 }) => {
+  handler: async (_ctx, { code, language, timeout = 30 }) => {
     try {
       // Ensure E2B API key is configured
       if (!process.env.E2B_API_KEY) {

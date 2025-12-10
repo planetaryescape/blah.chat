@@ -149,7 +149,7 @@ export const ChatMessage = memo(
               try {
                 await regenerate({ messageId: message._id });
                 toast.success("Regenerating response...");
-              } catch (error) {
+              } catch (_error) {
                 toast.error("Failed to regenerate");
               }
             }
@@ -165,7 +165,7 @@ export const ChatMessage = memo(
                   messageId: message._id,
                 });
                 toast.success("Message bookmarked");
-              } catch (error) {
+              } catch (_error) {
                 toast.error("Failed to bookmark");
               }
             }
@@ -205,7 +205,7 @@ export const ChatMessage = memo(
                   ) as HTMLElement;
                 nextSibling?.focus();
                 toast.success("Message deleted");
-              } catch (error) {
+              } catch (_error) {
                 toast.error("Failed to delete");
               }
             }

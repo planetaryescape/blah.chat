@@ -42,7 +42,7 @@ export function AuthStateListener({ children }: { children: React.ReactNode }) {
 
     // Update ref for next comparison
     prevUserIdRef.current = userId;
-  }, [userId, isSignedIn]);
+  }, [userId]);
 
   return <>{children}</>;
 }

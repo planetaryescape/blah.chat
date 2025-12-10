@@ -55,7 +55,7 @@ export function NoteShareView({ noteId }: NoteShareViewProps) {
         }
       }
     });
-  }, [sanitizedHtml]);
+  }, []);
 
   if (!note) {
     return (

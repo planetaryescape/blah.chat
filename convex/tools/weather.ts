@@ -8,7 +8,7 @@ export const getWeather = internalAction({
     city: v.string(),
     units: v.optional(v.union(v.literal("celsius"), v.literal("fahrenheit"))),
   },
-  handler: async (ctx, { city, units = "celsius" }) => {
+  handler: async (_ctx, { city, units = "celsius" }) => {
     try {
       // 1. Geocoding first to get coordinates for the city
       const geoUrl = new URL("https://geocoding-api.open-meteo.com/v1/search");

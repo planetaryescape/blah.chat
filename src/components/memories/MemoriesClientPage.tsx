@@ -105,7 +105,7 @@ export function MemoriesClientPage() {
   const deleteMemory = useMutation(api.memories.deleteMemory);
   const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [_isDeleting, setIsDeleting] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -114,7 +114,7 @@ export function MemoriesClientPage() {
     try {
       await deleteMemory({ id: id as any });
       toast.success("Memory deleted");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete memory");
     }
   };
@@ -128,7 +128,7 @@ export function MemoriesClientPage() {
       toast.success(`Deleted ${result.deleted} memories`);
       setShowDeleteDialog(false);
       setDeleteConfirmText("");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete memories");
     } finally {
       setIsDeleting(false);

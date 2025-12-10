@@ -1,6 +1,6 @@
 "use node";
-import { Html, Head, Body, Text } from "@react-email/components";
-import { EmailContainer, EmailButton } from "../components";
+import { Body, Head, Html, Text } from "@react-email/components";
+import { EmailButton, EmailContainer } from "../components";
 
 export function BudgetWarningEmail({
   percentUsed,

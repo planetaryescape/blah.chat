@@ -86,7 +86,7 @@ export function ChatInput({
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
     null,
   );
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [_isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [showRateLimitDialog, setShowRateLimitDialog] = useState(false);
   const [lastCompletedMessageId, setLastCompletedMessageId] = useState<
@@ -101,12 +101,12 @@ export function ChatInput({
 
   const sendMessage = useMutation(api.chat.sendMessage);
   const stopGeneration = useMutation(api.chat.stopGeneration);
-  const user = useQuery(api.users.getCurrentUser);
+  const _user = useQuery(api.users.getCurrentUser);
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
     conversationId,
   });
 
-  const isExpanded = input.length > 50;
+  const _isExpanded = input.length > 50;
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
@@ -194,7 +194,7 @@ export function ChatInput({
 
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-  }, [input]);
+  }, []);
 
   // Handle prompted actions from EmptyScreen
   useEffect(() => {

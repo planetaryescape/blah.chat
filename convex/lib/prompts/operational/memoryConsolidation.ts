@@ -43,7 +43,7 @@ Preserve specifics exactly:
 
 ${
   hasReasoning
-    ? `Original reasoning (preserve exactly): "${memory.metadata!.reasoning}"`
+    ? `Original reasoning (preserve exactly): "${memory.metadata?.reasoning}"`
     : `Generate a clear 1-2 sentence explanation of why this fact matters for future interactions.`
 }
 

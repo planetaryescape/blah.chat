@@ -51,6 +51,7 @@ Preference/identity/relationship memories are pre-loaded.`,
 
         return {
           found: memories.length,
+          // biome-ignore lint/suspicious/noExplicitAny: Complex memory object types
           memories: memories.map((m: any) => ({
             content: m.content,
             category: m.metadata?.category || "context",

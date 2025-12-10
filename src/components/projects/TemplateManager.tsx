@@ -21,7 +21,7 @@ export function TemplateManager() {
 
   const handleCreateFromTemplate = async (templateId: string) => {
     try {
-      const projectId = await createFromTemplate({
+      const _projectId = await createFromTemplate({
         templateId: templateId as any,
       });
       toast.success("Project created from template");

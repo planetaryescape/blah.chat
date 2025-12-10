@@ -24,7 +24,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
   // Update active category when model changes
   useEffect(() => {
     setActiveCategory(result.category);
-  }, [selectedModel, result.category]);
+  }, [result.category]);
 
   // Category config
   const categories: Array<{

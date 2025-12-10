@@ -78,7 +78,7 @@ interface MarkdownContentProps {
  * Note: displayMode and throwOnError are omitted (handled by rehype-katex)
  * Chemistry notation (\ce, \pu) enabled via mhchem import above
  */
-const katexOptions = {
+const _katexOptions = {
   errorColor: "hsl(var(--destructive))",
   output: "htmlAndMathml" as const, // Both visual HTML + accessible MathML
   strict: "ignore" as const, // Continue rendering on unsupported commands (resilient for streaming)

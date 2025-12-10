@@ -27,7 +27,7 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
     try {
       await removeBookmark({ bookmarkId: bookmark._id });
       toast.success("Bookmark removed");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to remove bookmark");
     }
   };

@@ -31,8 +31,8 @@ export function AdminSearchSettings() {
     setHybridSearchEnabled(checked);
     try {
       await updateSettings({ enableHybridSearch: checked });
-      toast.success("Hybrid search " + (checked ? "enabled" : "disabled"));
-    } catch (error) {
+      toast.success(`Hybrid search ${checked ? "enabled" : "disabled"}`);
+    } catch (_error) {
       toast.error("Failed to update settings");
       setHybridSearchEnabled(!checked); // Revert on error
     }

@@ -20,16 +20,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { SearchFilters as Filters } from "@/hooks/useSearchFilters";
-import { cn } from "@/lib/utils";
 
 interface SearchFiltersProps {
   filters: Filters;

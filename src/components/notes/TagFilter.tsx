@@ -128,43 +128,41 @@ export function TagFilter({
                       />
                     </div>
                   ) : (
-                    <>
-                      {tagStats.map(
-                        ({ tag, count }: { tag: string; count: number }) => (
-                          <CommandItem
-                            key={tag}
-                            onSelect={() => toggleTag(tag)}
-                            className="cursor-pointer"
+                    tagStats.map(
+                      ({ tag, count }: { tag: string; count: number }) => (
+                        <CommandItem
+                          key={tag}
+                          onSelect={() => toggleTag(tag)}
+                          className="cursor-pointer"
+                        >
+                          <div
+                            className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
+                              selectedTags.includes(tag)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "opacity-50 [&_svg]:invisible",
+                            )}
                           >
-                            <div
-                              className={cn(
-                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
-                                selectedTags.includes(tag)
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "opacity-50 [&_svg]:invisible",
-                              )}
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3 w-3"
                             >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="h-3 w-3"
-                              >
-                                <polyline points="20 6 9 17 4 12" />
-                              </svg>
-                            </div>
-                            <span className="flex-1 text-sm">{tag}</span>
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {count}
-                            </span>
-                          </CommandItem>
-                        ),
-                      )}
-                    </>
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                          <span className="flex-1 text-sm">{tag}</span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {count}
+                          </span>
+                        </CommandItem>
+                      ),
+                    )
                   )}
                 </ScrollArea>
               </CommandGroup>

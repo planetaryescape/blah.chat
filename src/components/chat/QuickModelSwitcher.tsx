@@ -232,7 +232,7 @@ export function QuickModelSwitcher({
         onOpenChange={onOpenChange}
         commandProps={{
           filter: (value, search, keywords) => {
-            const extendValue = value + " " + (keywords?.join(" ") || "");
+            const extendValue = `${value} ${keywords?.join(" ") || ""}`;
             const score = commandScore(extendValue, search);
             return score;
           },

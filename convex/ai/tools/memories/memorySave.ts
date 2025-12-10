@@ -54,8 +54,8 @@ IMPORTANT: Rephrase content to third-person before saving:
     execute: async (input) => {
       const { content, category, reasoning } = input;
       try {
-        // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
         const result: { success: boolean; memoryId?: string } =
+          // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
           await ctx.runAction(internal.memories.save.saveFromTool, {
             userId,
             content,

@@ -14,12 +14,6 @@ import {
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, action, internalAction } from "./_generated/server";
-import { trackServerEvent } from "./lib/analytics";
-import {
-  captureException,
-  classifyStreamingError,
-  estimateWastedCost,
-} from "./lib/errorTracking";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
@@ -33,6 +27,12 @@ import { createProjectContextTool } from "./ai/tools/projectContext";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
+import { trackServerEvent } from "./lib/analytics";
+import {
+  captureException,
+  classifyStreamingError,
+  estimateWastedCost,
+} from "./lib/errorTracking";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
   formatMemoriesByCategory,
@@ -107,14 +107,14 @@ async function buildSystemPrompts(
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)
-  const [user, conversation] = await Promise.all([
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const [user, conversation] = (await Promise.all([
+    // @ts-ignore - TypeScript recursion limit with helper queries
     ctx.runQuery(internal.lib.helpers.getCurrentUser, {}),
-    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    // @ts-ignore - TypeScript recursion limit with helper queries
     ctx.runQuery(internal.lib.helpers.getConversation, {
       id: args.conversationId,
     }),
-  ]) as [Doc<"users"> | null, Doc<"conversations"> | null];
+  ])) as [Doc<"users"> | null, Doc<"conversations"> | null];
 
   // 1. User custom instructions (highest priority)
   if (user?.preferences?.customInstructions?.enabled) {
@@ -280,83 +280,95 @@ function extractSources(providerMetadata: any):
   if (!providerMetadata) return undefined;
 
   try {
-    // Check experimental provider metadata (AI SDK standard location)
-    // Note: When passed directly, providerMetadata IS the metadata object
-    const openRouterMeta = providerMetadata.openrouter || providerMetadata;
+    const allSources: Array<{
+      title: string;
+      url: string;
+      snippet?: string;
+      publishedDate?: string;
+    }> = [];
 
-    // 1. OpenRouter / Perplexity format
+    const openRouterMeta = providerMetadata.openrouter || providerMetadata;
+    const perplexityMeta = providerMetadata.perplexity || providerMetadata;
+
+    // 1. OpenRouter / Perplexity search_results format
     if (
-      openRouterMeta?.search_results &&
-      Array.isArray(openRouterMeta.search_results)
+      Array.isArray(openRouterMeta?.search_results) &&
+      openRouterMeta.search_results.length > 0
     ) {
-      return openRouterMeta.search_results.map((r: any, i: number) => ({
-        id: `${i + 1}`, // Sequential IDs for citation markers
-        title: r.title || r.name || "Untitled Source",
-        url: r.url,
-        publishedDate: r.date || r.published_date,
-        snippet: r.snippet || r.description,
-      }));
+      allSources.push(
+        ...openRouterMeta.search_results.map((r: any) => ({
+          title: r.title || r.name || "Untitled Source",
+          url: r.url,
+          publishedDate: r.date || r.published_date,
+          snippet: r.snippet || r.description,
+        })),
+      );
     }
 
-    // 2. Perplexity Native (official provider)
-    const perplexityMeta = providerMetadata.perplexity || providerMetadata;
+    // 2. Perplexity Native citations
     const perplexitySources = perplexityMeta?.citations;
-
-    if (perplexitySources && Array.isArray(perplexitySources)) {
-      return perplexitySources
-        .map((r: any, i: number) => {
+    if (Array.isArray(perplexitySources) && perplexitySources.length > 0) {
+      const mapped = perplexitySources
+        .map((r: any) => {
           if (typeof r === "string") {
-            return {
-              id: `${i + 1}`,
-              title: r,
-              url: r,
-              snippet: undefined,
-              publishedDate: undefined,
-            };
+            return { title: r, url: r, snippet: undefined, publishedDate: undefined };
           }
           return {
-            id: `${i + 1}`,
             title: r.title || "Untitled Source",
             url: r.url,
             snippet: r.snippet,
+            publishedDate: undefined,
           };
         })
         .filter((s) => s.url);
+      allSources.push(...mapped);
     }
 
-    // 3. Generic Citations/Sources (OpenRouter/Other)
-    const genericSources =
-      openRouterMeta?.citations ||
-      openRouterMeta?.sources ||
-      providerMetadata?.citations ||
-      providerMetadata?.sources ||
-      // Sometimes it might be deeply nested in a 'extra' or similar field
-      (providerMetadata as any)?.extra?.citations;
+    // 3. Generic citations/sources - FIXED: explicit array checks, no OR-chain
+    const potentialSources = [
+      openRouterMeta?.citations,
+      openRouterMeta?.sources,
+      providerMetadata?.citations,
+      providerMetadata?.sources,
+      (providerMetadata as any)?.extra?.citations,
+    ].filter((arr) => Array.isArray(arr) && arr.length > 0);
 
-    if (genericSources && Array.isArray(genericSources)) {
-      return genericSources
-        .map((r: any, i: number) => {
+    for (const sourceArray of potentialSources) {
+      const mapped = sourceArray
+        .map((r: any) => {
           if (typeof r === "string") {
-            return {
-              id: `${i + 1}`,
-              title: r,
-              url: r,
-              snippet: undefined,
-              publishedDate: undefined,
-            };
+            return { title: r, url: r, snippet: undefined, publishedDate: undefined };
           }
           return {
-            id: `${i + 1}`,
             title: r.title || r.name || "Untitled Source",
             url: r.url || r.uri || "",
             publishedDate: r.date || r.published_date,
             snippet: r.snippet || r.description,
           };
         })
-        .filter((s) => s.url && s.url.length > 0);
+        .filter((s: any) => s.url && s.url.length > 0);
+      allSources.push(...mapped);
     }
 
-    return undefined;
+    if (allSources.length === 0) return undefined;
+
+    // Deduplicate by URL (case-insensitive, trimmed)
+    const seenUrls = new Set<string>();
+    const deduped = allSources.filter((s) => {
+      const normalizedUrl = s.url.toLowerCase().trim();
+      if (seenUrls.has(normalizedUrl)) return false;
+      seenUrls.add(normalizedUrl);
+      return true;
+    });
+
+    // Assign sequential IDs for citation markers AFTER deduplication
+    return deduped.map((s, i) => ({
+      id: `${i + 1}`,
+      title: s.title,
+      url: s.url,
+      publishedDate: s.publishedDate,
+      snippet: s.snippet,
+    }));
   } catch (error) {
     console.warn("[Sources] Failed to extract sources:", error);
     return undefined;
@@ -456,7 +468,11 @@ export const generateResponse = internalAction({
         )[0];
 
       // Extract attachments from last user message for file processing tool
-      const messageAttachments = lastUserMsg?.attachments;
+      const messageAttachments = lastUserMsg
+        ? await ctx.runQuery(internal.lib.helpers.getMessageAttachments, {
+            messageId: lastUserMsg._id,
+          })
+        : undefined;
 
       // 4. Get model config
       const modelConfig = getModelConfig(args.modelId);
@@ -564,8 +580,14 @@ export const generateResponse = internalAction({
               m._id !== args.assistantMessageId && m.status === "complete",
           )
           .map(async (m: Doc<"messages">) => {
+            // Query attachments for this message
+            const attachments = await ctx.runQuery(
+              internal.lib.helpers.getMessageAttachments,
+              { messageId: m._id },
+            );
+
             // Text-only messages (no attachments)
-            if (!m.attachments || m.attachments.length === 0) {
+            if (!attachments || attachments.length === 0) {
               return {
                 role: m.role as "user" | "assistant" | "system",
                 content: m.content || "",
@@ -589,7 +611,7 @@ export const generateResponse = internalAction({
               { type: "text", text: m.content || "" },
             ];
 
-            for (const attachment of m.attachments) {
+            for (const attachment of attachments) {
               const base64 = await downloadAttachment(
                 ctx,
                 attachment.storageId,
@@ -751,11 +773,21 @@ export const generateResponse = internalAction({
             textPosition: accumulated.length, // Track where in text this tool was called
           });
 
-          // Immediately persist for loading state UI
-          await ctx.runMutation(internal.messages.updatePartialToolCalls, {
-            messageId: args.assistantMessageId,
-            partialToolCalls: Array.from(toolCallsBuffer.values()),
-          });
+          // Phase 1: Write to new toolCalls table (dual-write)
+          (await (ctx.runMutation as any)(
+            internal.messages.upsertToolCall,
+            {
+              messageId: args.assistantMessageId,
+              conversationId: args.conversationId,
+              userId: args.userId,
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+              args: chunk.input, // Native JSON (not stringified)
+              isPartial: true,
+              timestamp: Date.now(),
+              textPosition: accumulated.length,
+            },
+          )) as Promise<void>;
         }
 
         // Handle tool results (streaming results to frontend)
@@ -768,11 +800,22 @@ export const generateResponse = internalAction({
               result: JSON.stringify(resultValue),
             });
 
-            // Persist result immediately so frontend can show it
-            await ctx.runMutation(internal.messages.updatePartialToolCalls, {
-              messageId: args.assistantMessageId,
-              partialToolCalls: Array.from(toolCallsBuffer.values()),
-            });
+            // Phase 1: Update with result (dual-write)
+            (await (ctx.runMutation as any)(
+              internal.messages.upsertToolCall,
+              {
+                messageId: args.assistantMessageId,
+                conversationId: args.conversationId,
+                userId: args.userId,
+                toolCallId: chunk.toolCallId,
+                toolName: existing.name,
+                args: JSON.parse(existing.arguments),
+                result: resultValue, // Native JSON
+                isPartial: true,
+                timestamp: existing.timestamp,
+                textPosition: existing.textPosition,
+              },
+            )) as Promise<void>;
           }
         }
 
@@ -934,7 +977,42 @@ export const generateResponse = internalAction({
         console.error("[Generation] Error processing generated files:", error);
       }
 
-      // 9. Final completion
+      // 9. Finalize tool calls (Phase 1: mark partials as complete)
+      if (allToolCalls.length > 0) {
+        (await (ctx.runMutation as any)(
+          internal.messages.finalizeToolCalls,
+          { messageId: args.assistantMessageId },
+        )) as Promise<void>;
+      }
+
+      // 9.5. Add sources to normalized tables (Phase 2)
+      if (sources && sources.length > 0) {
+        // Determine provider from model config
+        const provider = modelConfig.provider === "perplexity"
+          ? "perplexity"
+          : args.modelId.includes("openrouter")
+            ? "openrouter"
+            : "generic";
+
+        await (ctx.runAction as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.sources.operations_actions.addSources,
+          {
+            messageId: args.assistantMessageId,
+            conversationId: args.conversationId,
+            userId: args.userId,
+            provider,
+            sources: sources.map((s, idx) => ({
+              position: idx + 1, // 1, 2, 3 for [1], [2], [3]
+              title: s.title,
+              url: s.url,
+              snippet: s.snippet,
+            })),
+          },
+        );
+      }
+
+      // 10. Final completion
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.assistantMessageId,
         content: accumulated,
@@ -944,7 +1022,6 @@ export const generateResponse = internalAction({
         reasoningTokens,
         cost,
         tokensPerSecond,
-        toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined,
         sources,
         providerMetadata,
       });
@@ -966,18 +1043,6 @@ export const generateResponse = internalAction({
         },
         args.userId,
       );
-
-      // Trigger OpenGraph enrichment for sources (background job)
-      if (sources && sources.length > 0) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.sources.enrichment.enrichSourceMetadata,
-          {
-            messageId: args.assistantMessageId,
-            sources: sources.map((s) => ({ id: s.id, url: s.url })),
-          },
-        );
-      }
 
       // 10. Update conversation timestamp
       await ctx.runMutation(internal.conversations.updateLastMessageAt, {

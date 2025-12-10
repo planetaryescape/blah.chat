@@ -16,8 +16,11 @@ export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     // Get note content
-    // @ts-expect-error - Convex query type instantiation depth issue
-    const note = await ctx.runQuery(internal.notes.getInternal, { noteId });
+    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    const note: Doc<"notes"> | null = await ctx.runQuery(
+      internal.lib.helpers.getNote,
+      { noteId },
+    );
     if (!note) throw new Error("Note not found");
 
     // Skip if too short

@@ -51,10 +51,13 @@ export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
-    // @ts-expect-error - Convex query type instantiation depth issue
-    const feedback = await ctx.runQuery(internal.feedback.getFeedbackInternal, {
-      feedbackId,
-    });
+    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    const feedback: Doc<"feedback"> | null = await ctx.runQuery(
+      internal.lib.helpers.getFeedback,
+      {
+        feedbackId,
+      },
+    );
 
     if (!feedback) {
       throw new Error("Feedback not found");

@@ -97,6 +97,68 @@ Frontend: **always unwrap `.data`** before using.
 
 Key tables: `users`, `conversations`, `messages`, `memories`, `projects`, `bookmarks`, `shares`, `scheduledPrompts`, `usageRecords`
 
+### TypeScript Type Handling in Convex
+
+**Problem**: With 94+ Convex modules, TypeScript hits recursion limits when resolving `internal.*` and `api.*` types, causing "Type instantiation is excessively deep" errors.
+
+**Official Convex Recommendation**: Extract 90% of logic to plain TypeScript helper functions, keep query/mutation/action wrappers thin (10%). This avoids the type recursion entirely.
+
+**Pragmatic Workaround** (when helpers not feasible):
+
+```typescript
+// Pattern: Cast ctx.runQuery to any + @ts-ignore on reference + Assert return type
+const result = ((await (ctx.runQuery as any)(
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.path.to.query,
+  { args },
+)) as ReturnType);
+
+// For mutations
+await ((ctx.runMutation as any)(
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.path.to.mutation,
+  { args },
+)) as Promise<void>);
+
+// For actions
+const result = ((await (ctx.runAction as any)(
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.path.to.action,
+  { args },
+)) as ReturnType);
+```
+
+**Benefits:**
+- ✅ Full type safety on return values (IDE autocomplete, compile-time checking)
+- ✅ Only bypasses problematic parameter type inference
+- ✅ Explicit return types make code self-documenting
+- ✅ Consistent pattern across codebase
+
+**When to Use:**
+- Actions calling internal queries/mutations/actions
+- Actions calling public queries (via `api.*`)
+- Any `ctx.runQuery/Mutation/Action` causing type depth errors
+
+**Example Locations:**
+- `convex/transcription.ts` - getCurrentUser, recordTranscription
+- `convex/search/hybrid.ts` - getCurrentUser, fullTextSearch, vectorSearch
+- `convex/ai/generateTitle.ts` - getConversationMessages
+- See git history for full list of implementations
+
+**Alternative Pattern** (tried but failed):
+```typescript
+// ❌ This still causes recursion errors
+const result = await (ctx.runQuery as (
+  ref: any,
+  args: any,
+) => Promise<ReturnType>)(
+  internal.path.to.query, // TypeScript still evaluates this type
+  { args },
+);
+```
+
+The `@ts-ignore` is necessary because TypeScript evaluates the `internal.*` / `api.*` reference type **before** applying the cast.
+
 ### Email System
 
 All transactional emails MUST use React Email for consistent, beautiful rendering:
@@ -139,6 +201,32 @@ Combine full-text + semantic (vector) search:
 Per-message: `inputTokens`, `outputTokens`, `cost` (USD)
 Daily aggregates: `usageRecords` table
 Model pricing: config file (easy updates)
+
+### TypeScript Type Depth Workarounds (Convex)
+
+With 85+ Convex modules, TypeScript hits recursion limits on complex API types. **Two patterns** depending on context:
+
+**Backend (Convex actions) - Complex Cast:**
+```typescript
+const result = ((await (ctx.runQuery as any)(
+  // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
+  internal.path.to.query,
+  { args },
+)) as ReturnType);
+```
+
+**Frontend (React hooks) - Direct @ts-ignore:**
+```typescript
+// @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+const myMutation = useMutation(api.path.to.mutation);
+```
+
+**CRITICAL**:
+- Frontend: DON'T add manual type casts - let TypeScript infer naturally
+- Frontend: Ensure `Id` type imported: `import type { Doc, Id } from "@/convex/_generated/dataModel"`
+- Use `@ts-ignore` (not `@ts-expect-error`) for frontend hooks
+
+See `docs/technical-reports/typescript-type-depth-solution.md` for full details.
 
 ### Dependency Management
 

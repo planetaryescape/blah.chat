@@ -24,7 +24,9 @@ import { useNewChatModel } from "@/hooks/useNewChatModel";
 function Header() {
   const { open } = useSidebar();
   const router = useRouter();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list, {});
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConversation = useMutation(api.conversations.create);
   const { newChatModel } = useNewChatModel();
 

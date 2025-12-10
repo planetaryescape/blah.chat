@@ -34,9 +34,11 @@ export default function SharePage({
   );
 
   // Try conversation share first
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversationShare = useQuery(api.shares.get, { shareId });
 
   // Try note share if conversation doesn't exist
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const noteShare = useQuery(
     api.notes.getByShareId,
     conversationShare === null ? { shareId } : "skip",
@@ -52,7 +54,9 @@ export default function SharePage({
   }, [conversationShare, noteShare]);
 
   // Separate verify actions
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const verifyConversationShare = useAction(api.shares.verify);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const verifyNoteShare = useAction(api.notes.verifyShare);
 
   // Use the appropriate share

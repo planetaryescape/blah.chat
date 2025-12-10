@@ -1,62 +1,187 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
-
-interface Source {
-  id: string;
-  title: string;
-  url: string;
-  publishedDate?: string;
-  snippet?: string;
-}
+import { useState } from "react";
+import { useQuery } from "convex/react";
+import { ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { cn } from "@/lib/utils";
 
 interface SourceListProps {
-  sources: Source[];
+  messageId: Id<"messages">;
+  className?: string;
 }
 
-export function SourceList({ sources }: SourceListProps) {
-  if (!sources || sources.length === 0) return null;
+export function SourceList({ messageId, className }: SourceListProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Fetch sources with fallback (fixes race condition)
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const result = useQuery(api.sources.operations.getSourcesWithFallback, {
+    messageId,
+  });
+
+  if (!result || result.sources.length === 0) return null;
+
+  const { sources, source: sourceType } = result;
+  const count = sources.length;
 
   return (
-    <div className="mt-4 space-y-2">
-      <div className="text-xs font-medium opacity-60">Sources</div>
-      <div className="grid gap-2">
-        {sources.map((source) => {
-          let domain: string;
-          try {
-            domain = new URL(source.url).hostname;
-          } catch {
-            domain = source.url;
-          }
+    <div className={cn("mt-4 space-y-2", className)}>
+      {/* Toggle Button - Perplexity Style */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="gap-2 text-muted-foreground hover:text-foreground"
+      >
+        {isExpanded ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
+        <span>
+          Used {count} {count === 1 ? "source" : "sources"}
+        </span>
+        {sourceType === "legacy" && (
+          <Badge variant="outline" className="text-xs">
+            cached
+          </Badge>
+        )}
+      </Button>
 
-          return (
+      {/* Expandable Sources Grid */}
+      {isExpanded && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {sources.map((source, idx) => (
+            <SourceCard
+              key={source.position || idx}
+              source={source}
+              position={source.position || idx + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface SourceCardProps {
+  source: any; // Type from Convex query
+  position: number;
+}
+
+function SourceCard({ source, position }: SourceCardProps) {
+  // Prefer enriched OG title over provider title
+  const displayTitle =
+    source.metadata?.title || source.title || source.url;
+  const snippet =
+    source.snippet || source.metadata?.description || "";
+  const favicon = source.metadata?.favicon;
+
+  let domain: string;
+  try {
+    domain = new URL(source.url).hostname.replace("www.", "");
+  } catch {
+    domain = source.url;
+  }
+
+  const card = (
+    <Card className="group relative overflow-hidden p-3 transition-all hover:border-primary/50 hover:shadow-md cursor-pointer">
+      <a
+        href={source.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex gap-3"
+        onClick={(e) => {
+          // Let hover card handle desktop, direct link for mobile
+          if (window.innerWidth < 640) {
+            return; // Allow default link behavior
+          }
+        }}
+      >
+        {/* Citation Number Badge */}
+        <Badge
+          variant="secondary"
+          className="h-6 w-6 shrink-0 items-center justify-center rounded-full p-0 text-xs font-semibold"
+        >
+          {position}
+        </Badge>
+
+        <div className="min-w-0 flex-1 space-y-1">
+          {/* Favicon + Domain */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {favicon && (
+              <img
+                src={favicon}
+                alt=""
+                className="h-4 w-4 rounded"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            )}
+            <span className="truncate">{domain}</span>
+          </div>
+
+          {/* Title */}
+          <h4 className="line-clamp-2 text-sm font-medium leading-tight group-hover:underline">
+            {displayTitle}
+          </h4>
+
+          {/* Snippet */}
+          {snippet && (
+            <p className="line-clamp-2 text-xs text-muted-foreground">
+              {snippet.slice(0, 120)}
+              {snippet.length > 120 ? "..." : ""}
+            </p>
+          )}
+        </div>
+
+        {/* External Link Icon */}
+        <div className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+          <ExternalLink className="h-4 w-4" />
+        </div>
+      </a>
+    </Card>
+  );
+
+  // Desktop: wrap in hover card for preview
+  return (
+    <HoverCard openDelay={300}>
+      <HoverCardTrigger asChild>{card}</HoverCardTrigger>
+      <HoverCardContent side="top" className="w-80">
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">{domain}</p>
+          <h4 className="font-semibold">{displayTitle}</h4>
+          {snippet && (
+            <p className="text-sm text-muted-foreground">{snippet}</p>
+          )}
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="w-full gap-2"
+          >
             <a
-              key={source.id}
-              id={`source-${source.id}`}
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-start gap-3 rounded-lg border p-3 hover:bg-accent transition-colors group"
             >
-              <span className="text-xs font-mono opacity-60 flex-shrink-0">
-                [{source.id}]
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm line-clamp-1 group-hover:underline">
-                  {source.title}
-                </div>
-                {source.snippet && (
-                  <div className="text-xs opacity-60 line-clamp-2 mt-1">
-                    {source.snippet}
-                  </div>
-                )}
-                <div className="text-xs opacity-40 mt-1">{domain}</div>
-              </div>
-              <ExternalLink className="w-3 h-3 opacity-40 flex-shrink-0 mt-0.5" />
+              Open source
+              <ExternalLink className="h-3 w-3" />
             </a>
-          );
-        })}
-      </div>
-    </div>
+          </Button>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }

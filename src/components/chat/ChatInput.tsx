@@ -14,7 +14,9 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
+import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
@@ -58,6 +60,7 @@ interface ChatInputProps {
   onModelSelectorOpenChange?: (open: boolean) => void;
   comparisonDialogOpen?: boolean;
   onComparisonDialogOpenChange?: (open: boolean) => void;
+  chatWidth?: ChatWidth;
 }
 
 export function ChatInput({
@@ -68,6 +71,7 @@ export function ChatInput({
   thinkingEffort,
   onThinkingEffortChange,
   attachments,
+  chatWidth,
   onAttachmentsChange,
   isComparisonMode = false,
   selectedModels = [],
@@ -122,15 +126,34 @@ export function ChatInput({
 
     setIsSending(true);
     try {
+      const messageContent = quote
+        ? `> ${quote}\n\n${input.trim()}`
+        : input.trim();
+
       await sendMessage({
         conversationId,
-        content: quote ? `> ${quote}\n\n${input.trim()}` : input.trim(),
+        content: messageContent,
         ...(isComparisonMode
           ? { models: selectedModels }
           : { modelId: selectedModel }),
         thinkingEffort,
         attachments: attachments.length > 0 ? attachments : undefined,
       });
+
+      // Track message sent with comprehensive properties
+      analytics.track("message_sent", {
+        model: isComparisonMode ? selectedModels.join(",") : selectedModel,
+        isComparisonMode,
+        hasAttachments: attachments.length > 0,
+        attachmentCount: attachments.length,
+        attachmentTypes: [
+          ...new Set(attachments.map((a) => a.type)),
+        ].join(","),
+        inputLength: messageContent.length,
+        hasQuote: !!quote,
+        thinkingEffort,
+      });
+
       setInput("");
       setQuote(null);
       onAttachmentsChange([]);
@@ -182,6 +205,12 @@ export function ChatInput({
     e.stopPropagation();
     try {
       await stopGeneration({ conversationId });
+
+      // Track generation stopped by user
+      analytics.track("generation_stopped", {
+        model: selectedModel,
+        source: "stop_button",
+      });
     } catch (error) {
       console.error("Failed to stop generation:", error);
     }
@@ -289,7 +318,12 @@ export function ChatInput({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))]">
+    <div
+      className={cn(
+        "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
+        getChatWidthClass(chatWidth, false),
+      )}
+    >
       <form
         ref={formRef}
         onSubmit={handleSubmit}

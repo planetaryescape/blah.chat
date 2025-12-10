@@ -36,11 +36,19 @@ export class MathErrorBoundary extends Component<
       errorInfo,
     );
 
-    // Track error to PostHog
+    // Track error event (for specific math error tracking)
     analytics.track("math_error", {
       error: error.message,
       latexSnippet: this.props.latex?.slice(0, 100) || "",
       isStreaming: false,
+    });
+
+    // Also capture as exception (for comprehensive error monitoring)
+    analytics.captureException(error, {
+      severity: "warning", // Math errors are usually recoverable
+      context: "math_rendering",
+      componentStack: errorInfo.componentStack ?? undefined,
+      latexSnippet: this.props.latex?.slice(0, 100) || "",
     });
   }
 

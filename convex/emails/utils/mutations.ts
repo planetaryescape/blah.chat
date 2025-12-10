@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation } from "../../_generated/server";
 
 // Check if we can send (rate limit: 1 per hour)
 async function canSendEmail(

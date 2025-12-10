@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { analytics } from "@/lib/analytics";
 import { BulkActionToolbar } from "./BulkActionToolbar";
 import { SearchEmptyState } from "./SearchEmptyState";
 import { SearchResultSkeletonList } from "./SearchResultSkeleton";
@@ -153,7 +154,7 @@ export function SearchResults({
         initial="hidden"
         animate="show"
       >
-        {results.map((result: any) => (
+        {results.map((result: any, index: number) => (
           <motion.div
             key={result._id}
             variants={{
@@ -173,6 +174,7 @@ export function SearchResults({
             <SearchResultCard
               message={result}
               query={query}
+              index={index}
               isSelected={isSelected ? isSelected(result._id) : false}
               onToggleSelection={toggleSelection || (() => {})}
             />
@@ -207,20 +209,29 @@ export function SearchResults({
 function SearchResultCard({
   message,
   query,
+  index,
   isSelected,
   onToggleSelection,
 }: {
   message: SearchResultsProps["results"][0];
   query: string;
+  index: number;
   isSelected: boolean;
   onToggleSelection: (id: Id<"messages">) => void;
 }) {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(api.conversations.get, {
     conversationId: message.conversationId,
   });
 
   // Highlight query terms in content (sanitized)
   const highlightedContent = highlightText(message.content, query);
+
+  const handleResultClick = () => {
+    analytics.track("search_result_clicked", {
+      resultPosition: index,
+    });
+  };
 
   return (
     <div
@@ -245,6 +256,7 @@ function SearchResultCard({
         <Link
           href={`/chat/${message.conversationId}?messageId=${message._id}#message-${message._id}`}
           className="flex-1 min-w-0"
+          onClick={handleResultClick}
         >
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">

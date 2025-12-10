@@ -19,7 +19,7 @@ export function useSearchResults(
   const [isSearching, setIsSearching] = useState(false);
   const [hasMore, setHasMore] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const hybridSearch = useAction(api.search.hybridSearch);
 
   // Execute search when query or filters change

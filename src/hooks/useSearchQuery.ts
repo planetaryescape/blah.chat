@@ -28,6 +28,7 @@ export function useSearchQuery(options: UseSearchQueryOptions = {}) {
   const [isSearching, setIsSearching] = useState(false);
   const [hasMore, setHasMore] = useState(false);
 
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const hybridSearch = useAction(api.search.hybridSearch);
 
   // Debounce the input value

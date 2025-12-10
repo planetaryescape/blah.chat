@@ -22,6 +22,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/convex/_generated/api";
 import type { SearchFilters as Filters } from "@/hooks/useSearchFilters";
+import { analytics } from "@/lib/analytics";
 
 interface SearchFiltersProps {
   filters: Filters;
@@ -58,6 +59,7 @@ export function SearchFilters({
   const [conversationSearch, setConversationSearch] = useState("");
   const debouncedSearch = useDebouncedValue(conversationSearch, 300);
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list, {
     searchQuery: debouncedSearch || undefined,
     limit: 20,
@@ -74,6 +76,9 @@ export function SearchFilters({
     if (value === "all") {
       onFilterChange("dateFrom", null);
       onFilterChange("dateTo", null);
+      analytics.track("search_filter_applied", {
+        filterType: "date_range",
+      });
       return;
     }
 
@@ -97,6 +102,10 @@ export function SearchFilters({
 
     onFilterChange("dateFrom", dateFrom.toString());
     onFilterChange("dateTo", now.toString());
+
+    analytics.track("search_filter_applied", {
+      filterType: "date_range",
+    });
   };
 
   const handleMessageTypeChange = (value: string) => {
@@ -107,6 +116,10 @@ export function SearchFilters({
     } else {
       onFilterChange("messageType", value);
     }
+
+    analytics.track("search_filter_applied", {
+      filterType: "message_type",
+    });
   };
 
   // Count active filters for badge
@@ -193,6 +206,9 @@ export function SearchFilters({
                             onSelect={() => {
                               onFilterChange("conversationId", null);
                               setConversationSearch("");
+                              analytics.track("search_filter_applied", {
+                                filterType: "conversation",
+                              });
                             }}
                           >
                             All conversations
@@ -211,6 +227,9 @@ export function SearchFilters({
                               onSelect={() => {
                                 onFilterChange("conversationId", conv._id);
                                 setConversationSearch("");
+                                analytics.track("search_filter_applied", {
+                                  filterType: "conversation",
+                                });
                               }}
                             >
                               {conv.pinned && (

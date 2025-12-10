@@ -1,7 +1,7 @@
-import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
+import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
+import { api, internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";
 
@@ -19,32 +19,37 @@ export const hybridSearch = action({
     messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
   },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
-    const user: Doc<"users"> | null = await ctx.runQuery(
-      // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    const user = ((await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getCurrentUser,
       {},
-    );
+    )) as Doc<"users"> | null);
     if (!user) return [];
 
     const limit = args.limit || 20;
 
     // Check admin settings for hybrid search
-    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-    const adminSettings = await ctx.runQuery(api.adminSettings.get, {});
+    const adminSettings = ((await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.adminSettings.get,
+      {},
+    )) as { enableHybridSearch?: boolean } | null);
     const hybridSearchEnabled = adminSettings?.enableHybridSearch ?? false;
 
     // 1. Full-text search (always enabled)
-    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-    // biome-ignore lint/suspicious/noExplicitAny: Convex query return types
-    const textResults: any = await ctx.runQuery(api.search.fullTextSearch, {
-      query: args.query,
-      userId: user._id,
-      conversationId: args.conversationId,
-      dateFrom: args.dateFrom,
-      dateTo: args.dateTo,
-      messageType: args.messageType,
-      limit: hybridSearchEnabled ? 40 : limit, // Fetch more for RRF merging if hybrid
-    });
+    const textResults = ((await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.search.fullTextSearch,
+      {
+        query: args.query,
+        userId: user._id,
+        conversationId: args.conversationId,
+        dateFrom: args.dateFrom,
+        dateTo: args.dateTo,
+        messageType: args.messageType,
+        limit: hybridSearchEnabled ? 40 : limit, // Fetch more for RRF merging if hybrid
+      },
+    )) as Doc<"messages">[]);
 
     // 2. Vector search (only if enabled by admin)
     if (!hybridSearchEnabled) {
@@ -53,21 +58,23 @@ export const hybridSearch = action({
 
     try {
       const { embedding } = await embed({
-        model: openai.embedding("text-embedding-3-small"),
+        model: EMBEDDING_MODEL,
         value: args.query,
       });
 
-      // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-      // biome-ignore lint/suspicious/noExplicitAny: Convex query return types
-      const vectorResults: any = await ctx.runQuery(api.search.vectorSearch, {
-        embedding,
-        userId: user._id,
-        conversationId: args.conversationId,
-        dateFrom: args.dateFrom,
-        dateTo: args.dateTo,
-        messageType: args.messageType,
-        limit: 40,
-      });
+      const vectorResults = ((await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.search.vectorSearch,
+        {
+          embedding,
+          userId: user._id,
+          conversationId: args.conversationId,
+          dateFrom: args.dateFrom,
+          dateTo: args.dateTo,
+          messageType: args.messageType,
+          limit: 40,
+        },
+      )) as Doc<"messages">[]);
 
       // 3. RRF merge
       return mergeWithRRF(textResults, vectorResults, limit);

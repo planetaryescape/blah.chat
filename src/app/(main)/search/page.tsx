@@ -15,6 +15,7 @@ import {
   useSearchResults,
 } from "@/hooks/useSearchResults";
 import { useSearchState } from "@/hooks/useSearchState";
+import { analytics } from "@/lib/analytics";
 
 function SearchPageContent() {
   // URL-persisted state
@@ -71,8 +72,16 @@ function SearchPageContent() {
     ) {
       addSearch(debouncedQuery);
       prevQueryRef.current = debouncedQuery;
+
+      // Track search event
+      analytics.track("global_search_performed", {
+        queryText: debouncedQuery,
+        searchType: "hybrid",
+        resultsCount: results.length,
+        filterApplied: hasActiveFilters ? "active" : undefined,
+      });
     }
-  }, [debouncedQuery, results.length, isSearching, addSearch]);
+  }, [debouncedQuery, results.length, isSearching, addSearch, hasActiveFilters, page]);
 
   const handleSelectRecentSearch = (query: string) => {
     setQueryParam(query);

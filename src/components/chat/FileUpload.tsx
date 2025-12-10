@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -36,7 +37,9 @@ export function FileUpload({
   uploading: boolean;
   setUploading: (uploading: boolean) => void;
 }) {
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const saveFile = useMutation(api.files.saveFile);
 
   const onDrop = useCallback(
@@ -85,6 +88,14 @@ export function FileUpload({
             storageId,
             mimeType: file.type,
             size: file.size,
+          });
+
+          // Track each attachment upload
+          analytics.track("attachment_uploaded", {
+            type,
+            size: file.size,
+            mimeType: file.type,
+            countPerMessage: 1,
           });
         }
 

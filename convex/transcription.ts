@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 
 export const transcribeAudio = action({
@@ -9,9 +10,11 @@ export const transcribeAudio = action({
   },
   handler: async (ctx, args) => {
     // Get current user
-    const user = await ctx.runQuery(
-      // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-      api.users.getCurrentUser,
+    const user = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"users"> | null>)(
+      internal.lib.helpers.getCurrentUser,
       {},
     );
     if (!user) {
@@ -113,13 +116,18 @@ export const transcribeAudio = action({
     }
 
     // Track cost
-    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
-    await ctx.runMutation(internal.usage.mutations.recordTranscription, {
-      userId: user._id,
-      model: `${provider}:stt`,
-      durationMinutes,
-      cost,
-    });
+    await (ctx.runMutation as (
+      ref: any,
+      args: any,
+    ) => Promise<void>)(
+      internal.usage.mutations.recordTranscription,
+      {
+        userId: user._id,
+        model: `${provider}:stt`,
+        durationMinutes,
+        cost,
+      },
+    );
 
     return text;
   },

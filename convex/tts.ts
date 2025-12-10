@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 
 /**
@@ -19,7 +19,13 @@ export const generateSpeech = action({
   },
   handler: async (ctx, args) => {
     // 1. Get user + check TTS enabled
-    const user = await ctx.runQuery(api.users.getCurrentUser, {});
+    const user = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"users"> | null>)(
+      api.users.getCurrentUser as any,
+      {},
+    );
     if (!user?.preferences?.ttsEnabled) {
       throw new Error("TTS is disabled in user preferences");
     }

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
+import { analytics } from "@/lib/analytics";
 
 interface TTSState {
   isVisible: boolean;
@@ -290,6 +291,11 @@ export function TTSProvider({
 
       audio.onended = () => {
         setState((prev) => ({ ...prev, isPlaying: false, isStreaming: false }));
+
+        // Track playback completed
+        analytics.track("tts_playback_completed", {
+          playbackDurationMs: audio.duration * 1000,
+        });
       };
 
       audio.onerror = (e) => {
@@ -335,6 +341,12 @@ export function TTSProvider({
       try {
         await audio.play();
         setState((prev) => ({ ...prev, isPlaying: true }));
+
+        // Track TTS initiated
+        analytics.track("tts_initiated", {
+          messageLength: speechText.length,
+          voiceUsed: "default",
+        });
 
         // Fetch and append chunks
         for (let i = 0; i < chunks.length; i++) {

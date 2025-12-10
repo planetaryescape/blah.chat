@@ -1,9 +1,11 @@
-import { openai } from "@ai-sdk/openai";
 import { embed, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { getGatewayOptions } from "../src/lib/ai/gateway";
-import { MEMORY_PROCESSING_MODEL } from "../src/lib/ai/operational-models";
+import {
+  EMBEDDING_MODEL,
+  MEMORY_PROCESSING_MODEL,
+} from "../src/lib/ai/operational-models";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -14,8 +16,6 @@ import {
   mutation,
   query,
 } from "./_generated/server";
-
-const EMBEDDING_MODEL = "text-embedding-3-small";
 
 const rephrasedMemorySchema = z.object({
   content: z.string(),
@@ -215,6 +215,19 @@ export const listAll = query({
     const memories = await ctx.db
       .query("memories")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(1000);
+
+    return memories;
+  },
+});
+
+export const listAllInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const memories = await ctx.db
+      .query("memories")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(1000);
 
@@ -506,8 +519,24 @@ export const migrateUserMemories = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
-    // 1. Fetch user's memories (listAll already handles user lookup + filtering)
-    const memories: Doc<"memories">[] = await (ctx.runQuery as any)();
+    // Get current user
+    const user = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"users"> | null>)(
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
+    if (!user) throw new Error("User not found");
+
+    // 1. Fetch user's memories
+    const memories = await (ctx.runQuery as (
+      ref: any,
+      args: any,
+    ) => Promise<Doc<"memories">[]>)(
+      internal.lib.helpers.listAllMemories,
+      { userId: user._id },
+    );
 
     if (memories.length === 0) {
       return { migrated: 0, skipped: 0, total: 0 };
@@ -558,7 +587,7 @@ Return ONLY the rephrased content, no explanation or additional text.`,
 
         // 4. Generate new embedding
         const embeddingResult = await embed({
-          model: openai.embedding(EMBEDDING_MODEL),
+          model: EMBEDDING_MODEL,
           value: result.object.content,
         });
 
@@ -756,7 +785,7 @@ ${cluster
         for (const consolidated of result.object.memories) {
           // Generate embedding for new content
           const embeddingResult = await embed({
-            model: openai.embedding(EMBEDDING_MODEL),
+            model: EMBEDDING_MODEL,
             value: consolidated.content,
           });
 
@@ -862,7 +891,7 @@ export const createMemoryFromSelection = action({
 
     // Generate embedding using Vercel AI SDK
     const { embedding } = await embed({
-      model: openai.embedding(EMBEDDING_MODEL),
+      model: EMBEDDING_MODEL,
       value: args.content,
     });
 

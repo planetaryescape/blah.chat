@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { analytics } from "@/lib/analytics";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -51,6 +52,12 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           systemPrompt: systemPrompt.trim() || undefined,
         });
         toast.success("Project updated");
+
+        // Track project update
+        analytics.track("project_updated", {
+          hasDescription: !!description.trim(),
+          hasSystemPrompt: !!systemPrompt.trim(),
+        });
       } else {
         await createProject({
           name: name.trim(),
@@ -59,6 +66,13 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
           isTemplate,
         });
         toast.success(isTemplate ? "Template created" : "Project created");
+
+        // Track project creation
+        analytics.track("project_created", {
+          hasDescription: !!description.trim(),
+          hasSystemPrompt: !!systemPrompt.trim(),
+          isTemplate,
+        });
       }
       onSuccess?.();
     } catch (error) {

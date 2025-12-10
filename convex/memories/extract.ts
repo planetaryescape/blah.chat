@@ -1,16 +1,17 @@
-import { openai } from "@ai-sdk/openai";
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { MEMORY_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
+import {
+  EMBEDDING_MODEL,
+  MEMORY_EXTRACTION_MODEL,
+} from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+// import { trackServerEvent } from "../lib/analytics"; // Disabled: requires Node runtime, file has queries
 import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
-
-const EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
@@ -227,7 +228,7 @@ export const extractMemories = internalAction({
 
       // 4. Generate embeddings (batch)
       const embeddingResult = await embedMany({
-        model: openai.embedding(EMBEDDING_MODEL),
+        model: EMBEDDING_MODEL,
         values: qualityFacts.map((f) => f.content),
       });
 
@@ -298,6 +299,18 @@ export const extractMemories = internalAction({
 
       // 8. Mark messages as extracted
       await markAsProcessed();
+
+      // Track memory extraction completion
+      // Disabled: requires Node runtime (trackServerEvent uses PostHog)
+      // await trackServerEvent(
+      //   "memories_extracted",
+      //   {
+      //     count: storedCount,
+      //     duplicatesFiltered: qualityFacts.length - storedCount,
+      //     conversationId: args.conversationId,
+      //   },
+      //   conversation.userId,
+      // );
 
       return { extracted: storedCount };
     } catch (error) {

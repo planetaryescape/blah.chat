@@ -50,21 +50,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 
 export function MemorySettings() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const _updatePreferences = useMutation(api.users.updatePreferences);
   const {
     results: memories,
     status,
     loadMore,
   } = usePaginatedQuery(api.memories.list, {}, { initialNumItems: 10 });
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createMemory = useMutation(api.memories.createManual);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateMemory = useMutation(api.memories.update);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMemory = useMutation(api.memories.deleteMemory);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const scanRecentConversations = useMutation(
     api.memories.scanRecentConversations,
   );
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const migrateMemories = useAction(api.memories.migrateUserMemories);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

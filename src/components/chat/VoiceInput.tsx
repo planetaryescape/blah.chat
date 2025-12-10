@@ -109,13 +109,7 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         console.error("MediaRecorder failed:", error);
         toast.error("Microphone access denied");
       }
-    }, [
-      sttEnabled,
-      sttProvider,
-      transcribeAudio,
-      onTranscript,
-      onRecordingStateChange,
-    ]);
+    }, [sttEnabled, transcribeAudio, onTranscript, onRecordingStateChange]);
 
     const stopRecording = useCallback(
       (mode: "preview" | "send") => {

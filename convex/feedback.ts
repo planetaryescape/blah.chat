@@ -346,7 +346,7 @@ export const listFeedback = query({
     }
 
     // Text search on description, userName, userEmail
-    if (args.searchQuery && args.searchQuery.trim()) {
+    if (args.searchQuery?.trim()) {
       const query = args.searchQuery.toLowerCase().trim();
       results = results.filter(
         (f) =>
@@ -467,7 +467,7 @@ export const getTagSuggestions = query({
     let tags = await ctx.db.query("feedbackTags").order("desc").collect();
 
     // Filter by query if provided
-    if (query && query.trim()) {
+    if (query?.trim()) {
       const lowerQuery = query.toLowerCase().trim();
       tags = tags.filter((t) => t.name.toLowerCase().includes(lowerQuery));
     }

@@ -7,7 +7,7 @@ import {
   useQuery,
 } from "convex/react";
 import { Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -51,7 +51,7 @@ import { api } from "@/convex/_generated/api";
 
 export function MemorySettings() {
   const user = useQuery(api.users.getCurrentUser);
-  const updatePreferences = useMutation(api.users.updatePreferences);
+  const _updatePreferences = useMutation(api.users.updatePreferences);
   const {
     results: memories,
     status,
@@ -71,7 +71,7 @@ export function MemorySettings() {
   const [newMemoryContent, setNewMemoryContent] = useState("");
   const [editingMemory, setEditingMemory] = useState<any>(null);
   const [editMemoryContent, setEditMemoryContent] = useState("");
-  const [isMigrating, setIsMigrating] = useState(false);
+  const [_isMigrating, setIsMigrating] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -83,7 +83,7 @@ export function MemorySettings() {
       toast.success("Memory added!");
       setNewMemoryContent("");
       setIsAddDialogOpen(false);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to add memory");
     }
   };
@@ -95,7 +95,7 @@ export function MemorySettings() {
       toast.success("Memory updated!");
       setEditingMemory(null);
       setEditMemoryContent("");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update memory");
     }
   };
@@ -104,7 +104,7 @@ export function MemorySettings() {
     try {
       await deleteMemory({ id });
       toast.success("Memory deleted!");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete memory");
     }
   };
@@ -117,12 +117,12 @@ export function MemorySettings() {
       } else {
         toast.info("No recent conversations found to scan.");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to scan conversations");
     }
   };
 
-  const handleMigrateMemories = async () => {
+  const _handleMigrateMemories = async () => {
     setIsMigrating(true);
     try {
       toast.info("Migrating memories to third-person format...");

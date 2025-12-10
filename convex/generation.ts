@@ -9,7 +9,7 @@ import {
   getModelConfig,
   type ModelConfig,
 } from "@/lib/ai/utils";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
@@ -60,6 +60,7 @@ async function downloadAttachment(
 }
 
 // Helper to detect "out of credits" errors from API providers
+// biome-ignore lint/suspicious/noExplicitAny: Error handling with unknown API error types
 function detectCreditsError(error: any): boolean {
   const errorStr = String(error.message || error).toLowerCase();
 
@@ -258,6 +259,7 @@ async function buildSystemPrompts(
 // Perplexity models (via OpenRouter) return search results in metadata
 // Helper function to extract sources/citations from AI SDK response
 // Perplexity models (via OpenRouter) return search results in metadata
+// biome-ignore lint/suspicious/noExplicitAny: Complex provider metadata types from AI SDK
 function extractSources(providerMetadata: any):
   | Array<{
       id: string;
@@ -542,6 +544,7 @@ export const generateResponse = internalAction({
             }
 
             // Vision models: build content array with text + attachments
+            // biome-ignore lint/suspicious/noExplicitAny: Complex content parts for vision models
             const contentParts: any[] = [
               { type: "text", text: m.content || "" },
             ];
@@ -595,6 +598,7 @@ export const generateResponse = internalAction({
         : model;
 
       // 11. Build streamText options
+      // biome-ignore lint/suspicious/noExplicitAny: Complex streamText options with dynamic properties
       const options: any = {
         model: finalModel,
         messages: allMessages,
@@ -636,9 +640,10 @@ export const generateResponse = internalAction({
           projectContext: projectContextTool,
         };
 
+        // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
         options.onStepFinish = async (step: any) => {
           if (step.toolCalls && step.toolCalls.length > 0) {
-            const completedCalls = step.toolCalls.map((tc: any) => ({
+            const _completedCalls = step.toolCalls.map((tc: any) => ({
               id: tc.toolCallId,
               name: tc.toolName,
               arguments: JSON.stringify(tc.input || tc.args),
@@ -682,6 +687,7 @@ export const generateResponse = internalAction({
       // 6. Accumulate chunks, throttle DB updates
       let accumulated = "";
       let reasoningBuffer = "";
+      // biome-ignore lint/suspicious/noExplicitAny: Complex tool call result types
       const toolCallsBuffer = new Map<string, any>();
 
       // Stream from LLM
@@ -806,6 +812,7 @@ export const generateResponse = internalAction({
 
       // Extract all tool calls from result.steps
       const steps = (await result.steps) || [];
+      // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
       const allToolCalls = steps
         .flatMap((step: any) => step.toolCalls || [])
         .map((tc: any) => {
@@ -1079,7 +1086,7 @@ export const summarizeSelection = action({
   args: {
     text: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     // Create abort controller with 30s timeout
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), 30000);

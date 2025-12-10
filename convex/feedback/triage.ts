@@ -51,7 +51,7 @@ export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
-    // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+    // @ts-expect-error - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
     const feedback: Doc<"feedback"> | null = await ctx.runQuery(
       internal.lib.helpers.getFeedback,
       {
@@ -196,6 +196,7 @@ export const acceptTriageSuggestion = internalMutation({
       throw new Error("No AI triage available");
     }
 
+    // biome-ignore lint/suspicious/noExplicitAny: Dynamic update object for feedback triage
     const updates: Record<string, any> = { updatedAt: Date.now() };
 
     if (acceptPriority && feedback.aiTriage.suggestedPriority) {

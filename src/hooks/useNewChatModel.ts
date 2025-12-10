@@ -1,8 +1,8 @@
 "use client";
 
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
-import { useQuery } from "convex/react";
 import { useRecentModels } from "./useRecentModels";
 
 /**
@@ -10,7 +10,7 @@ import { useRecentModels } from "./useRecentModels";
  * Respects user's preference for "fixed" (default model) or "recent" (last used model).
  */
 export function useNewChatModel() {
-  // @ts-ignore - Convex type instantiation depth issue
+  // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
   const user = useQuery(api.users.getCurrentUser);
   const { recents } = useRecentModels();
 

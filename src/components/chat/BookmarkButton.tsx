@@ -43,7 +43,7 @@ export function BookmarkButton({
       try {
         await removeBookmark({ bookmarkId: existingBookmark._id });
         toast.success("Bookmark removed");
-      } catch (error) {
+      } catch (_error) {
         toast.error("Failed to remove bookmark");
       }
     } else {
@@ -72,7 +72,7 @@ export function BookmarkButton({
       setShowDialog(false);
       setNote("");
       setTags("");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to save bookmark");
     }
   };

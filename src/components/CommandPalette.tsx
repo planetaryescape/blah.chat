@@ -30,7 +30,7 @@ export function CommandPalette() {
   const router = useRouter();
   const pathname = usePathname();
   const { setTheme } = useTheme();
-  const listRef = useRef<HTMLDivElement>(null);
+  const _listRef = useRef<HTMLDivElement>(null);
   const conversations = useQuery(api.conversations.list, {});
   const createConversation = useMutation(api.conversations.create);
   const hybridSearchAction = useAction(

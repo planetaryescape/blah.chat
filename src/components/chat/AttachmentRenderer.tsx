@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { Doc } from "@/convex/_generated/dataModel";
 import { AttachmentIndicators } from "./AttachmentIndicators";
 import { ImageGallery } from "./ImageGallery";
 import { ImageLightbox } from "./ImageLightbox";

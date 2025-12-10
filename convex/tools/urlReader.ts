@@ -7,7 +7,7 @@ export const readUrl = internalAction({
     maxLength: v.optional(v.number()),
     format: v.optional(v.union(v.literal("markdown"), v.literal("text"))),
   },
-  handler: async (ctx, { url, maxLength = 5000, format = "markdown" }) => {
+  handler: async (_ctx, { url, maxLength = 5000, format = "markdown" }) => {
     try {
       // Use Jina AI Reader API
       const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;

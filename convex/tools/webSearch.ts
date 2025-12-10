@@ -10,7 +10,7 @@ export const search = internalAction({
     query: v.string(),
     maxResults: v.number(),
   },
-  handler: async (ctx, { query, maxResults }) => {
+  handler: async (_ctx, { query, maxResults }) => {
     const apiKey = process.env.TAVILY_API_KEY;
 
     if (!apiKey) {
@@ -57,6 +57,7 @@ export const search = internalAction({
         success: true,
         query,
         answer: data.answer || null,
+        // biome-ignore lint/suspicious/noExplicitAny: Web search result object types
         results: (data.results || []).map((r: any) => ({
           title: r.title,
           url: r.url,

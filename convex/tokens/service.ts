@@ -58,7 +58,7 @@ class OpenAITokenCounter implements TokenCountService {
       }
 
       return count;
-    } catch (error) {
+    } catch (_error) {
       // Mark tiktoken as unavailable to avoid repeated attempts
       if (this.tiktokenAvailable === null) {
         this.tiktokenAvailable = false;

@@ -39,6 +39,7 @@ export const hybridSearch = action({
         value: query,
       });
 
+      // biome-ignore lint/suspicious/noExplicitAny: Complex Convex query return types
       const semanticResults: any = await ctx.runQuery(
         internal.conversations.hybridSearch.semanticSearchWithEmbedding,
         { embedding, userId: user._id, limit: 40, includeArchived },

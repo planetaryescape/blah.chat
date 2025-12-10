@@ -103,12 +103,7 @@ export function MessageList({
     if (isAtBottom) {
       scrollToBottom("smooth");
     }
-  }, [
-    messages.length,
-    messages[messages.length - 1]?.partialContent,
-    isAtBottom,
-    scrollToBottom,
-  ]);
+  }, [isAtBottom, scrollToBottom]);
 
   if (messages.length === 0) {
     return (

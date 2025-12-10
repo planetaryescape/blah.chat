@@ -138,7 +138,14 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [router, pathname, createConversation, filteredConversations]);
+  }, [
+    router,
+    pathname,
+    createConversation,
+    filteredConversations,
+    conversationId,
+    newChatModel,
+  ]);
 }
 
 // Export keyboard shortcut reference for documentation

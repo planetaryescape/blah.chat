@@ -34,8 +34,8 @@ export function AdminMemorySettings() {
     setAutoExtractEnabled(checked);
     try {
       await updateSettings({ autoMemoryExtractEnabled: checked });
-      toast.success("Memory extraction " + (checked ? "enabled" : "disabled"));
-    } catch (error) {
+      toast.success(`Memory extraction ${checked ? "enabled" : "disabled"}`);
+    } catch (_error) {
       toast.error("Failed to update settings");
       setAutoExtractEnabled(!checked); // Revert on error
     }
@@ -46,7 +46,7 @@ export function AdminMemorySettings() {
     try {
       await updateSettings({ autoMemoryExtractInterval: newInterval });
       toast.success(`Extraction interval updated to ${newInterval} messages`);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update interval");
     }
   };

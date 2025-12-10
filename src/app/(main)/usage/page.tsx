@@ -225,7 +225,7 @@ export default function UsagePage() {
                         `${entry.model}: $${entry.cost.toFixed(2)}`
                       }
                     >
-                      {spendByModel.map((entry: any, index: number) => (
+                      {spendByModel.map((_entry: any, index: number) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}

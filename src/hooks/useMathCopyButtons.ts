@@ -199,7 +199,7 @@ async function handleCopy(
   element: Element,
   copyIcon: SVGSVGElement,
   checkIcon: SVGSVGElement,
-  isDisplay: boolean,
+  _isDisplay: boolean,
 ): Promise<void> {
   await copyToClipboard(latex, element);
 

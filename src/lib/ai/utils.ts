@@ -24,6 +24,32 @@ export function getModelConfig(modelId: string): ModelConfig | undefined {
     };
   }
 
+  // Handle legacy model IDs without provider prefix (e.g., "gpt-4o", "claude-3-opus")
+  // Infer provider from model name
+  const legacyProviderMap: Record<string, ModelConfig["provider"]> = {
+    gpt: "openai",
+    claude: "anthropic",
+    gemini: "google",
+    grok: "xai",
+    llama: "meta",
+    mistral: "mistral",
+    qwen: "alibaba",
+  };
+
+  for (const [prefix, provider] of Object.entries(legacyProviderMap)) {
+    if (modelId.toLowerCase().startsWith(prefix)) {
+      return {
+        id: `${provider}:${modelId}`,
+        provider,
+        name: modelId,
+        description: `Legacy ${provider} model`,
+        contextWindow: 128000,
+        pricing: { input: 0, output: 0 },
+        capabilities: [],
+      };
+    }
+  }
+
   return undefined;
 }
 

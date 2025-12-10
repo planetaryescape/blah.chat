@@ -105,7 +105,7 @@ export const mathPatterns: MathPattern[] = [
             : type === "v"
               ? "bar-bracketed"
               : "";
-      return `${prefix ? prefix + " " : ""}Matrix`.trim();
+      return `${prefix ? `${prefix} ` : ""}Matrix`.trim();
     },
   },
 

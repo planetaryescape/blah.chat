@@ -1,5 +1,5 @@
 "use node";
-import { Html, Head, Body, Text } from "@react-email/components";
+import { Body, Head, Html, Text } from "@react-email/components";
 import { EmailContainer } from "../components";
 
 export function ApiCreditsExhaustedEmail({

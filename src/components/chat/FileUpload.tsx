@@ -106,6 +106,7 @@ export function FileUpload({
       maxSizeMB,
       onAttachmentsChange,
       saveFile,
+      setUploading,
     ],
   );
 

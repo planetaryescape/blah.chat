@@ -46,6 +46,7 @@ export const enrichSourceMetadata = internalAction({
             domain,
             fetchedAt: Date.now(),
           };
+          // biome-ignore lint/suspicious/noExplicitAny: Error object types
         } catch (error: any) {
           // Graceful degradation on fetch failure
           const domain = (() => {

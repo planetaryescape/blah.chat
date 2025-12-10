@@ -21,6 +21,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 // Helper: Check if memory is duplicate using semantic similarity
 async function isMemoryDuplicate(
+  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   userId: string,
   newEmbedding: number[],
@@ -28,6 +29,7 @@ async function isMemoryDuplicate(
   try {
     const similarMemories = await ctx.vectorSearch("memories", "by_embedding", {
       vector: newEmbedding,
+      // biome-ignore lint/suspicious/noExplicitAny: Convex query filter types
       filter: (q: any) => q.eq("userId", userId),
       limit: 5,
     });

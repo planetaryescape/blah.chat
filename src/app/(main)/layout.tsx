@@ -99,7 +99,7 @@ export default function MainLayout({
 
         {/* Don't show sidebar when not authenticated */}
         {!isLoading && !isAuthenticated ? (
-          <>{children}</>
+          children
         ) : (
           <SidebarProvider>
             {isAdminRoute ? (
@@ -116,7 +116,6 @@ export default function MainLayout({
                 <main
                   id="main-content"
                   className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-                  role="main"
                   aria-label="Chat interface"
                 >
                   <Header />

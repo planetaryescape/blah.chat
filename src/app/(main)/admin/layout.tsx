@@ -39,7 +39,6 @@ export default function AdminLayout({
       <main
         id="admin-content"
         className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-        role="main"
         aria-label="Admin interface"
       >
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">

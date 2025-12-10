@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { getGatewayOptions } from "../src/lib/ai/gateway";
 import { MEMORY_PROCESSING_MODEL } from "../src/lib/ai/operational-models";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   action,
@@ -283,7 +283,6 @@ function sortMemories(memories: Doc<"memories">[], sortBy: string) {
       return sorted.sort(
         (a, b) => (b.metadata?.confidence || 0) - (a.metadata?.confidence || 0),
       );
-    case "date":
     default:
       return sorted.sort((a, b) => b.createdAt - a.createdAt);
   }
@@ -508,8 +507,7 @@ export const migrateUserMemories = action({
     if (!identity) throw new Error("Unauthorized");
 
     // 1. Fetch user's memories (listAll already handles user lookup + filtering)
-    const memories: Doc<"memories">[] = await (ctx.runQuery as any)(
-    );
+    const memories: Doc<"memories">[] = await (ctx.runQuery as any)();
 
     if (memories.length === 0) {
       return { migrated: 0, skipped: 0, total: 0 };

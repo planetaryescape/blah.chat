@@ -143,6 +143,14 @@ export const updatePreferences = mutation({
         }),
       ),
       showModelNamesDuringComparison: v.optional(v.boolean()),
+      chatWidth: v.optional(
+        v.union(
+          v.literal("narrow"),
+          v.literal("standard"),
+          v.literal("wide"),
+          v.literal("full"),
+        ),
+      ),
     }),
   },
   handler: async (ctx, args) => {

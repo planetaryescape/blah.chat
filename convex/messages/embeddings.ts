@@ -1,17 +1,17 @@
-import { openai } from "@ai-sdk/openai";
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { EMBEDDING_SUMMARIZATION_MODEL } from "../../src/lib/ai/operational-models";
+import {
+  EMBEDDING_MODEL,
+  EMBEDDING_SUMMARIZATION_MODEL,
+} from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from "../_generated/server";
-
-const _EMBEDDING_MODEL = "text-embedding-3-small"; // OpenAI embedding model
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
 const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
@@ -65,7 +65,7 @@ export const generateEmbedding = internalAction({
 
       // Generate embedding
       const { embedding } = await embed({
-        model: openai.embedding("text-embedding-3-small"),
+        model: EMBEDDING_MODEL,
         value: contentToEmbed,
       });
 
@@ -144,7 +144,7 @@ export const generateBatchEmbeddings = internalAction({
       }
 
       const { embedding } = await embed({
-        model: openai.embedding("text-embedding-3-small"),
+        model: EMBEDDING_MODEL,
         value: contentToEmbed,
       });
 

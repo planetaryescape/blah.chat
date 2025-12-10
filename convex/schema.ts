@@ -75,6 +75,15 @@ export default defineSchema({
           showDuringStreaming: v.optional(v.boolean()), // default true
         }),
       ),
+      // Chat width settings
+      chatWidth: v.optional(
+        v.union(
+          v.literal("narrow"),
+          v.literal("standard"),
+          v.literal("wide"),
+          v.literal("full"),
+        ),
+      ), // default "standard"
     }),
     createdAt: v.number(),
     updatedAt: v.number(),

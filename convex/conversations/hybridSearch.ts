@@ -1,6 +1,6 @@
-import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { v } from "convex/values";
+import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action, internalQuery } from "../_generated/server";
@@ -35,7 +35,7 @@ export const hybridSearch = action({
     try {
       // Generate embedding in ACTION (not query) since it requires network call
       const { embedding } = await embed({
-        model: openai.embedding("text-embedding-3-small"),
+        model: EMBEDDING_MODEL,
         value: query,
       });
 

@@ -46,11 +46,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // ... imports
 
 export default function UsagePage() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const monthlyTotal = useQuery(api.usage.queries.getMonthlyTotal);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const dailySpend = useQuery(api.usage.queries.getDailySpend, { days: 30 });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const spendByModel = useQuery(api.usage.queries.getSpendByModel, {
     days: 30,
   });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversationCosts = useQuery(api.usage.queries.getConversationCosts, {
     limit: 10,
   });

@@ -15,7 +15,9 @@ import { useNewChatModel } from "@/hooks/useNewChatModel";
 export default function AppPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useConvexAuth();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConversation = useMutation(api.conversations.create);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list, {});
   const navigationStarted = useRef(false);
   const { newChatModel, isLoading: modelLoading } = useNewChatModel();

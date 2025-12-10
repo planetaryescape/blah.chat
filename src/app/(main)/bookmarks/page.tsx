@@ -11,6 +11,7 @@ import { api } from "../../../../convex/_generated/api";
 export const dynamic = "force-dynamic";
 
 function BookmarksPageContent() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const bookmarks = useQuery(api.bookmarks.list);
   const [searchQuery, setSearchQuery] = useState("");
 

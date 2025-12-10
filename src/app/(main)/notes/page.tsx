@@ -71,6 +71,7 @@ function NotesPageContent() {
 
   const { isMobile } = useMobileDetect();
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const notes = useQuery(api.notes.searchNotes, {
     searchQuery, // Debounced searchParam
     filterPinned: filterPinned || undefined,
@@ -78,6 +79,7 @@ function NotesPageContent() {
     tagFilterMode,
   });
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createNote = useMutation(api.notes.createNote);
 
   // Validate selected note exists

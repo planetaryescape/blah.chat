@@ -241,6 +241,7 @@ function FeedbackPageContent() {
     setSearchParam("");
   };
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const feedbackList = useQuery(api.feedback.listFeedback, {
     status: (statusFilter as any) || undefined,
     feedbackType: (typeFilter as any) || undefined,
@@ -250,17 +251,23 @@ function FeedbackPageContent() {
     sortOrder: (sortOrder as any) || "desc",
   });
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const feedbackCounts = useQuery(api.feedback.getFeedbackCounts, {});
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const selectedFeedback = useQuery(
     api.feedback.getFeedback,
     selectedId ? { feedbackId: selectedId } : "skip",
   );
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateStatus = useMutation(api.feedback.updateFeedbackStatus);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePriority = useMutation(api.feedback.updateFeedbackPriority);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const bulkUpdateStatus = useMutation(api.feedback.bulkUpdateStatus);
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const archiveFeedback = useMutation(api.feedback.archiveFeedback);
   const acceptTriage = useMutation(
     (api.feedback as any).triage.acceptTriageSuggestion,

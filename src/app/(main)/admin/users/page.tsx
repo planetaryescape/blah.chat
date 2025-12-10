@@ -34,7 +34,9 @@ function UsersListSkeleton() {
 }
 
 function UsersPageContent() {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const users = useQuery(api.admin.listUsers);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateRole = useMutation(api.admin.updateUserRole);
 
   const handleToggleAdmin = async (userId: Id<"users">, isAdmin: boolean) => {

@@ -84,6 +84,9 @@ export default defineSchema({
           v.literal("full"),
         ),
       ), // default "standard"
+      // Statistics display settings
+      showMessageStatistics: v.optional(v.boolean()), // default true
+      showComparisonStatistics: v.optional(v.boolean()), // default true
     }),
     createdAt: v.number(),
     updatedAt: v.number(),

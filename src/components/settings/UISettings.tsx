@@ -14,6 +14,12 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { analytics } from "@/lib/analytics";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -32,6 +38,10 @@ export function UISettings() {
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState(false);
 
+  // Statistics display settings
+  const [showMessageStats, setShowMessageStats] = useState(true);
+  const [showComparisonStats, setShowComparisonStats] = useState(true);
+
   // Reasoning display settings
   const [showByDefault, setShowByDefault] = useState(true);
   const [autoExpand, setAutoExpand] = useState(false);
@@ -48,6 +58,10 @@ export function UISettings() {
       setShowModelNamesDuringComparison(
         user.preferences.showModelNamesDuringComparison ?? false,
       );
+
+      // Initialize statistics settings
+      setShowMessageStats(user.preferences.showMessageStatistics ?? true);
+      setShowComparisonStats(user.preferences.showComparisonStatistics ?? true);
 
       // Initialize reasoning settings
       if (user.preferences.reasoning) {
@@ -192,6 +206,44 @@ export function UISettings() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setChatWidth(chatWidth); // Rollback
+    }
+  };
+
+  const handleMessageStatsChange = async (checked: boolean) => {
+    setShowMessageStats(checked);
+    try {
+      await updatePreferences({
+        preferences: { showMessageStatistics: checked },
+      });
+      toast.success("Settings saved!");
+
+      analytics.track("ui_preference_changed", {
+        setting: "show_message_statistics",
+        value: checked,
+        source: "settings_page",
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setShowMessageStats(!checked);
+    }
+  };
+
+  const handleComparisonStatsChange = async (checked: boolean) => {
+    setShowComparisonStats(checked);
+    try {
+      await updatePreferences({
+        preferences: { showComparisonStatistics: checked },
+      });
+      toast.success("Settings saved!");
+
+      analytics.track("ui_preference_changed", {
+        setting: "show_comparison_statistics",
+        value: checked,
+        source: "settings_page",
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setShowComparisonStats(!checked);
     }
   };
 

@@ -41,6 +41,22 @@ export const listUsers = query({
   },
 });
 
+/**
+ * Get total user count (admin only)
+ */
+export const getUserCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.isAdmin !== true) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const users = await ctx.db.query("users").collect();
+    return users.length;
+  },
+});
+
 // ============================================================================
 // MUTATIONS
 // ============================================================================

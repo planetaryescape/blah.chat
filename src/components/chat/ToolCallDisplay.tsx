@@ -329,7 +329,338 @@ export function ToolCallDisplay({
                   );
                 }
 
-                // Default: searchMemories
+                if (call.name === "webSearch") {
+                  const results = parsedResult?.results || [];
+
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-mono text-muted-foreground">
+                          "{parsedArgs?.query}"
+                        </span>
+                      </div>
+
+                      {parsedResult && state !== "executing" && (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {results.slice(0, 5).map((r: any, i: number) => (
+                            <div key={i} className="py-1">
+                              <a
+                                href={r.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-primary hover:underline"
+                              >
+                                {r.title}
+                              </a>
+                              <p className="text-muted-foreground text-[11px] line-clamp-2">
+                                {r.content?.substring(0, 150)}
+                                {r.content && r.content.length > 150
+                                  ? "..."
+                                  : ""}
+                              </p>
+                            </div>
+                          ))}
+                          {results.length === 0 && (
+                            <div className="text-muted-foreground">
+                              No results found
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "calculator") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-mono text-muted-foreground">
+                          {parsedArgs?.expression}
+                        </span>
+                      </div>
+                      {parsedResult && state !== "executing" && (
+                        <div className="font-semibold text-primary">
+                          = {parsedResult.result}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "datetime") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {parsedArgs?.operation}
+                          {parsedArgs?.timezone && ` (${parsedArgs.timezone})`}
+                        </span>
+                      </div>
+                      {parsedResult && state !== "executing" && (
+                        <div className="font-medium">
+                          {parsedResult.formatted || parsedResult.readable}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "urlReader") {
+                  const content = parsedResult?.content || "";
+                  const truncated = content.substring(0, 500);
+
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <a
+                          href={parsedArgs?.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline truncate"
+                        >
+                          {parsedArgs?.url}
+                        </a>
+                      </div>
+                      {parsedResult && state !== "executing" && (
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground text-[11px]">
+                            {parsedResult.wordCount} words
+                          </div>
+                          <div className="max-h-48 overflow-y-auto text-muted-foreground">
+                            <pre className="whitespace-pre-wrap font-sans text-[11px]">
+                              {content.length > 500
+                                ? truncated + "..."
+                                : content}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "codeExecution") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {parsedArgs?.language || "Code"}
+                        </span>
+                      </div>
+                      {parsedArgs?.code && (
+                        <pre className="bg-muted p-2 rounded text-[11px] overflow-x-auto">
+                          <code>{parsedArgs.code}</code>
+                        </pre>
+                      )}
+                      {parsedResult && state !== "executing" && (
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground">Output:</div>
+                          <pre className="bg-muted p-2 rounded text-[11px] max-h-48 overflow-y-auto">
+                            <code>{parsedResult.output}</code>
+                          </pre>
+                          {parsedResult.executionTime && (
+                            <div className="text-muted-foreground text-[11px]">
+                              Executed in {parsedResult.executionTime}ms
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "weather") {
+                  const current = parsedResult?.current;
+                  const units =
+                    parsedResult?.units === "fahrenheit" ? "°F" : "°C";
+
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {parsedArgs?.location}
+                        </span>
+                      </div>
+                      {current && state !== "executing" && (
+                        <div className="space-y-1">
+                          <div className="font-semibold">
+                            {current.temperature}
+                            {units} • {current.condition}
+                          </div>
+                          {current.feelsLike && (
+                            <div className="text-muted-foreground">
+                              Feels like {current.feelsLike}
+                              {units}
+                            </div>
+                          )}
+                          {parsedResult.forecast && (
+                            <div className="text-muted-foreground text-[11px]">
+                              {parsedResult.forecast}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "fileDocument") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium">
+                          {parsedResult?.fileName || "Document"}
+                        </span>
+                      </div>
+                      {parsedResult && state !== "executing" && (
+                        <div className="space-y-1">
+                          <div className="text-muted-foreground text-[11px]">
+                            {parsedResult.wordCount} words
+                          </div>
+                          {parsedResult.content && (
+                            <div className="max-h-48 overflow-y-auto bg-muted p-2 rounded">
+                              <pre className="whitespace-pre-wrap font-sans text-[11px]">
+                                {parsedResult.content}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "projectContext") {
+                  const section = parsedArgs?.section || "context";
+                  const items = parsedResult?.items || [];
+
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {parsedResult?.project?.name} • {section}
+                        </span>
+                      </div>
+                      {items.length > 0 && state !== "executing" && (
+                        <div className="max-h-48 overflow-y-auto space-y-1">
+                          {items.map((item: any, i: number) => (
+                            <div key={i} className="text-muted-foreground">
+                              •{" "}
+                              {item.title ||
+                                item.name ||
+                                item.content?.substring(0, 50)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "deleteMemory") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span
+                          className={
+                            parsedResult?.success
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }
+                        >
+                          {parsedResult?.success
+                            ? "Deleted"
+                            : "Failed to delete"}
+                        </span>
+                      </div>
+                      {parsedResult?.message && state !== "executing" && (
+                        <div className="text-muted-foreground">
+                          {parsedResult.message}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (call.name === "searchMemories") {
+                  return (
+                    <div
+                      key={call.id}
+                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-mono text-muted-foreground">
+                          {parsedArgs?.query}
+                        </span>
+                      </div>
+
+                      {parsedResult && (
+                        <div className="space-y-1 max-h-48 overflow-y-auto">
+                          {parsedResult.memories?.map((mem: any, i: number) => (
+                            <div key={i} className="py-0.5">
+                              <span className="font-medium text-primary">
+                                [{mem.category}]
+                              </span>{" "}
+                              <span className="text-muted-foreground">
+                                {mem.content}
+                              </span>
+                            </div>
+                          ))}
+                          {parsedResult.found === 0 && (
+                            <div className="text-muted-foreground">
+                              No memories found
+                            </div>
+                          )}
+                          {state === "error" && (
+                            <div className="text-red-500">
+                              {parsedResult.error || "Tool execution failed"}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Fallback for unknown tools
                 return (
                   <div
                     key={call.id}
@@ -337,33 +668,28 @@ export function ToolCallDisplay({
                   >
                     <div className="flex items-center gap-2">
                       <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono text-muted-foreground">
-                        {parsedArgs?.query}
+                      <span className="font-medium text-muted-foreground">
+                        {call.name || "Unknown tool"}
                       </span>
                     </div>
 
-                    {parsedResult && (
-                      <div className="space-y-1 max-h-48 overflow-y-auto">
-                        {parsedResult.memories?.map((mem: any, i: number) => (
-                          <div key={i} className="py-0.5">
-                            <span className="font-medium text-primary">
-                              [{mem.category}]
-                            </span>{" "}
-                            <span className="text-muted-foreground">
-                              {mem.content}
-                            </span>
-                          </div>
-                        ))}
-                        {parsedResult.found === 0 && (
-                          <div className="text-muted-foreground">
-                            No memories found
-                          </div>
-                        )}
-                        {state === "error" && (
-                          <div className="text-red-500">
-                            {parsedResult.error || "Tool execution failed"}
-                          </div>
-                        )}
+                    {/* Show parsed arguments */}
+                    {parsedArgs && (
+                      <div className="text-muted-foreground">
+                        <div className="text-[11px] font-medium mb-1">Arguments:</div>
+                        <pre className="text-[10px] bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                          {JSON.stringify(parsedArgs, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* Show parsed results */}
+                    {parsedResult && state !== "executing" && (
+                      <div className="text-muted-foreground">
+                        <div className="text-[11px] font-medium mb-1">Result:</div>
+                        <pre className="text-[10px] bg-muted p-2 rounded max-h-48 overflow-y-auto whitespace-pre-wrap">
+                          {JSON.stringify(parsedResult, null, 2)}
+                        </pre>
                       </div>
                     )}
                   </div>

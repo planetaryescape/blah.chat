@@ -188,35 +188,7 @@ export const getSourcesWithFallback = query({
       };
     }
 
-    // 2. Fallback to message.sources[] field (legacy, synchronous)
-    const message = await ctx.db.get(messageId);
-    if (!message?.sources || (message.sources as any[]).length === 0) {
-      return { sources: [], source: "none" as const };
-    }
-
-    // Transform legacy format to match normalized structure
-    const legacySources = (
-      message.sources as Array<{
-        id: string;
-        title: string;
-        url: string;
-        snippet?: string;
-        publishedDate?: string;
-      }>
-    ).map((s, idx) => ({
-      position: Number.parseInt(s.id) || idx + 1,
-      provider: "legacy",
-      title: s.title,
-      snippet: s.snippet,
-      url: s.url,
-      isPartial: false,
-      createdAt: message.createdAt,
-      metadata: null, // No enrichment for legacy
-    }));
-
-    return {
-      sources: legacySources.sort((a, b) => a.position - b.position),
-      source: "legacy" as const,
-    };
+    // 2. No sources found (legacy fallback removed - Phase 2 migration complete)
+    return { sources: [], source: "none" as const };
   },
 });

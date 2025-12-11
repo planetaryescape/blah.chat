@@ -202,30 +202,10 @@ export const updatePartialContent = internalMutation({
 });
 
 /**
- * Update source metadata after OpenGraph enrichment
+ * DEPRECATED: Update source metadata after OpenGraph enrichment
+ * Now using normalized sourceMetadata table (Phase 2 migration complete)
+ * See: convex/sources/enrichment.ts - updateSourceMetadataBatch
  */
-export const updateSourceMetadata = internalMutation({
-  args: {
-    messageId: v.id("messages"),
-    metadata: v.array(
-      v.object({
-        sourceId: v.string(),
-        ogTitle: v.optional(v.string()),
-        ogDescription: v.optional(v.string()),
-        ogImage: v.optional(v.string()),
-        favicon: v.optional(v.string()),
-        domain: v.string(),
-        fetchedAt: v.optional(v.number()),
-        error: v.optional(v.string()),
-      }),
-    ),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, {
-      sourceMetadata: args.metadata,
-    });
-  },
-});
 
 export const markThinkingStarted = internalMutation({
   args: { messageId: v.id("messages") },
@@ -292,17 +272,7 @@ export const completeMessage = internalMutation({
     reasoningTokens: v.optional(v.number()),
     cost: v.number(),
     tokensPerSecond: v.optional(v.number()),
-    sources: v.optional(
-      v.array(
-        v.object({
-          id: v.string(),
-          title: v.string(),
-          url: v.string(),
-          publishedDate: v.optional(v.string()),
-          snippet: v.optional(v.string()),
-        }),
-      ),
-    ),
+    // sources: removed - now using normalized tables only (Phase 2 complete)
     providerMetadata: v.optional(v.any()), // New field for thought signatures
   },
   handler: async (ctx, args) => {
@@ -320,7 +290,7 @@ export const completeMessage = internalMutation({
       reasoningTokens: args.reasoningTokens,
       cost: args.cost,
       tokensPerSecond: args.tokensPerSecond,
-      sources: args.sources,
+      // sources: removed - now using normalized tables only (Phase 2 complete)
       partialSources: undefined, // Clear streaming sources
       providerMetadata: args.providerMetadata, // Save provider metadata
       generationCompletedAt: Date.now(),

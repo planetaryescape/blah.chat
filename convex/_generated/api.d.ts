@@ -78,6 +78,7 @@ import type * as migrations_002_normalize_message_sources from "../migrations/00
 import type * as migrations_002_normalize_message_sources_actions from "../migrations/002_normalize_message_sources_actions.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
+import type * as migrations_verify_phase2 from "../migrations/verify_phase2.js";
 import type * as notes from "../notes.js";
 import type * as notes_generateTitle from "../notes/generateTitle.js";
 import type * as notes_tags from "../notes/tags.js";
@@ -191,6 +192,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/002_normalize_message_sources_actions": typeof migrations_002_normalize_message_sources_actions;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
+  "migrations/verify_phase2": typeof migrations_verify_phase2;
   notes: typeof notes;
   "notes/generateTitle": typeof notes_generateTitle;
   "notes/tags": typeof notes_tags;

@@ -1128,13 +1128,7 @@ export const generateResponse = internalAction({
         reasoningTokens,
         cost,
         tokensPerSecond,
-        sources: sources?.map((s) => ({
-          id: `${s.position}`, // Convert position to string for legacy format
-          title: s.title,
-          url: s.url,
-          publishedDate: s.publishedDate,
-          snippet: s.snippet,
-        })),
+        // sources: removed - now using normalized tables only (Phase 2 complete)
         providerMetadata,
       });
 

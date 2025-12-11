@@ -37,6 +37,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useConversationActions } from "@/hooks/useConversationActions";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import { DeleteConversationDialog } from "../sidebar/DeleteConversationDialog";
@@ -58,11 +59,14 @@ export function ConversationHeaderMenu({
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 
-  const currentWidth =
-    (user?.preferences?.chatWidth as ChatWidth) || "standard";
-  const showMessageStats = user?.preferences?.showMessageStatistics ?? true;
-  const showComparisonStats =
-    user?.preferences?.showComparisonStatistics ?? true;
+  // Phase 4: Use new preference hooks
+  const prefChatWidth = useUserPreference("chatWidth");
+  const prefShowMessageStats = useUserPreference("showMessageStatistics");
+  const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
+
+  const currentWidth = (prefChatWidth as ChatWidth) || "standard";
+  const showMessageStats = prefShowMessageStats ?? false;
+  const showComparisonStats = prefShowComparisonStats ?? false;
 
   const handleWidthChange = async (width: ChatWidth) => {
     try {
@@ -71,7 +75,10 @@ export function ConversationHeaderMenu({
       });
       toast.success("Chat width updated");
     } catch (error) {
-      toast.error("Failed to update width");
+      console.error("[ConversationHeaderMenu] Failed to update width:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update width",
+      );
     }
   };
 
@@ -87,7 +94,13 @@ export function ConversationHeaderMenu({
         source: "header_menu",
       });
     } catch (error) {
-      toast.error("Failed to update");
+      console.error(
+        "[ConversationHeaderMenu] Failed to update message statistics:",
+        error,
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update statistics",
+      );
     }
   };
 
@@ -105,7 +118,15 @@ export function ConversationHeaderMenu({
         source: "header_menu",
       });
     } catch (error) {
-      toast.error("Failed to update");
+      console.error(
+        "[ConversationHeaderMenu] Failed to update comparison statistics:",
+        error,
+      );
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update comparison statistics",
+      );
     }
   };
 

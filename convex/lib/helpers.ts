@@ -92,6 +92,18 @@ export const getMemoriesByIds = internalQuery({
 });
 
 /**
+ * Get conversations by IDs (batch operation)
+ * Replaces: ctx.db.get() batch calls in actions
+ */
+export const getConversationsByIds = internalQuery({
+  args: { ids: v.array(v.id("conversations")) },
+  handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
+    const results = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    return results.filter((c): c is Doc<"conversations"> => c !== null);
+  },
+});
+
+/**
  * Get single memory by ID
  * Replaces: ctx.runQuery(internal.memories.getMemoryById, { id })
  */
@@ -160,5 +172,16 @@ export const getMessageAttachments = internalQuery({
       .query("attachments")
       .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
       .collect();
+  },
+});
+
+/**
+ * Get task by ID (Smart Manager Phase 2)
+ * Replaces: ctx.runQuery(internal.tasks.getInternal, { taskId })
+ */
+export const getTask = internalQuery({
+  args: { taskId: v.id("tasks") },
+  handler: async (ctx, args): Promise<Doc<"tasks"> | null> => {
+    return await ctx.db.get(args.taskId);
   },
 });

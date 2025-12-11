@@ -262,8 +262,10 @@ function UsersPageContent() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col overflow-hidden">
+      {/* Fixed Page Header */}
+      <div className="flex-shrink-0 px-6 pt-6 space-y-4">
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6" />
           <h1 className="text-2xl font-semibold">User Management</h1>
@@ -271,21 +273,20 @@ function UsersPageContent() {
         <Badge variant="secondary">{users.length} users</Badge>
       </div>
 
-      {/* Date Range Filter */}
-      <div className="flex items-center justify-between">
-        <DateRangePicker value={dateRange} onChange={setDateRange} />
+        {/* Date Range Filter */}
+        <div className="flex items-center justify-between">
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
+        </div>
       </div>
 
-      <div className="border rounded-lg">
+      {/* Scrollable Table with Fixed Headers */}
+      <div className="flex-1 flex flex-col min-h-0 px-6 pb-0">
+        <div className="border rounded-lg flex-1 flex flex-col min-h-0 overflow-hidden">
         {shouldVirtualize ? (
           /* Virtualized rendering for 50+ rows */
-          <div
-            ref={tableContainerRef}
-            className="overflow-auto relative"
-            style={{ height: "600px" }}
-          >
-            {/* Table Header */}
-            <div className="sticky top-0 z-10 bg-background border-b">
+          <>
+            {/* Fixed Headers */}
+            <div className="flex-shrink-0 sticky top-0 z-10 bg-background border-b">
               {table.getHeaderGroups().map((headerGroup) => (
                 <div key={headerGroup.id} className="flex">
                   {headerGroup.headers.map((header) => (
@@ -307,131 +308,142 @@ function UsersPageContent() {
                 </div>
               ))}
             </div>
-            {/* Virtualized Table Body */}
+
+            {/* Scrollable Body */}
             <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: "relative",
-              }}
+              ref={tableContainerRef}
+              className="flex-1 overflow-auto relative"
             >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const row = rows[virtualRow.index];
-                return (
-                  <div
-                    key={row.id}
-                    data-index={virtualRow.index}
-                    ref={rowVirtualizer.measureElement}
-                    className="flex cursor-pointer hover:bg-muted/50 border-b absolute left-0 w-full"
-                    style={{
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                    onClick={() => router.push(`/admin/users/${row.original._id}`)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <div
-                        key={cell.id}
-                        className="flex-1 px-4 py-3"
-                        style={{
-                          width: cell.column.getSize(),
-                        }}
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  position: "relative",
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = rows[virtualRow.index];
+                  return (
+                    <div
+                      key={row.id}
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      className="flex cursor-pointer hover:bg-muted/50 border-b absolute left-0 w-full"
+                      style={{
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      onClick={() => router.push(`/admin/users/${row.original._id}`)}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <div
+                          key={cell.id}
+                          className="flex-1 px-4 py-3"
+                          style={{
+                            width: cell.column.getSize(),
+                          }}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </>
         ) : (
           /* Standard table rendering for < 50 rows */
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => router.push(`/admin/users/${row.original._id}`)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No users found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/admin/users/${row.original._id}`)}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No users found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
+        </div>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {usersWithUsage.length} users
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
+      {/* Fixed Pagination Footer */}
+      <div className="flex-shrink-0 px-6 pb-6">
+        <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+            Showing {table.getRowModel().rows.length} of {usersWithUsage.length} users
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-          <select
-            value={pagination.pageSize}
-            onChange={(e) => table.setPageSize(Number(e.target.value))}
-            className="h-8 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {[20, 50, 100].map((size) => (
-              <option key={size} value={size}>
-                {size} per page
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Page {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </Button>
+            <select
+              value={pagination.pageSize}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
+              className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {[20, 50, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size} per page
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
     </div>

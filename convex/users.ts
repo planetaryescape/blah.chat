@@ -273,3 +273,21 @@ export const setDefaultModel = mutation({
     });
   },
 });
+
+export const getUserByClerkId = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+  },
+});
+
+export const listAllUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    // Only for migration - can be removed after backfill
+    return await ctx.db.query("users").collect();
+  },
+});

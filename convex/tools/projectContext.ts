@@ -18,7 +18,8 @@ export const get = internalAction({
       let projectId: any = null;
       if (conversationId) {
         // biome-ignore lint/suspicious/noExplicitAny: Conversation object types
-        const conversation: any = await ctx.runQuery(
+        const conversation: any = await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.conversations.getInternal,
           { id: conversationId },
         );
@@ -34,15 +35,25 @@ export const get = internalAction({
 
       // 2. Get project details
       // biome-ignore lint/suspicious/noExplicitAny: Project object types
-      const project: any = await ctx.runQuery(internal.projects.getInternal, {
-        id: projectId,
-      });
+      const project: any = await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.projects.getInternal,
+        { id: projectId },
+      );
 
       if (!project) {
         return { success: false, error: "Project not found" };
       }
 
-      // 3. Return requested section
+      // 3. Get conversation count from junction table
+      // biome-ignore lint/suspicious/noExplicitAny: Conversation count types
+      const conversationCount: any = await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.projects.getConversationCount,
+        { projectId },
+      );
+
+      // 4. Return requested section
       switch (section) {
         case "context": {
           return {
@@ -52,7 +63,7 @@ export const get = internalAction({
               name: project.name,
               description: project.description,
               systemPrompt: project.systemPrompt,
-              conversationCount: project.conversationIds.length,
+              conversationCount,
             },
           };
         }
@@ -83,9 +94,7 @@ export const get = internalAction({
         }
 
         case "history": {
-          // Get conversation count and IDs from project
-          const conversationCount = project.conversationIds.length;
-
+          // Use conversation count already fetched from junction table
           return {
             success: true,
             section,

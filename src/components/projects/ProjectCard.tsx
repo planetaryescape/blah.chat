@@ -42,7 +42,6 @@ interface ProjectCardProps {
     name: string;
     description?: string;
     systemPrompt?: string;
-    conversationIds?: Id<"conversations">[]; // Optional after Phase 3 migration
     createdAt: number;
     updatedAt: number;
   };
@@ -61,9 +60,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       toast.success("Project deleted");
 
       // Track project deletion
-      analytics.track("project_deleted", {
-        conversationCount: project.conversationIds?.length || 0,
-      });
+      analytics.track("project_deleted");
     } catch (error) {
       toast.error("Failed to delete project");
       console.error(error);

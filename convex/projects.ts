@@ -17,7 +17,6 @@ export const create = mutation({
       name: args.name,
       description: args.description,
       systemPrompt: args.systemPrompt,
-      conversationIds: [],
       isTemplate: args.isTemplate,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -89,12 +88,20 @@ export const deleteProject = mutation({
       throw new Error("Project not found");
     }
 
-    // Remove project from all conversations
-    const conversationIds = project.conversationIds ?? [];
-    for (const convId of conversationIds) {
-      const conv = await ctx.db.get(convId);
+    // Remove project from all conversations via junction table
+    const junctions = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .collect();
+
+    for (const junction of junctions) {
+      // Delete junction row
+      await ctx.db.delete(junction._id);
+
+      // Unlink conversation
+      const conv = await ctx.db.get(junction.conversationId);
       if (conv && conv.projectId === args.id) {
-        await ctx.db.patch(convId, {
+        await ctx.db.patch(junction.conversationId, {
           projectId: undefined,
           updatedAt: Date.now(),
         });
@@ -141,16 +148,7 @@ export const addConversation = mutation({
       });
     }
 
-    // 3. ALSO update array (dual-write - will be removed in Deploy 3)
-    const conversationIds = project.conversationIds ?? [];
-    if (!conversationIds.includes(args.conversationId)) {
-      await ctx.db.patch(args.projectId, {
-        conversationIds: [...conversationIds, args.conversationId],
-        updatedAt: Date.now(),
-      });
-    }
-
-    // 4. Update conversation.projectId
+    // 3. Update conversation.projectId
     await ctx.db.patch(args.conversationId, {
       projectId: args.projectId,
       updatedAt: Date.now(),
@@ -182,16 +180,7 @@ export const removeConversation = mutation({
       await ctx.db.delete(junction._id);
     }
 
-    // 2. ALSO update array (dual-write - will be removed in Deploy 3)
-    const conversationIds = project.conversationIds ?? [];
-    await ctx.db.patch(args.projectId, {
-      conversationIds: conversationIds.filter(
-        (id) => id !== args.conversationId,
-      ),
-      updatedAt: Date.now(),
-    });
-
-    // 3. Clear conversation.projectId
+    // 2. Clear conversation.projectId
     const conversation = await ctx.db.get(args.conversationId);
     if (conversation && conversation.projectId === args.projectId) {
       await ctx.db.patch(args.conversationId, {
@@ -254,16 +243,6 @@ export const assignConversations = mutation({
         });
       }
 
-      // 3. ALSO rebuild array (dual-write - will be removed in Deploy 3)
-      const allProjectConvos = await ctx.db
-        .query("conversations")
-        .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
-        .collect();
-
-      await ctx.db.patch(projectId, {
-        conversationIds: allProjectConvos.map((c) => c._id),
-        updatedAt: Date.now(),
-      });
     }
   },
 });
@@ -358,7 +337,6 @@ export const createFromTemplate = mutation({
       name: `${template.name} (Copy)`,
       description: template.description,
       systemPrompt: template.systemPrompt,
-      conversationIds: [],
       isTemplate: false,
       createdFrom: args.templateId,
       createdAt: Date.now(),
@@ -369,34 +347,20 @@ export const createFromTemplate = mutation({
   },
 });
 
-export const rebuildConversationIds = mutation({
-  args: { projectId: v.id("projects") },
-  handler: async (ctx, args) => {
-    const user = await getCurrentUserOrCreate(ctx);
-    const project = await ctx.db.get(args.projectId);
-
-    if (!project || project.userId !== user._id) {
-      throw new Error("Project not found");
-    }
-
-    // Rebuild from source of truth
-    const allProjectConvos = await ctx.db
-      .query("conversations")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
-    await ctx.db.patch(args.projectId, {
-      conversationIds: allProjectConvos.map((c) => c._id),
-      updatedAt: Date.now(),
-    });
-
-    return { count: allProjectConvos.length };
-  },
-});
-
 export const getInternal = internalQuery({
   args: { id: v.id("projects") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+export const getConversationCount = internalQuery({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const junctions = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    return junctions.length;
   },
 });

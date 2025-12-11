@@ -79,6 +79,7 @@ export const getProjectsBatch = internalQuery({
     return {
       projects: page.page.map((p) => ({
         _id: p._id,
+        // @ts-ignore - Historical migration: conversationIds removed in Deploy 3
         conversationIds: p.conversationIds ?? [],
         userId: p.userId,
       })),
@@ -99,6 +100,7 @@ export const verifyMigration = internalQuery({
     const errors: string[] = [];
 
     for (const project of projects) {
+      // @ts-ignore - Historical migration: conversationIds removed in Deploy 3
       const arrayIds = new Set(project.conversationIds ?? []);
 
       const junctionDocs = await ctx.db
@@ -116,6 +118,7 @@ export const verifyMigration = internalQuery({
       }
 
       for (const id of arrayIds) {
+        // @ts-ignore - Type inference issue after migration field removal
         if (!junctionIds.has(id)) {
           mismatches++;
           errors.push(

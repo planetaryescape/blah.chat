@@ -20,8 +20,10 @@ import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
 import { ModelBadge } from "@/components/chat/ModelBadge";
-import { ModelFeatureHint } from "@/components/chat/ModelFeatureHint";
+import { ModelPreviewModal } from "@/components/chat/ModelPreviewModal";
+import { ModelRecommendationBanner } from "@/components/chat/ModelRecommendationBanner";
 import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
+import { SetDefaultModelPrompt } from "@/components/chat/SetDefaultModelPrompt";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
@@ -42,6 +44,8 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { useUserPreference } from "@/hooks/useUserPreference";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
@@ -61,6 +65,7 @@ function ChatPageContent({
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -72,9 +77,9 @@ function ChatPageContent({
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
-  // Extract chat width preference
-  const chatWidth =
-    (user?.preferences?.chatWidth as ChatWidth | undefined) || "standard";
+  // Extract chat width preference (Phase 4: use flat preference hook)
+  const prefChatWidth = useUserPreference("chatWidth");
+  const chatWidth = (prefChatWidth as ChatWidth | undefined) || "standard";
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
@@ -142,6 +147,13 @@ function ChatPageContent({
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
 
+  // Model recommendation state
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewModelId, setPreviewModelId] = useState<string | null>(null);
+  const [showSetDefaultPrompt, setShowSetDefaultPrompt] = useState(false);
+  const [switchedModelId, setSwitchedModelId] = useState<string | null>(null);
+  const [switchedModelAt, setSwitchedModelAt] = useState<number | null>(null);
+
   const { isActive, selectedModels, startComparison, exitComparison } =
     useComparisonMode();
   const { isMobile, isTouchDevice } = useMobileDetect();
@@ -158,6 +170,8 @@ function ChatPageContent({
   );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   const handleModelChange = useCallback(
     async (modelId: string) => {
@@ -226,6 +240,58 @@ function ChatPageContent({
       router.push(`/chat/${newConvId}`);
     }
   };
+
+  // Model recommendation handlers
+  const handleSwitchModel = useCallback(
+    async (modelId: string) => {
+      // Update conversation model
+      await handleModelChange(modelId);
+
+      // Store for set-as-default prompt with timestamp
+      setSwitchedModelId(modelId);
+      setSwitchedModelAt(Date.now());
+    },
+    [handleModelChange],
+  );
+
+  const handlePreviewModel = useCallback((modelId: string) => {
+    setPreviewModelId(modelId);
+    setPreviewModalOpen(true);
+  }, []);
+
+  const handleSetAsDefault = useCallback(async () => {
+    if (!switchedModelId) return;
+
+    await updatePreferences({
+      preferences: {
+        defaultModel: switchedModelId,
+      },
+    });
+
+    setShowSetDefaultPrompt(false);
+  }, [switchedModelId, updatePreferences]);
+
+  // Show set-as-default prompt after first successful generation with switched model
+  useEffect(() => {
+    if (switchedModelId && switchedModelAt && messages && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+
+      // Check if last message was generated with switched model and completed
+      if (
+        lastMessage.role === "assistant" &&
+        lastMessage.status === "complete" &&
+        conversation?.model === switchedModelId &&
+        lastMessage._creationTime > switchedModelAt
+      ) {
+        // Show prompt after a brief delay (2 seconds)
+        const timer = setTimeout(() => {
+          setShowSetDefaultPrompt(true);
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [messages, switchedModelId, switchedModelAt, conversation?.model]);
 
   // Quick model switcher keyboard shortcut (⌘J)
   useEffect(() => {
@@ -418,11 +484,33 @@ function ChatPageContent({
         )}
 
         <div className="relative px-4 pb-4">
-          {!isActive && <ModelFeatureHint modelId={selectedModel} />}
           <ProgressiveHints
             messageCount={messages?.length ?? 0}
             conversationCount={filteredConversations?.length ?? 0}
           />
+
+          {/* Model Recommendation Banner */}
+          {conversation?.modelRecommendation &&
+            !conversation.modelRecommendation.dismissed && (
+              <ModelRecommendationBanner
+                recommendation={conversation.modelRecommendation}
+                conversationId={conversationId}
+                onSwitch={handleSwitchModel}
+                onPreview={handlePreviewModel}
+              />
+            )}
+
+          {/* Set Default Model Prompt (shows after successful generation) */}
+          {showSetDefaultPrompt && switchedModelId && (
+            <SetDefaultModelPrompt
+              modelId={switchedModelId}
+              modelName={MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId}
+              conversationId={conversationId}
+              onSetDefault={handleSetAsDefault}
+              onDismiss={() => setShowSetDefaultPrompt(false)}
+            />
+          )}
+
           <ChatInput
             conversationId={conversationId}
             chatWidth={chatWidth}
@@ -444,6 +532,26 @@ function ChatPageContent({
             onComparisonDialogOpenChange={setComparisonDialogOpen}
           />
         </div>
+
+        {/* Preview Modal */}
+        {previewModalOpen &&
+          previewModelId &&
+          conversation?.modelRecommendation && (
+            <ModelPreviewModal
+              open={previewModalOpen}
+              onOpenChange={setPreviewModalOpen}
+              currentModelId={conversation.modelRecommendation.currentModelId}
+              suggestedModelId={previewModelId}
+              currentResponse={
+                messages?.find((m) => m.role === "assistant")?.content ?? ""
+              }
+              onSwitch={handleSwitchModel}
+              conversationId={conversationId}
+              userMessage={
+                messages?.find((m) => m.role === "user")?.content ?? ""
+              }
+            />
+          )}
 
         <QuickModelSwitcher
           open={quickSwitcherOpen}

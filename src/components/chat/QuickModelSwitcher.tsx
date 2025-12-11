@@ -19,9 +19,9 @@ import {
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
-import { analytics } from "@/lib/analytics";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
+import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 interface QuickModelSwitcherProps {

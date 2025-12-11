@@ -194,6 +194,11 @@ export const togglePin = mutation({
     const conv = await ctx.db.get(args.conversationId);
     if (!conv || conv.userId !== user._id) throw new Error("Not found");
 
+    // Prevent pinning empty conversations
+    if (!conv.pinned && conv.messageCount === 0) {
+      throw new Error("Cannot pin empty conversation");
+    }
+
     await ctx.db.patch(args.conversationId, {
       pinned: !conv.pinned,
       updatedAt: Date.now(),

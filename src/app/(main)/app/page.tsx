@@ -4,23 +4,16 @@ import {
   Authenticated,
   Unauthenticated,
   useConvexAuth,
-  useMutation,
-  useQuery,
 } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { api } from "@/convex/_generated/api";
-import { useNewChatModel } from "@/hooks/useNewChatModel";
+import { useNewChat } from "@/hooks/useNewChat";
 
 export default function AppPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useConvexAuth();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createConversation = useMutation(api.conversations.create);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversations = useQuery(api.conversations.list, {});
+  const { startNewChat } = useNewChat();
   const navigationStarted = useRef(false);
-  const { newChatModel, isLoading: modelLoading } = useNewChatModel();
 
   // Redirect unauthenticated users to sign-in
   useEffect(() => {
@@ -29,56 +22,14 @@ export default function AppPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Navigate to chat when authenticated and data loaded
+  // Navigate to chat when authenticated
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
-    if (conversations === undefined) return; // Query loading
-    if (modelLoading) return; // Wait for model preference to load
-    if (navigationStarted.current) return; // Already navigating
-
-    // Check sessionStorage to prevent rapid re-creation across remounts
-    const lastCreationKey = "last_conversation_creation";
-    const lastCreation = sessionStorage.getItem(lastCreationKey);
-    const now = Date.now();
-
-    if (lastCreation) {
-      const timeSinceLastCreation = now - Number.parseInt(lastCreation, 10);
-      if (timeSinceLastCreation < 1000) {
-        // Less than 1 second since last creation, skip
-        return;
-      }
-    }
+    if (navigationStarted.current) return; // Prevent double navigation
 
     navigationStarted.current = true;
-
-    const handleNavigation = async () => {
-      // Check if most recent conversation is empty
-      const mostRecent = conversations[0];
-      if (mostRecent && mostRecent.messageCount === 0) {
-        // Reuse empty conversation
-        router.push(`/chat/${mostRecent._id}`);
-        return;
-      }
-
-      // Create new conversation with user's preferred model
-      sessionStorage.setItem(lastCreationKey, now.toString());
-      const conversationId = await createConversation({
-        model: newChatModel,
-        title: "New Chat",
-      });
-      router.push(`/chat/${conversationId}`);
-    };
-
-    handleNavigation();
-  }, [
-    isAuthenticated,
-    isLoading,
-    conversations,
-    router,
-    createConversation,
-    newChatModel,
-    modelLoading,
-  ]);
+    startNewChat();
+  }, [isAuthenticated, isLoading, startNewChat]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

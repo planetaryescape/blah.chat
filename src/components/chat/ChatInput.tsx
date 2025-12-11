@@ -146,9 +146,7 @@ export function ChatInput({
         isComparisonMode,
         hasAttachments: attachments.length > 0,
         attachmentCount: attachments.length,
-        attachmentTypes: [
-          ...new Set(attachments.map((a) => a.type)),
-        ].join(","),
+        attachmentTypes: [...new Set(attachments.map((a) => a.type))].join(","),
         inputLength: messageContent.length,
         hasQuote: !!quote,
         thinkingEffort,

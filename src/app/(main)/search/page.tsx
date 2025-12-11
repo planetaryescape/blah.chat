@@ -81,7 +81,14 @@ function SearchPageContent() {
         filterApplied: hasActiveFilters ? "active" : undefined,
       });
     }
-  }, [debouncedQuery, results.length, isSearching, addSearch, hasActiveFilters, page]);
+  }, [
+    debouncedQuery,
+    results.length,
+    isSearching,
+    addSearch,
+    hasActiveFilters,
+    page,
+  ]);
 
   const handleSelectRecentSearch = (query: string) => {
     setQueryParam(query);

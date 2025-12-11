@@ -10,6 +10,7 @@ interface ComparisonPanelProps {
   message: Doc<"messages">;
   index: number;
   showModelName: boolean;
+  showStats: boolean;
   onVote: () => void;
   isVoted?: boolean;
   hasVoted?: boolean;
@@ -18,7 +19,16 @@ interface ComparisonPanelProps {
 
 export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
   (
-    { message, index, showModelName, onVote, isVoted, hasVoted, duration },
+    {
+      message,
+      index,
+      showModelName,
+      showStats,
+      onVote,
+      isVoted,
+      hasVoted,
+      duration,
+    },
     ref,
   ) => {
     const isGenerating = ["pending", "generating"].includes(message.status);
@@ -46,21 +56,23 @@ export const ComparisonPanel = forwardRef<HTMLDivElement, ComparisonPanelProps>(
               <Badge variant="outline">Model {index + 1}</Badge>
             )}
           </div>
-          <div className="text-xs text-muted-foreground flex gap-2 w-full overflow-hidden text-ellipsis whitespace-nowrap pl-2">
-            <span>{message.inputTokens?.toLocaleString() || 0} in</span>
-            <span>•</span>
-            <span>{message.outputTokens?.toLocaleString() || 0} out</span>
-            <span>•</span>
-            <span className="font-mono">
-              ${message.cost?.toFixed(4) || "0.0000"}
-            </span>
-            {duration !== undefined && (
-              <>
-                <span>•</span>
-                <span className="font-mono">{formatDuration(duration)}</span>
-              </>
-            )}
-          </div>
+          {showStats && (
+            <div className="text-xs text-muted-foreground flex gap-2 w-full overflow-hidden text-ellipsis whitespace-nowrap pl-2">
+              <span>{message.inputTokens?.toLocaleString() || 0} in</span>
+              <span>•</span>
+              <span>{message.outputTokens?.toLocaleString() || 0} out</span>
+              <span>•</span>
+              <span className="font-mono">
+                ${message.cost?.toFixed(4) || "0.0000"}
+              </span>
+              {duration !== undefined && (
+                <>
+                  <span>•</span>
+                  <span className="font-mono">{formatDuration(duration)}</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content */}

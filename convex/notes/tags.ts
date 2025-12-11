@@ -17,13 +17,9 @@ export const extractTags = internalAction({
   args: { noteId: v.id("notes") },
   handler: async (ctx, { noteId }) => {
     // Get note content
-    const note = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"notes"> | null>)(
-      internal.lib.helpers.getNote as any,
-      { noteId },
-    );
+    const note = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"notes"> | null>
+    )(internal.lib.helpers.getNote as any, { noteId });
     if (!note) throw new Error("Note not found");
 
     // Skip if too short

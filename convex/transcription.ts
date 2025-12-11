@@ -10,13 +10,9 @@ export const transcribeAudio = action({
   },
   handler: async (ctx, args) => {
     // Get current user
-    const user = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"users"> | null>)(
-      internal.lib.helpers.getCurrentUser,
-      {},
-    );
+    const user = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
+    )(internal.lib.helpers.getCurrentUser, {});
     if (!user) {
       throw new Error("Unauthorized");
     }
@@ -116,10 +112,7 @@ export const transcribeAudio = action({
     }
 
     // Track cost
-    await (ctx.runMutation as (
-      ref: any,
-      args: any,
-    ) => Promise<void>)(
+    await (ctx.runMutation as (ref: any, args: any) => Promise<void>)(
       internal.usage.mutations.recordTranscription,
       {
         userId: user._id,

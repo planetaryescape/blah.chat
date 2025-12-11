@@ -19,13 +19,9 @@ export const generateSpeech = action({
   },
   handler: async (ctx, args) => {
     // 1. Get user + check TTS enabled
-    const user = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"users"> | null>)(
-      api.users.getCurrentUser as any,
-      {},
-    );
+    const user = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
+    )(api.users.getCurrentUser as any, {});
     if (!user?.preferences?.ttsEnabled) {
       throw new Error("TTS is disabled in user preferences");
     }

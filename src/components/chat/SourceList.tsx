@@ -29,6 +29,7 @@ export function SourceList({ messageId, className }: SourceListProps) {
     messageId,
   });
 
+  // Hide if no sources
   if (!result || result.sources.length === 0) return null;
 
   const { sources, source: sourceType } = result;

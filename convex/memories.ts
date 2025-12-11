@@ -520,23 +520,15 @@ export const migrateUserMemories = action({
     if (!identity) throw new Error("Unauthorized");
 
     // Get current user
-    const user = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"users"> | null>)(
-      internal.lib.helpers.getCurrentUser,
-      {},
-    );
+    const user = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
+    )(internal.lib.helpers.getCurrentUser, {});
     if (!user) throw new Error("User not found");
 
     // 1. Fetch user's memories
-    const memories = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"memories">[]>)(
-      internal.lib.helpers.listAllMemories,
-      { userId: user._id },
-    );
+    const memories = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"memories">[]>
+    )(internal.lib.helpers.listAllMemories, { userId: user._id });
 
     if (memories.length === 0) {
       return { migrated: 0, skipped: 0, total: 0 };

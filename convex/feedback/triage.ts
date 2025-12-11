@@ -52,15 +52,11 @@ export const autoTriageFeedback = internalAction({
   args: { feedbackId: v.id("feedback") },
   handler: async (ctx, { feedbackId }) => {
     // Get feedback content
-    const feedback = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"feedback"> | null>)(
-      internal.lib.helpers.getFeedback,
-      {
-        feedbackId,
-      },
-    );
+    const feedback = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"feedback"> | null>
+    )(internal.lib.helpers.getFeedback, {
+      feedbackId,
+    });
 
     if (!feedback) {
       throw new Error("Feedback not found");

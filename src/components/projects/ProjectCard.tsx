@@ -29,9 +29,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { analytics } from "@/lib/analytics";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
 import { BulkConversationAssigner } from "./BulkConversationAssigner";
 import { ProjectForm } from "./ProjectForm";
 import { ProjectStats } from "./ProjectStats";

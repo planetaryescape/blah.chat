@@ -10,7 +10,7 @@ import { useRecentModels } from "./useRecentModels";
  * Respects user's preference for "fixed" (default model) or "recent" (last used model).
  */
 export function useNewChatModel() {
-  // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
   const { recents } = useRecentModels();
 

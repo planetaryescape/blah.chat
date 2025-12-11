@@ -29,15 +29,14 @@ export const deleteFromTool = internalAction({
       if (args.mode === "id") {
         // Mode 1: Delete by exact ID
         try {
-          const memory = await (ctx.runQuery as (
-            ref: any,
-            args: any,
-          ) => Promise<Doc<"memories"> | null>)(
-            internal.lib.helpers.getMemoryById,
-            {
-              id: args.value as Id<"memories">,
-            },
-          );
+          const memory = await (
+            ctx.runQuery as (
+              ref: any,
+              args: any,
+            ) => Promise<Doc<"memories"> | null>
+          )(internal.lib.helpers.getMemoryById, {
+            id: args.value as Id<"memories">,
+          });
           // Verify ownership
           if (memory && memory.userId === args.userId) {
             matches = [memory];
@@ -75,15 +74,14 @@ export const deleteFromTool = internalAction({
           // Fetch full memory documents for matching IDs
           const memoryPromises = filteredResults.map(
             async (r): Promise<Doc<"memories"> | null> => {
-              return await (ctx.runQuery as (
-                ref: any,
-                args: any,
-              ) => Promise<Doc<"memories"> | null>)(
-                internal.lib.helpers.getMemoryById,
-                {
-                  id: r._id,
-                },
-              );
+              return await (
+                ctx.runQuery as (
+                  ref: any,
+                  args: any,
+                ) => Promise<Doc<"memories"> | null>
+              )(internal.lib.helpers.getMemoryById, {
+                id: r._id,
+              });
             },
           );
 
@@ -104,15 +102,11 @@ export const deleteFromTool = internalAction({
         // Mode 3: Delete all in category
         try {
           // Fetch all user memories and filter by category
-          const allMemories = await (ctx.runQuery as (
-            ref: any,
-            args: any,
-          ) => Promise<Doc<"memories">[]>)(
-            internal.memories.listAllInternal,
-            {
-              userId: args.userId,
-            },
-          );
+          const allMemories = await (
+            ctx.runQuery as (ref: any, args: any) => Promise<Doc<"memories">[]>
+          )(internal.memories.listAllInternal, {
+            userId: args.userId,
+          });
           matches = allMemories.filter(
             (m) => m.metadata.category === args.value,
           );

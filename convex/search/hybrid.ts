@@ -19,26 +19,24 @@ export const hybridSearch = action({
     messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
   },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
-    const user = ((await (ctx.runQuery as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    const user = (await (ctx.runQuery as any)(
       internal.lib.helpers.getCurrentUser,
       {},
-    )) as Doc<"users"> | null);
+    )) as Doc<"users"> | null;
     if (!user) return [];
 
     const limit = args.limit || 20;
 
     // Check admin settings for hybrid search
-    const adminSettings = ((await (ctx.runQuery as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    const adminSettings = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
       api.adminSettings.get,
       {},
-    )) as { enableHybridSearch?: boolean } | null);
+    )) as { enableHybridSearch?: boolean } | null;
     const hybridSearchEnabled = adminSettings?.enableHybridSearch ?? false;
 
     // 1. Full-text search (always enabled)
-    const textResults = ((await (ctx.runQuery as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    const textResults = (await (ctx.runQuery as any)(
       api.search.fullTextSearch,
       {
         query: args.query,
@@ -49,7 +47,7 @@ export const hybridSearch = action({
         messageType: args.messageType,
         limit: hybridSearchEnabled ? 40 : limit, // Fetch more for RRF merging if hybrid
       },
-    )) as Doc<"messages">[]);
+    )) as Doc<"messages">[];
 
     // 2. Vector search (only if enabled by admin)
     if (!hybridSearchEnabled) {
@@ -62,8 +60,7 @@ export const hybridSearch = action({
         value: args.query,
       });
 
-      const vectorResults = ((await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      const vectorResults = (await (ctx.runQuery as any)(
         api.search.vectorSearch,
         {
           embedding,
@@ -74,7 +71,7 @@ export const hybridSearch = action({
           messageType: args.messageType,
           limit: 40,
         },
-      )) as Doc<"messages">[]);
+      )) as Doc<"messages">[];
 
       // 3. RRF merge
       return mergeWithRRF(textResults, vectorResults, limit);

@@ -1,6 +1,5 @@
 import {
   Archive,
-  BarChart3,
   Bookmark,
   Brain,
   Download,
@@ -113,14 +112,6 @@ export const createActionItems = (params: {
         },
       ]
     : []),
-  {
-    id: "usage",
-    label: "Usage",
-    keywords: ["usage", "stats", "analytics", "go to", "navigate"],
-    icon: BarChart3,
-    onSelect: () => params.handleNavigate("/usage"),
-    group: "navigation",
-  },
   ...(params.showBookmarks !== false
     ? [
         {

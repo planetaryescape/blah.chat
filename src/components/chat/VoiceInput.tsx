@@ -12,8 +12,8 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
-import { cn } from "@/lib/utils";
 import { analytics } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
 interface VoiceInputProps {
   onTranscript: (text: string, autoSend: boolean) => void;

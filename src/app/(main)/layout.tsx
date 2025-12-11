@@ -18,31 +18,15 @@ import {
 } from "@/components/ui/sidebar";
 import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
-import { api } from "@/convex/_generated/api";
-import { useNewChatModel } from "@/hooks/useNewChatModel";
+import { useNewChat } from "@/hooks/useNewChat";
 
 function Header() {
   const { open } = useSidebar();
   const router = useRouter();
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversations = useQuery(api.conversations.list, {});
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createConversation = useMutation(api.conversations.create);
-  const { newChatModel } = useNewChatModel();
+  const { startNewChat } = useNewChat();
 
-  const handleNewChat = async () => {
-    // Check if most recent conversation is empty
-    const mostRecent = conversations?.[0];
-    if (mostRecent && mostRecent.messageCount === 0) {
-      router.push(`/chat/${mostRecent._id}`);
-      return;
-    }
-
-    // Create new conversation with user's preferred model
-    const conversationId = await createConversation({
-      model: newChatModel,
-    });
-    router.push(`/chat/${conversationId}`);
+  const handleNewChat = () => {
+    startNewChat();
   };
 
   return (

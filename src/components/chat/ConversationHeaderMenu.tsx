@@ -1,10 +1,9 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { ChatWidth } from "@/lib/utils/chatWidth";
 import {
   Archive,
+  BarChart3,
   Edit,
   Maximize2,
   MoreHorizontal,
@@ -18,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -34,8 +34,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useConversationActions } from "@/hooks/useConversationActions";
+import { analytics } from "@/lib/analytics";
+import type { ChatWidth } from "@/lib/utils/chatWidth";
 import { DeleteConversationDialog } from "../sidebar/DeleteConversationDialog";
 import { RenameDialog } from "../sidebar/RenameDialog";
 
@@ -50,11 +53,16 @@ export function ConversationHeaderMenu({
   const [showDelete, setShowDelete] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 
   const currentWidth =
     (user?.preferences?.chatWidth as ChatWidth) || "standard";
+  const showMessageStats = user?.preferences?.showMessageStatistics ?? true;
+  const showComparisonStats =
+    user?.preferences?.showComparisonStatistics ?? true;
 
   const handleWidthChange = async (width: ChatWidth) => {
     try {
@@ -64,6 +72,40 @@ export function ConversationHeaderMenu({
       toast.success("Chat width updated");
     } catch (error) {
       toast.error("Failed to update width");
+    }
+  };
+
+  const handleToggleMessageStats = async (checked: boolean) => {
+    try {
+      await updatePreferences({
+        preferences: { showMessageStatistics: checked },
+      });
+      toast.success(checked ? "Statistics enabled" : "Statistics hidden");
+      analytics.track("ui_preference_changed", {
+        setting: "show_message_statistics",
+        value: checked,
+        source: "header_menu",
+      });
+    } catch (error) {
+      toast.error("Failed to update");
+    }
+  };
+
+  const handleToggleComparisonStats = async (checked: boolean) => {
+    try {
+      await updatePreferences({
+        preferences: { showComparisonStatistics: checked },
+      });
+      toast.success(
+        checked ? "Comparison stats enabled" : "Comparison stats hidden",
+      );
+      analytics.track("ui_preference_changed", {
+        setting: "show_comparison_statistics",
+        value: checked,
+        source: "header_menu",
+      });
+    } catch (error) {
+      toast.error("Failed to update");
     }
   };
 
@@ -96,13 +138,18 @@ export function ConversationHeaderMenu({
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
+            disabled={!conversation.pinned && conversation.messageCount === 0}
             onClick={(e) => {
               e.stopPropagation();
               actions.handleTogglePin(conversation.pinned);
             }}
           >
             <Pin className="mr-2 h-4 w-4" />
-            {conversation.pinned ? "Unpin" : "Pin"}
+            {conversation.pinned
+              ? "Unpin"
+              : conversation.messageCount === 0
+                ? "Cannot pin empty"
+                : "Pin"}
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -161,6 +208,28 @@ export function ConversationHeaderMenu({
                   Full Width (95%)
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Statistics
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuLabel>Display Options</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={showMessageStats}
+                onCheckedChange={handleToggleMessageStats}
+              >
+                Message Statistics
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showComparisonStats}
+                onCheckedChange={handleToggleComparisonStats}
+              >
+                Comparison Statistics
+              </DropdownMenuCheckboxItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 

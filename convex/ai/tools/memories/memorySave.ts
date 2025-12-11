@@ -54,18 +54,17 @@ IMPORTANT: Rephrase content to third-person before saving:
     execute: async (input) => {
       const { content, category, reasoning } = input;
       try {
-        const result = await (ctx.runAction as (
-          ref: any,
-          args: any,
-        ) => Promise<{ success: boolean; memoryId?: string }>)(
-          internal.memories.save.saveFromTool,
-          {
-            userId,
-            content,
-            category,
-            reasoning,
-          },
-        );
+        const result = await (
+          ctx.runAction as (
+            ref: any,
+            args: any,
+          ) => Promise<{ success: boolean; memoryId?: string }>
+        )(internal.memories.save.saveFromTool, {
+          userId,
+          content,
+          category,
+          reasoning,
+        });
 
         return result;
       } catch (error) {

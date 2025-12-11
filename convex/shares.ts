@@ -24,15 +24,11 @@ export const create = action({
     if (!identity) throw new Error("Unauthorized");
 
     // Get user from DB
-    const user = await (ctx.runQuery as (
-      ref: any,
-      args: any,
-    ) => Promise<Doc<"users"> | null>)(
-      internal.shares.getUserInternal,
-      {
-        clerkId: identity.subject,
-      },
-    );
+    const user = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
+    )(internal.shares.getUserInternal, {
+      clerkId: identity.subject,
+    });
     if (!user) throw new Error("User not found");
 
     // Verify conversation ownership

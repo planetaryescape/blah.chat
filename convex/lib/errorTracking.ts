@@ -100,10 +100,7 @@ export function classifyStreamingError(error: Error): string {
   if (message.includes("context") || message.includes("maximum")) {
     return "context_exceeded";
   }
-  if (
-    message.includes("authentication") ||
-    message.includes("unauthorized")
-  ) {
+  if (message.includes("authentication") || message.includes("unauthorized")) {
     return "auth_error";
   }
   if (message.includes("gateway") || message.includes("upstream")) {

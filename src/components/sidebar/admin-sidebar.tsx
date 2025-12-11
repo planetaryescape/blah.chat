@@ -1,7 +1,7 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { ArrowLeft, MessageSquare, Settings, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, MessageSquare, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
@@ -23,6 +23,7 @@ const ADMIN_MENU_ITEMS = [
   { icon: MessageSquare, label: "Feedback", href: "/admin/feedback" },
   { icon: Users, label: "Users", href: "/admin/users" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: BarChart3, label: "Usage", href: "/admin/usage" },
 ];
 
 export function AdminSidebar() {

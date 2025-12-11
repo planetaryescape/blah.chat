@@ -39,7 +39,10 @@ export function ThinkingEffortSelector({
   };
 
   return (
-    <Select value={value} onValueChange={(v) => handleChange(v as ThinkingEffort)}>
+    <Select
+      value={value}
+      onValueChange={(v) => handleChange(v as ThinkingEffort)}
+    >
       <SelectTrigger
         className={cn(
           "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1",

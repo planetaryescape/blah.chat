@@ -128,8 +128,21 @@ export default function UserDetailPage({
     userId,
   });
 
+  // Virtualization setup - MUST be before early return to maintain hook order
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const shouldVirtualizeModels = (modelBreakdown?.length || 0) > 20;
+
+  const rowVirtualizer = useVirtualizer({
+    count: modelBreakdown?.length || 0,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 50,
+    overscan: 5,
+    enabled: shouldVirtualizeModels,
+  });
+
   const user = users?.find((u) => u._id === userId);
 
+  // Early return check AFTER all hooks
   if (!user || !summary || !dailySpend || !modelBreakdown || !costByType || !activityStats) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -167,18 +180,6 @@ export default function UserDetailPage({
       color: COST_TYPE_COLORS.images,
     },
   ].filter((item) => item.value > 0);
-
-  // Virtualization setup for model breakdown table (20+ models threshold)
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const shouldVirtualizeModels = modelBreakdown.length > 20;
-
-  const rowVirtualizer = useVirtualizer({
-    count: modelBreakdown.length,
-    getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 50, // Estimated row height
-    overscan: 5,
-    enabled: shouldVirtualizeModels,
-  });
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">

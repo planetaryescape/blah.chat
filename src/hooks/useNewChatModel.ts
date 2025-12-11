@@ -1,21 +1,21 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { useRecentModels } from "./useRecentModels";
+import { useUserPreference } from "./useUserPreference";
 
 /**
  * Hook to get the appropriate model for new chat creation.
  * Respects user's preference for "fixed" (default model) or "recent" (last used model).
+ *
+ * Phase 4: Now reads from userPreferences table via useUserPreference hooks.
  */
 export function useNewChatModel() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
-  const { recents } = useRecentModels();
+  // Phase 4: Read from userPreferences table
+  const mode = useUserPreference("newChatModelSelection") ?? "fixed";
+  const defaultModel = useUserPreference("defaultModel") ?? DEFAULT_MODEL_ID;
 
-  const mode = user?.preferences?.newChatModelSelection ?? "fixed";
-  const defaultModel = user?.preferences?.defaultModel ?? DEFAULT_MODEL_ID;
+  const { recents } = useRecentModels();
   const recentModel = recents[0]; // Most recently used
 
   // Return model based on user's preference
@@ -26,6 +26,7 @@ export function useNewChatModel() {
   return {
     newChatModel,
     mode,
-    isLoading: user === undefined,
+    isLoading: mode === undefined || defaultModel === undefined,
   };
 }
+

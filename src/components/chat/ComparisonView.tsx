@@ -15,6 +15,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { ComparisonPanel } from "./ComparisonPanel";
@@ -50,7 +51,9 @@ export function ComparisonView({
   // Get user preferences for statistics display
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
-  const showStats = user?.preferences?.showComparisonStatistics ?? true;
+
+  // Phase 4: Use new preference hook
+  const showStats = useUserPreference("showComparisonStatistics");
 
   const { register } = useSyncedScroll(syncEnabled);
   const isMobile = useMediaQuery("(max-width: 1024px)");

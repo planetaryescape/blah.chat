@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Accordion,
@@ -24,6 +24,7 @@ import { api } from "@/convex/_generated/api";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 export function UISettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -33,63 +34,45 @@ export function UISettings() {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
 
-  const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
-    useState(false);
-  const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
-    useState(false);
+  // Phase 4: Use new preference hooks for source of truth
+  const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
+  const prefShowModelNames = useUserPreference("showModelNamesDuringComparison");
+  const prefShowMessageStats = useUserPreference("showMessageStatistics");
+  const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
+  const prefReasoning = useUserPreference("reasoning");
+  const prefChatWidth = useUserPreference("chatWidth");
+  const prefShowNotes = useUserPreference("showNotes");
+  const prefShowTemplates = useUserPreference("showTemplates");
+  const prefShowProjects = useUserPreference("showProjects");
+  const prefShowBookmarks = useUserPreference("showBookmarks");
 
-  // Statistics display settings
-  const [showMessageStats, setShowMessageStats] = useState(true);
-  const [showComparisonStats, setShowComparisonStats] = useState(true);
+  // Local state for optimistic updates (initialized from hooks)
+  const [alwaysShowMessageActions, setAlwaysShowMessageActions] = useState<boolean>(prefAlwaysShowActions);
+  const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] = useState<boolean>(prefShowModelNames);
+  const [showMessageStats, setShowMessageStats] = useState<boolean>(prefShowMessageStats);
+  const [showComparisonStats, setShowComparisonStats] = useState<boolean>(prefShowComparisonStats);
+  const [showByDefault, setShowByDefault] = useState<boolean>(prefReasoning.showByDefault);
+  const [autoExpand, setAutoExpand] = useState<boolean>(prefReasoning.autoExpand);
+  const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(prefReasoning.showDuringStreaming);
+  const [chatWidth, setChatWidth] = useState<ChatWidth>(prefChatWidth as ChatWidth);
+  const [showNotes, setShowNotes] = useState<boolean>(prefShowNotes);
+  const [showTemplates, setShowTemplates] = useState<boolean>(prefShowTemplates);
+  const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
+  const [showBookmarks, setShowBookmarks] = useState<boolean>(prefShowBookmarks);
 
-  // Reasoning display settings
-  const [showByDefault, setShowByDefault] = useState(true);
-  const [autoExpand, setAutoExpand] = useState(false);
-  const [showDuringStreaming, setShowDuringStreaming] = useState(true);
-
-  // Chat width setting
-  const [chatWidth, setChatWidth] = useState<ChatWidth>("standard");
-
-  // Feature visibility toggles
-  const [showNotes, setShowNotes] = useState(true);
-  const [showTemplates, setShowTemplates] = useState(true);
-  const [showProjects, setShowProjects] = useState(true);
-  const [showBookmarks, setShowBookmarks] = useState(true);
-
-  useEffect(() => {
-    if (user?.preferences) {
-      setAlwaysShowMessageActions(
-        user.preferences.alwaysShowMessageActions ?? false,
-      );
-      setShowModelNamesDuringComparison(
-        user.preferences.showModelNamesDuringComparison ?? false,
-      );
-
-      // Initialize statistics settings
-      setShowMessageStats(user.preferences.showMessageStatistics ?? true);
-      setShowComparisonStats(user.preferences.showComparisonStatistics ?? true);
-
-      // Initialize reasoning settings
-      if (user.preferences.reasoning) {
-        setShowByDefault(user.preferences.reasoning.showByDefault ?? true);
-        setAutoExpand(user.preferences.reasoning.autoExpand ?? false);
-        setShowDuringStreaming(
-          user.preferences.reasoning.showDuringStreaming ?? true,
-        );
-      }
-
-      // Initialize chat width setting
-      if (user.preferences.chatWidth) {
-        setChatWidth(user.preferences.chatWidth as ChatWidth);
-      }
-
-      // Initialize feature visibility toggles
-      setShowNotes(user.preferences.showNotes ?? true);
-      setShowTemplates(user.preferences.showTemplates ?? true);
-      setShowProjects(user.preferences.showProjects ?? true);
-      setShowBookmarks(user.preferences.showBookmarks ?? true);
-    }
-  }, [user]);
+  // Sync local state when hook values change (e.g., from another tab)
+  useEffect(() => setAlwaysShowMessageActions(prefAlwaysShowActions), [prefAlwaysShowActions]);
+  useEffect(() => setShowModelNamesDuringComparison(prefShowModelNames), [prefShowModelNames]);
+  useEffect(() => setShowMessageStats(prefShowMessageStats), [prefShowMessageStats]);
+  useEffect(() => setShowComparisonStats(prefShowComparisonStats), [prefShowComparisonStats]);
+  useEffect(() => setShowByDefault(prefReasoning.showByDefault), [prefReasoning.showByDefault]);
+  useEffect(() => setAutoExpand(prefReasoning.autoExpand), [prefReasoning.autoExpand]);
+  useEffect(() => setShowDuringStreaming(prefReasoning.showDuringStreaming), [prefReasoning.showDuringStreaming]);
+  useEffect(() => setChatWidth(prefChatWidth as ChatWidth), [prefChatWidth]);
+  useEffect(() => setShowNotes(prefShowNotes), [prefShowNotes]);
+  useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);
+  useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
+  useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
 
   const handleAlwaysShowActionsChange = async (checked: boolean) => {
     setAlwaysShowMessageActions(checked);

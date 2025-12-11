@@ -597,6 +597,133 @@ export const getTokenUsage = query({
   },
 });
 
+/**
+ * Update conversation token usage (Phase 6: per-model tracking + dual-write)
+ */
+export const updateConversationTokenUsage = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    model: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    reasoningTokens: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("conversationTokenUsage")
+      .withIndex("by_conversation_model", (q) =>
+        q.eq("conversationId", args.conversationId).eq("model", args.model),
+      )
+      .first();
+
+    const now = Date.now();
+    const totalTokens = args.inputTokens + args.outputTokens + (args.reasoningTokens || 0);
+
+    if (existing) {
+      // Increment existing record
+      await ctx.db.patch(existing._id, {
+        totalTokens: existing.totalTokens + totalTokens,
+        inputTokens: existing.inputTokens + args.inputTokens,
+        outputTokens: existing.outputTokens + args.outputTokens,
+        reasoningTokens: existing.reasoningTokens
+          ? existing.reasoningTokens + (args.reasoningTokens || 0)
+          : args.reasoningTokens || 0,
+        messageCount: existing.messageCount + 1,
+        lastUpdatedAt: now,
+      });
+    } else {
+      // Create new record
+      await ctx.db.insert("conversationTokenUsage", {
+        conversationId: args.conversationId,
+        model: args.model,
+        totalTokens,
+        inputTokens: args.inputTokens,
+        outputTokens: args.outputTokens,
+        reasoningTokens: args.reasoningTokens,
+        messageCount: 1,
+        lastUpdatedAt: now,
+        createdAt: now,
+      });
+    }
+
+    // DUAL WRITE: Update legacy tokenUsage object
+    const conversation = await ctx.db.get(args.conversationId);
+    if (conversation) {
+      const oldUsage = conversation.tokenUsage || {
+        systemTokens: 0,
+        messagesTokens: 0,
+        memoriesTokens: 0,
+        totalTokens: 0,
+        contextLimit: 0,
+        lastCalculatedAt: Date.now(),
+      };
+
+      await ctx.db.patch(args.conversationId, {
+        tokenUsage: {
+          ...oldUsage,
+          messagesTokens: oldUsage.messagesTokens + totalTokens,
+          totalTokens: oldUsage.totalTokens + totalTokens,
+          lastCalculatedAt: now,
+        },
+      });
+    }
+  },
+});
+
+/**
+ * Get conversation token usage breakdown by model
+ */
+export const getConversationTokensByModel = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      throw new Error("Conversation not found");
+    }
+
+    const records = await ctx.db
+      .query("conversationTokenUsage")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .collect();
+
+    return records.map((r) => ({
+      model: r.model,
+      totalTokens: r.totalTokens,
+      inputTokens: r.inputTokens,
+      outputTokens: r.outputTokens,
+      reasoningTokens: r.reasoningTokens,
+      messageCount: r.messageCount,
+      lastUpdatedAt: r.lastUpdatedAt,
+    }));
+  },
+});
+
+/**
+ * Get total conversation tokens across all models
+ */
+export const getTotalConversationTokens = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      throw new Error("Conversation not found");
+    }
+
+    const records = await ctx.db
+      .query("conversationTokenUsage")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .collect();
+
+    return records.reduce((sum, r) => sum + r.totalTokens, 0);
+  },
+});
+
 export const backfillMessageCounts = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -1029,5 +1156,60 @@ export const getChildBranchesFromMessage = query({
       .collect();
 
     return childBranches;
+  },
+});
+
+/**
+ * Set model recommendation for a conversation
+ * Internal mutation - only called by triage action
+ */
+export const setModelRecommendation = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    recommendation: v.object({
+      suggestedModelId: v.string(),
+      currentModelId: v.string(),
+      reasoning: v.string(),
+      estimatedSavings: v.object({
+        costReduction: v.string(),
+        percentSaved: v.number(),
+      }),
+      createdAt: v.number(),
+      dismissed: v.boolean(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.conversationId, {
+      modelRecommendation: args.recommendation,
+    });
+  },
+});
+
+/**
+ * Dismiss model recommendation for a conversation
+ * User-facing mutation - marks recommendation as dismissed
+ */
+export const dismissModelRecommendation = mutation({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+
+    // Verify user owns this conversation
+    if (conversation.userId !== user._id) {
+      throw new Error("Not authorized");
+    }
+
+    if (!conversation.modelRecommendation) return;
+
+    await ctx.db.patch(args.conversationId, {
+      modelRecommendation: {
+        ...conversation.modelRecommendation,
+        dismissed: true,
+      },
+    });
   },
 });

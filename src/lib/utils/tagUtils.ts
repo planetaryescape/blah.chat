@@ -208,3 +208,13 @@ export function normalizeTag(tag: string): string {
     .replace(/\/+/g, "/") // collapse multiple slashes
     .replace(/^\/|\/$/g, ""); // remove leading/trailing slashes
 }
+
+/**
+ * Phase 5: Normalize tag to slug for centralized tags system
+ * Simpler than normalizeTag - only lowercase + trim for deduplication
+ * "Important" -> "important"
+ * "  Work  " -> "work"
+ */
+export function normalizeTagSlug(tag: string): string {
+  return tag.toLowerCase().trim();
+}

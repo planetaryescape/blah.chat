@@ -1,5 +1,15 @@
 import type { LucideIcon } from "lucide-react";
-import { Eye, Sparkles, Zap } from "lucide-react";
+import {
+  Bot,
+  Brain,
+  Cpu,
+  Eye,
+  Globe,
+  Sparkles,
+  Stars,
+  Wind,
+  Zap,
+} from "lucide-react";
 import { getModelConfig } from "./utils";
 
 /**
@@ -23,29 +33,29 @@ export function getModelIcon(modelId: string): LucideIcon {
 }
 
 /**
- * Get capability hints for a model to show to users
- * Returns array of hint strings describing model capabilities
- * - Shows vision support
- * - Shows thinking/reasoning support
- * - Shows large context window (>100K tokens)
+ * Get icon for a provider
+ * Returns appropriate Lucide icon based on provider name
  */
-export function getModelCapabilityHints(modelId: string): string[] {
-  const config = getModelConfig(modelId);
-  if (!config) return [];
+export function getProviderIcon(
+  provider: string,
+): LucideIcon {
+  const icons: Record<string, LucideIcon> = {
+    openai: Sparkles, // OpenAI brand
+    anthropic: Zap, // Claude lightning
+    google: Stars, // Google Gemini
+    xai: Brain, // Grok/xAI thinking
+    perplexity: Globe, // Web search
+    groq: Cpu, // Hardware acceleration
+    cerebras: Cpu, // Hardware acceleration
+    minimax: Bot, // Generic AI
+    deepseek: Brain, // Deep reasoning
+    kimi: Bot, // Generic AI
+    zai: Brain, // AI thinking
+    meta: Bot, // Meta AI (Llama)
+    mistral: Wind, // Mistral (wind brand)
+    alibaba: Bot, // Generic AI
+    zhipu: Bot, // Generic AI
+  };
 
-  const hints: string[] = [];
-
-  if (config.capabilities.includes("vision")) {
-    hints.push("This model can analyze images");
-  }
-
-  if (config.reasoning) {
-    hints.push("Extended reasoning enabled");
-  }
-
-  if (config.contextWindow > 100000) {
-    hints.push(`${(config.contextWindow / 1000).toFixed(0)}K context window`);
-  }
-
-  return hints;
+  return icons[provider] || Sparkles; // Default fallback
 }

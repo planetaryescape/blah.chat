@@ -11,6 +11,8 @@
 import type * as admin from "../admin.js";
 import type * as adminSettings from "../adminSettings.js";
 import type * as ai_generateTitle from "../ai/generateTitle.js";
+import type * as ai_modelTriage from "../ai/modelTriage.js";
+import type * as ai_taskExtraction from "../ai/taskExtraction.js";
 import type * as ai_tools_calculator from "../ai/tools/calculator.js";
 import type * as ai_tools_codeExecution from "../ai/tools/codeExecution.js";
 import type * as ai_tools_datetime from "../ai/tools/datetime.js";
@@ -77,8 +79,14 @@ import type * as migrations_003_normalize_project_conversations from "../migrati
 import type * as migrations_003_normalize_project_conversations_actions from "../migrations/003_normalize_project_conversations_actions.js";
 import type * as migrations_004_remove_conversationIds_field from "../migrations/004_remove_conversationIds_field.js";
 import type * as migrations_004_remove_conversationIds_field_actions from "../migrations/004_remove_conversationIds_field_actions.js";
+import type * as migrations_005_backfill_tags from "../migrations/005_backfill_tags.js";
 import type * as migrations_005_require_message_model from "../migrations/005_require_message_model.js";
 import type * as migrations_005_require_message_model_actions from "../migrations/005_require_message_model_actions.js";
+import type * as migrations_006_user_preferences_backfill from "../migrations/006_user_preferences_backfill.js";
+import type * as migrations_006_user_preferences_backfill_actions from "../migrations/006_user_preferences_backfill_actions.js";
+import type * as migrations_007_normalize_conversation_metadata from "../migrations/007_normalize_conversation_metadata.js";
+import type * as migrations_007_normalize_conversation_metadata_helpers from "../migrations/007_normalize_conversation_metadata_helpers.js";
+import type * as migrations_007_verify_token_usage from "../migrations/007_verify_token_usage.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
 import type * as notes from "../notes.js";
@@ -96,6 +104,15 @@ import type * as sources_enrichment from "../sources/enrichment.js";
 import type * as sources_enrichment_actions from "../sources/enrichment_actions.js";
 import type * as sources_operations from "../sources/operations.js";
 import type * as sources_operations_actions from "../sources/operations_actions.js";
+import type * as tags_admin from "../tags/admin.js";
+import type * as tags_admin_queries from "../tags/admin_queries.js";
+import type * as tags_embeddings from "../tags/embeddings.js";
+import type * as tags_matching from "../tags/matching.js";
+import type * as tags_migrations from "../tags/migrations.js";
+import type * as tags_mutations from "../tags/mutations.js";
+import type * as tags_queries from "../tags/queries.js";
+import type * as tasks from "../tasks.js";
+import type * as tasks_tags from "../tasks/tags.js";
 import type * as templates from "../templates.js";
 import type * as templates_builtIn from "../templates/builtIn.js";
 import type * as tokens_counting from "../tokens/counting.js";
@@ -114,6 +131,8 @@ import type * as usage_checkBudget from "../usage/checkBudget.js";
 import type * as usage_mutations from "../usage/mutations.js";
 import type * as usage_queries from "../usage/queries.js";
 import type * as users from "../users.js";
+import type * as users_constants from "../users/constants.js";
+import type * as users_preferences from "../users/preferences.js";
 import type * as votes from "../votes.js";
 
 import type {
@@ -126,6 +145,8 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminSettings: typeof adminSettings;
   "ai/generateTitle": typeof ai_generateTitle;
+  "ai/modelTriage": typeof ai_modelTriage;
+  "ai/taskExtraction": typeof ai_taskExtraction;
   "ai/tools/calculator": typeof ai_tools_calculator;
   "ai/tools/codeExecution": typeof ai_tools_codeExecution;
   "ai/tools/datetime": typeof ai_tools_datetime;
@@ -192,8 +213,14 @@ declare const fullApi: ApiFromModules<{
   "migrations/003_normalize_project_conversations_actions": typeof migrations_003_normalize_project_conversations_actions;
   "migrations/004_remove_conversationIds_field": typeof migrations_004_remove_conversationIds_field;
   "migrations/004_remove_conversationIds_field_actions": typeof migrations_004_remove_conversationIds_field_actions;
+  "migrations/005_backfill_tags": typeof migrations_005_backfill_tags;
   "migrations/005_require_message_model": typeof migrations_005_require_message_model;
   "migrations/005_require_message_model_actions": typeof migrations_005_require_message_model_actions;
+  "migrations/006_user_preferences_backfill": typeof migrations_006_user_preferences_backfill;
+  "migrations/006_user_preferences_backfill_actions": typeof migrations_006_user_preferences_backfill_actions;
+  "migrations/007_normalize_conversation_metadata": typeof migrations_007_normalize_conversation_metadata;
+  "migrations/007_normalize_conversation_metadata_helpers": typeof migrations_007_normalize_conversation_metadata_helpers;
+  "migrations/007_verify_token_usage": typeof migrations_007_verify_token_usage;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
   notes: typeof notes;
@@ -211,6 +238,15 @@ declare const fullApi: ApiFromModules<{
   "sources/enrichment_actions": typeof sources_enrichment_actions;
   "sources/operations": typeof sources_operations;
   "sources/operations_actions": typeof sources_operations_actions;
+  "tags/admin": typeof tags_admin;
+  "tags/admin_queries": typeof tags_admin_queries;
+  "tags/embeddings": typeof tags_embeddings;
+  "tags/matching": typeof tags_matching;
+  "tags/migrations": typeof tags_migrations;
+  "tags/mutations": typeof tags_mutations;
+  "tags/queries": typeof tags_queries;
+  tasks: typeof tasks;
+  "tasks/tags": typeof tasks_tags;
   templates: typeof templates;
   "templates/builtIn": typeof templates_builtIn;
   "tokens/counting": typeof tokens_counting;
@@ -229,6 +265,8 @@ declare const fullApi: ApiFromModules<{
   "usage/mutations": typeof usage_mutations;
   "usage/queries": typeof usage_queries;
   users: typeof users;
+  "users/constants": typeof users_constants;
+  "users/preferences": typeof users_preferences;
   votes: typeof votes;
 }>;
 

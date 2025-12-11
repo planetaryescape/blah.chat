@@ -1,8 +1,9 @@
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { mutation } from "./_generated/server";
 import { getCurrentUserOrCreate } from "./lib/userSync";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
@@ -11,6 +12,18 @@ const attachmentValidator = v.object({
   mimeType: v.string(),
   size: v.number(),
 });
+
+/**
+ * Check if model is expensive enough to warrant triage analysis
+ * Threshold: $5/M average cost catches truly expensive models
+ */
+function shouldAnalyzeModelFit(modelId: string): boolean {
+  const model = MODEL_CONFIG[modelId];
+  if (!model) return false;
+
+  const avgCost = (model.pricing.input + model.pricing.output) / 2;
+  return avgCost >= 5.0; // Expensive threshold
+}
 
 export const sendMessage = mutation({
   args: {
@@ -78,9 +91,14 @@ export const sendMessage = mutation({
       }
     }
 
-    // Determine models to use
+    // Phase 4: Get default model from new preference system
+    const defaultModel = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
+    )(api.users.getUserPreference as any, { key: "defaultModel" });
+
+    // Determine models to use (fallback to openai:gpt-4o-mini)
     const modelsToUse = args.models || [
-      args.modelId || user.preferences.defaultModel,
+      args.modelId || defaultModel || "openai:gpt-4o-mini",
     ];
 
     // Generate comparison group ID if multiple models
@@ -136,17 +154,30 @@ export const sendMessage = mutation({
       });
     }
 
-    // 7. Increment daily message count
+    // 7. Trigger model recommendation triage (if expensive model used)
+    if (conversationId && shouldAnalyzeModelFit(modelsToUse[0])) {
+      await ctx.scheduler.runAfter(
+        0, // Immediate, non-blocking
+        internal.ai.modelTriage.analyzeModelFit,
+        {
+          conversationId,
+          userMessage: args.content,
+          currentModelId: modelsToUse[0],
+        },
+      );
+    }
+
+    // 8. Increment daily message count
     await ctx.db.patch(user._id, {
       dailyMessageCount: (user.dailyMessageCount || 0) + 1,
     });
 
-    // 8. Update conversation timestamp
+    // 9. Update conversation timestamp
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
       conversationId,
     });
 
-    // 9. Check if memory extraction should trigger (auto-extraction)
+    // 10. Check if memory extraction should trigger (auto-extraction)
     if (conversationId) {
       // Get global admin settings for memory extraction
       const adminSettings = await ctx.db.query("adminSettings").first();
@@ -178,7 +209,7 @@ export const sendMessage = mutation({
       }
     }
 
-    // 10. Return immediately
+    // 11. Return immediately
     return {
       // biome-ignore lint/style/noNonNullAssertion: conversationId is guaranteed to exist at this point
       conversationId: conversationId!,
@@ -227,9 +258,14 @@ export const regenerate = mutation({
       });
     }
 
-    // Priority: message.model → conversation.model → user.preferences.defaultModel
+    // Phase 4: Get default model from new preference system
+    const userDefaultModel = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
+    )(api.users.getUserPreference as any, { key: "defaultModel" });
+
+    // Priority: message.model → conversation.model → user defaultModel preference → fallback
     const modelId =
-      message.model || conversation.model || user.preferences.defaultModel;
+      message.model || conversation.model || userDefaultModel || "openai:gpt-4o-mini";
 
     // Create new pending assistant message
     const newMessageId: Id<"messages"> = await ctx.runMutation(
@@ -363,9 +399,14 @@ export const retryMessage = mutation({
       });
     }
 
-    // Priority: aiMessage.model → conversation.model → user.preferences.defaultModel
+    // Phase 4: Get default model from new preference system
+    const userDefaultModel2 = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
+    )(api.users.getUserPreference as any, { key: "defaultModel" });
+
+    // Priority: aiMessage.model → conversation.model → user defaultModel preference → fallback
     const modelId =
-      aiMessage.model || conversation.model || user.preferences.defaultModel;
+      aiMessage.model || conversation.model || userDefaultModel2 || "openai:gpt-4o-mini";
 
     // Create new pending assistant message
     const newMessageId: Id<"messages"> = await ctx.runMutation(

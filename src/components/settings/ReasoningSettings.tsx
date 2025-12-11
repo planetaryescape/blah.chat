@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 export function ReasoningSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -21,19 +22,20 @@ export function ReasoningSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 
-  const [showByDefault, setShowByDefault] = useState(true);
-  const [autoExpand, setAutoExpand] = useState(false);
-  const [showDuringStreaming, setShowDuringStreaming] = useState(true);
+  // Phase 4: Use new preference hook for source of truth
+  const prefReasoning = useUserPreference("reasoning");
 
+  // Local state for optimistic updates (initialized from hooks)
+  const [showByDefault, setShowByDefault] = useState<boolean>(prefReasoning.showByDefault ?? true);
+  const [autoExpand, setAutoExpand] = useState<boolean>(prefReasoning.autoExpand ?? false);
+  const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(prefReasoning.showDuringStreaming ?? true);
+
+  // Sync local state when hook value changes
   useEffect(() => {
-    if (user?.preferences?.reasoning) {
-      setShowByDefault(user.preferences.reasoning.showByDefault ?? true);
-      setAutoExpand(user.preferences.reasoning.autoExpand ?? false);
-      setShowDuringStreaming(
-        user.preferences.reasoning.showDuringStreaming ?? true,
-      );
-    }
-  }, [user]);
+    setShowByDefault(prefReasoning.showByDefault ?? true);
+    setAutoExpand(prefReasoning.autoExpand ?? false);
+    setShowDuringStreaming(prefReasoning.showDuringStreaming ?? true);
+  }, [prefReasoning]);
 
   const handleShowByDefaultChange = async (checked: boolean) => {
     setShowByDefault(checked);

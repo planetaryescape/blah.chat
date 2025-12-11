@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,9 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     const user = useQuery(api.users.getCurrentUser as any);
     const transcribeAudio = useAction(api.transcription.transcribeAudio);
 
-    const sttEnabled = user?.preferences?.sttEnabled ?? true;
-    const sttProvider = user?.preferences?.sttProvider ?? "openai";
+    // Phase 4: Use new preference hooks
+    const sttEnabled = useUserPreference("sttEnabled");
+    const sttProvider = useUserPreference("sttProvider");
 
     const startRecording = useCallback(async () => {
       if (!sttEnabled) {

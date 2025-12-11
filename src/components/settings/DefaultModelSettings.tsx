@@ -29,6 +29,7 @@ import {
   getModelsByProvider,
   isValidModel,
 } from "@/lib/ai/utils";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 export function DefaultModelSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -37,24 +38,24 @@ export function DefaultModelSettings() {
   const updatePrefs = useMutation(api.users.updatePreferences);
   const hasInitialized = useRef(false);
 
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
-  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(
-    "fixed",
-  );
+  // Phase 4: Use new preference hooks for source of truth
+  const prefDefaultModel = useUserPreference("defaultModel");
+  const prefSelectionMode = useUserPreference("newChatModelSelection");
+  const prefRecentModels = useUserPreference("recentModels");
 
-  // Sync from user preferences OR auto-save default if not set
+  // Local state for optimistic updates (initialized from hooks)
+  const [selectedModel, setSelectedModel] = useState<string>(prefDefaultModel);
+  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(prefSelectionMode);
+
+  // Sync from hooks OR auto-save default if not set
   useEffect(() => {
-    if (!user) return;
-
-    const userDefaultModel = user.preferences?.defaultModel;
-
     // Check if user has a valid default model (exists in MODEL_CONFIG)
     if (
-      userDefaultModel &&
-      userDefaultModel.length > 0 &&
-      isValidModel(userDefaultModel)
+      prefDefaultModel &&
+      prefDefaultModel.length > 0 &&
+      isValidModel(prefDefaultModel)
     ) {
-      setSelectedModel(userDefaultModel);
+      setSelectedModel(prefDefaultModel);
     } else if (!hasInitialized.current) {
       // User has no default model, it's empty, or it's an invalid/deprecated model
       // Auto-save the system default
@@ -62,12 +63,12 @@ export function DefaultModelSettings() {
       setSelectedModel(DEFAULT_MODEL_ID);
       updatePrefs({ preferences: { defaultModel: DEFAULT_MODEL_ID } });
     }
+  }, [prefDefaultModel, updatePrefs]);
 
-    // Sync selection mode
-    if (user.preferences?.newChatModelSelection) {
-      setSelectionMode(user.preferences.newChatModelSelection);
-    }
-  }, [user, updatePrefs]);
+  // Sync selection mode when hook value changes
+  useEffect(() => {
+    setSelectionMode(prefSelectionMode);
+  }, [prefSelectionMode]);
 
   const handleModelChange = async (modelId: string) => {
     setSelectedModel(modelId);
@@ -76,7 +77,7 @@ export function DefaultModelSettings() {
       toast.success("Default model updated");
     } catch {
       toast.error("Failed to update");
-      setSelectedModel(user?.preferences?.defaultModel || "");
+      setSelectedModel(prefDefaultModel);
     }
   };
 
@@ -91,14 +92,14 @@ export function DefaultModelSettings() {
       );
     } catch {
       toast.error("Failed to update");
-      setSelectionMode(user?.preferences?.newChatModelSelection ?? "fixed");
+      setSelectionMode(prefSelectionMode);
     }
   };
 
   const modelsByProvider = getModelsByProvider();
 
   // Get the most recent model name for display
-  const recentModelId = user?.preferences?.recentModels?.[0];
+  const recentModelId = prefRecentModels[0];
   const recentModelName = recentModelId
     ? getModelConfig(recentModelId)?.name || recentModelId
     : "None yet";

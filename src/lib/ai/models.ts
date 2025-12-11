@@ -1,5 +1,7 @@
+import { computeModelMetrics } from "./benchmarks";
 import type { ProviderName } from "./providers";
 import type { ReasoningConfig } from "./reasoning/types";
+import type { BenchmarkScores, ComputedMetrics, SpeedTier } from "./types";
 
 export interface ModelConfig {
   id: string;
@@ -46,10 +48,65 @@ export interface ModelConfig {
   knowledgeCutoff?: string;
   /** Preferred provider SDK to use. Defaults to "gateway" (Vercel AI Gateway) */
   preferredProvider?: ProviderName;
+  /** User-friendly plain-language description for non-technical users */
+  userFriendlyDescription?: string;
+  /** Technical use case summary for power users */
+  bestFor?: string;
+  /** Benchmark scores (intelligence, coding, reasoning) - optional override */
+  benchmarks?: BenchmarkScores;
+  /** Speed tier - optional override (computed if not provided) */
+  speedTier?: SpeedTier;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
   // OpenAI
+
+  // GPT-5 Series (Size Variants)
+  "openai:gpt-5": {
+    id: "openai:gpt-5",
+    provider: "openai",
+    name: "GPT-5",
+    description: "Flagship GPT-5 with advanced reasoning and multimodal capabilities",
+    contextWindow: 200000,
+    pricing: { input: 2.50, output: 10.0, cached: 0.25 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
+    knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Most powerful GPT-5. Handles the most complex tasks with advanced reasoning, vision, and deep thinking.",
+    bestFor: "Complex reasoning, research, advanced multimodal tasks",
+  },
+  "openai:gpt-5-mini": {
+    id: "openai:gpt-5-mini",
+    provider: "openai",
+    name: "GPT-5 Mini",
+    description: "Compact GPT-5 variant balancing cost and performance",
+    contextWindow: 200000,
+    pricing: { input: 0.15, output: 0.60, cached: 0.015 },
+    capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Fast and affordable. Great balance of performance and cost for everyday tasks.",
+    bestFor: "General purpose, high-volume applications, cost-conscious use",
+  },
+  "openai:gpt-5-nano": {
+    id: "openai:gpt-5-nano",
+    provider: "openai",
+    name: "GPT-5 Nano",
+    description: "Smallest, fastest GPT-5 variant for simple queries",
+    contextWindow: 200000,
+    pricing: { input: 0.04, output: 0.16, cached: 0.004 },
+    capabilities: ["function-calling"],
+    knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Lightning-fast and ultra-cheap. Perfect for simple questions and high-volume applications.",
+    bestFor: "Simple queries, maximum speed, ultra-low cost",
+  },
 
   // GPT-5.1 Family (November 2025)
   "openai:gpt-5.1": {
@@ -68,26 +125,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       useResponsesAPI: true,
     },
     knowledgeCutoff: "November 2025",
-  },
-  "openai:gpt-5.1-mini": {
-    id: "openai:gpt-5.1-mini",
-    provider: "openai",
-    name: "GPT-5.1 Mini",
-    description: "Compact variant of GPT-5.1 for cost-efficient tasks",
-    contextWindow: 128000,
-    pricing: { input: 0.25, output: 2.0, cached: 0.025 },
-    capabilities: ["vision", "function-calling"],
-    knowledgeCutoff: "November 2025",
-  },
-  "openai:gpt-5.1-nano": {
-    id: "openai:gpt-5.1-nano",
-    provider: "openai",
-    name: "GPT-5.1 Nano",
-    description: "Smallest, fastest GPT-5.1 variant",
-    contextWindow: 128000,
-    pricing: { input: 0.05, output: 0.4, cached: 0.005 },
-    capabilities: ["vision", "function-calling"],
-    knowledgeCutoff: "November 2025",
+    userFriendlyDescription:
+      "Best all-around model. Can read a novel's worth of text, analyze images, and think deeply about complex problems.",
+    bestFor: "General purpose, adaptive reasoning, multimodal tasks",
   },
   "openai:gpt-5.1-codex": {
     id: "openai:gpt-5.1-codex",
@@ -104,27 +144,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       useResponsesAPI: true,
     },
     knowledgeCutoff: "November 2025",
-  },
-  "openai:gpt-5.1-thinking": {
-    id: "openai:gpt-5.1-thinking",
-    provider: "openai",
-    name: "GPT-5.1 Thinking",
-    description: "Extended thinking mode for complex multi-step reasoning",
-    contextWindow: 256000,
-    pricing: { input: 1.25, output: 10.0, reasoning: 1.25, cached: 0.125 },
-    capabilities: [
-      "thinking",
-      "extended-thinking",
-      "vision",
-      "function-calling",
-    ],
-    reasoning: {
-      type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
-      summaryLevel: "detailed",
-      useResponsesAPI: true,
-    },
-    knowledgeCutoff: "November 2025",
+    userFriendlyDescription:
+      "Expert coding assistant. Writes code, debugs issues, and understands entire projects.",
+    bestFor: "Agentic coding, software engineering, complex refactoring",
   },
   "openai:gpt-5.1-instant": {
     id: "openai:gpt-5.1-instant",
@@ -136,6 +158,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.25, output: 2.0, cached: 0.025 },
     capabilities: ["vision", "function-calling"],
     knowledgeCutoff: "November 2025",
+    userFriendlyDescription:
+      "Fast and personable. Great for natural conversations with a friendly, adaptive tone.",
+    bestFor: "Conversational tasks, quick responses, personalized interactions",
   },
   "openai:gpt-oss-20b": {
     id: "openai:gpt-oss-20b",
@@ -147,6 +172,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.1, output: 0.5 },
     capabilities: ["function-calling"],
     providerOrder: ["cerebras", "groq"],
+    userFriendlyDescription:
+      "Instant responses. Blazing-fast model for when you need answers right now.",
+    bestFor: "Ultra-low latency, real-time applications, edge deployment",
   },
   "openai:gpt-oss-120b": {
     id: "openai:gpt-oss-120b",
@@ -158,6 +186,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.15, output: 0.6 },
     capabilities: ["function-calling", "thinking"],
     providerOrder: ["cerebras", "groq", "fireworks"],
+    userFriendlyDescription:
+      "Powerful and versatile. Handles complex tasks with strong reasoning at very fast speeds.",
+    bestFor: "General purpose, fast reasoning, high-performance tasks",
   },
 
   // Anthropic
@@ -180,6 +211,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       betaHeader: "interleaved-thinking-2025-05-14",
     },
     knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Most capable Claude. Writes sophisticated code, handles complex analysis, and excels at nuanced tasks.",
+    bestFor: "Complex coding, autonomous agents, software engineering",
   },
   "anthropic:claude-sonnet-4.5": {
     id: "anthropic:claude-sonnet-4.5",
@@ -200,6 +234,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       betaHeader: "interleaved-thinking-2025-05-14",
     },
     knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Balanced performer. Good at coding, analysis, and can even control computers. Works for most tasks.",
+    bestFor: "Coding, computer use, balanced performance",
   },
   "anthropic:claude-haiku-4.5": {
     id: "anthropic:claude-haiku-4.5",
@@ -210,6 +247,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 5.0, cached: 0.1 },
     capabilities: ["vision", "function-calling"],
     knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Quick and efficient. Fast responses for high-volume work without breaking the bank.",
+    bestFor: "Quick responses, high-volume processing, cost-sensitive applications",
   },
 
   // Google
@@ -235,6 +275,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
         high: 24576,
       },
     },
+    userFriendlyDescription:
+      "Speed demon. Handles massive documents (can read a thousand-page book!) and responds instantly. Great for real-time tasks.",
+    bestFor: "Speed-critical tasks, long-context processing, real-time applications",
     knowledgeCutoff: "January 2025",
   },
   "google:gemini-2.5-pro": {
@@ -259,6 +302,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       },
     },
     knowledgeCutoff: "January 2025",
+    userFriendlyDescription:
+      "Deep thinker with huge memory. Can analyze entire books (2 million words!) and think through complex problems.",
+    bestFor: "Deep reasoning, complex multi-step analysis, research",
   },
   "google:gemini-2.0-flash": {
     id: "google:gemini-2.0-flash",
@@ -273,6 +319,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
     capabilities: ["vision", "function-calling"],
     knowledgeCutoff: "August 2024",
+    userFriendlyDescription:
+      "Fast and multimodal. Quick processing of text, images, and more at an affordable price.",
+    bestFor: "Quick multimodal processing, budget-conscious, general purpose",
   },
   "google:gemini-2.0-flash-lite": {
     id: "google:gemini-2.0-flash-lite",
@@ -287,19 +336,10 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
     capabilities: ["vision", "function-calling"],
     knowledgeCutoff: "August 2024",
+    userFriendlyDescription:
+      "Ultra-budget friendly. Extremely fast and cheap for high-volume simple tasks.",
+    bestFor: "Maximum cost efficiency, high-volume processing, simple queries",
   },
-  "google:gemini-2.0-flash-exp": {
-    id: "google:gemini-2.0-flash-exp",
-    provider: "google",
-    name: "Gemini 2.0 Flash (Experimental)",
-    description: "Experimental generation - for image/video/audio",
-    contextWindow: 1048576,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["vision"],
-    isExperimental: true,
-    knowledgeCutoff: "August 2024",
-  },
-
   "google:gemini-3-pro-preview": {
     id: "google:gemini-3-pro-preview",
     name: "Gemini 3 Pro (Preview)",
@@ -324,6 +364,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       includeThoughts: true,
     },
     knowledgeCutoff: "August 2025",
+    userFriendlyDescription:
+      "Next-generation preview. Google's latest and most advanced model with cutting-edge reasoning.",
+    bestFor: "Advanced reasoning, research, testing future capabilities",
   },
 
   "google:gemini-3-pro-image": {
@@ -332,8 +375,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     provider: "google",
     contextWindow: 65536, // 65K tokens
     pricing: {
-      input: 0.0, // Preview pricing - TBD
-      output: 0.0,
+      input: 2.0,   // Same as Gemini 3 Pro (text tokens)
+      output: 12.0, // Text output (image output is $120/M but varies)
     },
     capabilities: ["image-generation", "vision", "thinking"],
     description:
@@ -349,6 +392,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       includeThoughts: true,
     },
     knowledgeCutoff: "August 2025",
+    userFriendlyDescription:
+      "Creates images. Generate visuals from text descriptions with advanced understanding. Free preview.",
+    bestFor: "Image generation, visual creativity, design prototyping",
   },
 
   // xAI - Note: Vercel AI Gateway uses "xai/model-name" format
@@ -362,6 +408,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["function-calling"],
     actualModelId: "grok-4-fast-non-reasoning",
     knowledgeCutoff: "July 2025",
+    userFriendlyDescription:
+      "Fast and conversational. Quick responses with Grok's signature personality and humor.",
+    bestFor: "Conversational tasks, quick responses, general purpose",
   },
 
   "xai:grok-4.1-fast": {
@@ -374,6 +423,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["function-calling"],
     actualModelId: "grok-4.1-fast-non-reasoning",
     knowledgeCutoff: "July 2025",
+    userFriendlyDescription:
+      "Massive memory. Can handle 2 million words of context - perfect for huge documents and long conversations.",
+    bestFor: "Long-context tasks, agentic workflows, tool use",
   },
   "xai:grok-4.1-fast-reasoning": {
     id: "xai:grok-4.1-fast-reasoning",
@@ -385,6 +437,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     capabilities: ["thinking", "function-calling"],
     actualModelId: "grok-4.1-fast-reasoning",
     knowledgeCutoff: "July 2025",
+    userFriendlyDescription:
+      "Fast reasoning at scale. Combines thinking capabilities with speed, affordability, and huge context.",
+    bestFor: "Cost-efficient reasoning, high-volume thinking tasks, agentic workflows",
   },
   "xai:grok-code-fast-1": {
     id: "xai:grok-code-fast-1",
@@ -395,6 +450,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.5, output: 2.0 },
     capabilities: ["thinking"],
     knowledgeCutoff: "July 2025",
+    userFriendlyDescription:
+      "Fast coding assistant. Quick code generation, debugging, and problem-solving at affordable prices.",
+    bestFor: "Coding, debugging, cost-efficient development",
   },
 
   // Perplexity (Only 4 models available in Vercel AI Gateway)
@@ -407,6 +465,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 2.0, output: 8.0 },
     capabilities: ["thinking"],
     knowledgeCutoff: "Real-time search",
+    userFriendlyDescription:
+      "Connected to the web with deep thinking. Searches current information and reasons about real-world facts with careful analysis.",
+    bestFor: "Research, web-grounded reasoning, factual accuracy, real-time information",
   },
   "perplexity:sonar-pro": {
     id: "perplexity:sonar-pro",
@@ -417,6 +478,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 3.0, output: 15.0 },
     capabilities: [],
     knowledgeCutoff: "Real-time search",
+    userFriendlyDescription:
+      "Advanced web search. Finds and analyzes current information with citation grounding for accuracy.",
+    bestFor: "Research, web search, current events, fact-checking",
   },
 
   "perplexity:sonar-reasoning": {
@@ -428,6 +492,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 5.0 },
     capabilities: ["thinking"],
     knowledgeCutoff: "Real-time search",
+    userFriendlyDescription:
+      "Fast web-connected thinking. Quick searches combined with reasoning for up-to-date insights.",
+    bestFor: "Quick research, real-time reasoning, affordable web search",
   },
   "perplexity:sonar": {
     id: "perplexity:sonar",
@@ -438,6 +505,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 1.0, output: 1.0 },
     capabilities: [],
     knowledgeCutoff: "Real-time search",
+    userFriendlyDescription:
+      "Quick web search. Lightweight and fast for when you just need current information.",
+    bestFor: "Fast search, current events, budget-conscious research",
   },
   // Meta Models (via Vercel AI Gateway)
   "meta:llama-3.3-70b": {
@@ -449,6 +519,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.59, output: 0.79 },
     capabilities: ["function-calling"],
     providerOrder: ["cerebras", "groq"],
+    userFriendlyDescription:
+      "Powerful open-source model. Great for coding, speaks many languages, and you control where it runs.",
+    bestFor: "Open-source, coding, multilingual tasks, local deployment",
   },
   "meta:llama-4-maverick": {
     id: "meta:llama-4-maverick",
@@ -460,6 +533,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.2, output: 0.6 },
     capabilities: ["vision", "function-calling"],
     providerOrder: ["cerebras", "groq"],
+    userFriendlyDescription:
+      "Next-gen Llama. Largest open model with coding, reasoning, and image understanding.",
+    bestFor: "Advanced coding, multimodal tasks, open-source",
   },
   "meta:llama-4-scout": {
     id: "meta:llama-4-scout",
@@ -470,6 +546,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.1, output: 0.3 },
     capabilities: ["function-calling"],
     providerOrder: ["cerebras", "groq"],
+    userFriendlyDescription:
+      "Fast and efficient. Compact Llama 4 model great for everyday tasks at low cost.",
+    bestFor: "General purpose, cost efficiency, fast processing",
   },
 
   // Mistral Models (via Vercel AI Gateway)
@@ -482,6 +561,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 256000,
     pricing: { input: 0.5, output: 1.5 },
     capabilities: ["function-calling", "vision"],
+    userFriendlyDescription:
+      "European alternative. Handles general tasks well with vision support at competitive pricing.",
+    bestFor: "General purpose, cost-effective, European data residency",
   },
   "mistral:devstral-small": {
     id: "mistral:devstral-small",
@@ -491,6 +573,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.1, output: 0.3 },
     capabilities: ["function-calling"],
+    userFriendlyDescription:
+      "Coding specialist. Optimized for software engineering with agentic capabilities.",
+    bestFor: "Software development, agentic coding, European alternative",
   },
 
   // Alibaba Qwen Models (via Vercel AI Gateway)
@@ -503,6 +588,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 262000,
     pricing: { input: 1.2, output: 6.0, cached: 0.24 },
     capabilities: ["function-calling", "thinking"],
+    userFriendlyDescription:
+      "Expert agent. Excels at using tools and handling complex multi-step workflows.",
+    bestFor: "Agentic tasks, tool invocation, complex workflows",
   },
   "alibaba:qwen3-coder-480b": {
     id: "alibaba:qwen3-coder-480b",
@@ -512,6 +600,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 131072,
     pricing: { input: 0.35, output: 1.4 },
     capabilities: ["function-calling"],
+    userFriendlyDescription:
+      "Massive coding model. 480 billion parameters specialized for sophisticated code generation.",
+    bestFor: "Advanced coding, large-scale projects, agentic development",
   },
 
   // Moonshot AI Kimi Models (via Vercel AI Gateway)
@@ -525,6 +616,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.6, output: 2.5 },
     capabilities: ["function-calling"],
     providerOrder: ["deepinfra", "fireworks"],
+    userFriendlyDescription:
+      "Agentic powerhouse. Excels at using tools and generating code with sophisticated reasoning.",
+    bestFor: "Agentic workflows, tool use, code synthesis",
   },
   "moonshotai:kimi-k2-thinking": {
     id: "moonshotai:kimi-k2-thinking",
@@ -536,6 +630,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.6, output: 2.5, cached: 0.15 },
     capabilities: ["function-calling", "thinking"],
     providerOrder: ["fireworks", "deepinfra"],
+    userFriendlyDescription:
+      "Advanced thinking agent. Can make hundreds of tool calls in sequence for complex multi-step tasks.",
+    bestFor: "Complex agentic tasks, multi-step reasoning, advanced workflows",
   },
 
   // MiniMax Models (via Vercel AI Gateway)
@@ -549,6 +646,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.3, output: 1.2, cached: 0.03 },
     capabilities: ["function-calling"],
     providerOrder: ["deepinfra"],
+    userFriendlyDescription:
+      "Efficient powerhouse. Compact model with elite coding and agentic performance.",
+    bestFor: "Coding, agentic tasks, efficient performance",
   },
 
   // Z.ai GLM Models (via Vercel AI Gateway)
@@ -562,6 +662,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     pricing: { input: 0.45, output: 1.8, cached: 0.11 },
     capabilities: ["function-calling"],
     providerOrder: ["deepinfra", "fireworks"],
+    userFriendlyDescription:
+      "Versatile Chinese model. Strong at coding, reasoning, and agentic tasks with large context.",
+    bestFor: "Coding, agentic applications, long-context tasks",
   },
   "zai:glm-4.6v-flash": {
     id: "zai:glm-4.6v-flash",
@@ -572,6 +675,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0, output: 0 },
     capabilities: ["vision", "function-calling"],
+    userFriendlyDescription:
+      "Fast vision model. Quick image understanding with low latency. Free preview.",
+    bestFor: "Visual understanding, fast multimodal, image analysis",
   },
   "zai:glm-4.5-air": {
     id: "zai:glm-4.5-air",
@@ -582,6 +688,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.2, output: 1.1 },
     capabilities: ["function-calling"],
+    userFriendlyDescription:
+      "Lightweight agent. Compact model optimized for agentic workflows and tool use.",
+    bestFor: "Agentic tasks, cost-efficient, lightweight",
   },
 
   // DeepSeek Models
@@ -600,6 +709,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       applyMiddleware: true,
     },
     knowledgeCutoff: "November 2024",
+    userFriendlyDescription:
+      "Innovative reasoner. Massive model (671 billion parameters) with groundbreaking reasoning architecture.",
+    bestFor: "Complex reasoning, innovative architecture, research applications",
   },
   "deepseek:deepseek-v3.2": {
     id: "deepseek:deepseek-v3.2",
@@ -615,6 +727,9 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       tagName: "think",
       applyMiddleware: true,
     },
+    userFriendlyDescription:
+      "Balanced thinker with tools. Combines reasoning capabilities with tool use at affordable pricing.",
+    bestFor: "Reasoning with tools, cost-effective thinking, general purpose",
   },
   "deepseek:deepseek-v3.2-thinking": {
     id: "deepseek:deepseek-v3.2-thinking",
@@ -629,5 +744,34 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       tagName: "think",
       applyMiddleware: true,
     },
+    userFriendlyDescription:
+      "Pure reasoning mode. Focused on complex problem-solving without tool use distractions.",
+    bestFor: "Pure reasoning, complex analysis, thought-intensive tasks",
   },
 };
+
+/**
+ * Pre-computed metrics cache for performance
+ * Avoids recomputing benchmarks/metrics on every render
+ */
+const MODEL_METRICS_CACHE = new Map<string, ComputedMetrics>();
+
+/**
+ * Get computed metrics for a model (with caching)
+ * Includes benchmark scores, speed tier, cost tier, percentiles
+ *
+ * @param modelId - Model ID (e.g., "openai:gpt-5")
+ * @returns Computed metrics or undefined if model not found
+ */
+export function getModelMetrics(modelId: string): ComputedMetrics | undefined {
+  const model = MODEL_CONFIG[modelId];
+  if (!model) return undefined;
+
+  if (!MODEL_METRICS_CACHE.has(modelId)) {
+    // Compute all models for percentile calculations
+    const allModels = Object.values(MODEL_CONFIG);
+    MODEL_METRICS_CACHE.set(modelId, computeModelMetrics(model, allModels));
+  }
+
+  return MODEL_METRICS_CACHE.get(modelId)!;
+}

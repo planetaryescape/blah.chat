@@ -77,6 +77,20 @@ export const MEMORY_RERANK_MODEL: ModelConfig =
 export const FEEDBACK_TRIAGE_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
+/**
+ * Task extraction from transcripts.
+ * Extracts actionable tasks with deadlines from meeting transcripts.
+ */
+export const TASK_EXTRACTION_MODEL: ModelConfig =
+  MODEL_CONFIG["openai:gpt-oss-120b"];
+
+/**
+ * Deadline parsing from natural language.
+ * Converts deadline expressions like "next Friday" to timestamps.
+ */
+export const DEADLINE_PARSING_MODEL: ModelConfig =
+  MODEL_CONFIG["openai:gpt-oss-120b"];
+
 // ============================================================================
 // EMBEDDING MODEL
 // ============================================================================
@@ -104,5 +118,7 @@ export const OPERATIONAL_MODELS = {
   embeddingSummarization: EMBEDDING_SUMMARIZATION_MODEL,
   memoryRerank: MEMORY_RERANK_MODEL,
   feedbackTriage: FEEDBACK_TRIAGE_MODEL,
+  taskExtraction: TASK_EXTRACTION_MODEL,
+  deadlineParsing: DEADLINE_PARSING_MODEL,
   embedding: EMBEDDING_MODEL,
 } as const;

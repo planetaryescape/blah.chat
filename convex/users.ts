@@ -1,5 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import {
+  getUserPreference as getUserPreferenceHelper,
+  getUserPreferencesByCategory as getUserPreferencesByCategoryHelper,
+  getAllUserPreferences as getAllUserPreferencesHelper,
+  updateUserPreference as updateUserPreferenceHelper,
+} from "./users/preferences";
 
 // NOTE: This must match the DEFAULT_MODEL_ID in src/lib/ai/operational-models.ts
 const DEFAULT_MODEL_FOR_NEW_USERS = "openai:gpt-oss-120b";
@@ -170,13 +176,12 @@ export const updatePreferences = mutation({
 
     if (!user) throw new Error("User not found");
 
-    await ctx.db.patch(user._id, {
-      preferences: {
-        ...user.preferences,
-        ...args.preferences,
-      },
-      updatedAt: Date.now(),
-    });
+    // Phase 4: Update each changed preference
+    for (const [key, value] of Object.entries(args.preferences)) {
+      if (value !== undefined) {
+        await updateUserPreferenceHelper(ctx, user._id, key, value);
+      }
+    }
   },
 });
 
@@ -227,21 +232,28 @@ export const updateCustomInstructions = mutation({
 
     if (!user) throw new Error("User not found");
 
-    await ctx.db.patch(user._id, {
-      preferences: {
-        ...user.preferences,
-        customInstructions: {
-          aboutUser: args.aboutUser,
-          responseStyle: args.responseStyle,
-          enabled: args.enabled,
-          baseStyleAndTone: args.baseStyleAndTone,
-          nickname: args.nickname,
-          occupation: args.occupation,
-          moreAboutYou: args.moreAboutYou,
-        },
-      },
-      updatedAt: Date.now(),
-    });
+    // Phase 4: Get existing customInstructions to preserve unmodified fields (forward compat)
+    const existing =
+      (await getUserPreferenceHelper(
+        ctx,
+        user._id,
+        "customInstructions",
+      )) || {};
+
+    // Merge new values with existing to preserve any future fields
+    const updated = {
+      ...existing,
+      aboutUser: args.aboutUser,
+      responseStyle: args.responseStyle,
+      enabled: args.enabled,
+      baseStyleAndTone: args.baseStyleAndTone,
+      nickname: args.nickname,
+      occupation: args.occupation,
+      moreAboutYou: args.moreAboutYou,
+    };
+
+    // Phase 4: Write to preferences table
+    await updateUserPreferenceHelper(ctx, user._id, "customInstructions", updated);
   },
 });
 
@@ -264,13 +276,8 @@ export const setDefaultModel = mutation({
 
     if (!user) throw new Error("User not found");
 
-    await ctx.db.patch(user._id, {
-      preferences: {
-        ...user.preferences,
-        defaultModel: args.modelId,
-      },
-      updatedAt: Date.now(),
-    });
+    // Phase 4: Write to preferences table
+    await updateUserPreferenceHelper(ctx, user._id, "defaultModel", args.modelId);
   },
 });
 
@@ -289,5 +296,68 @@ export const listAllUsers = query({
   handler: async (ctx) => {
     // Only for migration - can be removed after backfill
     return await ctx.db.query("users").collect();
+  },
+});
+
+/**
+ * Phase 4: New preference queries using flat key-value table
+ */
+
+/**
+ * Get single user preference by key
+ */
+export const getUserPreference = query({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) return null;
+
+    return await getUserPreferenceHelper(ctx, user._id, key as any);
+  },
+});
+
+/**
+ * Get all user preferences in a category
+ */
+export const getUserPreferencesByCategory = query({
+  args: { category: v.string() },
+  handler: async (ctx, { category }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) return null;
+
+    return await getUserPreferencesByCategoryHelper(ctx, user._id, category);
+  },
+});
+
+/**
+ * Get all user preferences (flattened)
+ */
+export const getAllUserPreferences = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) return null;
+
+    return await getAllUserPreferencesHelper(ctx, user._id);
   },
 });

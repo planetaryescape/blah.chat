@@ -113,8 +113,9 @@ export const create = internalMutation({
       args.content &&
       args.content.trim().length > 0
     ) {
-      await ctx.scheduler.runAfter(
+      await (ctx.scheduler.runAfter as any)(
         0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.messages.embeddings.generateEmbedding,
         {
           messageId,
@@ -578,9 +579,20 @@ async function getMessageToolCalls(
     .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
     .collect();
 
-  return includePartial
+  const filtered = includePartial
     ? toolCalls
     : toolCalls.filter((tc: any) => !tc.isPartial);
+
+  // Transform database format to component format
+  return filtered.map((tc: any) => ({
+    id: tc.toolCallId,
+    name: tc.toolName,
+    arguments: JSON.stringify(tc.args),
+    result: tc.result ? JSON.stringify(tc.result) : undefined,
+    timestamp: tc.timestamp,
+    textPosition: tc.textPosition,
+    isPartial: tc.isPartial,
+  }));
 }
 
 // Export queries for frontend

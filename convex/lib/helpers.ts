@@ -125,6 +125,17 @@ export const getNote = internalQuery({
 });
 
 /**
+ * Get tag by ID
+ * Replaces: ctx.runQuery(internal.tags.getInternal, { tagId })
+ */
+export const getTag = internalQuery({
+  args: { tagId: v.id("tags") },
+  handler: async (ctx, args): Promise<Doc<"tags"> | null> => {
+    return await ctx.db.get(args.tagId);
+  },
+});
+
+/**
  * List all memories for current user
  * Replaces: ctx.runQuery(api.memories.listAll, {})
  */

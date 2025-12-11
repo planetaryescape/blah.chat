@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
+import { normalizeTagSlug } from "../src/lib/utils/tagUtils";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import {
@@ -94,9 +95,10 @@ export const createNote = mutation({
       updatedAt: Date.now(),
     });
 
-    // Schedule tag extraction (async, non-blocking)
+    // Schedule auto-tagging (async, non-blocking)
     if (args.content.length >= 50) {
-      await ctx.scheduler.runAfter(0, internal.notes.tags.extractTags, {
+      // @ts-ignore - Type depth exceeded with internal reference
+      await ctx.scheduler.runAfter(0, internal.notes.tags.extractAndApplyTags, {
         noteId,
       });
     }
@@ -136,9 +138,10 @@ export const updateNote = mutation({
 
     await ctx.db.patch(noteId, patch);
 
-    // Re-extract tags if content changed significantly
+    // Re-tag if content changed significantly
     if (updates.content && updates.content.length >= 50) {
-      await ctx.scheduler.runAfter(0, internal.notes.tags.extractTags, {
+      // @ts-ignore - Type depth exceeded with internal reference
+      await ctx.scheduler.runAfter(0, internal.notes.tags.extractAndApplyTags, {
         noteId,
       });
     }
@@ -200,7 +203,8 @@ export const acceptTag = mutation({
 });
 
 /**
- * Add a manual tag
+ * Add a manual tag (DUAL-WRITE: Phase 5)
+ * Writes to both new centralized tags system AND old array
  */
 export const addTag = mutation({
   args: {
@@ -218,9 +222,62 @@ export const addTag = mutation({
       throw new Error("Invalid tag: must be 2-30 characters");
     }
 
-    // Skip if duplicate
+    // Skip if duplicate in old system
     if (currentTags.includes(cleanTag)) return;
 
+    // NEW SYSTEM: Get or create tag in centralized system
+    const slug = normalizeTagSlug(tag);
+
+    let centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", note.userId).eq("slug", slug),
+      )
+      .unique();
+
+    if (!centralTag) {
+      const now = Date.now();
+      const tagId = await ctx.db.insert("tags", {
+        slug,
+        displayName: tag,
+        userId: note.userId,
+        scope: "user",
+        parentId: undefined,
+        path: `/${slug}`,
+        depth: 0,
+        usageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      centralTag = (await ctx.db.get(tagId))!;
+    }
+
+    // Create junction entry (check for duplicates)
+    const existingJunction = await ctx.db
+      .query("noteTags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_note_tag", (q) =>
+        q.eq("noteId", noteId).eq("tagId", centralTag._id),
+      )
+      .unique();
+
+    if (!existingJunction) {
+      await ctx.db.insert("noteTags", {
+        noteId,
+        tagId: centralTag._id,
+        userId: note.userId,
+        createdAt: Date.now(),
+      });
+
+      // Increment usage count
+      await ctx.db.patch(centralTag._id, {
+        usageCount: centralTag.usageCount + 1,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // OLD SYSTEM: Write to array (backward compatibility)
     await ctx.db.patch(noteId, {
       tags: [...currentTags, cleanTag],
       updatedAt: Date.now(),
@@ -229,7 +286,95 @@ export const addTag = mutation({
 });
 
 /**
- * Remove a tag
+ * Internal mutation for adding tags (called from actions without auth context)
+ */
+export const addTagInternal = internalMutation({
+  args: {
+    noteId: v.id("notes"),
+    userId: v.id("users"),
+    tag: v.string(),
+  },
+  handler: async (ctx, { noteId, userId, tag }) => {
+    // Verify ownership WITHOUT auth context
+    const note = await ctx.db.get(noteId);
+    if (!note || note.userId !== userId) {
+      throw new Error("Note not found");
+    }
+
+    const currentTags = note.tags || [];
+    const cleanTag = tag.trim().toLowerCase();
+
+    // Validation
+    if (!cleanTag || cleanTag.length < 2 || cleanTag.length > 30) {
+      throw new Error("Invalid tag: must be 2-30 characters");
+    }
+
+    // Skip if duplicate in old system
+    if (currentTags.includes(cleanTag)) return;
+
+    // NEW SYSTEM: Get or create tag in centralized system
+    const slug = normalizeTagSlug(tag);
+
+    let centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", userId).eq("slug", slug),
+      )
+      .unique();
+
+    if (!centralTag) {
+      const now = Date.now();
+      const tagId = await ctx.db.insert("tags", {
+        slug,
+        displayName: tag,
+        userId,
+        scope: "user",
+        parentId: undefined,
+        path: `/${slug}`,
+        depth: 0,
+        usageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      centralTag = (await ctx.db.get(tagId))!;
+    }
+
+    // Create junction entry (check for duplicates)
+    const existingJunction = await ctx.db
+      .query("noteTags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_note_tag", (q) =>
+        q.eq("noteId", noteId).eq("tagId", centralTag._id),
+      )
+      .unique();
+
+    if (!existingJunction) {
+      await ctx.db.insert("noteTags", {
+        noteId,
+        tagId: centralTag._id,
+        userId,
+        createdAt: Date.now(),
+      });
+
+      // Increment usage count
+      await ctx.db.patch(centralTag._id, {
+        usageCount: centralTag.usageCount + 1,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // OLD SYSTEM: Write to array (backward compatibility)
+    await ctx.db.patch(noteId, {
+      tags: [...currentTags, cleanTag],
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Remove a tag (DUAL-WRITE: Phase 5)
+ * Removes from both new centralized system AND old array
  */
 export const removeTag = mutation({
   args: {
@@ -239,6 +384,39 @@ export const removeTag = mutation({
   handler: async (ctx, { noteId, tag }) => {
     const note = await verifyOwnership(ctx, noteId);
 
+    // NEW SYSTEM: Find and delete junction entry
+    const slug = normalizeTagSlug(tag);
+
+    const centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", note.userId).eq("slug", slug),
+      )
+      .unique();
+
+    if (centralTag) {
+      // Find and delete junction entry
+      const junction = await ctx.db
+        .query("noteTags")
+        // @ts-ignore - Type depth exceeded
+        .withIndex("by_note_tag", (q) =>
+          q.eq("noteId", noteId).eq("tagId", centralTag._id),
+        )
+        .unique();
+
+      if (junction) {
+        await ctx.db.delete(junction._id);
+
+        // Decrement usage count
+        await ctx.db.patch(centralTag._id, {
+          usageCount: Math.max(0, centralTag.usageCount - 1),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // OLD SYSTEM: Remove from array (backward compatibility)
     await ctx.db.patch(noteId, {
       tags: (note.tags || []).filter((t) => t !== tag),
       updatedAt: Date.now(),
@@ -411,7 +589,8 @@ export const getTagCooccurrence = query({
 });
 
 /**
- * Rename a tag across all notes
+ * Rename a tag across all notes (DUAL-WRITE: Phase 5)
+ * Uses centralized rename logic (auto-merge) + updates old arrays
  */
 export const renameTag = mutation({
   args: {
@@ -433,7 +612,73 @@ export const renameTag = mutation({
       throw new Error("Tag must be 2-30 characters");
     }
 
-    // Get all notes with the old tag
+    // NEW SYSTEM: Use centralized rename (handles auto-merge)
+    const oldSlug = normalizeTagSlug(oldTag);
+
+    const oldCentralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", user._id).eq("slug", oldSlug),
+      )
+      .unique();
+
+    if (oldCentralTag) {
+      // Use centralized rename mutation logic inline
+      const newSlug = normalizeTagSlug(newTag);
+      const existing = await ctx.db
+        .query("tags")
+        // @ts-ignore - Type depth exceeded
+        .withIndex("by_user_slug", (q) =>
+          q.eq("userId", user._id).eq("slug", newSlug),
+        )
+        .unique();
+
+      if (existing && existing._id !== oldCentralTag._id) {
+        // AUTO-MERGE: Move junction entries from old to existing
+        const junctions = await ctx.db
+          .query("noteTags")
+          // @ts-ignore - Type depth exceeded
+          .withIndex("by_tag", (q) => q.eq("tagId", oldCentralTag._id))
+          .collect();
+
+        for (const junction of junctions) {
+          // Check if duplicate exists
+          const duplicate = await ctx.db
+            .query("noteTags")
+            // @ts-ignore - Type depth exceeded
+            .withIndex("by_note_tag", (q) =>
+              q.eq("noteId", junction.noteId).eq("tagId", existing._id),
+            )
+            .unique();
+
+          if (!duplicate) {
+            await ctx.db.patch(junction._id, { tagId: existing._id });
+          } else {
+            await ctx.db.delete(junction._id);
+          }
+        }
+
+        // Update usage counts
+        await ctx.db.patch(existing._id, {
+          usageCount: existing.usageCount + oldCentralTag.usageCount,
+          updatedAt: Date.now(),
+        });
+
+        // Delete old tag
+        await ctx.db.delete(oldCentralTag._id);
+      } else {
+        // Simple rename
+        await ctx.db.patch(oldCentralTag._id, {
+          slug: newSlug,
+          displayName: newTag,
+          path: `/${newSlug}`,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // OLD SYSTEM: Update arrays (backward compatibility)
     const notes = await ctx.db
       .query("notes")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -443,7 +688,6 @@ export const renameTag = mutation({
       (note.tags || []).includes(oldTag),
     );
 
-    // Update each note
     for (const note of notesWithTag) {
       const updatedTags = (note.tags || []).map((tag) =>
         tag === oldTag ? newTag : tag,

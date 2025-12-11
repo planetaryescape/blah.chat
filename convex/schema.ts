@@ -11,7 +11,9 @@ export default defineSchema({
     // Daily message tracking (stored per user, limit from admin settings)
     dailyMessageCount: v.optional(v.number()),
     lastMessageDate: v.optional(v.string()),
-    preferences: v.object({
+    // DEPRECATED: Phase 4 moved preferences to userPreferences table (flat key-value)
+    // Kept for backward compatibility during migration. New code uses userPreferences table.
+    preferences: v.optional(v.object({
       theme: v.union(v.literal("light"), v.literal("dark")),
       defaultModel: v.string(),
       favoriteModels: v.optional(v.array(v.string())), // User's favorite models
@@ -92,12 +94,33 @@ export default defineSchema({
       showTemplates: v.optional(v.boolean()), // default true
       showProjects: v.optional(v.boolean()), // default true
       showBookmarks: v.optional(v.boolean()), // default true
-    }),
+    })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
+
+  // Phase 4: Flatten user preferences into key-value table
+  userPreferences: defineTable({
+    userId: v.id("users"),
+    category: v.union(
+      v.literal("appearance"),
+      v.literal("models"),
+      v.literal("chat"),
+      v.literal("audio"),
+      v.literal("advanced"),
+      v.literal("customInstructions"),
+      v.literal("reasoning"),
+    ),
+    key: v.string(), // "theme", "defaultModel", "ttsEnabled", etc.
+    value: v.any(), // string | boolean | number | object
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_category", ["userId", "category"])
+    .index("by_user_key", ["userId", "key"]),
 
   conversations: defineTable({
     userId: v.id("users"),
@@ -131,6 +154,18 @@ export default defineSchema({
     // Branching support
     parentConversationId: v.optional(v.id("conversations")),
     parentMessageId: v.optional(v.id("messages")),
+    // Model recommendation (cost optimization & decision guidance)
+    modelRecommendation: v.optional(v.object({
+      suggestedModelId: v.string(),
+      currentModelId: v.string(),
+      reasoning: v.string(), // User-friendly explanation
+      estimatedSavings: v.object({
+        costReduction: v.string(), // "$0.30 → $0.02"
+        percentSaved: v.number(),  // 93
+      }),
+      createdAt: v.number(),
+      dismissed: v.boolean(),
+    })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -737,7 +772,86 @@ export default defineSchema({
     .index("by_priority", ["priority"])
     .index("by_assigned", ["assignedTo"]),
 
-  // Feedback Tags (for autocomplete and management)
+  // Phase 5: Centralized tags system (user-scoped with global support)
+  tags: defineTable({
+    // Normalization
+    slug: v.string(), // Lowercase, trimmed: "important"
+    displayName: v.string(), // Preserve casing: "Important"
+
+    // Ownership & Scope
+    userId: v.optional(v.id("users")), // null for global tags
+    scope: v.union(
+      v.literal("user"), // Personal tag
+      v.literal("global"), // System tag (admin-managed)
+    ),
+
+    // Hierarchy (adjacency list pattern)
+    parentId: v.optional(v.id("tags")),
+    path: v.string(), // "/parent/child" for fast queries
+    depth: v.number(), // 0 = root
+
+    // Metadata
+    usageCount: v.number(), // Denormalized for sorting
+    color: v.optional(v.string()),
+    description: v.optional(v.string()),
+    embedding: v.optional(v.array(v.float64())), // Semantic vector for similarity matching
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_slug", ["userId", "slug"]) // Uniqueness + autocomplete
+    .index("by_user_usage", ["userId", "usageCount"]) // Popular tags
+    .index("by_scope", ["scope"]) // Global tags query
+    .index("by_parent", ["parentId"]) // Children lookup
+    .index("by_user_path", ["userId", "path"]), // Hierarchy queries
+
+  // Phase 5: Junction tables for many-to-many tag relationships
+  bookmarkTags: defineTable({
+    bookmarkId: v.id("bookmarks"),
+    tagId: v.id("tags"),
+    userId: v.id("users"), // Denormalized for fast filtering
+    createdAt: v.number(),
+  })
+    .index("by_bookmark", ["bookmarkId"])
+    .index("by_tag", ["tagId"])
+    .index("by_user", ["userId"])
+    .index("by_bookmark_tag", ["bookmarkId", "tagId"]), // Uniqueness
+
+  snippetTags: defineTable({
+    snippetId: v.id("snippets"),
+    tagId: v.id("tags"),
+    userId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_snippet", ["snippetId"])
+    .index("by_tag", ["tagId"])
+    .index("by_user", ["userId"])
+    .index("by_snippet_tag", ["snippetId", "tagId"]),
+
+  noteTags: defineTable({
+    noteId: v.id("notes"),
+    tagId: v.id("tags"),
+    userId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_note", ["noteId"])
+    .index("by_tag", ["tagId"])
+    .index("by_user", ["userId"])
+    .index("by_note_tag", ["noteId", "tagId"]),
+
+  feedbackTagJunctions: defineTable({
+    feedbackId: v.id("feedback"),
+    tagId: v.id("tags"),
+    userId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_feedback", ["feedbackId"])
+    .index("by_tag", ["tagId"])
+    .index("by_user", ["userId"])
+    .index("by_feedback_tag", ["feedbackId", "tagId"]),
+
+  // DEPRECATED: Phase 5 migrated to centralized tags table with scope: "global"
+  // Kept for backward compatibility during migration. New code uses tags table.
   feedbackTags: defineTable({
     name: v.string(),
     color: v.optional(v.string()),

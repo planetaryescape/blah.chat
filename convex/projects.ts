@@ -90,7 +90,8 @@ export const deleteProject = mutation({
     }
 
     // Remove project from all conversations
-    for (const convId of project.conversationIds) {
+    const conversationIds = project.conversationIds ?? [];
+    for (const convId of conversationIds) {
       const conv = await ctx.db.get(convId);
       if (conv && conv.projectId === args.id) {
         await ctx.db.patch(convId, {
@@ -122,15 +123,34 @@ export const addConversation = mutation({
       throw new Error("Conversation not found");
     }
 
-    // Add to project
-    if (!project.conversationIds.includes(args.conversationId)) {
+    // 1. Check if junction exists (Phase 3 migration)
+    const existing = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project_conversation", (q) =>
+        q.eq("projectId", args.projectId).eq("conversationId", args.conversationId),
+      )
+      .first();
+
+    // 2. Insert junction row if not exists
+    if (!existing) {
+      await ctx.db.insert("projectConversations", {
+        projectId: args.projectId,
+        conversationId: args.conversationId,
+        addedAt: Date.now(),
+        addedBy: user._id,
+      });
+    }
+
+    // 3. ALSO update array (dual-write - will be removed in Deploy 3)
+    const conversationIds = project.conversationIds ?? [];
+    if (!conversationIds.includes(args.conversationId)) {
       await ctx.db.patch(args.projectId, {
-        conversationIds: [...project.conversationIds, args.conversationId],
+        conversationIds: [...conversationIds, args.conversationId],
         updatedAt: Date.now(),
       });
     }
 
-    // Update conversation
+    // 4. Update conversation.projectId
     await ctx.db.patch(args.conversationId, {
       projectId: args.projectId,
       updatedAt: Date.now(),
@@ -151,15 +171,27 @@ export const removeConversation = mutation({
       throw new Error("Project not found");
     }
 
-    // Remove from project
+    // 1. Delete junction row (Phase 3 migration)
+    const junction = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project_conversation", (q) =>
+        q.eq("projectId", args.projectId).eq("conversationId", args.conversationId),
+      )
+      .first();
+    if (junction) {
+      await ctx.db.delete(junction._id);
+    }
+
+    // 2. ALSO update array (dual-write - will be removed in Deploy 3)
+    const conversationIds = project.conversationIds ?? [];
     await ctx.db.patch(args.projectId, {
-      conversationIds: project.conversationIds.filter(
+      conversationIds: conversationIds.filter(
         (id) => id !== args.conversationId,
       ),
       updatedAt: Date.now(),
     });
 
-    // Remove from conversation
+    // 3. Clear conversation.projectId
     const conversation = await ctx.db.get(args.conversationId);
     if (conversation && conversation.projectId === args.projectId) {
       await ctx.db.patch(args.conversationId, {
@@ -186,7 +218,7 @@ export const assignConversations = mutation({
       }
     }
 
-    // Update each conversation's projectId
+    // 1. Update each conversation's projectId (source of truth)
     for (const convId of args.conversationIds) {
       const conversation = await ctx.db.get(convId);
       if (!conversation || conversation.userId !== user._id) {
@@ -199,9 +231,30 @@ export const assignConversations = mutation({
       });
     }
 
-    // Rebuild conversationIds array from source of truth (conversations table)
+    // 2. Sync junction table (Phase 3 migration)
     if (args.projectId) {
       const projectId = args.projectId;
+
+      // 2a. Remove all existing junctions for project
+      const existingJunctions = await ctx.db
+        .query("projectConversations")
+        .withIndex("by_project", (q) => q.eq("projectId", projectId))
+        .collect();
+      for (const junction of existingJunctions) {
+        await ctx.db.delete(junction._id);
+      }
+
+      // 2b. Create new junctions
+      for (const convId of args.conversationIds) {
+        await ctx.db.insert("projectConversations", {
+          projectId,
+          conversationId: convId,
+          addedAt: Date.now(),
+          addedBy: user._id,
+        });
+      }
+
+      // 3. ALSO rebuild array (dual-write - will be removed in Deploy 3)
       const allProjectConvos = await ctx.db
         .query("conversations")
         .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
@@ -227,23 +280,50 @@ export const getProjectStats = query({
       return null;
     }
 
-    // Query conversations using index
-    const conversations = await ctx.db
-      .query("conversations")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+    // Query junction table (Phase 3 migration - Deploy 2)
+    const junctions = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
 
+    // Fetch conversations
+    const conversations = await Promise.all(
+      junctions.map((j) => ctx.db.get(j.conversationId)),
+    );
+    const validConversations = conversations.filter((c) => c !== null);
+
     // Calculate stats
-    const conversationCount = conversations.length;
+    const conversationCount = validConversations.length;
     const lastActivity =
-      conversations.length > 0
-        ? Math.max(...conversations.map((c) => c.lastMessageAt))
+      validConversations.length > 0
+        ? Math.max(...validConversations.map((c) => c.lastMessageAt))
         : 0;
 
     return {
       conversationCount,
       lastActivity,
     };
+  },
+});
+
+export const getProjectConversationIds = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) {
+      throw new Error("Unauthorized");
+    }
+
+    // Query junction table (Phase 3 migration - Deploy 2)
+    const junctions = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    return junctions.map((j) => j.conversationId);
   },
 });
 

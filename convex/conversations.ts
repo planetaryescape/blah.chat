@@ -283,14 +283,21 @@ export const deleteConversation = mutation({
       await ctx.db.patch(memory._id, { conversationId: undefined });
     }
 
-    // 5. Remove from projects conversationIds arrays
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
+    // 5. Remove from projects - O(1) index lookup (Phase 3 migration)
+    const junctions = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .collect();
-    for (const project of projects) {
-      if (project.conversationIds.includes(args.conversationId)) {
-        await ctx.db.patch(project._id, {
+
+    for (const junction of junctions) {
+      await ctx.db.delete(junction._id);
+
+      // DUAL-WRITE: Also update array during transition (will be removed in Deploy 3)
+      const project = await ctx.db.get(junction.projectId);
+      if (project?.conversationIds) {
+        await ctx.db.patch(junction.projectId, {
           conversationIds: project.conversationIds.filter(
             (id) => id !== args.conversationId,
           ),

@@ -42,7 +42,7 @@ interface ProjectCardProps {
     name: string;
     description?: string;
     systemPrompt?: string;
-    conversationIds: Id<"conversations">[];
+    conversationIds?: Id<"conversations">[]; // Optional after Phase 3 migration
     createdAt: number;
     updatedAt: number;
   };

@@ -413,7 +413,7 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     systemPrompt: v.optional(v.string()),
-    conversationIds: v.array(v.id("conversations")),
+    conversationIds: v.optional(v.array(v.id("conversations"))),
     isTemplate: v.optional(v.boolean()),
     createdFrom: v.optional(v.id("projects")),
     createdAt: v.number(),
@@ -421,6 +421,16 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_userId_isTemplate", ["userId", "isTemplate"]),
+
+  projectConversations: defineTable({
+    projectId: v.id("projects"),
+    conversationId: v.id("conversations"),
+    addedAt: v.number(),
+    addedBy: v.id("users"),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_conversation", ["conversationId"])
+    .index("by_project_conversation", ["projectId", "conversationId"]),
 
   files: defineTable({
     userId: v.id("users"),

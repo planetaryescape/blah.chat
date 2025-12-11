@@ -159,7 +159,7 @@ export default defineSchema({
       v.literal("complete"),
       v.literal("error"),
     ),
-    model: v.optional(v.string()),
+    model: v.optional(v.string()), // Required for assistant messages, validated in mutation
     inputTokens: v.optional(v.number()),
     outputTokens: v.optional(v.number()),
     cost: v.optional(v.number()),
@@ -413,7 +413,6 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     systemPrompt: v.optional(v.string()),
-    conversationIds: v.optional(v.array(v.id("conversations"))),
     isTemplate: v.optional(v.boolean()),
     createdFrom: v.optional(v.id("projects")),
     createdAt: v.number(),

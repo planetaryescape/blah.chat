@@ -293,16 +293,6 @@ export const deleteConversation = mutation({
 
     for (const junction of junctions) {
       await ctx.db.delete(junction._id);
-
-      // DUAL-WRITE: Also update array during transition (will be removed in Deploy 3)
-      const project = await ctx.db.get(junction.projectId);
-      if (project?.conversationIds) {
-        await ctx.db.patch(junction.projectId, {
-          conversationIds: project.conversationIds.filter(
-            (id) => id !== args.conversationId,
-          ),
-        });
-      }
     }
 
     // 6. Delete messages
@@ -519,19 +509,13 @@ export const cleanupEmptyConversations = mutation({
         await ctx.db.patch(memory._id, { conversationId: undefined });
       }
 
-      // 5. Remove from projects conversationIds arrays
-      const projects = await ctx.db
-        .query("projects")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
+      // 5. Remove from project relationships via junction table
+      const junctions = await ctx.db
+        .query("projectConversations")
+        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
         .collect();
-      for (const project of projects) {
-        if (project.conversationIds.includes(conv._id)) {
-          await ctx.db.patch(project._id, {
-            conversationIds: project.conversationIds.filter(
-              (id) => id !== conv._id,
-            ),
-          });
-        }
+      for (const junction of junctions) {
+        await ctx.db.delete(junction._id);
       }
 
       // 6. Delete any messages (shouldn't be any, but just in case)
@@ -685,19 +669,13 @@ export const bulkDelete = mutation({
         await ctx.db.patch(memory._id, { conversationId: undefined });
       }
 
-      // 5. Remove from projects conversationIds arrays
-      const projects = await ctx.db
-        .query("projects")
-        .withIndex("by_user", (q) => q.eq("userId", user._id))
+      // 5. Remove from project relationships via junction table
+      const junctions = await ctx.db
+        .query("projectConversations")
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
         .collect();
-      for (const project of projects) {
-        if (project.conversationIds.includes(convId)) {
-          await ctx.db.patch(project._id, {
-            conversationIds: project.conversationIds.filter(
-              (id) => id !== convId,
-            ),
-          });
-        }
+      for (const junction of junctions) {
+        await ctx.db.delete(junction._id);
       }
 
       // 6. Delete messages

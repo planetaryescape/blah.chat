@@ -52,6 +52,11 @@ export const create = internalMutation({
     ),
   },
   handler: async (ctx, args) => {
+    // Validate: assistant messages must have model specified
+    if (args.role === "assistant" && !args.model) {
+      throw new Error("Assistant messages must have model specified");
+    }
+
     const messageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
       userId: args.userId,

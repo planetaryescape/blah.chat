@@ -25,7 +25,7 @@ export {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./operational/summarization";
-export { buildTagExtractionPrompt } from "./operational/tagExtraction";
+export { buildAutoTagPrompt } from "./operational/tagExtraction";
 // Operational prompts
 export {
   CONVERSATION_TITLE_PROMPT,

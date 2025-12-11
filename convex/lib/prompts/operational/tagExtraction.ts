@@ -1,28 +1,41 @@
 /**
- * Tag Extraction Prompt
+ * Auto-Tagging Prompt
  *
- * Used for extracting tags from note content.
- * Simple, focused prompt for fast tag extraction.
+ * Used for automatically tagging notes with existing tag reuse priority.
+ * Generates 1-3 tags based on content relevance.
  */
 
 /**
- * Prompt for extracting tags from notes.
- * Used by: notes/tags.ts
+ * Prompt for auto-tagging notes with existing tag priority.
+ * Used by: notes/tags.ts (extractAndApplyTags action)
  *
- * @param content - The note content to extract tags from (first 1000 chars)
+ * @param content - The note content to tag (first 1000 chars)
+ * @param existingTags - User's existing tags (top 20 by usage)
  */
-export function buildTagExtractionPrompt(content: string): string {
-  return `Extract 3-5 concise tags from this note content.
+export function buildAutoTagPrompt(
+  content: string,
+  existingTags: Array<{ displayName: string; usageCount: number }>,
+): string {
+  const tagsContext =
+    existingTags.length > 0
+      ? `EXISTING TAGS (prioritize reuse):
+${existingTags.map((t) => `- ${t.displayName} (used ${t.usageCount}×)`).join("\n")}`
+      : "No existing tags yet.";
 
-Rules:
-- Lowercase only
-- 1-2 words max per tag
-- Use kebab-case for multi-word tags (e.g., "api-design")
-- Focus on topics, technologies, or key concepts
-- Skip generic tags like "help", "code", "general", "note"
+  return `Auto-tag this note with 1-3 tags.
 
-Content:
+CRITICAL RULES:
+1. STRONGLY prefer existing tags (reuse > create new)
+2. Only create new tags if content doesn't fit existing ones
+3. Use 1-3 tags based on relevance (not always 3)
+4. Min confidence: 80% (skip uncertain tags)
+5. Lowercase only, kebab-case for multi-word (e.g., "machine-learning")
+6. Skip generic tags like "help", "code", "general", "note"
+
+${tagsContext}
+
+NOTE CONTENT:
 ${content}
 
-Return JSON: {"tags": ["tag1", "tag2", ...]}`;
+Return JSON: {"tags": ["tag1", "tag2"]}`;
 }

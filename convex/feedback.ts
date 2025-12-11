@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalQuery, mutation, query } from "./_generated/server";
-import { getCurrentUser } from "./lib/userSync";
+import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 // Re-export triage module
 export * as triage from "./feedback/triage";
@@ -135,8 +135,9 @@ export const createFeedback = mutation({
     });
 
     // Schedule AI auto-triage (runs asynchronously)
-    await ctx.scheduler.runAfter(
+    await (ctx.scheduler.runAfter as any)(
       0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.feedback.triage.autoTriageFeedback,
       {
         feedbackId,
@@ -488,5 +489,144 @@ export const getStatusesForType = query({
   },
   handler: async (_, { feedbackType }) => {
     return STATUS_BY_TYPE[feedbackType];
+  },
+});
+
+// ============================================================================
+// TAG OPERATIONS (DUAL-WRITE: Phase 5)
+// ============================================================================
+
+/**
+ * Add a tag to feedback (DUAL-WRITE: Phase 5)
+ */
+export const addTag = mutation({
+  args: {
+    feedbackId: v.id("feedback"),
+    tag: v.string(),
+  },
+  handler: async (ctx, { feedbackId, tag }) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const feedback = await ctx.db.get(feedbackId);
+
+    if (!feedback || feedback.userId !== user._id) {
+      throw new Error("Feedback not found");
+    }
+
+    const currentTags = feedback.tags || [];
+    const cleanTag = tag.trim().toLowerCase();
+
+    // Skip if duplicate
+    if (currentTags.includes(cleanTag)) return;
+
+    // NEW SYSTEM: Get or create tag
+    const { normalizeTagSlug } = await import("../src/lib/utils/tagUtils");
+    const slug = normalizeTagSlug(tag);
+
+    let centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", user._id).eq("slug", slug),
+      )
+      .unique();
+
+    if (!centralTag) {
+      const now = Date.now();
+      const tagId = await ctx.db.insert("tags", {
+        slug,
+        displayName: tag,
+        userId: user._id,
+        scope: "user",
+        parentId: undefined,
+        path: `/${slug}`,
+        depth: 0,
+        usageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      centralTag = (await ctx.db.get(tagId))!;
+    }
+
+    // Create junction entry
+    const existingJunction = await ctx.db
+      .query("feedbackTagJunctions")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_feedback_tag", (q) =>
+        q.eq("feedbackId", feedbackId).eq("tagId", centralTag._id),
+      )
+      .unique();
+
+    if (!existingJunction) {
+      await ctx.db.insert("feedbackTagJunctions", {
+        feedbackId,
+        tagId: centralTag._id,
+        userId: user._id,
+        createdAt: Date.now(),
+      });
+
+      await ctx.db.patch(centralTag._id, {
+        usageCount: centralTag.usageCount + 1,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // OLD SYSTEM: Write to array
+    await ctx.db.patch(feedbackId, {
+      tags: [...currentTags, cleanTag],
+    });
+  },
+});
+
+/**
+ * Remove a tag from feedback (DUAL-WRITE: Phase 5)
+ */
+export const removeTag = mutation({
+  args: {
+    feedbackId: v.id("feedback"),
+    tag: v.string(),
+  },
+  handler: async (ctx, { feedbackId, tag }) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const feedback = await ctx.db.get(feedbackId);
+
+    if (!feedback || feedback.userId !== user._id) {
+      throw new Error("Feedback not found");
+    }
+
+    // NEW SYSTEM: Find and delete junction entry
+    const { normalizeTagSlug } = await import("../src/lib/utils/tagUtils");
+    const slug = normalizeTagSlug(tag);
+
+    const centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", user._id).eq("slug", slug),
+      )
+      .unique();
+
+    if (centralTag) {
+      const junction = await ctx.db
+        .query("feedbackTagJunctions")
+        // @ts-ignore - Type depth exceeded
+        .withIndex("by_feedback_tag", (q) =>
+          q.eq("feedbackId", feedbackId).eq("tagId", centralTag._id),
+        )
+        .unique();
+
+      if (junction) {
+        await ctx.db.delete(junction._id);
+
+        await ctx.db.patch(centralTag._id, {
+          usageCount: Math.max(0, centralTag.usageCount - 1),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // OLD SYSTEM: Remove from array
+    await ctx.db.patch(feedbackId, {
+      tags: (feedback.tags || []).filter((t) => t !== tag),
+    });
   },
 });

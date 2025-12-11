@@ -11,7 +11,7 @@ import {
   getModelConfig,
   type ModelConfig,
 } from "@/lib/ai/utils";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
@@ -117,7 +117,18 @@ async function buildSystemPrompts(
   ])) as [Doc<"users"> | null, Doc<"conversations"> | null];
 
   // 1. User custom instructions (highest priority)
-  if (user?.preferences?.customInstructions?.enabled) {
+  // Phase 4: Load from new preference system
+  const customInstructions = user
+    ? await ctx.runQuery(
+        // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+        api.users.getUserPreference,
+        {
+          key: "customInstructions",
+        },
+      )
+    : null;
+
+  if (customInstructions?.enabled) {
     const {
       aboutUser,
       responseStyle,
@@ -125,7 +136,7 @@ async function buildSystemPrompts(
       nickname,
       occupation,
       moreAboutYou,
-    } = user.preferences.customInstructions;
+    } = customInstructions;
 
     // Build personalization sections
     const sections: string[] = [];
@@ -1176,10 +1187,24 @@ export const generateResponse = internalAction({
         args.modelId,
       );
 
+      // Legacy conversation-level token usage (Phase 6: keep for backward compat)
       await ctx.runMutation(internal.conversations.updateTokenUsage, {
         conversationId: args.conversationId,
         tokenUsage,
       });
+
+      // Phase 6: Per-model token tracking (new normalized table)
+      await ((ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.conversations.updateConversationTokenUsage,
+        {
+          conversationId: args.conversationId,
+          model: args.modelId,
+          inputTokens,
+          outputTokens,
+          reasoningTokens: reasoningTokens || 0,
+        },
+      )) as Promise<void>;
 
       // 12. Auto-name if conversation still has default title
       const conversation = await ctx.runQuery(

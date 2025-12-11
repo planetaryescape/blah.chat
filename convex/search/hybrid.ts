@@ -19,10 +19,11 @@ export const hybridSearch = action({
     messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
   },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
-    const user = (await (ctx.runQuery as any)(
+    const user = ((await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getCurrentUser,
       {},
-    )) as Doc<"users"> | null;
+    )) as Doc<"users"> | null);
     if (!user) return [];
 
     const limit = args.limit || 20;
@@ -60,21 +61,41 @@ export const hybridSearch = action({
         value: args.query,
       });
 
-      const vectorResults = (await (ctx.runQuery as any)(
-        api.search.vectorSearch,
-        {
-          embedding,
-          userId: user._id,
-          conversationId: args.conversationId,
-          dateFrom: args.dateFrom,
-          dateTo: args.dateTo,
-          messageType: args.messageType,
-          limit: 40,
-        },
-      )) as Doc<"messages">[];
+      // Phase 7: Use native vector index (not manual scoring)
+      const vectorResults = await ctx.vectorSearch("messages", "by_embedding", {
+        vector: embedding,
+        limit: 40,
+        // biome-ignore lint/suspicious/noExplicitAny: Convex filter builder type depth
+        filter: (q: any) =>
+          args.conversationId
+            ? q.eq("userId", user._id).eq("conversationId", args.conversationId)
+            : q.eq("userId", user._id),
+      });
+
+      // Extract Doc<"messages"> format (vectorSearch returns { _score, ...fields })
+      const vectorResultMessages = vectorResults.map((r) => {
+        // biome-ignore lint/performance/noDelete: Need to remove _score from result
+        const { _score, ...messageDoc } = r;
+        return messageDoc as Doc<"messages">;
+      });
+
+      // Apply additional filters not supported by vector index filterFields
+      let filteredVectorResults = vectorResultMessages;
+
+      if (args.dateFrom !== undefined && args.dateTo !== undefined) {
+        filteredVectorResults = filteredVectorResults.filter(
+          (m) => m.createdAt >= args.dateFrom! && m.createdAt <= args.dateTo!,
+        );
+      }
+
+      if (args.messageType) {
+        filteredVectorResults = filteredVectorResults.filter(
+          (m) => m.role === args.messageType,
+        );
+      }
 
       // 3. RRF merge
-      return mergeWithRRF(textResults, vectorResults, limit);
+      return mergeWithRRF(textResults, filteredVectorResults.slice(0, 40), limit);
     } catch (error) {
       console.error("Vector search failed, falling back to text-only:", error);
       return textResults.slice(0, limit);
@@ -122,62 +143,6 @@ export const fullTextSearch = query({
 });
 
 /**
- * Vector search using Convex vector index
- */
-export const vectorSearch = query({
-  args: {
-    embedding: v.array(v.float64()),
-    userId: v.id("users"),
-    conversationId: v.optional(v.id("conversations")),
-    dateFrom: v.optional(v.number()),
-    dateTo: v.optional(v.number()),
-    messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
-    limit: v.number(),
-  },
-  handler: async (ctx, args) => {
-    // Get messages with embeddings for this user
-    const results = await ctx.db
-      .query("messages")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.neq(q.field("embedding"), undefined)) // Has embedding
-      .collect();
-
-    // Manual vector similarity (Convex will add native support soon)
-    const withScores = results.map((msg) => {
-      const score = msg.embedding
-        ? cosineSimilarity(args.embedding, msg.embedding)
-        : 0;
-      return { ...msg, score };
-    });
-
-    // Sort by score descending
-    withScores.sort((a, b) => b.score - a.score);
-
-    // Apply filters
-    let filtered = withScores;
-
-    if (args.conversationId) {
-      filtered = filtered.filter(
-        (m) => m.conversationId === args.conversationId,
-      );
-    }
-
-    if (args.dateFrom !== undefined && args.dateTo !== undefined) {
-      filtered = filtered.filter(
-        (m) => m.createdAt >= args.dateFrom! && m.createdAt <= args.dateTo!,
-      );
-    }
-
-    if (args.messageType) {
-      filtered = filtered.filter((m) => m.role === args.messageType);
-    }
-
-    // Return top N without score
-    return filtered.slice(0, args.limit).map(({ score, ...msg }) => msg);
-  },
-});
-
-/**
  * RRF (Reciprocal Rank Fusion) merge
  * Combines rankings from multiple sources
  */
@@ -212,25 +177,4 @@ function mergeWithRRF<T extends Doc<"messages">>(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((x) => x.item);
-}
-
-/**
- * Cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  if (normA === 0 || normB === 0) return 0;
-
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }

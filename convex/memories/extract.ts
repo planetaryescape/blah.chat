@@ -49,17 +49,6 @@ const memorySchema = z.object({
   ),
 });
 
-// Helper: Calculate cosine similarity between two vectors
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error("Vectors must have same length");
-  }
-  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
 // Helper: Check if memory is duplicate using semantic similarity
 async function isMemoryDuplicate(
   // biome-ignore lint/suspicious/noExplicitAny: Convex context types
@@ -69,7 +58,7 @@ async function isMemoryDuplicate(
   newEmbedding: number[],
 ): Promise<boolean> {
   try {
-    // Query vector index for similar memories
+    // Phase 7: Use native vector search with similarity scores
     const similarMemories = await ctx.vectorSearch("memories", "by_embedding", {
       vector: newEmbedding,
       // biome-ignore lint/suspicious/noExplicitAny: Convex query filter types
@@ -77,18 +66,12 @@ async function isMemoryDuplicate(
       limit: 5, // Check top 5 most similar
     });
 
-    // Calculate cosine similarity for each
-    for (const memory of similarMemories) {
-      // Skip memories without embeddings or mismatched dimensions
-      if (
-        !memory.embedding ||
-        memory.embedding.length !== newEmbedding.length
-      ) {
-        continue;
-      }
-
-      const similarity = cosineSimilarity(newEmbedding, memory.embedding);
-      if (similarity > SIMILARITY_THRESHOLD) {
+    // Check if any result exceeds similarity threshold
+    // vectorSearch returns results with _score (cosine similarity)
+    for (const result of similarMemories) {
+      // Type assertion: vectorSearch returns { _score, ...document fields }
+      const score = (result as any)._score as number;
+      if (score > SIMILARITY_THRESHOLD) {
         return true;
       }
     }

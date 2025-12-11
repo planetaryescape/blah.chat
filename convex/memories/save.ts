@@ -8,18 +8,8 @@ import { internalAction } from "../_generated/server";
 // Constants matching extract.ts
 const SIMILARITY_THRESHOLD = 0.85;
 
-// Helper: Calculate cosine similarity between two vectors
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error("Vectors must have same length");
-  }
-  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
 // Helper: Check if memory is duplicate using semantic similarity
+// Phase 7: Uses native vector search scores (no manual cosine similarity)
 async function isMemoryDuplicate(
   // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
@@ -34,19 +24,14 @@ async function isMemoryDuplicate(
       limit: 5,
     });
 
-    for (const memory of similarMemories) {
-      if (
-        !memory.embedding ||
-        memory.embedding.length !== newEmbedding.length
-      ) {
-        continue;
-      }
-
-      const similarity = cosineSimilarity(newEmbedding, memory.embedding);
-      if (similarity > SIMILARITY_THRESHOLD) {
+    // Check if any result exceeds similarity threshold
+    // vectorSearch returns results with _score (cosine similarity)
+    for (const result of similarMemories) {
+      const score = (result as any)._score as number;
+      if (score > SIMILARITY_THRESHOLD) {
         // Return the similar content for user feedback
         const fullMemory = await ctx.runQuery(internal.memories.getMemoryById, {
-          id: memory._id,
+          id: (result as any)._id,
         });
         return {
           isDuplicate: true,

@@ -129,18 +129,26 @@ export const getMemoryById = internalQuery({
   },
 });
 
+// Phase 7: Return type includes similarity score from native vector search
+type MemoryWithScore = Doc<"memories"> & { _score: number };
+
 export const searchByEmbedding = internalAction({
   args: {
     userId: v.id("users"),
     embedding: v.array(v.float64()),
     limit: v.number(),
   },
-  handler: async (ctx, args): Promise<Doc<"memories">[]> => {
+  handler: async (ctx, args): Promise<MemoryWithScore[]> => {
     const results = await ctx.vectorSearch("memories", "by_embedding", {
       vector: args.embedding,
       limit: args.limit,
       filter: (q) => q.eq("userId", args.userId),
     });
+
+    // Preserve scores from vector search results
+    const scores = new Map(
+      results.map((r) => [r._id, (r as any)._score as number]),
+    );
 
     const ids = results.map((r) => r._id);
     const memories: Doc<"memories">[] = await ctx.runQuery(
@@ -150,7 +158,11 @@ export const searchByEmbedding = internalAction({
       },
     );
 
-    return memories;
+    // Attach scores to memories (Phase 7: no manual cosine similarity)
+    return memories.map((m) => ({
+      ...m,
+      _score: scores.get(m._id) || 0,
+    }));
   },
 });
 
@@ -652,6 +664,7 @@ export const consolidateUserMemories = action({
       );
 
       // Filter by similarity threshold (0.85) and exclude self
+      // Phase 7: Use native vector search scores (no manual calculation)
       const cluster: Doc<"memories">[] = [memory];
       processedIds.add(memory._id);
 
@@ -659,13 +672,8 @@ export const consolidateUserMemories = action({
         if (similar._id === memory._id) continue;
         if (processedIds.has(similar._id)) continue;
 
-        // Calculate cosine similarity
-        const similarity = cosineSimilarity(
-          memory.embedding,
-          similar.embedding,
-        );
-
-        if (similarity >= 0.85) {
+        // Use score from native vector search (already calculated)
+        if (similar._score >= 0.85) {
           cluster.push(similar);
           processedIds.add(similar._id);
         }
@@ -842,17 +850,6 @@ ${cluster
     };
   },
 });
-
-// Helper: Calculate cosine similarity between two vectors
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error("Vectors must have same length");
-  }
-  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dotProduct / (magnitudeA * magnitudeB);
-}
 
 // Internal mutation for deleting memories (used by consolidation)
 export const deleteInternal = internalMutation({

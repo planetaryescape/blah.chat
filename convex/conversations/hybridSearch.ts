@@ -17,10 +17,11 @@ export const hybridSearch = action({
     projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
-    const user: Doc<"users"> | null = await ctx.runQuery(
+    const user = ((await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getCurrentUser,
       {},
-    );
+    )) as Doc<"users"> | null);
     if (!user) return [];
 
     const { query, limit = 20, includeArchived = false } = args;
@@ -39,10 +40,37 @@ export const hybridSearch = action({
         value: query,
       });
 
-      // biome-ignore lint/suspicious/noExplicitAny: Complex Convex query return types
-      const semanticResults: any = await ctx.runQuery(
-        internal.conversations.hybridSearch.semanticSearchWithEmbedding,
-        { embedding, userId: user._id, limit: 40, includeArchived },
+      // Phase 7: Use native vector index (not manual scoring)
+      const messageResults = await ctx.vectorSearch("messages", "by_embedding", {
+        vector: embedding,
+        limit: 100, // Get more messages to ensure we have enough conversations
+        filter: (q) => q.eq("userId", user._id),
+      });
+
+      // Group by conversationId - vectorSearch results have all document fields
+      const conversationIds = new Set<Id<"conversations">>();
+      const topConversations: Id<"conversations">[] = [];
+
+      for (const result of messageResults) {
+        // Type assertion: vectorSearch returns document fields + _score
+        const convId = (result as any).conversationId as Id<"conversations">;
+        if (!conversationIds.has(convId)) {
+          conversationIds.add(convId);
+          topConversations.push(convId);
+          if (topConversations.length >= 40) break;
+        }
+      }
+
+      // Fetch full conversation objects using helper query (action context)
+      const conversations = await ctx.runQuery(
+        internal.lib.helpers.getConversationsByIds,
+        { ids: topConversations },
+      );
+
+      // Filter archived conversations if needed
+      const semanticResults = conversations.filter(
+        (c: Doc<"conversations">): c is Doc<"conversations"> =>
+          includeArchived || !c.archived,
       );
 
       // 3. Merge with RRF
@@ -126,59 +154,6 @@ export const keywordSearch = internalQuery({
 });
 
 /**
- * Semantic search via message content, grouped by conversation
- * Accepts pre-computed embedding (generated in action, since queries can't make network calls)
- */
-export const semanticSearchWithEmbedding = internalQuery({
-  args: {
-    embedding: v.array(v.number()),
-    userId: v.id("users"),
-    limit: v.number(),
-    includeArchived: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    // Vector search on messages, group by conversationId
-    const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.neq(q.field("embedding"), undefined))
-      .collect();
-
-    // Calculate cosine similarity for each message
-    const scored = messages
-      .map((msg) => ({
-        message: msg,
-        score: msg.embedding
-          ? cosineSimilarity(args.embedding, msg.embedding)
-          : 0,
-      }))
-      .sort((a, b) => b.score - a.score);
-
-    // Group by conversationId, take top conversation per unique ID
-    const conversationIds = new Set<Id<"conversations">>();
-    const topConversations: Id<"conversations">[] = [];
-
-    for (const item of scored) {
-      if (!conversationIds.has(item.message.conversationId)) {
-        conversationIds.add(item.message.conversationId);
-        topConversations.push(item.message.conversationId);
-        if (topConversations.length >= args.limit) break;
-      }
-    }
-
-    // Fetch full conversation objects
-    const conversations = await Promise.all(
-      topConversations.map((id) => ctx.db.get(id)),
-    );
-
-    // Filter out null conversations and archived if needed
-    return conversations.filter(
-      (c) => c !== null && (args.includeArchived || !c.archived),
-    ) as Doc<"conversations">[];
-  },
-});
-
-/**
  * RRF (Reciprocal Rank Fusion) merge for conversations
  */
 function mergeConversationsRRF<T extends Doc<"conversations">>(
@@ -212,25 +187,4 @@ function mergeConversationsRRF<T extends Doc<"conversations">>(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((x) => x.item);
-}
-
-/**
- * Cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  if (normA === 0 || normB === 0) return 0;
-
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }

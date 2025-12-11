@@ -201,7 +201,8 @@ export default defineSchema({
     // Memory extraction tracking
     memoryExtracted: v.optional(v.boolean()),
     memoryExtractedAt: v.optional(v.number()),
-    // Source citations (Perplexity, web search models)
+    // DEPRECATED: Source citations (migrated to normalized tables - Phase 2 complete)
+    // Kept for backward compatibility with existing messages, NO LONGER WRITTEN TO
     sources: v.optional(
       v.array(
         v.object({

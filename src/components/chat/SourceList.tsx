@@ -23,16 +23,15 @@ interface SourceListProps {
 export function SourceList({ messageId, className }: SourceListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Fetch sources with fallback (fixes race condition)
+  // Fetch sources from normalized tables (Phase 2 migration complete)
   // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
-  const result = useQuery(api.sources.operations.getSourcesWithFallback, {
+  const sources = useQuery(api.sources.operations.getSources, {
     messageId,
   });
 
   // Hide if no sources
-  if (!result || result.sources.length === 0) return null;
+  if (!sources || sources.length === 0) return null;
 
-  const { sources, source: sourceType } = result;
   const count = sources.length;
 
   return (
@@ -52,11 +51,6 @@ export function SourceList({ messageId, className }: SourceListProps) {
         <span>
           Used {count} {count === 1 ? "source" : "sources"}
         </span>
-        {sourceType === "legacy" && (
-          <Badge variant="outline" className="text-xs">
-            cached
-          </Badge>
-        )}
       </Button>
 
       {/* Expandable Sources Grid */}

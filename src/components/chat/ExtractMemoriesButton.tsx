@@ -5,9 +5,9 @@ import { Brain, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { analytics } from "@/lib/analytics";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
 
 interface ExtractMemoriesButtonProps {
   conversationId: Id<"conversations">;

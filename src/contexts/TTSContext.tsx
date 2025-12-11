@@ -10,8 +10,8 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
 import { analytics } from "@/lib/analytics";
+import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
 
 interface TTSState {
   isVisible: boolean;

@@ -21,12 +21,17 @@ export async function getCurrentUserOrCreate(
     const userId = await ctx.db.insert("users", {
       clerkId: identity.subject,
       email: identity.email || "",
-      name:
+      name: String(
         identity.fullName ||
-        (identity.firstName && identity.lastName
-          ? `${identity.firstName} ${identity.lastName}`.trim()
-          : identity.firstName || identity.lastName || "Anonymous"),
-      imageUrl: identity.imageUrl || identity.pictureUrl,
+          (identity.firstName && identity.lastName
+            ? `${identity.firstName} ${identity.lastName}`.trim()
+            : identity.firstName || identity.lastName || "Anonymous"),
+      ),
+      imageUrl: identity.imageUrl
+        ? String(identity.imageUrl)
+        : identity.pictureUrl
+          ? String(identity.pictureUrl)
+          : undefined,
       preferences: {
         theme: "dark",
         defaultModel: "cerebras:qwen-3-32b",

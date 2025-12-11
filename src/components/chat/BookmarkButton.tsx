@@ -59,7 +59,9 @@ export function BookmarkButton({
 
   const handleSaveBookmark = async () => {
     try {
-      const tagList = tags ? tags.split(",").map((t: any) => t.trim()) : undefined;
+      const tagList = tags
+        ? tags.split(",").map((t: any) => t.trim())
+        : undefined;
 
       if (isBookmarked && existingBookmark) {
         await updateBookmark({

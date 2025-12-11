@@ -137,3 +137,17 @@ export const listAllMemories = internalQuery({
       .collect();
   },
 });
+
+/**
+ * Get attachments for a message
+ * Replaces: ctx.db.query("attachments").withIndex("by_message", ...)
+ */
+export const getMessageAttachments = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args): Promise<Doc<"attachments">[]> => {
+    return await ctx.db
+      .query("attachments")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+  },
+});

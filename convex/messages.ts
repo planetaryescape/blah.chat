@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { getCurrentUser } from "./lib/userSync";
 
@@ -59,7 +60,6 @@ export const create = internalMutation({
       status: args.status || "complete",
       model: args.model,
       comparisonGroupId: args.comparisonGroupId,
-      attachments: args.attachments,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -291,18 +291,6 @@ export const completeMessage = internalMutation({
     reasoningTokens: v.optional(v.number()),
     cost: v.number(),
     tokensPerSecond: v.optional(v.number()),
-    toolCalls: v.optional(
-      v.array(
-        v.object({
-          id: v.string(),
-          name: v.string(),
-          arguments: v.string(),
-          result: v.optional(v.string()),
-          timestamp: v.number(),
-          textPosition: v.optional(v.number()),
-        }),
-      ),
-    ),
     sources: v.optional(
       v.array(
         v.object({
@@ -331,8 +319,6 @@ export const completeMessage = internalMutation({
       reasoningTokens: args.reasoningTokens,
       cost: args.cost,
       tokensPerSecond: args.tokensPerSecond,
-      toolCalls: args.toolCalls,
-      partialToolCalls: undefined, // Clear loading state
       sources: args.sources,
       partialSources: undefined, // Clear streaming sources
       providerMetadata: args.providerMetadata, // Save provider metadata
@@ -387,7 +373,6 @@ export const updatePartialToolCalls = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, {
-      partialToolCalls: args.partialToolCalls,
       updatedAt: Date.now(),
     });
   },
@@ -402,7 +387,6 @@ export const markError = internalMutation({
     await ctx.db.patch(args.messageId, {
       status: "error",
       error: args.error,
-      partialToolCalls: undefined, // Clear loading state
       updatedAt: Date.now(),
     });
   },
@@ -440,12 +424,17 @@ export const addAttachment = internalMutation({
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
-    const attachments = message.attachments || [];
-    attachments.push(args.attachment);
-
-    await ctx.db.patch(args.messageId, {
-      attachments,
-      updatedAt: Date.now(),
+    await ctx.db.insert("attachments", {
+      messageId: args.messageId,
+      conversationId: message.conversationId,
+      userId: message.userId!,
+      type: args.attachment.type,
+      name: args.attachment.name,
+      storageId: args.attachment.storageId as Id<"_storage">,
+      mimeType: args.attachment.mimeType,
+      size: args.attachment.size,
+      metadata: args.attachment.metadata,
+      createdAt: Date.now(),
     });
   },
 });
@@ -469,13 +458,152 @@ export const addToolCalls = internalMutation({
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
-    const existingCalls = message.toolCalls || [];
-    await ctx.db.patch(args.messageId, {
-      toolCalls: [...existingCalls, ...args.toolCalls],
-      updatedAt: Date.now(),
-    });
+    for (const tc of args.toolCalls) {
+      await ctx.db.insert("toolCalls", {
+        messageId: args.messageId,
+        conversationId: message.conversationId,
+        userId: message.userId!,
+        toolCallId: tc.id,
+        toolName: tc.name,
+        args: JSON.parse(tc.arguments),
+        result: tc.result ? JSON.parse(tc.result) : undefined,
+        textPosition: tc.textPosition,
+        isPartial: false,
+        timestamp: tc.timestamp,
+        createdAt: Date.now(),
+      });
+    }
   },
 });
+
+// ============================================================================
+// Phase 1 Migration: Dual-Write Mutations (attachments + tool calls)
+// ============================================================================
+
+/**
+ * Upsert tool call to new table + old structure (dual-write).
+ * Used during streaming to persist tool call state.
+ */
+export const upsertToolCall = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    toolCallId: v.string(),
+    toolName: v.string(),
+    args: v.any(), // Native JSON
+    result: v.optional(v.any()),
+    textPosition: v.optional(v.number()),
+    isPartial: v.boolean(),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Upsert to toolCalls table
+    const existing = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .filter((q) => q.eq(q.field("toolCallId"), args.toolCallId))
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        args: args.args,
+        result: args.result,
+        isPartial: args.isPartial,
+        timestamp: args.timestamp,
+      });
+    } else {
+      await ctx.db.insert("toolCalls", {
+        messageId: args.messageId,
+        conversationId: args.conversationId,
+        userId: args.userId,
+        toolCallId: args.toolCallId,
+        toolName: args.toolName,
+        args: args.args,
+        result: args.result,
+        textPosition: args.textPosition,
+        isPartial: args.isPartial,
+        timestamp: args.timestamp,
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+/**
+ * Mark all partial tool calls as complete (on stream finish).
+ */
+export const finalizeToolCalls = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const partials = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_message_partial", (q) =>
+        q.eq("messageId", args.messageId).eq("isPartial", true),
+      )
+      .collect();
+
+    for (const tc of partials) {
+      await ctx.db.patch(tc._id, { isPartial: false });
+    }
+  },
+});
+
+// ============================================================================
+// Query Helpers (attachments + tool calls)
+// ============================================================================
+
+/**
+ * Get message attachments from normalized table.
+ */
+async function getMessageAttachments(ctx: any, messageId: any): Promise<any[]> {
+  return await ctx.db
+    .query("attachments")
+    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+    .collect();
+}
+
+/**
+ * Get message tool calls from normalized table.
+ */
+async function getMessageToolCalls(
+  ctx: any,
+  messageId: any,
+  includePartial = false,
+): Promise<any[]> {
+  const toolCalls = await ctx.db
+    .query("toolCalls")
+    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+    .collect();
+
+  return includePartial
+    ? toolCalls
+    : toolCalls.filter((tc: any) => !tc.isPartial);
+}
+
+// Export queries for frontend
+export const getAttachments = query({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    return getMessageAttachments(ctx, messageId);
+  },
+});
+
+export const getToolCalls = query({
+  args: {
+    messageId: v.id("messages"),
+    includePartial: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { messageId, includePartial }) => {
+    return getMessageToolCalls(ctx, messageId, includePartial);
+  },
+});
+
+// ============================================================================
+// End Phase 1 Migration Helpers
+// ============================================================================
 
 // Get all messages in a comparison group
 export const getComparisonGroup = query({

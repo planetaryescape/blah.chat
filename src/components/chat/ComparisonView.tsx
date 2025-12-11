@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "convex/react";
 import { Eye, EyeOff, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
@@ -44,6 +46,11 @@ export function ComparisonView({
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [showConsolidateDialog, setShowConsolidateDialog] = useState(false);
   const [votedMessageId, setVotedMessageId] = useState<string | undefined>();
+
+  // Get user preferences for statistics display
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
+  const showStats = user?.preferences?.showComparisonStatistics ?? true;
 
   const { register } = useSyncedScroll(syncEnabled);
   const isMobile = useMediaQuery("(max-width: 1024px)");
@@ -186,6 +193,7 @@ export function ComparisonView({
                 message={msg}
                 index={idx}
                 showModelName={showModelNames}
+                showStats={showStats}
                 onVote={() => handleVote(msg._id, idx)}
                 isVoted={votedMessageId === msg._id}
                 hasVoted={votedMessageId !== undefined}
@@ -197,23 +205,27 @@ export function ComparisonView({
 
         {/* Footer */}
         <div className="p-3 border-t space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="font-medium">Total Cost</span>
-            <span className="font-mono">${totalCost.toFixed(4)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="font-medium">Avg Response Time</span>
-            <span className="font-mono">
-              {formatDuration(
-                generationDurations.filter((d) => d !== null).length > 0
-                  ? generationDurations
-                      .filter((d) => d !== null)
-                      .reduce((a, b) => a! + b!, 0)! /
-                      generationDurations.filter((d) => d !== null).length
-                  : null,
-              )}
-            </span>
-          </div>
+          {showStats && (
+            <>
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">Total Cost</span>
+                <span className="font-mono">${totalCost.toFixed(4)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">Avg Response Time</span>
+                <span className="font-mono">
+                  {formatDuration(
+                    generationDurations.filter((d) => d !== null).length > 0
+                      ? generationDurations
+                          .filter((d) => d !== null)
+                          .reduce((a, b) => a! + b!, 0)! /
+                          generationDurations.filter((d) => d !== null).length
+                      : null,
+                  )}
+                </span>
+              </div>
+            </>
+          )}
           {allComplete && !hideConsolidateButton && (
             <Button
               onClick={() => setShowConsolidateDialog(true)}
@@ -308,6 +320,7 @@ export function ComparisonView({
             message={msg}
             index={idx}
             showModelName={showModelNames}
+            showStats={showStats}
             onVote={() => handleVote(msg._id, idx)}
             isVoted={votedMessageId === msg._id}
             hasVoted={votedMessageId !== undefined}
@@ -318,32 +331,35 @@ export function ComparisonView({
 
       {/* Footer */}
       <div className="flex items-center justify-between p-3 border-t">
-        <div className="space-y-1">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">Total Cost:</span>
-            <span className="font-mono text-lg">${totalCost.toFixed(4)}</span>
+        {showStats && (
+          <div className="space-y-1">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">Total Cost:</span>
+              <span className="font-mono text-lg">${totalCost.toFixed(4)}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {totalInputTokens.toLocaleString()} input +{" "}
+              {totalOutputTokens.toLocaleString()} output tokens
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Avg response:{" "}
+              {formatDuration(
+                generationDurations.filter((d) => d !== null).length > 0
+                  ? generationDurations
+                      .filter((d) => d !== null)
+                      .reduce((a, b) => a! + b!, 0)! /
+                      generationDurations.filter((d) => d !== null).length
+                  : null,
+              )}
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {totalInputTokens.toLocaleString()} input +{" "}
-            {totalOutputTokens.toLocaleString()} output tokens
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Avg response:{" "}
-            {formatDuration(
-              generationDurations.filter((d) => d !== null).length > 0
-                ? generationDurations
-                    .filter((d) => d !== null)
-                    .reduce((a, b) => a! + b!, 0)! /
-                    generationDurations.filter((d) => d !== null).length
-                : null,
-            )}
-          </div>
-        </div>
+        )}
 
         {allComplete && !hideConsolidateButton && (
           <Button
             onClick={() => setShowConsolidateDialog(true)}
             variant="secondary"
+            className={!showStats ? "ml-auto" : ""}
           >
             <Sparkles className="w-4 h-4 mr-2" />
             Consolidate Responses

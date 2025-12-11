@@ -25,15 +25,11 @@ export const bulkAutoRename = action({
       const batchPromises = batch.map(async (conversationId: any) => {
         try {
           // 1. Get messages to find context
-          const messages = await (ctx.runQuery as (
-            ref: any,
-            args: any,
-          ) => Promise<Doc<"messages">[]>)(
-            internal.messages.listInternal as any,
-            {
-              conversationId,
-            },
-          );
+          const messages = await (
+            ctx.runQuery as (ref: any, args: any) => Promise<Doc<"messages">[]>
+          )(internal.messages.listInternal as any, {
+            conversationId,
+          });
 
           // Find first user message
           const userMessage = messages.find((m) => m.role === "user");

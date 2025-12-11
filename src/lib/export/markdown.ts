@@ -25,10 +25,6 @@ export function exportConversationToMarkdown(
     if (msg.cost) {
       md += `*Cost: $${msg.cost.toFixed(4)} | Tokens: ${msg.inputTokens || 0}/${msg.outputTokens || 0}*\n\n`;
     }
-
-    if (msg.attachments && msg.attachments.length > 0) {
-      md += `**Attachments**: ${msg.attachments.map((a: any) => a.name).join(", ")}\n\n`;
-    }
   }
 
   return md;

@@ -218,6 +218,9 @@ interface AnalyticsEvent {
   conversation_starred: {
     toggleState: boolean;
   };
+  conversation_reused: {
+    conversationId: string;
+  };
   bulk_operation_performed: {
     operationType: string;
     count: number;
@@ -411,6 +414,7 @@ interface AnalyticsEvent {
   ui_preference_changed: {
     setting: string;
     value: boolean;
+    source?: "settings_page" | "header_menu";
   };
   reasoning_display_changed: {
     setting: string;
@@ -740,11 +744,14 @@ export const analytics = {
     stepName: string,
     properties?: Record<string, unknown>,
   ): void {
-    this.track(`funnel_${funnelName}_${stepName}` as EventName, {
-      funnel: funnelName,
-      step: stepName,
-      ...properties,
-    } as AnalyticsEvent[EventName]);
+    this.track(
+      `funnel_${funnelName}_${stepName}` as EventName,
+      {
+        funnel: funnelName,
+        step: stepName,
+        ...properties,
+      } as AnalyticsEvent[EventName],
+    );
   },
 
   // Cohort helpers
@@ -799,10 +806,13 @@ export const analytics = {
     variant: string,
     properties?: Record<string, unknown>,
   ): void {
-    this.track("experiment_exposed" as EventName, {
-      experiment: experimentKey,
-      variant,
-      ...properties,
-    } as AnalyticsEvent[EventName]);
+    this.track(
+      "experiment_exposed" as EventName,
+      {
+        experiment: experimentKey,
+        variant,
+        ...properties,
+      } as AnalyticsEvent[EventName],
+    );
   },
 };

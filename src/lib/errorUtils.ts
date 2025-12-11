@@ -75,7 +75,8 @@ export function extractErrorContext(
     errorStack: error.stack,
     componentStack: errorInfo?.componentStack,
     timestamp: new Date().toISOString(),
-    userAgent: typeof window !== "undefined" ? window.navigator.userAgent : null,
+    userAgent:
+      typeof window !== "undefined" ? window.navigator.userAgent : null,
     url: typeof window !== "undefined" ? window.location.href : null,
   };
 }
@@ -111,9 +112,10 @@ export function createErrorFingerprint(
 export function formatErrorForUser(error: Error): string {
   // User-friendly messages for common errors
   const userMessages: Record<string, string> = {
-    "Network request failed": "Connection error. Please check your internet and try again.",
+    "Network request failed":
+      "Connection error. Please check your internet and try again.",
     "Failed to fetch": "Unable to connect. Please try again.",
-    "Timeout": "Request timed out. Please try again.",
+    Timeout: "Request timed out. Please try again.",
   };
 
   for (const [pattern, message] of Object.entries(userMessages)) {
@@ -129,7 +131,10 @@ export function formatErrorForUser(error: Error): string {
 /**
  * Rate limit error tracking to prevent spam
  */
-const errorRateLimiter = new Map<string, { count: number; timestamp: number }>();
+const errorRateLimiter = new Map<
+  string,
+  { count: number; timestamp: number }
+>();
 
 export function shouldThrottleError(
   errorKey: string,

@@ -339,7 +339,7 @@ export default defineSchema({
     userId: v.id("users"), // User scoping
 
     position: v.number(), // 1, 2, 3 for [1], [2], [3] citation markers
-    provider: v.string(), // "openrouter" | "perplexity" | "generic"
+    provider: v.string(), // "openrouter" | "perplexity" | "generic" | "tool"
 
     // Provider-specific data (may differ from OG metadata)
     title: v.optional(v.string()),

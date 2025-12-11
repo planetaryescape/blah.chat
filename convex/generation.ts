@@ -270,7 +270,7 @@ async function buildSystemPrompts(
 // biome-ignore lint/suspicious/noExplicitAny: Complex provider metadata types from AI SDK
 function extractSources(providerMetadata: any):
   | Array<{
-      id: string;
+      position: number;
       title: string;
       url: string;
       publishedDate?: string;
@@ -361,9 +361,9 @@ function extractSources(providerMetadata: any):
       return true;
     });
 
-    // Assign sequential IDs for citation markers AFTER deduplication
+    // Assign sequential positions for citation markers AFTER deduplication
     return deduped.map((s, i) => ({
-      id: `${i + 1}`,
+      position: i + 1,
       title: s.title,
       url: s.url,
       publishedDate: s.publishedDate,
@@ -373,6 +373,58 @@ function extractSources(providerMetadata: any):
     console.warn("[Sources] Failed to extract sources:", error);
     return undefined;
   }
+}
+
+/**
+ * Extract sources from webSearch tool calls
+ * @param allToolCalls - Array of finalized tool calls from buffer
+ * @param startPosition - Offset for unified numbering (Perplexity source count)
+ * @returns Array of sources with pre-computed positions for unified numbering
+ */
+function extractWebSearchSources(
+  allToolCalls: Array<{ id: string; name: string; result?: string }>,
+  startPosition: number,
+): Array<{
+  position: number;
+  title: string;
+  url: string;
+  snippet?: string;
+}> {
+  const webSearchSources: Array<{
+    position: number;
+    title: string;
+    url: string;
+    snippet?: string;
+  }> = [];
+
+  for (const tc of allToolCalls) {
+    // Only process webSearch tool calls with results
+    if (tc.name !== "webSearch" || !tc.result) continue;
+
+    try {
+      const result = JSON.parse(tc.result);
+
+      // Validate webSearch result structure
+      if (!result.success || !Array.isArray(result.results)) continue;
+
+      // Extract each result as a source
+      for (const item of result.results) {
+        if (!item.url) continue; // Skip results without URLs
+
+        webSearchSources.push({
+          position: startPosition + webSearchSources.length + 1,
+          title: item.title || item.url, // Fallback to URL if no title
+          url: item.url,
+          snippet: item.content?.substring(0, 500), // Truncate long snippets
+        });
+      }
+    } catch (e) {
+      console.warn(`[WebSearch] Failed to parse result for tool call ${tc.id}:`, e);
+      // Continue processing other tool calls
+    }
+  }
+
+  return webSearchSources;
 }
 
 export const generateResponse = internalAction({
@@ -920,8 +972,62 @@ export const generateResponse = internalAction({
       const providerMetadata = await result.providerMetadata;
 
       // Extract sources from response (Perplexity, web search models)
-      // Must pass the resolved providerMetadata, not the stream result
-      const sources = extractSources(providerMetadata);
+      // Vercel AI SDK v5+ automatically parses Perplexity sources into result.sources
+      let sources: Array<{
+        position: number;
+        title: string;
+        url: string;
+        snippet?: string;
+        publishedDate?: string;
+      }> | undefined;
+
+      // Priority 1: Check if SDK already parsed sources (Perplexity via Gateway)
+      // For streamText, sources is a promise that needs to be awaited
+      try {
+        const sdkSources = await (result as any).sources;
+
+        if (sdkSources && Array.isArray(sdkSources) && sdkSources.length > 0) {
+          sources = sdkSources.map((s: any, idx: number) => ({
+            position: idx + 1, // Sequential positions for [1], [2], [3] citation markers
+            title: s.url, // No title provided by Perplexity API, use URL as fallback
+            url: s.url,
+            snippet: undefined,
+            publishedDate: undefined,
+          }));
+
+          console.log(`[Sources] Extracted ${sources.length} sources from result.sources (Perplexity)`);
+        } else {
+          console.log("[Sources] result.sources was empty or undefined, trying providerMetadata");
+        }
+      } catch (error) {
+        console.log("[Sources] result.sources not available, trying providerMetadata");
+      }
+
+      // Priority 2: Fall back to extracting from providerMetadata (OpenRouter, etc.)
+      if (!sources) {
+        sources = extractSources(providerMetadata);
+        if (sources) {
+          console.log(`[Sources] Extracted ${sources.length} sources from providerMetadata`);
+        } else {
+          console.log("[Sources] No sources found in providerMetadata either");
+        }
+      }
+
+      // Extract webSearch tool sources and merge with Perplexity/provider sources
+      const perplexitySourceCount = sources?.length || 0;
+      const webSearchSources = extractWebSearchSources(allToolCalls, perplexitySourceCount);
+
+      // Merge sources with unified numbering
+      const allSources = [
+        ...(sources || []),     // Perplexity [1], [2], [3]
+        ...webSearchSources,    // webSearch [4], [5], [6]...
+      ];
+
+      if (allSources.length > 0) {
+        console.log(
+          `[Sources] Total: ${allSources.length} (Perplexity: ${perplexitySourceCount}, WebSearch: ${webSearchSources.length})`,
+        );
+      }
 
       // Handle image generation (files in result)
       // This supports Gemini image models called via standard chat
@@ -986,12 +1092,12 @@ export const generateResponse = internalAction({
       }
 
       // 9.5. Add sources to normalized tables (Phase 2)
-      if (sources && sources.length > 0) {
-        // Determine provider from model config
+      if (allSources.length > 0) {
+        // Determine provider based on source composition
         const provider = modelConfig.provider === "perplexity"
           ? "perplexity"
-          : args.modelId.includes("openrouter")
-            ? "openrouter"
+          : webSearchSources.length > 0
+            ? "tool"
             : "generic";
 
         await (ctx.runAction as any)(
@@ -1002,8 +1108,8 @@ export const generateResponse = internalAction({
             conversationId: args.conversationId,
             userId: args.userId,
             provider,
-            sources: sources.map((s, idx) => ({
-              position: idx + 1, // 1, 2, 3 for [1], [2], [3]
+            sources: allSources.map((s) => ({
+              position: s.position, // Use pre-computed positions for unified numbering
               title: s.title,
               url: s.url,
               snippet: s.snippet,
@@ -1022,7 +1128,13 @@ export const generateResponse = internalAction({
         reasoningTokens,
         cost,
         tokensPerSecond,
-        sources,
+        sources: sources?.map((s) => ({
+          id: `${s.position}`, // Convert position to string for legacy format
+          title: s.title,
+          url: s.url,
+          publishedDate: s.publishedDate,
+          snippet: s.snippet,
+        })),
         providerMetadata,
       });
 

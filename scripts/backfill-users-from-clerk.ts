@@ -30,10 +30,12 @@ if (!CLERK_SECRET_KEY) {
 async function backfillUsers() {
   console.log("🚀 Starting user backfill from Clerk...\n");
 
-  const convex = new ConvexHttpClient(CONVEX_URL);
+  const convex = new ConvexHttpClient(CONVEX_URL!);
+  const clerk = await clerkClient();
 
   try {
     // Get all Convex users
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const users = await convex.query(api.users.listAllUsers);
     console.log(`📊 Found ${users.length} users in Convex\n`);
 
@@ -53,12 +55,12 @@ async function backfillUsers() {
 
       try {
         // Fetch full data from Clerk
-        const clerkUser = await clerkClient.users.getUser(user.clerkId);
+        const clerkUser = await clerk.users.getUser(user.clerkId);
 
         // Extract email from primary email address
         const email =
           clerkUser.emailAddresses.find(
-            (e) => e.id === clerkUser.primaryEmailAddressId,
+            (e: { id: string }) => e.id === clerkUser.primaryEmailAddressId,
           )?.emailAddress || "";
 
         // Extract name from first/last name

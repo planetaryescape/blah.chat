@@ -1,18 +1,13 @@
-import { useMutation } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useConversationContext } from "@/contexts/ConversationContext";
-import { useNewChatModel } from "@/hooks/useNewChatModel";
-import { analytics } from "@/lib/analytics";
-import { api } from "../../convex/_generated/api";
+import { useNewChat } from "@/hooks/useNewChat";
 
 export function useKeyboardShortcuts() {
   const router = useRouter();
   const pathname = usePathname();
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createConversation = useMutation(api.conversations.create);
   const { filteredConversations } = useConversationContext();
-  const { newChatModel } = useNewChatModel();
+  const { startNewChat } = useNewChat();
 
   // Extract conversationId from pathname (e.g., /chat/xyz123)
   const conversationId = pathname?.startsWith("/chat/")
@@ -42,15 +37,7 @@ export function useKeyboardShortcuts() {
       // Cmd+Shift+O - New chat
       if (isMod && e.shiftKey && e.key === "O") {
         e.preventDefault();
-        try {
-          const conversationId = await createConversation({
-            model: newChatModel,
-          });
-          router.push(`/chat/${conversationId}`);
-          analytics.track("conversation_started", { model: newChatModel });
-        } catch (error) {
-          console.error("Failed to create conversation:", error);
-        }
+        startNewChat();
       }
 
       // Cmd+J - Quick model switcher
@@ -139,14 +126,7 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [
-    router,
-    pathname,
-    createConversation,
-    filteredConversations,
-    conversationId,
-    newChatModel,
-  ]);
+  }, [router, pathname, filteredConversations, conversationId, startNewChat]);
 }
 
 // Export keyboard shortcut reference for documentation

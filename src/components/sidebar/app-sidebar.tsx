@@ -1,7 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
-  BarChart3,
   Bookmark,
   Brain,
   ChevronDown,
@@ -63,7 +62,6 @@ const MENU_ITEMS = [
   { icon: Brain, label: "Memories", href: "/memories", featureKey: null },
   { icon: FolderKanban, label: "Projects", href: "/projects", featureKey: "showProjects" as const },
   { icon: FileText, label: "Templates", href: "/templates", featureKey: "showTemplates" as const },
-  { icon: BarChart3, label: "Usage", href: "/usage", featureKey: null },
   { icon: Bookmark, label: "Bookmarks", href: "/bookmarks", featureKey: "showBookmarks" as const },
   { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null },
   { icon: Settings, label: "Settings", href: "/settings", featureKey: null },

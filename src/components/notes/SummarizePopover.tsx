@@ -30,7 +30,7 @@ export function SummarizePopover({
   position,
   onSaveAsNote,
 }: SummarizePopoverProps) {
-  // @ts-ignore - TypeScript recursion limit exceeded with 85+ Convex modules (known limitation)
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const summarizeSelection = useAction(api.generation.summarizeSelection);
 
   const [summary, setSummary] = useState("");

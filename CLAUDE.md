@@ -97,6 +97,63 @@ Frontend: **always unwrap `.data`** before using.
 
 Key tables: `users`, `conversations`, `messages`, `memories`, `projects`, `bookmarks`, `shares`, `scheduledPrompts`, `usageRecords`
 
+### Schema Design Principles
+
+**CRITICAL**: Use normalized, SQL-ready schema design. Avoid nested documents.
+
+**Why Normalize:**
+- 40% smaller documents (faster queries, lower storage)
+- 10x faster cascade deletes (junction tables vs array scans)
+- Queryable relationships (analytics, reporting)
+- No data drift (single source of truth)
+- Atomic updates (change one field without touching others)
+
+**When to Normalize** (Always prefer this):
+```typescript
+// ✅ GOOD - Normalized with junction table
+defineTable("messages", { ... })
+defineTable("attachments", {
+  messageId: v.id("messages"),
+  userId: v.id("users"),
+  storageId: v.id("_storage"),
+  ...
+})
+
+// ❌ BAD - Nested array (bloats documents)
+defineTable("messages", {
+  attachments: v.optional(v.array(v.object({ ... }))),
+  ...
+})
+```
+
+**When Nesting is Acceptable** (Rare cases):
+- Small, fixed-size metadata (2-3 fields, never grows)
+- Data never queried independently
+- Always deleted with parent
+- Example: `{ lat: number, lng: number }` for location
+
+**Junction Tables for M:N Relationships:**
+```typescript
+// Many-to-many: Projects ↔ Conversations
+defineTable("projectConversations", {
+  projectId: v.id("projects"),
+  conversationId: v.id("conversations"),
+  addedAt: v.number(),
+  addedBy: v.id("users"),
+})
+  .index("by_project", ["projectId"])
+  .index("by_conversation", ["conversationId"])
+  .index("by_project_conversation", ["projectId", "conversationId"]);
+```
+
+**Required Indexes:**
+- Foreign key fields (e.g., `userId`, `conversationId`)
+- Composite indexes for common queries
+- Vector indexes for embeddings (1536 dimensions)
+- Search indexes for full-text search
+
+**Reference**: See `docs/SCHEMA_NORMALIZATION_GUIDE.md` for complete migration history and patterns.
+
 ### TypeScript Type Handling in Convex
 
 **Problem**: With 94+ Convex modules, TypeScript hits recursion limits when resolving `internal.*` and `api.*` types, causing "Type instantiation is excessively deep" errors.

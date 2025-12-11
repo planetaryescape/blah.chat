@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpDown, Shield, Users } from "lucide-react";
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -100,31 +100,36 @@ function UsersPageContent() {
     endDate: dateRange.endDate,
   });
 
-  const handleToggleAdmin = async (userId: Id<"users">, isAdmin: boolean) => {
+  // Stabilize callback to prevent column recreation
+  const handleToggleAdmin = useCallback(async (userId: Id<"users">, isAdmin: boolean) => {
     try {
       await updateRole({ userId, isAdmin });
       toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
     } catch (error: any) {
       toast.error(error.message || "Failed to update role");
     }
-  };
+  }, [updateRole]);
 
-  // Merge users with usage data (empty array while loading)
-  const usageByUserId = new Map(
-    (usageSummary || []).map((usage) => [usage.userId, usage])
-  );
+  // Merge users with usage data - MUST be memoized to prevent infinite re-renders
+  const usersWithUsage = useMemo<UserWithUsage[]>(() => {
+    if (!users || !usageSummary) return [];
 
-  const usersWithUsage: UserWithUsage[] = (users || []).map((user) => ({
-    ...user,
-    usage: usageByUserId.get(user._id) || {
-      totalCost: 0,
-      totalTokens: 0,
-      totalRequests: 0,
-    },
-  }));
+    const usageByUserId = new Map(
+      usageSummary.map((usage) => [usage.userId, usage])
+    );
 
-  // Column definitions for TanStack Table (must be before useReactTable)
-  const columns: ColumnDef<UserWithUsage>[] = [
+    return users.map((user) => ({
+      ...user,
+      usage: usageByUserId.get(user._id) || {
+        totalCost: 0,
+        totalTokens: 0,
+        totalRequests: 0,
+      },
+    }));
+  }, [users, usageSummary]);
+
+  // Column definitions - MUST be memoized to prevent infinite re-renders
+  const columns = useMemo<ColumnDef<UserWithUsage>[]>(() => [
     {
       id: "user",
       accessorFn: (row) => row.name,
@@ -218,7 +223,7 @@ function UsersPageContent() {
         </div>
       ),
     },
-  ];
+  ], [handleToggleAdmin]); // dependency: only recreate if handleToggleAdmin changes
 
   // Initialize TanStack Table (must be before conditional return)
   const table = useReactTable({
@@ -240,10 +245,13 @@ function UsersPageContent() {
   const rows = table.getRowModel().rows;
   const shouldVirtualize = rows.length > 50;
 
+  // Stabilize estimateSize function to prevent virtualizer recalculations
+  const estimateSize = useCallback(() => 73, []);
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 73, // Estimated row height in pixels
+    estimateSize, // Use stable callback reference
     overscan: 10, // Render 10 rows outside viewport for smooth scrolling
     enabled: shouldVirtualize,
   });

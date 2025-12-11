@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
@@ -122,8 +122,13 @@ export function AppSidebar() {
 
   // Keyboard shortcuts removed - now centralized in useKeyboardShortcuts hook
 
-  const filteredConversations = conversations?.filter((conv: any) =>
-    conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
+  // Memoize filtered conversations to prevent unnecessary re-renders
+  const filteredConversations = useMemo(
+    () =>
+      conversations?.filter((conv: any) =>
+        conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [conversations, searchQuery],
   );
 
   // Update context whenever filtered conversations change
@@ -154,16 +159,16 @@ export function AppSidebar() {
   const displayedItems = isMobile ? visibleMenuItems.slice(0, 3) : visibleMenuItems;
   const overflowItems = isMobile ? visibleMenuItems.slice(3) : [];
 
-  // Bulk action handlers
-  const toggleSelection = (id: string) => {
+  // Bulk action handlers - wrapped in useCallback to prevent infinite re-renders
+  const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
-  };
+  }, []);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedIds([]);
-  };
+  }, []);
 
   const handleBulkDelete = async () => {
     try {

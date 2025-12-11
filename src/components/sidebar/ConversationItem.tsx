@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ProjectBadge } from "@/components/projects/ProjectBadge";
 import { Button } from "@/components/ui/button";
@@ -126,6 +126,13 @@ export function ConversationItem({
     }
   };
 
+  // Stabilize project filter callback to prevent re-renders
+  const handleProjectFilterClick = useCallback(() => {
+    if (conversation.projectId) {
+      setProjectFilter(conversation.projectId);
+    }
+  }, [conversation.projectId, setProjectFilter]);
+
   return (
     <>
       <ContextMenu>
@@ -201,7 +208,7 @@ export function ConversationItem({
                 <div className="flex-shrink-0">
                   <ProjectBadge
                     projectId={conversation.projectId}
-                    onClick={() => setProjectFilter(conversation.projectId!)}
+                    onClick={handleProjectFilterClick}
                     collapsed={projectFilter === conversation.projectId}
                   />
                 </div>

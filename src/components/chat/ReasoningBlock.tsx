@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Brain, ChevronDown, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/utils/formatMetrics";
 
@@ -25,16 +26,13 @@ export function ReasoningBlock({
   reasoningTokens,
   isThinking = false,
 }: ReasoningBlockProps) {
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
-  // Get user preferences with defaults
-  const reasoningPrefs = user?.preferences?.reasoning ?? {
-    showByDefault: true,
-    autoExpand: false,
-    showDuringStreaming: true,
-  };
+  // Phase 4: Use new preference hook
+  const reasoningPrefs = useUserPreference("reasoning");
 
-  const [isExpanded, setIsExpanded] = useState(reasoningPrefs.autoExpand);
+  const [isExpanded, setIsExpanded] = useState<boolean>(reasoningPrefs.autoExpand);
 
   // Update isExpanded when preferences change
   useEffect(() => {

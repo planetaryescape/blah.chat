@@ -33,8 +33,11 @@ export function TagManagement() {
   const [selectedMergeTags, setSelectedMergeTags] = useState<string[]>([]);
   const [mergeTargetTag, setMergeTargetTag] = useState("");
 
-  const tagStats = useQuery(api.notes.getTagStats) || [];
-  const cooccurrence = useQuery(api.notes.getTagCooccurrence) || [];
+  // Phase 5: Use centralized tag system
+  // @ts-ignore - Type depth exceeded with complex Convex query
+  const tagStats = useQuery(api.tags.queries.getTagStats) || [];
+  // @ts-ignore - Type depth exceeded with complex Convex query
+  const cooccurrence = useQuery(api.tags.queries.getTagCooccurrence) || [];
 
   const renameTag = useMutation(api.notes.renameTag);
   const mergeTags = useMutation(api.notes.mergeTags);

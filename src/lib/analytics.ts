@@ -118,6 +118,10 @@ interface AnalyticsEvent {
     selectionMade: boolean;
     timeToSelectMs?: number;
   };
+  category_filter_changed: {
+    category: string;
+    mode?: "single" | "multiple";
+  };
   comparison_started: {
     modelCount: number;
     models: string[] | string;
@@ -156,11 +160,106 @@ interface AnalyticsEvent {
   default_model_changed: {
     newModel: string;
   };
+  model_preference_updated: {
+    event: string;
+    modelId: string;
+  };
   favorite_models_updated: {
     modelsCount: number;
   };
   model_names_toggled: {
     state: boolean;
+  };
+
+  // === MODEL RECOMMENDATIONS (12 events) ===
+  // Backend events
+  recommendation_analysis_started: {
+    conversationId: string;
+    currentModel: string;
+    userMessageLength: number;
+    avgCost: number;
+    timestamp?: number;
+  };
+  recommendation_generated: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    percentSaved: number;
+    reasoning: string;
+    analysisTimeMs: number;
+    timestamp?: number;
+  };
+  recommendation_skipped_complex_task: {
+    conversationId: string;
+    currentModel: string;
+    reasoning: string;
+    timestamp?: number;
+  };
+  // Frontend events
+  recommendation_shown: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    percentSaved: number;
+    timeAfterMessageComplete?: number;
+    timestamp?: number;
+  };
+  recommendation_preview_clicked: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    secondsSinceBannerShown?: number;
+    timestamp?: number;
+  };
+  recommendation_preview_completed: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    generationTimeMs: number;
+    responseLength: number;
+    timestamp?: number;
+  };
+  recommendation_preview_compared: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    userSpentTimeComparingMs: number;
+    timestamp?: number;
+  };
+  recommendation_accepted: {
+    conversationId: string;
+    from: string;
+    to: string;
+    savings: number;
+    viaPreview: boolean;
+    secondsUntilDecision?: number;
+    userSpentTimeComparingMs?: number;
+    timestamp?: number;
+  };
+  recommendation_dismissed: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    dismissalReason?: string;
+    secondsVisible: number;
+    timestamp?: number;
+  };
+  set_default_prompt_shown: {
+    conversationId: string;
+    modelId: string;
+    afterAcceptingRecommendation: boolean;
+    timestamp?: number;
+  };
+  set_default_accepted: {
+    conversationId: string;
+    modelId: string;
+    timestamp?: number;
+  };
+  set_default_dismissed: {
+    conversationId: string;
+    modelId: string;
+    secondsVisible?: number;
+    timestamp?: number;
   };
 
   // === MEMORY SYSTEM (12 events) ===

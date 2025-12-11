@@ -25,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 type BaseStyleAndTone =
   | "default"
@@ -83,35 +84,32 @@ export function CustomInstructionsForm() {
     api.users.updateCustomInstructions,
   );
 
-  // Existing fields
-  const [aboutUser, setAboutUser] = useState("");
-  const [responseStyle, setResponseStyle] = useState("");
-  const [enabled, setEnabled] = useState(true);
+  // Phase 4: Use new preference hook for source of truth
+  const prefCustomInstructions = useUserPreference("customInstructions");
 
-  // New fields
-  const [baseStyleAndTone, setBaseStyleAndTone] =
-    useState<BaseStyleAndTone>("default");
-  const [nickname, setNickname] = useState("");
-  const [occupation, setOccupation] = useState("");
-  const [moreAboutYou, setMoreAboutYou] = useState("");
+  // Local state for form fields (initialized from hook)
+  const [aboutUser, setAboutUser] = useState(prefCustomInstructions.aboutUser || "");
+  const [responseStyle, setResponseStyle] = useState(prefCustomInstructions.responseStyle || "");
+  const [enabled, setEnabled] = useState<boolean>(prefCustomInstructions.enabled ?? true);
+  const [baseStyleAndTone, setBaseStyleAndTone] = useState<BaseStyleAndTone>(
+    (prefCustomInstructions.baseStyleAndTone as BaseStyleAndTone) || "default"
+  );
+  const [nickname, setNickname] = useState(prefCustomInstructions.nickname || "");
+  const [occupation, setOccupation] = useState(prefCustomInstructions.occupation || "");
+  const [moreAboutYou, setMoreAboutYou] = useState(prefCustomInstructions.moreAboutYou || "");
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load existing settings
+  // Sync local state when hook value changes
   useEffect(() => {
-    if (user?.preferences?.customInstructions) {
-      const ci = user.preferences.customInstructions;
-      setAboutUser(ci.aboutUser || "");
-      setResponseStyle(ci.responseStyle || "");
-      setEnabled(ci.enabled ?? true);
-      setBaseStyleAndTone(
-        (ci.baseStyleAndTone as BaseStyleAndTone) || "default",
-      );
-      setNickname(ci.nickname || "");
-      setOccupation(ci.occupation || "");
-      setMoreAboutYou(ci.moreAboutYou || "");
-    }
-  }, [user]);
+    setAboutUser(prefCustomInstructions.aboutUser || "");
+    setResponseStyle(prefCustomInstructions.responseStyle || "");
+    setEnabled(prefCustomInstructions.enabled ?? true);
+    setBaseStyleAndTone((prefCustomInstructions.baseStyleAndTone as BaseStyleAndTone) || "default");
+    setNickname(prefCustomInstructions.nickname || "");
+    setOccupation(prefCustomInstructions.occupation || "");
+    setMoreAboutYou(prefCustomInstructions.moreAboutYou || "");
+  }, [prefCustomInstructions]);
 
   const handleSave = async () => {
     setIsLoading(true);

@@ -40,9 +40,10 @@ export function TagFilter({
 }: TagFilterProps) {
   const [open, setOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"flat" | "tree">("tree");
-  const tagStats =
-    useQuery(api.notes.getTagStats) ||
-    ([] as Array<{ tag: string; count: number }>);
+  // Phase 5: Use centralized tag system
+  // @ts-ignore - Type depth exceeded with complex Convex query
+  const tagStats = (useQuery(api.tags.queries.getTagStats) ||
+    []) as Array<{ tag: string; count: number }>;
 
   const tagTree = buildTagTree(tagStats);
 

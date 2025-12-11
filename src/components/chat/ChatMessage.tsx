@@ -16,6 +16,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -83,8 +84,13 @@ export const ChatMessage = memo(
 
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const user = useQuery(api.users.getCurrentUser);
-    const alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
-    const showStats = user?.preferences?.showMessageStatistics ?? true;
+
+    // Phase 4: Use new preference hooks
+    const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
+    const prefShowStats = useUserPreference("showMessageStatistics");
+
+    const alwaysShow = prefAlwaysShowActions;
+    const showStats = prefShowStats;
     const features = useFeatureToggles();
 
     // Query for original responses if this is a consolidated message

@@ -17,12 +17,20 @@ export const transcribeAudio = action({
       throw new Error("Unauthorized");
     }
 
+    // Phase 4: Get STT preferences from new system
+    const sttEnabled = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<boolean | null>
+    )(api.users.getUserPreference as any, { key: "sttEnabled" });
+    const sttProvider = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
+    )(api.users.getUserPreference as any, { key: "sttProvider" });
+
     // Check if STT is enabled
-    if (user.preferences.sttEnabled === false) {
+    if (sttEnabled === false) {
       throw new Error("Voice input disabled in settings");
     }
 
-    const provider = user.preferences.sttProvider ?? "openai";
+    const provider = sttProvider ?? "openai";
 
     // Convert base64 to Uint8Array (browser-compatible)
     const binaryString = atob(args.audioBase64);

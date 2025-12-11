@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 export function STTSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -29,17 +30,26 @@ export function STTSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 
-  const [sttEnabled, setSttEnabled] = useState(true);
+  // Phase 4: Use new preference hooks for source of truth
+  const prefSttEnabled = useUserPreference("sttEnabled");
+  const prefSttProvider = useUserPreference("sttProvider");
+  const prefTtsEnabled = useUserPreference("ttsEnabled");
+  const prefTtsProvider = useUserPreference("ttsProvider");
+  const prefTtsVoice = useUserPreference("ttsVoice");
+  const prefTtsSpeed = useUserPreference("ttsSpeed");
+  const prefTtsAutoRead = useUserPreference("ttsAutoRead");
+
+  // Local state for optimistic updates (initialized from hooks)
+  const [sttEnabled, setSttEnabled] = useState<boolean>(prefSttEnabled);
   const [sttProvider, setSttProvider] = useState<
     "openai" | "deepgram" | "assemblyai" | "groq"
-  >("openai");
+  >(prefSttProvider);
 
+  // Sync local state when hook values change
   useEffect(() => {
-    if (user?.preferences) {
-      setSttEnabled(user.preferences.sttEnabled ?? true);
-      setSttProvider(user.preferences.sttProvider ?? "openai");
-    }
-  }, [user]);
+    setSttEnabled(prefSttEnabled);
+    setSttProvider(prefSttProvider);
+  }, [prefSttEnabled, prefSttProvider]);
 
   const handleToggleChange = async (checked: boolean) => {
     setSttEnabled(checked);
@@ -147,11 +157,11 @@ export function STTSettings() {
 
       {/* Text-to-Speech Settings */}
       <TTSSettings
-        ttsEnabled={user.preferences?.ttsEnabled ?? false}
-        ttsProvider={user.preferences?.ttsProvider ?? "deepgram"}
-        ttsVoice={user.preferences?.ttsVoice ?? "aura-asteria-en"}
-        ttsSpeed={user.preferences?.ttsSpeed ?? 1.0}
-        ttsAutoRead={user.preferences?.ttsAutoRead ?? false}
+        ttsEnabled={prefTtsEnabled}
+        ttsProvider={prefTtsProvider}
+        ttsVoice={prefTtsVoice}
+        ttsSpeed={prefTtsSpeed}
+        ttsAutoRead={prefTtsAutoRead}
         onSettingsChange={async (settings: any) => {
           try {
             await updatePreferences({ preferences: settings });

@@ -22,6 +22,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 import { BookmarkButton } from "./BookmarkButton";
 import { MessageActionsMenu } from "./MessageActionsMenu";
@@ -51,10 +52,14 @@ export function MessageActions({
   const { isMobile } = useMobileDetect();
   const features = useFeatureToggles();
 
+  // Phase 4: Use new preference hooks
+  const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
+  const prefTtsEnabled = useUserPreference("ttsEnabled");
+
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
-  const _alwaysShow = user?.preferences?.alwaysShowMessageActions ?? false;
-  const ttsEnabled = user?.preferences?.ttsEnabled ?? false;
+  const _alwaysShow = prefAlwaysShowActions;
+  const ttsEnabled = prefTtsEnabled;
   const shouldShowRetry =
     isUser && nextMessage?.status === "error" && !isGenerating;
 

@@ -1,28 +1,41 @@
 "use client";
 
-import commandScore from "command-score";
-import { useQuery } from "convex/react";
-import { Check, Sparkles, Star, X, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
 } from "@/components/ui/command";
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
+import { useUserPreference } from "@/hooks/useUserPreference";
+import {
+    MODEL_CATEGORIES,
+    countModelsInCategory,
+    getModelCategories,
+} from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import commandScore from "command-score";
+import { useQuery } from "convex/react";
+import { Check, Sparkles, Star, X, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ModelDetailCard } from "./ModelDetailCard";
 
 interface QuickModelSwitcherProps {
   open: boolean;
@@ -48,18 +61,32 @@ export function QuickModelSwitcher({
   const modelsByProvider = getModelsByProvider();
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+
+  // Phase 4: Use new preference hook
+  const prefDefaultModel = useUserPreference("defaultModel");
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
 
+  // Category filtering state
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  // Track previous open state to detect when dialog is opened
+  const prevOpenRef = useRef(open);
+
   useEffect(() => {
-    if (open && mode === "multiple") {
+    // Only sync internal state when dialog is first opened (not on every render)
+    const justOpened = open && !prevOpenRef.current;
+    prevOpenRef.current = open;
+
+    if (justOpened && mode === "multiple") {
       setInternalSelected(selectedModels || []);
     }
 
     // Track quick switcher opened
-    if (open) {
+    if (justOpened) {
       analytics.track("quick_switcher_opened", {
         mode,
         currentModel,
@@ -75,12 +102,28 @@ export function QuickModelSwitcher({
     rest,
   } = sortModels(
     allModels,
-    user?.preferences?.defaultModel,
+    prefDefaultModel,
     favorites,
     recents,
   );
 
-  const restByProvider = rest.reduce(
+  // Filter models by active category
+  const filteredModels = useMemo(() => {
+    const category = MODEL_CATEGORIES.find((c) => c.id === activeCategory);
+    if (!category || category.id === "all") {
+      return { defaultModel, favorites: favModels, recents: recentModels, rest };
+    }
+
+    return {
+      defaultModel:
+        defaultModel && category.filter(defaultModel) ? defaultModel : undefined,
+      favorites: favModels.filter(category.filter),
+      recents: recentModels.filter(category.filter),
+      rest: rest.filter(category.filter),
+    };
+  }, [activeCategory, defaultModel, favModels, recentModels, rest]);
+
+  const restByProvider = filteredModels.rest.reduce(
     (acc, model) => {
       const provider = model.id.split(":")[0];
       if (!acc[provider]) acc[provider] = [];
@@ -131,13 +174,27 @@ export function QuickModelSwitcher({
     });
   };
 
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+
+    // Track category selection
+    analytics.track("category_filter_changed", {
+      category,
+      mode,
+    });
+  };
+
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
     const isSelected =
       mode === "single"
         ? currentModel === model.id
         : internalSelected.includes(model.id);
 
-    return (
+    // Get model categories (only for "All" view)
+    const categories =
+      activeCategory === "all" ? getModelCategories(model) : [];
+
+    const itemContent = (
       <CommandItem
         key={model.id}
         value={model.id}
@@ -198,6 +255,36 @@ export function QuickModelSwitcher({
                 Experimental
               </Badge>
             )}
+
+            {/* Category pills (only in "All" view) */}
+            {activeCategory === "all" && categories.length > 0 && (
+              <>
+                {categories.slice(0, 3).map((catId) => {
+                  const cat = MODEL_CATEGORIES.find((c) => c.id === catId);
+                  if (!cat) return null;
+                  const Icon = cat.icon;
+
+                  return (
+                    <Badge
+                      key={catId}
+                      variant="outline"
+                      className="text-[9px] h-4 px-1 gap-0.5 bg-muted/50"
+                    >
+                      {Icon && <Icon className="w-2 h-2" />}
+                      {cat.label}
+                    </Badge>
+                  );
+                })}
+                {categories.length > 3 && (
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] h-4 px-1 bg-muted/50"
+                  >
+                    +{categories.length - 3}
+                  </Badge>
+                )}
+              </>
+            )}
           </div>
         </div>
         <div className="flex gap-2 items-center">
@@ -232,6 +319,25 @@ export function QuickModelSwitcher({
         </div>
       </CommandItem>
     );
+
+    // Only show HoverCard in single selection mode
+    if (mode === "single") {
+      return (
+        <HoverCard key={model.id} openDelay={200}>
+          <HoverCardTrigger asChild>{itemContent}</HoverCardTrigger>
+          <HoverCardContent
+            side="right"
+            align="start"
+            className="w-80 p-4"
+            sideOffset={10}
+          >
+            <ModelDetailCard modelId={model.id} variant="sidebar" />
+          </HoverCardContent>
+        </HoverCard>
+      );
+    }
+
+    return itemContent;
   };
 
   return (
@@ -244,8 +350,10 @@ export function QuickModelSwitcher({
           className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5"
         >
           <span className="max-w-[120px] truncate">
-            {allModels.find((m) => m.id === currentModel)?.name ||
-              "Select model"}
+            {mode === "single"
+              ? allModels.find((m) => m.id === currentModel)?.name ||
+                "Select model"
+              : "Select models"}
           </span>
         </Button>
       )}
@@ -261,7 +369,42 @@ export function QuickModelSwitcher({
           },
         }}
       >
-        <CommandInput placeholder="Search models..." />
+        {/* Search Input - Top Priority */}
+        <CommandInput
+          placeholder={`Search ${activeCategory === "all" ? "" : activeCategory + " "}models...`}
+        />
+
+        {/* Category Tabs */}
+        <div className="border-b px-2 pt-0 pb-2">
+          <Tabs value={activeCategory} onValueChange={handleCategoryChange}>
+            <TabsList className="w-full grid grid-cols-4 h-auto p-1 gap-1">
+              {MODEL_CATEGORIES.slice(0, 8).map((cat) => {
+                const count = countModelsInCategory(cat.id, allModels);
+                const Icon = cat.icon;
+
+                return (
+                  <TabsTrigger
+                    key={cat.id}
+                    value={cat.id}
+                    className="text-xs py-1.5 flex items-center gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    {Icon && <Icon className="w-3 h-3" />}
+                    <span className="hidden sm:inline truncate">{cat.label}</span>
+                    <span className="sm:hidden truncate">
+                      {cat.label.slice(0, 3)}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1 py-0 ml-auto bg-background/50"
+                    >
+                      {count}
+                    </Badge>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </div>
 
         {/* Multi-select chips */}
         {mode === "multiple" && internalSelected.length > 0 && (
@@ -289,29 +432,29 @@ export function QuickModelSwitcher({
           <CommandEmpty>No models found.</CommandEmpty>
 
           {/* Default Model */}
-          {defaultModel && (
+          {filteredModels.defaultModel && (
             <CommandGroup heading="Default">
-              {renderModelItem(defaultModel, true)}
+              {renderModelItem(filteredModels.defaultModel, true)}
             </CommandGroup>
           )}
 
           {/* Favorites */}
-          {favModels.length > 0 && (
+          {filteredModels.favorites.length > 0 && (
             <CommandGroup heading="Favorites">
-              {favModels.map((model) => renderModelItem(model))}
+              {filteredModels.favorites.map((model) => renderModelItem(model))}
             </CommandGroup>
           )}
 
           {/* Recents */}
-          {recentModels.length > 0 && (
+          {filteredModels.recents.length > 0 && (
             <CommandGroup heading="Recent">
-              {recentModels.map((model) => renderModelItem(model))}
+              {filteredModels.recents.map((model) => renderModelItem(model))}
             </CommandGroup>
           )}
 
-          {(defaultModel ||
-            favModels.length > 0 ||
-            recentModels.length > 0) && <CommandSeparator />}
+          {(filteredModels.defaultModel ||
+            filteredModels.favorites.length > 0 ||
+            filteredModels.recents.length > 0) && <CommandSeparator />}
 
           {/* Rest by provider */}
           {Object.entries(restByProvider).map(([provider, models]) => (

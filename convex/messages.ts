@@ -295,8 +295,6 @@ export const completeMessage = internalMutation({
       reasoningTokens: args.reasoningTokens,
       cost: args.cost,
       tokensPerSecond: args.tokensPerSecond,
-      // sources: removed - now using normalized tables only (Phase 2 complete)
-      partialSources: undefined, // Clear streaming sources
       providerMetadata: args.providerMetadata, // Save provider metadata
       generationCompletedAt: Date.now(),
       updatedAt: Date.now(),
@@ -315,6 +313,19 @@ export const completeMessage = internalMutation({
           outputTokens: args.outputTokens,
           reasoningTokens: args.reasoningTokens,
           cost: args.cost,
+        },
+      );
+
+      // Update conversation token usage (Phase 6: per-model tracking + dual-write)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.conversations.updateConversationTokenUsage,
+        {
+          conversationId: message.conversationId,
+          model: message.model,
+          inputTokens: args.inputTokens,
+          outputTokens: args.outputTokens,
+          reasoningTokens: args.reasoningTokens,
         },
       );
     }

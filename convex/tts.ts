@@ -18,11 +18,25 @@ export const generateSpeech = action({
     speed: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // 1. Get user + check TTS enabled
+    // 1. Get user + check TTS enabled (Phase 4: use new preference system)
     const user = await (
       ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
-    )(api.users.getCurrentUser as any, {});
-    if (!user?.preferences?.ttsEnabled) {
+    )(
+      // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+      api.users.getCurrentUser as any,
+      {},
+    );
+
+    if (!user) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get TTS preferences
+    const ttsEnabled = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<boolean | null>
+    )(api.users.getUserPreference as any, { key: "ttsEnabled" });
+
+    if (!ttsEnabled) {
       throw new Error("TTS is disabled in user preferences");
     }
     if (!args.text.trim()) {
@@ -33,10 +47,16 @@ export const generateSpeech = action({
     const charCount = args.text.length;
     const cost: number = charCount * 0.000003; // $0.000003/char
 
-    // 2. Setup Deepgram config
-    const voice: string =
-      args.voice ?? user.preferences.ttsVoice ?? "aura-asteria-en";
-    const tempo = args.speed ?? user.preferences.ttsSpeed ?? 1;
+    // 2. Setup Deepgram config (Phase 4: load from preferences)
+    const ttsVoice = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
+    )(api.users.getUserPreference as any, { key: "ttsVoice" });
+    const ttsSpeed = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<number | null>
+    )(api.users.getUserPreference as any, { key: "ttsSpeed" });
+
+    const voice: string = args.voice ?? ttsVoice ?? "aura-asteria-en";
+    const tempo = args.speed ?? ttsSpeed ?? 1;
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
       throw new Error("DEEPGRAM_API_KEY is not set");
@@ -72,17 +92,21 @@ export const generateSpeech = action({
     const audioBuffer = await response.arrayBuffer();
 
     // 4. Track cost
-    await ctx.runMutation(internal.usage.mutations.recordTTS, {
-      userId: user._id,
-      model: `${provider}:tts`,
-      characterCount: charCount,
-      cost,
-    } satisfies {
-      userId: Id<"users">;
-      model: string;
-      characterCount: number;
-      cost: number;
-    });
+    await ctx.runMutation(
+      // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+      internal.usage.mutations.recordTTS,
+      {
+        userId: user._id,
+        model: `${provider}:tts`,
+        characterCount: charCount,
+        cost,
+      } satisfies {
+        userId: Id<"users">;
+        model: string;
+        characterCount: number;
+        cost: number;
+      },
+    );
 
     // 5. Convert to base64 for storage/transfer
     const audioBase64: string = Buffer.from(

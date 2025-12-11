@@ -178,6 +178,20 @@ export default defineSchema({
       filterFields: ["userId", "archived"],
     }),
 
+  conversationTokenUsage: defineTable({
+    conversationId: v.id("conversations"),
+    model: v.string(), // "openai:gpt-4o", "anthropic:claude-3-5-sonnet"
+    totalTokens: v.number(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    reasoningTokens: v.optional(v.number()), // o1/o3 models only
+    messageCount: v.number(),
+    lastUpdatedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_conversation_model", ["conversationId", "model"]),
+
   messages: defineTable({
     conversationId: v.id("conversations"),
     userId: v.optional(v.id("users")),
@@ -236,8 +250,9 @@ export default defineSchema({
     // Memory extraction tracking
     memoryExtracted: v.optional(v.boolean()),
     memoryExtractedAt: v.optional(v.number()),
-    // DEPRECATED: Source citations (migrated to normalized tables - Phase 2 complete)
-    // Kept for backward compatibility with existing messages, NO LONGER WRITTEN TO
+    // DEPRECATED (Phase 2): Source citations migrated to normalized tables
+    // Fields kept for backward compatibility with existing messages in database
+    // NO LONGER WRITTEN TO - see convex/sources/* for new implementation
     sources: v.optional(
       v.array(
         v.object({
@@ -283,6 +298,8 @@ export default defineSchema({
     .index("by_parent", ["parentMessageId"])
     .index("by_comparison_group", ["comparisonGroupId"])
     .index("by_consolidated_message", ["consolidatedMessageId"])
+    .index("by_conversation_created", ["conversationId", "createdAt"]) // Phase 7: Ordered messages
+    .index("by_conversation_role", ["conversationId", "role"]) // Phase 7: Filter user/assistant
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
@@ -433,6 +450,7 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_importance", ["userId", "metadata.importance"]) // Query by importance
+    .index("by_conversation", ["conversationId"]) // Phase 7: Query memories by conversation
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
@@ -456,6 +474,65 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_userId_isTemplate", ["userId", "isTemplate"]),
 
+  // Smart Manager Phase 1: Standalone tasks with project links
+  tasks: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("suggested"),
+      v.literal("confirmed"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
+    // Deadline fields
+    deadline: v.optional(v.number()),
+    deadlineSource: v.optional(v.string()), // "next Friday", "ASAP"
+    urgency: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+      ),
+    ),
+    // Source tracking
+    sourceType: v.optional(
+      v.union(
+        v.literal("transcript"),
+        v.literal("conversation"),
+        v.literal("manual"),
+        v.literal("file"),
+      ),
+    ),
+    sourceId: v.optional(v.string()),
+    sourceContext: v.optional(
+      v.object({
+        snippet: v.optional(v.string()),
+        timestampSeconds: v.optional(v.number()),
+        confidence: v.optional(v.number()),
+      }),
+    ),
+    // Project association
+    projectId: v.optional(v.id("projects")),
+    priority: v.optional(v.number()),
+    position: v.optional(v.number()), // For manual ordering
+    // Completion tracking
+    completedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_deadline", ["userId", "deadline"])
+    .index("by_project", ["projectId"])
+    .index("by_user_project", ["userId", "projectId"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId", "status", "projectId"],
+    }),
+
   projectConversations: defineTable({
     projectId: v.id("projects"),
     conversationId: v.id("conversations"),
@@ -466,6 +543,30 @@ export default defineSchema({
     .index("by_conversation", ["conversationId"])
     .index("by_project_conversation", ["projectId", "conversationId"]),
 
+  // Smart Manager Phase 1: Project-Notes junction (many-to-many)
+  projectNotes: defineTable({
+    projectId: v.id("projects"),
+    noteId: v.id("notes"),
+    userId: v.id("users"),
+    addedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_note", ["noteId"])
+    .index("by_user_project", ["userId", "projectId"])
+    .index("by_project_note", ["projectId", "noteId"]),
+
+  // Smart Manager Phase 1: Project-Files junction (many-to-many)
+  projectFiles: defineTable({
+    projectId: v.id("projects"),
+    fileId: v.id("files"),
+    userId: v.id("users"),
+    addedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_file", ["fileId"])
+    .index("by_user_project", ["userId", "projectId"])
+    .index("by_project_file", ["projectId", "fileId"]),
+
   files: defineTable({
     userId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
@@ -473,10 +574,45 @@ export default defineSchema({
     name: v.string(),
     mimeType: v.string(),
     size: v.number(),
+    // Smart Manager Phase 1: File RAG support
+    chunkCount: v.optional(v.number()),
+    embeddingStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("failed"),
+      ),
+    ),
+    embeddingError: v.optional(v.string()),
+    processedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_conversation", ["conversationId"]),
+
+  // Smart Manager Phase 1: Document chunks for RAG
+  fileChunks: defineTable({
+    fileId: v.id("files"),
+    userId: v.id("users"),
+    chunkIndex: v.number(),
+    content: v.string(),
+    // Metadata
+    startPage: v.optional(v.number()),
+    endPage: v.optional(v.number()),
+    section: v.optional(v.string()),
+    charOffset: v.number(),
+    tokenCount: v.number(),
+    embedding: v.array(v.float64()),
+    createdAt: v.number(),
+  })
+    .index("by_file", ["fileId"])
+    .index("by_user", ["userId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["userId", "fileId"],
+    }),
 
   bookmarks: defineTable({
     userId: v.id("users"),
@@ -488,7 +624,8 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_message", ["messageId"])
-    .index("by_conversation", ["conversationId"]),
+    .index("by_conversation", ["conversationId"])
+    .index("by_user_created", ["userId", "createdAt"]), // Phase 7: Sorted recent bookmarks
 
   snippets: defineTable({
     userId: v.id("users"),
@@ -542,6 +679,29 @@ export default defineSchema({
       searchField: "content",
       filterFields: ["userId"],
     }),
+
+  // Smart Manager Phase 1: Activity feed for projects and tasks
+  activityEvents: defineTable({
+    userId: v.id("users"),
+    projectId: v.optional(v.id("projects")),
+    eventType: v.string(), // "task_created", "task_completed", "note_linked", "file_uploaded", etc.
+    // Resource reference
+    resourceType: v.optional(
+      v.union(
+        v.literal("task"),
+        v.literal("note"),
+        v.literal("file"),
+        v.literal("conversation"),
+      ),
+    ),
+    resourceId: v.optional(v.string()),
+    metadata: v.optional(v.any()), // Flexible metadata (task title, file name, etc.)
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_project", ["projectId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_project_created", ["projectId", "createdAt"]),
 
   shares: defineTable({
     userId: v.id("users"),
@@ -770,7 +930,8 @@ export default defineSchema({
     .index("by_type", ["feedbackType"])
     .index("by_created", ["createdAt"])
     .index("by_priority", ["priority"])
-    .index("by_assigned", ["assignedTo"]),
+    .index("by_assigned", ["assignedTo"])
+    .index("by_status_priority", ["status", "priority"]), // Phase 7: Admin filtered views
 
   // Phase 5: Centralized tags system (user-scoped with global support)
   tags: defineTable({
@@ -849,6 +1010,18 @@ export default defineSchema({
     .index("by_tag", ["tagId"])
     .index("by_user", ["userId"])
     .index("by_feedback_tag", ["feedbackId", "tagId"]),
+
+  // Smart Manager Phase 1: Task-Tags junction (many-to-many)
+  taskTags: defineTable({
+    taskId: v.id("tasks"),
+    tagId: v.id("tags"),
+    userId: v.id("users"),
+    addedAt: v.number(),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_tag", ["tagId"])
+    .index("by_user", ["userId"])
+    .index("by_task_tag", ["taskId", "tagId"]),
 
   // DEPRECATED: Phase 5 migrated to centralized tags table with scope: "global"
   // Kept for backward compatibility during migration. New code uses tags table.

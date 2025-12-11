@@ -1,6 +1,41 @@
 import { v } from "convex/values";
+import type { DatabaseReader } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
+
+/**
+ * Phase 7: Batch fetch messages and conversations for bookmarks
+ * Deduplicates IDs and creates lookup maps to eliminate N+1 queries
+ */
+async function batchFetchBookmarkData(
+  db: DatabaseReader,
+  bookmarks: Array<Doc<"bookmarks">>,
+) {
+  // Deduplicate IDs (multiple bookmarks may share same conversation)
+  const messageIds = [...new Set(bookmarks.map((b) => b.messageId))];
+  const conversationIds = [...new Set(bookmarks.map((b) => b.conversationId))];
+
+  // Batch fetch both tables in parallel
+  const [messages, conversations] = await Promise.all([
+    Promise.all(messageIds.map((id) => db.get(id))),
+    Promise.all(conversationIds.map((id) => db.get(id))),
+  ]);
+
+  // Create lookup maps (filter nulls from deleted entities)
+  const messageMap = new Map(
+    messages
+      .filter((m): m is Doc<"messages"> => m !== null)
+      .map((m) => [m._id, m]),
+  );
+  const conversationMap = new Map(
+    conversations
+      .filter((c): c is Doc<"conversations"> => c !== null)
+      .map((c) => [c._id, c]),
+  );
+
+  return { messageMap, conversationMap };
+}
 
 export const create = mutation({
   args: {
@@ -83,19 +118,28 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    // Fetch associated messages and conversations
-    const bookmarksWithData = await Promise.all(
-      bookmarks.map(async (bookmark) => {
-        const message = await ctx.db.get(bookmark.messageId);
-        const conversation = await ctx.db.get(bookmark.conversationId);
+    // Phase 7: Batch fetch to eliminate N+1 queries (2N → 2 queries)
+    const { messageMap, conversationMap } = await batchFetchBookmarkData(
+      ctx.db,
+      bookmarks,
+    );
+
+    // Join in memory, filter deleted entities
+    const bookmarksWithData = bookmarks
+      .map((bookmark) => {
+        const message = messageMap.get(bookmark.messageId);
+        const conversation = conversationMap.get(bookmark.conversationId);
+
+        // Skip if message or conversation deleted
+        if (!message || !conversation) return null;
 
         return {
           ...bookmark,
           message,
           conversation,
         };
-      }),
-    );
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null);
 
     // Sort by creation date (newest first)
     return bookmarksWithData.sort((a, b) => b.createdAt - a.createdAt);
@@ -138,19 +182,28 @@ export const searchByTags = query({
       args.tags.some((tag) => bookmark.tags?.includes(tag)),
     );
 
-    // Fetch associated messages and conversations
-    const bookmarksWithData = await Promise.all(
-      filtered.map(async (bookmark) => {
-        const message = await ctx.db.get(bookmark.messageId);
-        const conversation = await ctx.db.get(bookmark.conversationId);
+    // Phase 7: Batch fetch to eliminate N+1 queries (2N → 2 queries)
+    const { messageMap, conversationMap } = await batchFetchBookmarkData(
+      ctx.db,
+      filtered,
+    );
+
+    // Join in memory, filter deleted entities
+    const bookmarksWithData = filtered
+      .map((bookmark) => {
+        const message = messageMap.get(bookmark.messageId);
+        const conversation = conversationMap.get(bookmark.conversationId);
+
+        // Skip if message or conversation deleted
+        if (!message || !conversation) return null;
 
         return {
           ...bookmark,
           message,
           conversation,
         };
-      }),
-    );
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null);
 
     return bookmarksWithData.sort((a, b) => b.createdAt - a.createdAt);
   },
@@ -203,5 +256,144 @@ export const bulkCreate = mutation({
       bookmarkedCount: bookmarkIds.length,
       bookmarkIds,
     };
+  },
+});
+
+// ============================================================================
+// TAG OPERATIONS (DUAL-WRITE: Phase 5)
+// ============================================================================
+
+/**
+ * Add a tag to bookmark (DUAL-WRITE: Phase 5)
+ */
+export const addTag = mutation({
+  args: {
+    bookmarkId: v.id("bookmarks"),
+    tag: v.string(),
+  },
+  handler: async (ctx, { bookmarkId, tag }) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const bookmark = await ctx.db.get(bookmarkId);
+
+    if (!bookmark || bookmark.userId !== user._id) {
+      throw new Error("Bookmark not found");
+    }
+
+    const currentTags = bookmark.tags || [];
+    const cleanTag = tag.trim().toLowerCase();
+
+    // Skip if duplicate
+    if (currentTags.includes(cleanTag)) return;
+
+    // NEW SYSTEM: Get or create tag
+    const { normalizeTagSlug } = await import("../src/lib/utils/tagUtils");
+    const slug = normalizeTagSlug(tag);
+
+    let centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", user._id).eq("slug", slug),
+      )
+      .unique();
+
+    if (!centralTag) {
+      const now = Date.now();
+      const tagId = await ctx.db.insert("tags", {
+        slug,
+        displayName: tag,
+        userId: user._id,
+        scope: "user",
+        parentId: undefined,
+        path: `/${slug}`,
+        depth: 0,
+        usageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      centralTag = (await ctx.db.get(tagId))!;
+    }
+
+    // Create junction entry
+    const existingJunction = await ctx.db
+      .query("bookmarkTags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_bookmark_tag", (q) =>
+        q.eq("bookmarkId", bookmarkId).eq("tagId", centralTag._id),
+      )
+      .unique();
+
+    if (!existingJunction) {
+      await ctx.db.insert("bookmarkTags", {
+        bookmarkId,
+        tagId: centralTag._id,
+        userId: user._id,
+        createdAt: Date.now(),
+      });
+
+      await ctx.db.patch(centralTag._id, {
+        usageCount: centralTag.usageCount + 1,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // OLD SYSTEM: Write to array
+    await ctx.db.patch(bookmarkId, {
+      tags: [...currentTags, cleanTag],
+    });
+  },
+});
+
+/**
+ * Remove a tag from bookmark (DUAL-WRITE: Phase 5)
+ */
+export const removeTag = mutation({
+  args: {
+    bookmarkId: v.id("bookmarks"),
+    tag: v.string(),
+  },
+  handler: async (ctx, { bookmarkId, tag }) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const bookmark = await ctx.db.get(bookmarkId);
+
+    if (!bookmark || bookmark.userId !== user._id) {
+      throw new Error("Bookmark not found");
+    }
+
+    // NEW SYSTEM: Find and delete junction entry
+    const { normalizeTagSlug } = await import("../src/lib/utils/tagUtils");
+    const slug = normalizeTagSlug(tag);
+
+    const centralTag = await ctx.db
+      .query("tags")
+      // @ts-ignore - Type depth exceeded
+      .withIndex("by_user_slug", (q) =>
+        q.eq("userId", user._id).eq("slug", slug),
+      )
+      .unique();
+
+    if (centralTag) {
+      const junction = await ctx.db
+        .query("bookmarkTags")
+        // @ts-ignore - Type depth exceeded
+        .withIndex("by_bookmark_tag", (q) =>
+          q.eq("bookmarkId", bookmarkId).eq("tagId", centralTag._id),
+        )
+        .unique();
+
+      if (junction) {
+        await ctx.db.delete(junction._id);
+
+        await ctx.db.patch(centralTag._id, {
+          usageCount: Math.max(0, centralTag.usageCount - 1),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // OLD SYSTEM: Remove from array
+    await ctx.db.patch(bookmarkId, {
+      tags: (bookmark.tags || []).filter((t) => t !== tag),
+    });
   },
 });

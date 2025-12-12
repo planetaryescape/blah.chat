@@ -225,6 +225,14 @@ export const list = query({
       ),
     ),
     projectId: v.optional(v.id("projects")),
+    urgency: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -251,6 +259,11 @@ export const list = query({
     // Apply project filter
     if (args.projectId !== undefined) {
       tasks = tasks.filter((t) => t.projectId === args.projectId);
+    }
+
+    // Apply urgency filter
+    if (args.urgency !== undefined) {
+      tasks = tasks.filter((t) => t.urgency === args.urgency);
     }
 
     // Sort by deadline (ascending), then by createdAt (descending)

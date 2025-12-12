@@ -303,6 +303,44 @@ export const regenerate = mutation({
   },
 });
 
+export const editMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) throw new Error("Message not found");
+
+    const conversation = await ctx.db.get(message.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+
+    // Verify ownership
+    if (conversation.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    // Only allow editing user messages
+    if (message.role !== "user") {
+      throw new Error("Can only edit user messages");
+    }
+
+    // Update message content
+    await ctx.db.patch(args.messageId, {
+      content: args.content,
+      updatedAt: Date.now(),
+    });
+
+    // Update conversation timestamp
+    await ctx.runMutation(internal.conversations.updateLastMessageAt, {
+      conversationId: message.conversationId,
+    });
+  },
+});
+
 export const deleteMessage = mutation({
   args: { messageId: v.id("messages") },
   handler: async (ctx, args) => {

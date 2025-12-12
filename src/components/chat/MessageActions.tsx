@@ -6,6 +6,7 @@ import {
   Copy,
   FileText,
   GitBranch,
+  Pencil,
   RotateCcw,
   Square,
 } from "lucide-react";
@@ -33,12 +34,14 @@ interface MessageActionsProps {
   message: Doc<"messages">;
   nextMessage?: Doc<"messages">;
   readOnly?: boolean;
+  onEdit?: () => void;
 }
 
 export function MessageActions({
   message,
   nextMessage,
   readOnly,
+  onEdit,
 }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
@@ -121,7 +124,9 @@ export function MessageActions({
             isGenerating={isGenerating}
             isUser={isUser}
             onCopy={handleCopy}
-            onSaveAsNote={features.showNotes ? () => setShowCreateNote(true) : undefined}
+            onSaveAsNote={
+              features.showNotes ? () => setShowCreateNote(true) : undefined
+            }
             onBookmark={features.showBookmarks ? handleBookmark : undefined}
           />
         </div>
@@ -174,6 +179,26 @@ export function MessageActions({
 
         {!readOnly && (
           <>
+            {/* Edit Button - only for user messages */}
+            {isUser && onEdit && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
+                    onClick={onEdit}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="sr-only">Edit</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit message (E)</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
             {/* Conditional: Retry or Stop */}
             {shouldShowRetry && (
               <Tooltip>

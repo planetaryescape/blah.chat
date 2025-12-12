@@ -484,7 +484,7 @@ export const ChatMessage = memo(
                 (message.status === "complete" ||
                   message.status === "generating") &&
                 modelName && (
-                  <div className="mt-3 pt-3 border-t border-border/10 flex items-center gap-2 transition-opacity duration-300">
+                  <div className="mt-3 pt-3 border-t border-border/10 flex flex-wrap items-center gap-2 transition-opacity duration-300">
                     {/* Model name - ALWAYS visible */}
                     <Badge
                       variant="outline"
@@ -629,6 +629,22 @@ export const ChatMessage = memo(
             </>
           )}
         </motion.div>
+
+        {/* Model Recommendation Banner - cost optimization */}
+        {!readOnly &&
+          !isUser &&
+          message.status === "complete" &&
+          conversation?.modelRecommendation &&
+          !conversation.modelRecommendation.dismissed && (
+            <div className="mt-4">
+              <ModelRecommendationBanner
+                recommendation={conversation.modelRecommendation}
+                conversationId={message.conversationId}
+                onSwitch={handleModelSwitch}
+                onPreview={handleModelPreview}
+              />
+            </div>
+          )}
 
         {/* Action buttons - absolutely positioned, no layout shift */}
         {!isGenerating && (

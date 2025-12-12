@@ -68,7 +68,7 @@ export default function ProjectDetailPage({
           </TabsTrigger>
           <TabsTrigger value="tasks">
             Tasks
-            {stats && <span className="ml-1.5">({stats.activeTaskCount})</span>}
+            {stats && <span className="ml-1.5">({stats.taskStats?.active || 0})</span>}
           </TabsTrigger>
         </TabsList>
 

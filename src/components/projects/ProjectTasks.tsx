@@ -31,7 +31,7 @@ export function ProjectTasks({
     try {
       await updateTask({
         taskId,
-        status: currentStatus === "completed" ? "active" : "completed",
+        status: currentStatus === "completed" ? "in_progress" : "completed",
       });
       toast.success(
         currentStatus === "completed" ? "Task reopened" : "Task completed"

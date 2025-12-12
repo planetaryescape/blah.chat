@@ -34,7 +34,26 @@ export const saveFile = mutation({
       mimeType: args.mimeType,
       size: args.size,
       createdAt: Date.now(),
+      // Initialize embedding status
+      embeddingStatus: "pending",
     });
+
+    // Trigger embedding generation for text files (async, non-blocking)
+    // Only for supported file types: txt, md, markdown
+    const supportedTypes = ["text/plain", "text/markdown"];
+    const supportedExtensions = [".txt", ".md", ".markdown"];
+
+    const isSupported = supportedTypes.includes(args.mimeType) ||
+      supportedExtensions.some(ext => args.name.toLowerCase().endsWith(ext));
+
+    if (isSupported) {
+      await ctx.scheduler.runAfter(0, internal.files.embeddings.generateFileEmbeddings, {
+        fileId,
+      });
+      console.log(`[FileUpload] ✓ Scheduled embedding generation for: ${args.name}`);
+    } else {
+      console.log(`[FileUpload] ⊘ Skipping embeddings (unsupported type): ${args.name} (${args.mimeType})`);
+    }
 
     return fileId;
   },

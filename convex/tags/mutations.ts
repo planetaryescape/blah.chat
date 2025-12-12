@@ -282,7 +282,10 @@ async function mergeTagsInternal(
       const duplicate = await ctx.db
         .query(name)
         .filter((q) =>
-          q.and(q.eq(q.field(field), entityId), q.eq(q.field("tagId"), targetId)),
+          q.and(
+            q.eq(q.field(field), entityId),
+            q.eq(q.field("tagId"), targetId),
+          ),
         )
         .unique();
 

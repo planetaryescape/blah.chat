@@ -2,10 +2,10 @@
 
 import { Progress } from "@/components/ui/progress";
 import {
-    getBenchmarkScores,
-    getCostText,
-    getIntelligenceText,
-    getSpeedText,
+  getBenchmarkScores,
+  getCostText,
+  getIntelligenceText,
+  getSpeedText,
 } from "@/lib/ai/benchmarks";
 import type { ModelConfig } from "@/lib/ai/models";
 import type { ComputedMetrics } from "@/lib/ai/types";
@@ -56,21 +56,30 @@ export function ModelMetricsBadge({
   // Speed tier to visual value (0-100)
   const speedTierToValue = (tier: string): number => {
     switch (tier) {
-      case "ultra-fast": return 100;
-      case "fast": return 75;
-      case "medium": return 50;
-      case "slow": return 25;
-      default: return 50;
+      case "ultra-fast":
+        return 100;
+      case "fast":
+        return 75;
+      case "medium":
+        return 50;
+      case "slow":
+        return 25;
+      default:
+        return 50;
     }
   };
 
   // Cost tier to value (inverted - lower cost = higher bar)
   const costTierToValue = (tier: string): number => {
     switch (tier) {
-      case "budget": return 25; // Will be inverted to 75
-      case "balanced": return 50; // Will be inverted to 50
-      case "premium": return 75; // Will be inverted to 25
-      default: return 50;
+      case "budget":
+        return 25; // Will be inverted to 75
+      case "balanced":
+        return 50; // Will be inverted to 50
+      case "premium":
+        return 75; // Will be inverted to 25
+      default:
+        return 50;
     }
   };
 

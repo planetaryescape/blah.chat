@@ -243,11 +243,18 @@ export const getUserDailySpend = query({
       },
       {} as Record<
         string,
-        { date: string; totalCost: number; totalTokens: number; requestCount: number }
+        {
+          date: string;
+          totalCost: number;
+          totalTokens: number;
+          requestCount: number;
+        }
       >,
     );
 
-    return Object.values(dailyTotals).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.values(dailyTotals).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
   },
 });
 
@@ -377,7 +384,10 @@ export const getUserUsageSummary = query({
         q.and(
           q.eq(q.field("userId"), args.userId),
           q.gte(q.field("createdAt"), new Date(args.startDate).getTime()),
-          q.lte(q.field("createdAt"), new Date(args.endDate + "T23:59:59").getTime()),
+          q.lte(
+            q.field("createdAt"),
+            new Date(args.endDate + "T23:59:59").getTime(),
+          ),
         ),
       )
       .collect();
@@ -415,7 +425,12 @@ export const getAllUsersUsageSummary = query({
       (acc, record) => {
         const userId = record.userId;
         if (!acc[userId]) {
-          acc[userId] = { userId, totalCost: 0, totalTokens: 0, totalRequests: 0 };
+          acc[userId] = {
+            userId,
+            totalCost: 0,
+            totalTokens: 0,
+            totalRequests: 0,
+          };
         }
         acc[userId].totalCost += record.cost;
         acc[userId].totalTokens += record.inputTokens + record.outputTokens;
@@ -475,7 +490,10 @@ export const getUserCostByType = query({
       } else if (modelLower.includes("tts")) {
         tts.cost += record.cost;
         tts.characters += record.outputTokens; // Character count stored as outputTokens for TTS
-      } else if (modelLower.includes("dall-e") || modelLower.includes("dalle")) {
+      } else if (
+        modelLower.includes("dall-e") ||
+        modelLower.includes("dalle")
+      ) {
         images.cost += record.cost;
         images.count += 1;
       } else {

@@ -42,6 +42,7 @@ import type * as emails_components_index from "../emails/components/index.js";
 import type * as emails_index from "../emails/index.js";
 import type * as emails_templates_apiCreditsExhausted from "../emails/templates/apiCreditsExhausted.js";
 import type * as emails_templates_budgetWarning from "../emails/templates/budgetWarning.js";
+import type * as emails_templates_feedbackNotification from "../emails/templates/feedbackNotification.js";
 import type * as emails_templates_index from "../emails/templates/index.js";
 import type * as emails_test_testEmails from "../emails/test/testEmails.js";
 import type * as emails_utils_index from "../emails/utils/index.js";
@@ -56,6 +57,7 @@ import type * as files_search from "../files/search.js";
 import type * as generation from "../generation.js";
 import type * as generation_image from "../generation/image.js";
 import type * as http from "../http.js";
+import type * as import_ from "../import.js";
 import type * as lib_analytics from "../lib/analytics.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_helpers from "../lib/helpers.js";
@@ -145,6 +147,7 @@ import type * as usage_queries from "../usage/queries.js";
 import type * as users from "../users.js";
 import type * as users_constants from "../users/constants.js";
 import type * as users_preferences from "../users/preferences.js";
+import type * as videoAnalysis from "../videoAnalysis.js";
 import type * as votes from "../votes.js";
 
 import type {
@@ -188,6 +191,7 @@ declare const fullApi: ApiFromModules<{
   "emails/index": typeof emails_index;
   "emails/templates/apiCreditsExhausted": typeof emails_templates_apiCreditsExhausted;
   "emails/templates/budgetWarning": typeof emails_templates_budgetWarning;
+  "emails/templates/feedbackNotification": typeof emails_templates_feedbackNotification;
   "emails/templates/index": typeof emails_templates_index;
   "emails/test/testEmails": typeof emails_test_testEmails;
   "emails/utils/index": typeof emails_utils_index;
@@ -202,6 +206,7 @@ declare const fullApi: ApiFromModules<{
   generation: typeof generation;
   "generation/image": typeof generation_image;
   http: typeof http;
+  import: typeof import_;
   "lib/analytics": typeof lib_analytics;
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/helpers": typeof lib_helpers;
@@ -291,6 +296,7 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   "users/constants": typeof users_constants;
   "users/preferences": typeof users_preferences;
+  videoAnalysis: typeof videoAnalysis;
   votes: typeof votes;
 }>;
 

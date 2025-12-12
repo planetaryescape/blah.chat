@@ -71,7 +71,9 @@ export const searchFileChunks = action({
 
     // 4. Hydrate with file details
     const fileMap = new Map<any, Doc<"files"> | null>();
-    const uniqueFileIds = [...new Set(searchResults.map((r) => r.chunk.fileId))];
+    const uniqueFileIds = [
+      ...new Set(searchResults.map((r) => r.chunk.fileId)),
+    ];
 
     await Promise.all(
       uniqueFileIds.map(async (fileId) => {

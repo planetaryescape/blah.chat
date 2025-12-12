@@ -54,7 +54,11 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { DateRangePicker } from "@/components/admin/DateRangePicker";
 import { UsageKPICard } from "@/components/admin/UsageKPICard";
 import { ExportButton } from "@/components/admin/ExportButton";
-import { getLastNDays, formatCurrency, formatCompactNumber } from "@/lib/utils/date";
+import {
+  getLastNDays,
+  formatCurrency,
+  formatCompactNumber,
+} from "@/lib/utils/date";
 
 const COLORS = [
   "#8b5cf6",
@@ -93,7 +97,10 @@ export default function UserDetailPage({
 
   // Persist date range to localStorage
   useEffect(() => {
-    localStorage.setItem("admin-user-detail-date-range", JSON.stringify(dateRange));
+    localStorage.setItem(
+      "admin-user-detail-date-range",
+      JSON.stringify(dateRange),
+    );
   }, [dateRange]);
 
   // Fetch all data
@@ -143,7 +150,14 @@ export default function UserDetailPage({
   const user = users?.find((u) => u._id === userId);
 
   // Early return check AFTER all hooks
-  if (!user || !summary || !dailySpend || !modelBreakdown || !costByType || !activityStats) {
+  if (
+    !user ||
+    !summary ||
+    !dailySpend ||
+    !modelBreakdown ||
+    !costByType ||
+    !activityStats
+  ) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -192,11 +206,7 @@ export default function UserDetailPage({
         <div className="container mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.back()}
-              >
+              <Button variant="ghost" size="icon" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <Avatar className="h-12 w-12">
@@ -302,7 +312,10 @@ export default function UserDetailPage({
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Cost"]}
+                    formatter={(value: number) => [
+                      formatCurrency(value),
+                      "Cost",
+                    ]}
                   />
                   <Area
                     type="monotone"
@@ -321,9 +334,7 @@ export default function UserDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle>Model Breakdown</CardTitle>
-                <CardDescription>
-                  Cost distribution by model
-                </CardDescription>
+                <CardDescription>Cost distribution by model</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -456,7 +467,9 @@ export default function UserDetailPage({
                             {formatCurrency(model.totalCost)}
                           </div>
                           <div className="text-right">
-                            {formatCurrency(model.totalCost / model.requestCount)}
+                            {formatCurrency(
+                              model.totalCost / model.requestCount,
+                            )}
                           </div>
                         </div>
                       );
@@ -471,7 +484,9 @@ export default function UserDetailPage({
                       <TableHead>Model</TableHead>
                       <TableHead className="text-right">Requests</TableHead>
                       <TableHead className="text-right">Input Tokens</TableHead>
-                      <TableHead className="text-right">Output Tokens</TableHead>
+                      <TableHead className="text-right">
+                        Output Tokens
+                      </TableHead>
                       <TableHead className="text-right">Total Cost</TableHead>
                       <TableHead className="text-right">Avg Cost/Req</TableHead>
                     </TableRow>
@@ -479,7 +494,9 @@ export default function UserDetailPage({
                   <TableBody>
                     {modelBreakdown.map((model) => (
                       <TableRow key={model.model}>
-                        <TableCell className="font-medium">{model.model}</TableCell>
+                        <TableCell className="font-medium">
+                          {model.model}
+                        </TableCell>
                         <TableCell className="text-right">
                           {model.requestCount}
                         </TableCell>

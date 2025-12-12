@@ -1,7 +1,13 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { ArrowLeft, BarChart3, MessageSquare, Settings, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  BarChart3,
+  MessageSquare,
+  Settings,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";

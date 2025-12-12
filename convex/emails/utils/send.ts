@@ -4,7 +4,11 @@ import { render } from "@react-email/render";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
-import { ApiCreditsExhaustedEmail, BudgetWarningEmail } from "../templates";
+import {
+  ApiCreditsExhaustedEmail,
+  BudgetWarningEmail,
+  FeedbackNotificationEmail,
+} from "../templates";
 
 export const resend = new Resend(components.resend, {
   testMode: false, // Set to true for testing with delivered@resend.dev
@@ -124,5 +128,103 @@ export const sendApiCreditsAlert = internalAction({
     });
 
     console.log(`[Email] Sent ${type} to ${recipientEmail}`);
+  },
+});
+
+// Helper functions for feedback emails
+function getPriorityEmoji(priority: string): string {
+  const map: Record<string, string> = {
+    critical: "🚨",
+    high: "⚠️",
+    medium: "📌",
+    low: "💬",
+    none: "📝",
+  };
+  return map[priority] || "📝";
+}
+
+function getTypeEmoji(type: string): string {
+  const map: Record<string, string> = {
+    bug: "🐛",
+    feature: "💡",
+    praise: "⭐",
+    other: "💬",
+  };
+  return map[type] || "💬";
+}
+
+// Send feedback notification email
+export const sendFeedbackNotification = internalAction({
+  args: {
+    feedbackId: v.id("feedback"),
+  },
+  handler: async (ctx, args) => {
+    // Get feedback details
+    const feedback = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<any>
+    )(internal.lib.helpers.getFeedback, {
+      feedbackId: args.feedbackId,
+    });
+
+    if (!feedback) {
+      console.error(`[Email] Feedback ${args.feedbackId} not found`);
+      return;
+    }
+
+    // Get screenshot URL if exists
+    let screenshotUrl: string | null = null;
+    if (feedback.screenshotStorageId) {
+      try {
+        screenshotUrl = await ctx.storage.getUrl(feedback.screenshotStorageId);
+      } catch (error) {
+        console.warn(
+          `[Email] Screenshot URL fetch failed for ${args.feedbackId}:`,
+          error,
+        );
+        // Continue without screenshot
+      }
+    }
+
+    // Get admin email from settings
+    const adminSettings = await ctx.runQuery(
+      internal.adminSettings.getInternal,
+      {},
+    );
+    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+
+    // Generate email subject with priority and type emojis
+    const priorityEmoji = getPriorityEmoji(
+      feedback.aiTriage?.suggestedPriority || feedback.priority || "none",
+    );
+    const typeEmoji = getTypeEmoji(feedback.feedbackType);
+    const subject = `${typeEmoji} ${priorityEmoji} New Feedback: ${feedback.feedbackType} - ${feedback.userName}`;
+
+    // Render email
+    const html = await render(
+      FeedbackNotificationEmail({
+        feedback,
+        screenshotUrl,
+      }),
+    );
+
+    try {
+      // Send via Resend (NO rate limiting - send every time)
+      await resend.sendEmail(ctx, {
+        from: "blah.chat Feedback <feedback@blah.chat>",
+        to: recipientEmail,
+        subject,
+        html,
+      });
+
+      console.log(
+        `[Email] Sent feedback notification for ${args.feedbackId} to ${recipientEmail}`,
+      );
+    } catch (error) {
+      console.error(
+        `[Email] Feedback notification failed for ${args.feedbackId}:`,
+        error,
+      );
+      // Don't throw - feedback is already saved, email is best-effort
+    }
   },
 });

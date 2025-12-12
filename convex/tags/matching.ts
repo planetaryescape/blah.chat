@@ -94,7 +94,7 @@ export async function findSimilarTag(
           tagEmbed = tag.embedding;
         } else {
           // Lazy generation: trigger embedding generation
-          await ((ctx.runAction as any)(
+          (await (ctx.runAction as any)(
             // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
             internal.tags.embeddings.generateTagEmbedding,
             { tagId: tag._id },

@@ -135,6 +135,13 @@ Provide your triage assessment:`,
         },
       });
 
+      // Send email notification with AI triage results
+      await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.emails.utils.send.sendFeedbackNotification,
+        { feedbackId },
+      );
+
       return {
         success: true,
         triage: {
@@ -148,6 +155,19 @@ Provide your triage assessment:`,
       };
     } catch (error) {
       console.error("Auto-triage failed:", error);
+
+      // Send email even without AI triage (best-effort notification)
+      try {
+        await (ctx.runAction as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.emails.utils.send.sendFeedbackNotification,
+          { feedbackId },
+        );
+      } catch (emailError) {
+        console.error("Failed to send feedback email:", emailError);
+        // Don't throw - just log the error
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",

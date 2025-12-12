@@ -46,7 +46,9 @@ export function ProjectConversations({
           <Card key={conv._id} className="p-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h4 className="font-medium">{conv.title || "Untitled conversation"}</h4>
+                <h4 className="font-medium">
+                  {conv.title || "Untitled conversation"}
+                </h4>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {new Date(conv.createdAt).toLocaleDateString()} ·{" "}
                   {conv.messageCount || 0} messages

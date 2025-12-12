@@ -5,11 +5,11 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
-    CheckCircle2,
-    Clock,
-    File,
-    FileText,
-    MessageSquare,
+  CheckCircle2,
+  Clock,
+  File,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
 
 interface ProjectStatsProps {
@@ -17,6 +17,7 @@ interface ProjectStatsProps {
 }
 
 export function ProjectStats({ projectId }: ProjectStatsProps) {
+  // @ts-ignore
   const stats = useQuery(api.projects.getProjectStats, { projectId });
 
   if (!stats) {
@@ -30,13 +31,8 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
     );
   }
 
-  const {
-    conversationCount,
-    noteCount,
-    fileCount,
-    taskStats,
-    lastActivityAt,
-  } = stats;
+  const { conversationCount, noteCount, fileCount, taskStats, lastActivityAt } =
+    stats;
   const totalResources = conversationCount + noteCount + fileCount;
 
   return (

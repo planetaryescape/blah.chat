@@ -8,14 +8,14 @@ import { api } from "@/convex/_generated/api";
  * @returns Feature toggle states and loading status
  */
 export function useFeatureToggles() {
-	// @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-	const user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const user = useQuery(api.users.getCurrentUser);
 
-	return {
-		showNotes: user?.preferences?.showNotes ?? true,
-		showTemplates: user?.preferences?.showTemplates ?? true,
-		showProjects: user?.preferences?.showProjects ?? true,
-		showBookmarks: user?.preferences?.showBookmarks ?? true,
-		isLoading: user === undefined,
-	};
+  return {
+    showNotes: user?.preferences?.showNotes ?? true,
+    showTemplates: user?.preferences?.showTemplates ?? true,
+    showProjects: user?.preferences?.showProjects ?? true,
+    showBookmarks: user?.preferences?.showBookmarks ?? true,
+    isLoading: user === undefined,
+  };
 }

@@ -170,9 +170,7 @@ function validatePreference(key: string, value: any): void {
       break;
 
     case "sttProvider":
-      if (
-        !["openai", "deepgram", "assemblyai", "groq"].includes(value)
-      ) {
+      if (!["openai", "deepgram", "assemblyai", "groq"].includes(value)) {
         throw new Error(
           "sttProvider must be 'openai', 'deepgram', 'assemblyai', or 'groq'",
         );
@@ -207,9 +205,7 @@ function validatePreference(key: string, value: any): void {
         throw new Error("customInstructions.aboutUser max 3000 characters");
       }
       if (value.responseStyle && value.responseStyle.length > 3000) {
-        throw new Error(
-          "customInstructions.responseStyle max 3000 characters",
-        );
+        throw new Error("customInstructions.responseStyle max 3000 characters");
       }
       if (value.nickname && value.nickname.length > 100) {
         throw new Error("customInstructions.nickname max 100 characters");

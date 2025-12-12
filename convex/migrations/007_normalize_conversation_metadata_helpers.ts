@@ -28,7 +28,9 @@ export const getMessageTokensByModel = internalQuery({
   handler: async (ctx, { conversationId }) => {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
       .filter((q) => q.neq(q.field("role"), "system")) // Skip system prompts
       .collect();
 
@@ -104,7 +106,8 @@ export const insertTokenUsageRecord = internalMutation({
       totalTokens: args.totalTokens,
       inputTokens: args.inputTokens,
       outputTokens: args.outputTokens,
-      reasoningTokens: args.reasoningTokens > 0 ? args.reasoningTokens : undefined,
+      reasoningTokens:
+        args.reasoningTokens > 0 ? args.reasoningTokens : undefined,
       messageCount: args.messageCount,
       lastUpdatedAt: now,
       createdAt: now,

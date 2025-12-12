@@ -97,7 +97,10 @@ export function DateRangePicker({
         <PopoverContent className="w-auto p-4" align="end">
           <div className="space-y-4">
             <div>
-              <label htmlFor="start-date" className="text-sm font-medium mb-2 block">
+              <label
+                htmlFor="start-date"
+                className="text-sm font-medium mb-2 block"
+              >
                 Start Date
               </label>
               <input
@@ -110,7 +113,10 @@ export function DateRangePicker({
               />
             </div>
             <div>
-              <label htmlFor="end-date" className="text-sm font-medium mb-2 block">
+              <label
+                htmlFor="end-date"
+                className="text-sm font-medium mb-2 block"
+              >
                 End Date
               </label>
               <input

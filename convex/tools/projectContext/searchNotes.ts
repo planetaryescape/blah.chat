@@ -70,8 +70,7 @@ export const searchNotes = internalAction({
     // 4. Format results (truncate to 300 chars for token efficiency)
     const results = notes.map((n) => ({
       title: n.title,
-      preview:
-        n.content.slice(0, 300) + (n.content.length > 300 ? "..." : ""),
+      preview: n.content.slice(0, 300) + (n.content.length > 300 ? "..." : ""),
       tags: n.tags || [],
       updatedAt: new Date(n._creationTime).toISOString(),
     }));

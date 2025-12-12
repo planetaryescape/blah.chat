@@ -36,7 +36,9 @@ export function UISettings() {
 
   // Phase 4: Use new preference hooks for source of truth
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
-  const prefShowModelNames = useUserPreference("showModelNamesDuringComparison");
+  const prefShowModelNames = useUserPreference(
+    "showModelNamesDuringComparison",
+  );
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
   const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
   const prefReasoning = useUserPreference("reasoning");
@@ -47,27 +49,63 @@ export function UISettings() {
   const prefShowBookmarks = useUserPreference("showBookmarks");
 
   // Local state for optimistic updates (initialized from hooks)
-  const [alwaysShowMessageActions, setAlwaysShowMessageActions] = useState<boolean>(prefAlwaysShowActions);
-  const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] = useState<boolean>(prefShowModelNames);
-  const [showMessageStats, setShowMessageStats] = useState<boolean>(prefShowMessageStats);
-  const [showComparisonStats, setShowComparisonStats] = useState<boolean>(prefShowComparisonStats);
-  const [showByDefault, setShowByDefault] = useState<boolean>(prefReasoning.showByDefault);
-  const [autoExpand, setAutoExpand] = useState<boolean>(prefReasoning.autoExpand);
-  const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(prefReasoning.showDuringStreaming);
-  const [chatWidth, setChatWidth] = useState<ChatWidth>(prefChatWidth as ChatWidth);
+  const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
+    useState<boolean>(prefAlwaysShowActions);
+  const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
+    useState<boolean>(prefShowModelNames);
+  const [showMessageStats, setShowMessageStats] =
+    useState<boolean>(prefShowMessageStats);
+  const [showComparisonStats, setShowComparisonStats] = useState<boolean>(
+    prefShowComparisonStats,
+  );
+  const [showByDefault, setShowByDefault] = useState<boolean>(
+    prefReasoning.showByDefault,
+  );
+  const [autoExpand, setAutoExpand] = useState<boolean>(
+    prefReasoning.autoExpand,
+  );
+  const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(
+    prefReasoning.showDuringStreaming,
+  );
+  const [chatWidth, setChatWidth] = useState<ChatWidth>(
+    prefChatWidth as ChatWidth,
+  );
   const [showNotes, setShowNotes] = useState<boolean>(prefShowNotes);
-  const [showTemplates, setShowTemplates] = useState<boolean>(prefShowTemplates);
+  const [showTemplates, setShowTemplates] =
+    useState<boolean>(prefShowTemplates);
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
-  const [showBookmarks, setShowBookmarks] = useState<boolean>(prefShowBookmarks);
+  const [showBookmarks, setShowBookmarks] =
+    useState<boolean>(prefShowBookmarks);
 
   // Sync local state when hook values change (e.g., from another tab)
-  useEffect(() => setAlwaysShowMessageActions(prefAlwaysShowActions), [prefAlwaysShowActions]);
-  useEffect(() => setShowModelNamesDuringComparison(prefShowModelNames), [prefShowModelNames]);
-  useEffect(() => setShowMessageStats(prefShowMessageStats), [prefShowMessageStats]);
-  useEffect(() => setShowComparisonStats(prefShowComparisonStats), [prefShowComparisonStats]);
-  useEffect(() => setShowByDefault(prefReasoning.showByDefault), [prefReasoning.showByDefault]);
-  useEffect(() => setAutoExpand(prefReasoning.autoExpand), [prefReasoning.autoExpand]);
-  useEffect(() => setShowDuringStreaming(prefReasoning.showDuringStreaming), [prefReasoning.showDuringStreaming]);
+  useEffect(
+    () => setAlwaysShowMessageActions(prefAlwaysShowActions),
+    [prefAlwaysShowActions],
+  );
+  useEffect(
+    () => setShowModelNamesDuringComparison(prefShowModelNames),
+    [prefShowModelNames],
+  );
+  useEffect(
+    () => setShowMessageStats(prefShowMessageStats),
+    [prefShowMessageStats],
+  );
+  useEffect(
+    () => setShowComparisonStats(prefShowComparisonStats),
+    [prefShowComparisonStats],
+  );
+  useEffect(
+    () => setShowByDefault(prefReasoning.showByDefault),
+    [prefReasoning.showByDefault],
+  );
+  useEffect(
+    () => setAutoExpand(prefReasoning.autoExpand),
+    [prefReasoning.autoExpand],
+  );
+  useEffect(
+    () => setShowDuringStreaming(prefReasoning.showDuringStreaming),
+    [prefReasoning.showDuringStreaming],
+  );
   useEffect(() => setChatWidth(prefChatWidth as ChatWidth), [prefChatWidth]);
   useEffect(() => setShowNotes(prefShowNotes), [prefShowNotes]);
   useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);

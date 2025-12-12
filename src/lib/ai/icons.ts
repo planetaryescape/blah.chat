@@ -36,9 +36,7 @@ export function getModelIcon(modelId: string): LucideIcon {
  * Get icon for a provider
  * Returns appropriate Lucide icon based on provider name
  */
-export function getProviderIcon(
-  provider: string,
-): LucideIcon {
+export function getProviderIcon(provider: string): LucideIcon {
   const icons: Record<string, LucideIcon> = {
     openai: Sparkles, // OpenAI brand
     anthropic: Zap, // Claude lightning

@@ -13,88 +13,90 @@ export default defineSchema({
     lastMessageDate: v.optional(v.string()),
     // DEPRECATED: Phase 4 moved preferences to userPreferences table (flat key-value)
     // Kept for backward compatibility during migration. New code uses userPreferences table.
-    preferences: v.optional(v.object({
-      theme: v.union(v.literal("light"), v.literal("dark")),
-      defaultModel: v.string(),
-      favoriteModels: v.optional(v.array(v.string())), // User's favorite models
-      recentModels: v.optional(v.array(v.string())), // User's recently used models (max 3)
-      newChatModelSelection: v.optional(
-        v.union(v.literal("fixed"), v.literal("recent")),
-      ), // How to select model for new chats
-      sendOnEnter: v.boolean(),
-      codeTheme: v.optional(v.string()),
-      fontSize: v.optional(v.string()),
-      customInstructions: v.optional(
-        v.object({
-          aboutUser: v.string(),
-          responseStyle: v.string(),
-          enabled: v.boolean(),
-          // New personalization fields
-          baseStyleAndTone: v.optional(
-            v.union(
-              v.literal("default"),
-              v.literal("professional"),
-              v.literal("friendly"),
-              v.literal("candid"),
-              v.literal("quirky"),
-              v.literal("efficient"),
-              v.literal("nerdy"),
-              v.literal("cynical"),
+    preferences: v.optional(
+      v.object({
+        theme: v.union(v.literal("light"), v.literal("dark")),
+        defaultModel: v.string(),
+        favoriteModels: v.optional(v.array(v.string())), // User's favorite models
+        recentModels: v.optional(v.array(v.string())), // User's recently used models (max 3)
+        newChatModelSelection: v.optional(
+          v.union(v.literal("fixed"), v.literal("recent")),
+        ), // How to select model for new chats
+        sendOnEnter: v.boolean(),
+        codeTheme: v.optional(v.string()),
+        fontSize: v.optional(v.string()),
+        customInstructions: v.optional(
+          v.object({
+            aboutUser: v.string(),
+            responseStyle: v.string(),
+            enabled: v.boolean(),
+            // New personalization fields
+            baseStyleAndTone: v.optional(
+              v.union(
+                v.literal("default"),
+                v.literal("professional"),
+                v.literal("friendly"),
+                v.literal("candid"),
+                v.literal("quirky"),
+                v.literal("efficient"),
+                v.literal("nerdy"),
+                v.literal("cynical"),
+              ),
             ),
+            nickname: v.optional(v.string()), // max 100 chars
+            occupation: v.optional(v.string()), // max 200 chars
+            moreAboutYou: v.optional(v.string()), // max 3000 chars
+          }),
+        ),
+        // UI settings
+        alwaysShowMessageActions: v.optional(v.boolean()), // default false (show on hover)
+        // STT settings
+        sttEnabled: v.optional(v.boolean()), // default true
+        sttProvider: v.optional(
+          v.union(
+            v.literal("openai"),
+            v.literal("deepgram"),
+            v.literal("assemblyai"),
+            v.literal("groq"),
           ),
-          nickname: v.optional(v.string()), // max 100 chars
-          occupation: v.optional(v.string()), // max 200 chars
-          moreAboutYou: v.optional(v.string()), // max 3000 chars
-        }),
-      ),
-      // UI settings
-      alwaysShowMessageActions: v.optional(v.boolean()), // default false (show on hover)
-      // STT settings
-      sttEnabled: v.optional(v.boolean()), // default true
-      sttProvider: v.optional(
-        v.union(
-          v.literal("openai"),
-          v.literal("deepgram"),
-          v.literal("assemblyai"),
-          v.literal("groq"),
+        ), // default "openai"
+        // TTS settings
+        ttsEnabled: v.optional(v.boolean()), // default false
+        ttsProvider: v.optional(v.string()), // "deepgram"
+        ttsVoice: v.optional(v.string()),
+        ttsSpeed: v.optional(v.float64()), // default 1.0
+        ttsAutoRead: v.optional(v.boolean()), // default false
+        // Hybrid search settings
+        enableHybridSearch: v.optional(v.boolean()), // default false
+        // Comparison settings
+        showModelNamesDuringComparison: v.optional(v.boolean()), // default false
+        // Reasoning display settings
+        reasoning: v.optional(
+          v.object({
+            showByDefault: v.optional(v.boolean()), // default true
+            autoExpand: v.optional(v.boolean()), // default false
+            showDuringStreaming: v.optional(v.boolean()), // default true
+          }),
         ),
-      ), // default "openai"
-      // TTS settings
-      ttsEnabled: v.optional(v.boolean()), // default false
-      ttsProvider: v.optional(v.string()), // "deepgram"
-      ttsVoice: v.optional(v.string()),
-      ttsSpeed: v.optional(v.float64()), // default 1.0
-      ttsAutoRead: v.optional(v.boolean()), // default false
-      // Hybrid search settings
-      enableHybridSearch: v.optional(v.boolean()), // default false
-      // Comparison settings
-      showModelNamesDuringComparison: v.optional(v.boolean()), // default false
-      // Reasoning display settings
-      reasoning: v.optional(
-        v.object({
-          showByDefault: v.optional(v.boolean()), // default true
-          autoExpand: v.optional(v.boolean()), // default false
-          showDuringStreaming: v.optional(v.boolean()), // default true
-        }),
-      ),
-      // Chat width settings
-      chatWidth: v.optional(
-        v.union(
-          v.literal("narrow"),
-          v.literal("standard"),
-          v.literal("wide"),
-          v.literal("full"),
-        ),
-      ), // default "standard"
-      // Statistics display settings
-      showMessageStatistics: v.optional(v.boolean()), // default true
-      showComparisonStatistics: v.optional(v.boolean()), // default true
-      // Feature visibility toggles
-      showNotes: v.optional(v.boolean()), // default true
-      showTemplates: v.optional(v.boolean()), // default true
-      showProjects: v.optional(v.boolean()), // default true
-      showBookmarks: v.optional(v.boolean()), // default true
-    })),
+        // Chat width settings
+        chatWidth: v.optional(
+          v.union(
+            v.literal("narrow"),
+            v.literal("standard"),
+            v.literal("wide"),
+            v.literal("full"),
+          ),
+        ), // default "standard"
+        // Statistics display settings
+        showMessageStatistics: v.optional(v.boolean()), // default true
+        showComparisonStatistics: v.optional(v.boolean()), // default true
+        // Feature visibility toggles
+        showNotes: v.optional(v.boolean()), // default true
+        showTemplates: v.optional(v.boolean()), // default true
+        showProjects: v.optional(v.boolean()), // default true
+        showBookmarks: v.optional(v.boolean()), // default true
+      }),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -155,17 +157,19 @@ export default defineSchema({
     parentConversationId: v.optional(v.id("conversations")),
     parentMessageId: v.optional(v.id("messages")),
     // Model recommendation (cost optimization & decision guidance)
-    modelRecommendation: v.optional(v.object({
-      suggestedModelId: v.string(),
-      currentModelId: v.string(),
-      reasoning: v.string(), // User-friendly explanation
-      estimatedSavings: v.object({
-        costReduction: v.string(), // "$0.30 → $0.02"
-        percentSaved: v.number(),  // 93
+    modelRecommendation: v.optional(
+      v.object({
+        suggestedModelId: v.string(),
+        currentModelId: v.string(),
+        reasoning: v.string(), // User-friendly explanation
+        estimatedSavings: v.object({
+          costReduction: v.string(), // "$0.30 → $0.02"
+          percentSaved: v.number(), // 93
+        }),
+        createdAt: v.number(),
+        dismissed: v.boolean(),
       }),
-      createdAt: v.number(),
-      dismissed: v.boolean(),
-    })),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

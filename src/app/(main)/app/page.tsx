@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  Authenticated,
-  Unauthenticated,
-  useConvexAuth,
-} from "convex/react";
+import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useNewChat } from "@/hooks/useNewChat";

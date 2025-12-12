@@ -70,12 +70,14 @@ export const getPopular = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    return ctx.db
-      .query("tags")
-      // @ts-ignore - Type depth exceeded with complex Convex query
-      .withIndex("by_user_usage", (q) => q.eq("userId", user._id))
-      .order("desc")
-      .take(args.limit ?? 50);
+    return (
+      ctx.db
+        .query("tags")
+        // @ts-ignore - Type depth exceeded with complex Convex query
+        .withIndex("by_user_usage", (q) => q.eq("userId", user._id))
+        .order("desc")
+        .take(args.limit ?? 50)
+    );
   },
 });
 

@@ -66,9 +66,10 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     id: "openai:gpt-5",
     provider: "openai",
     name: "GPT-5",
-    description: "Flagship GPT-5 with advanced reasoning and multimodal capabilities",
+    description:
+      "Flagship GPT-5 with advanced reasoning and multimodal capabilities",
     contextWindow: 200000,
-    pricing: { input: 2.50, output: 10.0, cached: 0.25 },
+    pricing: { input: 2.5, output: 10.0, cached: 0.25 },
     capabilities: ["thinking", "vision", "function-calling"],
     reasoning: {
       type: "openai-reasoning-effort",
@@ -87,7 +88,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     name: "GPT-5 Mini",
     description: "Compact GPT-5 variant balancing cost and performance",
     contextWindow: 200000,
-    pricing: { input: 0.15, output: 0.60, cached: 0.015 },
+    pricing: { input: 0.15, output: 0.6, cached: 0.015 },
     capabilities: ["vision", "function-calling"],
     knowledgeCutoff: "April 2025",
     userFriendlyDescription:
@@ -284,7 +285,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     knowledgeCutoff: "April 2025",
     userFriendlyDescription:
       "Quick and efficient. Fast responses for high-volume work without breaking the bank.",
-    bestFor: "Quick responses, high-volume processing, cost-sensitive applications",
+    bestFor:
+      "Quick responses, high-volume processing, cost-sensitive applications",
   },
 
   // Google
@@ -312,7 +314,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     },
     userFriendlyDescription:
       "Speed demon. Handles massive documents (can read a thousand-page book!) and responds instantly. Great for real-time tasks.",
-    bestFor: "Speed-critical tasks, long-context processing, real-time applications",
+    bestFor:
+      "Speed-critical tasks, long-context processing, real-time applications",
     knowledgeCutoff: "January 2025",
   },
   "google:gemini-2.5-pro": {
@@ -410,7 +413,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     provider: "google",
     contextWindow: 65536, // 65K tokens
     pricing: {
-      input: 2.0,   // Same as Gemini 3 Pro (text tokens)
+      input: 2.0, // Same as Gemini 3 Pro (text tokens)
       output: 12.0, // Text output (image output is $120/M but varies)
     },
     capabilities: ["image-generation", "vision", "thinking"],
@@ -474,7 +477,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     knowledgeCutoff: "July 2025",
     userFriendlyDescription:
       "Fast reasoning at scale. Combines thinking capabilities with speed, affordability, and huge context.",
-    bestFor: "Cost-efficient reasoning, high-volume thinking tasks, agentic workflows",
+    bestFor:
+      "Cost-efficient reasoning, high-volume thinking tasks, agentic workflows",
   },
   "xai:grok-code-fast-1": {
     id: "xai:grok-code-fast-1",
@@ -502,7 +506,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     knowledgeCutoff: "Real-time search",
     userFriendlyDescription:
       "Connected to the web with deep thinking. Searches current information and reasons about real-world facts with careful analysis.",
-    bestFor: "Research, web-grounded reasoning, factual accuracy, real-time information",
+    bestFor:
+      "Research, web-grounded reasoning, factual accuracy, real-time information",
   },
   "perplexity:sonar-pro": {
     id: "perplexity:sonar-pro",
@@ -746,7 +751,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     knowledgeCutoff: "November 2024",
     userFriendlyDescription:
       "Innovative reasoner. Massive model (671 billion parameters) with groundbreaking reasoning architecture.",
-    bestFor: "Complex reasoning, innovative architecture, research applications",
+    bestFor:
+      "Complex reasoning, innovative architecture, research applications",
   },
   "deepseek:deepseek-v3.2": {
     id: "deepseek:deepseek-v3.2",

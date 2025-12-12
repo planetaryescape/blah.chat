@@ -23,10 +23,7 @@ export function ModelDetailCard({
   const contextDisplay = formatContextWindow(config.contextWindow);
 
   // Compute metrics for visual comparison
-  const metrics = useMemo(
-    () => getModelMetrics(config.id),
-    [config.id],
-  );
+  const metrics = useMemo(() => getModelMetrics(config.id), [config.id]);
 
   return (
     <div className="space-y-4 text-sm">
@@ -36,7 +33,9 @@ export function ModelDetailCard({
           <ProviderIcon className="w-5 h-5 text-foreground/80" />
         </div>
         <div>
-          <h3 className="font-semibold text-base leading-none mb-1">{config.name}</h3>
+          <h3 className="font-semibold text-base leading-none mb-1">
+            {config.name}
+          </h3>
           <p className="text-xs text-muted-foreground capitalize">
             {config.provider} • {config.isLocal ? "Local" : "Cloud"}
           </p>
@@ -54,10 +53,13 @@ export function ModelDetailCard({
       {config.capabilities.length > 0 && (
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground/80">
           {config.capabilities.map((cap) => (
-             <span key={cap} className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
-               {getCapabilityIcon(cap)}
-               <span className="capitalize">{cap.replace("-", " ")}</span>
-             </span>
+            <span
+              key={cap}
+              className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md border border-border/50"
+            >
+              {getCapabilityIcon(cap)}
+              <span className="capitalize">{cap.replace("-", " ")}</span>
+            </span>
           ))}
         </div>
       )}
@@ -65,20 +67,26 @@ export function ModelDetailCard({
       {/* Technical Specs (Grid) */}
       <div className="pt-3 border-t grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
         <div>
-           <span className="text-muted-foreground block mb-0.5 font-medium">Context Window</span>
-           <span className="font-medium text-foreground">{contextDisplay}</span>
+          <span className="text-muted-foreground block mb-0.5 font-medium">
+            Context Window
+          </span>
+          <span className="font-medium text-foreground">{contextDisplay}</span>
         </div>
 
         {config.knowledgeCutoff && (
           <div>
-             <span className="text-muted-foreground block mb-0.5 font-medium">Knowledge Access</span>
-             <span>{config.knowledgeCutoff}</span>
+            <span className="text-muted-foreground block mb-0.5 font-medium">
+              Knowledge Access
+            </span>
+            <span>{config.knowledgeCutoff}</span>
           </div>
         )}
 
         {!config.isLocal && (
           <div className="col-span-2">
-            <span className="text-muted-foreground block mb-0.5 font-medium">Pricing (Input / Output)</span>
+            <span className="text-muted-foreground block mb-0.5 font-medium">
+              Pricing (Input / Output)
+            </span>
             <div className="font-mono text-muted-foreground">
               <span className="text-foreground">${config.pricing.input}</span> /
               <span className="text-foreground"> ${config.pricing.output}</span>
@@ -98,10 +106,10 @@ export function ModelDetailCard({
       {/* Technical Summary (for power users who want more) */}
       {config.bestFor && (
         <div className="pt-3 border-t bg-muted/20 -mx-4 px-4 pb-1">
-           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 block">Best Used For</span>
-           <p className="text-xs text-foreground/80 italic">
-             {config.bestFor}
-           </p>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 block">
+            Best Used For
+          </span>
+          <p className="text-xs text-foreground/80 italic">{config.bestFor}</p>
         </div>
       )}
     </div>
@@ -109,14 +117,20 @@ export function ModelDetailCard({
 }
 
 function getCapabilityIcon(capability: string) {
-    switch (capability) {
-        case "vision": return <Eye className="w-3.5 h-3.5" />;
-        case "function-calling": return <FunctionSquare className="w-3.5 h-3.5" />;
-        case "thinking": return <Sparkles className="w-3.5 h-3.5 text-purple-500" />;
-        case "extended-thinking": return <Zap className="w-3.5 h-3.5 text-purple-600" />;
-        case "image-generation": return <Image className="w-3.5 h-3.5" />;
-        default: return null;
-    }
+  switch (capability) {
+    case "vision":
+      return <Eye className="w-3.5 h-3.5" />;
+    case "function-calling":
+      return <FunctionSquare className="w-3.5 h-3.5" />;
+    case "thinking":
+      return <Sparkles className="w-3.5 h-3.5 text-purple-500" />;
+    case "extended-thinking":
+      return <Zap className="w-3.5 h-3.5 text-purple-600" />;
+    case "image-generation":
+      return <Image className="w-3.5 h-3.5" />;
+    default:
+      return null;
+  }
 }
 
 // Helper

@@ -3,27 +3,27 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import {
-    MODEL_CATEGORIES,
-    countModelsInCategory,
-    getModelCategories,
+  MODEL_CATEGORIES,
+  countModelsInCategory,
+  getModelCategories,
 } from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
@@ -99,23 +99,25 @@ export function QuickModelSwitcher({
     favorites: favModels,
     recents: recentModels,
     rest,
-  } = sortModels(
-    allModels,
-    prefDefaultModel,
-    favorites,
-    recents,
-  );
+  } = sortModels(allModels, prefDefaultModel, favorites, recents);
 
   // Filter models by active category
   const filteredModels = useMemo(() => {
     const category = MODEL_CATEGORIES.find((c) => c.id === activeCategory);
     if (!category || category.id === "all") {
-      return { defaultModel, favorites: favModels, recents: recentModels, rest };
+      return {
+        defaultModel,
+        favorites: favModels,
+        recents: recentModels,
+        rest,
+      };
     }
 
     return {
       defaultModel:
-        defaultModel && category.filter(defaultModel) ? defaultModel : undefined,
+        defaultModel && category.filter(defaultModel)
+          ? defaultModel
+          : undefined,
       favorites: favModels.filter(category.filter),
       recents: recentModels.filter(category.filter),
       rest: rest.filter(category.filter),
@@ -201,66 +203,75 @@ export function QuickModelSwitcher({
         onSelect={() => handleSelect(model.id)}
         className={cn(
           "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 data-[selected=true]:bg-muted/50 transition-colors",
-          isSelected ? "bg-primary/5" : ""
+          isSelected ? "bg-primary/5" : "",
         )}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Selection Indicator */}
-          <div className={cn(
-             "flex items-center justify-center w-4 h-4 rounded-full border transition-all",
-             isSelected
-               ? "bg-primary border-primary text-primary-foreground"
-               : "border-muted-foreground/30 group-hover:border-primary/50"
-          )}>
-             {isSelected && <Check className="w-2.5 h-2.5" />}
+          <div
+            className={cn(
+              "flex items-center justify-center w-4 h-4 rounded-full border transition-all",
+              isSelected
+                ? "bg-primary border-primary text-primary-foreground"
+                : "border-muted-foreground/30 group-hover:border-primary/50",
+            )}
+          >
+            {isSelected && <Check className="w-2.5 h-2.5" />}
           </div>
 
           <div className="flex flex-col min-w-0 gap-0.5">
             <div className="flex items-center gap-2">
-              <span className={cn("font-medium text-sm truncate", isSelected ? "text-primary" : "text-foreground")}>
+              <span
+                className={cn(
+                  "font-medium text-sm truncate",
+                  isSelected ? "text-primary" : "text-foreground",
+                )}
+              >
                 {model.name}
               </span>
               {/* Essential Badges Only */}
               {showDefaultBadge && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Default</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  Default
+                </span>
               )}
-               {model.reasoning && (
+              {model.reasoning && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium flex items-center gap-0.5">
                   <Zap className="w-2.5 h-2.5" />
                   Reasoning
                 </span>
-               )}
+              )}
             </div>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-               <span className="capitalize">{model.provider}</span>
+              <span className="capitalize">{model.provider}</span>
 
-               {/* Separator */}
-               <span className="text-muted-foreground/30">•</span>
+              {/* Separator */}
+              <span className="text-muted-foreground/30">•</span>
 
-               <span>{formatContextWindow(model.contextWindow)}</span>
+              <span>{formatContextWindow(model.contextWindow)}</span>
 
-               {/* Subtle capabilities */}
-               {model.capabilities?.includes("vision") && (
-                 <>
-                   <span className="text-muted-foreground/30">•</span>
-                   <span>Vision</span>
-                 </>
-               )}
+              {/* Subtle capabilities */}
+              {model.capabilities?.includes("vision") && (
+                <>
+                  <span className="text-muted-foreground/30">•</span>
+                  <span>Vision</span>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Right Side: Cost & Actions */}
         <div className="flex items-center gap-3 pl-2">
-           {!model.isLocal && (
-             <div className="hidden sm:flex flex-col items-end text-[10px] text-muted-foreground/50 tabular-nums leading-tight">
-               <span>In: ${model.pricing.input}</span>
-               <span>Out: ${model.pricing.output}</span>
-             </div>
-           )}
+          {!model.isLocal && (
+            <div className="hidden sm:flex flex-col items-end text-[10px] text-muted-foreground/50 tabular-nums leading-tight">
+              <span>In: ${model.pricing.input}</span>
+              <span>Out: ${model.pricing.output}</span>
+            </div>
+          )}
 
-           <Button
+          <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 hover:bg-transparent -mr-2 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
@@ -275,14 +286,14 @@ export function QuickModelSwitcher({
                 "h-4 w-4 transition-colors",
                 isFavorite(model.id)
                   ? "fill-amber-400 text-amber-400 opacity-100"
-                  : "text-muted-foreground hover:text-amber-400"
+                  : "text-muted-foreground hover:text-amber-400",
               )}
             />
           </Button>
 
-           {mode === "single" && (
-             <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
-           )}
+          {mode === "single" && (
+            <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+          )}
         </div>
       </CommandItem>
     );
@@ -317,8 +328,9 @@ export function QuickModelSwitcher({
           className="h-9 px-3 text-sm font-medium bg-background/50 backdrop-blur-sm border-border/50 hover:bg-accent/50 hover:border-accent transition-all group gap-2 min-w-0"
         >
           <span className="truncate max-w-[140px] text-foreground/90 group-hover:text-foreground">
-             {mode === "single"
-              ? allModels.find((m) => m.id === currentModel)?.name || "Select model"
+            {mode === "single"
+              ? allModels.find((m) => m.id === currentModel)?.name ||
+                "Select model"
               : `${internalSelected.length} models selected`}
           </span>
           <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-muted-foreground rotate-90 transition-transform" />
@@ -349,51 +361,59 @@ export function QuickModelSwitcher({
         <div className="flex h-[500px] overflow-hidden">
           {/* Sidebar Categories */}
           <div className="w-[180px] border-r bg-muted/30 p-2 flex flex-col gap-1 shrink-0 overflow-y-auto">
-             <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-               Categories
-             </div>
-             {MODEL_CATEGORIES.map((cat) => {
-                const count = countModelsInCategory(cat.id, allModels);
-                const Icon = cat.icon;
-                const isActive = activeCategory === cat.id;
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+              Categories
+            </div>
+            {MODEL_CATEGORIES.map((cat) => {
+              const count = countModelsInCategory(cat.id, allModels);
+              const Icon = cat.icon;
+              const isActive = activeCategory === cat.id;
 
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleCategoryChange(cat.id)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors",
-                      isActive
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                    )}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      {Icon && <Icon className="w-4 h-4" />}
-                      <span>{cat.label}</span>
-                    </div>
-                    {count > 0 && (
-                      <span className={cn(
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategoryChange(cat.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    {Icon && <Icon className="w-4 h-4" />}
+                    <span>{cat.label}</span>
+                  </div>
+                  {count > 0 && (
+                    <span
+                      className={cn(
                         "text-[10px] tabular-nums px-1.5 py-0.5 rounded-full",
-                        isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-                      )}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-             })}
+                        isActive
+                          ? "bg-primary/20 text-primary"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Main List Area */}
           <div className="flex-1 flex flex-col min-w-0 bg-background/50">
-             {/* Selected Chips */}
+            {/* Selected Chips */}
             {mode === "multiple" && internalSelected.length > 0 && (
               <div className="flex gap-2 px-3 py-2 border-b flex-wrap bg-background/50 backdrop-blur-sm">
                 {internalSelected.map((id) => {
                   const model = allModels.find((m) => m.id === id);
                   return (
-                    <Badge key={id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 h-7">
+                    <Badge
+                      key={id}
+                      variant="secondary"
+                      className="gap-1 pl-2 pr-1 py-1 h-7"
+                    >
                       {model?.name}
                       <Button
                         variant="ghost"
@@ -413,46 +433,49 @@ export function QuickModelSwitcher({
               </div>
             )}
 
+            <CommandList className="max-h-[600px] overflow-y-auto p-2">
+              <CommandEmpty>No models found.</CommandEmpty>
 
-        <CommandList className="max-h-[600px] overflow-y-auto p-2">
-          <CommandEmpty>No models found.</CommandEmpty>
+              {/* Default Model */}
+              {filteredModels.defaultModel && (
+                <CommandGroup heading="Default">
+                  {renderModelItem(filteredModels.defaultModel, true)}
+                </CommandGroup>
+              )}
 
-          {/* Default Model */}
-          {filteredModels.defaultModel && (
-            <CommandGroup heading="Default">
-              {renderModelItem(filteredModels.defaultModel, true)}
-            </CommandGroup>
-          )}
+              {/* Favorites */}
+              {filteredModels.favorites.length > 0 && (
+                <CommandGroup heading="Favorites">
+                  {filteredModels.favorites.map((model) =>
+                    renderModelItem(model),
+                  )}
+                </CommandGroup>
+              )}
 
-          {/* Favorites */}
-          {filteredModels.favorites.length > 0 && (
-            <CommandGroup heading="Favorites">
-              {filteredModels.favorites.map((model) => renderModelItem(model))}
-            </CommandGroup>
-          )}
+              {/* Recents */}
+              {filteredModels.recents.length > 0 && (
+                <CommandGroup heading="Recent">
+                  {filteredModels.recents.map((model) =>
+                    renderModelItem(model),
+                  )}
+                </CommandGroup>
+              )}
 
-          {/* Recents */}
-          {filteredModels.recents.length > 0 && (
-            <CommandGroup heading="Recent">
-              {filteredModels.recents.map((model) => renderModelItem(model))}
-            </CommandGroup>
-          )}
+              {(filteredModels.defaultModel ||
+                filteredModels.favorites.length > 0 ||
+                filteredModels.recents.length > 0) && <CommandSeparator />}
 
-          {(filteredModels.defaultModel ||
-            filteredModels.favorites.length > 0 ||
-            filteredModels.recents.length > 0) && <CommandSeparator />}
-
-          {/* Rest by provider */}
-          {Object.entries(restByProvider).map(([provider, models]) => (
-            <CommandGroup
-              key={provider}
-              heading={provider.charAt(0).toUpperCase() + provider.slice(1)}
-              className="px-2"
-            >
-              {models.map((model) => renderModelItem(model))}
-            </CommandGroup>
-          ))}
-          </CommandList>
+              {/* Rest by provider */}
+              {Object.entries(restByProvider).map(([provider, models]) => (
+                <CommandGroup
+                  key={provider}
+                  heading={provider.charAt(0).toUpperCase() + provider.slice(1)}
+                  className="px-2"
+                >
+                  {models.map((model) => renderModelItem(model))}
+                </CommandGroup>
+              ))}
+            </CommandList>
           </div>
         </div>
 

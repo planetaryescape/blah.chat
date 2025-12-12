@@ -43,7 +43,8 @@ export const runBackfill = internalAction({
       // Process batch
       const result = (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.migrations["003_normalize_project_conversations"].backfillBatch,
+        internal.migrations["003_normalize_project_conversations"]
+          .backfillBatch,
         { projects: batch.projects },
       )) as { created: number; skipped: number; errors: number };
 

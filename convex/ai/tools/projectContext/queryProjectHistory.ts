@@ -46,7 +46,11 @@ export function createQueryProjectHistoryTool(
           "Whether to include messages from current conversation (default: false)",
         ),
     }),
-    execute: async ({ query, limit = 5, includeCurrentConversation = false }) => {
+    execute: async ({
+      query,
+      limit = 5,
+      includeCurrentConversation = false,
+    }) => {
       return await (ctx.runAction as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.tools.projectContext.searchHistory,

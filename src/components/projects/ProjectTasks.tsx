@@ -24,17 +24,20 @@ export function ProjectTasks({
   projectId: Id<"projects">;
   tasks: any[];
 }) {
-  // @ts-ignore - Type depth exceeded
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const updateTask = useMutation(api.tasks.update);
 
-  const handleToggleComplete = async (taskId: Id<"tasks">, currentStatus: string) => {
+  const handleToggleComplete = async (
+    taskId: Id<"tasks">,
+    currentStatus: string,
+  ) => {
     try {
       await updateTask({
-        taskId,
+        id: taskId,
         status: currentStatus === "completed" ? "in_progress" : "completed",
       });
       toast.success(
-        currentStatus === "completed" ? "Task reopened" : "Task completed"
+        currentStatus === "completed" ? "Task reopened" : "Task completed",
       );
     } catch (error: any) {
       toast.error("Failed to update task");
@@ -69,14 +72,18 @@ export function ProjectTasks({
       {/* Active Tasks */}
       {activeTasks.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-medium">Active Tasks ({activeTasks.length})</h3>
+          <h3 className="text-lg font-medium">
+            Active Tasks ({activeTasks.length})
+          </h3>
           <div className="grid gap-3">
             {activeTasks.map((task) => (
               <Card key={task._id} className="p-4">
                 <div className="flex items-start gap-3">
                   <Checkbox
                     checked={false}
-                    onCheckedChange={() => handleToggleComplete(task._id, task.status)}
+                    onCheckedChange={() =>
+                      handleToggleComplete(task._id, task.status)
+                    }
                     className="mt-1"
                   />
                   <div className="flex-1">
@@ -120,7 +127,9 @@ export function ProjectTasks({
                 <div className="flex items-start gap-3">
                   <Checkbox
                     checked={true}
-                    onCheckedChange={() => handleToggleComplete(task._id, task.status)}
+                    onCheckedChange={() =>
+                      handleToggleComplete(task._id, task.status)
+                    }
                     className="mt-1"
                   />
                   <div className="flex-1">

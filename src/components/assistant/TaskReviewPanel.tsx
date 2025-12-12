@@ -41,7 +41,7 @@ export function TaskReviewPanel({
 }) {
   const [editedTasks, setEditedTasks] = useState(tasks);
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(
-    new Set(tasks.map((_, i) => i))
+    new Set(tasks.map((_, i) => i)),
   );
 
   const toggleTask = (index: number) => {
@@ -81,7 +81,9 @@ export function TaskReviewPanel({
           </Button>
           <Button
             onClick={() => {
-              const confirmed = editedTasks.filter((_, i) => selectedTasks.has(i));
+              const confirmed = editedTasks.filter((_, i) =>
+                selectedTasks.has(i),
+              );
               onConfirm(confirmed);
             }}
             disabled={selectedTasks.size === 0}
@@ -114,7 +116,9 @@ export function TaskReviewPanel({
                 {task.description && (
                   <Textarea
                     value={task.description}
-                    onChange={(e) => updateTask(i, { description: e.target.value })}
+                    onChange={(e) =>
+                      updateTask(i, { description: e.target.value })
+                    }
                     rows={2}
                     placeholder="Description"
                   />
@@ -126,7 +130,7 @@ export function TaskReviewPanel({
                   <Badge variant="outline" className="gap-1">
                     <div
                       className={`h-2 w-2 rounded-full ${getConfidenceColor(
-                        task.sourceContext.confidence
+                        task.sourceContext.confidence,
                       )}`}
                     />
                     {Math.round(task.sourceContext.confidence * 100)}% confident
@@ -136,7 +140,9 @@ export function TaskReviewPanel({
                   {task.urgency && (
                     <Select
                       value={task.urgency}
-                      onValueChange={(value: any) => updateTask(i, { urgency: value })}
+                      onValueChange={(value: any) =>
+                        updateTask(i, { urgency: value })
+                      }
                     >
                       <SelectTrigger className="h-6 w-auto border-0 px-2">
                         <SelectValue />

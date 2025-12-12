@@ -4,10 +4,7 @@ import { internalQuery } from "../_generated/server";
 export const checkLatestMessage = internalQuery({
   handler: async (ctx) => {
     // Get latest message with tool calls
-    const latestMessages = await ctx.db
-      .query("messages")
-      .order("desc")
-      .take(5);
+    const latestMessages = await ctx.db.query("messages").order("desc").take(5);
 
     const results = [];
 

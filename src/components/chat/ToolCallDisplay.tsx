@@ -676,7 +676,9 @@ export function ToolCallDisplay({
                     {/* Show parsed arguments */}
                     {parsedArgs && (
                       <div className="text-muted-foreground">
-                        <div className="text-[11px] font-medium mb-1">Arguments:</div>
+                        <div className="text-[11px] font-medium mb-1">
+                          Arguments:
+                        </div>
                         <pre className="text-[10px] bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap">
                           {JSON.stringify(parsedArgs, null, 2)}
                         </pre>
@@ -686,7 +688,9 @@ export function ToolCallDisplay({
                     {/* Show parsed results */}
                     {parsedResult && state !== "executing" && (
                       <div className="text-muted-foreground">
-                        <div className="text-[11px] font-medium mb-1">Result:</div>
+                        <div className="text-[11px] font-medium mb-1">
+                          Result:
+                        </div>
                         <pre className="text-[10px] bg-muted p-2 rounded max-h-48 overflow-y-auto whitespace-pre-wrap">
                           {JSON.stringify(parsedResult, null, 2)}
                         </pre>

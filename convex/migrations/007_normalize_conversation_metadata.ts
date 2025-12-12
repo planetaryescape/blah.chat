@@ -4,7 +4,6 @@ import { internal } from "../_generated/api";
 
 const BATCH_SIZE = 50;
 
-
 /**
  * Backfill conversation token usage from messages (source of truth)
  *
@@ -23,16 +22,21 @@ export const backfillConversationTokenUsage = internalAction({
     while (true) {
       const batch = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.migrations["007_normalize_conversation_metadata_helpers"].getConversationBatch,
+        internal.migrations["007_normalize_conversation_metadata_helpers"]
+          .getConversationBatch,
         { cursor, batchSize: BATCH_SIZE },
-      )) as { conversations: Array<{ _id: string }>; nextCursor: string | null };
+      )) as {
+        conversations: Array<{ _id: string }>;
+        nextCursor: string | null;
+      };
 
       if (batch.conversations.length === 0) break;
 
       for (const conv of batch.conversations) {
         const messagesByModel = (await (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit
-          internal.migrations["007_normalize_conversation_metadata_helpers"].getMessageTokensByModel,
+          internal.migrations["007_normalize_conversation_metadata_helpers"]
+            .getMessageTokensByModel,
           { conversationId: conv._id },
         )) as Array<{
           model: string;
@@ -44,9 +48,10 @@ export const backfillConversationTokenUsage = internalAction({
         }>;
 
         for (const usage of messagesByModel) {
-          await ((ctx.runMutation as any)(
+          (await (ctx.runMutation as any)(
             // @ts-ignore - TypeScript recursion limit
-            internal.migrations["007_normalize_conversation_metadata_helpers"].insertTokenUsageRecord,
+            internal.migrations["007_normalize_conversation_metadata_helpers"]
+              .insertTokenUsageRecord,
             { conversationId: conv._id, ...usage },
           )) as Promise<void>;
           totalUsageRecords++;

@@ -1,4 +1,12 @@
-import { format, subDays, startOfMonth, endOfDay } from "date-fns";
+import {
+  format,
+  subDays,
+  startOfMonth,
+  endOfDay,
+  formatDistanceToNow,
+  isPast,
+  isToday,
+} from "date-fns";
 
 /**
  * Formats a date to YYYY-MM-DD format (ISO 8601 date string)
@@ -13,7 +21,10 @@ export function formatDateToISO(date: Date): string {
  * @param days Number of days to go back (default: 30)
  * @returns Object with startDate and endDate in YYYY-MM-DD format
  */
-export function getLastNDays(days = 30): { startDate: string; endDate: string } {
+export function getLastNDays(days = 30): {
+  startDate: string;
+  endDate: string;
+} {
   const end = new Date();
   const start = subDays(end, days);
 
@@ -107,4 +118,32 @@ export function isValidISODate(dateStr: string): boolean {
 
   const date = new Date(dateStr);
   return date instanceof Date && !Number.isNaN(date.getTime());
+}
+
+/**
+ * Format deadline as relative time with context
+ * Examples: "Due in 2 hours", "Overdue by 3 days", "Due today at 2:30 PM"
+ */
+export function formatDeadline(deadline: number): string {
+  const date = new Date(deadline);
+
+  if (isPast(date)) {
+    return `Overdue by ${formatDistanceToNow(date)}`;
+  }
+
+  if (isToday(date)) {
+    return `Due today at ${date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    })}`;
+  }
+
+  return `Due in ${formatDistanceToNow(date)}`;
+}
+
+/**
+ * Check if deadline has passed
+ */
+export function isOverdue(deadline: number): boolean {
+  return isPast(new Date(deadline));
 }

@@ -41,7 +41,9 @@ export const backfillTagEmbeddings = internalAction({
       { minUsageCount, maxTags },
     )) as Doc<"tags">[];
 
-    console.log(`[Backfill] Found ${tagsNeedingEmbeddings.length} tags needing embeddings`);
+    console.log(
+      `[Backfill] Found ${tagsNeedingEmbeddings.length} tags needing embeddings`,
+    );
 
     if (tagsNeedingEmbeddings.length === 0) {
       return {
@@ -52,7 +54,9 @@ export const backfillTagEmbeddings = internalAction({
     }
 
     if (dryRun) {
-      console.log(`[Backfill] DRY RUN - Would process ${tagsNeedingEmbeddings.length} tags:`);
+      console.log(
+        `[Backfill] DRY RUN - Would process ${tagsNeedingEmbeddings.length} tags:`,
+      );
       for (const tag of tagsNeedingEmbeddings.slice(0, 10)) {
         console.log(`  - "${tag.displayName}" (usage: ${tag.usageCount})`);
       }
@@ -103,7 +107,9 @@ export const backfillTagEmbeddings = internalAction({
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    console.log(`[Backfill] Complete! Processed: ${processed}, Failed: ${failed}`);
+    console.log(
+      `[Backfill] Complete! Processed: ${processed}, Failed: ${failed}`,
+    );
 
     return {
       success: true,
@@ -157,8 +163,10 @@ export const getTagStatistics = internalQuery({
 
     const byUsage = {
       unused: allTags.filter((t) => t.usageCount === 0).length,
-      lowUsage: allTags.filter((t) => t.usageCount > 0 && t.usageCount < 5).length,
-      mediumUsage: allTags.filter((t) => t.usageCount >= 5 && t.usageCount < 20).length,
+      lowUsage: allTags.filter((t) => t.usageCount > 0 && t.usageCount < 5)
+        .length,
+      mediumUsage: allTags.filter((t) => t.usageCount >= 5 && t.usageCount < 20)
+        .length,
       highUsage: allTags.filter((t) => t.usageCount >= 20).length,
     };
 
@@ -166,7 +174,8 @@ export const getTagStatistics = internalQuery({
       total: allTags.length,
       withEmbeddings,
       withoutEmbeddings,
-      embeddingCoverage: allTags.length > 0 ? (withEmbeddings / allTags.length) * 100 : 0,
+      embeddingCoverage:
+        allTags.length > 0 ? (withEmbeddings / allTags.length) * 100 : 0,
       byUsage,
     };
   },

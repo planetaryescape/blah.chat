@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileAudio, FileText, Loader2 } from "lucide-react";
+import { Upload, FileAudio, FileText, Video, Loader2 } from "lucide-react";
 import { TaskReviewPanel } from "@/components/assistant/TaskReviewPanel";
+import { VideoUploadTab } from "./_components/VideoUploadTab";
 import { toast } from "sonner";
 
 type ProcessingState =
   | "idle"
   | "transcribing"
+  | "analyzing"
   | "extracting"
   | "reviewing"
   | "confirmed"
@@ -30,7 +32,9 @@ export default function SmartAssistantPage() {
   // @ts-ignore - Type depth exceeded
   const transcribeAudio = useMutation(api.transcription.transcribeAudio);
   // @ts-ignore - Type depth exceeded
-  const extractTasks = useMutation(api.ai.taskExtraction.extractTasksFromTranscript);
+  const extractTasks = useAction(
+    api.ai.taskExtraction.extractTasksFromTranscript,
+  );
   // @ts-ignore - Type depth exceeded
   const createTask = useMutation(api.tasks.create);
 
@@ -108,8 +112,8 @@ export default function SmartAssistantPage() {
             sourceType: task.sourceType,
             sourceId: task.sourceId,
             sourceContext: task.sourceContext,
-          })
-        )
+          }),
+        ),
       );
 
       setState("confirmed");
@@ -140,14 +144,18 @@ export default function SmartAssistantPage() {
 
       {state === "idle" && (
         <Tabs defaultValue="audio" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="audio">
               <FileAudio className="mr-2 h-4 w-4" />
-              Audio Recording
+              Audio
+            </TabsTrigger>
+            <TabsTrigger value="video">
+              <Video className="mr-2 h-4 w-4" />
+              Video
             </TabsTrigger>
             <TabsTrigger value="text">
               <FileText className="mr-2 h-4 w-4" />
-              Text Transcript
+              Text
             </TabsTrigger>
           </TabsList>
 
@@ -170,7 +178,8 @@ export default function SmartAssistantPage() {
                   </label>
                   {audioFile && (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {audioFile.name} ({(audioFile.size / 1024 / 1024).toFixed(2)} MB)
+                      {audioFile.name} (
+                      {(audioFile.size / 1024 / 1024).toFixed(2)} MB)
                     </p>
                   )}
                 </div>
@@ -184,6 +193,25 @@ export default function SmartAssistantPage() {
                 </Button>
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="video">
+            <VideoUploadTab
+              onAnalysisComplete={(result) => {
+                setTranscript(result.transcript);
+                setState("extracting");
+                extractTasks({ transcript: result.transcript }).then(
+                  (tasks) => {
+                    setExtractedTasks(tasks);
+                    setState("reviewing");
+                  },
+                );
+              }}
+              onError={(error) => {
+                setError(error);
+                setState("error");
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="text">
@@ -214,7 +242,21 @@ export default function SmartAssistantPage() {
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <h3 className="text-lg font-medium">Transcribing audio...</h3>
-            <p className="text-sm text-muted-foreground">This may take a minute</p>
+            <p className="text-sm text-muted-foreground">
+              This may take a minute
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {state === "analyzing" && (
+        <Card className="p-12">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <h3 className="text-lg font-medium">Analyzing video...</h3>
+            <p className="text-sm text-muted-foreground">
+              This may take a few minutes for large videos
+            </p>
           </div>
         </Card>
       )}
@@ -224,7 +266,9 @@ export default function SmartAssistantPage() {
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
             <h3 className="text-lg font-medium">Extracting action items...</h3>
-            <p className="text-sm text-muted-foreground">Analyzing transcript</p>
+            <p className="text-sm text-muted-foreground">
+              Analyzing transcript
+            </p>
           </div>
         </Card>
       )}

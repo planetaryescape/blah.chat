@@ -1,5 +1,10 @@
 import type { ModelConfig } from "./models";
-import type { BenchmarkScores, ComputedMetrics, CostTier, SpeedTier } from "./types";
+import type {
+  BenchmarkScores,
+  ComputedMetrics,
+  CostTier,
+  SpeedTier,
+} from "./types";
 
 /**
  * Tier 1: Hardcoded benchmark data for flagship models
@@ -21,7 +26,11 @@ export const BENCHMARK_DATA: Record<string, BenchmarkScores> = {
 
   // Anthropic
   "anthropic:claude-opus-4.5": { intelligence: 95, coding: 81, reasoning: 90 },
-  "anthropic:claude-3.5-sonnet": { intelligence: 88, coding: 78, reasoning: 85 },
+  "anthropic:claude-3.5-sonnet": {
+    intelligence: 88,
+    coding: 78,
+    reasoning: 85,
+  },
   "anthropic:claude-3.5-haiku": { intelligence: 75, coding: 68, reasoning: 72 },
 
   // Google
@@ -29,7 +38,11 @@ export const BENCHMARK_DATA: Record<string, BenchmarkScores> = {
   "google:gemini-2.5-flash": { intelligence: 85, coding: 70, reasoning: 82 },
   "google:gemini-1.5-pro": { intelligence: 84, coding: 70, reasoning: 80 },
   "google:gemini-1.5-flash": { intelligence: 78, coding: 65, reasoning: 75 },
-  "google:gemini-2.0-flash-thinking": { intelligence: 87, coding: 73, reasoning: 85 },
+  "google:gemini-2.0-flash-thinking": {
+    intelligence: 87,
+    coding: 73,
+    reasoning: 85,
+  },
 
   // xAI
   "xai:grok-4": { intelligence: 100, coding: 75, reasoning: 88 },
@@ -68,7 +81,7 @@ const SPEED_TIERS: Record<string, { tier: SpeedTier; tps?: number }> = {
   "claude-haiku": { tier: "fast" },
 
   // Reasoning models (slower due to thinking)
-  "o1": { tier: "slow" },
+  o1: { tier: "slow" },
   "o1-mini": { tier: "slow" },
   "o3-mini": { tier: "slow" },
   "deepseek-r1": { tier: "slow" },
@@ -224,7 +237,10 @@ function getCostTier(model: ModelConfig): { tier: CostTier; avgCost: number } {
  * @param allScores Array of all scores to compare against
  * @returns Percentile (0-100)
  */
-function computePercentile(score: number | undefined, allScores: number[]): number | undefined {
+function computePercentile(
+  score: number | undefined,
+  allScores: number[],
+): number | undefined {
   if (score === undefined || allScores.length === 0) {
     return undefined;
   }
@@ -263,11 +279,16 @@ export function computeModelMetrics(
   let reasoningPercentile: number | undefined;
 
   if (allModels) {
-    const allIntelligence = allModels.map((m) => getBenchmarkScores(m).intelligence!);
+    const allIntelligence = allModels.map(
+      (m) => getBenchmarkScores(m).intelligence!,
+    );
     const allCoding = allModels.map((m) => getBenchmarkScores(m).coding!);
     const allReasoning = allModels.map((m) => getBenchmarkScores(m).reasoning!);
 
-    intelligencePercentile = computePercentile(scores.intelligence, allIntelligence);
+    intelligencePercentile = computePercentile(
+      scores.intelligence,
+      allIntelligence,
+    );
     codingPercentile = computePercentile(scores.coding, allCoding);
     reasoningPercentile = computePercentile(scores.reasoning, allReasoning);
   }

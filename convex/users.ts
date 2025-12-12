@@ -234,11 +234,8 @@ export const updateCustomInstructions = mutation({
 
     // Phase 4: Get existing customInstructions to preserve unmodified fields (forward compat)
     const existing =
-      (await getUserPreferenceHelper(
-        ctx,
-        user._id,
-        "customInstructions",
-      )) || {};
+      (await getUserPreferenceHelper(ctx, user._id, "customInstructions")) ||
+      {};
 
     // Merge new values with existing to preserve any future fields
     const updated = {
@@ -253,7 +250,12 @@ export const updateCustomInstructions = mutation({
     };
 
     // Phase 4: Write to preferences table
-    await updateUserPreferenceHelper(ctx, user._id, "customInstructions", updated);
+    await updateUserPreferenceHelper(
+      ctx,
+      user._id,
+      "customInstructions",
+      updated,
+    );
   },
 });
 
@@ -277,7 +279,12 @@ export const setDefaultModel = mutation({
     if (!user) throw new Error("User not found");
 
     // Phase 4: Write to preferences table
-    await updateUserPreferenceHelper(ctx, user._id, "defaultModel", args.modelId);
+    await updateUserPreferenceHelper(
+      ctx,
+      user._id,
+      "defaultModel",
+      args.modelId,
+    );
   },
 });
 

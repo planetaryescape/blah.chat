@@ -50,11 +50,11 @@ export const analyzeModelFit = internalAction({
 
     try {
       // 1. Check if already triaged (conversation.modelRecommendation exists)
-      const conversation = ((await (ctx.runQuery as any)(
+      const conversation = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.lib.helpers.getConversation,
         { id: args.conversationId },
-      )) as any);
+      )) as any;
 
       if (conversation?.modelRecommendation) {
         return; // Already suggested - respect one-time rule
@@ -67,7 +67,8 @@ export const analyzeModelFit = internalAction({
         return;
       }
 
-      const avgCost = (currentModel.pricing.input + currentModel.pricing.output) / 2;
+      const avgCost =
+        (currentModel.pricing.input + currentModel.pricing.output) / 2;
 
       if (avgCost < EXPENSIVE_THRESHOLD) {
         return; // Not expensive enough to warrant analysis
@@ -125,14 +126,16 @@ export const analyzeModelFit = internalAction({
       // 5. Calculate savings
       const recommendedModel = MODEL_CONFIG[analysis.recommendedModel];
       if (!recommendedModel) {
-        console.warn(`Recommended model not found: ${analysis.recommendedModel}`);
+        console.warn(
+          `Recommended model not found: ${analysis.recommendedModel}`,
+        );
         return;
       }
 
       const savings = calculateSavings(currentModel, recommendedModel);
 
       // 6. Store recommendation in conversation
-      await ((ctx.runMutation as any)(
+      (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.conversations.setModelRecommendation,
         {
@@ -194,13 +197,13 @@ export const generatePreview = action({
       );
 
       // 2. Get conversation context (last few messages for context)
-      const messages = ((await (ctx.runQuery as any)(
+      const messages = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.lib.helpers.getConversationMessages,
         {
           conversationId: args.conversationId,
         },
-      )) as any[]);
+      )) as any[];
 
       if (!messages || messages.length === 0) {
         throw new Error("No messages found for conversation");
@@ -213,12 +216,15 @@ export const generatePreview = action({
       });
 
       // Exclude the last assistant message (the current response we're comparing against)
-      const messagesBeforeCurrent = messages.filter((m: any) =>
-        !(m.role === 'assistant' && m.content === args.userMessage)
+      const messagesBeforeCurrent = messages.filter(
+        (m: any) => !(m.role === "assistant" && m.content === args.userMessage),
       );
 
-      if (messagesBeforeCurrent.length > 0 &&
-          messagesBeforeCurrent[messagesBeforeCurrent.length - 1].role === 'assistant') {
+      if (
+        messagesBeforeCurrent.length > 0 &&
+        messagesBeforeCurrent[messagesBeforeCurrent.length - 1].role ===
+          "assistant"
+      ) {
         messagesBeforeCurrent.pop();
       }
 
@@ -226,12 +232,14 @@ export const generatePreview = action({
 
       const conversationText = recentMessages
         .map((m: any) => {
-          const content = typeof m.content === 'string'
-            ? m.content
-            : m.content?.find((c: any) => c.type === 'text')?.text || '[attachment]';
-          return `${m.role === 'user' ? 'User' : 'Assistant'}: ${content}`;
+          const content =
+            typeof m.content === "string"
+              ? m.content
+              : m.content?.find((c: any) => c.type === "text")?.text ||
+                "[attachment]";
+          return `${m.role === "user" ? "User" : "Assistant"}: ${content}`;
         })
-        .join('\n\n');
+        .join("\n\n");
 
       // Construct prompt with system prompt if available
       let fullPrompt = "";
@@ -245,11 +253,9 @@ export const generatePreview = action({
         model: getModel(args.suggestedModelId),
         prompt: fullPrompt,
         temperature: 0.7,
-        providerOptions: getGatewayOptions(
-          args.suggestedModelId,
-          undefined,
-          ["model-preview"],
-        ),
+        providerOptions: getGatewayOptions(args.suggestedModelId, undefined, [
+          "model-preview",
+        ]),
       });
 
       console.log("Preview generation completed", {
@@ -263,7 +269,9 @@ export const generatePreview = action({
     } catch (error) {
       console.error("Error generating preview:", error);
       throw error instanceof Error
-        ? new Error(`Preview generation failed: ${error.message}`, { cause: error })
+        ? new Error(`Preview generation failed: ${error.message}`, {
+            cause: error,
+          })
         : new Error(`Preview generation failed: ${String(error)}`);
     }
   },
@@ -278,7 +286,8 @@ export const generatePreview = action({
  * - Reasonable context window (8K+)
  */
 function getCheaperAlternatives(currentModel: ModelConfig): string[] {
-  const currentAvg = (currentModel.pricing.input + currentModel.pricing.output) / 2;
+  const currentAvg =
+    (currentModel.pricing.input + currentModel.pricing.output) / 2;
 
   return Object.entries(MODEL_CONFIG)
     .filter(([id, model]) => {
@@ -287,9 +296,12 @@ function getCheaperAlternatives(currentModel: ModelConfig): string[] {
       return (
         candidateAvg < currentAvg * 0.5 && // 50%+ cheaper
         // Exclude image-only models (keep multimodal that can do text + images)
-        !(model.capabilities.includes("image-generation") &&
-          !model.capabilities.includes("function-calling")) &&
-        model.capabilities.includes("vision") === currentModel.capabilities.includes("vision") &&
+        !(
+          model.capabilities.includes("image-generation") &&
+          !model.capabilities.includes("function-calling")
+        ) &&
+        model.capabilities.includes("vision") ===
+          currentModel.capabilities.includes("vision") &&
         model.contextWindow >= 8000 // Reasonable minimum
       );
     })
@@ -320,7 +332,10 @@ async function analyzePromptComplexity(
       recommendedModel:
         alternatives.length > 0
           ? z
-              .enum([alternatives[0], ...alternatives.slice(1)] as [string, ...string[]])
+              .enum([alternatives[0], ...alternatives.slice(1)] as [
+                string,
+                ...string[],
+              ])
               .optional()
           : z.string().optional(),
       reasoning: z.string(),
@@ -330,11 +345,9 @@ async function analyzePromptComplexity(
       model: getModel("openai:gpt-oss-120b"),
       schema,
       temperature: 0.3,
-      providerOptions: getGatewayOptions(
-        "openai:gpt-oss-120b",
-        undefined,
-        ["model-triage"],
-      ),
+      providerOptions: getGatewayOptions("openai:gpt-oss-120b", undefined, [
+        "model-triage",
+      ]),
       prompt: `${MODEL_TRIAGE_PROMPT}
 
 USER QUERY:
@@ -344,15 +357,19 @@ CURRENT MODEL:
 ${currentModel.name} - $${((currentModel.pricing.input + currentModel.pricing.output) / 2).toFixed(2)}/M
 
 CHEAPER ALTERNATIVES:
-${alternatives.map((id) => {
-  const model = MODEL_CONFIG[id];
-  const avgCost = ((model.pricing.input + model.pricing.output) / 2).toFixed(2);
+${alternatives
+  .map((id) => {
+    const model = MODEL_CONFIG[id];
+    const avgCost = ((model.pricing.input + model.pricing.output) / 2).toFixed(
+      2,
+    );
 
-  return `[${id}] ${model.name} - $${avgCost}/M
+    return `[${id}] ${model.name} - $${avgCost}/M
   - Capabilities: ${model.capabilities.join(", ")}
   - Context: ${model.contextWindow.toLocaleString()} tokens
   - Best for: ${model.bestFor || "General purpose"}`;
-}).join("\n\n")}`,
+  })
+  .join("\n\n")}`,
     });
 
     return response.object as AnalysisResult;
@@ -373,10 +390,14 @@ function calculateSavings(
   currentModel: ModelConfig,
   suggestedModel: ModelConfig,
 ): { costReduction: string; percentSaved: number } {
-  const currentAvg = (currentModel.pricing.input + currentModel.pricing.output) / 2;
-  const suggestedAvg = (suggestedModel.pricing.input + suggestedModel.pricing.output) / 2;
+  const currentAvg =
+    (currentModel.pricing.input + currentModel.pricing.output) / 2;
+  const suggestedAvg =
+    (suggestedModel.pricing.input + suggestedModel.pricing.output) / 2;
 
-  const percentSaved = Math.round(((currentAvg - suggestedAvg) / currentAvg) * 100);
+  const percentSaved = Math.round(
+    ((currentAvg - suggestedAvg) / currentAvg) * 100,
+  );
   const costReduction = `$${currentAvg.toFixed(2)}/M → $${suggestedAvg.toFixed(2)}/M`;
 
   return {

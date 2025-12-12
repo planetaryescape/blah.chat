@@ -6,20 +6,21 @@ import { internalMutation, internalQuery } from "../_generated/server";
  */
 export const getMessagesWithoutModel = internalQuery({
   handler: async (ctx) => {
-    const messages = await ctx.db
-      .query("messages")
-      .collect();
+    const messages = await ctx.db.query("messages").collect();
 
-    const withoutModel = messages.filter(m => !m.model && m.role === "assistant");
-    const assistantMessages = messages.filter(m => m.role === "assistant");
+    const withoutModel = messages.filter(
+      (m) => !m.model && m.role === "assistant",
+    );
+    const assistantMessages = messages.filter((m) => m.role === "assistant");
 
     return {
       total: messages.length,
       assistantMessages: assistantMessages.length,
       withoutModel: withoutModel.length,
-      percentage: assistantMessages.length > 0
-        ? ((withoutModel.length / assistantMessages.length) * 100).toFixed(1)
-        : "0",
+      percentage:
+        assistantMessages.length > 0
+          ? ((withoutModel.length / assistantMessages.length) * 100).toFixed(1)
+          : "0",
     };
   },
 });
@@ -37,9 +38,7 @@ export const backfillMessageModels = internalMutation({
     let skipped = 0;
 
     // Get messages without model
-    const messages = await ctx.db
-      .query("messages")
-      .collect();
+    const messages = await ctx.db.query("messages").collect();
 
     for (const msg of messages) {
       // Only process assistant messages without model

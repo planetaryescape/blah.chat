@@ -76,10 +76,8 @@ interface SourceCardProps {
 
 function SourceCard({ source, position }: SourceCardProps) {
   // Prefer enriched OG title over provider title
-  const displayTitle =
-    source.metadata?.title || source.title || source.url;
-  const snippet =
-    source.snippet || source.metadata?.description || "";
+  const displayTitle = source.metadata?.title || source.title || source.url;
+  const snippet = source.snippet || source.metadata?.description || "";
   const favicon = source.metadata?.favicon;
 
   let domain: string;
@@ -160,17 +158,8 @@ function SourceCard({ source, position }: SourceCardProps) {
           {snippet && (
             <p className="text-sm text-muted-foreground">{snippet}</p>
           )}
-          <Button
-            asChild
-            size="sm"
-            variant="outline"
-            className="w-full gap-2"
-          >
-            <a
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+          <Button asChild size="sm" variant="outline" className="w-full gap-2">
+            <a href={source.url} target="_blank" rel="noopener noreferrer">
               Open source
               <ExternalLink className="h-3 w-3" />
             </a>

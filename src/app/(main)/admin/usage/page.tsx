@@ -62,7 +62,13 @@ export default function UsagePage() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const userCount = useQuery(api.admin.getUserCount);
 
-  if (!monthlyTotal || !dailySpend || !spendByModel || !conversationCosts || userCount === undefined) {
+  if (
+    !monthlyTotal ||
+    !dailySpend ||
+    !spendByModel ||
+    !conversationCosts ||
+    userCount === undefined
+  ) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

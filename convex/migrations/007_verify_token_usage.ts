@@ -16,22 +16,32 @@ export const verifyTokenUsageMigration = internalQuery({
     // NEW TABLE: conversationTokenUsage
     const newRecords = await ctx.db
       .query("conversationTokenUsage")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .collect();
 
     const newTotal = newRecords.reduce((sum, r) => sum + r.totalTokens, 0);
-    const newMessageCount = newRecords.reduce((sum, r) => sum + r.messageCount, 0);
+    const newMessageCount = newRecords.reduce(
+      (sum, r) => sum + r.messageCount,
+      0,
+    );
 
     // SOURCE OF TRUTH: messages table
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .filter((q) => q.eq(q.field("role"), "assistant"))
       .collect();
 
     const messageTotal = messages.reduce(
       (sum, m) =>
-        sum + (m.inputTokens || 0) + (m.outputTokens || 0) + (m.reasoningTokens || 0),
+        sum +
+        (m.inputTokens || 0) +
+        (m.outputTokens || 0) +
+        (m.reasoningTokens || 0),
       0,
     );
     const messagesWithModel = messages.filter((m) => m.model).length;

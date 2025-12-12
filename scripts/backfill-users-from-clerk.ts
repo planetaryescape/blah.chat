@@ -77,9 +77,7 @@ async function backfillUsers() {
           imageUrl: clerkUser.imageUrl,
         });
 
-        console.log(
-          `${progress} ✅ Updated: ${email || "no-email"} (${name})`,
-        );
+        console.log(`${progress} ✅ Updated: ${email || "no-email"} (${name})`);
         successCount++;
       } catch (error) {
         console.error(

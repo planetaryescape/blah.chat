@@ -29,4 +29,3 @@ export function useNewChatModel() {
     isLoading: mode === undefined || defaultModel === undefined,
   };
 }
-

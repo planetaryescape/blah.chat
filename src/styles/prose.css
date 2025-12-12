@@ -112,6 +112,15 @@
     line-height: 1.75;
   }
 
+  /* Fix for list item alignment: remove margins from nested elements */
+  .prose li > :first-child {
+    margin-top: 0;
+  }
+
+  .prose li > :last-child {
+    margin-bottom: 0;
+  }
+
   .prose ul ul,
   .prose ul ol,
   .prose ol ul,

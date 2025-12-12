@@ -28,6 +28,10 @@ export const getOnboardingState = query({
 export const initializeOnboarding = mutation({
   args: {},
   handler: async (ctx) => {
+    // Check auth first to avoid race condition with Clerk initialization
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null; // Not authenticated yet, return early
+
     const user = await getCurrentUserOrCreate(ctx);
     const now = Date.now();
 

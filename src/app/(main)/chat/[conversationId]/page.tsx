@@ -301,6 +301,17 @@ function ChatPageContent({
       window.removeEventListener("open-quick-model-switcher", handler);
   }, []);
 
+  // Model preview modal (from recommendation banner)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<{ modelId: string }>;
+      setPreviewModelId(customEvent.detail.modelId);
+      setPreviewModalOpen(true);
+    };
+    window.addEventListener("open-model-preview", handler);
+    return () => window.removeEventListener("open-model-preview", handler);
+  }, []);
+
   // Redirect if conversation is confirmed to be null (deleted/invalid)
   // Track if we've completed initial load to prevent premature redirects
   const initialLoadComplete = useRef(false);

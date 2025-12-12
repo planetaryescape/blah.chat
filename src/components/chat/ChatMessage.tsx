@@ -72,8 +72,6 @@ export const ChatMessage = memo(
   function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
-    const [showModelPreview, setShowModelPreview] = useState(false);
-    const [previewModelId, setPreviewModelId] = useState<string | null>(null);
     const messageRef = useRef<HTMLDivElement>(null);
 
     const isUser = message.role === "user";
@@ -176,8 +174,11 @@ export const ChatMessage = memo(
     };
 
     const handleModelPreview = (modelId: string) => {
-      setPreviewModelId(modelId);
-      setShowModelPreview(true);
+      // Dispatch event for page-level modal (ModelPreviewModal is at page level)
+      const event = new CustomEvent("open-model-preview", {
+        detail: { modelId },
+      });
+      window.dispatchEvent(event);
     };
 
     // Keyboard shortcuts for focused messages

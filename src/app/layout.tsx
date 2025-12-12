@@ -1,11 +1,12 @@
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "@/styles/math.css";
 import "katex/dist/katex.min.css";
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
@@ -37,18 +38,21 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
 
   title: {
-    default: "blah.chat",
+    default: "blah.chat - Total Control. One Interface.",
     template: "%s | blah.chat",
   },
   description:
-    "Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude), mid-chat switching, conversation branching, and transparent cost tracking.",
+    "The bespoke AI interface. Access OpenAI, Anthropic, Gemini, and Perplexity in one premium workspace. Fracture-less conversation branching.",
   applicationName: "blah.chat",
 
   keywords: [
     "AI chat",
+    "Bespoke AI",
     "Multi-model AI",
     "Conversation Branching",
     "Hybrid Search",
+    "Privacy-first",
+    "Minimalist interface",
     "Model Switching",
     "OpenAI",
     "Claude",
@@ -86,15 +90,17 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: APP_URL,
     siteName: "blah.chat",
-    title: "blah.chat",
+    title: "blah.chat - Total Control.",
     description:
-      "All models in one app. Switch mid-chat, branch conversations, and track costs transparently.",
+      "Total Control. One Interface. Access all models, switch mid-chat, and branch conversations in a bespoke, premium workspace.",
+    // Next.js automatically detects opengraph-image.png in the route
+    // naming scheme, but explicit definition is safe.
     images: [
       {
-        url: "/opengraph-image",
+        url: "/opengraph-image.png",
         width: 1200,
         height: 630,
-        alt: "blah.chat - Personal AI chat assistant",
+        alt: "blah.chat - Total Control. One Interface.",
       },
     ],
   },
@@ -102,23 +108,13 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "blah.chat",
-    description: "All models. Mid-chat switching. Total control.",
-    images: ["/opengraph-image"],
+    description: "Total Control. One Interface. All models in one place.",
+    images: ["/opengraph-image.png"],
   },
 
   category: "technology",
 };
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F7F3EF" },
-    { media: "(prefers-color-scheme: dark)", color: "#191024" },
-  ],
-};
+// Viewport configuration moved to src/app/viewport.ts
 
 export default function RootLayout({
   children,
@@ -169,19 +165,21 @@ export default function RootLayout({
         className={`${syne.variable} ${manrope.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <ConvexClerkProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <TooltipProvider>
-              <AnalyticsProvider>
-                <NuqsAdapter>{children}</NuqsAdapter>
-                <Toaster />
-              </AnalyticsProvider>
-            </TooltipProvider>
-          </ThemeProvider>
+          <QueryProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <TooltipProvider>
+                <AnalyticsProvider>
+                  <NuqsAdapter>{children}</NuqsAdapter>
+                  <Toaster />
+                </AnalyticsProvider>
+              </TooltipProvider>
+            </ThemeProvider>
+          </QueryProvider>
         </ConvexClerkProvider>
       </body>
     </html>

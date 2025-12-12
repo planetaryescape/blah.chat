@@ -234,29 +234,30 @@ export const regenerate = mutation({
     const conversation = await ctx.db.get(message.conversationId);
     if (!conversation) throw new Error("Conversation not found");
 
-    // Delete this message + all following messages
-    const allMessages = await ctx.db
+    // Branch-preserving regenerate: Create sibling instead of deleting
+    // Find parent message to create new sibling at same level
+    const parentMessageId = message.parentMessageId;
+
+    // Get all existing siblings (messages with same parent)
+    const siblings = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", message.conversationId),
+      .withIndex("by_parent", (q) =>
+        parentMessageId
+          ? q.eq("parentMessageId", parentMessageId)
+          : q.eq("parentMessageId", undefined),
       )
-      .order("asc")
+      .filter((q) => q.eq(q.field("conversationId"), message.conversationId))
       .collect();
 
-    const index = allMessages.findIndex((m) => m._id === args.messageId);
-    const deletedCount = allMessages.slice(index).length;
-    for (const msg of allMessages.slice(index)) {
-      await ctx.db.delete(msg._id);
-    }
+    // Calculate next branch index
+    const maxBranchIndex = siblings.reduce(
+      (max, msg) => Math.max(max, msg.branchIndex ?? 0),
+      0,
+    );
+    const nextBranchIndex = maxBranchIndex + 1;
 
-    // Decrement messageCount by deleted count
-    // Note: Creating new message below will increment by 1
-    const conv = await ctx.db.get(message.conversationId);
-    if (conv && deletedCount > 0) {
-      await ctx.db.patch(message.conversationId, {
-        messageCount: Math.max(0, (conv.messageCount || 0) - deletedCount),
-      });
-    }
+    // Generate branch label
+    const branchLabel = `Regeneration ${nextBranchIndex}`;
 
     // Phase 4: Get default model from new preference system
     const userDefaultModel = await (
@@ -265,9 +266,12 @@ export const regenerate = mutation({
 
     // Priority: message.model → conversation.model → user defaultModel preference → fallback
     const modelId =
-      message.model || conversation.model || userDefaultModel || "openai:gpt-4o-mini";
+      message.model ||
+      conversation.model ||
+      userDefaultModel ||
+      "openai:gpt-4o-mini";
 
-    // Create new pending assistant message
+    // Create new pending assistant message as sibling
     const newMessageId: Id<"messages"> = await ctx.runMutation(
       internal.messages.create,
       {
@@ -276,6 +280,9 @@ export const regenerate = mutation({
         role: "assistant",
         status: "pending",
         model: modelId,
+        parentMessageId: parentMessageId, // Same parent as original
+        branchIndex: nextBranchIndex,
+        branchLabel: branchLabel,
       },
     );
 
@@ -406,7 +413,10 @@ export const retryMessage = mutation({
 
     // Priority: aiMessage.model → conversation.model → user defaultModel preference → fallback
     const modelId =
-      aiMessage.model || conversation.model || userDefaultModel2 || "openai:gpt-4o-mini";
+      aiMessage.model ||
+      conversation.model ||
+      userDefaultModel2 ||
+      "openai:gpt-4o-mini";
 
     // Create new pending assistant message
     const newMessageId: Id<"messages"> = await ctx.runMutation(

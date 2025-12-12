@@ -1,26 +1,26 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
+import { useMutation, useQuery } from "convex/react";
+import { motion } from "framer-motion";
+import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { FeedbackModal } from "../feedback/FeedbackModal";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { ComparisonView } from "./ComparisonView";
@@ -164,7 +164,7 @@ export const ChatMessage = memo(
       try {
         await updateModel({
           conversationId: message.conversationId,
-          modelId,
+          model: modelId,
         });
         toast.success(`Switched to ${MODEL_CONFIG[modelId]?.name || modelId}`);
       } catch (error) {

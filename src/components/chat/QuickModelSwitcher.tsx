@@ -16,7 +16,6 @@ import {
     HoverCardContent,
     HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
@@ -32,7 +31,7 @@ import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import commandScore from "command-score";
 import { useQuery } from "convex/react";
-import { Check, Sparkles, Star, X, Zap } from "lucide-react";
+import { Check, ChevronRight, Search, Star, X, Zap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ModelDetailCard } from "./ModelDetailCard";
@@ -200,122 +199,90 @@ export function QuickModelSwitcher({
         value={model.id}
         keywords={[model.name, model.provider, model.description || ""]}
         onSelect={() => handleSelect(model.id)}
-        className="flex items-center gap-3 px-3 py-2.5"
+        className={cn(
+          "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 data-[selected=true]:bg-muted/50 transition-colors",
+          isSelected ? "bg-primary/5" : ""
+        )}
       >
-        <Check
-          className={cn("w-4 h-4", isSelected ? "opacity-100" : "opacity-0")}
-        />
-        <div className="flex-1 flex items-center gap-2">
-          <span className="font-medium">{model.name}</span>
-          <div className="flex gap-1">
-            {showDefaultBadge && (
-              <Badge className="bg-primary text-primary-foreground text-[10px] h-5">
-                Default
-              </Badge>
-            )}
-            {model.reasoning && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-purple-500/10 text-purple-400 border-purple-500/20"
-              >
-                <Zap className="w-2.5 h-2.5 mr-1" />
-                Reasoning
-              </Badge>
-            )}
-            {model.id.includes("pro") && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-amber-500/10 text-amber-500 border-amber-500/20"
-              >
-                <Sparkles className="w-2.5 h-2.5 mr-1" />
-                Pro
-              </Badge>
-            )}
-            {model.capabilities?.includes("vision") && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-blue-500/10 text-blue-400 border-blue-500/20"
-              >
-                Vision
-              </Badge>
-            )}
-            {model.isLocal && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              >
-                Local
-              </Badge>
-            )}
-            {model.isExperimental && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-orange-500/10 text-orange-400 border-orange-500/20"
-              >
-                Experimental
-              </Badge>
-            )}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Selection Indicator */}
+          <div className={cn(
+             "flex items-center justify-center w-4 h-4 rounded-full border transition-all",
+             isSelected
+               ? "bg-primary border-primary text-primary-foreground"
+               : "border-muted-foreground/30 group-hover:border-primary/50"
+          )}>
+             {isSelected && <Check className="w-2.5 h-2.5" />}
+          </div>
 
-            {/* Category pills (only in "All" view) */}
-            {activeCategory === "all" && categories.length > 0 && (
-              <>
-                {categories.slice(0, 3).map((catId) => {
-                  const cat = MODEL_CATEGORIES.find((c) => c.id === catId);
-                  if (!cat) return null;
-                  const Icon = cat.icon;
+          <div className="flex flex-col min-w-0 gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className={cn("font-medium text-sm truncate", isSelected ? "text-primary" : "text-foreground")}>
+                {model.name}
+              </span>
+              {/* Essential Badges Only */}
+              {showDefaultBadge && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">Default</span>
+              )}
+               {model.reasoning && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium flex items-center gap-0.5">
+                  <Zap className="w-2.5 h-2.5" />
+                  Reasoning
+                </span>
+               )}
+            </div>
 
-                  return (
-                    <Badge
-                      key={catId}
-                      variant="outline"
-                      className="text-[9px] h-4 px-1 gap-0.5 bg-muted/50"
-                    >
-                      {Icon && <Icon className="w-2 h-2" />}
-                      {cat.label}
-                    </Badge>
-                  );
-                })}
-                {categories.length > 3 && (
-                  <Badge
-                    variant="outline"
-                    className="text-[9px] h-4 px-1 bg-muted/50"
-                  >
-                    +{categories.length - 3}
-                  </Badge>
-                )}
-              </>
-            )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+               <span className="capitalize">{model.provider}</span>
+
+               {/* Separator */}
+               <span className="text-muted-foreground/30">•</span>
+
+               <span>{formatContextWindow(model.contextWindow)}</span>
+
+               {/* Subtle capabilities */}
+               {model.capabilities?.includes("vision") && (
+                 <>
+                   <span className="text-muted-foreground/30">•</span>
+                   <span>Vision</span>
+                 </>
+               )}
+            </div>
           </div>
         </div>
-        <div className="flex gap-2 items-center">
-          {!model.isLocal && (
-            <div className="text-[10px] text-muted-foreground/60 font-mono tabular-nums">
-              ${model.pricing.input}/{model.pricing.output}
-            </div>
-          )}
-          <Button
+
+        {/* Right Side: Cost & Actions */}
+        <div className="flex items-center gap-3 pl-2">
+           {!model.isLocal && (
+             <div className="hidden sm:flex flex-col items-end text-[10px] text-muted-foreground/50 tabular-nums leading-tight">
+               <span>In: ${model.pricing.input}</span>
+               <span>Out: ${model.pricing.output}</span>
+             </div>
+           )}
+
+           <Button
             variant="ghost"
             size="icon"
-            className="h-5 w-5 hover:bg-transparent"
+            className="h-8 w-8 hover:bg-transparent -mr-2 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               toggleFavorite(model.id);
             }}
-            onPointerDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
           >
             <Star
               className={cn(
-                "h-4 w-4",
+                "h-4 w-4 transition-colors",
                 isFavorite(model.id)
-                  ? "fill-yellow-500 text-yellow-500"
-                  : "text-muted-foreground/40",
+                  ? "fill-amber-400 text-amber-400 opacity-100"
+                  : "text-muted-foreground hover:text-amber-400"
               )}
             />
           </Button>
+
+           {mode === "single" && (
+             <ChevronRight className="w-4 h-4 text-muted-foreground/30" />
+           )}
         </div>
       </CommandItem>
     );
@@ -345,16 +312,16 @@ export function QuickModelSwitcher({
       {/* Trigger Button (optional) */}
       {showTrigger && (
         <Button
-          variant="ghost"
+          variant="outline"
           onClick={() => onOpenChange(true)}
-          className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5"
+          className="h-9 px-3 text-sm font-medium bg-background/50 backdrop-blur-sm border-border/50 hover:bg-accent/50 hover:border-accent transition-all group gap-2 min-w-0"
         >
-          <span className="max-w-[120px] truncate">
-            {mode === "single"
-              ? allModels.find((m) => m.id === currentModel)?.name ||
-                "Select model"
-              : "Select models"}
+          <span className="truncate max-w-[140px] text-foreground/90 group-hover:text-foreground">
+             {mode === "single"
+              ? allModels.find((m) => m.id === currentModel)?.name || "Select model"
+              : `${internalSelected.length} models selected`}
           </span>
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-muted-foreground rotate-90 transition-transform" />
         </Button>
       )}
 
@@ -368,67 +335,86 @@ export function QuickModelSwitcher({
             return score;
           },
         }}
+        // CommandDialog passes className to DialogContent
+        className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl"
       >
-        {/* Search Input - Top Priority */}
-        <CommandInput
-          placeholder={`Search ${activeCategory === "all" ? "" : activeCategory + " "}models...`}
-        />
-
-        {/* Category Tabs */}
-        <div className="border-b px-2 pt-0 pb-2">
-          <Tabs value={activeCategory} onValueChange={handleCategoryChange}>
-            <TabsList className="w-full grid grid-cols-4 h-auto p-1 gap-1">
-              {MODEL_CATEGORIES.slice(0, 8).map((cat) => {
-                const count = countModelsInCategory(cat.id, allModels);
-                const Icon = cat.icon;
-
-                return (
-                  <TabsTrigger
-                    key={cat.id}
-                    value={cat.id}
-                    className="text-xs py-1.5 flex items-center gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    {Icon && <Icon className="w-3 h-3" />}
-                    <span className="hidden sm:inline truncate">{cat.label}</span>
-                    <span className="sm:hidden truncate">
-                      {cat.label.slice(0, 3)}
-                    </span>
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] px-1 py-0 ml-auto bg-background/50"
-                    >
-                      {count}
-                    </Badge>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-          </Tabs>
+        <div className="flex items-center border-b px-4 py-3 shrink-0">
+          <Search className="w-4 h-4 mr-2 text-muted-foreground" />
+          <CommandInput
+            placeholder={`Search ${activeCategory === "all" ? "" : activeCategory + " "}models...`}
+            className="flex-1 h-9 bg-transparent border-0 ring-0 focus:ring-0 text-sm"
+          />
         </div>
 
-        {/* Multi-select chips */}
-        {mode === "multiple" && internalSelected.length > 0 && (
-          <div className="flex gap-2 px-3 py-2 border-b flex-wrap">
-            {internalSelected.map((id) => {
-              const model = allModels.find((m) => m.id === id);
-              return (
-                <Badge key={id} variant="secondary" className="gap-1">
-                  {model?.name}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => {
-                      setInternalSelected((prev) =>
-                        prev.filter((i) => i !== id),
-                      );
-                    }}
-                  />
-                </Badge>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex h-[500px] overflow-hidden">
+          {/* Sidebar Categories */}
+          <div className="w-[180px] border-r bg-muted/30 p-2 flex flex-col gap-1 shrink-0 overflow-y-auto">
+             <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+               Categories
+             </div>
+             {MODEL_CATEGORIES.map((cat) => {
+                const count = countModelsInCategory(cat.id, allModels);
+                const Icon = cat.icon;
+                const isActive = activeCategory === cat.id;
 
-        <CommandList className="max-h-[400px]">
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryChange(cat.id)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors",
+                      isActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {Icon && <Icon className="w-4 h-4" />}
+                      <span>{cat.label}</span>
+                    </div>
+                    {count > 0 && (
+                      <span className={cn(
+                        "text-[10px] tabular-nums px-1.5 py-0.5 rounded-full",
+                        isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                      )}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+             })}
+          </div>
+
+          {/* Main List Area */}
+          <div className="flex-1 flex flex-col min-w-0 bg-background/50">
+             {/* Selected Chips */}
+            {mode === "multiple" && internalSelected.length > 0 && (
+              <div className="flex gap-2 px-3 py-2 border-b flex-wrap bg-background/50 backdrop-blur-sm">
+                {internalSelected.map((id) => {
+                  const model = allModels.find((m) => m.id === id);
+                  return (
+                    <Badge key={id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 h-7">
+                      {model?.name}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 hover:bg-destructive/10 hover:text-destructive rounded-full"
+                        onClick={() => {
+                          setInternalSelected((prev) =>
+                            prev.filter((i) => i !== id),
+                          );
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+
+
+        <CommandList className="max-h-[600px] overflow-y-auto p-2">
           <CommandEmpty>No models found.</CommandEmpty>
 
           {/* Default Model */}
@@ -461,11 +447,14 @@ export function QuickModelSwitcher({
             <CommandGroup
               key={provider}
               heading={provider.charAt(0).toUpperCase() + provider.slice(1)}
+              className="px-2"
             >
               {models.map((model) => renderModelItem(model))}
             </CommandGroup>
           ))}
-        </CommandList>
+          </CommandList>
+          </div>
+        </div>
 
         {/* Footer for multi-select */}
         {mode === "multiple" && (
@@ -494,4 +483,11 @@ export function QuickModelSwitcher({
       </CommandDialog>
     </>
   );
+}
+
+// Helper
+function formatContextWindow(tokens: number): string {
+  if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
+  return `${tokens}`;
 }

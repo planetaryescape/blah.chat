@@ -5,11 +5,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "blah.chat",
     short_name: "blah.chat",
     description:
-      "Access all AI models, switch mid-chat, and branch conversations.",
+      "The bespoke AI interface. Total Control. One Interface.",
     start_url: "/",
     display: "standalone",
-    background_color: "#191024",
-    theme_color: "#8B5CF6",
+    background_color: "#191024", // Deep Slate
+    theme_color: "#191024", // Deep Slate (consistent with dark theme)
     orientation: "portrait-primary",
     icons: [
       {

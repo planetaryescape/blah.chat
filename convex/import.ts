@@ -37,7 +37,10 @@ export const importConversations = mutation({
     try {
       for (const conv of args.conversations) {
         // Create conversation
-        const conversationId: Id<"conversations"> = await ctx.runMutation(
+        const conversationId: Id<"conversations"> = (await (
+          ctx.runMutation as any
+        )(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.conversations.createInternal,
           {
             userId: user._id,
@@ -45,18 +48,22 @@ export const importConversations = mutation({
             title: conv.title,
             systemPrompt: conv.systemPrompt,
           },
-        );
+        )) as Id<"conversations">;
 
         // Create messages
         for (const msg of conv.messages) {
-          await ctx.runMutation(internal.messages.create, {
-            conversationId,
-            userId: user._id,
-            role: msg.role,
-            content: msg.content,
-            status: "complete",
-            model: msg.model || (msg.role === "assistant" ? conv.model || "openai:gpt-4o-mini" : undefined),
-          });
+          await (ctx.runMutation as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.create,
+            {
+              conversationId,
+              userId: user._id,
+              role: msg.role,
+              content: msg.content,
+              status: "complete",
+              model: msg.model || (msg.role === "assistant" ? conv.model || "openai:gpt-4o-mini" : undefined),
+            },
+          );
         }
 
         // Update conversation stats

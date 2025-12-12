@@ -6,7 +6,7 @@
  * Pattern: Follow convex/messages/embeddings.ts batch processing pattern.
  */
 
-import { action, internalMutation } from "../_generated/server";
+import { internalAction, internalMutation } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
@@ -20,7 +20,7 @@ const EMBEDDING_BATCH_SIZE = 100;
  * Generate embeddings for all chunks of a file
  * Updates file status throughout the process
  */
-export const generateFileEmbeddings = action({
+export const generateFileEmbeddings = internalAction({
   args: {
     fileId: v.id("files"),
   },

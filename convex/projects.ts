@@ -247,6 +247,376 @@ export const assignConversations = mutation({
   },
 });
 
+// Smart Manager Phase 3: Note Junction Operations
+
+export const addNoteToProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    noteId: v.id("notes"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    // Dual ownership check
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) {
+      throw new Error("Project not found");
+    }
+    const note = await ctx.db.get(args.noteId);
+    if (!note || note.userId !== user._id) {
+      throw new Error("Note not found");
+    }
+
+    // Duplicate prevention
+    const existing = await ctx.db
+      .query("projectNotes")
+      .withIndex("by_project_note", (q) =>
+        q.eq("projectId", args.projectId).eq("noteId", args.noteId),
+      )
+      .first();
+    if (existing) return existing._id;
+
+    // Insert junction
+    const junctionId = await ctx.db.insert("projectNotes", {
+      projectId: args.projectId,
+      noteId: args.noteId,
+      userId: user._id,
+      addedAt: Date.now(),
+    });
+
+    // Activity event
+    await ctx.db.insert("activityEvents", {
+      userId: user._id,
+      projectId: args.projectId,
+      eventType: "note_linked",
+      resourceType: "note",
+      resourceId: args.noteId,
+      metadata: { title: note.title },
+      createdAt: Date.now(),
+    });
+
+    return junctionId;
+  },
+});
+
+export const removeNoteFromProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    noteId: v.id("notes"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const project = await ctx.db.get(args.projectId);
+
+    if (!project || project.userId !== user._id) {
+      throw new Error("Project not found");
+    }
+
+    // Delete junction row
+    const junction = await ctx.db
+      .query("projectNotes")
+      .withIndex("by_project_note", (q) =>
+        q.eq("projectId", args.projectId).eq("noteId", args.noteId),
+      )
+      .first();
+    if (junction) {
+      await ctx.db.delete(junction._id);
+
+      // Activity event
+      const note = await ctx.db.get(args.noteId);
+      if (note) {
+        await ctx.db.insert("activityEvents", {
+          userId: user._id,
+          projectId: args.projectId,
+          eventType: "note_removed",
+          resourceType: "note",
+          resourceId: args.noteId,
+          metadata: { title: note.title },
+          createdAt: Date.now(),
+        });
+      }
+    }
+  },
+});
+
+// Smart Manager Phase 3: File Junction Operations
+
+export const addFileToProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    fileId: v.id("files"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    // Dual ownership check
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) {
+      throw new Error("Project not found");
+    }
+    const file = await ctx.db.get(args.fileId);
+    if (!file || file.userId !== user._id) {
+      throw new Error("File not found");
+    }
+
+    // Duplicate prevention
+    const existing = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_project_file", (q) =>
+        q.eq("projectId", args.projectId).eq("fileId", args.fileId),
+      )
+      .first();
+    if (existing) return existing._id;
+
+    // Insert junction
+    const junctionId = await ctx.db.insert("projectFiles", {
+      projectId: args.projectId,
+      fileId: args.fileId,
+      userId: user._id,
+      addedAt: Date.now(),
+    });
+
+    // Activity event
+    await ctx.db.insert("activityEvents", {
+      userId: user._id,
+      projectId: args.projectId,
+      eventType: "file_linked",
+      resourceType: "file",
+      resourceId: args.fileId,
+      metadata: { filename: file.name },
+      createdAt: Date.now(),
+    });
+
+    return junctionId;
+  },
+});
+
+export const removeFileFromProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    fileId: v.id("files"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const project = await ctx.db.get(args.projectId);
+
+    if (!project || project.userId !== user._id) {
+      throw new Error("Project not found");
+    }
+
+    // Delete junction row
+    const junction = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_project_file", (q) =>
+        q.eq("projectId", args.projectId).eq("fileId", args.fileId),
+      )
+      .first();
+    if (junction) {
+      await ctx.db.delete(junction._id);
+
+      // Activity event
+      const file = await ctx.db.get(args.fileId);
+      if (file) {
+        await ctx.db.insert("activityEvents", {
+          userId: user._id,
+          projectId: args.projectId,
+          eventType: "file_removed",
+          resourceType: "file",
+          resourceId: args.fileId,
+          metadata: { filename: file.name },
+          createdAt: Date.now(),
+        });
+      }
+    }
+  },
+});
+
+// Smart Manager Phase 3: Bulk Operations
+
+export const bulkAddNotesToProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    noteIds: v.array(v.id("notes")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) {
+      throw new Error("Project not found");
+    }
+
+    const results = {
+      added: [] as any[],
+      skipped: [] as any[],
+      errors: [] as any[],
+    };
+
+    for (const noteId of args.noteIds) {
+      try {
+        // Reuse single-add mutation logic
+        const note = await ctx.db.get(noteId);
+        if (!note || note.userId !== user._id) {
+          results.errors.push({ noteId, error: "Note not found" });
+          continue;
+        }
+
+        const existing = await ctx.db
+          .query("projectNotes")
+          .withIndex("by_project_note", (q) =>
+            q.eq("projectId", args.projectId).eq("noteId", noteId),
+          )
+          .first();
+
+        if (existing) {
+          results.skipped.push(noteId);
+          continue;
+        }
+
+        const junctionId = await ctx.db.insert("projectNotes", {
+          projectId: args.projectId,
+          noteId,
+          userId: user._id,
+          addedAt: Date.now(),
+        });
+
+        await ctx.db.insert("activityEvents", {
+          userId: user._id,
+          projectId: args.projectId,
+          eventType: "note_linked",
+          resourceType: "note",
+          resourceId: noteId,
+          metadata: { title: note.title },
+          createdAt: Date.now(),
+        });
+
+        results.added.push(junctionId);
+      } catch (error: any) {
+        results.errors.push({ noteId, error: error.message });
+      }
+    }
+
+    return results;
+  },
+});
+
+export const bulkAddFilesToProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    fileIds: v.array(v.id("files")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) {
+      throw new Error("Project not found");
+    }
+
+    const results = {
+      added: [] as any[],
+      skipped: [] as any[],
+      errors: [] as any[],
+    };
+
+    for (const fileId of args.fileIds) {
+      try {
+        // Reuse single-add mutation logic
+        const file = await ctx.db.get(fileId);
+        if (!file || file.userId !== user._id) {
+          results.errors.push({ fileId, error: "File not found" });
+          continue;
+        }
+
+        const existing = await ctx.db
+          .query("projectFiles")
+          .withIndex("by_project_file", (q) =>
+            q.eq("projectId", args.projectId).eq("fileId", fileId),
+          )
+          .first();
+
+        if (existing) {
+          results.skipped.push(fileId);
+          continue;
+        }
+
+        const junctionId = await ctx.db.insert("projectFiles", {
+          projectId: args.projectId,
+          fileId,
+          userId: user._id,
+          addedAt: Date.now(),
+        });
+
+        await ctx.db.insert("activityEvents", {
+          userId: user._id,
+          projectId: args.projectId,
+          eventType: "file_linked",
+          resourceType: "file",
+          resourceId: fileId,
+          metadata: { filename: file.name },
+          createdAt: Date.now(),
+        });
+
+        results.added.push(junctionId);
+      } catch (error: any) {
+        results.errors.push({ fileId, error: error.message });
+      }
+    }
+
+    return results;
+  },
+});
+
+// Smart Manager Phase 3: Unified Resource Queries
+
+export const getProjectResources = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) return null;
+
+    // Fetch all junctions in parallel
+    const [conversationJunctions, noteJunctions, fileJunctions, tasks] =
+      await Promise.all([
+        ctx.db
+          .query("projectConversations")
+          .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+          .collect(),
+        ctx.db
+          .query("projectNotes")
+          .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+          .collect(),
+        ctx.db
+          .query("projectFiles")
+          .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+          .collect(),
+        ctx.db
+          .query("tasks")
+          .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+          .collect(),
+      ]);
+
+    // Batch hydrate (N+1 prevention)
+    const [conversations, notes, files] = await Promise.all([
+      Promise.all(conversationJunctions.map((j) => ctx.db.get(j.conversationId))),
+      Promise.all(noteJunctions.map((j) => ctx.db.get(j.noteId))),
+      Promise.all(fileJunctions.map((j) => ctx.db.get(j.fileId))),
+    ]);
+
+    // Filter deleted resources
+    return {
+      project,
+      conversations: conversations.filter(
+        (c): c is NonNullable<typeof c> => c !== null,
+      ),
+      notes: notes.filter((n): n is NonNullable<typeof n> => n !== null),
+      files: files.filter((f): f is NonNullable<typeof f> => f !== null),
+      tasks,
+    };
+  },
+});
+
 export const getProjectStats = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
@@ -259,28 +629,53 @@ export const getProjectStats = query({
       return null;
     }
 
-    // Query junction table (Phase 3 migration - Deploy 2)
-    const junctions = await ctx.db
-      .query("projectConversations")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
+    // Fetch all resource counts and activity in parallel
+    const [
+      conversationJunctions,
+      noteJunctions,
+      fileJunctions,
+      allTasks,
+      lastActivity,
+    ] = await Promise.all([
+      ctx.db
+        .query("projectConversations")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .collect(),
+      ctx.db
+        .query("projectNotes")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .collect(),
+      ctx.db
+        .query("projectFiles")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .collect(),
+      ctx.db
+        .query("tasks")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .collect(),
+      ctx.db
+        .query("activityEvents")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .order("desc")
+        .first(),
+    ]);
 
-    // Fetch conversations
-    const conversations = await Promise.all(
-      junctions.map((j) => ctx.db.get(j.conversationId)),
-    );
-    const validConversations = conversations.filter((c) => c !== null);
-
-    // Calculate stats
-    const conversationCount = validConversations.length;
-    const lastActivity =
-      validConversations.length > 0
-        ? Math.max(...validConversations.map((c) => c.lastMessageAt))
-        : 0;
+    // Task breakdown
+    const taskStats = {
+      total: allTasks.length,
+      active: allTasks.filter(
+        (t) => t.status !== "completed" && t.status !== "cancelled",
+      ).length,
+      completed: allTasks.filter((t) => t.status === "completed").length,
+    };
 
     return {
-      conversationCount,
-      lastActivity,
+      conversationCount: conversationJunctions.length,
+      noteCount: noteJunctions.length,
+      fileCount: fileJunctions.length,
+      taskStats,
+      lastActivityAt:
+        lastActivity?.createdAt || project._creationTime || Date.now(),
     };
   },
 });
@@ -303,6 +698,194 @@ export const getProjectConversationIds = query({
       .collect();
 
     return junctions.map((j) => j.conversationId);
+  },
+});
+
+// Smart Manager Phase 3: Activity Feed Queries
+
+export const getProjectActivity = query({
+  args: {
+    projectId: v.id("projects"),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) return null;
+
+    const limit = args.limit ?? 50;
+    const offset = args.offset ?? 0;
+
+    // Fetch events (ordered newest first)
+    const events = await ctx.db
+      .query("activityEvents")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .order("desc")
+      .collect();
+
+    const paginatedEvents = events.slice(offset, offset + limit);
+
+    // N+1 PREVENTION: Deduplicate resource IDs by type
+    const resourceIdsByType: Record<string, Set<any>> = {
+      task: new Set(),
+      note: new Set(),
+      file: new Set(),
+      conversation: new Set(),
+    };
+
+    for (const event of paginatedEvents) {
+      if (event.resourceType && event.resourceId) {
+        resourceIdsByType[event.resourceType]?.add(event.resourceId);
+      }
+    }
+
+    // Batch fetch all resources in parallel
+    const [tasks, notes, files, conversations] = await Promise.all([
+      Promise.all([...resourceIdsByType.task].map((id) => ctx.db.get(id))),
+      Promise.all([...resourceIdsByType.note].map((id) => ctx.db.get(id))),
+      Promise.all([...resourceIdsByType.file].map((id) => ctx.db.get(id))),
+      Promise.all(
+        [...resourceIdsByType.conversation].map((id) => ctx.db.get(id)),
+      ),
+    ]);
+
+    // Create lookup maps (filter nulls)
+    const resourceMaps: Record<string, Map<any, any>> = {
+      task: new Map(
+        tasks
+          .filter((t): t is NonNullable<typeof t> => t !== null)
+          .map((t) => [t._id, t]),
+      ),
+      note: new Map(
+        notes
+          .filter((n): n is NonNullable<typeof n> => n !== null)
+          .map((n) => [n._id, n]),
+      ),
+      file: new Map(
+        files
+          .filter((f): f is NonNullable<typeof f> => f !== null)
+          .map((f) => [f._id, f]),
+      ),
+      conversation: new Map(
+        conversations
+          .filter((c): c is NonNullable<typeof c> => c !== null)
+          .map((c) => [c._id, c]),
+      ),
+    };
+
+    // Hydrate events with resources
+    const hydratedEvents = paginatedEvents.map((event) => ({
+      ...event,
+      resource: event.resourceType
+        ? resourceMaps[event.resourceType]?.get(event.resourceId) || null
+        : null,
+    }));
+
+    return {
+      events: hydratedEvents,
+      total: events.length,
+      hasMore: offset + limit < events.length,
+    };
+  },
+});
+
+export const getUserActivity = query({
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const limit = args.limit ?? 50;
+    const offset = args.offset ?? 0;
+
+    // Fetch events (ordered newest first)
+    const events = await ctx.db
+      .query("activityEvents")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .collect();
+
+    const paginatedEvents = events.slice(offset, offset + limit);
+
+    // N+1 PREVENTION: Deduplicate resource and project IDs
+    const resourceIdsByType: Record<string, Set<any>> = {
+      task: new Set(),
+      note: new Set(),
+      file: new Set(),
+      conversation: new Set(),
+    };
+    const projectIds = new Set<any>();
+
+    for (const event of paginatedEvents) {
+      if (event.resourceType && event.resourceId) {
+        resourceIdsByType[event.resourceType]?.add(event.resourceId);
+      }
+      if (event.projectId) {
+        projectIds.add(event.projectId);
+      }
+    }
+
+    // Batch fetch all resources and projects in parallel
+    const [tasks, notes, files, conversations, projects] = await Promise.all([
+      Promise.all([...resourceIdsByType.task].map((id) => ctx.db.get(id))),
+      Promise.all([...resourceIdsByType.note].map((id) => ctx.db.get(id))),
+      Promise.all([...resourceIdsByType.file].map((id) => ctx.db.get(id))),
+      Promise.all(
+        [...resourceIdsByType.conversation].map((id) => ctx.db.get(id)),
+      ),
+      Promise.all([...projectIds].map((id) => ctx.db.get(id))),
+    ]);
+
+    // Create lookup maps (filter nulls)
+    const resourceMaps: Record<string, Map<any, any>> = {
+      task: new Map(
+        tasks
+          .filter((t): t is NonNullable<typeof t> => t !== null)
+          .map((t) => [t._id, t]),
+      ),
+      note: new Map(
+        notes
+          .filter((n): n is NonNullable<typeof n> => n !== null)
+          .map((n) => [n._id, n]),
+      ),
+      file: new Map(
+        files
+          .filter((f): f is NonNullable<typeof f> => f !== null)
+          .map((f) => [f._id, f]),
+      ),
+      conversation: new Map(
+        conversations
+          .filter((c): c is NonNullable<typeof c> => c !== null)
+          .map((c) => [c._id, c]),
+      ),
+    };
+
+    const projectMap = new Map(
+      projects
+        .filter((p): p is NonNullable<typeof p> => p !== null)
+        .map((p) => [p._id, p]),
+    );
+
+    // Hydrate events with resources and projects
+    const hydratedEvents = paginatedEvents.map((event) => ({
+      ...event,
+      resource: event.resourceType
+        ? resourceMaps[event.resourceType]?.get(event.resourceId) || null
+        : null,
+      project: event.projectId ? projectMap.get(event.projectId) || null : null,
+    }));
+
+    return {
+      events: hydratedEvents,
+      total: events.length,
+      hasMore: offset + limit < events.length,
+    };
   },
 });
 

@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
-import { Eye, FunctionSquare, Image, Sparkles, Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { getProviderIcon } from "@/lib/ai/icons";
-import { getModelMetrics, type ModelConfig } from "@/lib/ai/models";
+import { getModelMetrics } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
+import { Eye, FunctionSquare, Image, Sparkles, Zap } from "lucide-react";
+import { useMemo } from "react";
 import { ModelMetricsBadge } from "./model-metrics-badge";
 
 interface ModelDetailCardProps {
@@ -30,58 +29,61 @@ export function ModelDetailCard({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 text-sm">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <ProviderIcon className="w-5 h-5 text-muted-foreground" />
+      <div className="flex items-start gap-3">
+        <div className="bg-muted p-1.5 rounded-md mt-0.5">
+          <ProviderIcon className="w-5 h-5 text-foreground/80" />
+        </div>
         <div>
-          <h3 className="font-semibold text-sm">{config.name}</h3>
+          <h3 className="font-semibold text-base leading-none mb-1">{config.name}</h3>
           <p className="text-xs text-muted-foreground capitalize">
-            {config.provider}
+            {config.provider} • {config.isLocal ? "Local" : "Cloud"}
           </p>
         </div>
       </div>
 
       {/* User-Friendly Description (PRIMARY - for all users) */}
       {config.userFriendlyDescription && (
-        <div className="space-y-2">
-          <p className="text-sm leading-relaxed">
-            {config.userFriendlyDescription}
-          </p>
-          <p className="text-xs text-muted-foreground italic">
-            💡 Match model to task: fast models for quick answers, reasoning
-            models for complex work
-          </p>
+        <div className="text-muted-foreground leading-relaxed">
+          {config.userFriendlyDescription}
         </div>
       )}
 
-      {/* Capability Badges (VISUAL - for quick scanning) */}
+      {/* Capability Badges (Minimal) */}
       {config.capabilities.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground/80">
           {config.capabilities.map((cap) => (
-            <CapabilityBadge key={cap} capability={cap} />
+             <span key={cap} className="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 rounded-md border border-border/50">
+               {getCapabilityIcon(cap)}
+               <span className="capitalize">{cap.replace("-", " ")}</span>
+             </span>
           ))}
         </div>
       )}
 
-      {/* Technical Specs (COLLAPSED - for power users) */}
-      <div className="pt-2 border-t space-y-1.5 text-xs">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Context</span>
-          <span className="font-medium">{contextDisplay}</span>
+      {/* Technical Specs (Grid) */}
+      <div className="pt-3 border-t grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
+        <div>
+           <span className="text-muted-foreground block mb-0.5 font-medium">Context Window</span>
+           <span className="font-medium text-foreground">{contextDisplay}</span>
         </div>
-        {!config.isLocal && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Cost</span>
-            <span className="font-medium font-mono">
-              ${config.pricing.input}/{config.pricing.output} /M
-            </span>
+
+        {config.knowledgeCutoff && (
+          <div>
+             <span className="text-muted-foreground block mb-0.5 font-medium">Knowledge Access</span>
+             <span>{config.knowledgeCutoff}</span>
           </div>
         )}
-        {config.knowledgeCutoff && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Knowledge</span>
-            <span>{config.knowledgeCutoff}</span>
+
+        {!config.isLocal && (
+          <div className="col-span-2">
+            <span className="text-muted-foreground block mb-0.5 font-medium">Pricing (Input / Output)</span>
+            <div className="font-mono text-muted-foreground">
+              <span className="text-foreground">${config.pricing.input}</span> /
+              <span className="text-foreground"> ${config.pricing.output}</span>
+              <span className="opacity-50 ml-1">per million tokens</span>
+            </div>
           </div>
         )}
       </div>
@@ -89,61 +91,32 @@ export function ModelDetailCard({
       {/* Model Metrics (VISUAL - relative comparisons) */}
       {metrics && (
         <div className="pt-3 border-t">
-          <ModelMetricsBadge model={config} metrics={metrics} />
+          <ModelMetricsBadge model={config} metrics={metrics} compact />
         </div>
       )}
 
       {/* Technical Summary (for power users who want more) */}
       {config.bestFor && (
-        <p className="text-xs text-muted-foreground pt-1 border-t italic">
-          {config.bestFor}
-        </p>
+        <div className="pt-3 border-t bg-muted/20 -mx-4 px-4 pb-1">
+           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 block">Best Used For</span>
+           <p className="text-xs text-foreground/80 italic">
+             {config.bestFor}
+           </p>
+        </div>
       )}
     </div>
   );
 }
 
-// Capability badge with icon
-function CapabilityBadge({ capability }: { capability: string }) {
-  const badgeConfig = {
-    vision: {
-      icon: Eye,
-      label: "Vision",
-      color: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    },
-    "function-calling": {
-      icon: FunctionSquare,
-      label: "Tools",
-      color: "bg-green-500/10 text-green-400 border-green-500/20",
-    },
-    thinking: {
-      icon: Sparkles,
-      label: "Reasoning",
-      color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    },
-    "extended-thinking": {
-      icon: Zap,
-      label: "Deep Think",
-      color: "bg-purple-600/10 text-purple-500 border-purple-600/20",
-    },
-    "image-generation": {
-      icon: Image,
-      label: "Images",
-      color: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-    },
-  };
-
-  const config = badgeConfig[capability as keyof typeof badgeConfig];
-  if (!config) return null;
-
-  const Icon = config.icon;
-
-  return (
-    <Badge variant="outline" className={`text-[10px] h-5 ${config.color}`}>
-      <Icon className="w-2.5 h-2.5 mr-1" />
-      {config.label}
-    </Badge>
-  );
+function getCapabilityIcon(capability: string) {
+    switch (capability) {
+        case "vision": return <Eye className="w-3.5 h-3.5" />;
+        case "function-calling": return <FunctionSquare className="w-3.5 h-3.5" />;
+        case "thinking": return <Sparkles className="w-3.5 h-3.5 text-purple-500" />;
+        case "extended-thinking": return <Zap className="w-3.5 h-3.5 text-purple-600" />;
+        case "image-generation": return <Image className="w-3.5 h-3.5" />;
+        default: return null;
+    }
 }
 
 // Helper

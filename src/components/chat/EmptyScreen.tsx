@@ -1,14 +1,15 @@
 "use client";
 
-import { ArrowRight, Brain, Code2, Eye, Sparkles, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PromptCategory } from "@/lib/prompts/examplePrompts";
 import {
-  CAPABILITY_PROMPTS,
-  getPromptsForModel,
+    CAPABILITY_PROMPTS,
+    getPromptsForModel,
 } from "@/lib/prompts/examplePrompts";
 import { cn } from "@/lib/utils";
+import { ArrowRight, Brain, Code2, Eye, Sparkles, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { MarkdownContent } from "./MarkdownContent";
 
 interface EmptyScreenProps {
   onClick: (value: string) => void;
@@ -103,20 +104,46 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
       </div>
 
       {/* Prompts - staggered animation */}
-      <div className="grid gap-2 w-full max-w-md text-left">
+      <div className="grid gap-2 w-full max-w-md text-left mb-8">
         {activePrompts.slice(0, 4).map((prompt, i) => (
-          <button
+          <div
             key={prompt}
+            role="button"
+            tabIndex={0}
             onClick={() => onClick(prompt)}
-            className="group flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-sm text-muted-foreground hover:text-foreground"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick(prompt);
+              }
+            }}
+            className="group flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
             style={{
               animationDelay: `${i * 100}ms`,
             }}
           >
-            <span>{prompt}</span>
-            <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-50 transition-all duration-300" />
-          </button>
+            <div className="line-clamp-2 text-left">
+              <MarkdownContent content={prompt} />
+            </div>
+            <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-50 transition-all duration-300 shrink-0 ml-3" />
+          </div>
         ))}
+      </div>
+
+      {/* Footer Hints */}
+      <div className="flex gap-6 text-xs text-muted-foreground/60 animate-in fade-in duration-700 delay-500">
+        <div className="flex items-center gap-1.5">
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>J
+          </kbd>
+          <span>to select model</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+          <span>for commands</span>
+        </div>
       </div>
     </div>
   );

@@ -1,10 +1,16 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { formatDistanceToNow } from "date-fns";
-import { Clock, MessageSquare } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
+import {
+    CheckCircle2,
+    Clock,
+    File,
+    FileText,
+    MessageSquare,
+} from "lucide-react";
 
 interface ProjectStatsProps {
   projectId: Id<"projects">;
@@ -24,7 +30,14 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
     );
   }
 
-  const { conversationCount, lastActivity } = stats;
+  const {
+    conversationCount,
+    noteCount,
+    fileCount,
+    taskStats,
+    lastActivityAt,
+  } = stats;
+  const totalResources = conversationCount + noteCount + fileCount;
 
   return (
     <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -33,13 +46,25 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
         {conversationCount}{" "}
         {conversationCount === 1 ? "conversation" : "conversations"}
       </span>
-      {lastActivity > 0 && (
+      <span className="flex items-center gap-1">
+        <FileText className="w-3 h-3" />
+        {noteCount} {noteCount === 1 ? "note" : "notes"}
+      </span>
+      <span className="flex items-center gap-1">
+        <File className="w-3 h-3" />
+        {fileCount} {fileCount === 1 ? "file" : "files"}
+      </span>
+      <span className="flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        {taskStats.completed}/{taskStats.total} tasks
+      </span>
+      {lastActivityAt > 0 && totalResources > 0 && (
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {formatDistanceToNow(lastActivity, { addSuffix: true })}
+          {formatDistanceToNow(lastActivityAt, { addSuffix: true })}
         </span>
       )}
-      {conversationCount === 0 && (
+      {totalResources === 0 && (
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
           Never used

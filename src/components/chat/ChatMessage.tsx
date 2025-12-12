@@ -2,11 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Loader2, Zap } from "lucide-react";
+import { AlertCircle, Check, ChevronDown, Loader2, X, Zap } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FeedbackModal } from "../feedback/FeedbackModal";
@@ -72,11 +73,16 @@ export const ChatMessage = memo(
   function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedContent, setEditedContent] = useState("");
     const messageRef = useRef<HTMLDivElement>(null);
 
     const isUser = message.role === "user";
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
+
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+    const editMessage = useMutation(api.chat.editMessage);
 
     // Mutations for keyboard shortcuts
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
@@ -179,6 +185,31 @@ export const ChatMessage = memo(
         detail: { modelId },
       });
       window.dispatchEvent(event);
+    };
+
+    // Edit handlers
+    const handleEdit = () => {
+      setEditedContent(message.content || "");
+      setIsEditing(true);
+    };
+
+    const handleSaveEdit = async () => {
+      try {
+        await editMessage({
+          messageId: message._id,
+          content: editedContent,
+        });
+        setIsEditing(false);
+        toast.success("Message updated");
+      } catch (error) {
+        toast.error("Failed to update message");
+        console.error("[ChatMessage] Edit error:", error);
+      }
+    };
+
+    const handleCancelEdit = () => {
+      setIsEditing(false);
+      setEditedContent("");
     };
 
     // Keyboard shortcuts for focused messages
@@ -341,221 +372,293 @@ export const ChatMessage = memo(
             aria-label={`${isUser ? "Your" : "Assistant"} message`}
             aria-keyshortcuts="r b c delete"
           >
-          {isError ? (
-            <ErrorDisplay error={message.error} />
-          ) : (
-            <>
-              {/* Reasoning block - shows thinking for reasoning models or if reasoning content exists */}
-              {message.role === "assistant" &&
-                (isThinkingModel ||
-                  message.reasoning ||
-                  message.partialReasoning) && (
-                  <ReasoningBlock
-                    reasoning={message.reasoning}
-                    partialReasoning={message.partialReasoning}
-                    thinkingStartedAt={message.thinkingStartedAt}
-                    thinkingCompletedAt={message.thinkingCompletedAt}
-                    reasoningTokens={message.reasoningTokens}
-                    isThinking={isGenerating && !!message.partialReasoning}
-                  />
-                )}
+            {isError ? (
+              <ErrorDisplay error={message.error} />
+            ) : (
+              <>
+                {/* Reasoning block - shows thinking for reasoning models or if reasoning content exists */}
+                {message.role === "assistant" &&
+                  (isThinkingModel ||
+                    message.reasoning ||
+                    message.partialReasoning) && (
+                    <ReasoningBlock
+                      reasoning={message.reasoning}
+                      partialReasoning={message.partialReasoning}
+                      thinkingStartedAt={message.thinkingStartedAt}
+                      thinkingCompletedAt={message.thinkingCompletedAt}
+                      reasoningTokens={message.reasoningTokens}
+                      isThinking={isGenerating && !!message.partialReasoning}
+                    />
+                  )}
 
-              {/* Inline tool calls and content - renders tool calls at their positions */}
-              {displayContent ||
-              toolCalls?.length ||
-              partialToolCalls?.length ? (
-                <InlineToolCallContent
-                  content={displayContent || ""}
-                  toolCalls={toolCalls}
-                  partialToolCalls={partialToolCalls}
-                  isStreaming={isGenerating}
-                />
-              ) : isGenerating ? (
-                isThinkingModel ? (
-                  <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                    <span>Thinking...</span>
+                {/* Edit mode */}
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="min-h-[100px] resize-none font-normal"
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveEdit}
+                        className="h-8"
+                        disabled={!editedContent.trim()}
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1.5" />
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="h-8"
+                      >
+                        <X className="w-3.5 h-3.5 mr-1.5" />
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex gap-1 items-center h-6">
-                    <span
-                      className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
-                  </div>
-                )
-              ) : null}
-
-              {/* Source citations (Phase 2: from normalized tables) */}
-              <SourceList messageId={message._id} />
-
-              {attachments && attachments.length > 0 && urlMap.size > 0 && (
-                <div className="mt-3 pt-3 border-t border-border/10">
-                  <AttachmentRenderer attachments={attachments} urls={urlMap} />
-                </div>
-              )}
-
-              {/* Toggle for consolidated messages */}
-              {message.isConsolidation &&
-                originalResponses &&
-                originalResponses.length > 0 && (
-                  <div className="mt-4 border-t border-border/10 pt-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowOriginals(!showOriginals)}
-                      className="gap-2 text-xs"
-                    >
-                      <ChevronDown
-                        className={cn(
-                          "w-3 h-3 transition-transform",
-                          showOriginals && "rotate-180",
-                        )}
+                  <>
+                    {/* Inline tool calls and content - renders tool calls at their positions */}
+                    {displayContent ||
+                    toolCalls?.length ||
+                    partialToolCalls?.length ? (
+                      <InlineToolCallContent
+                        content={displayContent || ""}
+                        toolCalls={toolCalls}
+                        partialToolCalls={partialToolCalls}
+                        isStreaming={isGenerating}
                       />
-                      {showOriginals ? "Hide" : "Show"} original{" "}
-                      {originalResponses.length} response
-                      {originalResponses.length !== 1 ? "s" : ""}
-                    </Button>
+                    ) : isGenerating ? (
+                  isThinkingModel ? (
+                    <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                      <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                      <span>Thinking...</span>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1 items-center h-6">
+                      <span
+                        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      />
+                      <span
+                        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <span
+                        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      />
+                    </div>
+                  )
+                ) : null}
+                  </>
+                )}
 
-                    {showOriginals && (
-                      <div className="mt-4">
-                        <ComparisonView
-                          assistantMessages={originalResponses}
-                          comparisonGroupId={
-                            originalResponses[0]?.comparisonGroupId || ""
-                          }
-                          showModelNames={true}
-                          onVote={() => {}}
-                          onConsolidate={() => {}}
-                          onToggleModelNames={() => {}}
-                          hideConsolidateButton={true}
-                        />
-                      </div>
-                    )}
+                {/* Source citations (Phase 2: from normalized tables) */}
+                <SourceList messageId={message._id} />
+
+                {attachments && attachments.length > 0 && urlMap.size > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/10">
+                    <AttachmentRenderer
+                      attachments={attachments}
+                      urls={urlMap}
+                    />
                   </div>
                 )}
 
+                {/* Toggle for consolidated messages */}
+                {message.isConsolidation &&
+                  originalResponses &&
+                  originalResponses.length > 0 && (
+                    <div className="mt-4 border-t border-border/10 pt-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowOriginals(!showOriginals)}
+                        className="gap-2 text-xs"
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "w-3 h-3 transition-transform",
+                            showOriginals && "rotate-180",
+                          )}
+                        />
+                        {showOriginals ? "Hide" : "Show"} original{" "}
+                        {originalResponses.length} response
+                        {originalResponses.length !== 1 ? "s" : ""}
+                      </Button>
 
-              {/* Enhanced status announcements */}
-              {!isUser && (
-                <>
-                  {/* Generating */}
-                  {message.status === "generating" && (
-                    <div role="status" aria-live="polite" className="sr-only">
-                      {isThinkingModel
-                        ? "AI is thinking about your question"
-                        : "AI is generating a response"}
+                      {showOriginals && (
+                        <div className="mt-4">
+                          <ComparisonView
+                            assistantMessages={originalResponses}
+                            comparisonGroupId={
+                              originalResponses[0]?.comparisonGroupId || ""
+                            }
+                            showModelNames={true}
+                            onVote={() => {}}
+                            onConsolidate={() => {}}
+                            onToggleModelNames={() => {}}
+                            hideConsolidateButton={true}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Complete */}
-                  {message.status === "complete" && (
-                    <div role="status" aria-live="polite" className="sr-only">
-                      {ttft && `Response generated in ${formatTTFT(ttft)}`}
-                      {message.tokensPerSecond &&
-                        ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
-                    </div>
-                  )}
+                {/* Enhanced status announcements */}
+                {!isUser && (
+                  <>
+                    {/* Generating */}
+                    {message.status === "generating" && (
+                      <div role="status" aria-live="polite" className="sr-only">
+                        {isThinkingModel
+                          ? "AI is thinking about your question"
+                          : "AI is generating a response"}
+                      </div>
+                    )}
 
-                  {/* Error - assertive for immediate attention */}
-                  {message.status === "error" && (
-                    <div role="alert" aria-live="assertive" className="sr-only">
-                      Error generating response: {message.error}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Branch indicator */}
-              {!readOnly && <MessageBranchIndicator messageId={message._id} />}
-              {!readOnly && features.showNotes && (
-                <MessageNotesIndicator messageId={message._id} />
-              )}
-
-              {/* Model and statistics badges - INSIDE bubble */}
-              {!isUser &&
-                (message.status === "complete" ||
-                  message.status === "generating") &&
-                modelName && (
-                  <div className="mt-3 pt-3 border-t border-border/10 flex flex-wrap items-center gap-2 transition-opacity duration-300">
-                    {/* Model name - ALWAYS visible */}
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                    >
-                      {modelName}
-                    </Badge>
-
-                    {/* Statistics - conditional based on user preference */}
-                    {showStats && (
-                      <>
-                        {/* TTFT badge */}
-                        {ttft !== null && (
-                          <TooltipProvider>
-                            {isCached ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                                  >
-                                    <Zap className="w-3 h-3 mr-1" />
-                                    cached
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="text-xs">
-                                    <div className="font-semibold">
-                                      Cached Response
-                                    </div>
-                                    <div className="text-muted-foreground">
-                                      Served instantly from cache
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
-                                      message.status === "generating" &&
-                                        "animate-pulse",
-                                    )}
-                                  >
-                                    TTFT: {formatTTFT(ttft)}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="text-xs">
-                                    <div className="font-semibold">
-                                      Time to First Token
-                                    </div>
-                                    <div className="text-muted-foreground">
-                                      {message.status === "generating"
-                                        ? "AI started responding"
-                                        : "How long until AI started responding"}
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </TooltipProvider>
-                        )}
-
-                        {/* TPS badge (completed only) */}
+                    {/* Complete */}
+                    {message.status === "complete" && (
+                      <div role="status" aria-live="polite" className="sr-only">
+                        {ttft && `Response generated in ${formatTTFT(ttft)}`}
                         {message.tokensPerSecond &&
-                          message.status === "complete" && (
+                          ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
+                      </div>
+                    )}
+
+                    {/* Error - assertive for immediate attention */}
+                    {message.status === "error" && (
+                      <div
+                        role="alert"
+                        aria-live="assertive"
+                        className="sr-only"
+                      >
+                        Error generating response: {message.error}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Branch indicator */}
+                {!readOnly && (
+                  <MessageBranchIndicator messageId={message._id} />
+                )}
+                {!readOnly && features.showNotes && (
+                  <MessageNotesIndicator messageId={message._id} />
+                )}
+
+                {/* Model and statistics badges - INSIDE bubble */}
+                {!isUser &&
+                  (message.status === "complete" ||
+                    message.status === "generating") &&
+                  modelName && (
+                    <div className="mt-3 pt-3 border-t border-border/10 flex flex-wrap items-center gap-2 transition-opacity duration-300">
+                      {/* Model name - ALWAYS visible */}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                      >
+                        {modelName}
+                      </Badge>
+
+                      {/* Statistics - conditional based on user preference */}
+                      {showStats && (
+                        <>
+                          {/* TTFT badge */}
+                          {ttft !== null && (
+                            <TooltipProvider>
+                              {isCached ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                                    >
+                                      <Zap className="w-3 h-3 mr-1" />
+                                      cached
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs">
+                                      <div className="font-semibold">
+                                        Cached Response
+                                      </div>
+                                      <div className="text-muted-foreground">
+                                        Served instantly from cache
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
+                                        message.status === "generating" &&
+                                          "animate-pulse",
+                                      )}
+                                    >
+                                      TTFT: {formatTTFT(ttft)}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs">
+                                      <div className="font-semibold">
+                                        Time to First Token
+                                      </div>
+                                      <div className="text-muted-foreground">
+                                        {message.status === "generating"
+                                          ? "AI started responding"
+                                          : "How long until AI started responding"}
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </TooltipProvider>
+                          )}
+
+                          {/* TPS badge (completed only) */}
+                          {message.tokensPerSecond &&
+                            message.status === "complete" && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+                                    >
+                                      TPS: {Math.round(message.tokensPerSecond)}{" "}
+                                      t/s
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="text-xs">
+                                      <div className="font-semibold">
+                                        Tokens Per Second
+                                      </div>
+                                      <div className="text-muted-foreground">
+                                        Generation speed:{" "}
+                                        {Math.round(message.tokensPerSecond)}{" "}
+                                        tokens/sec
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+
+                          {/* Token count badge */}
+                          {(message.inputTokens !== undefined ||
+                            message.outputTokens !== undefined) && (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -563,115 +666,87 @@ export const ChatMessage = memo(
                                     variant="outline"
                                     className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
                                   >
-                                    TPS: {Math.round(message.tokensPerSecond)}{" "}
-                                    t/s
+                                    {message.inputTokens || 0}/
+                                    {message.outputTokens || 0}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <div className="text-xs">
                                     <div className="font-semibold">
-                                      Tokens Per Second
+                                      Token Count
                                     </div>
                                     <div className="text-muted-foreground">
-                                      Generation speed:{" "}
-                                      {Math.round(message.tokensPerSecond)}{" "}
-                                      tokens/sec
+                                      Input:{" "}
+                                      {message.inputTokens?.toLocaleString() ||
+                                        0}
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                      Output:{" "}
+                                      {message.outputTokens?.toLocaleString() ||
+                                        0}
+                                    </div>
+                                    <div className="text-muted-foreground font-semibold mt-1">
+                                      Total:{" "}
+                                      {(
+                                        (message.inputTokens || 0) +
+                                        (message.outputTokens || 0)
+                                      ).toLocaleString()}
                                     </div>
                                   </div>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
+                        </>
+                      )}
+                    </div>
+                  )}
+              </>
+            )}
+          </motion.div>
 
-                        {/* Token count badge */}
-                        {(message.inputTokens !== undefined ||
-                          message.outputTokens !== undefined) && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-                                >
-                                  {message.inputTokens || 0}/
-                                  {message.outputTokens || 0}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-xs">
-                                  <div className="font-semibold">
-                                    Token Count
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    Input:{" "}
-                                    {message.inputTokens?.toLocaleString() || 0}
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    Output:{" "}
-                                    {message.outputTokens?.toLocaleString() ||
-                                      0}
-                                  </div>
-                                  <div className="text-muted-foreground font-semibold mt-1">
-                                    Total:{" "}
-                                    {(
-                                      (message.inputTokens || 0) +
-                                      (message.outputTokens || 0)
-                                    ).toLocaleString()}
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-            </>
-          )}
-        </motion.div>
+          {/* Model Recommendation Banner - cost optimization */}
+          {!readOnly &&
+            !isUser &&
+            message.status === "complete" &&
+            conversation?.modelRecommendation &&
+            !conversation.modelRecommendation.dismissed && (
+              <div className="mt-4">
+                <ModelRecommendationBanner
+                  recommendation={conversation.modelRecommendation}
+                  conversationId={message.conversationId}
+                  onSwitch={handleModelSwitch}
+                  onPreview={handleModelPreview}
+                />
+              </div>
+            )}
 
-        {/* Model Recommendation Banner - cost optimization */}
-        {!readOnly &&
-          !isUser &&
-          message.status === "complete" &&
-          conversation?.modelRecommendation &&
-          !conversation.modelRecommendation.dismissed && (
-            <div className="mt-4">
-              <ModelRecommendationBanner
-                recommendation={conversation.modelRecommendation}
-                conversationId={message.conversationId}
-                onSwitch={handleModelSwitch}
-                onPreview={handleModelPreview}
+          {/* Action buttons - absolutely positioned, no layout shift */}
+          {!isGenerating && (
+            <div
+              className={cn(
+                "absolute z-10",
+                isUser ? "right-0" : "left-0",
+                "-bottom-8",
+                "flex justify-end",
+                "transition-opacity duration-200 ease-out",
+                alwaysShow
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100",
+                !alwaysShow &&
+                  "pointer-events-none group-hover:pointer-events-auto",
+              )}
+            >
+              <MessageActions
+                message={message}
+                nextMessage={nextMessage}
+                readOnly={readOnly}
+                onEdit={isUser ? handleEdit : undefined}
               />
             </div>
           )}
-
-        {/* Action buttons - absolutely positioned, no layout shift */}
-        {!isGenerating && (
-          <div
-            className={cn(
-              "absolute z-10",
-              isUser ? "right-0" : "left-0",
-              "-bottom-8",
-              "flex justify-end",
-              "transition-opacity duration-200 ease-out",
-              alwaysShow
-                ? "opacity-100"
-                : "opacity-0 group-hover:opacity-100",
-              !alwaysShow &&
-                "pointer-events-none group-hover:pointer-events-auto",
-            )}
-          >
-            <MessageActions
-              message={message}
-              nextMessage={nextMessage}
-              readOnly={readOnly}
-            />
-          </div>
-        )}
+        </div>
       </div>
-    </div>
     );
   },
   (prev, next) => {

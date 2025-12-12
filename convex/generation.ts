@@ -23,7 +23,10 @@ import {
   createMemorySaveTool,
   createMemorySearchTool,
 } from "./ai/tools/memories";
-import { createProjectContextTool } from "./ai/tools/projectContext";
+import { createSearchProjectFilesTool } from "./ai/tools/projectContext/searchProjectFiles";
+import { createSearchProjectNotesTool } from "./ai/tools/projectContext/searchProjectNotes";
+import { createSearchProjectTasksTool } from "./ai/tools/projectContext/searchProjectTasks";
+import { createQueryProjectHistoryTool } from "./ai/tools/projectContext/queryProjectHistory";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
@@ -731,6 +734,14 @@ export const generateResponse = internalAction({
         providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
       };
 
+      // Fetch conversation to check for project-specific tools
+      const conversation = await ctx.runQuery(
+        internal.conversations.getInternal,
+        {
+          id: args.conversationId,
+        },
+      );
+
       // Only add tools for capable models
       if (hasFunctionCalling) {
         const memorySearchTool = createMemorySearchTool(ctx, args.userId);
@@ -747,12 +758,8 @@ export const generateResponse = internalAction({
         );
         const codeExecutionTool = createCodeExecutionTool(ctx);
         const weatherTool = createWeatherTool(ctx);
-        const projectContextTool = createProjectContextTool(
-          ctx,
-          args.userId,
-          args.conversationId,
-        );
 
+        // Base tools available to all conversations
         options.tools = {
           searchMemories: memorySearchTool,
           saveMemory: memorySaveTool,
@@ -764,8 +771,27 @@ export const generateResponse = internalAction({
           fileDocument: fileDocumentTool,
           codeExecution: codeExecutionTool,
           weather: weatherTool,
-          projectContext: projectContextTool,
         };
+
+        // Add project-specific tools if conversation has projectId
+        if (conversation?.projectId) {
+          options.tools.searchProjectFiles = createSearchProjectFilesTool(
+            ctx,
+            args.conversationId,
+          );
+          options.tools.searchProjectNotes = createSearchProjectNotesTool(
+            ctx,
+            args.conversationId,
+          );
+          options.tools.searchProjectTasks = createSearchProjectTasksTool(
+            ctx,
+            args.conversationId,
+          );
+          options.tools.queryProjectHistory = createQueryProjectHistoryTool(
+            ctx,
+            args.conversationId,
+          );
+        }
 
         // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
         options.onStepFinish = async (step: any) => {
@@ -1207,14 +1233,14 @@ export const generateResponse = internalAction({
       )) as Promise<void>;
 
       // 12. Auto-name if conversation still has default title
-      const conversation = await ctx.runQuery(
+      const conversationForTitle = await ctx.runQuery(
         internal.conversations.getInternal,
         {
           id: args.conversationId,
         },
       );
 
-      if (conversation && conversation.title === "New Chat") {
+      if (conversationForTitle && conversationForTitle.title === "New Chat") {
         // Still has default title, schedule title generation
         await ctx.scheduler.runAfter(
           0,

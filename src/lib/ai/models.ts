@@ -162,6 +162,41 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       "Fast and personable. Great for natural conversations with a friendly, adaptive tone.",
     bestFor: "Conversational tasks, quick responses, personalized interactions",
   },
+
+  // GPT-5.2 Family (December 2025)
+  "openai:gpt-5.2": {
+    id: "openai:gpt-5.2",
+    provider: "openai",
+    name: "GPT-5.2",
+    description:
+      "OpenAI's best general-purpose model. Most intelligent model for general and agentic tasks.",
+    contextWindow: 400000,
+    pricing: { input: 1.75, output: 14.0, cached: 0.17 },
+    capabilities: ["thinking", "vision", "function-calling"],
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: true,
+    },
+    knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "Most intelligent model yet. Advances GPT-5 with 400k context, deep reasoning, and massive knowledge.",
+    bestFor: "Deep reasoning, massive context tasks, complex agentic workflows",
+  },
+  "openai:gpt-5.2-chat": {
+    id: "openai:gpt-5.2-chat",
+    provider: "openai",
+    name: "GPT-5.2 Chat",
+    description: "The model powering ChatGPT. Best general-purpose model.",
+    contextWindow: 128000,
+    pricing: { input: 1.75, output: 14.0, cached: 0.17 },
+    capabilities: ["vision", "function-calling"],
+    knowledgeCutoff: "April 2025",
+    userFriendlyDescription:
+      "The brain behind ChatGPT. Intelligent, versatile, and optimized for natural conversation.",
+    bestFor: "General conversation, content creation, everyday intelligence",
+  },
   "openai:gpt-oss-20b": {
     id: "openai:gpt-oss-20b",
     provider: "openai",

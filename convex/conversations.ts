@@ -152,6 +152,7 @@ export const createInternal = internalMutation({
     userId: v.id("users"),
     model: v.string(),
     title: v.optional(v.string()),
+    systemPrompt: v.optional(v.string()),
     parentConversationId: v.optional(v.id("conversations")),
     parentMessageId: v.optional(v.id("messages")),
   },
@@ -160,6 +161,7 @@ export const createInternal = internalMutation({
       userId: args.userId,
       title: args.title || "New Chat",
       model: args.model,
+      systemPrompt: args.systemPrompt,
       pinned: false,
       archived: false,
       starred: false,
@@ -617,7 +619,8 @@ export const updateConversationTokenUsage = internalMutation({
       .first();
 
     const now = Date.now();
-    const totalTokens = args.inputTokens + args.outputTokens + (args.reasoningTokens || 0);
+    const totalTokens =
+      args.inputTokens + args.outputTokens + (args.reasoningTokens || 0);
 
     if (existing) {
       // Increment existing record
@@ -686,7 +689,9 @@ export const getConversationTokensByModel = query({
 
     const records = await ctx.db
       .query("conversationTokenUsage")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .collect();
 
     return records.map((r) => ({
@@ -717,7 +722,9 @@ export const getTotalConversationTokens = query({
 
     const records = await ctx.db
       .query("conversationTokenUsage")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
       .collect();
 
     return records.reduce((sum, r) => sum + r.totalTokens, 0);

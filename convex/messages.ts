@@ -35,6 +35,10 @@ export const create = internalMutation({
     ),
     model: v.optional(v.string()),
     comparisonGroupId: v.optional(v.string()), // NEW: For comparison mode
+    // Branching support
+    parentMessageId: v.optional(v.id("messages")),
+    branchIndex: v.optional(v.number()),
+    branchLabel: v.optional(v.string()),
     attachments: v.optional(
       v.array(
         v.object({
@@ -65,6 +69,9 @@ export const create = internalMutation({
       status: args.status || "complete",
       model: args.model,
       comparisonGroupId: args.comparisonGroupId,
+      parentMessageId: args.parentMessageId,
+      branchIndex: args.branchIndex,
+      branchLabel: args.branchLabel,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });

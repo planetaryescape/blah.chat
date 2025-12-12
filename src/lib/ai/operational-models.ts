@@ -14,7 +14,7 @@ import { MODEL_CONFIG, type ModelConfig } from "./models";
 // DEFAULT MODEL (used for new conversations when no model is specified)
 // ============================================================================
 
-export const DEFAULT_MODEL_ID = "openai:gpt-oss-120b";
+export const DEFAULT_MODEL_ID = "google:gemini-2.5-flash";
 export const DEFAULT_MODEL = MODEL_CONFIG[DEFAULT_MODEL_ID];
 
 // ============================================================================

@@ -1,15 +1,16 @@
 import {
-  Brain,
-  Code,
-  DollarSign,
-  Eye,
-  Globe,
-  Sparkles,
-  Zap,
+    Brain,
+    Code,
+    DollarSign,
+    Eye,
+    Gift,
+    Globe,
+    Sparkles,
+    Zap,
 } from "lucide-react";
+import { computeModelMetrics, getBenchmarkScores } from "./benchmarks";
 import type { ModelConfig } from "./models";
 import type { ModelCategory } from "./types";
-import { computeModelMetrics, getBenchmarkScores } from "./benchmarks";
 
 /**
  * Category definitions for filtering models
@@ -26,6 +27,14 @@ export const MODEL_CATEGORIES: ModelCategory[] = [
     label: "All Models",
     filter: () => true,
     description: "All available models",
+  },
+  {
+    id: "free",
+    label: "Free",
+    icon: Gift,
+    filter: (model: ModelConfig) =>
+      model.pricing.input === 0 && model.pricing.output === 0,
+    description: "Completely free to use",
   },
   {
     id: "speed",

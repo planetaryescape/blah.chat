@@ -67,7 +67,11 @@ export const addSources = internalAction({
         provider: args.provider,
         sources: sourcesWithHashes,
       },
-    )) as { metadataCreated: number; sourcesCreated: number; unenrichedUrls: string[] };
+    )) as {
+      metadataCreated: number;
+      sourcesCreated: number;
+      unenrichedUrls: string[];
+    };
 
     // Schedule enrichment for unenriched URLs
     if (result.unenrichedUrls.length > 0) {

@@ -318,9 +318,7 @@ export const addTagInternal = internalMutation({
     let centralTag = await ctx.db
       .query("tags")
       // @ts-ignore - Type depth exceeded
-      .withIndex("by_user_slug", (q) =>
-        q.eq("userId", userId).eq("slug", slug),
-      )
+      .withIndex("by_user_slug", (q) => q.eq("userId", userId).eq("slug", slug))
       .unique();
 
     if (!centralTag) {

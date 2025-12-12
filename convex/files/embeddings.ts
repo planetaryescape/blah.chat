@@ -29,7 +29,7 @@ export const generateFileEmbeddings = internalAction({
 
     try {
       // 1. Update file status to "processing"
-      await ((ctx.runMutation as any)(
+      (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.files.embeddings.updateEmbeddingStatus,
         {
@@ -83,7 +83,7 @@ export const generateFileEmbeddings = internalAction({
         );
 
         // Insert chunks with embeddings
-        await ((ctx.runMutation as any)(
+        (await (ctx.runMutation as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.files.embeddings.insertFileChunks,
           {
@@ -103,7 +103,7 @@ export const generateFileEmbeddings = internalAction({
       }
 
       // 5. Update file status to "completed"
-      await ((ctx.runMutation as any)(
+      (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.files.embeddings.updateEmbeddingStatus,
         {
@@ -131,7 +131,7 @@ export const generateFileEmbeddings = internalAction({
       console.error("[FileEmbedding] Error:", error);
 
       // Update file status to "failed"
-      await ((ctx.runMutation as any)(
+      (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.files.embeddings.updateEmbeddingStatus,
         {

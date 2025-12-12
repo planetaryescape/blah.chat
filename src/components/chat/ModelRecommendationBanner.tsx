@@ -74,11 +74,14 @@ export function ModelRecommendationBanner({
       await updatePreferences({
         preferences: {
           newChatModelSelection: "fixed",
-          defaultModel: recommendation.suggestedModelId
-        }
+          defaultModel: recommendation.suggestedModelId,
+        },
       });
     } catch (err) {
-      console.error("[ModelRecommendationBanner] Failed to update global preference:", err);
+      console.error(
+        "[ModelRecommendationBanner] Failed to update global preference:",
+        err,
+      );
     }
 
     // 4. Refocus input for seamless continuation
@@ -125,7 +128,9 @@ export function ModelRecommendationBanner({
 
           {/* Content */}
           <div className="space-y-2">
-            <p className="text-base leading-relaxed">{recommendation.reasoning}</p>
+            <p className="text-base leading-relaxed">
+              {recommendation.reasoning}
+            </p>
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 {recommendation.estimatedSavings.costReduction}

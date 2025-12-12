@@ -43,11 +43,9 @@ export const extractTasksFromTranscript = action({
     const result = await generateObject({
       model: getModel(TASK_EXTRACTION_MODEL.id),
       schema: TaskExtractionSchema,
-      providerOptions: getGatewayOptions(
-        TASK_EXTRACTION_MODEL.id,
-        undefined,
-        ["task-extraction"],
-      ),
+      providerOptions: getGatewayOptions(TASK_EXTRACTION_MODEL.id, undefined, [
+        "task-extraction",
+      ]),
       prompt: `${TASK_EXTRACTION_PROMPT}
 
 Transcript:
@@ -94,11 +92,9 @@ async function parseDeadline(deadlineText: string): Promise<number | null> {
     const result = await generateObject({
       model: getModel(DEADLINE_PARSING_MODEL.id),
       schema: DeadlineSchema,
-      providerOptions: getGatewayOptions(
-        DEADLINE_PARSING_MODEL.id,
-        undefined,
-        ["deadline-parsing"],
-      ),
+      providerOptions: getGatewayOptions(DEADLINE_PARSING_MODEL.id, undefined, [
+        "deadline-parsing",
+      ]),
       prompt: `${prompt}
 
 Deadline text: "${deadlineText}"`,

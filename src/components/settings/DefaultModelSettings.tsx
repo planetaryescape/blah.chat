@@ -45,7 +45,9 @@ export function DefaultModelSettings() {
 
   // Local state for optimistic updates (initialized from hooks)
   const [selectedModel, setSelectedModel] = useState<string>(prefDefaultModel);
-  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(prefSelectionMode);
+  const [selectionMode, setSelectionMode] = useState<"fixed" | "recent">(
+    prefSelectionMode,
+  );
 
   // Sync from hooks OR auto-save default if not set
   useEffect(() => {

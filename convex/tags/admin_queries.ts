@@ -47,11 +47,13 @@ export const getGlobalTags = query({
     const user = await getCurrentUser(ctx);
     if (!user?.isAdmin) throw new Error("Unauthorized");
 
-    return ctx.db
-      .query("tags")
-      // @ts-ignore - Type depth exceeded with complex Convex query
-      .withIndex("by_scope", (q) => q.eq("scope", "global"))
-      .collect();
+    return (
+      ctx.db
+        .query("tags")
+        // @ts-ignore - Type depth exceeded with complex Convex query
+        .withIndex("by_scope", (q) => q.eq("scope", "global"))
+        .collect()
+    );
   },
 });
 

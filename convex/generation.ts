@@ -325,7 +325,12 @@ function extractSources(providerMetadata: any):
       const mapped = perplexitySources
         .map((r: any) => {
           if (typeof r === "string") {
-            return { title: r, url: r, snippet: undefined, publishedDate: undefined };
+            return {
+              title: r,
+              url: r,
+              snippet: undefined,
+              publishedDate: undefined,
+            };
           }
           return {
             title: r.title || "Untitled Source",
@@ -351,7 +356,12 @@ function extractSources(providerMetadata: any):
       const mapped = sourceArray
         .map((r: any) => {
           if (typeof r === "string") {
-            return { title: r, url: r, snippet: undefined, publishedDate: undefined };
+            return {
+              title: r,
+              url: r,
+              snippet: undefined,
+              publishedDate: undefined,
+            };
           }
           return {
             title: r.title || r.name || "Untitled Source",
@@ -433,7 +443,10 @@ function extractWebSearchSources(
         });
       }
     } catch (e) {
-      console.warn(`[WebSearch] Failed to parse result for tool call ${tc.id}:`, e);
+      console.warn(
+        `[WebSearch] Failed to parse result for tool call ${tc.id}:`,
+        e,
+      );
       // Continue processing other tool calls
     }
   }
@@ -863,20 +876,17 @@ export const generateResponse = internalAction({
           });
 
           // Phase 1: Write to new toolCalls table (dual-write)
-          (await (ctx.runMutation as any)(
-            internal.messages.upsertToolCall,
-            {
-              messageId: args.assistantMessageId,
-              conversationId: args.conversationId,
-              userId: args.userId,
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-              args: chunk.input, // Native JSON (not stringified)
-              isPartial: true,
-              timestamp: Date.now(),
-              textPosition: accumulated.length,
-            },
-          )) as Promise<void>;
+          (await (ctx.runMutation as any)(internal.messages.upsertToolCall, {
+            messageId: args.assistantMessageId,
+            conversationId: args.conversationId,
+            userId: args.userId,
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            args: chunk.input, // Native JSON (not stringified)
+            isPartial: true,
+            timestamp: Date.now(),
+            textPosition: accumulated.length,
+          })) as Promise<void>;
         }
 
         // Handle tool results (streaming results to frontend)
@@ -890,21 +900,18 @@ export const generateResponse = internalAction({
             });
 
             // Phase 1: Update with result (dual-write)
-            (await (ctx.runMutation as any)(
-              internal.messages.upsertToolCall,
-              {
-                messageId: args.assistantMessageId,
-                conversationId: args.conversationId,
-                userId: args.userId,
-                toolCallId: chunk.toolCallId,
-                toolName: existing.name,
-                args: JSON.parse(existing.arguments),
-                result: resultValue, // Native JSON
-                isPartial: true,
-                timestamp: existing.timestamp,
-                textPosition: existing.textPosition,
-              },
-            )) as Promise<void>;
+            (await (ctx.runMutation as any)(internal.messages.upsertToolCall, {
+              messageId: args.assistantMessageId,
+              conversationId: args.conversationId,
+              userId: args.userId,
+              toolCallId: chunk.toolCallId,
+              toolName: existing.name,
+              args: JSON.parse(existing.arguments),
+              result: resultValue, // Native JSON
+              isPartial: true,
+              timestamp: existing.timestamp,
+              textPosition: existing.textPosition,
+            })) as Promise<void>;
           }
         }
 
@@ -1010,13 +1017,15 @@ export const generateResponse = internalAction({
 
       // Extract sources from response (Perplexity, web search models)
       // Vercel AI SDK v5+ automatically parses Perplexity sources into result.sources
-      let sources: Array<{
-        position: number;
-        title: string;
-        url: string;
-        snippet?: string;
-        publishedDate?: string;
-      }> | undefined;
+      let sources:
+        | Array<{
+            position: number;
+            title: string;
+            url: string;
+            snippet?: string;
+            publishedDate?: string;
+          }>
+        | undefined;
 
       // Priority 1: Check if SDK already parsed sources (Perplexity via Gateway)
       // For streamText, sources is a promise that needs to be awaited
@@ -1032,19 +1041,27 @@ export const generateResponse = internalAction({
             publishedDate: undefined,
           }));
 
-          console.log(`[Sources] Extracted ${sources.length} sources from result.sources (Perplexity)`);
+          console.log(
+            `[Sources] Extracted ${sources.length} sources from result.sources (Perplexity)`,
+          );
         } else {
-          console.log("[Sources] result.sources was empty or undefined, trying providerMetadata");
+          console.log(
+            "[Sources] result.sources was empty or undefined, trying providerMetadata",
+          );
         }
       } catch (error) {
-        console.log("[Sources] result.sources not available, trying providerMetadata");
+        console.log(
+          "[Sources] result.sources not available, trying providerMetadata",
+        );
       }
 
       // Priority 2: Fall back to extracting from providerMetadata (OpenRouter, etc.)
       if (!sources) {
         sources = extractSources(providerMetadata);
         if (sources) {
-          console.log(`[Sources] Extracted ${sources.length} sources from providerMetadata`);
+          console.log(
+            `[Sources] Extracted ${sources.length} sources from providerMetadata`,
+          );
         } else {
           console.log("[Sources] No sources found in providerMetadata either");
         }
@@ -1052,12 +1069,15 @@ export const generateResponse = internalAction({
 
       // Extract webSearch tool sources and merge with Perplexity/provider sources
       const perplexitySourceCount = sources?.length || 0;
-      const webSearchSources = extractWebSearchSources(allToolCalls, perplexitySourceCount);
+      const webSearchSources = extractWebSearchSources(
+        allToolCalls,
+        perplexitySourceCount,
+      );
 
       // Merge sources with unified numbering
       const allSources = [
-        ...(sources || []),     // Perplexity [1], [2], [3]
-        ...webSearchSources,    // webSearch [4], [5], [6]...
+        ...(sources || []), // Perplexity [1], [2], [3]
+        ...webSearchSources, // webSearch [4], [5], [6]...
       ];
 
       if (allSources.length > 0) {
@@ -1122,20 +1142,20 @@ export const generateResponse = internalAction({
 
       // 9. Finalize tool calls (Phase 1: mark partials as complete)
       if (allToolCalls.length > 0) {
-        (await (ctx.runMutation as any)(
-          internal.messages.finalizeToolCalls,
-          { messageId: args.assistantMessageId },
-        )) as Promise<void>;
+        (await (ctx.runMutation as any)(internal.messages.finalizeToolCalls, {
+          messageId: args.assistantMessageId,
+        })) as Promise<void>;
       }
 
       // 9.5. Add sources to normalized tables (Phase 2)
       if (allSources.length > 0) {
         // Determine provider based on source composition
-        const provider = modelConfig.provider === "perplexity"
-          ? "perplexity"
-          : webSearchSources.length > 0
-            ? "tool"
-            : "generic";
+        const provider =
+          modelConfig.provider === "perplexity"
+            ? "perplexity"
+            : webSearchSources.length > 0
+              ? "tool"
+              : "generic";
 
         await (ctx.runAction as any)(
           // @ts-ignore - TypeScript recursion limit
@@ -1220,7 +1240,7 @@ export const generateResponse = internalAction({
       });
 
       // Phase 6: Per-model token tracking (new normalized table)
-      await ((ctx.runMutation as any)(
+      (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.conversations.updateConversationTokenUsage,
         {

@@ -67,9 +67,7 @@ export const searchHistory = internalAction({
         limit: args.limit,
         userId: conversation.userId,
       },
-    )) as Array<
-      Doc<"messages"> & { score: number; conversationTitle: string }
-    >;
+    )) as Array<Doc<"messages"> & { score: number; conversationTitle: string }>;
 
     if (messages.length === 0) {
       return {
@@ -83,8 +81,7 @@ export const searchHistory = internalAction({
     const results = messages.map((m) => ({
       conversationTitle: m.conversationTitle,
       role: m.role,
-      content:
-        m.content.slice(0, 500) + (m.content.length > 500 ? "..." : ""),
+      content: m.content.slice(0, 500) + (m.content.length > 500 ? "..." : ""),
       timestamp: new Date(m._creationTime).toISOString(),
       score: m.score.toFixed(3),
     }));

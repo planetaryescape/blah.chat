@@ -1,12 +1,12 @@
 import {
-    Brain,
-    Code,
-    DollarSign,
-    Eye,
-    Gift,
-    Globe,
-    Sparkles,
-    Zap,
+  Brain,
+  Code,
+  DollarSign,
+  Eye,
+  Gift,
+  Globe,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 import { computeModelMetrics, getBenchmarkScores } from "./benchmarks";
 import type { ModelConfig } from "./models";
@@ -42,9 +42,7 @@ export const MODEL_CATEGORIES: ModelCategory[] = [
     icon: Zap,
     filter: (model: ModelConfig) => {
       const metrics = computeModelMetrics(model);
-      return (
-        metrics.speedTier === "ultra-fast" || metrics.speedTier === "fast"
-      );
+      return metrics.speedTier === "ultra-fast" || metrics.speedTier === "fast";
     },
     description: "Fast models for quick answers and simple tasks",
   },

@@ -17,11 +17,11 @@ export const hybridSearch = action({
     projectId: v.optional(v.union(v.id("projects"), v.literal("none"))),
   },
   handler: async (ctx, args): Promise<Doc<"conversations">[]> => {
-    const user = ((await (ctx.runQuery as any)(
+    const user = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getCurrentUser,
       {},
-    )) as Doc<"users"> | null);
+    )) as Doc<"users"> | null;
     if (!user) return [];
 
     const { query, limit = 20, includeArchived = false } = args;
@@ -41,11 +41,15 @@ export const hybridSearch = action({
       });
 
       // Phase 7: Use native vector index (not manual scoring)
-      const messageResults = await ctx.vectorSearch("messages", "by_embedding", {
-        vector: embedding,
-        limit: 100, // Get more messages to ensure we have enough conversations
-        filter: (q) => q.eq("userId", user._id),
-      });
+      const messageResults = await ctx.vectorSearch(
+        "messages",
+        "by_embedding",
+        {
+          vector: embedding,
+          limit: 100, // Get more messages to ensure we have enough conversations
+          filter: (q) => q.eq("userId", user._id),
+        },
+      );
 
       // Group by conversationId - vectorSearch results have all document fields
       const conversationIds = new Set<Id<"conversations">>();

@@ -2,7 +2,12 @@
 
 import type { Id } from "@/convex/_generated/dataModel";
 import { Card } from "@/components/ui/card";
-import { MessageSquare, FileText, NotebookPen, CheckSquare } from "lucide-react";
+import {
+  MessageSquare,
+  FileText,
+  NotebookPen,
+  CheckSquare,
+} from "lucide-react";
 
 export function ProjectOverview({
   projectId,
@@ -65,7 +70,9 @@ export function ProjectOverview({
             {resources.conversations?.slice(0, 3).map((conv: any) => (
               <div key={conv._id} className="flex items-center gap-3 text-sm">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <span className="flex-1 truncate">{conv.title || "Untitled conversation"}</span>
+                <span className="flex-1 truncate">
+                  {conv.title || "Untitled conversation"}
+                </span>
                 <span className="text-muted-foreground">
                   {new Date(conv.createdAt).toLocaleDateString()}
                 </span>
@@ -80,9 +87,12 @@ export function ProjectOverview({
                 </span>
               </div>
             ))}
-            {(!resources.conversations || resources.conversations.length === 0) &&
+            {(!resources.conversations ||
+              resources.conversations.length === 0) &&
               (!resources.files || resources.files.length === 0) && (
-                <p className="text-sm text-muted-foreground">No recent activity</p>
+                <p className="text-sm text-muted-foreground">
+                  No recent activity
+                </p>
               )}
           </div>
         )}

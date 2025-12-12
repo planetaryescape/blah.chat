@@ -80,7 +80,10 @@ export const backfillBatch = internalMutation({
       // Migrate tool calls (merge final + partial into single table)
       if (!existingToolCalls) {
         const allToolCalls = [
-          ...((msg as any).toolCalls || []).map((tc: any) => ({ ...tc, isPartial: false })),
+          ...((msg as any).toolCalls || []).map((tc: any) => ({
+            ...tc,
+            isPartial: false,
+          })),
           ...((msg as any).partialToolCalls || []).map((tc: any) => ({
             ...tc,
             isPartial: true,

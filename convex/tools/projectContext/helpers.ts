@@ -37,9 +37,7 @@ export const searchNoteContent = internalQuery({
   handler: async (ctx, args) => {
     // Get all notes
     const notes = await Promise.all(args.noteIds.map((id) => ctx.db.get(id)));
-    const validNotes = notes.filter(
-      (n): n is Doc<"notes"> => n !== null,
-    );
+    const validNotes = notes.filter((n): n is Doc<"notes"> => n !== null);
 
     // Simple keyword filter (case-insensitive)
     const queryLower = args.query.toLowerCase();
@@ -153,9 +151,7 @@ export const vectorSearchMessages = internalAction({
       }
     }
 
-    return messages
-      .sort((a, b) => b.score - a.score)
-      .slice(0, args.limit);
+    return messages.sort((a, b) => b.score - a.score).slice(0, args.limit);
   },
 });
 

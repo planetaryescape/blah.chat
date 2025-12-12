@@ -45,7 +45,7 @@ export const extractAndApplyTags = internalAction({
 
     try {
       // Get user's existing tags (top 20 by usage)
-      const existingTags = await ((ctx.runQuery as any)(
+      const existingTags = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.tags.queries.getAllUserTags,
         {},
@@ -111,7 +111,7 @@ export const extractAndApplyTags = internalAction({
       // PHASE 3: Tag Application (dual-write)
       const applyStart = Date.now();
       for (const tag of finalTags) {
-        await ((ctx.runMutation as any)(
+        (await (ctx.runMutation as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.notes.addTagInternal,
           { noteId, userId: note.userId, tag },
@@ -122,7 +122,9 @@ export const extractAndApplyTags = internalAction({
       const totalTime = Date.now() - startTime;
       const tagReuseRate =
         finalTags.length > 0
-          ? ((matchStats.exact + matchStats.fuzzy + matchStats.semantic) / finalTags.length) * 100
+          ? ((matchStats.exact + matchStats.fuzzy + matchStats.semantic) /
+              finalTags.length) *
+            100
           : 0;
 
       console.log(

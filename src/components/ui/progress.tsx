@@ -5,7 +5,8 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-interface ProgressProps extends React.ComponentProps<typeof ProgressPrimitive.Root> {
+interface ProgressProps
+  extends React.ComponentProps<typeof ProgressPrimitive.Root> {
   indicatorClassName?: string;
 }
 

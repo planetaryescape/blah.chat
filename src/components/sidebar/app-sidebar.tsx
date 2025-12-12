@@ -3,6 +3,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Bookmark,
   Brain,
+  CheckSquare,
   ChevronDown,
   FileText,
   FolderKanban,
@@ -59,12 +60,33 @@ import { ConversationList } from "./ConversationList";
 
 const MENU_ITEMS = [
   { icon: Search, label: "Search", href: "/search", featureKey: null },
-  { icon: NotebookPen, label: "Notes", href: "/notes", featureKey: "showNotes" as const },
+  {
+    icon: NotebookPen,
+    label: "Notes",
+    href: "/notes",
+    featureKey: "showNotes" as const,
+  },
   { icon: Brain, label: "Memories", href: "/memories", featureKey: null },
-  { icon: FolderKanban, label: "Projects", href: "/projects", featureKey: "showProjects" as const },
+  {
+    icon: FolderKanban,
+    label: "Projects",
+    href: "/projects",
+    featureKey: "showProjects" as const,
+  },
+  { icon: CheckSquare, label: "Tasks", href: "/tasks", featureKey: null },
   { icon: Mic, label: "Smart Assistant", href: "/assistant", featureKey: null },
-  { icon: FileText, label: "Templates", href: "/templates", featureKey: "showTemplates" as const },
-  { icon: Bookmark, label: "Bookmarks", href: "/bookmarks", featureKey: "showBookmarks" as const },
+  {
+    icon: FileText,
+    label: "Templates",
+    href: "/templates",
+    featureKey: "showTemplates" as const,
+  },
+  {
+    icon: Bookmark,
+    label: "Bookmarks",
+    href: "/bookmarks",
+    featureKey: "showBookmarks" as const,
+  },
   { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null },
   { icon: Settings, label: "Settings", href: "/settings", featureKey: null },
 ];
@@ -158,7 +180,9 @@ export function AppSidebar() {
     return features[item.featureKey]; // Show only if feature is enabled
   });
 
-  const displayedItems = isMobile ? visibleMenuItems.slice(0, 3) : visibleMenuItems;
+  const displayedItems = isMobile
+    ? visibleMenuItems.slice(0, 3)
+    : visibleMenuItems;
   const overflowItems = isMobile ? visibleMenuItems.slice(3) : [];
 
   // Bulk action handlers - wrapped in useCallback to prevent infinite re-renders

@@ -3,7 +3,14 @@
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpDown, Shield, Users } from "lucide-react";
-import { Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  Suspense,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -32,7 +39,11 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { DateRangePicker } from "@/components/admin/DateRangePicker";
-import { getLastNDays, formatCurrency, formatCompactNumber } from "@/lib/utils/date";
+import {
+  getLastNDays,
+  formatCurrency,
+  formatCompactNumber,
+} from "@/lib/utils/date";
 
 type UserWithUsage = {
   _id: Id<"users">;
@@ -101,21 +112,24 @@ function UsersPageContent() {
   });
 
   // Stabilize callback to prevent column recreation
-  const handleToggleAdmin = useCallback(async (userId: Id<"users">, isAdmin: boolean) => {
-    try {
-      await updateRole({ userId, isAdmin });
-      toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update role");
-    }
-  }, [updateRole]);
+  const handleToggleAdmin = useCallback(
+    async (userId: Id<"users">, isAdmin: boolean) => {
+      try {
+        await updateRole({ userId, isAdmin });
+        toast.success(isAdmin ? "Admin role granted" : "Admin role revoked");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update role");
+      }
+    },
+    [updateRole],
+  );
 
   // Merge users with usage data - MUST be memoized to prevent infinite re-renders
   const usersWithUsage = useMemo<UserWithUsage[]>(() => {
     if (!users || !usageSummary) return [];
 
     const usageByUserId = new Map(
-      usageSummary.map((usage) => [usage.userId, usage])
+      usageSummary.map((usage) => [usage.userId, usage]),
     );
 
     return users.map((user) => ({
@@ -129,101 +143,104 @@ function UsersPageContent() {
   }, [users, usageSummary]);
 
   // Column definitions - MUST be memoized to prevent infinite re-renders
-  const columns = useMemo<ColumnDef<UserWithUsage>[]>(() => [
-    {
-      id: "user",
-      accessorFn: (row) => row.name,
-      header: "User",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage
-              src={row.original.imageUrl || undefined}
-              alt={row.original.name}
+  const columns = useMemo<ColumnDef<UserWithUsage>[]>(
+    () => [
+      {
+        id: "user",
+        accessorFn: (row) => row.name,
+        header: "User",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={row.original.imageUrl || undefined}
+                alt={row.original.name}
+              />
+              <AvatarFallback>
+                {row.original.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{row.original.name}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.email}</span>
+        ),
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Joined",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {formatDistanceToNow(row.original.createdAt, { addSuffix: true })}
+          </span>
+        ),
+      },
+      {
+        id: "totalSpent",
+        accessorFn: (row) => row.usage.totalCost,
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            className="text-right w-full justify-end"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Total Spent
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-medium">
+            {formatCurrency(row.original.usage.totalCost)}
+          </div>
+        ),
+      },
+      {
+        id: "totalTokens",
+        accessorFn: (row) => row.usage.totalTokens,
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            className="text-right w-full justify-end"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Total Tokens
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-medium">
+            {formatCompactNumber(row.original.usage.totalTokens)}
+          </div>
+        ),
+      },
+      {
+        id: "admin",
+        header: () => <div className="text-right">Admin</div>,
+        cell: ({ row }) => (
+          <div
+            className="flex items-center justify-end gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {row.original.isAdmin && (
+              <Shield className="h-4 w-4 text-primary" />
+            )}
+            <Switch
+              checked={row.original.isAdmin}
+              onCheckedChange={(checked) =>
+                handleToggleAdmin(row.original._id, checked)
+              }
             />
-            <AvatarFallback>
-              {row.original.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{row.original.name}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.email}</span>
-      ),
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Joined",
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {formatDistanceToNow(row.original.createdAt, { addSuffix: true })}
-        </span>
-      ),
-    },
-    {
-      id: "totalSpent",
-      accessorFn: (row) => row.usage.totalCost,
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          className="text-right w-full justify-end"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Total Spent
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          {formatCurrency(row.original.usage.totalCost)}
-        </div>
-      ),
-    },
-    {
-      id: "totalTokens",
-      accessorFn: (row) => row.usage.totalTokens,
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          className="text-right w-full justify-end"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Total Tokens
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-medium">
-          {formatCompactNumber(row.original.usage.totalTokens)}
-        </div>
-      ),
-    },
-    {
-      id: "admin",
-      header: () => <div className="text-right">Admin</div>,
-      cell: ({ row }) => (
-        <div
-          className="flex items-center justify-end gap-2"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {row.original.isAdmin && (
-            <Shield className="h-4 w-4 text-primary" />
-          )}
-          <Switch
-            checked={row.original.isAdmin}
-            onCheckedChange={(checked) =>
-              handleToggleAdmin(row.original._id, checked)
-            }
-          />
-        </div>
-      ),
-    },
-  ], [handleToggleAdmin]); // dependency: only recreate if handleToggleAdmin changes
+          </div>
+        ),
+      },
+    ],
+    [handleToggleAdmin],
+  ); // dependency: only recreate if handleToggleAdmin changes
 
   // Initialize TanStack Table (must be before conditional return)
   const table = useReactTable({
@@ -266,12 +283,12 @@ function UsersPageContent() {
       {/* Fixed Page Header */}
       <div className="flex-shrink-0 px-6 pt-6 space-y-4">
         <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="h-6 w-6" />
-          <h1 className="text-2xl font-semibold">User Management</h1>
+          <div className="flex items-center gap-3">
+            <Users className="h-6 w-6" />
+            <h1 className="text-2xl font-semibold">User Management</h1>
+          </div>
+          <Badge variant="secondary">{users.length} users</Badge>
         </div>
-        <Badge variant="secondary">{users.length} users</Badge>
-      </div>
 
         {/* Date Range Filter */}
         <div className="flex items-center justify-between">
@@ -282,126 +299,133 @@ function UsersPageContent() {
       {/* Scrollable Table with Fixed Headers */}
       <div className="flex-1 flex flex-col min-h-0 px-6 pb-0">
         <div className="border rounded-lg flex-1 flex flex-col min-h-0 overflow-hidden">
-        {shouldVirtualize ? (
-          /* Virtualized rendering for 50+ rows */
-          <>
-            {/* Fixed Headers */}
-            <div className="flex-shrink-0 sticky top-0 z-10 bg-background border-b">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <div key={headerGroup.id} className="flex">
-                  {headerGroup.headers.map((header) => (
-                    <div
-                      key={header.id}
-                      className="flex-1 px-4 py-3 text-sm font-medium"
-                      style={{
-                        width: header.getSize(),
-                      }}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-
-            {/* Scrollable Body */}
-            <div
-              ref={tableContainerRef}
-              className="flex-1 overflow-auto relative"
-            >
-              <div
-                style={{
-                  height: `${rowVirtualizer.getTotalSize()}px`,
-                  position: "relative",
-                }}
-              >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const row = rows[virtualRow.index];
-                  return (
-                    <div
-                      key={row.id}
-                      data-index={virtualRow.index}
-                      ref={rowVirtualizer.measureElement}
-                      className="flex cursor-pointer hover:bg-muted/50 border-b absolute left-0 w-full"
-                      style={{
-                        transform: `translateY(${virtualRow.start}px)`,
-                      }}
-                      onClick={() => router.push(`/admin/users/${row.original._id}`)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <div
-                          key={cell.id}
-                          className="flex-1 px-4 py-3"
-                          style={{
-                            width: cell.column.getSize(),
-                          }}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        ) : (
-          /* Standard table rendering for < 50 rows */
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader>
+          {shouldVirtualize ? (
+            /* Virtualized rendering for 50+ rows */
+            <>
+              {/* Fixed Headers */}
+              <div className="flex-shrink-0 sticky top-0 z-10 bg-background border-b">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <div key={headerGroup.id} className="flex">
                     {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
+                      <div
+                        key={header.id}
+                        className="flex-1 px-4 py-3 text-sm font-medium"
+                        style={{
+                          width: header.getSize(),
+                        }}
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
-                      </TableHead>
+                      </div>
                     ))}
-                  </TableRow>
+                  </div>
                 ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => router.push(`/admin/users/${row.original._id}`)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
+              </div>
+
+              {/* Scrollable Body */}
+              <div
+                ref={tableContainerRef}
+                className="flex-1 overflow-auto relative"
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const row = rows[virtualRow.index];
+                    return (
+                      <div
+                        key={row.id}
+                        data-index={virtualRow.index}
+                        ref={rowVirtualizer.measureElement}
+                        className="flex cursor-pointer hover:bg-muted/50 border-b absolute left-0 w-full"
+                        style={{
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        onClick={() =>
+                          router.push(`/admin/users/${row.original._id}`)
+                        }
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <div
+                            key={cell.id}
+                            className="flex-1 px-4 py-3"
+                            style={{
+                              width: cell.column.getSize(),
+                            }}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Standard table rendering for < 50 rows */
+            <div className="flex-1 overflow-auto">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                        </TableHead>
                       ))}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      No users found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() =>
+                          router.push(`/admin/users/${row.original._id}`)
+                        }
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No users found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </div>
 
@@ -409,7 +433,8 @@ function UsersPageContent() {
       <div className="flex-shrink-0 px-6 pb-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {table.getRowModel().rows.length} of {usersWithUsage.length} users
+            Showing {table.getRowModel().rows.length} of {usersWithUsage.length}{" "}
+            users
           </div>
           <div className="flex items-center space-x-2">
             <Button

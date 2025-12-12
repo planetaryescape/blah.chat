@@ -43,7 +43,7 @@ export function ProjectFiles({
 
     if (file.size > WARN_FILE_SIZE) {
       const confirmed = confirm(
-        `This file is ${Math.round(file.size / 1024 / 1024)}MB. Large files may take time to process. Continue?`
+        `This file is ${Math.round(file.size / 1024 / 1024)}MB. Large files may take time to process. Continue?`,
       );
       if (!confirmed) return;
     }

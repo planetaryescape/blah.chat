@@ -88,15 +88,27 @@ export function CustomInstructionsForm() {
   const prefCustomInstructions = useUserPreference("customInstructions");
 
   // Local state for form fields (initialized from hook)
-  const [aboutUser, setAboutUser] = useState(prefCustomInstructions.aboutUser || "");
-  const [responseStyle, setResponseStyle] = useState(prefCustomInstructions.responseStyle || "");
-  const [enabled, setEnabled] = useState<boolean>(prefCustomInstructions.enabled ?? true);
-  const [baseStyleAndTone, setBaseStyleAndTone] = useState<BaseStyleAndTone>(
-    (prefCustomInstructions.baseStyleAndTone as BaseStyleAndTone) || "default"
+  const [aboutUser, setAboutUser] = useState(
+    prefCustomInstructions.aboutUser || "",
   );
-  const [nickname, setNickname] = useState(prefCustomInstructions.nickname || "");
-  const [occupation, setOccupation] = useState(prefCustomInstructions.occupation || "");
-  const [moreAboutYou, setMoreAboutYou] = useState(prefCustomInstructions.moreAboutYou || "");
+  const [responseStyle, setResponseStyle] = useState(
+    prefCustomInstructions.responseStyle || "",
+  );
+  const [enabled, setEnabled] = useState<boolean>(
+    prefCustomInstructions.enabled ?? true,
+  );
+  const [baseStyleAndTone, setBaseStyleAndTone] = useState<BaseStyleAndTone>(
+    (prefCustomInstructions.baseStyleAndTone as BaseStyleAndTone) || "default",
+  );
+  const [nickname, setNickname] = useState(
+    prefCustomInstructions.nickname || "",
+  );
+  const [occupation, setOccupation] = useState(
+    prefCustomInstructions.occupation || "",
+  );
+  const [moreAboutYou, setMoreAboutYou] = useState(
+    prefCustomInstructions.moreAboutYou || "",
+  );
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -105,7 +117,10 @@ export function CustomInstructionsForm() {
     setAboutUser(prefCustomInstructions.aboutUser || "");
     setResponseStyle(prefCustomInstructions.responseStyle || "");
     setEnabled(prefCustomInstructions.enabled ?? true);
-    setBaseStyleAndTone((prefCustomInstructions.baseStyleAndTone as BaseStyleAndTone) || "default");
+    setBaseStyleAndTone(
+      (prefCustomInstructions.baseStyleAndTone as BaseStyleAndTone) ||
+        "default",
+    );
     setNickname(prefCustomInstructions.nickname || "");
     setOccupation(prefCustomInstructions.occupation || "");
     setMoreAboutYou(prefCustomInstructions.moreAboutYou || "");

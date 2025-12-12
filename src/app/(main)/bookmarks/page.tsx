@@ -18,10 +18,7 @@ function BookmarksPageContent() {
   // Route guard: show disabled page if bookmarks feature is off
   if (!features.showBookmarks) {
     return (
-      <DisabledFeaturePage
-        featureName="Bookmarks"
-        settingKey="showBookmarks"
-      />
+      <DisabledFeaturePage featureName="Bookmarks" settingKey="showBookmarks" />
     );
   }
 

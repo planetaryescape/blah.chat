@@ -134,7 +134,9 @@ export const addConversation = mutation({
     const existing = await ctx.db
       .query("projectConversations")
       .withIndex("by_project_conversation", (q) =>
-        q.eq("projectId", args.projectId).eq("conversationId", args.conversationId),
+        q
+          .eq("projectId", args.projectId)
+          .eq("conversationId", args.conversationId),
       )
       .first();
 
@@ -173,7 +175,9 @@ export const removeConversation = mutation({
     const junction = await ctx.db
       .query("projectConversations")
       .withIndex("by_project_conversation", (q) =>
-        q.eq("projectId", args.projectId).eq("conversationId", args.conversationId),
+        q
+          .eq("projectId", args.projectId)
+          .eq("conversationId", args.conversationId),
       )
       .first();
     if (junction) {
@@ -242,7 +246,6 @@ export const assignConversations = mutation({
           addedBy: user._id,
         });
       }
-
     }
   },
 });
@@ -599,7 +602,9 @@ export const getProjectResources = query({
 
     // Batch hydrate (N+1 prevention)
     const [conversations, notes, files] = await Promise.all([
-      Promise.all(conversationJunctions.map((j) => ctx.db.get(j.conversationId))),
+      Promise.all(
+        conversationJunctions.map((j) => ctx.db.get(j.conversationId)),
+      ),
       Promise.all(noteJunctions.map((j) => ctx.db.get(j.noteId))),
       Promise.all(fileJunctions.map((j) => ctx.db.get(j.fileId))),
     ]);

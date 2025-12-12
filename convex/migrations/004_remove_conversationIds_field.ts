@@ -11,9 +11,7 @@ export const removeConversationIdsFromProjects = internalMutation({
     const batchSize = args.batchSize ?? 100;
     let updated = 0;
 
-    const projects = await ctx.db
-      .query("projects")
-      .collect();
+    const projects = await ctx.db.query("projects").collect();
 
     for (const project of projects) {
       // @ts-ignore - Removing deprecated field
@@ -37,13 +35,14 @@ export const countProjectsWithConversationIds = internalQuery({
   handler: async (ctx) => {
     const projects = await ctx.db.query("projects").collect();
     // @ts-ignore - Checking for deprecated field
-    const withField = projects.filter(p => p.conversationIds !== undefined);
+    const withField = projects.filter((p) => p.conversationIds !== undefined);
     return {
       total: projects.length,
       withField: withField.length,
-      percentage: projects.length > 0
-        ? ((withField.length / projects.length) * 100).toFixed(1)
-        : "0",
+      percentage:
+        projects.length > 0
+          ? ((withField.length / projects.length) * 100).toFixed(1)
+          : "0",
     };
   },
 });

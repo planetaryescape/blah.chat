@@ -32,7 +32,9 @@ export function ReasoningBlock({
   // Phase 4: Use new preference hook
   const reasoningPrefs = useUserPreference("reasoning");
 
-  const [isExpanded, setIsExpanded] = useState<boolean>(reasoningPrefs.autoExpand);
+  const [isExpanded, setIsExpanded] = useState<boolean>(
+    reasoningPrefs.autoExpand,
+  );
 
   // Update isExpanded when preferences change
   useEffect(() => {

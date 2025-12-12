@@ -96,10 +96,7 @@ async function testPerplexity() {
       "Checking providerMetadata.perplexity?.cited_sources:",
       !!metadata?.perplexity?.cited_sources,
     );
-    console.log(
-      "Checking providerMetadata.sources:",
-      !!metadata?.sources,
-    );
+    console.log("Checking providerMetadata.sources:", !!metadata?.sources);
     console.log(
       "Checking providerMetadata.search_results:",
       !!metadata?.search_results,
@@ -130,10 +127,7 @@ async function testPerplexity() {
   }
 }
 
-function calculateCost(usage: {
-  inputTokens?: number;
-  outputTokens?: number;
-}) {
+function calculateCost(usage: { inputTokens?: number; outputTokens?: number }) {
   // Perplexity sonar-pro pricing: $3/MTok input, $15/MTok output
   const inputTokens = usage.inputTokens || 0;
   const outputTokens = usage.outputTokens || 0;

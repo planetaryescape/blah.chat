@@ -38,11 +38,14 @@ export const getTagMetrics = query({
       globalTags: allTags.filter((t) => t.scope === "global").length,
 
       // Embedding coverage
-      tagsWithEmbeddings: allTags.filter((t) => t.embedding && t.embedding.length > 0).length,
+      tagsWithEmbeddings: allTags.filter(
+        (t) => t.embedding && t.embedding.length > 0,
+      ).length,
       embeddingCoverage:
         allTags.length > 0
           ? (
-              (allTags.filter((t) => t.embedding && t.embedding.length > 0).length /
+              (allTags.filter((t) => t.embedding && t.embedding.length > 0)
+                .length /
                 allTags.length) *
               100
             ).toFixed(1)
@@ -50,8 +53,11 @@ export const getTagMetrics = query({
 
       // Usage distribution
       unusedTags: allTags.filter((t) => t.usageCount === 0).length,
-      lowUsageTags: allTags.filter((t) => t.usageCount > 0 && t.usageCount < 5).length,
-      mediumUsageTags: allTags.filter((t) => t.usageCount >= 5 && t.usageCount < 20).length,
+      lowUsageTags: allTags.filter((t) => t.usageCount > 0 && t.usageCount < 5)
+        .length,
+      mediumUsageTags: allTags.filter(
+        (t) => t.usageCount >= 5 && t.usageCount < 20,
+      ).length,
       highUsageTags: allTags.filter((t) => t.usageCount >= 20).length,
 
       // Tag reuse (notes perspective)
@@ -124,7 +130,10 @@ export const getUserTagMetrics = query({
     }
 
     // Tag reuse rate calculation
-    const totalTagApplications = notesWithTags.reduce((sum, n) => sum + (n.tags?.length || 0), 0);
+    const totalTagApplications = notesWithTags.reduce(
+      (sum, n) => sum + (n.tags?.length || 0),
+      0,
+    );
     const tagCreationRate =
       userTags.length > 0 && totalTagApplications > 0
         ? ((userTags.length / totalTagApplications) * 100).toFixed(1)
@@ -136,7 +145,9 @@ export const getUserTagMetrics = query({
 
       // Tag inventory
       totalTags: userTags.length,
-      tagsWithEmbeddings: userTags.filter((t) => t.embedding && t.embedding.length > 0).length,
+      tagsWithEmbeddings: userTags.filter(
+        (t) => t.embedding && t.embedding.length > 0,
+      ).length,
       unusedTags: userTags.filter((t) => t.usageCount === 0).length,
 
       // Note tagging
@@ -180,16 +191,21 @@ export const getSystemHealth = query({
     const allTags = await ctx.db.query("tags").collect();
     const embeddingCoverage =
       allTags.length > 0
-        ? (allTags.filter((t) => t.embedding && t.embedding.length > 0).length / allTags.length) *
+        ? (allTags.filter((t) => t.embedding && t.embedding.length > 0).length /
+            allTags.length) *
           100
         : 0;
 
     const allNotes = await ctx.db.query("notes").collect();
     const notesWithTags = allNotes.filter((n) => n.tags && n.tags.length > 0);
-    const taggedNotesRate = allNotes.length > 0 ? (notesWithTags.length / allNotes.length) * 100 : 0;
+    const taggedNotesRate =
+      allNotes.length > 0 ? (notesWithTags.length / allNotes.length) * 100 : 0;
 
     // Calculate overall tag reuse
-    const totalTagApplications = notesWithTags.reduce((sum, n) => sum + (n.tags?.length || 0), 0);
+    const totalTagApplications = notesWithTags.reduce(
+      (sum, n) => sum + (n.tags?.length || 0),
+      0,
+    );
     const overallReuseRate =
       totalTagApplications > 0 && allTags.length > 0
         ? (1 - allTags.length / totalTagApplications) * 100
@@ -207,12 +223,22 @@ export const getSystemHealth = query({
         tagReuseRate: {
           value: overallReuseRate,
           target: 70, // Target: 70% tag reuse
-          status: overallReuseRate >= 70 ? "pass" : overallReuseRate >= 50 ? "warn" : "fail",
+          status:
+            overallReuseRate >= 70
+              ? "pass"
+              : overallReuseRate >= 50
+                ? "warn"
+                : "fail",
         },
         taggedNotesRate: {
           value: taggedNotesRate,
           target: 80, // 80% of notes should have tags
-          status: taggedNotesRate >= 80 ? "pass" : taggedNotesRate >= 60 ? "warn" : "fail",
+          status:
+            taggedNotesRate >= 80
+              ? "pass"
+              : taggedNotesRate >= 60
+                ? "warn"
+                : "fail",
         },
         avgTagsPerNote: {
           value:
@@ -238,8 +264,12 @@ export const getSystemHealth = query({
     };
 
     // Determine overall status
-    const failCount = Object.values(health.checks).filter((c) => c.status === "fail").length;
-    const warnCount = Object.values(health.checks).filter((c) => c.status === "warn").length;
+    const failCount = Object.values(health.checks).filter(
+      (c) => c.status === "fail",
+    ).length;
+    const warnCount = Object.values(health.checks).filter(
+      (c) => c.status === "warn",
+    ).length;
 
     if (failCount > 0) {
       health.status = "critical";

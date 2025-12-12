@@ -21,7 +21,7 @@ import { PREFERENCE_DEFAULTS } from "@/convex/users/constants";
  */
 export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
   key: K,
-): typeof PREFERENCE_DEFAULTS[K] {
+): (typeof PREFERENCE_DEFAULTS)[K] {
   // @ts-ignore - Type depth exceeded with Convex modules
   const value = useQuery(api.users.getUserPreference, { key });
 

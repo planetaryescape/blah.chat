@@ -56,7 +56,9 @@ export default function ProjectDetailPage({
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="conversations">
             Conversations
-            {stats && <span className="ml-1.5">({stats.conversationCount})</span>}
+            {stats && (
+              <span className="ml-1.5">({stats.conversationCount})</span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="files">
             Files
@@ -68,12 +70,18 @@ export default function ProjectDetailPage({
           </TabsTrigger>
           <TabsTrigger value="tasks">
             Tasks
-            {stats && <span className="ml-1.5">({stats.taskStats?.active || 0})</span>}
+            {stats && (
+              <span className="ml-1.5">({stats.taskStats?.active || 0})</span>
+            )}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-          <ProjectOverview projectId={projectId} resources={resources} stats={stats} />
+          <ProjectOverview
+            projectId={projectId}
+            resources={resources}
+            stats={stats}
+          />
         </TabsContent>
 
         <TabsContent value="conversations">

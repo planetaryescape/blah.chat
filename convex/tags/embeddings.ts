@@ -49,13 +49,15 @@ export const generateTagEmbedding = internalAction({
       });
 
       // Store embedding
-      await ((ctx.runMutation as any)(
+      (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.tags.embeddings.updateEmbedding,
         { tagId, embedding },
       )) as Promise<void>;
 
-      console.log(`[Embeddings] Generated for tag "${tag.displayName}" (${tagId})`);
+      console.log(
+        `[Embeddings] Generated for tag "${tag.displayName}" (${tagId})`,
+      );
     } catch (error) {
       console.error(`[Embeddings] Failed to generate for tag ${tagId}:`, error);
     }

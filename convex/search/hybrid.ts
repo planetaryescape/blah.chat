@@ -19,11 +19,11 @@ export const hybridSearch = action({
     messageType: v.optional(v.union(v.literal("user"), v.literal("assistant"))),
   },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
-    const user = ((await (ctx.runQuery as any)(
+    const user = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getCurrentUser,
       {},
-    )) as Doc<"users"> | null);
+    )) as Doc<"users"> | null;
     if (!user) return [];
 
     const limit = args.limit || 20;
@@ -95,7 +95,11 @@ export const hybridSearch = action({
       }
 
       // 3. RRF merge
-      return mergeWithRRF(textResults, filteredVectorResults.slice(0, 40), limit);
+      return mergeWithRRF(
+        textResults,
+        filteredVectorResults.slice(0, 40),
+        limit,
+      );
     } catch (error) {
       console.error("Vector search failed, falling back to text-only:", error);
       return textResults.slice(0, limit);

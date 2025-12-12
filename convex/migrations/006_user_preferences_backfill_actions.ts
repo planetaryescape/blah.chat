@@ -38,7 +38,9 @@ export const runBackfill = internalAction({
     console.log(`📊 Initial state:`);
     console.log(`   Total users: ${initial.totalUsers}`);
     console.log(`   Already backfilled: ${initial.usersWithPrefs}`);
-    console.log(`   Remaining: ${initial.remaining} (${100 - Number.parseFloat(initial.percentage)}%)`);
+    console.log(
+      `   Remaining: ${initial.remaining} (${100 - Number.parseFloat(initial.percentage)}%)`,
+    );
 
     if (initial.remaining === 0) {
       console.log("✅ All users already backfilled");
@@ -91,9 +93,7 @@ export const runBackfill = internalAction({
     console.log(`   Final coverage: ${final.percentage}%`);
 
     if (final.remaining > 0) {
-      console.warn(
-        `⚠️  Warning: ${final.remaining} users still need backfill`,
-      );
+      console.warn(`⚠️  Warning: ${final.remaining} users still need backfill`);
     } else {
       console.log("✅ All users backfilled successfully");
     }
@@ -138,7 +138,9 @@ export const verifyMigration = internalAction({
       return { status: "success", coverage: 100 };
     }
 
-    console.warn(`⚠️  Migration incomplete: ${status.remaining} users remaining`);
+    console.warn(
+      `⚠️  Migration incomplete: ${status.remaining} users remaining`,
+    );
     return {
       status: "incomplete",
       coverage: Number.parseFloat(status.percentage),

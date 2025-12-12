@@ -26,9 +26,15 @@ export function ReasoningSettings() {
   const prefReasoning = useUserPreference("reasoning");
 
   // Local state for optimistic updates (initialized from hooks)
-  const [showByDefault, setShowByDefault] = useState<boolean>(prefReasoning.showByDefault ?? true);
-  const [autoExpand, setAutoExpand] = useState<boolean>(prefReasoning.autoExpand ?? false);
-  const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(prefReasoning.showDuringStreaming ?? true);
+  const [showByDefault, setShowByDefault] = useState<boolean>(
+    prefReasoning.showByDefault ?? true,
+  );
+  const [autoExpand, setAutoExpand] = useState<boolean>(
+    prefReasoning.autoExpand ?? false,
+  );
+  const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(
+    prefReasoning.showDuringStreaming ?? true,
+  );
 
   // Sync local state when hook value changes
   useEffect(() => {

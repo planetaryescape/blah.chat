@@ -273,7 +273,9 @@ export function ConversationItem({
                       variant="ghost"
                       size="icon"
                       className="h-3 w-3 min-w-0 min-h-0 p-0"
-                      disabled={!conversation.pinned && conversation.messageCount === 0}
+                      disabled={
+                        !conversation.pinned && conversation.messageCount === 0
+                      }
                       aria-label={
                         conversation.pinned
                           ? "Unpin conversation"

@@ -1,115 +1,114 @@
 "use client";
 
-import { useAction, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { analytics } from "@/lib/analytics";
+import {
+	useDeleteConversation,
+	useArchiveConversation,
+	useTogglePin,
+	useToggleStar,
+} from "@/lib/hooks/mutations";
 
 export function useConversationActions(
   conversationId: Id<"conversations"> | null,
   source: "command_palette" | "header_menu",
 ) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteMutation = useMutation(api.conversations.deleteConversation);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const archiveMutation = useMutation(api.conversations.archive);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const togglePinMutation = useMutation(api.conversations.togglePin);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const toggleStarMutation = useMutation(api.conversations.toggleStar);
+  const { mutate: deleteConversation, isPending: isDeleting } =
+    useDeleteConversation();
+  const { mutate: archiveConversation, isPending: isArchiving } =
+    useArchiveConversation();
+  const { mutate: togglePin, isPending: isPinning } = useTogglePin();
+  const { mutate: toggleStar, isPending: isStarring } = useToggleStar();
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const autoRenameAction = useAction(api.conversations.actions.bulkAutoRename);
 
-  const handleDelete = async () => {
+  const isLoading =
+    isDeleting || isArchiving || isPinning || isStarring || isRenaming;
+
+  const handleDelete = () => {
     if (!conversationId) return;
-    try {
-      setIsLoading(true);
-      await deleteMutation({ conversationId });
-      toast.success("Conversation deleted");
-      analytics.track("conversation_action", {
-        action: "delete",
-        source,
-        conversationId,
-      });
-      router.push("/");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to delete";
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-    }
+    deleteConversation(
+      { conversationId },
+      {
+        onSuccess: () => {
+          analytics.track("conversation_action", {
+            action: "delete",
+            source,
+            conversationId,
+          });
+          router.push("/");
+        },
+      },
+    );
   };
 
-  const handleArchive = async () => {
+  const handleArchive = () => {
     if (!conversationId) return;
-    try {
-      setIsLoading(true);
-      await archiveMutation({ conversationId });
-      toast.success("Conversation archived");
-      analytics.track("conversation_action", {
-        action: "archive",
-        source,
-        conversationId,
-      });
-      router.push("/");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to archive";
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-    }
+    archiveConversation(
+      { conversationId },
+      {
+        onSuccess: () => {
+          analytics.track("conversation_action", {
+            action: "archive",
+            source,
+            conversationId,
+          });
+          router.push("/");
+        },
+      },
+    );
   };
 
-  const handleTogglePin = async (isPinned: boolean) => {
+  const handleTogglePin = (isPinned: boolean) => {
     if (!conversationId) return;
-    try {
-      setIsLoading(true);
-      await togglePinMutation({ conversationId });
-      toast.success(isPinned ? "Conversation unpinned" : "Conversation pinned");
-      analytics.track("conversation_action", {
-        action: isPinned ? "unpin" : "pin",
-        source,
-        conversationId,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to toggle pin";
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-    }
+    togglePin(
+      { conversationId },
+      {
+        onSuccess: () => {
+          toast.success(
+            isPinned ? "Conversation unpinned" : "Conversation pinned",
+          );
+          analytics.track("conversation_action", {
+            action: isPinned ? "unpin" : "pin",
+            source,
+            conversationId,
+          });
+        },
+      },
+    );
   };
 
-  const handleToggleStar = async (isStarred: boolean) => {
+  const handleToggleStar = (isStarred: boolean) => {
     if (!conversationId) return;
-    try {
-      setIsLoading(true);
-      await toggleStarMutation({ conversationId });
-      toast.success(
-        isStarred ? "Conversation unstarred" : "Conversation starred",
-      );
-      analytics.track("conversation_action", {
-        action: isStarred ? "unstar" : "star",
-        source,
-        conversationId,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to toggle star";
-      toast.error(msg);
-    } finally {
-      setIsLoading(false);
-    }
+    toggleStar(
+      { conversationId },
+      {
+        onSuccess: () => {
+          toast.success(
+            isStarred ? "Conversation unstarred" : "Conversation starred",
+          );
+          analytics.track("conversation_action", {
+            action: isStarred ? "unstar" : "star",
+            source,
+            conversationId,
+          });
+        },
+      },
+    );
   };
 
   const handleAutoRename = async () => {
     if (!conversationId) return;
     try {
-      setIsLoading(true);
+      setIsRenaming(true);
       toast.loading("Generating title...", { id: "auto-rename" });
       const results = await autoRenameAction({
         conversationIds: [conversationId],
@@ -129,7 +128,7 @@ export function useConversationActions(
       const msg = err instanceof Error ? err.message : "Failed to auto-rename";
       toast.error(msg, { id: "auto-rename" });
     } finally {
-      setIsLoading(false);
+      setIsRenaming(false);
     }
   };
 

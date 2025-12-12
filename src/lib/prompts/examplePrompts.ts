@@ -37,28 +37,28 @@ const SUGGESTED_PROMPTS: Record<string, readonly string[]> = {
 // Capability-based fallbacks
 const CAPABILITY_PROMPTS = {
   thinking: [
-    "Prove: \\(\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\\) using mathematical induction",
-    "Derive quadratic formula from \\(ax^2 + bx + c = 0\\)",
-    "Find subtle bug in encryption implementation",
-    "Debug infinite recursion in tree traversal",
+    "Prove: $$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$ using mathematical induction",
+    "Derive quadratic formula from $$ax^2 + bx + c = 0$$",
+    "Find the subtle bug in this encryption logic: `AES-GCM` with fixed IV",
+    "Debug infinite recursion in `dfs` traversal: provide fixed code",
   ],
   vision: [
-    "Extract text from handwritten medical form",
-    "Compare before/after screenshots and list UI changes",
-    "Analyze chart trends and summarize insights",
-    "Identify accessibility issues in this design mockup",
+    "Extract structured JSON data from this invoice image",
+    "Identify accessibility violations in this UI design screenshot",
+    "Analyze the trend in this sales chart and predict next month",
+    "Transcribe this handwritten medical note into text",
   ],
   fast: [
-    "Summarize 3-page article in 2 bullet points",
-    "Quick regex for email validation",
-    "Fix TypeScript error in 10 lines",
-    "Generate 5 taglines for SaaS product",
+    "Summarize this article in 3 bullet points",
+    "Write a regex to validate US phone numbers: `(555) 123-4567`",
+    "Fix this TypeScript error: `Property 'id' does not exist on type 'User'`",
+    "Generate 5 creative names for a coffee shop app",
   ],
   general: [
-    "Explain photosynthesis: $$\\ce{6CO2 + 6H2O ->[ ] C6H12O6 + 6O2}$$",
-    "Compare PostgreSQL vs MongoDB for this use case",
-    "Refactor callback hell to async/await",
-    "Solve Einstein's equation: \\(E = mc^2\\) for mass",
+    "Explain photosynthesis: $$\\ce{6CO2 + 6H2O ->[light] C6H12O6 + 6O2}$$",
+    "Compare PostgreSQL vs MongoDB for high-write logging system",
+    "Refactor this nested callback code to `async/await`",
+    "Solve for mass in $$E = mc^2$$ given Energy = 50J",
   ],
 } as const;
 

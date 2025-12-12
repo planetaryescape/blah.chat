@@ -19,7 +19,7 @@ export const PREFERENCE_DEFAULTS = {
 
   // Chat
   sendOnEnter: true,
-  alwaysShowMessageActions: false,
+  alwaysShowMessageActions: true,
   showMessageStatistics: true,
   showComparisonStatistics: true,
   enableHybridSearch: false,

@@ -1253,19 +1253,19 @@ export const generateResponse = internalAction({
 
       // 13. Trigger model triage analysis for cost optimization
       // Runs async in background, analyzes if cheaper model would work
-      const lastUserMsg = messages
+      const lastUserMsgForTriage = messages
         .filter((m: Doc<"messages">) => m.role === "user")
         .sort(
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
 
-      if (lastUserMsg) {
+      if (lastUserMsgForTriage) {
         await ctx.scheduler.runAfter(
           0,
           internal.ai.modelTriage.analyzeModelFit,
           {
             conversationId: args.conversationId,
-            userMessage: lastUserMsg.content,
+            userMessage: lastUserMsgForTriage.content,
             currentModelId: args.modelId,
           },
         );

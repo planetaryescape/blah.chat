@@ -6,6 +6,18 @@
 **Dependencies**: Phase 0-12 (all core features complete)
 **Estimated Effort**: ~7-11 hours total
 
+> **⚠️ Implementation Status (2025-12-12)**
+>
+> **PHASE 13: 0% IMPLEMENTED** - All three features remain incomplete despite detailed specifications.
+>
+> **Current Reality:**
+> - ❌ Import System: Parser (`src/lib/import/chatgpt.ts`), mutation (`convex/import.ts`), UI (`src/app/(main)/settings/import/page.tsx`) - all missing
+> - ❌ Message Edit Mutation: `convex/chat.ts:editMessage` - missing (UI exists but calls non-existent mutation)
+> - ❌ Code Splitting: Zero `next/dynamic` usage found in codebase - all components statically bundled
+> - ✅ Export System: Fully working (`src/lib/export/chatgpt.ts`) - provides reference for import implementation
+>
+> **Next Step:** Implement import system first (highest user value - ChatGPT migration)
+
 ---
 
 ## Overview
@@ -22,7 +34,26 @@ Final polish for production readiness. Three distinct features:
 
 ---
 
-## Feature 1: Import System
+## Feature 1: Import System ❌ NOT IMPLEMENTED
+
+### Current State Analysis
+
+**Export System (Reference Implementation):**
+- ✅ File: `src/lib/export/chatgpt.ts` (193 lines)
+- ✅ Converts blah.chat → ChatGPT format
+- ✅ Handles conversation metadata, message mapping, parent/child links
+- ✅ UI: `src/app/(main)/settings/export/page.tsx` with format selection
+
+**Import System (Missing):**
+- ❌ Parser: `src/lib/import/chatgpt.ts` - DOES NOT EXIST
+- ❌ Backend: `convex/import.ts` - DOES NOT EXIST
+- ❌ UI: `src/app/(main)/settings/import/page.tsx` - DOES NOT EXIST
+- ❌ No import functionality anywhere in codebase
+
+**Verified via:**
+- `glob("**/import/**")` - No import directory exists
+- `grep("import.*chatgpt")` - Only export references found
+- Settings page has Export tab, no Import tab
 
 ### Problem Statement
 
@@ -543,7 +574,25 @@ export default function ImportPage() {
 
 ---
 
-## Feature 2: Message Edit Mutation
+## Feature 2: Message Edit Mutation ❌ NOT IMPLEMENTED
+
+### Current State Analysis
+
+**Frontend UI (Partial):**
+- ✅ File: `src/components/chat/MessageActionsMenu.tsx`
+- ✅ Delete message button exists and works
+- ❌ Edit button: May exist in UI but no backend mutation to call
+- ❌ Edit dialog/input: Implementation unclear without working backend
+
+**Backend (Missing):**
+- ❌ `convex/chat.ts` - No `editMessage` mutation found
+- ✅ `convex/chat.ts` - Has `deleteMessage` mutation (reference pattern)
+- ✅ Schema supports editing (messages have `updatedAt` field)
+
+**Verified via:**
+- Searched `convex/chat.ts` for `editMessage` - not found
+- Checked `convex/messages.ts` - no edit mutation there either
+- Pattern exists in `deleteMessage` (lines 150-180) - can be adapted
 
 ### Problem Statement
 
@@ -687,7 +736,29 @@ export function MessageActionsMenu({ message }: Props) {
 
 ---
 
-## Feature 3: Code Splitting
+## Feature 3: Code Splitting ❌ NOT IMPLEMENTED
+
+### Current State Analysis
+
+**Current Bundle (Static Loading):**
+- ❌ No `next/dynamic` imports found in codebase
+- ❌ All components statically bundled
+- ❌ Large components load on initial page paint
+
+**Components That Should Be Code Split:**
+- `src/components/CommandPalette.tsx` (~500 lines, keyboard-activated)
+- `src/components/chat/VirtualizedMessageList.tsx` (only for 50+ messages)
+- `src/components/settings/*Settings.tsx` (lazy load per tab)
+- `src/components/modals/*Dialog.tsx` (user-triggered)
+
+**Verified via:**
+- `grep("next/dynamic")` - No matches found
+- `grep("React.lazy")` - No matches found
+- All imports are synchronous `import` statements
+
+**Build Output (Estimated):**
+- Main bundle: ~275 kB (includes all components)
+- Target after code splitting: ~205 kB (-25%)
 
 ### Problem Statement
 

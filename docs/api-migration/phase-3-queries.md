@@ -1,5 +1,8 @@
 # Phase 3: Queries - Read Operations API
 
+> **⚠️ Implementation Status: NOT STARTED (0%)**
+> Zero GET endpoints exist. All reads use Convex `useQuery` hooks. Schema has 40+ tables (not 20 as originally estimated). Frontend makes 223 query calls. TypeScript recursion workarounds (@ts-ignore) needed for 94+ module codebase.
+
 ## Overview
 
 Migrate read operations from Convex subscriptions to REST API with React Query. Implement hybrid approach: keep Convex real-time for web, add polling for mobile.

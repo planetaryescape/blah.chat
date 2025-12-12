@@ -1,8 +1,11 @@
 # Phase 2: React Query Integration
 
+> **⚠️ Implementation Status: NOT STARTED (0%)**
+> React Query is NOT installed. Package.json verification shows no `@tanstack/react-query` dependency. All 223 data fetching hooks currently use Convex. This phase requires React Query v5 (latest 2025 release).
+
 ## Overview
 
-Replace Convex React hooks (`useQuery`, `useMutation`) with `@tanstack/react-query` hooks calling REST API endpoints. Enables mobile compatibility while maintaining web reactivity.
+Replace Convex React hooks (`useQuery`, `useMutation`) with `@tanstack/react-query` v5 hooks calling REST API endpoints. Enables mobile compatibility while maintaining web reactivity.
 
 ## Context & Grand Scope
 

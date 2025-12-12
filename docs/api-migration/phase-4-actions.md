@@ -1,5 +1,8 @@
 # Phase 4: Actions - Long-Running Operations API
 
+> **⚠️ Implementation Status: NOT STARTED (0%)**
+> No action wrapper endpoints exist. Convex actions currently handle long-running ops (LLM generation, transcription, embeddings). Actions use 10min timeout. Reference implementation: `convex/generation.ts:807` (UPDATE_INTERVAL = 100ms for resilient streaming).
+
 ## Overview
 
 Wrap Convex actions (search, memory extraction, transcription) in REST API endpoints. Enable mobile apps to trigger long-running operations without timeout issues.

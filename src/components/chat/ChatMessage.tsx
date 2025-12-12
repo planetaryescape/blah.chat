@@ -17,6 +17,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -27,6 +28,7 @@ import { InlineToolCallContent } from "./InlineToolCallContent";
 import { MessageActions } from "./MessageActions";
 import { MessageBranchIndicator } from "./MessageBranchIndicator";
 import { MessageNotesIndicator } from "./MessageNotesIndicator";
+import { ModelRecommendationBanner } from "./ModelRecommendationBanner";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
 
@@ -70,6 +72,8 @@ export const ChatMessage = memo(
   function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const [showModelPreview, setShowModelPreview] = useState(false);
+    const [previewModelId, setPreviewModelId] = useState<string | null>(null);
     const messageRef = useRef<HTMLDivElement>(null);
 
     const isUser = message.role === "user";
@@ -81,6 +85,8 @@ export const ChatMessage = memo(
     const regenerate = useMutation(api.chat.regenerate);
     const deleteMsg = useMutation(api.chat.deleteMessage);
     const createBookmark = useMutation(api.bookmarks.create);
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+    const updateModel = useMutation(api.conversations.updateModel);
 
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const user = useQuery(api.users.getCurrentUser);
@@ -98,6 +104,11 @@ export const ChatMessage = memo(
       api.messages.getOriginalResponses,
       message.isConsolidation ? { consolidatedMessageId: message._id } : "skip",
     );
+
+    // Query conversation for model recommendation (cost optimization)
+    const conversation = useQuery(api.conversations.get, {
+      conversationId: message.conversationId,
+    });
 
     const displayContent = message.partialContent || message.content || "";
 
@@ -149,6 +160,25 @@ export const ChatMessage = memo(
     // Split into complete and partial for backward compatibility
     const toolCalls = allToolCalls?.filter((tc: any) => !tc.isPartial);
     const partialToolCalls = allToolCalls?.filter((tc: any) => tc.isPartial);
+
+    // Model recommendation handlers
+    const handleModelSwitch = async (modelId: string) => {
+      try {
+        await updateModel({
+          conversationId: message.conversationId,
+          modelId,
+        });
+        toast.success(`Switched to ${MODEL_CONFIG[modelId]?.name || modelId}`);
+      } catch (error) {
+        toast.error("Failed to switch model");
+        console.error("[ChatMessage] Model switch error:", error);
+      }
+    };
+
+    const handleModelPreview = (modelId: string) => {
+      setPreviewModelId(modelId);
+      setShowModelPreview(true);
+    };
 
     // Keyboard shortcuts for focused messages
     useEffect(() => {
@@ -274,7 +304,6 @@ export const ChatMessage = memo(
       "shadow-sm hover:shadow-md hover:border-primary/20",
       "transition-all duration-300",
       "[&_.prose]:text-foreground",
-      "group/assistant",
     );
 
     return (
@@ -284,32 +313,33 @@ export const ChatMessage = memo(
           isUser ? "justify-end" : "justify-start",
         )}
       >
-        <motion.div
-          ref={messageRef}
-          id={`message-${message._id}`}
-          tabIndex={0}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          className={cn(
-            "chat-message",
-            isUser ? userMessageClass : assistantMessageClass,
-            isFocused && "ring-2 ring-primary/50",
-          )}
-          data-message-id={message._id}
-          data-message-role={message.role}
-          initial={!isGenerating ? { opacity: 0, y: 20, scale: 0.95 } : false}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={
-            !isGenerating
-              ? {
-                  duration: 0.4,
-                  ease: [0.2, 0, 0, 1], // Custom ease for "pop" feel
-                }
-              : { duration: 0 }
-          }
-          aria-label={`${isUser ? "Your" : "Assistant"} message`}
-          aria-keyshortcuts="r b c delete"
-        >
+        <div className="relative group">
+          <motion.div
+            ref={messageRef}
+            id={`message-${message._id}`}
+            tabIndex={0}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            className={cn(
+              "chat-message",
+              isUser ? userMessageClass : assistantMessageClass,
+              isFocused && "ring-2 ring-primary/50",
+            )}
+            data-message-id={message._id}
+            data-message-role={message.role}
+            initial={!isGenerating ? { opacity: 0, y: 20, scale: 0.95 } : false}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={
+              !isGenerating
+                ? {
+                    duration: 0.4,
+                    ease: [0.2, 0, 0, 1], // Custom ease for "pop" feel
+                  }
+                : { duration: 0 }
+            }
+            aria-label={`${isUser ? "Your" : "Assistant"} message`}
+            aria-keyshortcuts="r b c delete"
+          >
           {isError ? (
             <ErrorDisplay error={message.error} />
           ) : (
@@ -412,11 +442,49 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
+
+              {/* Enhanced status announcements */}
+              {!isUser && (
+                <>
+                  {/* Generating */}
+                  {message.status === "generating" && (
+                    <div role="status" aria-live="polite" className="sr-only">
+                      {isThinkingModel
+                        ? "AI is thinking about your question"
+                        : "AI is generating a response"}
+                    </div>
+                  )}
+
+                  {/* Complete */}
+                  {message.status === "complete" && (
+                    <div role="status" aria-live="polite" className="sr-only">
+                      {ttft && `Response generated in ${formatTTFT(ttft)}`}
+                      {message.tokensPerSecond &&
+                        ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
+                    </div>
+                  )}
+
+                  {/* Error - assertive for immediate attention */}
+                  {message.status === "error" && (
+                    <div role="alert" aria-live="assertive" className="sr-only">
+                      Error generating response: {message.error}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Branch indicator */}
+              {!readOnly && <MessageBranchIndicator messageId={message._id} />}
+              {!readOnly && features.showNotes && (
+                <MessageNotesIndicator messageId={message._id} />
+              )}
+
+              {/* Model and statistics badges - INSIDE bubble */}
               {!isUser &&
                 (message.status === "complete" ||
                   message.status === "generating") &&
                 modelName && (
-                  <div className="absolute -bottom-7 left-4 flex items-center gap-2 transition-opacity duration-300">
+                  <div className="mt-3 pt-3 border-t border-border/10 flex items-center gap-2 transition-opacity duration-300">
                     {/* Model name - ALWAYS visible */}
                     <Badge
                       variant="outline"
@@ -558,65 +626,35 @@ export const ChatMessage = memo(
                     )}
                   </div>
                 )}
-
-              {/* Enhanced status announcements */}
-              {!isUser && (
-                <>
-                  {/* Generating */}
-                  {message.status === "generating" && (
-                    <div role="status" aria-live="polite" className="sr-only">
-                      {isThinkingModel
-                        ? "AI is thinking about your question"
-                        : "AI is generating a response"}
-                    </div>
-                  )}
-
-                  {/* Complete */}
-                  {message.status === "complete" && (
-                    <div role="status" aria-live="polite" className="sr-only">
-                      {ttft && `Response generated in ${formatTTFT(ttft)}`}
-                      {message.tokensPerSecond &&
-                        ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
-                    </div>
-                  )}
-
-                  {/* Error - assertive for immediate attention */}
-                  {message.status === "error" && (
-                    <div role="alert" aria-live="assertive" className="sr-only">
-                      Error generating response: {message.error}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Branch indicator */}
-              {!readOnly && <MessageBranchIndicator messageId={message._id} />}
-              {!readOnly && features.showNotes && (
-                <MessageNotesIndicator messageId={message._id} />
-              )}
-
-              {!isGenerating && (
-                <div
-                  className={cn(
-                    "mt-2 flex justify-end transition-opacity duration-200",
-                    alwaysShow
-                      ? "opacity-100"
-                      : isUser
-                        ? "opacity-0 group-hover:opacity-100"
-                        : "opacity-0 group-hover/assistant:opacity-100",
-                  )}
-                >
-                  <MessageActions
-                    message={message}
-                    nextMessage={nextMessage}
-                    readOnly={readOnly}
-                  />
-                </div>
-              )}
             </>
           )}
         </motion.div>
+
+        {/* Action buttons - absolutely positioned, no layout shift */}
+        {!isGenerating && (
+          <div
+            className={cn(
+              "absolute z-10",
+              isUser ? "right-0" : "left-0",
+              "-bottom-8",
+              "flex justify-end",
+              "transition-opacity duration-200 ease-out",
+              alwaysShow
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100",
+              !alwaysShow &&
+                "pointer-events-none group-hover:pointer-events-auto",
+            )}
+          >
+            <MessageActions
+              message={message}
+              nextMessage={nextMessage}
+              readOnly={readOnly}
+            />
+          </div>
+        )}
       </div>
+    </div>
     );
   },
   (prev, next) => {

@@ -162,6 +162,17 @@ export const listAllMemories = internalQuery({
 });
 
 /**
+ * Get message by ID
+ * Replaces: ctx.runQuery(internal.messages.getInternal, { id })
+ */
+export const getMessage = internalQuery({
+  args: { id: v.id("messages") },
+  handler: async (ctx, args): Promise<Doc<"messages"> | null> => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+/**
  * Get attachments for a message
  * Replaces: ctx.db.query("attachments").withIndex("by_message", ...)
  */
@@ -183,5 +194,27 @@ export const getTask = internalQuery({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, args): Promise<Doc<"tasks"> | null> => {
     return await ctx.db.get(args.taskId);
+  },
+});
+
+/**
+ * Get file by ID (Smart Manager Phase 4)
+ * Replaces: ctx.runQuery(internal.files.getInternal, { fileId })
+ */
+export const getFile = internalQuery({
+  args: { fileId: v.id("files") },
+  handler: async (ctx, args): Promise<Doc<"files"> | null> => {
+    return await ctx.db.get(args.fileId);
+  },
+});
+
+/**
+ * Get file chunk by ID (Smart Manager Phase 4)
+ * Replaces: ctx.runQuery(internal.files.getChunk, { chunkId })
+ */
+export const getFileChunk = internalQuery({
+  args: { chunkId: v.id("fileChunks") },
+  handler: async (ctx, args): Promise<Doc<"fileChunks"> | null> => {
+    return await ctx.db.get(args.chunkId);
   },
 });

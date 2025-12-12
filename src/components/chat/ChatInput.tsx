@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Loader2, Quote, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useSendMessage } from "@/lib/hooks/mutations";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -103,7 +104,7 @@ export function ChatInput({
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const { isMobile, isTouchDevice } = useMobileDetect();
 
-  const sendMessage = useMutation(api.chat.sendMessage);
+  const { mutate: sendMessage } = useSendMessage();
   const stopGeneration = useMutation(api.chat.stopGeneration);
   const _user = useQuery(api.users.getCurrentUser);
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
@@ -125,12 +126,12 @@ export function ChatInput({
     if ((!input.trim() && !quote) || isSending || uploading) return;
 
     setIsSending(true);
-    try {
-      const messageContent = quote
-        ? `> ${quote}\n\n${input.trim()}`
-        : input.trim();
+    const messageContent = quote
+      ? `> ${quote}\n\n${input.trim()}`
+      : input.trim();
 
-      await sendMessage({
+    sendMessage(
+      {
         conversationId,
         content: messageContent,
         ...(isComparisonMode
@@ -138,35 +139,27 @@ export function ChatInput({
           : { modelId: selectedModel }),
         thinkingEffort,
         attachments: attachments.length > 0 ? attachments : undefined,
-      });
-
-      // Track message sent with comprehensive properties
-      analytics.track("message_sent", {
-        model: isComparisonMode ? selectedModels.join(",") : selectedModel,
-        isComparisonMode,
-        hasAttachments: attachments.length > 0,
-        attachmentCount: attachments.length,
-        attachmentTypes: [...new Set(attachments.map((a) => a.type))].join(","),
-        inputLength: messageContent.length,
-        hasQuote: !!quote,
-        thinkingEffort,
-      });
-
-      setInput("");
-      setQuote(null);
-      onAttachmentsChange([]);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("Daily message limit")
-      ) {
-        setShowRateLimitDialog(true);
-      } else {
-        console.error("Failed to send message:", error);
-      }
-    } finally {
-      setIsSending(false);
-    }
+      },
+      {
+        onSuccess: () => {
+          // Clear input after successful send
+          setInput("");
+          setQuote(null);
+          onAttachmentsChange([]);
+          setIsSending(false);
+        },
+        onError: (error) => {
+          // Handle rate limit errors
+          if (
+            error instanceof Error &&
+            error.message.includes("Daily message limit")
+          ) {
+            setShowRateLimitDialog(true);
+          }
+          setIsSending(false);
+        },
+      },
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

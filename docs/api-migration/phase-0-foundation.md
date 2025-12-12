@@ -1,5 +1,8 @@
 # Phase 0: Foundation & Infrastructure
 
+> **⚠️ Implementation Status: NOT STARTED (0%)**
+> This phase is not yet implemented. The codebase currently has NO API infrastructure (no DAL, no envelope utilities, no middleware). Only 2 API routes exist: `/api/export` and `/api/webhooks/clerk`.
+
 ## Overview
 
 Establish core API infrastructure: routing, utilities, authentication, error handling, logging. Create patterns used by all subsequent phases.
@@ -40,10 +43,11 @@ Native mobile apps can't use Convex client SDK. Need REST/GraphQL API with stand
 
 ### Decisions Made
 
-**Decision 1: Keep Envelope Format**
-- Already implemented: `src/lib/utils/formatEntity.ts`
-- No breaking changes
-- Just need HTTP wrapper
+**Decision 1: API Envelope Format (2025 Standard)**
+- Success responses: Custom envelope (Stripe/GitHub pattern)
+- Error responses: RFC 9457 Problem Details standard
+- Create `src/lib/utils/formatEntity.ts` in this phase
+- Note: File doesn't exist yet, will be created
 
 **Decision 2: Data Access Layer (DAL)**
 - Thin wrapper over Convex queries/mutations
@@ -74,26 +78,13 @@ const sendMessage = useMutation(api.chat.send);
 await sendMessage({ conversationId, content });
 ```
 
-**2. Envelope Format Exists**
+**2. Envelope Format: DOES NOT EXIST**
 ```typescript
-// src/lib/utils/formatEntity.ts (already implemented)
-export function formatEntity<T>(
-  data: T,
-  entityType: string,
-  id?: string,
-): ApiResponse<T> {
-  return {
-    status: "success",
-    sys: {
-      entity: entityType,
-      id,
-      timestamps: {
-        retrieved: new Date().toISOString(),
-      },
-    },
-    data,
-  };
-}
+// ❌ src/lib/utils/formatEntity.ts does NOT exist yet
+// Will be created in Step 1 of this phase
+
+// ✅ Only formatMetrics.ts exists (different purpose)
+// src/lib/utils/formatMetrics.ts - for usage metrics only
 ```
 
 **3. Logging Infrastructure**
@@ -109,34 +100,39 @@ export const logger = pino({
 });
 ```
 
-**4. Auth Pattern**
+**4. Auth Pattern (Actual Implementation)**
 ```typescript
-// Scattered across API routes, needs centralization
-import { auth } from "@clerk/nextjs/server";
+// src/app/api/webhooks/clerk/route.ts (only example)
+import { Webhook } from "svix";
+import { headers } from "next/headers";
 
-export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-  // ...
+export async function POST(req: Request) {
+  const headerPayload = await headers();
+  const svix_id = headerPayload.get("svix-id");
+  // ... webhook validation
 }
+```
+
+```typescript
+// ❌ No reusable auth middleware exists yet
+// Will create withAuth() wrapper in this phase
 ```
 
 ### Specific Files/Patterns
 
-**Existing Infrastructure** (paths from `/Users/bhekanik/code/planetaryescape/blah.chat/`):
-- `src/lib/utils/formatEntity.ts` - Envelope utilities ✅
-- `src/lib/logger.ts` - Pino logger ✅
-- `src/app/api/` - Some routes exist, inconsistent patterns ⚠️
-- Authentication - Scattered, needs centralization ⚠️
+**Existing Infrastructure** (verified 2025-12-12):
+- `src/lib/logger.ts` - Pino logger ✅ EXISTS
+- `src/lib/utils/formatMetrics.ts` - Metrics formatting only ✅ EXISTS
+- `src/app/api/export/route.ts` - Export endpoint ✅ EXISTS
+- `src/app/api/webhooks/clerk/route.ts` - Clerk webhook ✅ EXISTS
 
-**Missing Infrastructure**:
-- ❌ Centralized auth middleware
-- ❌ Data Access Layer (DAL)
-- ❌ Request/response logging middleware
-- ❌ Standardized error handling
-- ❌ API versioning structure (`/api/v1/`)
+**Does NOT Exist (To Be Created in This Phase)**:
+- ❌ `src/lib/utils/formatEntity.ts` - Envelope utilities
+- ❌ `src/lib/api/dal/` - Data Access Layer
+- ❌ `src/lib/api/middleware/` - Auth, logging, errors
+- ❌ `src/lib/api/types.ts` - API types
+- ❌ `src/lib/api/utils.ts` - API utilities
+- ❌ `src/app/api/v1/` - Versioned API routes
 
 ## Target State
 
@@ -159,7 +155,8 @@ src/
 │   │   ├── types.ts          # Shared API types
 │   │   └── utils.ts          # API utilities
 │   └── utils/
-│       └── formatEntity.ts   # Already exists ✅
+│       ├── formatEntity.ts   # ⚠️ TO BE CREATED in Step 1
+│       └── formatMetrics.ts  # ✅ Already exists
 ├── app/
 │   └── api/
 │       └── v1/               # Version 1 API
@@ -221,16 +218,91 @@ const conversations = await conversationsDAL.list(userId);
 
 ## Implementation Steps
 
-### Step 1: Create API Types
+### Step 1: Create Envelope Utilities & API Types
 
-**Goal**: Type-safe API contracts
+**Goal**: Type-safe API contracts with standardized response format
 
-**Action**: Define core types used across all API routes
+**Action**:
+1. Create `formatEntity.ts` with envelope utilities (success/error formatters)
+2. Create `types.ts` with core API types
+3. Incorporate RFC 9457 Problem Details for errors (2025 standard)
 
 **Files**:
+- Create `/Users/bhekanik/code/planetaryescape/blah.chat/src/lib/utils/formatEntity.ts`
 - Create `/Users/bhekanik/code/planetaryescape/blah.chat/src/lib/api/types.ts`
 
-**Code**:
+**Code (formatEntity.ts)**:
+```typescript
+// src/lib/utils/formatEntity.ts
+import type { ApiResponse } from "@/lib/api/types";
+
+/**
+ * Format successful API response with envelope pattern
+ */
+export function formatEntity<T>(
+  data: T,
+  entityType: string,
+  id?: string,
+): ApiResponse<T> {
+  return {
+    status: "success",
+    sys: {
+      entity: entityType,
+      id,
+      timestamps: {
+        retrieved: new Date().toISOString(),
+      },
+    },
+    data,
+  };
+}
+
+/**
+ * Format entity list response
+ */
+export function formatEntityList<T>(
+  items: T[],
+  entityType: string = "list",
+): ApiResponse<T[]> {
+  return {
+    status: "success",
+    sys: {
+      entity: entityType,
+      timestamps: {
+        retrieved: new Date().toISOString(),
+      },
+    },
+    data: items,
+  };
+}
+
+/**
+ * Format error response (RFC 9457 Problem Details)
+ * @see https://www.rfc-editor.org/rfc/rfc9457
+ */
+export function formatErrorEntity(error: {
+  message: string;
+  code?: string;
+  details?: unknown;
+}): ApiResponse<never> {
+  return {
+    status: "error",
+    sys: {
+      entity: "error",
+      timestamps: {
+        retrieved: new Date().toISOString(),
+      },
+    },
+    error: {
+      message: error.message,
+      code: error.code || "INTERNAL_ERROR",
+      details: error.details,
+    },
+  };
+}
+```
+
+**Code (types.ts)**:
 ```typescript
 // src/lib/api/types.ts
 import type { NextRequest } from "next/server";

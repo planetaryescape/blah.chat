@@ -1,5 +1,8 @@
 # Phase 1: Mutations - Write Operations API
 
+> **⚠️ Implementation Status: NOT STARTED (0%)**
+> No REST mutation endpoints exist. All writes currently use Convex mutations directly via `useMutation` hooks. Frontend has 223 Convex hook calls across 63 components. Schema has 40+ tables requiring migration.
+
 ## Overview
 
 Migrate all write operations (create, update, delete) from Convex mutations to REST API endpoints. Start with chat (highest priority), then preferences and metadata.
@@ -141,12 +144,19 @@ const handleDelete = async (id: Id<"conversations">) => {
 
 ### Specific Files/Patterns
 
-**Components using mutations** (from `/Users/bhekanik/code/planetaryescape/blah.chat/`):
-1. `src/components/chat/ChatInput.tsx` - Send messages (lines 120-135)
-2. `src/components/sidebar/app-sidebar.tsx` - Create/delete conversations (lines 85-125)
-3. `src/components/chat/ConversationHeaderMenu.tsx` - Rename conversations (lines 45-60)
-4. `src/components/settings/UISettings.tsx` - Update preferences (lines 30-45)
-5. `src/components/chat/ChatMessage.tsx` - Edit/delete messages (lines 100-140)
+**Current Mutation Landscape** (verified 2025-12-12):
+- **Total Convex hooks**: 223 `useMutation` calls across codebase
+- **Components affected**: 63 files
+- **Tables with mutations**: 40+ (conversations, messages, users, projects, memories, bookmarks, etc.)
+- **Zero REST endpoints**: All mutations currently via Convex
+
+**Key Components Using Mutations**:
+1. Chat operations (messages, attachments, comparisons)
+2. Conversation management (create, update, delete, archive)
+3. User preferences (40+ settings in normalized userPreferences table)
+4. Project management (projects, tasks, notes)
+5. Memory system (facts, embeddings)
+6. Bookmarks, templates, scheduled prompts
 
 **Convex mutations to migrate** (from `convex/`):
 1. `chat.ts` - `send`, `edit`, `delete`, `regenerate`

@@ -1,5 +1,8 @@
 # Phase 6: Resilient Generation Validation
 
+> **✅ Backend Implementation: WORKING**
+> Resilient generation already implemented via Convex actions (`convex/generation.ts`). Survives page refresh, persists to DB every 100ms. Just needs API wrapper validation. This phase is primarily testing, not building.
+
 ## Overview
 
 Validate that resilient message generation (the core feature) still works after API migration. Ensure page refresh mid-generation doesn't lose responses. Test partialContent updates via SSE.

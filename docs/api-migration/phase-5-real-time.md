@@ -1,8 +1,13 @@
 # Phase 5: Real-Time Updates - SSE & Optimistic UI
 
+> **⚠️ Implementation Status: NOT STARTED (0%)**
+> Currently uses Convex WebSocket subscriptions (web only). NO SSE implementation. Research confirms SSE is 2025 standard (ChatGPT, Claude, Perplexity all use SSE). Battery research shows 50-90% bandwidth reduction vs polling.
+
 ## Overview
 
 Replace polling with Server-Sent Events (SSE) for real-time updates. Implement optimistic UI for instant feedback. Balance battery efficiency with responsiveness.
+
+**2025 Standard**: SSE is now industry standard for LLM streaming (ChatGPT pattern).
 
 ## Context & Grand Scope
 

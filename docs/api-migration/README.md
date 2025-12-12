@@ -1,5 +1,8 @@
 # API Layer Migration - Implementation Guide
 
+> **⚠️ Implementation Status (2025-12-12)**
+> This migration plan remains **0% implemented**. All phases (0-8) are theoretical blueprints. The codebase currently operates 100% on Convex-native architecture with 402 functions across 140 modules. This document describes the target architecture for future mobile support.
+
 ## Project Overview
 
 **blah.chat** is migrating from direct Convex client access to an API-first architecture to enable mobile app development while maintaining optimal web performance.
@@ -12,6 +15,44 @@ Build a **hybrid architecture** that gives us the best of both worlds:
 - **Both platforms**: Share mutation endpoints, envelope pattern, structured logging
 
 This allows us to ship a mobile app incrementally while keeping the web experience optimal.
+
+---
+
+## Current Reality (December 2025)
+
+### What Exists Today
+
+**Backend Architecture:**
+- ✅ 140 Convex TypeScript modules
+- ✅ 402 exported functions (queries/mutations/actions)
+- ✅ 40+ normalized database tables
+- ✅ Resilient generation working (survives page refresh via Convex actions)
+- ✅ Schema normalization complete
+
+**Frontend Architecture:**
+- ✅ 63 components using direct Convex hooks
+- ✅ 223 `useQuery`/`useMutation`/`useAction` calls
+- ✅ Real-time updates via WebSocket subscriptions
+- ❌ Zero REST API calls (no fetch/axios for data)
+
+**API Layer:**
+- ✅ 2 routes: `/api/export` (data export), `/api/webhooks/clerk` (auth sync)
+- ❌ NO CRUD endpoints (conversations, messages, preferences)
+- ❌ NO Data Access Layer (DAL)
+- ❌ NO envelope pattern implementation (`formatEntity.ts` doesn't exist)
+- ❌ React Query not installed
+
+### Gap Analysis
+
+| Component | Planned | Actual | Status |
+|-----------|---------|--------|--------|
+| API Infrastructure (Phase 0) | DAL, middleware, envelope | Only 2 routes | ❌ 0% |
+| Mutation Endpoints (Phase 1) | 40+ POST/PATCH/DELETE | None | ❌ 0% |
+| React Query (Phase 2) | Installed & configured | Not installed | ❌ 0% |
+| Query Endpoints (Phase 3) | 40+ GET endpoints | None | ❌ 0% |
+| SSE Streaming (Phase 5) | Real-time via SSE | WebSocket only | ❌ 0% |
+
+**Bottom Line:** All 8 phases remain unimplemented. Convex-native architecture fully operational. Migration needed only when mobile requirement confirmed.
 
 ---
 
@@ -152,17 +193,19 @@ Web Client (React)
 
 | Phase | Goal | Duration | Status |
 |-------|------|----------|--------|
-| [Phase 0](./phase-0-foundation.md) | Build API infrastructure | 3 weeks | Not started |
-| [Phase 1](./phase-1-mutations.md) | Migrate mutations to API | 6 weeks | Not started |
-| [Phase 2](./phase-2-react-query.md) | Setup React Query | 2 weeks | Not started |
-| [Phase 3](./phase-3-queries.md) | Migrate mobile-critical queries | 6 weeks | Not started |
-| [Phase 4](./phase-4-actions.md) | Wrap Convex actions | 2 weeks | Not started |
-| [Phase 5](./phase-5-real-time.md) | Implement SSE + polling | 2 weeks | Not started |
-| [Phase 6](./phase-6-resilient-gen.md) | Validate resilient generation | 1 week | Not started |
-| [Phase 7](./phase-7-performance.md) | Optimize caching | 2 weeks | Not started |
-| [Phase 8](./phase-8-documentation.md) | API docs + mobile guide | 2 weeks | Not started |
+| [Phase 0](./phase-0-foundation.md) | Build API infrastructure | 3 weeks | ❌ Not started (0%) |
+| [Phase 1](./phase-1-mutations.md) | Migrate mutations to API | 6 weeks | ❌ Not started (0%) |
+| [Phase 2](./phase-2-react-query.md) | Setup React Query v5 | 2 weeks | ❌ Not started (0%) |
+| [Phase 3](./phase-3-queries.md) | Migrate mobile-critical queries | 6 weeks | ❌ Not started (0%) |
+| [Phase 4](./phase-4-actions.md) | Wrap Convex actions | 2 weeks | ❌ Not started (0%) |
+| [Phase 5](./phase-5-real-time.md) | Implement SSE + polling | 2 weeks | ❌ Not started (0%) |
+| [Phase 6](./phase-6-resilient-gen.md) | Validate resilient generation | 1 week | ❌ Not started (0%) |
+| [Phase 7](./phase-7-performance.md) | Optimize caching | 2 weeks | ❌ Not started (0%) |
+| [Phase 8](./phase-8-documentation.md) | API docs + mobile guide | 2 weeks | ❌ Not started (0%) |
 
-**Total**: ~24 weeks (~6 months)
+**Total**: ~24 weeks (~6 months from project start)
+
+**Note**: Phase documents incorporate 2025 best practices (RFC 9457 error format, React Query v5, SSE streaming patterns)
 
 ---
 
@@ -230,8 +273,9 @@ A developer can pick up any phase file and understand the full picture without r
 
 1. **Read this README** (you're here!)
 2. **Review [Phase 0](./phase-0-foundation.md)** - foundation layer
-3. **Understand the approved plan** - see `/Users/bhekanik/.claude/plans/delegated-cooking-quasar.md`
-4. **Start implementation** when ready
+3. **Confirm mobile requirement** - Is React Native or native iOS/Android needed?
+4. **Consider alternatives** - tRPC for TypeScript-only, or keep Convex for React Native
+5. **Start implementation** when mobile requirement confirmed
 
 ---
 

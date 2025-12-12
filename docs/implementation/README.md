@@ -116,6 +116,34 @@ Support 10+ models from 4 providers. Model selector, thinking effort control.
 
 ---
 
+## Outstanding Features Status (2025-12-12)
+
+### ⚠️ Phases 0-12: COMPLETE (Archived)
+Archived documentation moved to `docs/implementation/archive/`.
+
+### 🚧 Phases 13-15: IN PROGRESS
+
+**Phase 13: Production Polish** (0% complete)
+- ❌ Import System - Parser, mutation, UI all missing
+- ❌ Message Edit Mutation - Backend missing (UI exists but non-functional)
+- ❌ Code Splitting - Zero dynamic imports found
+
+**Phase 14: Infrastructure Refinements** (~20% complete)
+- ❌ API Envelope Formatters - `formatEntity.ts` doesn't exist despite spec
+- ❌ Scheduled Prompts UI - Schema exists, queries/mutations/UI all missing
+- ✅ Virtualization - ALREADY IMPLEMENTED in Phase 11
+- ❌ Missing Queries - `getOriginalResponses` not implemented
+
+**Phase 15: Provider Extensions** (~75% complete)
+- ✅ STT: OpenAI Whisper working
+- ✅ STT: Groq Whisper working
+- ❌ STT: Deepgram Nova-3 stubbed (TODO in `convex/transcription.ts:83-84`)
+- ❌ STT: AssemblyAI stubbed (TODO in `convex/transcription.ts:86-88`)
+- ✅ TTS: Deepgram Aura fully working with MSE streaming
+- ❌ TTS: Auto-read feature UI exists but not connected
+
+---
+
 ## Getting Started
 
 1. **Read spec**: [Project spec in main plan](../../README.md)

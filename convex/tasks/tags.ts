@@ -108,7 +108,7 @@ export const extractAndApplyTaskTags = internalAction({
       // PHASE 3: Tag Application (dual-write)
       const applyStart = Date.now();
       for (const tag of finalTags) {
-        await ((ctx.runMutation as any)(
+        (await (ctx.runMutation as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.tasks.addTagInternal,
           { taskId, userId: task.userId, tag },

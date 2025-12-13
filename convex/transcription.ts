@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { action } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 
 /**
  * Wrap promise with timeout to prevent infinite hangs
@@ -29,7 +29,7 @@ const TRANSCRIPTION_TIMEOUT_MS = 90_000; // 90s (Whisper typically 30-60s)
 
 export const transcribeAudio = action({
   args: {
-    audioBase64: v.string(),
+    storageId: v.id("_storage"),
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
@@ -68,12 +68,15 @@ export const transcribeAudio = action({
 
     const provider = sttProvider ?? "openai";
 
-    // Convert base64 to Uint8Array (browser-compatible)
-    const binaryString = atob(args.audioBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    // Fetch audio from Convex storage
+    const audioBlob = await ctx.storage.get(args.storageId);
+    if (!audioBlob) {
+      throw new Error("Audio file not found in storage");
     }
+
+    // Convert blob to array buffer then Uint8Array
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
 
     const audioFile = new File([bytes], "audio.webm", {
       type: args.mimeType,
@@ -224,5 +227,80 @@ export const transcribeAudio = action({
     );
 
     return text;
+  },
+});
+
+/**
+ * Internal version of transcribeAudio for background jobs
+ * Doesn't require user auth since jobs are triggered by authenticated endpoints
+ */
+export const transcribeAudioInternal = internalAction({
+  args: {
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Fetch audio from Convex storage
+    const audioBlob = await ctx.storage.get(args.storageId);
+    if (!audioBlob) {
+      throw new Error("Audio file not found in storage");
+    }
+
+    // Convert blob to array buffer then Uint8Array
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    const audioFile = new File([bytes], "audio.webm", {
+      type: args.mimeType,
+    });
+
+    // File size validation
+    const fileSizeMB = bytes.length / (1024 * 1024);
+    const MAX_FILE_SIZE_MB = 24;
+
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      throw new Error(
+        `Audio file too large (${fileSizeMB.toFixed(1)}MB). Maximum size is ${MAX_FILE_SIZE_MB}MB.`,
+      );
+    }
+
+    // Use OpenAI Whisper by default for internal jobs
+    const formData = new FormData();
+    formData.append("file", audioFile);
+    formData.append("model", "whisper-1");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+    try {
+      const response = await fetch(
+        "https://api.openai.com/v1/audio/transcriptions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: formData,
+          signal: controller.signal,
+        },
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`OpenAI Whisper failed: ${error}`);
+      }
+
+      const result = await response.json();
+      return result.text;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+
+      if (err.name === "AbortError") {
+        throw new Error("Transcription timed out after 90 seconds.");
+      }
+      throw err;
+    }
   },
 });

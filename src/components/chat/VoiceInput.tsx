@@ -1,20 +1,20 @@
 "use client";
 
-import { useAction, useQuery } from "convex/react";
-import { Mic } from "lucide-react";
-import {
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { Mic } from "lucide-react";
+import {
+    forwardRef,
+    useCallback,
+    useImperativeHandle,
+    useRef,
+    useState,
+} from "react";
+import { toast } from "sonner";
 
 interface VoiceInputProps {
   onTranscript: (text: string, autoSend: boolean) => void;
@@ -39,6 +39,7 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     const user = useQuery(api.users.getCurrentUser as any);
     const transcribeAudio = useAction(api.transcription.transcribeAudio);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
     // Phase 4: Use new preference hooks
     const sttEnabled = useUserPreference("sttEnabled");
@@ -81,55 +82,62 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
             durationMs: audioBlob.size / 16,
           });
 
-          // Convert to base64
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const base64 = (reader.result as string).split(",")[1];
+          try {
+            // Upload audio to Convex storage first
+            const uploadUrl = await generateUploadUrl();
+            const uploadResponse = await fetch(uploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": audioBlob.type },
+              body: audioBlob,
+            });
 
-            try {
-              // Client-side timeout (95s - slightly longer than backend 90s)
-              const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("TIMEOUT")), 95_000),
-              );
-
-              const transcriptionPromise = transcribeAudio({
-                audioBase64: base64,
-                mimeType: "audio/webm",
-              });
-
-              const transcript = await Promise.race([
-                transcriptionPromise,
-                timeoutPromise,
-              ]);
-
-              const autoSend = stopModeRef.current === "send";
-              onTranscript(transcript, autoSend);
-
-              // Track successful transcription
-              analytics.track("transcription_completed", {
-                autoSendUsed: autoSend,
-              });
-            } catch (error) {
-              console.error("Transcription failed:", error);
-
-              // Better error messages
-              const message =
-                error instanceof Error ? error.message : String(error);
-              if (message === "TIMEOUT") {
-                toast.error(
-                  "Transcription timed out. Try recording a shorter message.",
-                );
-              } else {
-                toast.error(message || "STT not working right now");
-              }
-
-              onTranscript("", false);
-            } finally {
-              setIsProcessing(false);
-              stopModeRef.current = null;
+            if (!uploadResponse.ok) {
+              throw new Error("Failed to upload audio file");
             }
-          };
-          reader.readAsDataURL(audioBlob);
+
+            const { storageId } = await uploadResponse.json();
+
+            // Client-side timeout (95s - slightly longer than backend 90s)
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("TIMEOUT")), 95_000),
+            );
+
+            const transcriptionPromise = transcribeAudio({
+              storageId,
+              mimeType: "audio/webm",
+            });
+
+            const transcript = await Promise.race([
+              transcriptionPromise,
+              timeoutPromise,
+            ]);
+
+            const autoSend = stopModeRef.current === "send";
+            onTranscript(transcript, autoSend);
+
+            // Track successful transcription
+            analytics.track("transcription_completed", {
+              autoSendUsed: autoSend,
+            });
+          } catch (error) {
+            console.error("Transcription failed:", error);
+
+            // Better error messages
+            const message =
+              error instanceof Error ? error.message : String(error);
+            if (message === "TIMEOUT") {
+              toast.error(
+                "Transcription timed out. Try recording a shorter message.",
+              );
+            } else {
+              toast.error(message || "STT not working right now");
+            }
+
+            onTranscript("", false);
+          } finally {
+            setIsProcessing(false);
+            stopModeRef.current = null;
+          }
         };
 
         recorder.start();

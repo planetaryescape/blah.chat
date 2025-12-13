@@ -95,7 +95,7 @@ export default function SmartAssistantPage() {
           );
 
           const transcriptionPromise = transcribeAudio({
-            audio: audioData,
+            audioBase64: audioData,
             mimeType: audioFile.type,
           });
 

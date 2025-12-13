@@ -38,6 +38,7 @@ export default function SmartAssistantPage() {
   );
   // @ts-ignore - Type depth exceeded
   const createTask = useMutation(api.tasks.create);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const handleAudioUpload = async () => {
     if (!audioFile) return;
@@ -65,89 +66,76 @@ export default function SmartAssistantPage() {
     setError("");
 
     try {
-      // Convert to base64
-      console.log("[Audio Upload] Creating FileReader...");
-      const reader = new FileReader();
+      // Upload to Convex storage first (avoids 16MB argument size limit)
+      console.log("[Audio Upload] Getting upload URL...");
+      const uploadUrl = await generateUploadUrl();
 
-      reader.onerror = (e) => {
-        console.error("[Audio Upload] FileReader error:", e);
-        setError("Failed to read audio file");
-        setState("error");
-        toast.error("Failed to read audio file");
-      };
+      console.log("[Audio Upload] Uploading to storage...");
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": audioFile.type },
+        body: audioFile,
+      });
 
-      reader.onload = async (e) => {
-        console.log("[Audio Upload] FileReader loaded, converting to base64...");
-        const base64 = e.target?.result as string;
-        const audioData = base64.split(",")[1];
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload audio file to storage");
+      }
 
-        console.log("[Audio Upload] Base64 length:", audioData.length);
+      const { storageId } = await uploadResponse.json();
+      console.log("[Audio Upload] Uploaded to storage:", storageId);
 
-        try {
-          console.log("[Audio Upload] Starting transcription with 95s timeout...");
+      // Client-side timeout (95s)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          console.error("[Audio Upload] Client timeout reached (95s)");
+          reject(new Error("TIMEOUT"));
+        }, 95_000),
+      );
 
-          // Client-side timeout (95s)
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => {
-              console.error("[Audio Upload] Client timeout reached (95s)");
-              reject(new Error("TIMEOUT"));
-            }, 95_000),
-          );
+      console.log("[Audio Upload] Starting transcription with 95s timeout...");
+      const transcriptionPromise = transcribeAudio({
+        storageId,
+        mimeType: audioFile.type,
+      });
 
-          const transcriptionPromise = transcribeAudio({
-            audioBase64: audioData,
-            mimeType: audioFile.type,
-          });
+      console.log("[Audio Upload] Waiting for transcription...");
+      const result = await Promise.race([
+        transcriptionPromise,
+        timeoutPromise,
+      ]);
 
-          console.log("[Audio Upload] Waiting for transcription...");
+      console.log("[Audio Upload] Transcription complete, result:", result);
 
-          const result = await Promise.race([
-            transcriptionPromise,
-            timeoutPromise,
-          ]);
+      // Backend returns string directly, not object
+      setTranscript(result);
 
-          console.log("[Audio Upload] Transcription complete, result:", result);
+      // Extract tasks
+      setState("extracting");
+      console.log("[Audio Upload] Extracting tasks from transcript...");
+      const tasks = await extractTasks({
+        transcript: result,
+        // sourceId omitted - transcription doesn't generate IDs yet
+      });
 
-          // Backend returns string directly, not object
-          setTranscript(result);
+      console.log("[Audio Upload] Extracted tasks:", tasks);
 
-          // Extract tasks
-          setState("extracting");
-          console.log("[Audio Upload] Extracting tasks from transcript...");
-          const tasks = await extractTasks({
-            transcript: result,
-            // sourceId omitted - transcription doesn't generate IDs yet
-          });
-
-          console.log("[Audio Upload] Extracted tasks:", tasks);
-
-          setExtractedTasks(tasks);
-          setState("reviewing");
-        } catch (err: any) {
-          const message = err?.message || String(err);
-
-          if (message === "TIMEOUT") {
-            setError("Transcription timed out after 90 seconds");
-            toast.error("Timeout. Try a shorter clip or compress the file.");
-          } else if (message.includes("too large")) {
-            setError(message);
-            toast.error(message);
-          } else {
-            setError(message || "Processing failed");
-            toast.error(message || "Processing failed");
-          }
-
-          setState("error");
-        }
-      };
-
-      console.log("[Audio Upload] Starting FileReader.readAsDataURL()...");
-      reader.readAsDataURL(audioFile);
+      setExtractedTasks(tasks);
+      setState("reviewing");
     } catch (err: any) {
-      console.error("[Audio Upload] Outer try-catch error:", err);
-      setError(err.message || "Processing failed");
+      const message = err?.message || String(err);
+
+      if (message === "TIMEOUT") {
+        setError("Transcription timed out after 90 seconds");
+        toast.error("Timeout. Try a shorter clip or compress the file.");
+      } else if (message.includes("too large")) {
+        setError(message);
+        toast.error(message);
+      } else {
+        setError(message || "Processing failed");
+        toast.error(message || "Processing failed");
+      }
+
       setState("error");
-      toast.error(err.message || "Processing failed");
     }
   };
 

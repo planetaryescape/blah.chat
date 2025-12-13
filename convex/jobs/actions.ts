@@ -1,9 +1,9 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalAction } from "../_generated/server";
 
 /**
  * Generic wrapper pattern for job actions
@@ -122,23 +122,24 @@ export const executeTranscribe = internalAction({
   args: {
     jobId: v.id("jobs"),
     storageId: v.id("_storage"),
-    model: v.optional(v.string()),
+    mimeType: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { jobId, storageId, model },
-  ): Promise<{ text: string; duration: number; cost: number }> => {
+    { jobId, storageId, mimeType },
+  ): Promise<{ text: string }> => {
     return executeJobAction(
       ctx,
       jobId,
-      async (): Promise<{ text: string; duration: number; cost: number }> => {
-        return (await (ctx.runAction as any)(
+      async (): Promise<{ text: string }> => {
+        const text = (await (ctx.runAction as any)(
           // @ts-ignore - TypeScript recursion limit
-          internal.transcription.transcribeAudio,
-          { storageId, model },
-        )) as { text: string; duration: number; cost: number };
+          internal.transcription.transcribeAudioInternal,
+          { storageId, mimeType: mimeType ?? "audio/webm" },
+        )) as string;
+        return { text };
       },
-      { storageId, model },
+      { storageId, mimeType },
     );
   },
 });

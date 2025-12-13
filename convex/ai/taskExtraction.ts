@@ -1,34 +1,34 @@
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import {
+    DEADLINE_PARSING_MODEL,
+    TASK_EXTRACTION_MODEL,
+} from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
+import {
+    DEADLINE_PARSING_PROMPT,
+    TASK_EXTRACTION_PROMPT,
+} from "@/lib/prompts/taskExtraction";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getModel } from "@/lib/ai/registry";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import {
-  DEADLINE_PARSING_MODEL,
-  TASK_EXTRACTION_MODEL,
-} from "@/lib/ai/operational-models";
-import {
-  DEADLINE_PARSING_PROMPT,
-  TASK_EXTRACTION_PROMPT,
-} from "@/lib/prompts/taskExtraction";
 import { action } from "../_generated/server";
 
 // Smart Manager Phase 2: Task Extraction from Transcripts
 
-// Zod schema for extracted task
+// Zod schema for extracted task - made lenient to avoid validation failures
 const TaskSchema = z.object({
-  title: z.string().min(5).max(100),
-  description: z.string().optional(),
-  deadlineText: z.string().optional(),
-  urgency: z.enum(["low", "medium", "high", "urgent"]).optional(),
-  confidence: z.number().min(0.5).max(1.0),
-  context: z.string(),
-  timestampSeconds: z.number().optional(),
+  title: z.string().min(1).max(200), // Relaxed min length
+  description: z.string().optional().nullable(),
+  deadlineText: z.string().optional().nullable(),
+  urgency: z.enum(["low", "medium", "high", "urgent"]).optional().nullable(),
+  confidence: z.number().min(0).max(1.0).optional(), // Made optional with wider range
+  context: z.string().optional().nullable(), // Made optional
+  timestampSeconds: z.number().optional().nullable(),
 });
 
 // Zod schema for extraction result
 const TaskExtractionSchema = z.object({
-  tasks: z.array(TaskSchema).min(0).max(20),
+  tasks: z.array(TaskSchema).default([]),
 });
 
 export type ExtractedTask = z.infer<typeof TaskSchema>;
@@ -39,38 +39,44 @@ export const extractTasksFromTranscript = action({
     sourceId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ExtractedTask[]> => {
-    // Use LLM to extract tasks from transcript
-    const result = await generateObject({
-      model: getModel(TASK_EXTRACTION_MODEL.id),
-      schema: TaskExtractionSchema,
-      providerOptions: getGatewayOptions(TASK_EXTRACTION_MODEL.id, undefined, [
-        "task-extraction",
-      ]),
-      prompt: `${TASK_EXTRACTION_PROMPT}
+    try {
+      // Use LLM to extract tasks from transcript
+      const result = await generateObject({
+        model: getModel(TASK_EXTRACTION_MODEL.id),
+        schema: TaskExtractionSchema,
+        providerOptions: getGatewayOptions(TASK_EXTRACTION_MODEL.id, undefined, [
+          "task-extraction",
+        ]),
+        prompt: `${TASK_EXTRACTION_PROMPT}
 
 Transcript:
 """
 ${args.transcript}
 """
 
-Extract actionable tasks from the above transcript. Return a JSON object with a "tasks" array.`,
-    });
+Extract actionable tasks from the above transcript. Return a JSON object with a "tasks" array. If no tasks are found, return {"tasks": []}.`,
+      });
 
-    // Parse deadlines for each task
-    const tasksWithParsedDeadlines = await Promise.all(
-      result.object.tasks.map(async (task) => {
-        if (task.deadlineText) {
-          const deadline = await parseDeadline(task.deadlineText);
-          return {
-            ...task,
-            deadline,
-          };
-        }
-        return task;
-      }),
-    );
+      // Parse deadlines for each task
+      const tasksWithParsedDeadlines = await Promise.all(
+        result.object.tasks.map(async (task) => {
+          if (task.deadlineText) {
+            const deadline = await parseDeadline(task.deadlineText);
+            return {
+              ...task,
+              deadline,
+            };
+          }
+          return task;
+        }),
+      );
 
-    return tasksWithParsedDeadlines;
+      return tasksWithParsedDeadlines;
+    } catch (error) {
+      console.error("Task extraction failed:", error);
+      // Return empty array on failure rather than throwing
+      return [];
+    }
   },
 });
 

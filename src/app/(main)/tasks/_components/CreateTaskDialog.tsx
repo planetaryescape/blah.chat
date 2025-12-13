@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,10 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -23,14 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export function CreateTaskDialog({
   open,
   onOpenChange,
+  defaultProjectId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultProjectId?: Id<"projects">;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -38,13 +40,32 @@ export function CreateTaskDialog({
   const [urgency, setUrgency] = useState<"low" | "medium" | "high" | "urgent">(
     "medium",
   );
-  const [projectId, setProjectId] = useState<Id<"projects"> | null>(null);
+  const [projectId, setProjectId] = useState<Id<"projects"> | null>(
+    defaultProjectId || null,
+  );
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // @ts-ignore - Type depth exceeded
   const createTask = useMutation(api.tasks.create);
   // @ts-ignore - Type depth exceeded
   const projects = useQuery(api.projects.list);
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = tagInput.trim();
+      if (val && !tags.includes(val)) {
+        setTags([...tags, val]);
+        setTagInput("");
+      }
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +83,7 @@ export function CreateTaskDialog({
         deadline: deadline ? new Date(deadline).getTime() : undefined,
         urgency,
         projectId: projectId || undefined,
+        tags: tags.length > 0 ? tags : undefined, // Functionally added
         sourceType: "manual",
       });
 
@@ -72,7 +94,9 @@ export function CreateTaskDialog({
       setDescription("");
       setDeadline("");
       setUrgency("medium");
-      setProjectId(null);
+      setProjectId(defaultProjectId || null);
+      setTags([]);
+      setTagInput("");
 
       onOpenChange(false);
     } catch (error: any) {
@@ -141,6 +165,33 @@ export function CreateTaskDialog({
                 onChange={(e) => setDeadline(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-2 mb-2 min-h-[24px]">
+              {tags.map((tag) => (
+                <div
+                  key={tag}
+                  className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md text-xs flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="hover:text-destructive"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Input
+              placeholder="Add tag (Press Enter)"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+            />
           </div>
 
           <div className="space-y-2">

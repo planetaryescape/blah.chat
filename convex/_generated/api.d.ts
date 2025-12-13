@@ -58,6 +58,8 @@ import type * as generation from "../generation.js";
 import type * as generation_image from "../generation/image.js";
 import type * as http from "../http.js";
 import type * as import_ from "../import.js";
+import type * as jobs_actions from "../jobs/actions.js";
+import type * as jobs_crud from "../jobs/crud.js";
 import type * as lib_analytics from "../lib/analytics.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_helpers from "../lib/helpers.js";
@@ -207,6 +209,8 @@ declare const fullApi: ApiFromModules<{
   "generation/image": typeof generation_image;
   http: typeof http;
   import: typeof import_;
+  "jobs/actions": typeof jobs_actions;
+  "jobs/crud": typeof jobs_crud;
   "lib/analytics": typeof lib_analytics;
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/helpers": typeof lib_helpers;

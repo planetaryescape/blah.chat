@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { messagesDAL } from "@/lib/api/dal/messages";
 import { parseBody } from "@/lib/api/utils";
 import logger from "@/lib/logger";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const sendSchema = z.object({
@@ -27,7 +27,8 @@ async function handler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+    sessionToken,
+  }: { params: Promise<Record<string, string | string[]>>; userId: string; sessionToken: string },
 ) {
   const { id: conversationId } = (await params) as { id: string };
   const startTime = Date.now();
@@ -37,7 +38,7 @@ async function handler(
   );
 
   const body = await parseBody(req, sendSchema);
-  const result = await messagesDAL.send(userId, conversationId, body);
+  const result = await messagesDAL.send(userId, conversationId, body, sessionToken);
 
   const duration = Date.now() - startTime;
   logger.info(

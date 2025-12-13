@@ -7,14 +7,14 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
-    CalendarDays,
-    ChevronDown,
-    ChevronRight,
-    Home,
-    List,
-    Plus,
-    Star,
-    Sun
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  Home,
+  List,
+  Plus,
+  Star,
+  Sun,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -37,10 +37,25 @@ export function TasksSidebar({
 
   const mainNavItems = [
     { id: "today", label: "My Day", icon: Sun, activeColor: "text-blue-500" },
-    { id: "important", label: "Important", icon: Star, activeColor: "text-red-500" },
-    { id: "upcoming", label: "Planned", icon: CalendarDays, activeColor: "text-cyan-500" },
+    {
+      id: "important",
+      label: "Important",
+      icon: Star,
+      activeColor: "text-red-500",
+    },
+    {
+      id: "upcoming",
+      label: "Planned",
+      icon: CalendarDays,
+      activeColor: "text-cyan-500",
+    },
     { id: "all", label: "Tasks", icon: Home, activeColor: "text-purple-500" },
-    { id: "completed", label: "Completed", icon: List, activeColor: "text-green-500" }, // Added Completed explicitly
+    {
+      id: "completed",
+      label: "Completed",
+      icon: List,
+      activeColor: "text-green-500",
+    }, // Added Completed explicitly
   ];
 
   return (
@@ -55,14 +70,19 @@ export function TasksSidebar({
               currentView === item.id
                 ? "bg-secondary text-primary"
                 : "text-muted-foreground hover:bg-secondary/50",
-               currentView === item.id && item.activeColor
+              currentView === item.id && item.activeColor,
             )}
             onClick={() => {
               onViewChange(item.id);
               onProjectFilterChange(null);
             }}
           >
-            <item.icon className={cn("mr-3 h-4 w-4", currentView !== item.id && item.activeColor)} />
+            <item.icon
+              className={cn(
+                "mr-3 h-4 w-4",
+                currentView !== item.id && item.activeColor,
+              )}
+            />
             {item.label}
           </Button>
         ))}
@@ -79,7 +99,9 @@ export function TasksSidebar({
             className="w-full justify-between mb-1 hover:bg-transparent px-2"
             onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
           >
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projects</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Projects
+            </span>
             {isProjectsExpanded ? (
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             ) : (
@@ -97,7 +119,7 @@ export function TasksSidebar({
                     "w-full justify-start font-normal pl-2",
                     projectFilter === project._id
                       ? "bg-secondary text-primary"
-                      : "text-muted-foreground hover:bg-secondary/50"
+                      : "text-muted-foreground hover:bg-secondary/50",
                   )}
                   onClick={() => {
                     onProjectFilterChange(project._id);

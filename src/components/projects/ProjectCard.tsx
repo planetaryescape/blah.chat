@@ -1,39 +1,23 @@
 "use client";
 
-import { useMutation } from "convex/react";
-import { Edit, FolderOpen, Trash2, Users } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { api } from "@/convex/_generated/api";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Id } from "@/convex/_generated/dataModel";
-import { analytics } from "@/lib/analytics";
-import { BulkConversationAssigner } from "./BulkConversationAssigner";
-import { ProjectForm } from "./ProjectForm";
+import { Edit, FolderOpen, MoreVertical, Trash2, Users } from "lucide-react";
+import Link from "next/link";
 import { ProjectStats } from "./ProjectStats";
 
 interface ProjectCardProps {
@@ -45,129 +29,77 @@ interface ProjectCardProps {
     createdAt: number;
     updatedAt: number;
   };
+  onEdit?: (project: any) => void;
+  onDelete?: (id: Id<"projects">) => void;
+  onManage?: (id: Id<"projects">, name: string) => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isManageOpen, setIsManageOpen] = useState(false);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteProject = useMutation(api.projects.deleteProject);
-
-  const handleDelete = async () => {
-    try {
-      await deleteProject({ id: project._id });
-      toast.success("Project deleted");
-
-      // Track project deletion
-      analytics.track("project_deleted");
-    } catch (error) {
-      toast.error("Failed to delete project");
-      console.error(error);
-    }
-  };
-
+export function ProjectCard({ project, onEdit, onDelete, onManage }: ProjectCardProps) {
   return (
-    <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="flex items-center gap-2">
-                <FolderOpen className="w-5 h-5" />
-                {project.name}
-              </CardTitle>
-              {project.description && (
-                <CardDescription className="mt-2">
-                  {project.description}
-                </CardDescription>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {project.systemPrompt && (
-              <div>
-                <p className="text-sm font-medium mb-1">System Prompt:</p>
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {project.systemPrompt}
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsManageOpen(true)}
-                className="flex-1"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Manage
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditOpen(true)}
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsDeleteOpen(true)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="pt-0">
-          <ProjectStats projectId={project._id} />
-        </CardFooter>
-      </Card>
-
-      <BulkConversationAssigner
-        open={isManageOpen}
-        onOpenChange={setIsManageOpen}
-        projectId={project._id}
-        projectName={project.name}
+    <Card className="group relative overflow-hidden bg-background hover:bg-muted/30 border-border/40 shadow-sm hover:shadow-md transition-all duration-300">
+      <div
+        className="absolute inset-0 cursor-pointer z-0"
+        onClick={() => window.location.href = `/projects/${project._id}`}
       />
 
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
-          </DialogHeader>
-          <ProjectForm
-            project={project}
-            onSuccess={() => setIsEditOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      <CardHeader className="relative z-10 pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0 pr-4">
+             <div className="flex items-center gap-2 mb-1.5">
+                <div className="bg-primary/10 text-primary p-1.5 rounded-md">
+                   <FolderOpen className="w-4 h-4" />
+                </div>
+             </div>
+            <CardTitle className="text-base font-semibold truncate leading-tight">
+              {project.name}
+            </CardTitle>
+          </div>
 
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Project?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the project and unlink all conversations. The
-              conversations themselves will not be deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 text-muted-foreground/50 hover:text-foreground relative z-20">
+                    <MoreVertical className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 z-30">
+                <Link href={`/projects/${project._id}`} className="w-full relative z-30">
+                    <DropdownMenuItem>
+                        Open Project
+                    </DropdownMenuItem>
+                </Link>
+                {onManage && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onManage(project._id, project.name); }}>
+                        <Users className="w-4 h-4 mr-2" />
+                        Manage Conversations
+                    </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {onEdit && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(project); }}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Details
+                    </DropdownMenuItem>
+                )}
+                {onDelete && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(project._id); }} className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Project
+                    </DropdownMenuItem>
+                )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+
+      <CardContent className="relative z-10 pb-4 min-h-[5rem]">
+         <p className="text-sm text-muted-foreground/80 line-clamp-2 leading-relaxed h-[2.5rem]">
+            {project.description || "No description provided."}
+         </p>
+      </CardContent>
+
+      <CardFooter className="relative z-10 pt-0 text-xs text-muted-foreground border-t border-border/30 bg-muted/5 p-3 flex justify-between items-center">
+        <ProjectStats projectId={project._id} />
+      </CardFooter>
+    </Card>
   );
 }

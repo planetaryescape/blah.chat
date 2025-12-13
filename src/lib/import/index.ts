@@ -68,7 +68,8 @@ export function parseImportFile(content: string): ImportResult {
     default:
       return {
         success: false,
-        error: "Unable to detect file format. Please upload a JSON, Markdown, or ChatGPT export file.",
+        error:
+          "Unable to detect file format. Please upload a JSON, Markdown, or ChatGPT export file.",
       };
   }
 }
@@ -76,7 +77,10 @@ export function parseImportFile(content: string): ImportResult {
 /**
  * Validate file size and type before parsing
  */
-export function validateImportFile(file: File): { valid: boolean; error?: string } {
+export function validateImportFile(file: File): {
+  valid: boolean;
+  error?: string;
+} {
   const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
   if (file.size > MAX_SIZE) {

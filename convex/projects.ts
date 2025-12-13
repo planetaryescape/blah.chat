@@ -635,20 +635,24 @@ export const getProjectStats = query({
     }
 
     // Fetch all resource counts and activity in parallel
+    // NOTE: Use direct projectId field on conversations (not junction table) to match how
+    // conversations.list filters. The junction table may be stale or incomplete.
     const [
-      conversationJunctions,
+      projectConversations,
       noteJunctions,
       fileJunctions,
       allTasks,
       lastActivity,
     ] = await Promise.all([
+      // Use direct projectId field on conversations (matches conversations.list behavior)
       ctx.db
-        .query("projectConversations")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .query("conversations")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
         .collect(),
+      // Use direct projectId field on notes (matches notes.list behavior)
       ctx.db
-        .query("projectNotes")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .query("notes")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("projectFiles")
@@ -675,10 +679,11 @@ export const getProjectStats = query({
     };
 
     return {
-      conversationCount: conversationJunctions.length,
+      conversationCount: projectConversations.length,
       noteCount: noteJunctions.length,
       fileCount: fileJunctions.length,
-      taskStats,
+      activeTaskCount: taskStats.active,
+      taskStats, // Keep detailed breakdown for future use
       lastActivityAt:
         lastActivity?.createdAt || project._creationTime || Date.now(),
     };
@@ -793,6 +798,78 @@ export const getProjectActivity = query({
       events: hydratedEvents,
       total: events.length,
       hasMore: offset + limit < events.length,
+    };
+  },
+});
+
+// Smart Manager Phase 3: File Aggregation
+
+export const getProjectAttachments = query({
+  args: {
+    projectId: v.id("projects"),
+    paginationOpts: v.optional(
+      v.object({
+        numItems: v.number(),
+        cursor: v.union(v.string(), v.null()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return { page: [], isDone: true, continueCursor: "" };
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== user._id) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    // 1. Get all conversation IDs for this project
+    const conversationJunctions = await ctx.db
+      .query("projectConversations")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    const conversationIds = conversationJunctions.map((j) => j.conversationId);
+
+    if (conversationIds.length === 0) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    // 2. Fetch attachments for these conversations
+    // Note: detailed pagination across multiple conversations is complex efficiently.
+    // For V1, we'll fetch recent attachments from these conversations.
+    // Ideally, we'd have a `by_project` index on attachments if this scales.
+    // Since we don't, and `attachments` has `conversationId`, we can use `Promise.all`
+    // or if we denormalized `projectId` to attachments.
+
+    // Let's rely on fetching all for now (assuming < 1000 attachments per project)
+    // and sorting in memory, or fetch by conversation.
+
+    // Better approach for V1 without schema change:
+    // Gather all attachments from these conversations.
+    const allAttachments = await Promise.all(
+      conversationIds.map((id) =>
+        ctx.db
+          .query("attachments")
+          .withIndex("by_conversation", (q) => q.eq("conversationId", id))
+          .collect(),
+      ),
+    );
+
+    const flatAttachments = allAttachments
+      .flat()
+      .sort((a, b) => b.createdAt - a.createdAt);
+
+    // Simple manual pagination
+    const { numItems = 50, cursor } = args.paginationOpts || {};
+    const startIndex = cursor ? Number(cursor) : 0;
+    const page = flatAttachments.slice(startIndex, startIndex + numItems);
+    const hasMore = startIndex + numItems < flatAttachments.length;
+
+    return {
+      page,
+      isDone: !hasMore,
+      continueCursor: hasMore ? String(startIndex + numItems) : null,
     };
   },
 });

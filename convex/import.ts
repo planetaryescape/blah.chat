@@ -23,7 +23,10 @@ export const importConversations = mutation({
   args: {
     conversations: v.array(importConversationValidator),
   },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     success: boolean;
     importedCount: number;
     conversationIds: Id<"conversations">[];
@@ -61,7 +64,11 @@ export const importConversations = mutation({
               role: msg.role,
               content: msg.content,
               status: "complete",
-              model: msg.model || (msg.role === "assistant" ? conv.model || "openai:gpt-4o-mini" : undefined),
+              model:
+                msg.model ||
+                (msg.role === "assistant"
+                  ? conv.model || "openai:gpt-4o-mini"
+                  : undefined),
             },
           );
         }

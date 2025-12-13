@@ -11,10 +11,7 @@ const updateSchema = z.object({
   value: z.any(),
 });
 
-async function getHandler(
-  req: NextRequest,
-  { userId }: { userId: string },
-) {
+async function getHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();
   logger.info({ userId }, "GET /api/v1/preferences");
 
@@ -31,10 +28,7 @@ async function getHandler(
   return NextResponse.json(result);
 }
 
-async function patchHandler(
-  req: NextRequest,
-  { userId }: { userId: string },
-) {
+async function patchHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();
   logger.info({ userId }, "PATCH /api/v1/preferences");
 

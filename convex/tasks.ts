@@ -45,6 +45,7 @@ export const create = mutation({
     ),
     projectId: v.optional(v.id("projects")),
     priority: v.optional(v.number()),
+    tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -70,6 +71,7 @@ export const create = mutation({
       sourceContext: args.sourceContext,
       projectId: args.projectId,
       priority: args.priority,
+      tags: args.tags,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -117,6 +119,7 @@ export const update = mutation({
     ),
     projectId: v.optional(v.id("projects")),
     priority: v.optional(v.number()),
+    tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -144,6 +147,8 @@ export const update = mutation({
     if (args.urgency !== undefined) updates.urgency = args.urgency;
     if (args.projectId !== undefined) updates.projectId = args.projectId;
     if (args.priority !== undefined) updates.priority = args.priority;
+    if (args.tags !== undefined) updates.tags = args.tags;
+    if (args.tags !== undefined) updates.tags = args.tags;
 
     await ctx.db.patch(args.id, updates);
   },

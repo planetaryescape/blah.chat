@@ -10,15 +10,20 @@ import type { ActionCtx } from "../../../_generated/server";
  */
 export function createMemorySearchTool(ctx: ActionCtx, userId: Id<"users">) {
   return tool({
-    description: `Retrieve past conversation facts and context from memory bank. Call when user asks about:
-- Past discussions: "What did I say about X?", "the project I mentioned"
+    description: `Retrieve past conversation facts and context from memory bank.
+
+CALL THIS TOOL when user asks about THEIR OWN:
+- Skills, knowledge, or experience: "Do I know X?", "Have I used Y?"
+- Preferences or opinions: "What do I like?", "How do I feel about Z?"
+- Past discussions: "What did I say about...", "the project I mentioned"
 - Specific facts/events: "When did I...", "What was the result of..."
 - Project/goal details: "What are the specs for...", "How did we decide to..."
 
 DO NOT call for:
-- User's identity, name, preferences, relationships (already provided in system prompt)
-- General knowledge questions (use your training)
+- User's basic identity (name, nickname) — pre-loaded in system prompt
+- WORLD knowledge unrelated to user: "What is Python?" (not "Do I know Python?")
 - Greetings, confirmations, simple chit-chat
+- Information already visible in pre-loaded identity section of system prompt
 
 Multi-turn usage: You can call this tool multiple times to refine/clarify results if needed.
 

@@ -1,13 +1,13 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 
 interface MessageNotesIndicatorProps {
   messageId: Id<"messages">;
@@ -19,9 +19,14 @@ export function MessageNotesIndicator({
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const notes = useQuery(api.notes.getNotesFromMessage, {
-    messageId,
-  });
+  // Check if this is a temporary optimistic message (not yet persisted)
+  const isTempMessage = typeof messageId === "string" && messageId.startsWith("temp-");
+
+  // Skip query for temporary optimistic messages
+  const notes = useQuery(
+    api.notes.getNotesFromMessage,
+    isTempMessage ? "skip" : { messageId }
+  );
 
   if (!notes || notes.length === 0) {
     return null;

@@ -1,9 +1,8 @@
 "use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { motion } from "framer-motion";
-import { useRef } from "react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRef } from "react";
 import { NoteListItem } from "./NoteListItem";
 
 interface NoteListProps {
@@ -18,7 +17,7 @@ export function NoteList({ notes, selectedNoteId, onSelect }: NoteListProps) {
   const virtualizer = useVirtualizer({
     count: notes.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 120, // Estimated height per note item
+    estimateSize: () => 88, // Reduced estimated height for compact inbox items
     overscan: 5, // Render 5 extra items above/below viewport
   });
 
@@ -41,17 +40,15 @@ export function NoteList({ notes, selectedNoteId, onSelect }: NoteListProps) {
           const note = notes[virtualItem.index];
 
           return (
-            <motion.div
-              key={note._id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.15 }}
-              layout={false} // Disable layout animations
+            <div
+              key={virtualItem.key}
+              data-index={virtualItem.index}
               style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
                 width: "100%",
+                height: `${virtualItem.size}px`,
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
@@ -60,7 +57,7 @@ export function NoteList({ notes, selectedNoteId, onSelect }: NoteListProps) {
                 isSelected={selectedNoteId === note._id}
                 onClick={() => onSelect(note._id)}
               />
-            </motion.div>
+            </div>
           );
         })}
       </div>

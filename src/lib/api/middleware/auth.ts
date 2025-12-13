@@ -1,11 +1,12 @@
+import logger from "@/lib/logger";
+import { formatErrorEntity } from "@/lib/utils/formatEntity";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { formatErrorEntity } from "@/lib/utils/formatEntity";
-import logger from "@/lib/logger";
 
 type AuthContext = {
   params: Promise<Record<string, string | string[]>>;
   userId: string;
+  sessionToken: string;
 };
 
 type AuthenticatedHandler = (
@@ -19,7 +20,7 @@ export function withAuth(handler: AuthenticatedHandler) {
     context: { params: Promise<Record<string, string | string[]>> },
   ) => {
     try {
-      const { userId } = await auth();
+      const { userId, getToken } = await auth();
 
       if (!userId) {
         logger.warn({ url: req.url }, "Unauthorized request");
@@ -28,9 +29,20 @@ export function withAuth(handler: AuthenticatedHandler) {
         });
       }
 
-      return await handler(req, { ...context, userId });
+      // Get session token for Convex authentication
+      const sessionToken = await getToken({ template: "convex" });
+      if (!sessionToken) {
+        logger.warn({ url: req.url, userId }, "No session token available");
+        return NextResponse.json(formatErrorEntity("Session token unavailable"), {
+          status: 401,
+        });
+      }
+
+      return await handler(req, { ...context, userId, sessionToken });
     } catch (error) {
-      logger.error({ error, url: req.url }, "Auth middleware error");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ error: errorMessage, stack: errorStack, url: req.url }, "Auth middleware error");
       return NextResponse.json(formatErrorEntity("Internal server error"), {
         status: 500,
       });
@@ -55,7 +67,9 @@ export function withOptionalAuth(
       const { userId } = await auth();
       return await handler(req, { ...context, userId: userId ?? undefined });
     } catch (error) {
-      logger.error({ error, url: req.url }, "Auth middleware error");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error({ error: errorMessage, stack: errorStack, url: req.url }, "Auth middleware error");
       return NextResponse.json(formatErrorEntity("Internal server error"), {
         status: 500,
       });

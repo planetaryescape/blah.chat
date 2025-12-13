@@ -28,7 +28,8 @@ export function parseMarkdown(content: string): ImportResult {
 
         // Extract messages using regex pattern matching
         const messages: ImportMessage[] = [];
-        const messagePattern = /## (You|Assistant|System)\n\n([\s\S]*?)(?=\n## |$)/g;
+        const messagePattern =
+          /## (You|Assistant|System)\n\n([\s\S]*?)(?=\n## |$)/g;
 
         // Use regex matchAll for safe iteration (not child_process)
         const matches = [...block.matchAll(messagePattern)];

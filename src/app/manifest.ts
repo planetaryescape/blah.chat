@@ -4,8 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "blah.chat",
     short_name: "blah.chat",
-    description:
-      "The bespoke AI interface. Total Control. One Interface.",
+    description: "The bespoke AI interface. Total Control. One Interface.",
     start_url: "/",
     display: "standalone",
     background_color: "#191024", // Deep Slate

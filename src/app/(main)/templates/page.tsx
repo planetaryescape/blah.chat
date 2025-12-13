@@ -1,28 +1,28 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { useState } from "react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Plus } from "lucide-react";
+import { useState } from "react";
 
 const CATEGORIES = ["all", "coding", "writing", "analysis", "creative"];
 
-import { useMutation, useQuery } from "convex/react";
-import { useEffect } from "react";
-import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 // ... imports
 
@@ -69,53 +69,49 @@ export default function TemplatesPage() {
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Background gradients */}
-      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
-
       {/* Fixed Header */}
-      <div className="flex-none z-50 bg-background/60 backdrop-blur-xl border-b border-border/40 shadow-sm transition-all duration-200">
+      <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-6xl px-4 py-4">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Templates
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Quick-start prompts for common tasks
-              </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-1">
+               <h1 className="text-xl font-bold tracking-tight">Templates</h1>
+               <p className="text-sm text-muted-foreground">
+                 Quick-start prompts for common tasks
+               </p>
             </div>
-            <Button onClick={() => setIsCreateOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Template
-            </Button>
+            <div className="flex items-center gap-4">
+                <Tabs
+                    value={selectedCategory}
+                    onValueChange={setSelectedCategory}
+                    className="w-full md:w-auto"
+                >
+                    <TabsList className="bg-muted/50">
+                    {CATEGORIES.map((cat: any) => (
+                        <TabsTrigger key={cat} value={cat} className="capitalize data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        {cat}
+                        </TabsTrigger>
+                    ))}
+                    </TabsList>
+                </Tabs>
+                <Button onClick={() => setIsCreateOpen(true)} size="sm" className="hidden md:flex">
+                <Plus className="w-4 h-4 mr-2" />
+                New Template
+                </Button>
+                 <Button onClick={() => setIsCreateOpen(true)} size="icon" className="md:hidden">
+                    <Plus className="w-4 h-4" />
+                </Button>
+            </div>
           </div>
-
-          <Tabs
-            value={selectedCategory}
-            onValueChange={setSelectedCategory}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-5">
-              {CATEGORIES.map((cat: any) => (
-                <TabsTrigger key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
         </div>
-        {/* Gradient Glow */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-orange-500/5 pointer-events-none" />
       </div>
 
       {/* Scrollable Content */}
       <ScrollArea className="flex-1 w-full min-h-0">
         <div className="container mx-auto max-w-6xl px-4 py-8">
-          <div className="space-y-8">
+          <div className="space-y-10">
             {userTemplates.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold mb-4">Your Templates</h2>
+                <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">Your Templates</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {userTemplates.map((template: any) => (
                     <TemplateCard key={template._id} template={template} />
@@ -126,7 +122,7 @@ export default function TemplatesPage() {
 
             {builtInTemplates.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold mb-4">
+                <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">
                   Built-in Templates
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -138,8 +134,12 @@ export default function TemplatesPage() {
             )}
 
             {templates && templates.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">
-                No templates found
+              <div className="text-center py-24 text-muted-foreground flex flex-col items-center">
+                 <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                    <FileText className="h-8 w-8 text-muted-foreground/40" />
+                 </div>
+                 <h3 className="text-lg font-semibold">No templates found</h3>
+                 <p className="text-sm">Create a new template to get started.</p>
               </div>
             )}
           </div>

@@ -17,4 +17,11 @@ crons.interval(
   internal.memories.extract.processInactiveConversations,
 );
 
+// Cleanup expired jobs - every hour at minute 0
+crons.hourly(
+  "cleanup-expired-jobs",
+  { minuteUTC: 0 },
+  internal.jobs.crud.cleanupExpired,
+);
+
 export default crons;

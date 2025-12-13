@@ -57,6 +57,7 @@ import { cn } from "@/lib/utils";
 import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { ConversationList } from "./ConversationList";
+import { ConversationListSkeleton } from "./ConversationListSkeleton";
 
 const MENU_ITEMS = [
   { icon: Search, label: "Search", href: "/search", featureKey: null },
@@ -393,36 +394,42 @@ export function AppSidebar() {
               </div>
 
               <SidebarGroupContent>
-                {/* Bulk Action Bar - Top Position */}
-                {selectedIds.length > 0 ? (
-                  <div className="px-2 pb-2">
-                    <BulkActionBar
-                      selectedCount={selectedIds.length}
-                      onClearSelection={handleClearSelection}
-                      onDelete={() => setShowBulkDeleteConfirm(true)}
-                      onArchive={handleBulkArchive}
-                      onPin={handleBulkPin}
-                      onUnpin={() => {}}
-                      onStar={handleBulkStar}
-                      onUnstar={() => {}}
-                      onAutoRename={handleBulkAutoRename}
-                      className="w-full border shadow-sm"
-                    />
-                  </div>
+                {conversations === undefined ? (
+                  <ConversationListSkeleton />
                 ) : (
-                  /* Selection Mode Hint */
-                  <div className="px-2 pb-2 text-[10px] text-muted-foreground hidden sm:block">
-                    Tip: Right-click to select
-                  </div>
-                )}
+                  <>
+                    {/* Bulk Action Bar - Top Position */}
+                    {selectedIds.length > 0 ? (
+                      <div className="px-2 pb-2">
+                        <BulkActionBar
+                          selectedCount={selectedIds.length}
+                          onClearSelection={handleClearSelection}
+                          onDelete={() => setShowBulkDeleteConfirm(true)}
+                          onArchive={handleBulkArchive}
+                          onPin={handleBulkPin}
+                          onUnpin={() => {}}
+                          onStar={handleBulkStar}
+                          onUnstar={() => {}}
+                          onAutoRename={handleBulkAutoRename}
+                          className="w-full border shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      /* Selection Mode Hint */
+                      <div className="px-2 pb-2 text-[10px] text-muted-foreground hidden sm:block">
+                        Tip: Right-click to select
+                      </div>
+                    )}
 
-                <ConversationList
-                  conversations={filteredConversations || []}
-                  selectedId={selectedId}
-                  onClearSelection={clearSelection}
-                  selectedIds={selectedIds}
-                  onToggleSelection={toggleSelection}
-                />
+                    <ConversationList
+                      conversations={filteredConversations || []}
+                      selectedId={selectedId}
+                      onClearSelection={clearSelection}
+                      selectedIds={selectedIds}
+                      onToggleSelection={toggleSelection}
+                    />
+                  </>
+                )}
               </SidebarGroupContent>
             </>
           )}

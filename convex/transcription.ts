@@ -3,6 +3,30 @@ import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action } from "./_generated/server";
 
+/**
+ * Wrap promise with timeout to prevent infinite hangs
+ * Pattern from videoAnalysis.ts lines 110-137
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operation: string,
+): Promise<T> {
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => {
+      reject(
+        new Error(
+          `${operation} timed out after ${timeoutMs / 1000}s. Try a shorter audio clip or different format.`,
+        ),
+      );
+    }, timeoutMs),
+  );
+
+  return Promise.race([promise, timeoutPromise]);
+}
+
+const TRANSCRIPTION_TIMEOUT_MS = 90_000; // 90s (Whisper typically 30-60s)
+
 export const transcribeAudio = action({
   args: {
     audioBase64: v.string(),
@@ -12,7 +36,11 @@ export const transcribeAudio = action({
     // Get current user
     const user = await (
       ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
-    )(internal.lib.helpers.getCurrentUser, {});
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
     if (!user) {
       throw new Error("Unauthorized");
     }
@@ -20,10 +48,18 @@ export const transcribeAudio = action({
     // Phase 4: Get STT preferences from new system
     const sttEnabled = await (
       ctx.runQuery as (ref: any, args: any) => Promise<boolean | null>
-    )(api.users.getUserPreference as any, { key: "sttEnabled" });
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getUserPreference as any,
+      { key: "sttEnabled" },
+    );
     const sttProvider = await (
       ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-    )(api.users.getUserPreference as any, { key: "sttProvider" });
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getUserPreference as any,
+      { key: "sttProvider" },
+    );
 
     // Check if STT is enabled
     if (sttEnabled === false) {
@@ -43,6 +79,23 @@ export const transcribeAudio = action({
       type: args.mimeType,
     });
 
+    // File size validation
+    const fileSizeMB = bytes.length / (1024 * 1024);
+    const MAX_FILE_SIZE_MB = 24; // Under Whisper's 25MB limit
+
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      throw new Error(
+        `Audio file too large (${fileSizeMB.toFixed(1)}MB). Maximum size is ${MAX_FILE_SIZE_MB}MB. Try compressing or splitting the file.`,
+      );
+    }
+
+    // Log warning for large files
+    if (fileSizeMB > 15) {
+      console.warn(
+        `Large audio file: ${fileSizeMB.toFixed(1)}MB - may take 60-90s`,
+      );
+    }
+
     let text: string;
     let cost: number;
     let durationMinutes: number;
@@ -52,30 +105,50 @@ export const transcribeAudio = action({
 
     switch (provider) {
       case "openai": {
-        // OpenAI Whisper via API
+        // OpenAI Whisper via API with AbortController
         const formData = new FormData();
         formData.append("file", audioFile);
         formData.append("model", "whisper-1");
 
-        const response = await fetch(
-          "https://api.openai.com/v1/audio/transcriptions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: formData,
-          },
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          TRANSCRIPTION_TIMEOUT_MS,
         );
 
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`OpenAI Whisper failed: ${error}`);
-        }
+        try {
+          const response = await fetch(
+            "https://api.openai.com/v1/audio/transcriptions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+              },
+              body: formData,
+              signal: controller.signal,
+            },
+          );
 
-        const result = await response.json();
-        text = result.text;
-        cost = durationMinutes * 0.006;
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`OpenAI Whisper failed: ${error}`);
+          }
+
+          const result = await response.json();
+          text = result.text;
+          cost = durationMinutes * 0.006;
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+
+          if (err.name === "AbortError") {
+            throw new Error(
+              "Transcription timed out after 90 seconds. Try a shorter audio file or compress it.",
+            );
+          }
+          throw err;
+        }
         break;
       }
 
@@ -88,30 +161,50 @@ export const transcribeAudio = action({
         throw new Error("AssemblyAI not yet implemented");
 
       case "groq": {
-        // Groq Whisper via API (OpenAI-compatible)
+        // Groq Whisper via API (OpenAI-compatible) with AbortController
         const formData = new FormData();
         formData.append("file", audioFile);
         formData.append("model", "whisper-large-v3-turbo");
 
-        const response = await fetch(
-          "https://api.groq.com/openai/v1/audio/transcriptions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-            },
-            body: formData,
-          },
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          TRANSCRIPTION_TIMEOUT_MS,
         );
 
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Groq Whisper failed: ${error}`);
-        }
+        try {
+          const response = await fetch(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+              },
+              body: formData,
+              signal: controller.signal,
+            },
+          );
 
-        const result = await response.json();
-        text = result.text;
-        cost = (durationMinutes / 60) * 0.04; // $0.04/hour
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Groq Whisper failed: ${error}`);
+          }
+
+          const result = await response.json();
+          text = result.text;
+          cost = (durationMinutes / 60) * 0.04; // $0.04/hour
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+
+          if (err.name === "AbortError") {
+            throw new Error(
+              "Transcription timed out after 90 seconds. Try a shorter audio file or compress it.",
+            );
+          }
+          throw err;
+        }
         break;
       }
 

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
@@ -161,6 +162,57 @@ export const list = query({
       .collect();
 
     return messages;
+  },
+});
+
+/**
+ * List messages with pagination (mobile-optimized)
+ *
+ * Fetches messages in batches to prevent loading 1000+ messages at once.
+ * Uses Convex's built-in pagination with cursor-based approach.
+ *
+ * @param conversationId - Conversation to fetch messages from
+ * @param paginationOpts - Pagination options (numItems, cursor, etc)
+ * @returns Paginated messages result
+ */
+export const listPaginated = query({
+  args: {
+    conversationId: v.id("conversations"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    // Security: Verify user owns the conversation
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    // Fetch paginated messages (oldest first, so client can reverse)
+    const result = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .order("asc")
+      .paginate({
+        ...args.paginationOpts,
+        cursor: args.paginationOpts.cursor ?? null,
+      });
+
+    return result;
   },
 });
 

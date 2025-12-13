@@ -5,7 +5,7 @@
 ## Table of Contents
 
 1. [How Modern Chat Apps Work](#how-modern-chat-apps-work)
-2. [The 7 Key Sections](#the-7-key-sections)
+2. [The 8 Key Sections](#the-8-key-sections)
 3. [XML Structure](#xml-structure)
 4. [Dynamic Placeholders](#dynamic-placeholders)
 5. [AI Writing Tells to Avoid](#ai-writing-tells-to-avoid)
@@ -37,7 +37,7 @@ The system prompt is sent on **every single API call** as the first message in t
 
 ---
 
-## The 7 Key Sections
+## The 8 Key Sections
 
 Every leaked production prompt shares this structure:
 
@@ -90,14 +90,72 @@ Every leaked production prompt shares this structure:
 - How to handle tool errors or missing data
 - Priority of tool output vs. training data
 
-### 6. Safety & Guardrails
+### 6. Tool-First Information Retrieval (Critical)
+
+**The Problem**: AI models often claim insufficient knowledge when tools exist that could provide the answer.
+
+**The Solution**: Explicit instruction hierarchy for when to use tools vs. claiming ignorance.
+
+```xml
+<information_retrieval_hierarchy>
+  <principle>
+    Before claiming you don't know or lack information, check if tools can provide the answer.
+  </principle>
+
+  <query_triage>
+    <timeless_knowledge>
+      Answer directly, no tools needed:
+      - Fundamental concepts, established history, mathematics
+      - Stable technical documentation
+    </timeless_knowledge>
+
+    <potentially_outdated>
+      Check tools if claiming knowledge cutoff limitation:
+      - Information that changes annually/monthly
+      - Events after knowledge cutoff
+    </potentially_outdated>
+
+    <user_specific_data>
+      ALWAYS check tools before claiming ignorance:
+      - User's personal information, preferences, history
+      - Past conversations, projects, decisions
+      Example: "Do I know Rust?" → Call searchMemories, never say "I don't know"
+    </user_specific_data>
+
+    <real_time_data>
+      Use tools immediately if available:
+      - Current events, news, live data
+      - Time-sensitive information
+    </real_time_data>
+  </query_triage>
+
+  <when_to_claim_insufficient_information>
+    You may only say "I don't know" AFTER:
+    1. Checking if relevant tools are available
+    2. Attempting to use those tools
+    3. Confirming tools cannot provide the information
+
+    DO NOT immediately cite knowledge cutoff for:
+    - User-specific questions when memory tools exist
+    - Current information when search/web tools exist
+  </when_to_claim_insufficient_information>
+</information_retrieval_hierarchy>
+```
+
+**Key Principles** (from ChatGPT, Claude, Gemini):
+- **Imperative language**: "DO use tools" not "consider using tools"
+- **Tool-first before claiming ignorance**: Check capabilities before refusing
+- **Query triage**: Categorize by information type (timeless vs user-specific vs real-time)
+- **Clear boundaries**: "Do I know X?" = user-specific → search; "What is X?" = general → answer
+
+### 7. Safety & Guardrails
 
 - High-level content constraints
 - Refusal patterns ("decline briefly, offer safer alternative")
 - Copyright and privacy rules
 - No moralizing or lecturing
 
-### 7. Instruction Hierarchy (Critical)
+### 8. Instruction Hierarchy (Critical)
 
 ```xml
 <instruction_hierarchy>

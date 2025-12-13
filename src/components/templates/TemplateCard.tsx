@@ -1,36 +1,36 @@
 "use client";
 
-import { useMutation } from "convex/react";
-import { Edit, FileText, Sparkles, Trash2 } from "lucide-react";
-import { useRouter as useNextRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
+import { useMutation } from "convex/react";
+import { Copy, Edit, FileText, MoreHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { TemplateForm } from "./TemplateForm";
 
 interface TemplateCardProps {
@@ -48,9 +48,10 @@ interface TemplateCardProps {
 export function TemplateCard({ template }: TemplateCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation
   const deleteTemplate = useMutation(api.templates.deleteTemplate);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation
   const incrementUsage = useMutation(api.templates.incrementUsage);
-  const _router = useNextRouter();
 
   const handleDelete = async () => {
     try {
@@ -65,90 +66,84 @@ export function TemplateCard({ template }: TemplateCardProps) {
   const handleUse = async () => {
     try {
       await incrementUsage({ id: template._id });
-      // Here you could navigate to a new conversation with the template pre-filled
-      // For now, just copy to clipboard
       await navigator.clipboard.writeText(template.prompt);
-      toast.success("Template copied to clipboard");
+      toast.success("Copied to clipboard");
     } catch (error) {
-      toast.error("Failed to use template");
+      toast.error("Failed to copy");
       console.error(error);
     }
   };
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="flex items-center gap-2">
-                {template.isBuiltIn ? (
-                  <Sparkles className="w-4 h-4 text-yellow-500" />
-                ) : (
-                  <FileText className="w-4 h-4" />
-                )}
-                {template.name}
-              </CardTitle>
-              {template.description && (
-                <CardDescription className="mt-2">
-                  {template.description}
-                </CardDescription>
-              )}
+      <div className="group relative flex flex-col justify-between rounded-xl border border-border/40 bg-background/50 p-4 transition-all duration-300 hover:border-primary/20 hover:bg-muted/20 hover:shadow-sm">
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+               <div className={cn(
+                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/50",
+                   template.isBuiltIn ? "bg-amber-500/10 text-amber-600 dark:text-amber-500" : "bg-primary/10 text-primary"
+               )}>
+                  {template.isBuiltIn ? <Sparkles className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+               </div>
+               <div className="flex flex-col overflow-hidden">
+                 <h3 className="truncate text-sm font-medium text-foreground leading-tight">
+                    {template.name}
+                 </h3>
+                 <span className="truncate text-xs text-muted-foreground/70">
+                    {template.category}
+                 </span>
+               </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+               {!template.isBuiltIn && (
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                            <Edit className="mr-2 h-3.5 w-3.5" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} className="text-destructive focus:text-destructive">
+                             <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                 </DropdownMenu>
+               )}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {template.prompt}
-              </p>
+
+          <p className="line-clamp-2 text-xs text-muted-foreground/80 min-h-[2.5em]">
+            {template.description || template.prompt}
+          </p>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between border-t border-border/30 pt-3">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                <span>{template.usageCount} uses</span>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="px-2 py-1 bg-secondary rounded-full">
-                {template.category}
-              </span>
-              <span>{template.usageCount} uses</span>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="default"
+            <Button
+                variant="secondary"
                 size="sm"
+                className="h-7 px-3 text-xs font-medium hover:bg-primary/10 hover:text-primary transition-colors"
                 onClick={handleUse}
-                className="flex-1"
-              >
-                Use Template
-              </Button>
-              {!template.isBuiltIn && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditOpen(true)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsDeleteOpen(true)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            >
+                <Copy className="mr-1.5 h-3 w-3" />
+                Use
+            </Button>
+        </div>
+      </div>
 
       {!template.isBuiltIn && (
         <>
           <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Edit Template</DialogTitle>
               </DialogHeader>
@@ -162,16 +157,16 @@ export function TemplateCard({ template }: TemplateCardProps) {
           <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                <AlertDialogTitle>Delete Template</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone.
+                  Are you sure you want to delete this template? This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive hover:bg-destructive/90"
                 >
                   Delete
                 </AlertDialogAction>

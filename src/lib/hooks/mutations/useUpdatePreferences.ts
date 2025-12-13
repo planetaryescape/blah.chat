@@ -4,32 +4,30 @@ import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
 
 interface UpdatePreferencesArgs {
-	key: string;
-	value: any;
+  key: string;
+  value: any;
 }
 
 export function useUpdatePreferences() {
-	const api = useApiClient();
-	const queryClient = useQueryClient();
+  const api = useApiClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: async (args: UpdatePreferencesArgs) => {
-			return api.patch("/api/v1/preferences", args);
-		},
+  return useMutation({
+    mutationFn: async (args: UpdatePreferencesArgs) => {
+      return api.patch("/api/v1/preferences", args);
+    },
 
-		onSuccess: () => {
-			// Invalidate preferences cache
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.preferences.all,
-			});
-		},
+    onSuccess: () => {
+      // Invalidate preferences cache
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.preferences.all,
+      });
+    },
 
-		onError: (error) => {
-			const msg =
-				error instanceof Error
-					? error.message
-					: "Failed to update preferences";
-			toast.error(msg);
-		},
-	});
+    onError: (error) => {
+      const msg =
+        error instanceof Error ? error.message : "Failed to update preferences";
+      toast.error(msg);
+    },
+  });
 }

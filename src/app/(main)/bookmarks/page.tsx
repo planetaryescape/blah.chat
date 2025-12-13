@@ -1,14 +1,17 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { Bookmark, Search } from "lucide-react";
-import { Suspense, useMemo, useState } from "react";
 import { BookmarkCard } from "@/components/bookmarks/BookmarkCard";
+import { BookmarksTable } from "@/components/bookmarks/BookmarksTable";
+import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
-import { api } from "../../../../convex/_generated/api";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMutation, useQuery } from "convex/react";
+import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
+import { Suspense, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { api } from "../../../../convex/_generated/api";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,10 @@ function BookmarksPageContent() {
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const bookmarks = useQuery(api.bookmarks.list);
+  const removeBookmark = useMutation(api.bookmarks.remove);
+
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   const filteredBookmarks = useMemo(() => {
     if (!bookmarks) return [];
@@ -47,6 +53,15 @@ function BookmarksPageContent() {
     });
   }, [bookmarks, searchQuery]);
 
+  const handleRemove = async (id: string) => {
+      try {
+          await removeBookmark({ bookmarkId: id as any });
+          toast.success("Bookmark removed");
+      } catch (error) {
+          toast.error("Failed to remove bookmark");
+      }
+  };
+
   if (bookmarks === undefined) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -62,73 +77,88 @@ function BookmarksPageContent() {
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Background gradients */}
-      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
-
       {/* Fixed Header */}
-      <div className="flex-none z-50 bg-background/60 backdrop-blur-xl border-b border-border/40 shadow-sm transition-all duration-200">
+      <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <Bookmark className="h-6 w-6" />
-                </div>
-                <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                  Bookmarks
-                </h1>
+                 <div className="bg-primary/10 p-2 rounded-lg">
+                    <Bookmark className="w-5 h-5 text-primary" />
+                 </div>
+                 <h1 className="text-xl font-bold tracking-tight">Bookmarks</h1>
               </div>
-              <p className="text-muted-foreground text-lg max-w-2xl">
-                Your collection of saved messages and important conversations.
+              <p className="text-sm text-muted-foreground ml-1">
+                Saved messages and conversations
               </p>
             </div>
 
             <div className="flex gap-3 items-center w-full md:w-auto">
-              <div className="relative w-full md:w-80 group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              {/* View Toggle */}
+              <div className="flex items-center p-1 bg-muted/50 rounded-lg border border-border/40">
+                <Button
+                    variant={viewMode === "grid" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-7 w-7 rounded-md"
+                    onClick={() => setViewMode("grid")}
+                    title="Grid View"
+                >
+                    <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant={viewMode === "table" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-7 w-7 rounded-md"
+                    onClick={() => setViewMode("table")}
+                    title="Table View"
+                >
+                    <List className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="relative w-full md:w-64 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
                 <Input
                   placeholder="Search bookmarks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-background/50 border-border/50 focus:bg-background transition-all"
+                  className="pl-9 h-9 bg-muted/40 border-border/40 focus:bg-background focus:border-primary/30 transition-all text-sm"
                 />
-              </div>
-              <div className="h-10 px-4 flex items-center justify-center rounded-md bg-muted/30 border border-border/50 text-sm font-medium text-muted-foreground min-w-[3rem]">
-                {filteredBookmarks.length}
               </div>
             </div>
           </div>
         </div>
-        {/* Gradient Glow */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-orange-500/5 pointer-events-none" />
       </div>
 
       {/* Scrollable Content */}
       <ScrollArea className="flex-1 w-full min-h-0">
         <div className="container mx-auto max-w-6xl px-4 py-8">
           {filteredBookmarks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center space-y-6 bg-muted/5 rounded-3xl border border-dashed border-border/50">
-              <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center">
-                <Bookmark className="h-10 w-10 text-muted-foreground/40" />
+            <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+              <div className="h-16 w-16 rounded-full bg-muted/30 flex items-center justify-center">
+                <Bookmark className="h-8 w-8 text-muted-foreground/40" />
               </div>
-              <div className="space-y-2 max-w-md mx-auto">
-                <h3 className="text-xl font-semibold font-display">
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-lg font-semibold">
                   {searchQuery ? "No matching bookmarks" : "No bookmarks yet"}
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {searchQuery
-                    ? "Try adjusting your search query to find what you're looking for."
-                    : "Start bookmarking important messages in your conversations to easily find them here later."}
+                    ? "Try adjusting your search query."
+                    : "Bookmark messages to find them here."}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredBookmarks.map((bookmark: any) => (
-                <BookmarkCard key={bookmark._id} bookmark={bookmark} />
-              ))}
-            </div>
+            viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredBookmarks.map((bookmark: any) => (
+                    <BookmarkCard key={bookmark._id} bookmark={bookmark} />
+                  ))}
+                </div>
+            ) : (
+                <BookmarksTable bookmarks={filteredBookmarks} onRemove={handleRemove} />
+            )
           )}
         </div>
       </ScrollArea>

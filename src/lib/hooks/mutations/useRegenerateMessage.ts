@@ -5,34 +5,32 @@ import { queryKeys } from "@/lib/query/keys";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface RegenerateMessageArgs {
-	messageId: Id<"messages">;
-	conversationId: Id<"conversations">;
+  messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
 }
 
 export function useRegenerateMessage() {
-	const api = useApiClient();
-	const queryClient = useQueryClient();
+  const api = useApiClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: async ({ messageId }: RegenerateMessageArgs) => {
-			return api.post(`/api/v1/messages/${messageId}/regenerate`);
-		},
+  return useMutation({
+    mutationFn: async ({ messageId }: RegenerateMessageArgs) => {
+      return api.post(`/api/v1/messages/${messageId}/regenerate`);
+    },
 
-		onSuccess: (data, variables) => {
-			// Invalidate messages for this conversation
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.messages.list(variables.conversationId),
-			});
+    onSuccess: (data, variables) => {
+      // Invalidate messages for this conversation
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.messages.list(variables.conversationId),
+      });
 
-			toast.success("Regenerating message...");
-		},
+      toast.success("Regenerating message...");
+    },
 
-		onError: (error) => {
-			const msg =
-				error instanceof Error
-					? error.message
-					: "Failed to regenerate message";
-			toast.error(msg);
-		},
-	});
+    onError: (error) => {
+      const msg =
+        error instanceof Error ? error.message : "Failed to regenerate message";
+      toast.error(msg);
+    },
+  });
 }

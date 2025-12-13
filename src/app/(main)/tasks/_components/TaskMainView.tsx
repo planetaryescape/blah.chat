@@ -16,9 +16,18 @@ interface TaskMainViewProps {
   tasks: any[];
   view: string;
   projectId?: Id<"projects"> | null;
+  selectedTaskId?: Id<"tasks"> | null;
+  onTaskSelect?: (id: Id<"tasks"> | null) => void;
 }
 
-export function TaskMainView({ title, tasks, view, projectId }: TaskMainViewProps) {
+export function TaskMainView({
+  title,
+  tasks,
+  view,
+  projectId,
+  selectedTaskId,
+  onTaskSelect,
+}: TaskMainViewProps) {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   // @ts-ignore - Type depth exceeded
   const createTask = useMutation(api.tasks.create);
@@ -46,40 +55,57 @@ export function TaskMainView({ title, tasks, view, projectId }: TaskMainViewProp
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
-    day: "numeric"
+    day: "numeric",
   });
 
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-indigo-50/50 via-purple-50/50 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/20 dark:to-pink-950/20">
       {/* Professional gradient background */}
       <div className="flex-1 flex flex-col h-full bg-background/60 backdrop-blur-xl">
-
         <header className="p-6 pb-2">
           <div className="flex flex-col">
             <h1 className="text-3xl font-bold text-primary">{title}</h1>
             {view === "today" && (
-              <p className="text-sm text-muted-foreground mt-1">{currentDate}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {currentDate}
+              </p>
             )}
           </div>
         </header>
 
         <ScrollArea className="flex-1 px-6">
           <div className="space-y-1 pb-4">
-             {/* Incomplete Tasks */}
-            {tasks.filter(t => t.status !== "completed").map((task) => (
-              <TaskListItem key={task._id} task={task} />
-            ))}
+            {/* Incomplete Tasks */}
+            {tasks
+              .filter((t) => t.status !== "completed")
+              .map((task) => (
+                <TaskListItem
+                  key={task._id}
+                  task={task}
+                  onClick={() => onTaskSelect?.(task._id)}
+                  isSelected={selectedTaskId === task._id}
+                />
+              ))}
 
             {/* Completed Tasks Accordion? Or just list at bottom */}
-            {tasks.some(t => t.status === "completed") && (
-               <div className="mt-6">
-                 <h3 className="text-sm font-medium text-muted-foreground mb-3 px-2">Completed</h3>
-                 <div className="opacity-70">
-                    {tasks.filter(t => t.status === "completed").map((task) => (
-                      <TaskListItem key={task._id} task={task} />
+            {tasks.some((t) => t.status === "completed") && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3 px-2">
+                  Completed
+                </h3>
+                <div className="opacity-70">
+                  {tasks
+                    .filter((t) => t.status === "completed")
+                    .map((task) => (
+                      <TaskListItem
+                        key={task._id}
+                        task={task}
+                        onClick={() => onTaskSelect?.(task._id)}
+                        isSelected={selectedTaskId === task._id}
+                      />
                     ))}
-                 </div>
-               </div>
+                </div>
+              </div>
             )}
           </div>
         </ScrollArea>
@@ -97,12 +123,14 @@ export function TaskMainView({ title, tasks, view, projectId }: TaskMainViewProp
               className="border-none bg-transparent shadow-none focus-visible:ring-0 px-2 h-auto py-1 text-base placeholder:text-muted-foreground/70"
             />
             {newTaskTitle && (
-              <Button size="sm" type="submit" variant="ghost">Add</Button>
+              <Button size="sm" type="submit" variant="ghost">
+                Add
+              </Button>
             )}
           </form>
         </div>
-
       </div>
     </div>
   );
 }
+

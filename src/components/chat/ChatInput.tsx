@@ -1,23 +1,24 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { Loader2, Quote, Send, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useSendMessage } from "@/lib/hooks/mutations";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
+import { useSendMessage } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
+import type { OptimisticMessage } from "@/types/optimistic";
+import { useMutation, useQuery } from "convex/react";
+import { Loader2, Quote, Send, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
@@ -34,13 +35,13 @@ interface Attachment {
   size: number;
 }
 
-import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import { ComparisonTrigger } from "./ComparisonTrigger";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
-  type ThinkingEffort,
-  ThinkingEffortSelector,
+    type ThinkingEffort,
+    ThinkingEffortSelector,
 } from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
@@ -62,6 +63,7 @@ interface ChatInputProps {
   comparisonDialogOpen?: boolean;
   onComparisonDialogOpenChange?: (open: boolean) => void;
   chatWidth?: ChatWidth;
+  onOptimisticUpdate?: (messages: OptimisticMessage[]) => void;
 }
 
 export function ChatInput({
@@ -83,6 +85,7 @@ export function ChatInput({
   onModelSelectorOpenChange,
   comparisonDialogOpen,
   onComparisonDialogOpenChange,
+  onOptimisticUpdate,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -104,7 +107,8 @@ export function ChatInput({
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const { isMobile, isTouchDevice } = useMobileDetect();
 
-  const { mutate: sendMessage } = useSendMessage();
+  const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const stopGeneration = useMutation(api.chat.stopGeneration);
   const _user = useQuery(api.users.getCurrentUser);
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
@@ -365,9 +369,27 @@ export function ChatInput({
         )}
 
         <div className="flex gap-2 items-end pl-2 pr-2">
-          {/* Action buttons (left side) */}
-          {/* Action buttons (left side) */}
-          {/* Removed FileUpload from here */}
+          {/* FileUpload button (left side) */}
+          {supportsVision && (
+            <div className="pb-1.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <FileUpload
+                      conversationId={conversationId}
+                      attachments={attachments}
+                      onAttachmentsChange={onAttachmentsChange}
+                      uploading={uploading}
+                      setUploading={setUploading}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Upload files</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
 
           {/* Textarea or Waveform */}
           {isRecording ? (
@@ -514,25 +536,7 @@ export function ChatInput({
         </div>
 
         <div className="px-4 pb-2 flex justify-between items-center">
-          <div className="flex items-center gap-2 flex-wrap">
-            {supportsVision && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <FileUpload
-                      conversationId={conversationId}
-                      attachments={attachments}
-                      onAttachmentsChange={onAttachmentsChange}
-                      uploading={uploading}
-                      setUploading={setUploading}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Upload files</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+          <div className="flex items-center gap-2">
             {isComparisonMode && onExitComparison ? (
               <Badge
                 variant="secondary"

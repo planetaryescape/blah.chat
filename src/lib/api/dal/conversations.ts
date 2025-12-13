@@ -1,9 +1,9 @@
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { getConvexClient } from "@/lib/api/convex";
+import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import { z } from "zod";
-import { getConvexClient } from "@/lib/api/convex";
-import { api } from "@/convex/_generated/api";
-import { formatEntity } from "@/lib/utils/formatEntity";
-import type { Id } from "@/convex/_generated/dataModel";
 
 const createConversationSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -59,21 +59,18 @@ export const conversationsDAL = {
   getById: async (userId: string, conversationId: string) => {
     const convex = getConvexClient();
 
+    // Uses clerkId for server-side ownership verification
     const conversation = (await (convex.query as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.conversations.get,
+      api.conversations.getWithClerkVerification,
       {
         conversationId: conversationId as Id<"conversations">,
+        clerkId: userId,
       },
     )) as any;
 
     if (!conversation) {
-      throw new Error("Conversation not found");
-    }
-
-    // Verify ownership
-    if (conversation.userId !== userId) {
-      throw new Error("Access denied");
+      throw new Error("Conversation not found or access denied");
     }
 
     return formatEntity(conversation, "conversation", conversation._id);

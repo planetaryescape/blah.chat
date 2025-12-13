@@ -1,5 +1,38 @@
 "use client";
 
+import { MemoryFilters } from "@/components/memories/MemoryFilters";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -21,46 +54,6 @@ import {
 } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MemoryFilters } from "@/components/memories/MemoryFilters";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/convex/_generated/api";
-import { useDebounce } from "@/hooks/useDebounce";
 
 export function MemoriesClientPage() {
   const router = useRouter();
@@ -96,6 +89,8 @@ export function MemoriesClientPage() {
   // Debounced value (only triggers query after 300ms idle)
   const debouncedSearchQuery = useDebounce(searchParam, 300);
 
+  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
+  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
   const memories = useQuery(api.memories.listFiltered, {
     category: categoryFilter || undefined,
     sortBy: sortBy || undefined,
@@ -211,8 +206,7 @@ export function MemoriesClientPage() {
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
       {/* Background gradients */}
-      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
+
 
       {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/60 backdrop-blur-xl border-b border-border/40 shadow-sm transition-all duration-200">
@@ -281,7 +275,7 @@ export function MemoriesClientPage() {
           </div>
         </div>
         {/* Gradient Glow */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-orange-500/5 pointer-events-none" />
+
       </div>
 
       {/* Filters */}
@@ -302,23 +296,19 @@ export function MemoriesClientPage() {
       <ScrollArea className="flex-1 w-full min-h-0">
         <div className="container mx-auto max-w-6xl px-4 py-8">
           {memories.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 pb-8">
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No memories yet
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    As you chat, AI will automatically extract memorable facts.
-                    You can also manually trigger extraction using the "Extract
-                    Memories" button in any conversation.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="bg-muted/30 p-4 rounded-full mb-4 ring-1 ring-border/50">
+                <Brain className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-medium mb-2 text-foreground/90">
+                No memories found
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                As you chat, the AI will automatically extract and organize important details about you and your preferences.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-8">
               {Object.entries(groupedMemories).map(
                 ([category, categoryMemories]: [string, any]) => {
                   const label = categoryLabels[category] || {
@@ -327,13 +317,18 @@ export function MemoriesClientPage() {
                   };
 
                   return (
-                    <Card key={category}>
-                      <CardHeader>
-                        <CardTitle>{label.title}</CardTitle>
-                        <CardDescription>{label.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
+                    <div key={category} className="space-y-4">
+                      <div className="px-1">
+                        <h3 className="text-sm font-semibold text-foreground/90 flex items-center gap-2">
+                          {label.title}
+                          <span className="text-xs font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+                            {categoryMemories.length}
+                          </span>
+                        </h3>
+                      </div>
+
+                      <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
+                        <div className="divide-y divide-border/40">
                           {(categoryMemories || []).map((memory: any) => {
                             const importance = memory.metadata?.importance || 0;
                             const reasoning = memory.metadata?.reasoning;
@@ -341,96 +336,83 @@ export function MemoriesClientPage() {
                             return (
                               <div
                                 key={memory._id}
-                                className="flex items-start justify-between gap-4 p-3 rounded-lg bg-muted/50"
+                                className="group flex items-start justify-between gap-4 p-4 hover:bg-muted/40 transition-colors"
                               >
-                                <div className="flex-1 space-y-2">
-                                  <div className="flex items-start gap-2">
+                                <div className="flex-1 space-y-2 min-w-0">
+                                  <div className="flex items-start gap-3">
                                     <span
-                                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getImportanceBadge(importance)}`}
+                                      className={`shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-medium ${getImportanceBadge(importance)}`}
                                       title={`Importance: ${importance}/10`}
                                     >
                                       {importance}
                                     </span>
-                                    <p className="text-sm flex-1">
-                                      {memory.content}
-                                    </p>
-                                  </div>
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                      <p className="text-sm text-foreground/90 leading-relaxed break-words">
+                                        {memory.content}
+                                      </p>
 
-                                  {showReasoning && reasoning && (
-                                    <p className="text-xs text-muted-foreground italic pl-8">
-                                      "{reasoning}"
-                                    </p>
-                                  )}
-
-                                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                                    {/* Confidence badge - show if < 0.8 */}
-                                    {memory.metadata?.confidence &&
-                                      memory.metadata.confidence < 0.8 && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20">
-                                          {Math.round(
-                                            memory.metadata.confidence * 100,
-                                          )}
-                                          % confidence
-                                        </span>
+                                      {showReasoning && reasoning && (
+                                        <p className="text-xs text-muted-foreground italic border-l-2 border-border/60 pl-2 ml-0.5">
+                                          "{reasoning}"
+                                        </p>
                                       )}
 
-                                    {/* Expiration date badge */}
-                                    {memory.metadata?.expiresAt && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-500/20">
-                                        Expires:{" "}
-                                        {new Date(
-                                          memory.metadata.expiresAt,
-                                        ).toLocaleDateString()}
-                                      </span>
-                                    )}
-
-                                    {/* Version badge - show if > 1 */}
-                                    {memory.metadata?.version &&
-                                      memory.metadata.version > 1 && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
-                                          v{memory.metadata.version}
-                                        </span>
-                                      )}
-
-                                    <span className="flex items-center gap-1 text-muted-foreground">
-                                      <Calendar className="h-3 w-3" />
-                                      {formatDistanceToNow(memory.createdAt, {
-                                        addSuffix: true,
-                                      })}
-                                    </span>
-
-                                    {/* View source button */}
-                                    {(memory.sourceMessageId ||
-                                      (memory.sourceMessageIds &&
-                                        memory.sourceMessageIds.length >
-                                          0)) && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="gap-1.5 h-6 px-2 text-xs"
-                                        onClick={() => {
-                                          const messageId =
-                                            memory.sourceMessageId ||
-                                            memory.sourceMessageIds?.[0];
-                                          const convId = memory.conversationId;
-                                          if (convId && messageId) {
-                                            router.push(
-                                              `/chat/${convId}?messageId=${messageId}`,
-                                            );
-                                          }
-                                        }}
-                                      >
-                                        <ExternalLink className="h-3 w-3" />
-                                        View source
-                                        {memory.sourceMessageIds &&
-                                          memory.sourceMessageIds.length >
-                                            1 && (
-                                            <span className="text-muted-foreground">
-                                              ({memory.sourceMessageIds.length})
+                                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                                        {/* Meta Badges */}
+                                        {/* Confidence badge - show if < 0.8 */}
+                                        {memory.metadata?.confidence &&
+                                          memory.metadata.confidence < 0.8 && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border border-yellow-500/20">
+                                              {Math.round(memory.metadata.confidence * 100)}% conf.
                                             </span>
                                           )}
-                                      </Button>
-                                    )}
+
+                                        {/* Expiration date badge */}
+                                        {memory.metadata?.expiresAt && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-500/20">
+                                            Exp: {new Date(memory.metadata.expiresAt).toLocaleDateString()}
+                                          </span>
+                                        )}
+
+                                        {/* Version badge - show if > 1 */}
+                                        {memory.metadata?.version &&
+                                          memory.metadata.version > 1 && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-500 border border-blue-500/20">
+                                              v{memory.metadata.version}
+                                            </span>
+                                          )}
+
+                                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                                          <Calendar className="h-3 w-3" />
+                                          {formatDistanceToNow(memory.createdAt, { addSuffix: true })}
+                                        </span>
+
+                                        {/* View source button */}
+                                        {(memory.sourceMessageId ||
+                                          (memory.sourceMessageIds &&
+                                            memory.sourceMessageIds.length > 0)) && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 px-1.5 text-[10px] text-muted-foreground/60 hover:text-foreground -ml-1"
+                                            onClick={() => {
+                                              const messageId =
+                                                memory.sourceMessageId ||
+                                                memory.sourceMessageIds?.[0];
+                                              const convId = memory.conversationId;
+                                              if (convId && messageId) {
+                                                router.push(
+                                                  `/chat/${convId}?messageId=${messageId}`,
+                                                );
+                                              }
+                                            }}
+                                          >
+                                            <ExternalLink className="h-2.5 w-2.5 mr-1" />
+                                            Source
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                                 <AlertDialog>
@@ -438,25 +420,20 @@ export function MemoriesClientPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 shrink-0"
+                                      className="h-7 w-7 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Delete memory?
-                                      </AlertDialogTitle>
+                                      <AlertDialogTitle>Delete memory?</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        This will permanently delete this
-                                        memory. This action cannot be undone.
+                                        This will permanently delete this memory. This action cannot be undone.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => handleDelete(memory._id)}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -470,8 +447,8 @@ export function MemoriesClientPage() {
                             );
                           })}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   );
                 },
               )}

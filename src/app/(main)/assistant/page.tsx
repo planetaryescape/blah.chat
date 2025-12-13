@@ -29,9 +29,9 @@ export default function SmartAssistantPage() {
   const [extractedTasks, setExtractedTasks] = useState<any[]>([]);
   const [error, setError] = useState("");
 
-  // Mutations
+  // Actions
   // @ts-ignore - Type depth exceeded
-  const transcribeAudio = useMutation(api.transcription.transcribeAudio);
+  const transcribeAudio = useAction(api.transcription.transcribeAudio);
   // @ts-ignore - Type depth exceeded
   const extractTasks = useAction(
     api.ai.taskExtraction.extractTasksFromTranscript,

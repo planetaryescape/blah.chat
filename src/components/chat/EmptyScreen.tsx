@@ -3,8 +3,8 @@
 import { Button } from "@/components/ui/button";
 import type { PromptCategory } from "@/lib/prompts/examplePrompts";
 import {
-  CAPABILITY_PROMPTS,
-  getPromptsForModel,
+    CAPABILITY_PROMPTS,
+    getPromptsForModel,
 } from "@/lib/prompts/examplePrompts";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Brain, Code2, Eye, Sparkles, Zap } from "lucide-react";
@@ -76,7 +76,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center animate-message-enter">
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
         How can I help you?
       </h1>
 
@@ -104,7 +104,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
       </div>
 
       {/* Prompts - staggered animation */}
-      <div className="grid gap-2 w-full max-w-md text-left mb-8">
+      <div className="grid gap-1.5 sm:gap-2 w-full max-w-full sm:max-w-md text-left mb-6 sm:mb-8 px-2 sm:px-0">
         {activePrompts.slice(0, 4).map((prompt, i) => (
           <div
             key={prompt}
@@ -117,7 +117,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
                 onClick(prompt);
               }
             }}
-            className="group flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+            className="group flex items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-xs sm:text-sm text-muted-foreground hover:text-foreground cursor-pointer"
             style={{
               animationDelay: `${i * 100}ms`,
             }}
@@ -125,13 +125,13 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
             <div className="line-clamp-2 text-left">
               <MarkdownContent content={prompt} />
             </div>
-            <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-50 transition-all duration-300 shrink-0 ml-3" />
+            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-0 -translate-x-2 group-hover:translate-x-0 group-hover:opacity-50 transition-all duration-300 shrink-0 ml-1.5 sm:ml-3" />
           </div>
         ))}
       </div>
 
       {/* Footer Hints */}
-      <div className="flex gap-6 text-xs text-muted-foreground/60 animate-in fade-in duration-700 delay-500">
+      <div className="hidden sm:flex gap-6 text-xs text-muted-foreground/60 animate-in fade-in duration-700 delay-500">
         <div className="flex items-center gap-1.5">
           <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
             <span className="text-xs">⌘</span>J

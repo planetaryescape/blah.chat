@@ -4,10 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -81,6 +81,9 @@ export const ChatMessage = memo(
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
 
+    // Check if this is a temporary optimistic message (not yet persisted)
+    const isTempMessage = typeof message._id === "string" && message._id.startsWith("temp-");
+
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
     const editMessage = useMutation(api.chat.editMessage);
 
@@ -134,9 +137,11 @@ export const ChatMessage = memo(
     const isCached = ttft !== null && isCachedResponse(ttft);
 
     // Phase 1: Fetch attachments from new table (dual-read)
-    const attachments = useQuery(api.messages.getAttachments, {
-      messageId: message._id,
-    });
+    // Skip query for temporary optimistic messages
+    const attachments = useQuery(
+      api.messages.getAttachments,
+      isTempMessage ? "skip" : { messageId: message._id }
+    );
 
     // Fetch URLs for attachments
     const attachmentStorageIds =
@@ -156,10 +161,11 @@ export const ChatMessage = memo(
     );
 
     // Phase 1: Fetch tool calls from new table (dual-read)
-    const allToolCalls = useQuery(api.messages.getToolCalls, {
-      messageId: message._id,
-      includePartial: true,
-    });
+    // Skip query for temporary optimistic messages
+    const allToolCalls = useQuery(
+      api.messages.getToolCalls,
+      isTempMessage ? "skip" : { messageId: message._id, includePartial: true }
+    );
 
     // Split into complete and partial for backward compatibility
     const toolCalls = allToolCalls?.filter((tc: any) => !tc.isPartial);
@@ -324,7 +330,7 @@ export const ChatMessage = memo(
       "border border-primary/20",
       "shadow-sm hover:shadow-md",
       "transition-all duration-300",
-      "[&_.prose]:text-foreground [&_.prose_code]:bg-muted/50",
+      "[&_.prose]:text-foreground",
       "font-medium tracking-wide",
     );
 
@@ -434,28 +440,28 @@ export const ChatMessage = memo(
                         isStreaming={isGenerating}
                       />
                     ) : isGenerating ? (
-                  isThinkingModel ? (
-                    <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
-                      <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                      <span>Thinking...</span>
-                    </div>
-                  ) : (
-                    <div className="flex gap-1 items-center h-6">
-                      <span
-                        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                        style={{ animationDelay: "0ms" }}
-                      />
-                      <span
-                        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                        style={{ animationDelay: "150ms" }}
-                      />
-                      <span
-                        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-                        style={{ animationDelay: "300ms" }}
-                      />
-                    </div>
-                  )
-                ) : null}
+                      isThinkingModel ? (
+                        <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">
+                          <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                          <span>Thinking...</span>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1 items-center h-6">
+                          <span
+                            className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                            style={{ animationDelay: "0ms" }}
+                          />
+                          <span
+                            className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                            style={{ animationDelay: "150ms" }}
+                          />
+                          <span
+                            className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
+                            style={{ animationDelay: "300ms" }}
+                          />
+                        </div>
+                      )
+                    ) : null}
                   </>
                 )}
 

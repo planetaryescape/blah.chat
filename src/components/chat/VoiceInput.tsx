@@ -87,10 +87,20 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
             const base64 = (reader.result as string).split(",")[1];
 
             try {
-              const transcript = await transcribeAudio({
+              // Client-side timeout (95s - slightly longer than backend 90s)
+              const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("TIMEOUT")), 95_000),
+              );
+
+              const transcriptionPromise = transcribeAudio({
                 audioBase64: base64,
                 mimeType: "audio/webm",
               });
+
+              const transcript = await Promise.race([
+                transcriptionPromise,
+                timeoutPromise,
+              ]);
 
               const autoSend = stopModeRef.current === "send";
               onTranscript(transcript, autoSend);
@@ -101,11 +111,18 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
               });
             } catch (error) {
               console.error("Transcription failed:", error);
-              toast.error(
-                error instanceof Error
-                  ? error.message
-                  : "STT not working right now",
-              );
+
+              // Better error messages
+              const message =
+                error instanceof Error ? error.message : String(error);
+              if (message === "TIMEOUT") {
+                toast.error(
+                  "Transcription timed out. Try recording a shorter message.",
+                );
+              } else {
+                toast.error(message || "STT not working right now");
+              }
+
               onTranscript("", false);
             } finally {
               setIsProcessing(false);

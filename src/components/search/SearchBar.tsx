@@ -1,10 +1,10 @@
 "use client";
 
-import { Loader2, Search, X } from "lucide-react";
-import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Loader2, Search, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface SearchBarProps {
   value: string;
@@ -54,18 +54,15 @@ export function SearchBar({
   };
 
   return (
-    <div className="relative group">
-      {/* Glow effect on focus */}
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-orange-500/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-
+    <div className="relative group max-w-xl mx-auto">
       <div className="relative flex items-center">
         <div className="relative flex-1">
           {/* Search icon */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10">
             {isSearching ? (
-              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
             ) : (
-              <Search className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-200" />
+              <Search className="w-4 h-4 text-muted-foreground/60 group-focus-within:text-foreground transition-colors duration-200" />
             )}
           </div>
 
@@ -76,10 +73,12 @@ export function SearchBar({
             placeholder={placeholder}
             autoFocus={autoFocus}
             className={cn(
-              "pl-12 pr-12 h-14 text-lg font-medium shadow-sm",
-              "bg-background/80 backdrop-blur-sm border-border/50",
-              "focus-visible:ring-0 focus-visible:border-primary/50",
-              "rounded-xl transition-all duration-200",
+              "pl-9 pr-9 h-10 text-sm font-medium shadow-sm",
+              "bg-background/50 border-transparent",
+              "hover:bg-background/80 hover:border-border/40",
+              "focus:bg-background focus:border-primary/20",
+              "focus:ring-2 focus:ring-primary/10",
+              "rounded-lg transition-all duration-200",
               "placeholder:text-muted-foreground/50",
             )}
           />
@@ -90,16 +89,16 @@ export function SearchBar({
               variant="ghost"
               size="icon"
               onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-muted/50 rounded-full"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-transparent text-muted-foreground/40 hover:text-foreground"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
 
         {/* Keyboard hint */}
-        <div className="absolute right-14 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 pointer-events-none">
-          <kbd className="inline-flex h-6 select-none items-center gap-1 rounded border bg-muted/50 px-2 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+        <div className="absolute right-12 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 pointer-events-none">
+          <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border bg-muted/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
             /
           </kbd>
         </div>

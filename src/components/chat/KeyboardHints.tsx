@@ -1,4 +1,5 @@
 import { ShortcutBadge } from "@/components/ui/shortcut-badge";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
 
 interface KeyboardHintsProps {
   isEmpty: boolean;
@@ -6,6 +7,9 @@ interface KeyboardHintsProps {
 }
 
 export function KeyboardHints({ isEmpty, hasContent }: KeyboardHintsProps) {
+  const { isMobile } = useMobileDetect();
+
+  if (isMobile) return null;
   if (hasContent) {
     return (
       <div className="flex items-center gap-4 text-xs text-muted-foreground/70">

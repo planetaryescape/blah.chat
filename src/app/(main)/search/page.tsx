@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense, useEffect, useRef } from "react";
 import { RecentSearches } from "@/components/search/RecentSearches";
 import { SearchBar } from "@/components/search/SearchBar";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -11,11 +10,12 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
 import {
-  type SearchFilters as SearchFiltersType,
-  useSearchResults,
+    type SearchFilters as SearchFiltersType,
+    useSearchResults,
 } from "@/hooks/useSearchResults";
 import { useSearchState } from "@/hooks/useSearchState";
 import { analytics } from "@/lib/analytics";
+import { Suspense, useEffect, useRef } from "react";
 
 function SearchPageContent() {
   // URL-persisted state
@@ -52,7 +52,7 @@ function SearchPageContent() {
   // Clear selection when filter/search changes
   useEffect(() => {
     clearSelection();
-  }, [clearSelection]);
+  }, [debouncedQuery, filters, clearSelection]);
 
   // Reset page when query or filters change
   useEffect(() => {
@@ -110,8 +110,7 @@ function SearchPageContent() {
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
       {/* Background gradients */}
-      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
+
 
       {/* Fixed header */}
       <div className="flex-none z-50">
@@ -179,8 +178,7 @@ export default function SearchPage() {
 function SearchPageSkeleton() {
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />
+
       <div className="flex-none z-50 p-6">
         <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
       </div>

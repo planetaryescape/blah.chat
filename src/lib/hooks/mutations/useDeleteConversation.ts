@@ -5,38 +5,38 @@ import { queryKeys } from "@/lib/query/keys";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface DeleteConversationArgs {
-	conversationId: Id<"conversations">;
+  conversationId: Id<"conversations">;
 }
 
 export function useDeleteConversation() {
-	const api = useApiClient();
-	const queryClient = useQueryClient();
+  const api = useApiClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: async ({ conversationId }: DeleteConversationArgs) => {
-			return api.delete(`/api/v1/conversations/${conversationId}`);
-		},
+  return useMutation({
+    mutationFn: async ({ conversationId }: DeleteConversationArgs) => {
+      return api.delete(`/api/v1/conversations/${conversationId}`);
+    },
 
-		onSuccess: (data, variables) => {
-			// Invalidate conversations list
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.conversations.lists(),
-			});
+    onSuccess: (data, variables) => {
+      // Invalidate conversations list
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.lists(),
+      });
 
-			// Remove specific conversation from cache
-			queryClient.removeQueries({
-				queryKey: queryKeys.conversations.detail(variables.conversationId),
-			});
+      // Remove specific conversation from cache
+      queryClient.removeQueries({
+        queryKey: queryKeys.conversations.detail(variables.conversationId),
+      });
 
-			toast.success("Conversation deleted");
-		},
+      toast.success("Conversation deleted");
+    },
 
-		onError: (error) => {
-			const msg =
-				error instanceof Error
-					? error.message
-					: "Failed to delete conversation";
-			toast.error(msg);
-		},
-	});
+    onError: (error) => {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete conversation";
+      toast.error(msg);
+    },
+  });
 }

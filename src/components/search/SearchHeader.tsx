@@ -28,7 +28,7 @@ export function SearchHeader({ children }: SearchHeaderProps) {
       </div>
 
       {/* Gradient glow */}
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-orange-500/5 pointer-events-none" />
+
     </div>
   );
 }

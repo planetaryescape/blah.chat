@@ -501,6 +501,7 @@ export default defineSchema({
         v.literal("urgent"),
       ),
     ),
+    tags: v.optional(v.array(v.string())), // Linear-style tags
     // Source tracking
     sourceType: v.optional(
       v.union(
@@ -659,6 +660,9 @@ export default defineSchema({
     sourceConversationId: v.optional(v.id("conversations")),
     sourceSelectionText: v.optional(v.string()), // original text if from summary
 
+    // Project association (Direct link)
+    projectId: v.optional(v.id("projects")),
+
     // Metadata
     tags: v.optional(v.array(v.string())),
     suggestedTags: v.optional(v.array(v.string())), // AI-generated suggestions
@@ -679,6 +683,7 @@ export default defineSchema({
     .index("by_user_updated", ["userId", "updatedAt"]) // for recent notes sorting
     .index("by_source_message", ["sourceMessageId"]) // optional cleanup
     .index("by_share_id", ["shareId"]) // for public access
+    .index("by_projectId", ["projectId"]) // for project stats and filtering
     .searchIndex("search_notes", {
       searchField: "content",
       filterFields: ["userId"],
@@ -1126,4 +1131,67 @@ export default defineSchema({
     .index("by_migration_id", ["migrationId"])
     .index("by_status", ["status"])
     .index("by_phase", ["phase"]),
+
+  // Phase 4: Long-running operations job tracking
+  jobs: defineTable({
+    // Identity
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("search"),
+      v.literal("extractMemories"),
+      v.literal("transcribe"),
+      v.literal("embedFile"),
+      v.literal("analyzeVideo"),
+    ),
+
+    // Status tracking
+    status: v.union(
+      v.literal("pending"), // Queued, not started
+      v.literal("running"), // Action executing
+      v.literal("completed"), // Success
+      v.literal("failed"), // Error
+      v.literal("cancelled"), // User/system cancelled
+    ),
+
+    // Progress (optional, future enhancement)
+    progress: v.optional(
+      v.object({
+        current: v.number(), // 0-100
+        message: v.string(), // "Processing chunk 3/10"
+        eta: v.optional(v.number()), // Timestamp
+      }),
+    ),
+
+    // Input/output
+    input: v.any(), // Original request payload
+    result: v.optional(v.any()), // Success result
+    error: v.optional(
+      v.object({
+        message: v.string(),
+        code: v.optional(v.string()),
+        details: v.optional(v.any()),
+      }),
+    ),
+
+    // Timing
+    createdAt: v.number(),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    expiresAt: v.number(), // Auto-delete after this
+
+    // Metadata
+    retryCount: v.number(),
+    metadata: v.optional(
+      v.object({
+        conversationId: v.optional(v.id("conversations")),
+        fileId: v.optional(v.id("files")),
+        cost: v.optional(v.number()),
+      }),
+    ),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_status_expires", ["status", "expiresAt"])
+    .index("by_type_status", ["type", "status"])
+    .index("by_expires", ["expiresAt"]),
 });

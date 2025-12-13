@@ -8,32 +8,35 @@ import type { Id } from "@/convex/_generated/dataModel";
 import logger from "@/lib/logger";
 
 async function postHandler(
-	req: NextRequest,
-	{
-		params,
-		userId,
-	}: { params: Promise<Record<string, string | string[]>>; userId: string },
+  req: NextRequest,
+  {
+    params,
+    userId,
+  }: { params: Promise<Record<string, string | string[]>>; userId: string },
 ) {
-	const startTime = Date.now();
-	const { id } = (await params) as { id: string };
-	logger.info({ userId, messageId: id }, "POST /api/v1/messages/[id]/regenerate");
+  const startTime = Date.now();
+  const { id } = (await params) as { id: string };
+  logger.info(
+    { userId, messageId: id },
+    "POST /api/v1/messages/[id]/regenerate",
+  );
 
-	const convex = getConvexClient();
+  const convex = getConvexClient();
 
-	const newMessageId = await convex.mutation(api.chat.regenerate, {
-		messageId: id as Id<"messages">,
-	});
+  const newMessageId = await convex.mutation(api.chat.regenerate, {
+    messageId: id as Id<"messages">,
+  });
 
-	const duration = Date.now() - startTime;
-	logger.info(
-		{ userId, messageId: id, newMessageId, duration },
-		"Message regenerated",
-	);
+  const duration = Date.now() - startTime;
+  logger.info(
+    { userId, messageId: id, newMessageId, duration },
+    "Message regenerated",
+  );
 
-	return NextResponse.json(
-		formatEntity({ messageId: id, newMessageId }, "message"),
-		{ status: 200 },
-	);
+  return NextResponse.json(
+    formatEntity({ messageId: id, newMessageId }, "message"),
+    { status: 200 },
+  );
 }
 
 export const POST = withErrorHandling(withAuth(postHandler));

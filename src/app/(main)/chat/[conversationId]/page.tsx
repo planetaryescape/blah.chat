@@ -1,18 +1,5 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import {
-  Suspense,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
@@ -32,10 +19,10 @@ import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
@@ -49,6 +36,21 @@ import { MODEL_CONFIG } from "@/lib/ai/models";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
+import type { OptimisticMessage } from "@/types/optimistic";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import {
+    Suspense,
+    use,
+    useCallback,
+    useEffect,
+    useMemo,
+    useOptimistic,
+    useRef,
+    useState,
+} from "react";
 
 function ChatPageContent({
   params,
@@ -70,12 +72,57 @@ function ChatPageContent({
     conversationId ? { conversationId } : "skip",
   );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const messages = useQuery(
-    api.messages.list,
+  const {
+    results: serverMessages,
+    status: paginationStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.messages.listPaginated,
     conversationId ? { conversationId } : "skip",
+    {
+      initialNumItems: 50,
+    },
   );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+
+  // Optimistic UI: Overlay local optimistic messages on top of server state
+  // Deduplicates when server confirms (match by role + timestamp ±2s window)
+  // Type: Union of server messages and optimistic messages for useOptimistic compatibility
+  type ServerMessage = NonNullable<typeof serverMessages>[number];
+  type MessageWithOptimistic = ServerMessage | OptimisticMessage;
+
+  const [messages, addOptimisticMessages] = useOptimistic<
+    MessageWithOptimistic[],
+    OptimisticMessage[]
+  >(
+    (serverMessages || []) as MessageWithOptimistic[],
+    (state, newMessages) => {
+      // Merge optimistic messages with server state
+      const merged = [...state, ...newMessages];
+
+      // Deduplicate: Remove optimistic if server version exists
+      // Match by role + timestamp within 2s window (handles network delays)
+      const deduped = merged.filter((msg, _idx, arr) => {
+        if (!("_optimistic" in msg) || !msg._optimistic) {
+          return true; // Keep all server messages
+        }
+
+        // Check if server has confirmed this optimistic message
+        const hasServerVersion = arr.some(
+          (m) =>
+            !("_optimistic" in m) &&
+            m.role === msg.role &&
+            Math.abs(m.createdAt - msg.createdAt) < 2000,
+        );
+
+        return !hasServerVersion; // Remove optimistic if server confirmed
+      });
+
+      // Sort by timestamp (chronological order)
+      return deduped.sort((a, b) => a.createdAt - b.createdAt);
+    },
+  );
 
   // Extract chat width preference (Phase 4: use flat preference hook)
   const prefChatWidth = useUserPreference("chatWidth");
@@ -147,6 +194,9 @@ function ChatPageContent({
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
 
+  // Ref for infinite scroll at top of message list
+  const messageListTopRef = useRef<HTMLDivElement | null>(null);
+
   // Model recommendation state
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewModelId, setPreviewModelId] = useState<string | null>(null);
@@ -196,7 +246,10 @@ function ChatPageContent({
   );
 
   const handleVote = async (winnerId: string, rating: string) => {
-    const msg = messages?.find((m: Doc<"messages">) => m._id === winnerId);
+    // Only handle votes for server-confirmed messages (not optimistic)
+    const msg = messages?.find(
+      (m) => !('_optimistic' in m) && m._id === winnerId,
+    );
     if (msg?.comparisonGroupId) {
       const voteRating = rating as
         | "left_better"
@@ -205,7 +258,7 @@ function ChatPageContent({
         | "both_bad";
       await recordVote({
         comparisonGroupId: msg.comparisonGroupId,
-        winnerId: msg._id,
+        winnerId: msg._id as Id<"messages">,
         rating: voteRating,
       });
     }
@@ -215,7 +268,7 @@ function ChatPageContent({
     model: string,
     mode: "same-chat" | "new-chat",
   ) => {
-    const msg = messages?.find((m: Doc<"messages">) => m.comparisonGroupId);
+    const msg = messages?.find((m) => m.comparisonGroupId);
     if (!msg?.comparisonGroupId) return;
 
     if (mode === "same-chat") {
@@ -312,6 +365,26 @@ function ChatPageContent({
     return () => window.removeEventListener("open-model-preview", handler);
   }, []);
 
+  // Infinite scroll for loading more messages (at top of list)
+  useEffect(() => {
+    if (!messageListTopRef.current || paginationStatus !== "CanLoadMore") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && paginationStatus === "CanLoadMore") {
+          loadMore(50);
+        }
+      },
+      { threshold: 1.0 },
+    );
+
+    observer.observe(messageListTopRef.current);
+
+    return () => observer.disconnect();
+  }, [paginationStatus, loadMore]);
+
   // Redirect if conversation is confirmed to be null (deleted/invalid)
   // Track if we've completed initial load to prevent premature redirects
   const initialLoadComplete = useRef(false);
@@ -346,7 +419,7 @@ function ChatPageContent({
   // Derived state that handles loading gracefully
   const isGenerating =
     messages?.some(
-      (m: Doc<"messages">) =>
+      (m) =>
         m.role === "assistant" &&
         ["pending", "generating"].includes(m.status || ""),
     ) ?? false;
@@ -481,17 +554,43 @@ function ChatPageContent({
         {messages === undefined ? (
           <MessageListSkeleton />
         ) : (
-          <VirtualizedMessageList
-            messages={messages}
-            selectedModel={selectedModel}
-            chatWidth={chatWidth}
-            onVote={handleVote}
-            onConsolidate={handleConsolidate}
-            onToggleModelNames={() => setShowModelNames(!showModelNames)}
-            showModelNames={showModelNames ?? false}
-            syncScroll={syncScroll ?? true}
-            highlightMessageId={highlightMessageId}
-          />
+          <>
+            {/* Load More Button (fallback for top of list) */}
+            {paginationStatus === "CanLoadMore" && (
+              <div className="flex justify-center p-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => loadMore(50)}
+                  className="text-sm"
+                >
+                  Load older messages
+                </Button>
+              </div>
+            )}
+            {paginationStatus === "LoadingMore" && (
+              <div className="flex justify-center p-4">
+                <div className="text-sm text-muted-foreground">
+                  Loading more messages...
+                </div>
+              </div>
+            )}
+
+            {/* Invisible div for intersection observer */}
+            <div ref={messageListTopRef} className="h-px" />
+
+            <VirtualizedMessageList
+              messages={messages as Doc<"messages">[]}
+              selectedModel={selectedModel}
+              chatWidth={chatWidth}
+              onVote={handleVote}
+              onConsolidate={handleConsolidate}
+              onToggleModelNames={() => setShowModelNames(!showModelNames)}
+              showModelNames={showModelNames ?? false}
+              syncScroll={syncScroll ?? true}
+              highlightMessageId={highlightMessageId}
+            />
+          </>
         )}
 
         <div className="relative px-4 pb-4">
@@ -541,6 +640,7 @@ function ChatPageContent({
             onModelSelectorOpenChange={setModelSelectorOpen}
             comparisonDialogOpen={comparisonDialogOpen}
             onComparisonDialogOpenChange={setComparisonDialogOpen}
+            onOptimisticUpdate={addOptimisticMessages}
           />
         </div>
 

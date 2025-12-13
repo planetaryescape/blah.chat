@@ -1,12 +1,5 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { formatDistanceToNow } from "date-fns";
-import DOMPurify from "dompurify";
-import { motion } from "framer-motion";
-import { Bot, Calendar, Loader2, MessageSquare, User } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -14,6 +7,13 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
+import DOMPurify from "dompurify";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { BulkActionToolbar } from "./BulkActionToolbar";
 import { SearchEmptyState } from "./SearchEmptyState";
 import { SearchResultSkeletonList } from "./SearchResultSkeleton";
@@ -140,14 +140,15 @@ export function SearchResults({
       )}
 
       {/* Results list with stagger animation */}
+      <div className="border border-border/40 rounded-lg overflow-hidden bg-muted/5">
       <motion.div
-        className="space-y-4"
+        className="divide-y divide-border/40"
         variants={{
           hidden: { opacity: 0 },
           show: {
             opacity: 1,
             transition: {
-              staggerChildren: 0.05,
+              staggerChildren: 0.02,
             },
           },
         }}
@@ -158,15 +159,12 @@ export function SearchResults({
           <motion.div
             key={result._id}
             variants={{
-              hidden: { opacity: 0, y: 20, rotateX: -15 },
+              hidden: { opacity: 0, y: 10 },
               show: {
                 opacity: 1,
                 y: 0,
-                rotateX: 0,
                 transition: {
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 15,
+                  duration: 0.2
                 },
               },
             }}
@@ -181,6 +179,7 @@ export function SearchResults({
           </motion.div>
         ))}
       </motion.div>
+      </div>
 
       {/* Load more trigger & button */}
       {hasMore && (
@@ -234,63 +233,67 @@ function SearchResultCard({
   };
 
   return (
-    <div
-      className={cn(
-        "group relative bg-card/50 hover:bg-card/80 border border-border/50 hover:border-primary/20 rounded-xl transition-all duration-300 overflow-hidden",
-        isSelected && "bg-primary/5 border-primary/50",
-      )}
-    >
-      {/* Hover glow */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-orange-500/5 transition-opacity duration-500 pointer-events-none" />
+    <div className="relative group/item z-0">
+        {/* Selected Indicator - Left Bar */}
+        {isSelected && (
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary z-20" />
+        )}
 
-      <div className="p-5 relative flex gap-3">
-        {/* Checkbox - prevent navigation */}
-        <div onClick={(e) => e.preventDefault()} className="pt-1">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onToggleSelection(message._id)}
-          />
-        </div>
-
-        {/* Card content */}
-        <Link
-          href={`/chat/${message.conversationId}?messageId=${message._id}#message-${message._id}`}
-          className="flex-1 min-w-0"
-          onClick={handleResultClick}
+        <div
+            className={cn(
+                "w-full text-left px-4 py-3.5 transition-colors duration-200 border-b border-border/40",
+                 isSelected
+                    ? "bg-accent/50"
+                    : "hover:bg-muted/30"
+            )}
         >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 min-w-0">
-              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground/90 group-hover:text-primary transition-colors">
-                <MessageSquare className="w-4 h-4" />
-                <span className="truncate">
-                  {conversation?.title || "Untitled Conversation"}
-                </span>
-              </h3>
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border border-border/50">
-                  {message.role === "user" ? (
-                    <User className="w-3 h-3" />
-                  ) : (
-                    <Bot className="w-3 h-3" />
-                  )}
-                  <span className="capitalize font-medium">{message.role}</span>
+            <div className="flex items-start gap-3">
+                 {/* Checkbox - aligned with content */}
+                <div
+                    onClick={(e) => e.preventDefault()}
+                    className="pt-1 opacity-10 group-hover/item:opacity-100 transition-opacity" // Hide checkbox by default unless selected? keeping it visible on hover for cleaner look
+                >
+                    <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleSelection(message._id)}
+                        className="h-4 w-4 border-muted-foreground/40 data-[state=checked]:border-primary"
+                    />
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3 h-3" />
-                  {formatDistanceToNow(message.createdAt, { addSuffix: true })}
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <div className="pl-4 border-l-2 border-primary/10 group-hover:border-primary/30 transition-colors">
-            <p
-              className="text-sm text-muted-foreground/90 line-clamp-3 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: highlightedContent }}
-            />
-          </div>
-        </Link>
-      </div>
+                <Link
+                    href={`/chat/${message.conversationId}?messageId=${message._id}#message-${message._id}`}
+                    className="flex-1 min-w-0 block"
+                    onClick={handleResultClick}
+                >
+                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <h3 className={cn(
+                                "text-[13px] truncate font-medium",
+                                isSelected ? "text-foreground" : "text-foreground/90"
+                            )}>
+                                {conversation?.title || "Untitled Conversation"}
+                            </h3>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted/50 text-muted-foreground font-medium uppercase tracking-wider">
+                                {message.role === "user" ? "You" : "AI"}
+                            </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
+                            {formatDistanceToNow(message.createdAt, { addSuffix: true })}
+                        </span>
+                    </div>
+
+                    <div className="pr-8">
+                         <p
+                            className={cn(
+                                "text-[12px] line-clamp-2 leading-relaxed text-muted-foreground/70",
+                                isSelected ? "text-muted-foreground/90" : ""
+                            )}
+                            dangerouslySetInnerHTML={{ __html: highlightedContent }}
+                        />
+                    </div>
+                </Link>
+            </div>
+        </div>
     </div>
   );
 }

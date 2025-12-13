@@ -5,14 +5,14 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { getQueryClient } from "@/lib/query/client";
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
-	const queryClient = getQueryClient();
+  const queryClient = getQueryClient();
 
-	return (
-		<QueryClientProvider client={queryClient}>
-			{children}
-			{process.env.NODE_ENV === "development" && (
-				<ReactQueryDevtools initialIsOpen={false} position="bottom" />
-			)}
-		</QueryClientProvider>
-	);
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      {process.env.NODE_ENV === "development" && (
+        <ReactQueryDevtools initialIsOpen={false} position="bottom" />
+      )}
+    </QueryClientProvider>
+  );
 }

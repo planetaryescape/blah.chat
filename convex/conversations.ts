@@ -3,10 +3,10 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
+    internalMutation,
+    internalQuery,
+    mutation,
+    query,
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
@@ -67,6 +67,34 @@ export const get = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    const conversation = await ctx.db.get(args.conversationId);
+
+    if (!conversation || conversation.userId !== user._id) {
+      return null;
+    }
+
+    return conversation;
+  },
+});
+
+/**
+ * Server-side query for REST API - verifies ownership via clerkId parameter
+ * Use this when calling from server-side without JWT auth context
+ */
+export const getWithClerkVerification = query({
+  args: {
+    conversationId: v.id("conversations"),
+    clerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Look up user by Clerk ID
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
     if (!user) return null;
 
     const conversation = await ctx.db.get(args.conversationId);
@@ -768,56 +796,50 @@ export const bulkDelete = mutation({
       }
 
       // 1. Delete bookmarks
-      const bookmarks = await ctx.db
+      const bookmarks = ctx.db
         .query("bookmarks")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-        .collect();
-      for (const bookmark of bookmarks) {
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
+      for await (const bookmark of bookmarks) {
         await ctx.db.delete(bookmark._id);
       }
 
       // 2. Delete shares
-      const shares = await ctx.db
+      const shares = ctx.db
         .query("shares")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-        .collect();
-      for (const share of shares) {
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
+      for await (const share of shares) {
         await ctx.db.delete(share._id);
       }
 
       // 3. Nullify files conversationId (files can exist independently)
-      const files = await ctx.db
+      const files = ctx.db
         .query("files")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-        .collect();
-      for (const file of files) {
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
+      for await (const file of files) {
         await ctx.db.patch(file._id, { conversationId: undefined });
       }
 
       // 4. Nullify memories conversationId (memories can exist independently)
-      const memories = await ctx.db
+      const memories = ctx.db
         .query("memories")
-        .filter((q) => q.eq(q.field("conversationId"), convId))
-        .collect();
-      for (const memory of memories) {
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
+      for await (const memory of memories) {
         await ctx.db.patch(memory._id, { conversationId: undefined });
       }
 
       // 5. Remove from project relationships via junction table
-      const junctions = await ctx.db
+      const junctions = ctx.db
         .query("projectConversations")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-        .collect();
-      for (const junction of junctions) {
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
+      for await (const junction of junctions) {
         await ctx.db.delete(junction._id);
       }
 
       // 6. Delete messages
-      const messages = await ctx.db
+      const messages = ctx.db
         .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-        .collect();
-      for (const msg of messages) {
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
+      for await (const msg of messages) {
         await ctx.db.delete(msg._id);
       }
 

@@ -13,10 +13,7 @@ const createSchema = z.object({
   systemPrompt: z.string().optional(),
 });
 
-async function postHandler(
-  req: NextRequest,
-  { userId }: { userId: string },
-) {
+async function postHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();
   logger.info({ userId }, "POST /api/v1/conversations");
 
@@ -32,10 +29,7 @@ async function postHandler(
   return NextResponse.json(result, { status: 201 });
 }
 
-async function getHandler(
-  req: NextRequest,
-  { userId }: { userId: string },
-) {
+async function getHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 

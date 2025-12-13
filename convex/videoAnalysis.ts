@@ -47,10 +47,37 @@ export const analyzeVideo = action({
 
     // If base64 provided and no file URI, upload to Google File API
     if (args.videoBase64 && !fileUri) {
+      // Pre-upload validation
+      if (!args.videoBase64.match(/^[A-Za-z0-9+/=]+$/)) {
+        throw new Error("Invalid base64 format provided for video data");
+      }
+
+      if (!args.mimeType?.startsWith("video/")) {
+        throw new Error(`Invalid video MIME type: ${args.mimeType}`);
+      }
+
+      const estimatedSize = (args.videoBase64.length * 3) / 4;
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (estimatedSize > maxSize) {
+        throw new Error(
+          `Video size (${Math.round(estimatedSize / 1024 / 1024)}MB) exceeds maximum (100MB)`,
+        );
+      }
+
       const fileManager = new GoogleAIFileManager(apiKey);
 
-      // Convert base64 to buffer
-      const buffer = Buffer.from(args.videoBase64, "base64");
+      // Convert base64 to buffer with error handling
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(args.videoBase64, "base64");
+        if (buffer.length === 0) {
+          throw new Error("Base64 decoding resulted in empty buffer");
+        }
+      } catch (bufferError) {
+        throw new Error(
+          `Failed to decode base64 video data: ${bufferError instanceof Error ? bufferError.message : "Unknown error"}`,
+        );
+      }
 
       // Create temp file in Node.js environment
       const fs = await import("fs");
@@ -60,26 +87,84 @@ export const analyzeVideo = action({
       const tempDir = os.tmpdir();
       const tempPath = path.join(tempDir, args.filename);
 
+      let tempFileCreated = false;
+
       try {
-        fs.writeFileSync(tempPath, buffer);
+        // Write to temp file with error handling
+        try {
+          fs.writeFileSync(tempPath, buffer);
+          tempFileCreated = true;
+        } catch (fsError) {
+          throw new Error(
+            `Failed to write video to temp file: ${fsError instanceof Error ? fsError.message : "Disk write error"}`,
+          );
+        }
 
-        // Upload to Google File API
-        const uploadResponse = await fileManager.uploadFile(tempPath, {
-          mimeType: args.mimeType,
-          displayName: args.filename,
-        });
+        // Upload to Google File API with timeout
+        try {
+          const uploadPromise = fileManager.uploadFile(tempPath, {
+            mimeType: args.mimeType,
+            displayName: args.filename,
+          });
 
-        fileUri = uploadResponse.file.uri;
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Upload timeout")), 60000),
+          );
+
+          const uploadResponse = await Promise.race([
+            uploadPromise,
+            timeoutPromise,
+          ]);
+
+          // Validate response
+          if (!uploadResponse?.file?.uri) {
+            throw new Error(
+              "Google File API returned invalid response (missing file.uri)",
+            );
+          }
+
+          fileUri = uploadResponse.file.uri;
+        } catch (uploadError) {
+          if (uploadError instanceof Error) {
+            if (uploadError.message.includes("timeout")) {
+              throw new Error(
+                "Video upload timed out after 60 seconds. Try a smaller file.",
+              );
+            }
+            if (uploadError.message.includes("quota")) {
+              throw new Error(
+                "Google File API quota exceeded. Please try again later.",
+              );
+            }
+            throw new Error(
+              `Google File API upload failed: ${uploadError.message}`,
+            );
+          }
+          throw new Error("Unknown error during Google File API upload");
+        }
       } finally {
-        // Clean up temp file
-        if (fs.existsSync(tempPath)) {
-          fs.unlinkSync(tempPath);
+        // Clean up temp file with error suppression
+        if (tempFileCreated) {
+          try {
+            if (fs.existsSync(tempPath)) {
+              fs.unlinkSync(tempPath);
+            }
+          } catch (cleanupError) {
+            console.error(
+              `Warning: Failed to cleanup temp file ${tempPath}:`,
+              cleanupError instanceof Error
+                ? cleanupError.message
+                : "Unknown error",
+            );
+          }
         }
       }
     }
 
     if (!fileUri) {
-      throw new Error("No video data provided");
+      throw new Error(
+        "Video upload failed: No file URI obtained. Ensure either videoBase64 or videoFileUri is provided.",
+      );
     }
 
     // Analyze video with Gemini 2.0 Flash

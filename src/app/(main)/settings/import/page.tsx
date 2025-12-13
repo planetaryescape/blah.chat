@@ -65,9 +65,7 @@ export default function ImportPage() {
         `Found ${result.conversationsCount} conversations with ${result.messagesCount} messages`,
       );
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to process file",
-      );
+      setError(err instanceof Error ? err.message : "Failed to process file");
     } finally {
       setIsProcessing(false);
     }
@@ -116,7 +114,8 @@ export default function ImportPage() {
         <div>
           <h1 className="text-3xl font-bold">Import Conversations</h1>
           <p className="text-muted-foreground mt-2">
-            Import your conversations from blah.chat JSON exports, Markdown files, or ChatGPT exports
+            Import your conversations from blah.chat JSON exports, Markdown
+            files, or ChatGPT exports
           </p>
         </div>
 

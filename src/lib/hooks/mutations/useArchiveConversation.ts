@@ -5,33 +5,33 @@ import { queryKeys } from "@/lib/query/keys";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface ArchiveConversationArgs {
-	conversationId: Id<"conversations">;
+  conversationId: Id<"conversations">;
 }
 
 export function useArchiveConversation() {
-	const api = useApiClient();
-	const queryClient = useQueryClient();
+  const api = useApiClient();
+  const queryClient = useQueryClient();
 
-	return useMutation({
-		mutationFn: async ({ conversationId }: ArchiveConversationArgs) => {
-			return api.patch(`/api/v1/conversations/${conversationId}/archive`);
-		},
+  return useMutation({
+    mutationFn: async ({ conversationId }: ArchiveConversationArgs) => {
+      return api.patch(`/api/v1/conversations/${conversationId}/archive`);
+    },
 
-		onSuccess: (data, variables) => {
-			// Invalidate conversations list
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.conversations.lists(),
-			});
+    onSuccess: (data, variables) => {
+      // Invalidate conversations list
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.conversations.lists(),
+      });
 
-			toast.success("Conversation archived");
-		},
+      toast.success("Conversation archived");
+    },
 
-		onError: (error) => {
-			const msg =
-				error instanceof Error
-					? error.message
-					: "Failed to archive conversation";
-			toast.error(msg);
-		},
-	});
+    onError: (error) => {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "Failed to archive conversation";
+      toast.error(msg);
+    },
+  });
 }

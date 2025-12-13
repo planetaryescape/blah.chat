@@ -8,32 +8,35 @@ import type { Id } from "@/convex/_generated/dataModel";
 import logger from "@/lib/logger";
 
 async function patchHandler(
-	req: NextRequest,
-	{
-		params,
-		userId,
-	}: { params: Promise<Record<string, string | string[]>>; userId: string },
+  req: NextRequest,
+  {
+    params,
+    userId,
+  }: { params: Promise<Record<string, string | string[]>>; userId: string },
 ) {
-	const startTime = Date.now();
-	const { id } = (await params) as { id: string };
-	logger.info({ userId, conversationId: id }, "PATCH /api/v1/conversations/[id]/pin");
+  const startTime = Date.now();
+  const { id } = (await params) as { id: string };
+  logger.info(
+    { userId, conversationId: id },
+    "PATCH /api/v1/conversations/[id]/pin",
+  );
 
-	const convex = getConvexClient();
+  const convex = getConvexClient();
 
-	await convex.mutation(api.conversations.togglePin, {
-		conversationId: id as Id<"conversations">,
-	});
+  await convex.mutation(api.conversations.togglePin, {
+    conversationId: id as Id<"conversations">,
+  });
 
-	const duration = Date.now() - startTime;
-	logger.info(
-		{ userId, conversationId: id, duration },
-		"Conversation pin toggled",
-	);
+  const duration = Date.now() - startTime;
+  logger.info(
+    { userId, conversationId: id, duration },
+    "Conversation pin toggled",
+  );
 
-	return NextResponse.json(
-		formatEntity({ conversationId: id }, "conversation"),
-		{ status: 200 },
-	);
+  return NextResponse.json(
+    formatEntity({ conversationId: id }, "conversation"),
+    { status: 200 },
+  );
 }
 
 export const PATCH = withErrorHandling(withAuth(patchHandler));

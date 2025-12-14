@@ -82,13 +82,8 @@ function BookmarksPageContent() {
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                 <div className="bg-primary/10 p-2 rounded-lg">
-                    <Bookmark className="w-5 h-5 text-primary" />
-                 </div>
-                 <h1 className="text-xl font-bold tracking-tight">Bookmarks</h1>
-              </div>
-              <p className="text-sm text-muted-foreground ml-1">
+              <h1 className="text-xl font-bold tracking-tight">Bookmarks</h1>
+              <p className="text-sm text-muted-foreground">
                 Saved messages and conversations
               </p>
             </div>

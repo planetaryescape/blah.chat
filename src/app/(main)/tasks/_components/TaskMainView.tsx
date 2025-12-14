@@ -59,19 +59,20 @@ export function TaskMainView({
   });
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-indigo-50/50 via-purple-50/50 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/20 dark:to-pink-950/20">
-      {/* Professional gradient background */}
-      <div className="flex-1 flex flex-col h-full bg-background/60 backdrop-blur-xl">
-        <header className="p-6 pb-2">
+    <div className="flex-1 flex flex-col h-full bg-background">
+      {/* Header */}
+      <header className="flex-none z-10 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
+        <div className="p-6 pb-4">
           <div className="flex flex-col">
-            <h1 className="text-3xl font-bold text-primary">{title}</h1>
+            <h1 className="text-xl font-bold tracking-tight">{title}</h1>
             {view === "today" && (
               <p className="text-sm text-muted-foreground mt-1">
                 {currentDate}
               </p>
             )}
           </div>
-        </header>
+        </div>
+      </header>
 
         <ScrollArea className="flex-1 px-6">
           <div className="space-y-1 pb-4">
@@ -129,8 +130,6 @@ export function TaskMainView({
             )}
           </form>
         </div>
-      </div>
     </div>
   );
 }
-

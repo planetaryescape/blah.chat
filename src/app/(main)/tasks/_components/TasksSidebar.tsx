@@ -7,14 +7,14 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
-  CalendarDays,
-  ChevronDown,
-  ChevronRight,
-  Home,
-  List,
-  Plus,
-  Star,
-  Sun,
+    CalendarDays,
+    ChevronDown,
+    ChevronRight,
+    Home,
+    List,
+    Plus,
+    Star,
+    Sun,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -59,7 +59,7 @@ export function TasksSidebar({
   ];
 
   return (
-    <div className="w-[280px] bg-secondary/30 h-full flex flex-col border-r">
+    <div className="w-[280px] bg-muted/30 h-full flex flex-col border-r border-border/40">
       <div className="p-4">
         {mainNavItems.map((item) => (
           <Button

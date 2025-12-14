@@ -426,6 +426,19 @@ interface AnalyticsEvent {
   template_category_filtered: {
     category: string;
   };
+  template_switcher_opened: {
+    mode: "navigate" | "insert";
+  };
+  template_selected: {
+    templateId: string;
+    templateName: string;
+    mode: "navigate" | "insert";
+  };
+  template_used: {
+    templateId: string;
+    templateName: string;
+    conversationId: string;
+  };
 
   // === SEARCH & DISCOVERY (8 events) ===
   conversation_searched: {

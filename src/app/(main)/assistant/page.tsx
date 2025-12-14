@@ -196,21 +196,14 @@ export default function SmartAssistantPage() {
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Background gradients removed for cleaner look, perhaps a subtle radial focus if needed, but going for clean first */}
-
       {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
-        <div className="container mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center gap-3">
-             <div className="bg-primary/10 p-2 rounded-lg">
-                <Wand2 className="w-5 h-5 text-primary" />
-             </div>
-             <div>
-                <h1 className="text-xl font-bold tracking-tight">Smart Assistant</h1>
-                <p className="text-sm text-muted-foreground">
-                    Extract action items from audio, video, or text
-                </p>
-             </div>
+        <div className="container mx-auto max-w-6xl px-4 py-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold tracking-tight">Smart Assistant</h1>
+            <p className="text-sm text-muted-foreground">
+              Extract action items from audio, video, or text
+            </p>
           </div>
         </div>
       </div>

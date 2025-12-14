@@ -205,20 +205,16 @@ export function MemoriesClientPage() {
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Background gradients */}
-
-
       {/* Fixed Header */}
-      <div className="flex-none z-50 bg-background/60 backdrop-blur-xl border-b border-border/40 shadow-sm transition-all duration-200">
+      <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold tracking-tight">
                 Memories
               </h1>
-              <p className="text-muted-foreground">
-                AI-extracted facts from your conversations. Only high-quality
-                memories (importance 7+) are saved.
+              <p className="text-sm text-muted-foreground">
+                AI-extracted facts from your conversations
               </p>
             </div>
             <div className="flex gap-2">
@@ -274,8 +270,6 @@ export function MemoriesClientPage() {
             </div>
           </div>
         </div>
-        {/* Gradient Glow */}
-
       </div>
 
       {/* Filters */}

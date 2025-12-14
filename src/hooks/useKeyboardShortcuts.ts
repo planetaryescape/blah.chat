@@ -1,7 +1,7 @@
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { useNewChat } from "@/hooks/useNewChat";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export function useKeyboardShortcuts() {
   const router = useRouter();
@@ -44,6 +44,12 @@ export function useKeyboardShortcuts() {
       if (isMod && e.key === "j") {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("open-quick-model-switcher"));
+      }
+
+      // Cmd+; - Quick template switcher
+      if (isMod && e.key === ";") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("open-quick-template-switcher"));
       }
 
       // Cmd+, - Settings
@@ -144,6 +150,7 @@ export const KEYBOARD_SHORTCUTS = {
   },
   chat: {
     "Cmd/Ctrl + J": "Quick model switcher",
+    "Cmd/Ctrl + ;": "Quick template switcher",
     Enter: "Send message",
     "Shift + Enter": "New line",
   },

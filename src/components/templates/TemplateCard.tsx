@@ -27,8 +27,10 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { useTemplateStore } from "@/stores/templateStore";
 import { useMutation } from "convex/react";
 import { Copy, Edit, FileText, MoreHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { TemplateForm } from "./TemplateForm";
@@ -46,12 +48,14 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template }: TemplateCardProps) {
+  const router = useRouter();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   // @ts-ignore - Type depth exceeded with complex Convex mutation
   const deleteTemplate = useMutation(api.templates.deleteTemplate);
   // @ts-ignore - Type depth exceeded with complex Convex mutation
   const incrementUsage = useMutation(api.templates.incrementUsage);
+  const setTemplateText = useTemplateStore((s) => s.setTemplateText);
 
   const handleDelete = async () => {
     try {
@@ -65,11 +69,16 @@ export function TemplateCard({ template }: TemplateCardProps) {
 
   const handleUse = async () => {
     try {
+      // Increment usage
       await incrementUsage({ id: template._id });
-      await navigator.clipboard.writeText(template.prompt);
-      toast.success("Copied to clipboard");
+
+      // Store template text in Zustand (avoids URL length limits)
+      setTemplateText(template.prompt, template.name);
+
+      // Navigate to new chat with simple flag
+      router.push("/chat?from=template");
     } catch (error) {
-      toast.error("Failed to copy");
+      toast.error("Failed to use template");
       console.error(error);
     }
   };

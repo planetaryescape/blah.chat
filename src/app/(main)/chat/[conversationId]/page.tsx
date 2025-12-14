@@ -16,6 +16,7 @@ import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
+import { QuickTemplateSwitcher } from "@/components/templates/QuickTemplateSwitcher";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
@@ -193,6 +194,7 @@ function ChatPageContent({
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
+  const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
 
   // Ref for infinite scroll at top of message list
   const messageListTopRef = useRef<HTMLDivElement | null>(null);
@@ -353,6 +355,40 @@ function ChatPageContent({
     return () =>
       window.removeEventListener("open-quick-model-switcher", handler);
   }, []);
+
+  // Quick template switcher keyboard shortcut (⌘;)
+  useEffect(() => {
+    const handler = () => setTemplateSelectorOpen(true);
+    window.addEventListener("open-quick-template-switcher", handler);
+    return () =>
+      window.removeEventListener("open-quick-template-switcher", handler);
+  }, []);
+
+  // Handle template insertion from sessionStorage (after navigation from templates page)
+  useEffect(() => {
+    const insertTemplate = searchParams.get("insertTemplate");
+    if (insertTemplate !== "true") return;
+
+    // Read template text from sessionStorage
+    const templateText = sessionStorage.getItem("pending-template-text");
+    if (templateText) {
+      // Clear sessionStorage
+      sessionStorage.removeItem("pending-template-text");
+
+      // Dispatch insert-prompt event after a brief delay to ensure ChatInput is mounted
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("insert-prompt", { detail: templateText })
+        );
+        window.dispatchEvent(new CustomEvent("focus-chat-input"));
+      }, 100);
+    }
+
+    // Clean up URL param
+    const url = new URL(window.location.href);
+    url.searchParams.delete("insertTemplate");
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [searchParams, router]);
 
   // Model preview modal (from recommendation banner)
   useEffect(() => {
@@ -669,6 +705,18 @@ function ChatPageContent({
           onOpenChange={setQuickSwitcherOpen}
           currentModel={selectedModel}
           onSelectModel={handleModelChange}
+        />
+
+        <QuickTemplateSwitcher
+          open={templateSelectorOpen}
+          onOpenChange={setTemplateSelectorOpen}
+          mode="insert"
+          onSelectTemplate={(prompt) => {
+            // Dispatch event to insert template into chat input
+            window.dispatchEvent(
+              new CustomEvent("insert-prompt", { detail: prompt })
+            );
+          }}
         />
       </div>
     </TTSProvider>

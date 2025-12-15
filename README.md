@@ -1,18 +1,44 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Development Setup
 
-First, run the development server:
+### 1. Environment Variables
 
+Copy the example environment file:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
 ```
+
+You will need to configure the following API keys in `.env.local`:
+
+**Core Services**
+- **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): Required for all AI model inference.
+- **Clerk** (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`): For user authentication.
+- **Convex** (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`): Backend database and functions (configured automatically via `bunx convex dev`).
+
+**AI Tools & Integrations**
+- **Tavily** (`TAVILY_API_KEY`): Enables real-time web search capabilities.
+- **Jina** (`JINA_API_KEY`): Used by the URL Reader tool to parse web pages into markdown.
+- **E2B** (`E2B_API_KEY`): Powers the code interpreter sandbox for executing code safely.
+- **Firecrawl** (`FIRECRAWL_API_KEY`): Optional alternative for advanced web scraping/crawling.
+- **OpenAI** (`OPENAI_API_KEY`): Needed for audio transcription (Whisper) if not using Groq.
+
+### 2. Run Locally
+
+1. Install dependencies:
+   ```bash
+   bun install
+   ```
+
+2. Start the Convex backend (in a separate terminal):
+   ```bash
+   bunx convex dev
+   ```
+
+3. Start the Next.js development server:
+   ```bash
+   bun dev
+   ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 

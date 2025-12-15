@@ -99,9 +99,10 @@ const _katexOptions = {
  * Animation is handled by character-level reveal in useStreamBuffer
  *
  * Math support via Streamdown's built-in remark-math + rehype-katex:
- * - Display: $$...$$
- * - Inline: \(...\)
+ * - Inline: $$x = 5$$ (keep $$ on same line as text)
+ * - Block/Display: $$ on separate lines
  * - Chemistry: $$\ce{H2O}$$ (mhchem extension loaded above)
+ * NOTE: Single $ delimiters are NOT supported (to avoid currency conflicts)
  */
 const markdownComponents = {
   code: ({
@@ -164,6 +165,36 @@ const markdownComponents = {
  * - Buffer smoothly reveals characters at 200 chars/sec via RAF
  * - Prevents layout shifts and jarring appearance during streaming
  */
+
+/**
+ * Normalize LaTeX delimiters to Streamdown's expected format.
+ * AI models often use \(...\) for inline and \[...\] for block math,
+ * but Streamdown expects $$...$$ for both (inline on same line, block on separate lines).
+ * Skips code blocks to avoid breaking LaTeX source display.
+ */
+function normalizeLatexDelimiters(text: string): string {
+  // Fast path: skip if no LaTeX-style delimiters present
+  if (!text.includes("\\(") && !text.includes("\\[")) return text;
+
+  // Split by code blocks (fenced and inline) to avoid processing code
+  const parts = text.split(/(`{3}[\s\S]*?`{3}|`[^`\n]+`)/);
+
+  return parts
+    .map((part) => {
+      // If it starts with ` it's code, return unchanged
+      if (part.startsWith("`")) return part;
+
+      // Convert \(...\) to inline $$...$$
+      let result = part.replace(/\\\(([^)]*?)\\\)/g, "$$$$$1$$$$");
+
+      // Convert \[...\] to block $$...$$ (with newlines for display mode)
+      result = result.replace(/\\\[([^\]]*?)\\\]/g, "\n$$$$$1$$\n");
+
+      return result;
+    })
+    .join("");
+}
+
 /**
  * Process text to linkify citations [n] -> [[n]](#source-n)
  * Skips code blocks to avoid breaking code.
@@ -192,11 +223,15 @@ export function MarkdownContent({
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Normalize LaTeX delimiters before other processing
+  // AI models often output \(...\) but Streamdown expects $$...$$
+  const normalizedContent = normalizeLatexDelimiters(content);
+
   // Process citations before buffering
   // This ensures the buffer sees the "final" linkified version
   // If a [1] appears, the processed content will change non-monotonically
   // prompting useStreamBuffer to reset buffer and show the new content immediately
-  const processedContent = processCitations(content);
+  const processedContent = processCitations(normalizedContent);
 
   // Buffer hook smoothly reveals characters from server chunks
   const { displayContent, hasBufferedContent } = useStreamBuffer(

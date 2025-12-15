@@ -38,7 +38,8 @@ import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { useMutation } from "convex/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -573,7 +574,7 @@ function ChatPageContent({
               <ExtractMemoriesButton conversationId={conversationId} />
             )}
             {hasMessages && conversationId && (
-              <ContextWindowIndicator conversationId={conversationId} />
+              <ContextWindowIndicator conversationId={conversationId} modelId={selectedModel} />
             )}
             {conversationId && <BranchBadge conversationId={conversationId} />}
             {hasMessages && conversationId && (
@@ -587,8 +588,8 @@ function ChatPageContent({
 
         <TTSPlayerBar />
 
-        {messages === undefined ? (
-          <MessageListSkeleton />
+        {serverMessages === undefined || paginationStatus === "LoadingFirstPage" ? (
+          <MessageListSkeleton chatWidth={chatWidth} />
         ) : (
           <>
             {/* Load More Button (fallback for top of list) */}

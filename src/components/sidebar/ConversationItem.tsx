@@ -1,44 +1,41 @@
-import { useAction, useMutation } from "convex/react";
-import {
-  Archive,
-  Edit,
-  GitBranch,
-  MoreVertical,
-  Pin,
-  Sparkles,
-  Star,
-  Trash2,
-} from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { useQueryState } from "nuqs";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
 import { ProjectBadge } from "@/components/projects/ProjectBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { cn } from "@/lib/utils";
+import { useAction, useMutation } from "convex/react";
+import {
+    GitBranch,
+    MoreVertical,
+    Pin,
+    Star,
+} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import { getConversationMenuItems } from "./ConversationMenuItems";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
 
@@ -91,13 +88,8 @@ export function ConversationItem({
     }
   };
 
-  const handleSelectClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleSelection?.(conversation._id);
-  };
-
-  const handlePinClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePinClick = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     try {
       await togglePin({ conversationId: conversation._id });
     } catch (error) {
@@ -107,8 +99,8 @@ export function ConversationItem({
     }
   };
 
-  const handleAutoRename = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleAutoRename = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     try {
       toast.loading("Generating title...", { id: "auto-rename" });
       const results = await autoRenameAction({
@@ -126,12 +118,25 @@ export function ConversationItem({
     }
   };
 
-  // Stabilize project filter callback to prevent re-renders
   const handleProjectFilterClick = useCallback(() => {
     if (conversation.projectId) {
       setProjectFilter(conversation.projectId);
     }
   }, [conversation.projectId, setProjectFilter]);
+
+  // Get shared menu items
+  const menuItems = getConversationMenuItems({
+    conversation,
+    onShowRename: () => setShowRename(true),
+    onShowDelete: () => setShowDeleteConfirm(true),
+    onToggleSelection: onToggleSelection
+      ? () => onToggleSelection(conversation._id)
+      : undefined,
+    onPin: () => handlePinClick(),
+    onStar: () => toggleStar({ conversationId: conversation._id }),
+    onArchive: () => archiveConversation({ conversationId: conversation._id }),
+    onAutoRename: () => handleAutoRename(),
+  });
 
   return (
     <>
@@ -147,7 +152,7 @@ export function ConversationItem({
               isSelected &&
                 !isSelectionMode &&
                 "bg-primary/10 ring-1 ring-primary",
-              isSelectedById && "bg-primary/5 ring-1 ring-primary/20",
+              isSelectedById && "bg-primary/5 ring-1 ring-primary/20"
             )}
             onClick={handleClick}
             onMouseEnter={onClearSelection}
@@ -156,7 +161,7 @@ export function ConversationItem({
             aria-selected={isSelected}
             tabIndex={-1}
           >
-            {/* Selection Checkbox (Visible in mode or on hover) */}
+            {/* Selection Checkbox */}
             {(isSelectionMode || isSelectedById) && (
               <div className="flex-shrink-0 animate-in fade-in zoom-in duration-200">
                 <Checkbox
@@ -168,7 +173,7 @@ export function ConversationItem({
               </div>
             )}
 
-            {/* Branch indicator button */}
+            {/* Branch indicator */}
             {!isSelectionMode &&
               conversation.parentConversationId &&
               conversation.parentMessageId && (
@@ -181,7 +186,7 @@ export function ConversationItem({
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(
-                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`,
+                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`
                         );
                       }}
                       aria-label="Go to parent conversation"
@@ -199,7 +204,7 @@ export function ConversationItem({
               <p
                 className={cn(
                   "text-sm truncate flex-1",
-                  isSelectedById && "text-primary font-medium",
+                  isSelectedById && "text-primary font-medium"
                 )}
               >
                 {conversation.title || "New conversation"}
@@ -221,7 +226,7 @@ export function ConversationItem({
               </kbd>
             )}
 
-            {/* Status indicators - always visible when present */}
+            {/* Status indicators */}
             {(conversation.starred || conversation.pinned) && (
               <div className="flex items-center gap-1">
                 {conversation.starred && (
@@ -233,38 +238,9 @@ export function ConversationItem({
               </div>
             )}
 
-            {/* Quick actions + overflow menu - overlay on hover */}
+            {/* Quick actions overlay on hover */}
             {!isSelectionMode && (
               <div className="absolute top-2 bottom-2 sm:top-[2.5px] sm:bottom-[2.5px] right-2 flex items-center gap-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-gradient-to-l from-sidebar-accent via-sidebar-accent/80 to-transparent pl-8 pr-1">
-                {/* Select button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleSelectClick}
-                      variant="ghost"
-                      size="icon"
-                      className="h-3 w-3 min-w-0 min-h-0 p-0"
-                      aria-label="Select conversation"
-                    >
-                      <div
-                        className={cn(
-                          "w-2.5 h-2.5 border rounded-sm flex items-center justify-center",
-                          isSelectedById
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "border-current",
-                        )}
-                      >
-                        {isSelectedById && (
-                          <span className="text-[8px]">✓</span>
-                        )}
-                      </div>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Select</p>
-                  </TooltipContent>
-                </Tooltip>
-
                 {/* Pin button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -277,15 +253,13 @@ export function ConversationItem({
                         !conversation.pinned && conversation.messageCount === 0
                       }
                       aria-label={
-                        conversation.pinned
-                          ? "Unpin conversation"
-                          : "Pin conversation"
+                        conversation.pinned ? "Unpin" : "Pin conversation"
                       }
                     >
                       <Pin
                         className={cn(
                           "w-2.5 h-2.5",
-                          conversation.pinned && "text-primary fill-primary",
+                          conversation.pinned && "text-primary fill-primary"
                         )}
                       />
                     </Button>
@@ -295,13 +269,13 @@ export function ConversationItem({
                       {conversation.pinned
                         ? "Unpin"
                         : conversation.messageCount === 0
-                          ? "Cannot pin empty conversation"
+                          ? "Cannot pin empty"
                           : "Pin"}
                     </p>
                   </TooltipContent>
                 </Tooltip>
 
-                {/* More options dropdown */}
+                {/* Dropdown menu */}
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -313,12 +287,9 @@ export function ConversationItem({
                           variant="ghost"
                           size="icon"
                           className="h-3 w-3 min-w-0 min-h-0 p-0"
-                          aria-label="Conversation options"
+                          aria-label="Options"
                         >
-                          <MoreVertical
-                            className="w-2.5 h-2.5"
-                            aria-hidden="true"
-                          />
+                          <MoreVertical className="w-2.5 h-2.5" />
                         </Button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>
@@ -327,51 +298,24 @@ export function ConversationItem({
                     </TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowRename(true);
-                      }}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleAutoRename}>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Auto-rename
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleStar({ conversationId: conversation._id });
-                      }}
-                    >
-                      <Star className="w-4 h-4 mr-2" />
-                      {conversation.starred ? "Unstar" : "Star"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        archiveConversation({
-                          conversationId: conversation._id,
-                        });
-                      }}
-                    >
-                      <Archive className="w-4 h-4 mr-2" />
-                      Archive
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
+                    {menuItems.map((item) =>
+                      item.separator ? (
+                        <DropdownMenuSeparator key={item.id} />
+                      ) : (
+                        <DropdownMenuItem
+                          key={item.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            item.onClick();
+                          }}
+                          disabled={item.disabled}
+                          className={item.destructive ? "text-destructive" : ""}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </DropdownMenuItem>
+                      )
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -379,66 +323,21 @@ export function ConversationItem({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          <ContextMenuItem onClick={() => setShowRename(true)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Rename
-          </ContextMenuItem>
-          <ContextMenuItem onClick={(e) => handleAutoRename(e as any)}>
-            <Sparkles className="w-4 h-4 mr-2" />
-            Auto-rename
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onClick={() => onToggleSelection?.(conversation._id)}
-          >
-            <div className="flex items-center">
-              <span className="w-4 h-4 mr-2 border border-current rounded-sm" />
-              Select
-            </div>
-          </ContextMenuItem>
-          <ContextMenuItem
-            disabled={!conversation.pinned && conversation.messageCount === 0}
-            onClick={async () => {
-              try {
-                await togglePin({ conversationId: conversation._id });
-              } catch (error) {
-                const message =
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to pin conversation";
-                toast.error(message);
-              }
-            }}
-          >
-            <Pin className="w-4 h-4 mr-2" />
-            {conversation.pinned
-              ? "Unpin"
-              : conversation.messageCount === 0
-                ? "Cannot pin empty"
-                : "Pin"}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => toggleStar({ conversationId: conversation._id })}
-          >
-            <Star className="w-4 h-4 mr-2" />
-            {conversation.starred ? "Unstar" : "Star"}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() =>
-              archiveConversation({ conversationId: conversation._id })
-            }
-          >
-            <Archive className="w-4 h-4 mr-2" />
-            Archive
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onClick={() => setShowDeleteConfirm(true)}
-            className="text-destructive"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </ContextMenuItem>
+          {menuItems.map((item) =>
+            item.separator ? (
+              <ContextMenuSeparator key={item.id} />
+            ) : (
+              <ContextMenuItem
+                key={item.id}
+                onClick={item.onClick}
+                disabled={item.disabled}
+                className={item.destructive ? "text-destructive" : ""}
+              >
+                {item.icon}
+                {item.label}
+              </ContextMenuItem>
+            )
+          )}
         </ContextMenuContent>
       </ContextMenu>
 

@@ -1,28 +1,35 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { AlertCircle, Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { getModelConfig } from "@/lib/ai/utils";
+import { useQuery } from "convex/react";
+import { AlertCircle, Info } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 interface ContextWindowIndicatorProps {
   conversationId: Id<"conversations">;
+  modelId: string;  // Currently selected model
 }
 
 export function ContextWindowIndicator({
   conversationId,
+  modelId,
 }: ContextWindowIndicatorProps) {
+  // @ts-ignore
   const tokenUsage = useQuery(api.conversations.getTokenUsage, {
     conversationId,
   });
+
+  // Get context limit from currently selected model, not stored value
+  const modelConfig = getModelConfig(modelId);
+  const contextLimit = modelConfig?.contextWindow ?? 128000; // Fallback to 128K
 
   if (!tokenUsage) {
     return null;
@@ -33,9 +40,8 @@ export function ContextWindowIndicator({
     messagesTokens,
     memoriesTokens,
     totalTokens,
-    contextLimit,
   } = tokenUsage;
-  const percentage = Math.round((totalTokens / contextLimit) * 100);
+  const percentage = Math.min(100, Math.round((totalTokens / contextLimit) * 100));
 
   // Determine warning level
   const getWarningLevel = () => {
@@ -76,11 +82,12 @@ export function ContextWindowIndicator({
             <div className="flex-1">
               <Progress
                 value={percentage}
-                className={cn("h-2", getProgressColor())}
+                className="h-2"
+                indicatorClassName={getProgressColor()}
               />
             </div>
             <span className="text-sm text-muted-foreground tabular-nums">
-              {totalTokens.toLocaleString()} / {contextLimit.toLocaleString()}
+              {percentage}%
             </span>
           </div>
         </TooltipTrigger>
@@ -107,9 +114,15 @@ export function ContextWindowIndicator({
                 </span>
               </div>
               <div className="flex justify-between gap-4 pt-1 border-t">
-                <span className="font-medium">Total:</span>
+                <span className="font-medium">Total Usage:</span>
                 <span className="tabular-nums font-medium">
                   {totalTokens.toLocaleString()} ({percentage}%)
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Context Limit:</span>
+                <span className="tabular-nums">
+                  {contextLimit.toLocaleString()}
                 </span>
               </div>
             </div>

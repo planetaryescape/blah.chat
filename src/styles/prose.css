@@ -7,6 +7,11 @@
     line-height: 1.75;
   }
 
+  /* Override prose max-width inside chat messages so text can expand to bubble width */
+  .chat-message .prose {
+    max-width: none;
+  }
+
   /* Paragraphs */
   .prose p {
     margin-top: 1.25em;

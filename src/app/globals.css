@@ -354,12 +354,19 @@
 /* Performance Optimizations */
 .prose {
   /* Prevent layout thrashing during streaming */
-  contain: layout style;
+  contain: style;
   will-change: contents;
 
   /* Smooth text rendering */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Chat message prose should not have width constraints */
+.chat-message .prose,
+.chat-message .markdown-content {
+  max-width: none;
+  width: auto;
 }
 
 /* Background Texture */

@@ -2,6 +2,7 @@
 
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { AuthStateListener } from "./AuthStateListener";
@@ -40,7 +41,9 @@ export function ConvexClerkProvider({
       }}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <AuthStateListener>{children}</AuthStateListener>
+        <ConvexQueryCacheProvider expiration={60000} maxIdleEntries={100}>
+          <AuthStateListener>{children}</AuthStateListener>
+        </ConvexQueryCacheProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );

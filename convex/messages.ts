@@ -1,5 +1,5 @@
-import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
@@ -76,6 +76,23 @@ export const create = internalMutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+
+    // Store attachments in normalized table
+    if (args.attachments && args.attachments.length > 0) {
+      for (const attachment of args.attachments) {
+        await ctx.db.insert("attachments", {
+          messageId,
+          conversationId: args.conversationId,
+          userId: args.userId,
+          type: attachment.type,
+          name: attachment.name,
+          storageId: attachment.storageId as Id<"_storage">,
+          mimeType: attachment.mimeType,
+          size: attachment.size,
+          createdAt: Date.now(),
+        });
+      }
+    }
 
     // Increment conversation messageCount
     const conversation = await ctx.db.get(args.conversationId);

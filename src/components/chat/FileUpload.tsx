@@ -1,14 +1,14 @@
 "use client";
 
-import { useMutation } from "convex/react";
-import { Loader2, Upload } from "lucide-react";
-import { useCallback } from "react";
-import { useDropzone } from "react-dropzone";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { analytics } from "@/lib/analytics";
+import { useMutation } from "convex/react";
+import { Loader2, Paperclip } from "lucide-react";
+import { useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
 
 interface Attachment {
   type: "file" | "image" | "audio";
@@ -23,6 +23,7 @@ interface FileUploadProps {
   conversationId?: Id<"conversations">;
   attachments: Attachment[];
   onAttachmentsChange: (attachments: Attachment[]) => void;
+  onUploadComplete?: () => void;
   maxSizeMB?: number;
 }
 
@@ -30,6 +31,7 @@ export function FileUpload({
   conversationId,
   attachments,
   onAttachmentsChange,
+  onUploadComplete,
   maxSizeMB = 10,
   uploading,
   setUploading,
@@ -103,6 +105,8 @@ export function FileUpload({
         toast.success(
           `Uploaded ${newAttachments.length} file${newAttachments.length === 1 ? "" : "s"}`,
         );
+        // Focus input after successful upload
+        onUploadComplete?.();
       } catch (error) {
         console.error("Upload failed:", error);
         toast.error("Failed to upload files");
@@ -116,6 +120,7 @@ export function FileUpload({
       generateUploadUrl,
       maxSizeMB,
       onAttachmentsChange,
+      onUploadComplete,
       saveFile,
       setUploading,
     ],
@@ -133,18 +138,18 @@ export function FileUpload({
     <Button
       type="button"
       variant="ghost"
+      size="icon"
       {...getRootProps()}
       disabled={uploading}
       title="Attach files"
-      className="h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1.5"
+      className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
     >
       <input {...getInputProps()} />
       {uploading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 className="w-5 h-5 animate-spin" />
       ) : (
-        <Upload className="w-3.5 h-3.5" />
+        <Paperclip className="w-5 h-5" />
       )}
-      <span className="hidden sm:inline">Attach</span>
       <span className="sr-only">Attach files</span>
     </Button>
   );

@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useChatInputEvents } from "@/hooks/useChatInputEvents";
+import { useChatInputKeyboard } from "@/hooks/useChatInputKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
@@ -17,14 +19,16 @@ import { cn } from "@/lib/utils";
 import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { useMutation, useQuery } from "convex/react";
-import { Loader2, Quote, Send, Square } from "lucide-react";
+import { Loader2, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
 import { ImageGenerateButton } from "./ImageGenerateButton";
-import { KeyboardHints } from "./KeyboardHints";
+import { InputBottomBar } from "./InputBottomBar";
+import { QuotePreview } from "./QuotePreview";
 import { RateLimitDialog } from "./RateLimitDialog";
+import type { ThinkingEffort } from "./ThinkingEffortSelector";
 import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
 
 interface Attachment {
@@ -34,15 +38,6 @@ interface Attachment {
   mimeType: string;
   size: number;
 }
-
-import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
-import { ComparisonTrigger } from "./ComparisonTrigger";
-import { QuickModelSwitcher } from "./QuickModelSwitcher";
-import {
-    type ThinkingEffort,
-    ThinkingEffortSelector,
-} from "./ThinkingEffortSelector";
 
 interface ChatInputProps {
   conversationId: Id<"conversations">;
@@ -92,7 +87,7 @@ export function ChatInput({
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
-    null,
+    null
   );
   const [_isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -110,23 +105,18 @@ export function ChatInput({
   const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const stopGeneration = useMutation(api.chat.stopGeneration);
-  const _user = useQuery(api.users.getCurrentUser);
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
     conversationId,
   });
-
-  const _isExpanded = input.length > 50;
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
   const supportsVision = modelConfig?.capabilities?.includes("vision") ?? false;
   const supportsThinking = !!modelConfig?.reasoning;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
-    // Allow typing during generation, but prevent submission
     if (isGenerating) return;
-
     if ((!input.trim() && !quote) || isSending || uploading) return;
 
     setIsSending(true);
@@ -146,14 +136,12 @@ export function ChatInput({
       },
       {
         onSuccess: () => {
-          // Clear input after successful send
           setInput("");
           setQuote(null);
           onAttachmentsChange([]);
           setIsSending(false);
         },
         onError: (error) => {
-          // Handle rate limit errors
           if (
             error instanceof Error &&
             error.message.includes("Daily message limit")
@@ -162,46 +150,37 @@ export function ChatInput({
           }
           setIsSending(false);
         },
-      },
+      }
     );
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
+  // Use extracted keyboard hook
+  const { handleKeyDown } = useChatInputKeyboard({
+    input,
+    setInput,
+    textareaRef,
+    onSubmit: handleSubmit,
+  });
 
-    // Cmd/Ctrl+$ - Insert math block template
-    if ((e.metaKey || e.ctrlKey) && e.key === "$") {
-      e.preventDefault();
-      const textarea = textareaRef.current;
-      if (!textarea) return;
-
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const before = input.substring(0, start);
-      const after = input.substring(end);
-
-      const template = "$$\n\n$$";
-      const newValue = before + template + after;
-      setInput(newValue);
-
-      // Position cursor inside math block (after $$\n)
-      setTimeout(() => {
-        textarea.focus();
-        textarea.selectionStart = textarea.selectionEnd = start + 3;
-      }, 0);
-    }
-  };
+  // Use extracted events hook
+  useChatInputEvents({
+    textareaRef,
+    setInput,
+    setQuote,
+    isEmpty,
+    isMobile,
+    isTouchDevice,
+    lastAssistantMessageId: lastAssistantMessage?._id,
+    lastAssistantMessageStatus: lastAssistantMessage?.status,
+    lastCompletedMessageId,
+    setLastCompletedMessageId,
+  });
 
   const handleStop = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
       await stopGeneration({ conversationId });
-
-      // Track generation stopped by user
       analytics.track("generation_stopped", {
         model: selectedModel,
         source: "stop_button",
@@ -211,91 +190,13 @@ export function ChatInput({
     }
   };
 
-  // Auto-resize (blocks.so pattern)
+  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-  }, []);
-
-  // Handle prompted actions from EmptyScreen
-  useEffect(() => {
-    const handleInsertPrompt = (e: CustomEvent<string>) => {
-      setInput(e.detail);
-      // Optional: auto-focus
-      textareaRef.current?.focus();
-    };
-
-    window.addEventListener("insert-prompt" as any, handleInsertPrompt as any);
-    return () => {
-      window.removeEventListener(
-        "insert-prompt" as any,
-        handleInsertPrompt as any,
-      );
-    };
-  }, []);
-
-  // Handle quote selection
-  useEffect(() => {
-    const handleQuoteSelection = (e: CustomEvent<string>) => {
-      setQuote(e.detail);
-      textareaRef.current?.focus();
-    };
-
-    window.addEventListener(
-      "quote-selection" as any,
-      handleQuoteSelection as any,
-    );
-    return () => {
-      window.removeEventListener(
-        "quote-selection" as any,
-        handleQuoteSelection as any,
-      );
-    };
-  }, []);
-
-  // Handle focus restoration after dialogs close (e.g., QuickModelSwitcher)
-  useEffect(() => {
-    const handleFocusInput = () => {
-      textareaRef.current?.focus();
-    };
-
-    window.addEventListener("focus-chat-input", handleFocusInput);
-    return () => {
-      window.removeEventListener("focus-chat-input", handleFocusInput);
-    };
-  }, []);
-
-  // Autofocus on empty state (skip mobile/touch)
-  useEffect(() => {
-    if (isEmpty && !isMobile && !isTouchDevice && textareaRef.current) {
-      const timer = setTimeout(() => {
-        textareaRef.current?.focus();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isEmpty, isMobile, isTouchDevice]);
-
-  // Auto-focus input after AI message generation completes
-  useEffect(() => {
-    if (
-      !isMobile &&
-      lastAssistantMessage?.status === "complete" &&
-      lastAssistantMessage._id !== lastCompletedMessageId &&
-      document.activeElement?.tagName !== "INPUT" &&
-      document.activeElement?.tagName !== "TEXTAREA"
-    ) {
-      setLastCompletedMessageId(lastAssistantMessage._id);
-      setTimeout(() => textareaRef.current?.focus(), 100);
-    }
-  }, [
-    lastAssistantMessage?.status,
-    lastAssistantMessage?._id,
-    lastCompletedMessageId,
-    isMobile,
-  ]);
+  }, [input]);
 
   // Dynamic placeholder based on model capabilities
   const getPlaceholder = () => {
@@ -316,7 +217,7 @@ export function ChatInput({
     <div
       className={cn(
         "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
-        getChatWidthClass(chatWidth, false),
+        getChatWidthClass(chatWidth, false)
       )}
     >
       <form
@@ -326,35 +227,15 @@ export function ChatInput({
         aria-label="Send message to AI"
         className={cn(
           "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
-          "bg-background/80 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/50 dark:border-white/10", // Theme aware background
-          "rounded-3xl", // More rounded
+          "bg-background/80 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/50 dark:border-white/10",
+          "rounded-3xl",
           isFocused
             ? "shadow-glow ring-1 ring-ring/10 dark:ring-white/10"
-            : "shadow-lg hover:shadow-xl hover:border-border/80 dark:hover:border-white/20",
+            : "shadow-lg hover:shadow-xl hover:border-border/80 dark:hover:border-white/20"
         )}
       >
         {/* Quote Preview */}
-        {quote && (
-          <div className="mx-2 mt-2 p-3 rounded-xl bg-muted/50 dark:bg-white/5 border border-border/50 dark:border-white/10 flex items-start gap-3 group relative">
-            <div className="shrink-0 mt-0.5">
-              <Quote className="w-4 h-4 text-primary/70" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-foreground/90 line-clamp-3 leading-relaxed font-medium">
-                {quote}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 -mr-1 -mt-1 opacity-60 group-hover:opacity-100 transition-opacity"
-              onClick={() => setQuote(null)}
-            >
-              <X className="w-3 h-3" />
-            </Button>
-          </div>
-        )}
+        {quote && <QuotePreview quote={quote} onDismiss={() => setQuote(null)} />}
 
         {/* Attachment previews */}
         {attachments.length > 0 && (
@@ -369,27 +250,6 @@ export function ChatInput({
         )}
 
         <div className="flex gap-2 items-end pl-2 pr-2">
-          {/* FileUpload button (left side) */}
-          {supportsVision && (
-            <div className="pb-1.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <FileUpload
-                      conversationId={conversationId}
-                      attachments={attachments}
-                      onAttachmentsChange={onAttachmentsChange}
-                      uploading={uploading}
-                      setUploading={setUploading}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Upload files</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
 
           {/* Textarea or Waveform */}
           {isRecording ? (
@@ -414,7 +274,7 @@ export function ChatInput({
               aria-multiline="true"
               className="resize-none min-h-[50px] py-3 px-2 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/70"
               rows={1}
-              disabled={isSending || uploading} // Removed isGenerating
+              disabled={isSending || uploading}
               data-tour="input"
             />
           )}
@@ -424,8 +284,26 @@ export function ChatInput({
             Type your message. Press Enter to send, Shift+Enter for new line.
           </div>
 
-          {/* Send button & Mic (right side) */}
+          {/* Action buttons (right side) */}
           <div className="pb-1.5 pr-1 flex items-center gap-1">
+            {/* File upload - always visible */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <FileUpload
+                    conversationId={conversationId}
+                    attachments={attachments}
+                    onAttachmentsChange={onAttachmentsChange}
+                    onUploadComplete={() => textareaRef.current?.focus()}
+                    uploading={uploading}
+                    setUploading={setUploading}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>Attach files</p>
+              </TooltipContent>
+            </Tooltip>
             {input.trim() && (
               <ImageGenerateButton
                 conversationId={conversationId}
@@ -435,7 +313,7 @@ export function ChatInput({
                 iconOnly
               />
             )}
-            {(supportsVision ||
+            {(
               (typeof window !== "undefined" &&
                 "webkitSpeechRecognition" in window)) && (
               <Tooltip>
@@ -456,9 +334,7 @@ export function ChatInput({
                                 : { modelId: selectedModel }),
                               thinkingEffort,
                               attachments:
-                                attachments.length > 0
-                                  ? attachments
-                                  : undefined,
+                                attachments.length > 0 ? attachments : undefined,
                             });
                             onAttachmentsChange([]);
                           } catch (error) {
@@ -475,7 +351,7 @@ export function ChatInput({
                           }
                         } else {
                           setInput((prev) =>
-                            prev.trim() ? `${prev} ${text}` : text,
+                            prev.trim() ? `${prev} ${text}` : text
                           );
                         }
                       }}
@@ -484,7 +360,7 @@ export function ChatInput({
                         setRecordingStream(stream || null);
                         if (!recording && stream) setIsTranscribing(true);
                       }}
-                      isDisabled={isSending || uploading} // Removed isGenerating
+                      isDisabled={isSending || uploading}
                     />
                   </div>
                 </TooltipTrigger>
@@ -516,7 +392,7 @@ export function ChatInput({
                   isSending ||
                   uploading
                   ? "bg-muted text-muted-foreground opacity-50"
-                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/25",
+                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/25"
               )}
               disabled={
                 (!input.trim() && !quote && !isRecording && !isGenerating) ||
@@ -535,53 +411,23 @@ export function ChatInput({
           </div>
         </div>
 
-        <div className="px-4 pb-2 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            {isComparisonMode && onExitComparison ? (
-              <Badge
-                variant="secondary"
-                className="mr-2 flex items-center gap-2"
-              >
-                Comparing {selectedModels.length} models
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={onExitComparison}
-                >
-                  <X className="w-3 h-3" />
-                </Button>
-              </Badge>
-            ) : (
-              <QuickModelSwitcher
-                currentModel={selectedModel}
-                onSelectModel={onModelChange}
-                open={modelSelectorOpen ?? false}
-                onOpenChange={onModelSelectorOpenChange ?? (() => {})}
-                mode="single"
-                showTrigger={true}
-              />
-            )}
-            {supportsThinking &&
-              thinkingEffort &&
-              onThinkingEffortChange &&
-              !isComparisonMode && (
-                <ThinkingEffortSelector
-                  value={thinkingEffort}
-                  onChange={onThinkingEffortChange}
-                />
-              )}
-            {onStartComparison && (
-              <ComparisonTrigger
-                onStartComparison={onStartComparison}
-                isActive={isComparisonMode}
-                open={comparisonDialogOpen}
-                onOpenChange={onComparisonDialogOpenChange}
-              />
-            )}
-          </div>
-          <KeyboardHints isEmpty={isEmpty} hasContent={input.length > 0} />
-        </div>
+        <InputBottomBar
+          isComparisonMode={isComparisonMode}
+          selectedModels={selectedModels}
+          onExitComparison={onExitComparison}
+          onStartComparison={onStartComparison}
+          comparisonDialogOpen={comparisonDialogOpen}
+          onComparisonDialogOpenChange={onComparisonDialogOpenChange}
+          selectedModel={selectedModel}
+          onModelChange={onModelChange}
+          modelSelectorOpen={modelSelectorOpen}
+          onModelSelectorOpenChange={onModelSelectorOpenChange}
+          supportsThinking={supportsThinking}
+          thinkingEffort={thinkingEffort}
+          onThinkingEffortChange={onThinkingEffortChange}
+          isEmpty={isEmpty}
+          hasContent={input.length > 0}
+        />
       </form>
 
       <RateLimitDialog

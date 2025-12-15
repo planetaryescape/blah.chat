@@ -1,17 +1,18 @@
 "use client";
 
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { toast } from "sonner";
+import { useTTSAudioPlayer } from "@/hooks/useTTSAudioPlayer";
 import { analytics } from "@/lib/analytics";
 import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
+import { chunkText, clamp, getTTSUrl } from "@/lib/utils/ttsUtils";
+import {
+    createContext,
+    type ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+import { toast } from "sonner";
 
 interface TTSState {
   isVisible: boolean;
@@ -22,7 +23,6 @@ interface TTSState {
   speed: number;
   sourceMessageId?: string;
   previewText?: string;
-  // Streaming state
   totalChunks: number;
   currentChunk: number;
   isStreaming: boolean;
@@ -30,10 +30,7 @@ interface TTSState {
 
 interface TTSContextValue {
   state: TTSState;
-  playFromText: (options: {
-    text: string;
-    messageId?: string;
-  }) => Promise<void>;
+  playFromText: (options: { text: string; messageId?: string }) => Promise<void>;
   pause: () => void;
   resume: () => Promise<void>;
   stop: () => void;
@@ -45,89 +42,6 @@ interface TTSContextValue {
 
 const TTSContext = createContext<TTSContextValue | null>(null);
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-// Low latency: chunk at individual sentences (~150-200 chars)
-const CHUNK_LIMIT = 200;
-
-function chunkText(text: string, maxChars: number): string[] {
-  if (text.length <= maxChars) return [text];
-
-  const chunks: string[] = [];
-  let remaining = text;
-
-  while (remaining.length > 0) {
-    if (remaining.length <= maxChars) {
-      chunks.push(remaining);
-      break;
-    }
-
-    let splitIndex = maxChars;
-    const searchArea = remaining.slice(0, maxChars);
-
-    // Look for sentence endings
-    const lastPeriod = Math.max(
-      searchArea.lastIndexOf(". "),
-      searchArea.lastIndexOf("! "),
-      searchArea.lastIndexOf("? "),
-      searchArea.lastIndexOf(".\n"),
-      searchArea.lastIndexOf("!\n"),
-      searchArea.lastIndexOf("?\n"),
-    );
-
-    if (lastPeriod > maxChars * 0.3) {
-      // Found a reasonable sentence boundary
-      splitIndex = lastPeriod + 1;
-    } else {
-      // Fall back to comma or space
-      const lastComma = searchArea.lastIndexOf(", ");
-      if (lastComma > maxChars * 0.3) {
-        splitIndex = lastComma + 1;
-      } else {
-        const lastSpace = searchArea.lastIndexOf(" ");
-        if (lastSpace > maxChars * 0.3) {
-          splitIndex = lastSpace;
-        }
-      }
-    }
-
-    chunks.push(remaining.slice(0, splitIndex).trim());
-    remaining = remaining.slice(splitIndex).trim();
-  }
-
-  return chunks.filter((c) => c.length > 0);
-}
-
-function getTTSUrl(text: string, voice?: string, speed?: number) {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
-  let baseUrl = ""; // Start with relative
-
-  if (convexUrl) {
-    if (convexUrl.includes(".convex.cloud")) {
-      baseUrl = convexUrl.replace(".convex.cloud", ".convex.site");
-    } else {
-      baseUrl = convexUrl;
-    }
-  }
-
-  // Use string concatenation to avoid build-time template literal parsing issues
-  const finalUrl = baseUrl ? `${baseUrl}/tts` : "/tts";
-
-  // URL constructor requires base if path is relative.
-  // Use window.location.origin if available, otherwise localhost/dummy for build safety.
-  const base =
-    typeof window !== "undefined" ? window.location.origin : "http://localhost";
-  const url = new URL(finalUrl, base);
-
-  url.searchParams.set("text", text);
-  if (voice) url.searchParams.set("voice", voice);
-  if (speed) url.searchParams.set("speed", speed.toString());
-
-  return url.toString();
-}
-
 export function TTSProvider({
   children,
   defaultSpeed = 1,
@@ -135,17 +49,6 @@ export function TTSProvider({
   children: ReactNode;
   defaultSpeed?: number;
 }) {
-  // MSE Refs
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const mediaSourceRef = useRef<MediaSource | null>(null);
-  const sourceBufferRef = useRef<SourceBuffer | null>(null);
-  const bufferQueueRef = useRef<ArrayBuffer[]>([]);
-  const isAppendingRef = useRef(false);
-  const objectUrlRef = useRef<string | null>(null);
-
-  const speedRef = useRef(clamp(defaultSpeed ?? 1, 0.5, 2));
-  const abortControllerRef = useRef<AbortController | null>(null);
-
   const [state, setState] = useState<TTSState>({
     isVisible: false,
     isLoading: false,
@@ -160,48 +63,39 @@ export function TTSProvider({
     isStreaming: false,
   });
 
+  const audioPlayer = useTTSAudioPlayer({
+    defaultSpeed,
+    onTimeUpdate: (currentTime, duration) => {
+      setState((prev) => ({ ...prev, currentTime, duration }));
+    },
+    onEnded: () => {
+      setState((prev) => ({ ...prev, isPlaying: false, isStreaming: false }));
+      analytics.track("tts_playback_completed", {
+        playbackDurationMs: state.duration * 1000,
+      });
+    },
+    onError: (e) => {
+      console.error("Audio error", e);
+    },
+  });
+
   useEffect(() => {
     const clamped = clamp(defaultSpeed ?? 1, 0.5, 2);
-    speedRef.current = clamped;
+    audioPlayer.setSpeed(clamped);
     setState((prev) => ({ ...prev, speed: clamped }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultSpeed]);
 
-  const cleanupAudio = useCallback(() => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.removeAttribute("src");
-      currentAudioRef.current.load();
-    }
-
-    // Revoke Object URL
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-
-    // MSE Cleanup
-    if (mediaSourceRef.current) {
-      try {
-        if (mediaSourceRef.current.readyState === "open") {
-          mediaSourceRef.current.endOfStream();
-        }
-      } catch (_e) {
-        // ignore
-      }
-      mediaSourceRef.current = null;
-    }
-    sourceBufferRef.current = null;
-    bufferQueueRef.current = [];
-    isAppendingRef.current = false;
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioPlayer.cleanupAudio();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const close = useCallback(() => {
-    cleanupAudio();
+    audioPlayer.cleanupAudio();
     setState((prev) => ({
       ...prev,
       isVisible: false,
@@ -215,27 +109,7 @@ export function TTSProvider({
       currentChunk: 0,
       isStreaming: false,
     }));
-  }, [cleanupAudio]);
-
-  // Process the buffer queue safely
-  const processBufferQueue = useCallback(() => {
-    if (
-      !sourceBufferRef.current ||
-      sourceBufferRef.current.updating ||
-      bufferQueueRef.current.length === 0
-    ) {
-      return;
-    }
-
-    const buffer = bufferQueueRef.current.shift();
-    if (buffer) {
-      try {
-        sourceBufferRef.current.appendBuffer(buffer);
-      } catch (e) {
-        console.error("MSE appendBuffer failed", e);
-      }
-    }
-  }, []);
+  }, [audioPlayer]);
 
   const playFromText = useCallback(
     async ({ text, messageId }: { text: string; messageId?: string }) => {
@@ -245,10 +119,7 @@ export function TTSProvider({
         return;
       }
 
-      cleanupAudio();
-      abortControllerRef.current = new AbortController();
-
-      const chunks = chunkText(speechText, CHUNK_LIMIT);
+      const chunks = chunkText(speechText);
       const totalChunks = chunks.length;
 
       setState((prev) => ({
@@ -265,84 +136,16 @@ export function TTSProvider({
         isStreaming: totalChunks > 1,
       }));
 
-      // Setup MSE
-      const mediaSource = new MediaSource();
-      mediaSourceRef.current = mediaSource;
-      const objectUrl = URL.createObjectURL(mediaSource);
-      objectUrlRef.current = objectUrl;
-
-      // Create Audio Element
-      const audio = new Audio();
-      audio.src = objectUrl;
-      currentAudioRef.current = audio;
-      audio.playbackRate = speedRef.current;
-      if ("preservesPitch" in audio) {
-        audio.preservesPitch = true;
+      const audio = await audioPlayer.initializeAudio();
+      if (!audio) {
+        toast.error("Browser does not support streaming audio playback.");
+        return;
       }
 
-      // Event Listeners
-      audio.ontimeupdate = () => {
-        setState((prev) => ({
-          ...prev,
-          currentTime: audio.currentTime,
-          duration: audio.duration, // MSE duration updates dynamically
-        }));
-      };
-
-      audio.onended = () => {
-        setState((prev) => ({ ...prev, isPlaying: false, isStreaming: false }));
-
-        // Track playback completed
-        analytics.track("tts_playback_completed", {
-          playbackDurationMs: audio.duration * 1000,
-        });
-      };
-
-      audio.onerror = (e) => {
-        console.error("Audio error", e);
-      };
-
-      // Wait for sourceopen
-      await new Promise<void>((resolve) => {
-        mediaSource.addEventListener(
-          "sourceopen",
-          () => {
-            // Create SourceBuffer
-            try {
-              // Determine mime type. Deepgram mp3 is standard.
-              // Safari might prefer audio/mp4? Chrome likes audio/mpeg.
-              const _mime = MediaSource.isTypeSupported("audio/mpeg")
-                ? "audio/mpeg"
-                : "audio/mp4"; // Fallback logic if needed, but 'audio/mpeg' usually works for mp3 streamed via MSE in Chrome found elsewhere, ACTUALLY: MSE often requires 'audio/mpeg' wrapper (ADTS).
-              // Deepgram returns raw MP3 frames usually.
-              // NOTE: Raw MP3 in MSE is supported in Chrome/FF/Edge but NOT Safari. Safari requires MP4 container (ISOBMFF).
-              // This is a known risk. If user is on Safari, this might fail without transcoding.
-              // Assuming Chrome/Desktop for now as per 'mac' OS reported.
-
-              const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-              sourceBufferRef.current = sourceBuffer;
-
-              sourceBuffer.addEventListener("updateend", () => {
-                processBufferQueue();
-              });
-              resolve();
-            } catch (e) {
-              console.error("MSE addSourceBuffer failed", e);
-              toast.error("Browser does not support streaming audio playback.");
-              resolve(); // Continue to allow failure handling
-            }
-          },
-          { once: true },
-        );
-      });
-
-      if (!sourceBufferRef.current) return;
-
       try {
-        await audio.play();
+        await audioPlayer.play();
         setState((prev) => ({ ...prev, isPlaying: true }));
 
-        // Track TTS initiated
         analytics.track("tts_initiated", {
           messageLength: speechText.length,
           voiceUsed: "default",
@@ -350,92 +153,56 @@ export function TTSProvider({
 
         // Fetch and append chunks
         for (let i = 0; i < chunks.length; i++) {
-          if (abortControllerRef.current?.signal.aborted) break;
+          if (audioPlayer.isAborted()) break;
 
           setState((prev) => ({ ...prev, currentChunk: i + 1 }));
 
           const chunk = chunks[i];
-          const ttsUrl = getTTSUrl(chunk, undefined, speedRef.current);
-
-          // Debug logs for CORS/fetch
-          // console.log("Fetching Chunk", i, ttsUrl);
+          const ttsUrl = getTTSUrl(chunk, undefined, audioPlayer.speedRef.current);
 
           const response = await fetch(ttsUrl, {
-            signal: abortControllerRef.current.signal,
+            signal: audioPlayer.getAbortSignal(),
           });
 
           if (!response.ok) {
-            console.error(
-              "TTS Fetch failed",
-              response.status,
-              response.statusText,
-            );
+            console.error("TTS Fetch failed", response.status, response.statusText);
             continue;
           }
 
           const arrayBuffer = await response.arrayBuffer();
-          if (abortControllerRef.current?.signal.aborted) break;
+          if (audioPlayer.isAborted()) break;
 
-          // Push to queue and trigger processing
-          bufferQueueRef.current.push(arrayBuffer);
-          processBufferQueue();
+          audioPlayer.appendBuffer(arrayBuffer);
 
           if (i === 0) {
             setState((prev) => ({ ...prev, isLoading: false }));
           }
         }
 
-        // Wait for buffer to drain then signal EOS
-        const checkQueue = setInterval(() => {
-          if (abortControllerRef.current?.signal.aborted) {
-            clearInterval(checkQueue);
-            return;
-          }
-          if (
-            bufferQueueRef.current.length === 0 &&
-            sourceBufferRef.current &&
-            !sourceBufferRef.current.updating
-          ) {
-            if (
-              mediaSourceRef.current &&
-              mediaSourceRef.current.readyState === "open"
-            ) {
-              try {
-                mediaSourceRef.current.endOfStream();
-              } catch (_e) {
-                /* ignore */
-              }
-            }
-            clearInterval(checkQueue);
-            setState((prev) => ({ ...prev, isLoading: false }));
-          }
-        }, 500);
+        audioPlayer.endStream();
+        setState((prev) => ({ ...prev, isLoading: false }));
       } catch (error) {
-        if (abortControllerRef.current?.signal.aborted) return;
+        if (audioPlayer.isAborted()) return;
         console.error("TTS error:", error);
         toast.error("Failed to stream audio");
-        cleanupAudio();
+        audioPlayer.cleanupAudio();
       }
     },
-    [cleanupAudio, processBufferQueue],
+    [audioPlayer]
   );
 
   const pause = useCallback(() => {
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-    }
+    audioPlayer.pause();
     setState((prev) => ({ ...prev, isPlaying: false }));
-  }, []);
+  }, [audioPlayer]);
 
   const resume = useCallback(async () => {
-    if (currentAudioRef.current) {
-      await currentAudioRef.current.play();
-      setState((prev) => ({ ...prev, isPlaying: true }));
-    }
-  }, []);
+    await audioPlayer.resume();
+    setState((prev) => ({ ...prev, isPlaying: true }));
+  }, [audioPlayer]);
 
   const stop = useCallback(() => {
-    cleanupAudio();
+    audioPlayer.stop();
     setState((prev) => ({
       ...prev,
       isPlaying: false,
@@ -443,51 +210,29 @@ export function TTSProvider({
       currentChunk: 0,
       isStreaming: false,
     }));
-  }, [cleanupAudio]);
+  }, [audioPlayer]);
 
-  const seekBy = useCallback((seconds: number) => {
-    if (!currentAudioRef.current) return;
-    const target = clamp(
-      (currentAudioRef.current.currentTime || 0) + seconds,
-      0,
-      currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
-    );
-    if (Number.isFinite(target)) {
-      currentAudioRef.current.currentTime = target;
-      setState((prev) => ({ ...prev, currentTime: target }));
-    }
-  }, []);
+  const seekBy = useCallback(
+    (seconds: number) => {
+      audioPlayer.seekBy(seconds);
+    },
+    [audioPlayer]
+  );
 
-  const seekTo = useCallback((time: number) => {
-    if (!currentAudioRef.current) return;
-    const target = clamp(
-      time,
-      0,
-      currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
-    );
-    if (Number.isFinite(target)) {
-      currentAudioRef.current.currentTime = target;
-      setState((prev) => ({ ...prev, currentTime: target }));
-    }
-  }, []);
+  const seekTo = useCallback(
+    (time: number) => {
+      audioPlayer.seekTo(time);
+    },
+    [audioPlayer]
+  );
 
-  const setSpeed = useCallback((speed: number) => {
-    const clamped = clamp(speed, 0.5, 2);
-    speedRef.current = clamped;
-    if (currentAudioRef.current) {
-      currentAudioRef.current.playbackRate = clamped;
-      if ("preservesPitch" in currentAudioRef.current) {
-        currentAudioRef.current.preservesPitch = true;
-      }
-    }
-    setState((prev) => ({ ...prev, speed: clamped }));
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      cleanupAudio();
-    };
-  }, [cleanupAudio]);
+  const setSpeed = useCallback(
+    (speed: number) => {
+      const clamped = audioPlayer.setSpeed(speed);
+      setState((prev) => ({ ...prev, speed: clamped }));
+    },
+    [audioPlayer]
+  );
 
   return (
     <TTSContext.Provider

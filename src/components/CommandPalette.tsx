@@ -1,20 +1,23 @@
 "use client";
 
-import { Command } from "cmdk";
-import { useAction, useMutation, useQuery } from "convex/react";
-import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
-import { matchSorter } from "match-sorter";
-import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+    CommandActionGroup,
+    CommandConversationGroup,
+} from "@/components/command-palette";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useConversationActions } from "@/hooks/useConversationActions";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useNewChat } from "@/hooks/useNewChat";
 import { createActionItems } from "@/lib/command-palette-actions";
-import { cn } from "@/lib/utils";
-import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { Command } from "cmdk";
+import { useAction, useQuery } from "convex/react";
+import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
+import { matchSorter } from "match-sorter";
+import { useTheme } from "next-themes";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
 import { RenameDialog } from "./sidebar/RenameDialog";
 
@@ -22,7 +25,7 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Doc<"conversations">[]>(
-    [],
+    []
   );
   const [isSearching, setIsSearching] = useState(false);
   const [showRename, setShowRename] = useState(false);
@@ -33,29 +36,27 @@ export function CommandPalette() {
   const _listRef = useRef<HTMLDivElement>(null);
   const conversations = useQuery(api.conversations.list, {});
   const hybridSearchAction = useAction(
-    api.conversations.hybridSearch.hybridSearch,
+    api.conversations.hybridSearch.hybridSearch
   );
   const { startNewChat } = useNewChat();
   const features = useFeatureToggles();
 
-  // Extract conversationId from pathname
   const conversationId = pathname?.startsWith("/chat/")
     ? (pathname.split("/")[2] as Id<"conversations">)
     : null;
 
-  // Get current conversation if in chat
   const currentConversation = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
-    conversationId ? { conversationId } : "skip",
+    conversationId ? { conversationId } : "skip"
   );
 
-  // Conversation actions hook
   const conversationActions = useConversationActions(
     conversationId,
-    "command_palette",
+    "command_palette"
   );
 
+  // Keyboard shortcut to open
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -63,12 +64,11 @@ export function CommandPalette() {
         setOpen((open) => !open);
       }
     };
-
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Clear search query when dialog closes
+  // Clear search on close
   useEffect(() => {
     if (!open) {
       setSearchQuery("");
@@ -118,7 +118,6 @@ export function CommandPalette() {
     setOpen(false);
   };
 
-  // Create action items
   const actionItems = useMemo(
     () =>
       createActionItems({
@@ -141,13 +140,13 @@ export function CommandPalette() {
         },
         onTogglePin: async () => {
           await conversationActions.handleTogglePin(
-            currentConversation?.pinned || false,
+            currentConversation?.pinned || false
           );
           setOpen(false);
         },
         onToggleStar: async () => {
           await conversationActions.handleToggleStar(
-            currentConversation?.starred || false,
+            currentConversation?.starred || false
           );
           setOpen(false);
         },
@@ -161,9 +160,6 @@ export function CommandPalette() {
         },
       }),
     [
-      handleNewChat,
-      handleNavigate,
-      handleTheme,
       conversationId,
       currentConversation,
       conversationActions,
@@ -171,39 +167,35 @@ export function CommandPalette() {
       features.showTemplates,
       features.showProjects,
       features.showBookmarks,
-    ],
+    ]
   );
 
-  // Filter actions based on search query
   const filteredActions = useMemo(() => {
     if (!searchQuery.trim()) return actionItems;
-
     return matchSorter(actionItems, searchQuery, {
       keys: ["label", "keywords"],
       threshold: matchSorter.rankings.CONTAINS,
     });
   }, [searchQuery, actionItems]);
 
-  // Group conversations by status - use search results when searching
   const groupedConversations = useMemo(() => {
-    // If search active, use search results in "recent" group
     if (searchQuery.trim()) {
-      return {
-        pinned: [],
-        recent: searchResults,
-        archived: [],
-      };
+      return { pinned: [], recent: searchResults, archived: [] };
     }
-
-    // Otherwise, use default grouping
     if (!conversations) return { pinned: [], recent: [], archived: [] };
-
     return {
       pinned: conversations.filter((c: any) => c.pinned && !c.archived),
       recent: conversations.filter((c: any) => !c.pinned && !c.archived),
       archived: conversations.filter((c: any) => c.archived),
     };
   }, [conversations, searchQuery, searchResults]);
+
+  const actionsByGroup = useMemo(() => ({
+    actions: filteredActions.filter((a) => a.group === "actions"),
+    navigation: filteredActions.filter((a) => a.group === "navigation"),
+    conversation: filteredActions.filter((a) => a.group === "conversation"),
+    theme: filteredActions.filter((a) => a.group === "theme"),
+  }), [filteredActions]);
 
   return (
     <>
@@ -230,181 +222,38 @@ export function CommandPalette() {
                   {searchQuery ? "No conversations found" : "No results found."}
                 </Command.Empty>
 
-                {filteredActions.filter((a) => a.group === "actions").length >
-                  0 && (
-                  <Command.Group
-                    heading="Actions"
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider"
-                  >
-                    {filteredActions
-                      .filter((a) => a.group === "actions")
-                      .map((action) => (
-                        <Command.Item
-                          key={action.id}
-                          value={action.id}
-                          onSelect={action.onSelect}
-                          className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
-                          aria-keyshortcuts={action.shortcut}
-                        >
-                          <action.icon className="h-4 w-4" />
-                          <span>{action.label}</span>
-                          {action.shortcut && (
-                            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                              {action.shortcut}
-                            </kbd>
-                          )}
-                        </Command.Item>
-                      ))}
-                  </Command.Group>
-                )}
+                <CommandActionGroup heading="Actions" actions={actionsByGroup.actions} />
+                <CommandActionGroup heading="Navigation" actions={actionsByGroup.navigation} className="mt-2" />
 
-                {filteredActions.filter((a) => a.group === "navigation")
-                  .length > 0 && (
-                  <Command.Group
-                    heading="Navigation"
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
-                  >
-                    {filteredActions
-                      .filter((a) => a.group === "navigation")
-                      .map((action) => (
-                        <Command.Item
-                          key={action.id}
-                          value={action.id}
-                          onSelect={action.onSelect}
-                          className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
-                          aria-keyshortcuts={action.shortcut}
-                        >
-                          <action.icon className="h-4 w-4" />
-                          <span>{action.label}</span>
-                          {action.shortcut && (
-                            <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-background/50 px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                              {action.shortcut}
-                            </kbd>
-                          )}
-                        </Command.Item>
-                      ))}
-                  </Command.Group>
-                )}
+                <CommandConversationGroup
+                  heading="Pinned"
+                  conversations={groupedConversations.pinned}
+                  icon={Pin}
+                  onSelect={handleNavigate}
+                />
 
-                {/* Pinned Conversations */}
-                {groupedConversations.pinned.length > 0 && (
-                  <Command.Group
-                    heading="Pinned"
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
-                  >
-                    {groupedConversations.pinned.map((conv: any) => (
-                      <Command.Item
-                        key={conv._id}
-                        value={conv._id}
-                        onSelect={() => handleNavigate(`/chat/${conv._id}`)}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
-                      >
-                        <Pin className="h-4 w-4 opacity-70" />
-                        <span className="truncate">{conv.title}</span>
-                      </Command.Item>
-                    ))}
-                  </Command.Group>
-                )}
+                <CommandConversationGroup
+                  heading={searchQuery.trim() ? "Search Results" : "Recent Conversations"}
+                  conversations={groupedConversations.recent}
+                  icon={MessageSquare}
+                  onSelect={handleNavigate}
+                />
 
-                {/* Recent Conversations (no limit - virtualized for performance) */}
-                {groupedConversations.recent.length > 0 && (
-                  <Command.Group
-                    heading={
-                      searchQuery.trim()
-                        ? "Search Results"
-                        : "Recent Conversations"
-                    }
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
-                  >
-                    {groupedConversations.recent.map((conv: any) => (
-                      <Command.Item
-                        key={conv._id}
-                        value={conv._id}
-                        onSelect={() => handleNavigate(`/chat/${conv._id}`)}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
-                      >
-                        <MessageSquare className="h-4 w-4 opacity-70" />
-                        <span className="truncate">{conv.title}</span>
-                      </Command.Item>
-                    ))}
-                  </Command.Group>
-                )}
+                <CommandConversationGroup
+                  heading="Archived"
+                  conversations={groupedConversations.archived}
+                  icon={Archive}
+                  onSelect={handleNavigate}
+                />
 
-                {/* Archived Conversations (no limit) */}
-                {groupedConversations.archived.length > 0 && (
-                  <Command.Group
-                    heading="Archived"
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
-                  >
-                    {groupedConversations.archived.map((conv: any) => (
-                      <Command.Item
-                        key={conv._id}
-                        value={conv._id}
-                        onSelect={() => handleNavigate(`/chat/${conv._id}`)}
-                        className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
-                      >
-                        <Archive className="h-4 w-4 opacity-70" />
-                        <span className="truncate">{conv.title}</span>
-                      </Command.Item>
-                    ))}
-                  </Command.Group>
-                )}
-
-                {/* Conversation Actions */}
-                {filteredActions.filter((a) => a.group === "conversation")
-                  .length > 0 && (
-                  <Command.Group
-                    heading="Conversation"
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
-                  >
-                    {filteredActions
-                      .filter((a) => a.group === "conversation")
-                      .map((action) => (
-                        <Command.Item
-                          key={action.id}
-                          value={action.id}
-                          onSelect={action.onSelect}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors",
-                            action.destructive &&
-                              "text-destructive aria-selected:text-destructive",
-                          )}
-                        >
-                          <action.icon className="h-4 w-4" />
-                          <span>{action.label}</span>
-                        </Command.Item>
-                      ))}
-                  </Command.Group>
-                )}
-
-                {filteredActions.filter((a) => a.group === "theme").length >
-                  0 && (
-                  <Command.Group
-                    heading="Theme"
-                    className="px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mt-2"
-                  >
-                    {filteredActions
-                      .filter((a) => a.group === "theme")
-                      .map((action) => (
-                        <Command.Item
-                          key={action.id}
-                          value={action.id}
-                          onSelect={action.onSelect}
-                          className="flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors"
-                        >
-                          <action.icon className="h-4 w-4" />
-                          <span>{action.label}</span>
-                        </Command.Item>
-                      ))}
-                  </Command.Group>
-                )}
+                <CommandActionGroup heading="Conversation" actions={actionsByGroup.conversation} className="mt-2" />
+                <CommandActionGroup heading="Theme" actions={actionsByGroup.theme} className="mt-2" />
               </Command.List>
             </Command>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Conversation action dialogs */}
       {currentConversation && (
         <>
           <RenameDialog

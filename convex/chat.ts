@@ -1,9 +1,9 @@
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { mutation } from "./_generated/server";
 import { getCurrentUserOrCreate } from "./lib/userSync";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
@@ -234,30 +234,10 @@ export const regenerate = mutation({
     const conversation = await ctx.db.get(message.conversationId);
     if (!conversation) throw new Error("Conversation not found");
 
-    // Branch-preserving regenerate: Create sibling instead of deleting
-    // Find parent message to create new sibling at same level
-    const parentMessageId = message.parentMessageId;
-
-    // Get all existing siblings (messages with same parent)
-    const siblings = await ctx.db
-      .query("messages")
-      .withIndex("by_parent", (q) =>
-        parentMessageId
-          ? q.eq("parentMessageId", parentMessageId)
-          : q.eq("parentMessageId", undefined),
-      )
-      .filter((q) => q.eq(q.field("conversationId"), message.conversationId))
-      .collect();
-
-    // Calculate next branch index
-    const maxBranchIndex = siblings.reduce(
-      (max, msg) => Math.max(max, msg.branchIndex ?? 0),
-      0,
-    );
-    const nextBranchIndex = maxBranchIndex + 1;
-
-    // Generate branch label
-    const branchLabel = `Regeneration ${nextBranchIndex}`;
+    // Verify it's an assistant message
+    if (message.role !== "assistant") {
+      throw new Error("Can only regenerate assistant messages");
+    }
 
     // Phase 4: Get default model from new preference system
     const userDefaultModel = await (
@@ -271,25 +251,40 @@ export const regenerate = mutation({
       userDefaultModel ||
       "openai:gpt-4o-mini";
 
-    // Create new pending assistant message as sibling
-    const newMessageId: Id<"messages"> = await ctx.runMutation(
-      internal.messages.create,
-      {
-        conversationId: message.conversationId,
-        userId: conversation.userId,
-        role: "assistant",
-        status: "pending",
-        model: modelId,
-        parentMessageId: parentMessageId, // Same parent as original
-        branchIndex: nextBranchIndex,
-        branchLabel: branchLabel,
-      },
-    );
+    // Reset the message in-place (replace, not create sibling)
+    await ctx.db.patch(args.messageId, {
+      content: "",
+      status: "pending",
+      model: modelId,
+      partialContent: undefined,
+      reasoning: undefined,
+      thinkingStartedAt: undefined,
+      thinkingCompletedAt: undefined,
+      updatedAt: Date.now(),
+    });
+
+    // Delete any existing tool calls for this message
+    const existingToolCalls = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+    for (const tc of existingToolCalls) {
+      await ctx.db.delete(tc._id);
+    }
+
+    // Delete any existing sources for this message
+    const existingSources = await ctx.db
+      .query("sources")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+    for (const src of existingSources) {
+      await ctx.db.delete(src._id);
+    }
 
     // Schedule generation
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: message.conversationId,
-      assistantMessageId: newMessageId,
+      assistantMessageId: args.messageId,
       modelId,
       userId: conversation.userId,
     });
@@ -299,7 +294,7 @@ export const regenerate = mutation({
       conversationId: message.conversationId,
     });
 
-    return newMessageId;
+    return args.messageId;
   },
 });
 

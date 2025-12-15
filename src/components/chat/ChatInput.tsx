@@ -24,7 +24,6 @@ import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
-import { ImageGenerateButton } from "./ImageGenerateButton";
 import { InputBottomBar } from "./InputBottomBar";
 import { QuotePreview } from "./QuotePreview";
 import { RateLimitDialog } from "./RateLimitDialog";
@@ -304,15 +303,7 @@ export function ChatInput({
                 <p>Attach files</p>
               </TooltipContent>
             </Tooltip>
-            {input.trim() && (
-              <ImageGenerateButton
-                conversationId={conversationId}
-                initialPrompt={input}
-                variant="ghost"
-                size="icon"
-                iconOnly
-              />
-            )}
+
             {(
               (typeof window !== "undefined" &&
                 "webkitSpeechRecognition" in window)) && (

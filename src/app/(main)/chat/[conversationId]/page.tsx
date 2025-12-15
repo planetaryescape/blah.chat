@@ -1,30 +1,18 @@
 "use client";
 
-import { BranchBadge } from "@/components/chat/BranchBadge";
+import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
-import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
-import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
-import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ModelPreviewModal } from "@/components/chat/ModelPreviewModal";
 import { ModelRecommendationBanner } from "@/components/chat/ModelRecommendationBanner";
 import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
 import { SetDefaultModelPrompt } from "@/components/chat/SetDefaultModelPrompt";
-import { ShareDialog } from "@/components/chat/ShareDialog";
 import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
 import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
-import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { QuickTemplateSwitcher } from "@/components/templates/QuickTemplateSwitcher";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
 import { api } from "@/convex/_generated/api";
@@ -40,7 +28,6 @@ import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
 import { useMutation } from "convex/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import {
@@ -508,83 +495,22 @@ function ChatPageContent({
   return (
     <TTSProvider defaultSpeed={user?.preferences?.ttsSpeed ?? 1}>
       <div className="relative flex h-[100dvh] flex-col overflow-hidden">
-        <header className="flex items-center gap-4 border-b px-4 py-3 shrink-0">
-          <div className="flex items-center gap-1 flex-1 min-w-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={navigateToPrevious}
-                    disabled={isFirst}
-                    className="h-7 w-7 shrink-0"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Previous conversation (⌘[)</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <h1 className="text-lg font-semibold truncate">
-              {conversation?.title || "New Chat"}
-            </h1>
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={navigateToNext}
-                    disabled={isLast}
-                    className="h-7 w-7 shrink-0"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Next conversation (⌘])</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          <ModelBadge
-            modelId={isActive ? undefined : selectedModel}
-            isComparison={isActive}
-            comparisonCount={selectedModels.length}
-            onClick={() => {
-              if (isActive) {
-                setComparisonDialogOpen(true);
-              } else {
-                setModelSelectorOpen(true);
-              }
-            }}
-          />
-
-          {features.showProjects && (
-            <ProjectSelector
-              conversationId={conversationId}
-              currentProjectId={conversation?.projectId ?? undefined}
-            />
-          )}
-
-          <div className="flex items-center gap-2">
-            {conversationId && messageCount >= 3 && (
-              <ExtractMemoriesButton conversationId={conversationId} />
-            )}
-            {hasMessages && conversationId && (
-              <ContextWindowIndicator conversationId={conversationId} modelId={selectedModel} />
-            )}
-            {conversationId && <BranchBadge conversationId={conversationId} />}
-            {hasMessages && conversationId && (
-              <ShareDialog conversationId={conversationId} />
-            )}
-            {conversation && (
-              <ConversationHeaderMenu conversation={conversation} />
-            )}
-          </div>
-        </header>
+        <ChatHeader
+          conversation={conversation}
+          conversationId={conversationId}
+          selectedModel={selectedModel}
+          hasMessages={hasMessages}
+          messageCount={messageCount}
+          isFirst={isFirst}
+          isLast={isLast}
+          isComparisonActive={isActive}
+          comparisonModelCount={selectedModels.length}
+          showProjects={features.showProjects}
+          onNavigatePrevious={navigateToPrevious}
+          onNavigateNext={navigateToNext}
+          onModelBadgeClick={() => setModelSelectorOpen(true)}
+          onComparisonBadgeClick={() => setComparisonDialogOpen(true)}
+        />
 
         <TTSPlayerBar />
 

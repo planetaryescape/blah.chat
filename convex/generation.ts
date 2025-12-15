@@ -1,49 +1,49 @@
 "use node";
 
-import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import {
-  calculateCost,
-  getModelConfig,
-  type ModelConfig,
+    calculateCost,
+    getModelConfig,
+    type ModelConfig,
 } from "@/lib/ai/utils";
+import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { type ActionCtx, action, internalAction } from "./_generated/server";
+import { action, type ActionCtx, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import {
-  createMemoryDeleteTool,
-  createMemorySaveTool,
-  createMemorySearchTool,
+    createMemoryDeleteTool,
+    createMemorySaveTool,
+    createMemorySearchTool,
 } from "./ai/tools/memories";
+import { createQueryProjectHistoryTool } from "./ai/tools/projectContext/queryProjectHistory";
 import { createSearchProjectFilesTool } from "./ai/tools/projectContext/searchProjectFiles";
 import { createSearchProjectNotesTool } from "./ai/tools/projectContext/searchProjectNotes";
 import { createSearchProjectTasksTool } from "./ai/tools/projectContext/searchProjectTasks";
-import { createQueryProjectHistoryTool } from "./ai/tools/projectContext/queryProjectHistory";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
 import { trackServerEvent } from "./lib/analytics";
 import {
-  captureException,
-  classifyStreamingError,
-  estimateWastedCost,
+    captureException,
+    classifyStreamingError,
+    estimateWastedCost,
 } from "./lib/errorTracking";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
-  formatMemoriesByCategory,
-  truncateMemories,
+    formatMemoriesByCategory,
+    truncateMemories,
 } from "./lib/prompts/formatting";
 import {
-  buildSummarizationPrompt,
-  SUMMARIZATION_SYSTEM_PROMPT,
+    buildSummarizationPrompt,
+    SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
@@ -674,20 +674,29 @@ export const generateResponse = internalAction({
               };
             }
 
-            // Messages with attachments - only if vision model
+            // Build attachment metadata info for ALL models (so they know to use fileDocument tool)
+            const attachmentInfo = attachments
+              .map(
+                (a, i) =>
+                  `[Attached file ${i}: ${a.name} (${a.mimeType}, ${Math.round(a.size / 1024)}KB)]`,
+              )
+              .join("\n");
+
+            // Messages with attachments - non-vision models get text + metadata info
             if (!hasVision) {
-              // Non-vision models: text only, ignore attachments
+              // Non-vision models: append attachment metadata so AI knows to call fileDocument
+              const content = `${m.content || ""}\n\n${attachmentInfo}`;
               return {
                 role: m.role as "user" | "assistant" | "system",
-                content: m.content || "",
+                content,
                 providerMetadata: m.providerMetadata,
               };
             }
 
-            // Vision models: build content array with text + attachments
+            // Vision models: build content array with text + metadata + actual file data
             // biome-ignore lint/suspicious/noExplicitAny: Complex content parts for vision models
             const contentParts: any[] = [
-              { type: "text", text: m.content || "" },
+              { type: "text", text: `${m.content || ""}\n\n${attachmentInfo}` },
             ];
 
             for (const attachment of attachments) {
@@ -702,13 +711,24 @@ export const generateResponse = internalAction({
                   image: base64,
                 });
               } else if (attachment.type === "file") {
-                // PDFs (Anthropic Claude + Google Gemini support)
-                contentParts.push({
-                  type: "file",
-                  data: base64,
-                  mediaType: attachment.mimeType,
-                  filename: attachment.name,
-                });
+                // PDFs are the only document type supported as inline blobs by Gemini
+                if (attachment.mimeType === "application/pdf") {
+                  contentParts.push({
+                    type: "file",
+                    data: base64,
+                    mediaType: attachment.mimeType,
+                    filename: attachment.name,
+                  });
+                } else {
+                  // For other file types (PPTX, DOCX, etc.), we rely on the fileDocument tool
+                  // to extract text. We do NOT send the raw blob to the model as it causes 400 errors.
+                  // The text content is already in the message or will be extracted.
+                  // We add a text hint to the content parts.
+                  contentParts.push({
+                    type: "text",
+                    text: `\n[Reference: ${attachment.name} (${attachment.mimeType})]`,
+                  });
+                }
               }
               // Future: audio support
             }
@@ -722,7 +742,27 @@ export const generateResponse = internalAction({
       );
 
       // 7. Combine: system prompts FIRST, then history
-      const allMessages = [...systemPrompts, ...history];
+      // Filter out empty messages (Gemini requires non-empty content parts)
+      const nonEmptyHistory = history.filter((msg) => {
+        if (Array.isArray(msg.content)) {
+          return msg.content.length > 0;
+        }
+        return msg.content && msg.content.trim().length > 0;
+      });
+
+      // Clean providerMetadata for cross-model compatibility
+      // Gemini rejects messages with metadata from other providers (e.g., thought_signature)
+      const isGeminiModel = args.modelId.includes("gemini");
+      const cleanedHistory = nonEmptyHistory.map((msg) => {
+        if (isGeminiModel && msg.providerMetadata) {
+          // Remove providerMetadata for Gemini models to avoid cross-model conflicts
+          const { providerMetadata: _removed, ...rest } = msg;
+          return rest;
+        }
+        return msg;
+      });
+
+      const allMessages = [...systemPrompts, ...cleanedHistory];
 
       // 8. Build reasoning options (unified for all providers)
       const reasoningResult =
@@ -756,7 +796,12 @@ export const generateResponse = internalAction({
       );
 
       // Only add tools for capable models
-      if (hasFunctionCalling) {
+      // Note: Gemini Flash Lite has tool schema compatibility issues with Vercel AI SDK 4.0.34+
+      // See: https://github.com/vercel/ai/issues - optional arrays/enums in tool schemas cause 400 errors
+      const isGeminiFlashLite = args.modelId === "google:gemini-2.0-flash-lite";
+      const shouldEnableTools = hasFunctionCalling && !isGeminiFlashLite;
+
+      if (shouldEnableTools) {
         const memorySearchTool = createMemorySearchTool(ctx, args.userId);
         const memorySaveTool = createMemorySaveTool(ctx, args.userId);
         const memoryDeleteTool = createMemoryDeleteTool(ctx, args.userId);
@@ -1291,7 +1336,24 @@ export const generateResponse = internalAction({
         );
       }
     } catch (error) {
+      // Enhanced error logging to capture full gateway error details
       console.error("[Generation] Error:", error);
+
+      // Extract and log full responseBody from gateway errors for debugging
+      const causeObj = (error as any)?.cause || {};
+      if (causeObj.responseBody) {
+        try {
+          const parsedBody = JSON.parse(causeObj.responseBody);
+          console.error("[Generation] Full gateway error:", {
+            statusCode: causeObj.statusCode || (error as any).statusCode,
+            model: args.modelId,
+            errorMessage: parsedBody?.error?.message,
+            fullResponse: parsedBody,
+          });
+        } catch {
+          console.error("[Generation] Raw gateway responseBody:", causeObj.responseBody);
+        }
+      }
 
       // Classify error type for AI-specific tracking
       const errorType =
@@ -1387,6 +1449,37 @@ export const generateResponse = internalAction({
         ) {
           userMessage =
             "This conversation has history from a different model that isn't compatible. Please start a new chat or try a different model.";
+        }
+        // Gemini 400 error - content rejection or context issues
+        else if (
+          (causeObj.statusCode === 400 || (error as any).statusCode === 400) &&
+          args.modelId.includes("gemini")
+        ) {
+          // Try to get specific error from responseBody
+          let specificMessage: string | null = null;
+          if (causeObj.responseBody) {
+            try {
+              const parsed = JSON.parse(causeObj.responseBody);
+              specificMessage = parsed?.error?.message;
+            } catch {
+              /* ignore */
+            }
+          }
+
+          if (
+            specificMessage?.includes("Unable to submit") ||
+            specificMessage?.includes("content")
+          ) {
+            userMessage =
+              "This model couldn't process the content. Try a different model like GPT-4o-mini or Claude, or start a new conversation.";
+          } else if (specificMessage?.includes("context") || specificMessage?.includes("too long")) {
+            userMessage =
+              "The conversation is too long for this model. Try a model with larger context like Gemini 2.5 Pro.";
+          } else {
+            userMessage = specificMessage
+              ? `Gemini error: ${specificMessage.slice(0, 150)}`
+              : "Gemini couldn't process this request. Try a different model or start a new chat.";
+          }
         }
         // Gateway/network error
         else if (

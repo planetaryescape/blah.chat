@@ -1,59 +1,38 @@
 "use client";
 
-import {
-  useAction,
-  useMutation,
-  usePaginatedQuery,
-  useQuery,
-} from "convex/react";
-import { Loader2, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
+import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
+import { MemorySettingsItem } from "@/components/memories/MemorySettingsItem";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
+import {
+    useAction,
+    useMutation,
+    usePaginatedQuery,
+    useQuery,
+} from "convex/react";
+import { Loader2, MoreVertical } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export function MemorySettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const _updatePreferences = useMutation(api.users.updatePreferences);
   const {
     results: memories,
     status,
@@ -67,51 +46,40 @@ export function MemorySettings() {
   const deleteMemory = useMutation(api.memories.deleteMemory);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const scanRecentConversations = useMutation(
-    api.memories.scanRecentConversations,
+    api.memories.scanRecentConversations
   );
-  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-  const migrateMemories = useAction(api.memories.migrateUserMemories);
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newMemoryContent, setNewMemoryContent] = useState("");
-  const [editingMemory, setEditingMemory] = useState<any>(null);
-  const [editMemoryContent, setEditMemoryContent] = useState("");
-  const [_isMigrating, setIsMigrating] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  const handleAddMemory = async () => {
-    if (!newMemoryContent.trim()) return;
+  const handleAddMemory = async (content: string) => {
     try {
-      await createMemory({ content: newMemoryContent });
+      await createMemory({ content });
       toast.success("Memory added!");
-      setNewMemoryContent("");
-      setIsAddDialogOpen(false);
     } catch (_error) {
       toast.error("Failed to add memory");
+      throw _error;
     }
   };
 
-  const handleUpdateMemory = async () => {
-    if (!editingMemory || !editMemoryContent.trim()) return;
+  const handleUpdateMemory = async (id: string, content: string) => {
     try {
-      await updateMemory({ id: editingMemory._id, content: editMemoryContent });
+      await updateMemory({ id: id as any, content });
       toast.success("Memory updated!");
-      setEditingMemory(null);
-      setEditMemoryContent("");
     } catch (_error) {
       toast.error("Failed to update memory");
+      throw _error;
     }
   };
 
-  const handleDeleteMemory = async (id: any) => {
+  const handleDeleteMemory = async (id: string) => {
     try {
-      await deleteMemory({ id });
+      await deleteMemory({ id: id as any });
       toast.success("Memory deleted!");
     } catch (_error) {
       toast.error("Failed to delete memory");
@@ -131,26 +99,6 @@ export function MemorySettings() {
     }
   };
 
-  const _handleMigrateMemories = async () => {
-    setIsMigrating(true);
-    try {
-      toast.info("Migrating memories to third-person format...");
-      const result = await migrateMemories();
-      if (result.migrated > 0) {
-        toast.success(
-          `Successfully migrated ${result.migrated} memories! ${result.skipped > 0 ? `(${result.skipped} skipped)` : ""}`,
-        );
-      } else {
-        toast.info("No memories to migrate.");
-      }
-    } catch (error) {
-      toast.error("Failed to migrate memories");
-      console.error("Migration error:", error);
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
   const handleConsolidate = async () => {
     setIsConsolidating(true);
     try {
@@ -158,7 +106,7 @@ export function MemorySettings() {
       const result = await consolidateMemories();
       if (result.created > 0 || result.deleted > 0) {
         toast.success(
-          `Consolidated ${result.original} → ${result.consolidated} memories (${result.created} new, ${result.deleted} removed)`,
+          `Consolidated ${result.original} → ${result.consolidated} memories`
         );
       } else {
         toast.info("No duplicate memories found.");
@@ -172,17 +120,8 @@ export function MemorySettings() {
   };
 
   const handleDeleteAll = async () => {
-    if (deleteConfirmText !== "DELETE") return;
-
-    try {
-      const result = await deleteAllMemories();
-      toast.success(`Deleted ${result.deleted} memories`);
-      setShowDeleteDialog(false);
-      setDeleteConfirmText("");
-    } catch (error) {
-      toast.error("Failed to delete memories");
-      console.error("Delete error:", error);
-    }
+    const result = await deleteAllMemories();
+    toast.success(`Deleted ${result.deleted} memories`);
   };
 
   if (!user) {
@@ -267,39 +206,11 @@ export function MemorySettings() {
               View and manage what the AI remembers about you
             </CardDescription>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Memory
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Memory</DialogTitle>
-                <DialogDescription>
-                  Manually add a fact for the AI to remember.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Textarea
-                  placeholder="e.g. I prefer Python over JavaScript..."
-                  value={newMemoryContent}
-                  onChange={(e) => setNewMemoryContent(e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleAddMemory}>Add Memory</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <AddMemoryDialog
+            open={isAddDialogOpen}
+            onOpenChange={setIsAddDialogOpen}
+            onAdd={handleAddMemory}
+          />
         </CardHeader>
         <CardContent>
           {!memories ? (
@@ -313,87 +224,12 @@ export function MemorySettings() {
           ) : (
             <div className="space-y-4">
               {memories.map((memory: any) => (
-                <div
+                <MemorySettingsItem
                   key={memory._id}
-                  className="flex items-start justify-between rounded-lg border p-4"
-                >
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">{memory.content}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(memory.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Dialog
-                      open={editingMemory?._id === memory._id}
-                      onOpenChange={(open) => {
-                        if (open) {
-                          setEditingMemory(memory);
-                          setEditMemoryContent(memory.content);
-                        } else {
-                          setEditingMemory(null);
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Memory</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <Textarea
-                            value={editMemoryContent}
-                            onChange={(e) =>
-                              setEditMemoryContent(e.target.value)
-                            }
-                            className="min-h-[100px]"
-                          />
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setEditingMemory(null)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button onClick={handleUpdateMemory}>
-                            Save Changes
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Memory?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. The AI will forget
-                            this fact.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteMemory(memory._id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
+                  memory={memory}
+                  onUpdate={handleUpdateMemory}
+                  onDelete={handleDeleteMemory}
+                />
               ))}
               {(status === "CanLoadMore" || status === "LoadingMore") && (
                 <div className="flex justify-center pt-4">
@@ -414,52 +250,12 @@ export function MemorySettings() {
         </CardContent>
       </Card>
 
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete All Memories?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete all {memories?.length || 0} memories.
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="confirm">
-                Type <code className="font-mono font-bold">DELETE</code> to
-                confirm
-              </Label>
-              <Input
-                id="confirm"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="DELETE"
-                className="font-mono"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowDeleteDialog(false);
-                setDeleteConfirmText("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteAll}
-              disabled={deleteConfirmText !== "DELETE"}
-            >
-              Delete All Memories
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteAllMemoriesDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        memoriesCount={memories?.length || 0}
+        onConfirm={handleDeleteAll}
+      />
     </div>
   );
 }

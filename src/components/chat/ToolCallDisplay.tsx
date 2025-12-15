@@ -2,50 +2,38 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  BookmarkPlus,
-  Calculator,
-  Calendar,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Cloud,
-  Code,
-  ExternalLink,
-  FileText,
-  FolderTree,
-  Globe,
-  Loader2,
-  Search,
+    AlertCircle,
+    BookmarkPlus,
+    Calculator,
+    Calendar,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Cloud,
+    Code,
+    ExternalLink,
+    FileText,
+    FolderTree,
+    Globe,
+    Loader2,
+    Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-
-interface ToolCall {
-  id: string;
-  name: string;
-  arguments: string;
-  result?: string;
-  timestamp: number;
-}
+import {
+    DefaultToolRenderer,
+    getCallState,
+    toolRenderers,
+    type ToolCall,
+} from "./toolRenderers";
 
 interface ToolCallDisplayProps {
   toolCalls?: ToolCall[];
   partialToolCalls?: (Omit<ToolCall, "result"> & { result?: string })[];
 }
 
-type ToolCallState = "executing" | "complete" | "error";
-
-function getCallState(call: ToolCall): ToolCallState {
-  if (!call.result) return "executing";
-
-  try {
-    const parsed = JSON.parse(call.result);
-    if (parsed.error || parsed.success === false) return "error";
-  } catch {}
-
-  return "complete";
-}
-
+/**
+ * Get the icon for a tool by name.
+ */
 function getToolIcon(toolName: string) {
   switch (toolName) {
     case "saveMemory":
@@ -73,10 +61,13 @@ function getToolIcon(toolName: string) {
   }
 }
 
+/**
+ * Get a human-readable label for a tool call state.
+ */
 function getToolLabel(
   toolName: string,
   isExecuting: boolean,
-  result: any,
+  result: any
 ): string {
   switch (toolName) {
     case "saveMemory":
@@ -197,7 +188,7 @@ export function ToolCallDisplay({
 
     if (anyExecuting) {
       const executingCall = uniqueCalls.find(
-        (c) => getCallState(c) === "executing",
+        (c) => getCallState(c) === "executing"
       );
       return getToolLabel(executingCall?.name || "", true, null);
     }
@@ -205,7 +196,7 @@ export function ToolCallDisplay({
     const parts = [];
     if (searchCalls.length > 0) {
       parts.push(
-        `${totalResults} memor${totalResults !== 1 ? "ies" : "y"} found`,
+        `${totalResults} memor${totalResults !== 1 ? "ies" : "y"} found`
       );
     }
     if (saveCalls.length > 0) {
@@ -214,30 +205,27 @@ export function ToolCallDisplay({
     return parts.join(", ") || "Tool calls";
   };
 
+  const toggleExpand = () => {
+    const newState = !isAnyExpanded;
+    const newExpanded: Record<string, boolean> = {};
+    for (const call of uniqueCalls) {
+      newExpanded[call.id] = newState;
+    }
+    setExpanded(newExpanded);
+  };
+
   return (
     <div className="my-3">
       {/* Collapsed summary view */}
       <div
         className="flex items-center gap-2 cursor-pointer group"
-        onClick={() => {
-          const newState = !isAnyExpanded;
-          const newExpanded: Record<string, boolean> = {};
-          for (const call of uniqueCalls) {
-            newExpanded[call.id] = newState;
-          }
-          setExpanded(newExpanded);
-        }}
+        onClick={toggleExpand}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            const newState = !isAnyExpanded;
-            const newExpanded: Record<string, boolean> = {};
-            for (const call of uniqueCalls) {
-              newExpanded[call.id] = newState;
-            }
-            setExpanded(newExpanded);
+            toggleExpand();
           }
         }}
         aria-expanded={isAnyExpanded}
@@ -290,413 +278,18 @@ export function ToolCallDisplay({
                   parsedResult = call.result;
                 }
 
-                // Render based on tool type
-                if (call.name === "saveMemory") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium text-muted-foreground">
-                          {state === "executing"
-                            ? "Saving..."
-                            : parsedResult?.success
-                              ? "Saved"
-                              : parsedResult?.duplicate
-                                ? "Already exists"
-                                : "Failed"}
-                        </span>
-                      </div>
-                      <div className="text-muted-foreground">
-                        {parsedArgs?.content && (
-                          <span className="italic">"{parsedArgs.content}"</span>
-                        )}
-                      </div>
-                      {parsedResult?.message && state !== "executing" && (
-                        <div
-                          className={
-                            parsedResult.success
-                              ? "text-green-500"
-                              : "text-amber-500"
-                          }
-                        >
-                          {parsedResult.message}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
+                // Get the renderer for this tool, or use the default
+                const Renderer = toolRenderers[call.name] || DefaultToolRenderer;
 
-                if (call.name === "webSearch") {
-                  const results = parsedResult?.results || [];
-
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-mono text-muted-foreground">
-                          "{parsedArgs?.query}"
-                        </span>
-                      </div>
-
-                      {parsedResult && state !== "executing" && (
-                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                          {results.slice(0, 5).map((r: any, i: number) => (
-                            <div key={i} className="py-1">
-                              <a
-                                href={r.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-medium text-primary hover:underline"
-                              >
-                                {r.title}
-                              </a>
-                              <p className="text-muted-foreground text-[11px] line-clamp-2">
-                                {r.content?.substring(0, 150)}
-                                {r.content && r.content.length > 150
-                                  ? "..."
-                                  : ""}
-                              </p>
-                            </div>
-                          ))}
-                          {results.length === 0 && (
-                            <div className="text-muted-foreground">
-                              No results found
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "calculator") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-mono text-muted-foreground">
-                          {parsedArgs?.expression}
-                        </span>
-                      </div>
-                      {parsedResult && state !== "executing" && (
-                        <div className="font-semibold text-primary">
-                          = {parsedResult.result}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "datetime") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {parsedArgs?.operation}
-                          {parsedArgs?.timezone && ` (${parsedArgs.timezone})`}
-                        </span>
-                      </div>
-                      {parsedResult && state !== "executing" && (
-                        <div className="font-medium">
-                          {parsedResult.formatted || parsedResult.readable}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "urlReader") {
-                  const content = parsedResult?.content || "";
-                  const truncated = content.substring(0, 500);
-
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <a
-                          href={parsedArgs?.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline truncate"
-                        >
-                          {parsedArgs?.url}
-                        </a>
-                      </div>
-                      {parsedResult && state !== "executing" && (
-                        <div className="space-y-1">
-                          <div className="text-muted-foreground text-[11px]">
-                            {parsedResult.wordCount} words
-                          </div>
-                          <div className="max-h-48 overflow-y-auto text-muted-foreground">
-                            <pre className="whitespace-pre-wrap font-sans text-[11px]">
-                              {content.length > 500
-                                ? truncated + "..."
-                                : content}
-                            </pre>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "codeExecution") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {parsedArgs?.language || "Code"}
-                        </span>
-                      </div>
-                      {parsedArgs?.code && (
-                        <pre className="bg-muted p-2 rounded text-[11px] overflow-x-auto">
-                          <code>{parsedArgs.code}</code>
-                        </pre>
-                      )}
-                      {parsedResult && state !== "executing" && (
-                        <div className="space-y-1">
-                          <div className="text-muted-foreground">Output:</div>
-                          <pre className="bg-muted p-2 rounded text-[11px] max-h-48 overflow-y-auto">
-                            <code>{parsedResult.output}</code>
-                          </pre>
-                          {parsedResult.executionTime && (
-                            <div className="text-muted-foreground text-[11px]">
-                              Executed in {parsedResult.executionTime}ms
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "weather") {
-                  const current = parsedResult?.current;
-                  const units =
-                    parsedResult?.units === "fahrenheit" ? "°F" : "°C";
-
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {parsedArgs?.location}
-                        </span>
-                      </div>
-                      {current && state !== "executing" && (
-                        <div className="space-y-1">
-                          <div className="font-semibold">
-                            {current.temperature}
-                            {units} • {current.condition}
-                          </div>
-                          {current.feelsLike && (
-                            <div className="text-muted-foreground">
-                              Feels like {current.feelsLike}
-                              {units}
-                            </div>
-                          )}
-                          {parsedResult.forecast && (
-                            <div className="text-muted-foreground text-[11px]">
-                              {parsedResult.forecast}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "fileDocument") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-medium">
-                          {parsedResult?.fileName || "Document"}
-                        </span>
-                      </div>
-                      {parsedResult && state !== "executing" && (
-                        <div className="space-y-1">
-                          <div className="text-muted-foreground text-[11px]">
-                            {parsedResult.wordCount} words
-                          </div>
-                          {parsedResult.content && (
-                            <div className="max-h-48 overflow-y-auto bg-muted p-2 rounded">
-                              <pre className="whitespace-pre-wrap font-sans text-[11px]">
-                                {parsedResult.content}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "projectContext") {
-                  const section = parsedArgs?.section || "context";
-                  const items = parsedResult?.items || [];
-
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {parsedResult?.project?.name} • {section}
-                        </span>
-                      </div>
-                      {items.length > 0 && state !== "executing" && (
-                        <div className="max-h-48 overflow-y-auto space-y-1">
-                          {items.map((item: any, i: number) => (
-                            <div key={i} className="text-muted-foreground">
-                              •{" "}
-                              {item.title ||
-                                item.name ||
-                                item.content?.substring(0, 50)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "deleteMemory") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span
-                          className={
-                            parsedResult?.success
-                              ? "text-green-500"
-                              : "text-red-500"
-                          }
-                        >
-                          {parsedResult?.success
-                            ? "Deleted"
-                            : "Failed to delete"}
-                        </span>
-                      </div>
-                      {parsedResult?.message && state !== "executing" && (
-                        <div className="text-muted-foreground">
-                          {parsedResult.message}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                if (call.name === "searchMemories") {
-                  return (
-                    <div
-                      key={call.id}
-                      className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                        <span className="font-mono text-muted-foreground">
-                          {parsedArgs?.query}
-                        </span>
-                      </div>
-
-                      {parsedResult && (
-                        <div className="space-y-1 max-h-48 overflow-y-auto">
-                          {parsedResult.memories?.map((mem: any, i: number) => (
-                            <div key={i} className="py-0.5">
-                              <span className="font-medium text-primary">
-                                [{mem.category}]
-                              </span>{" "}
-                              <span className="text-muted-foreground">
-                                {mem.content}
-                              </span>
-                            </div>
-                          ))}
-                          {parsedResult.found === 0 && (
-                            <div className="text-muted-foreground">
-                              No memories found
-                            </div>
-                          )}
-                          {state === "error" && (
-                            <div className="text-red-500">
-                              {parsedResult.error || "Tool execution failed"}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                // Fallback for unknown tools
                 return (
-                  <div
+                  <Renderer
                     key={call.id}
-                    className="text-xs space-y-1 border-l-2 border-border/40 pl-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <ToolIcon className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium text-muted-foreground">
-                        {call.name || "Unknown tool"}
-                      </span>
-                    </div>
-
-                    {/* Show parsed arguments */}
-                    {parsedArgs && (
-                      <div className="text-muted-foreground">
-                        <div className="text-[11px] font-medium mb-1">
-                          Arguments:
-                        </div>
-                        <pre className="text-[10px] bg-muted p-2 rounded overflow-x-auto whitespace-pre-wrap">
-                          {JSON.stringify(parsedArgs, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-
-                    {/* Show parsed results */}
-                    {parsedResult && state !== "executing" && (
-                      <div className="text-muted-foreground">
-                        <div className="text-[11px] font-medium mb-1">
-                          Result:
-                        </div>
-                        <pre className="text-[10px] bg-muted p-2 rounded max-h-48 overflow-y-auto whitespace-pre-wrap">
-                          {JSON.stringify(parsedResult, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
+                    call={call}
+                    parsedArgs={parsedArgs}
+                    parsedResult={parsedResult}
+                    state={state}
+                    ToolIcon={ToolIcon}
+                  />
                 );
               })}
             </div>

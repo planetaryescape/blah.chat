@@ -17,7 +17,7 @@ export function createFileDocumentTool(
 ) {
   return tool({
     description:
-      "Read and extract content from uploaded documents. Supports PDF, DOCX (Word), XLSX/XLS (Excel/spreadsheets), and text files. Use this when the user uploads a file and asks to analyze, summarize, or extract information from it.",
+      "Read and extract content from uploaded documents. Supports PDF, DOCX (Word), PPTX (PowerPoint), XLSX/XLS (Excel/spreadsheets), and text files. Use this when the user uploads a file and asks to analyze, summarize, or extract information from it.",
     inputSchema: z.object({
       fileIndex: z
         .number()
@@ -33,8 +33,12 @@ export function createFileDocumentTool(
         ),
     }),
     execute: async ({ fileIndex, action }) => {
+      console.log(`[Tool:fileDocument] Executing with fileIndex=${fileIndex}, action=${action}`);
+      console.log(`[Tool:fileDocument] Attachments available:`, messageAttachments?.length ?? 0);
+
       // Check if attachments exist
       if (!messageAttachments || messageAttachments.length === 0) {
+        console.error("[Tool:fileDocument] ❌ No attachments found in message");
         return {
           success: false,
           error: "No files attached to this message",
@@ -43,6 +47,7 @@ export function createFileDocumentTool(
 
       // Validate file index
       if (fileIndex >= messageAttachments.length) {
+        console.error(`[Tool:fileDocument] ❌ File index ${fileIndex} out of range (${messageAttachments.length} files)`);
         return {
           success: false,
           error: `File index ${fileIndex} out of range. ${messageAttachments.length} file(s) attached.`,
@@ -50,27 +55,55 @@ export function createFileDocumentTool(
       }
 
       const attachment = messageAttachments[fileIndex];
+      console.log(`[Tool:fileDocument] Processing:`, {
+        name: attachment.name,
+        type: attachment.type,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        storageId: attachment.storageId,
+      });
 
       // Only process file types (not images/audio)
       if (attachment.type !== "file") {
+        console.error(`[Tool:fileDocument] ❌ Wrong attachment type: ${attachment.type}`);
         return {
           success: false,
           error: `Cannot process ${attachment.type} attachments. Only file documents are supported.`,
         };
       }
 
-      // Process the document
-      const result = await ctx.runAction(
-        internal.tools.fileDocument.processDocument,
-        {
-          storageId: attachment.storageId,
-          fileName: attachment.name,
-          mimeType: attachment.mimeType,
-          action,
-        },
-      );
+      try {
+        // Process the document
+        const result = await ctx.runAction(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.tools.fileDocument.processDocument,
+          {
+            storageId: attachment.storageId,
+            fileName: attachment.name,
+            mimeType: attachment.mimeType,
+            action,
+          },
+        );
 
-      return result;
+        if (result.success) {
+          console.log(`[Tool:fileDocument] ✅ Success: ${attachment.name} (${result.wordCount} words)`);
+        } else {
+          console.error(`[Tool:fileDocument] ❌ Processing failed:`, result.error);
+        }
+
+        return result;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error(`[Tool:fileDocument] ❌ Exception during processing:`, {
+          fileName: attachment.name,
+          error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        return {
+          success: false,
+          error: `Failed to process document: ${errorMessage}`,
+        };
+      }
     },
   });
 }

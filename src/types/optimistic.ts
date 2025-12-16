@@ -5,7 +5,7 @@ import type { Id } from "@/convex/_generated/dataModel";
  * Replaced by real server message when confirmed
  */
 export interface OptimisticMessage {
-	_id: `temp-${string}`;
+	_id: Id<"messages"> | `temp-${string}`; // Support both real IDs and temp IDs
 	conversationId: Id<"conversations">;
 	userId?: Id<"users">;
 	role: "user" | "assistant";
@@ -25,6 +25,24 @@ export interface OptimisticMessage {
 	updatedAt: number;
 	_creationTime: number; // Convex system field - set to match server messages
 	_optimistic: true;
+	// Optional fields from real messages (for type compatibility)
+	partialContent?: string;
+	reasoning?: string;
+	partialReasoning?: string;
+	reasoningTokens?: number;
+	thinkingStartedAt?: number;
+	thinkingCompletedAt?: number;
+	error?: string;
+	parentMessageId?: Id<"messages">;
+	consolidatedMessageId?: Id<"messages">;
+	isConsolidation?: boolean;
+	generationStartedAt?: number;
+	generationCompletedAt?: number;
+	firstTokenAt?: number;
+	tokensPerSecond?: number;
+	inputTokens?: number;
+	outputTokens?: number;
+	cost?: number;
 }
 
 /**

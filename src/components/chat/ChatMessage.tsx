@@ -1,7 +1,12 @@
 "use client";
 
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -9,8 +14,9 @@ import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { useMutation, useQuery } from "convex/react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FeedbackModal } from "../feedback/FeedbackModal";
@@ -26,6 +32,81 @@ import { MessageStatsBadges } from "./MessageStatsBadges";
 import { ModelRecommendationBanner } from "./ModelRecommendationBanner";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
+
+// Status indicator for optimistic messages
+function MessageStatusIndicator({
+  message,
+}: {
+  message: Doc<"messages"> | OptimisticMessage;
+}) {
+  const isOptimistic = "_optimistic" in message && message._optimistic;
+
+  // Optimistic (sending)
+  if (isOptimistic && message.status === "optimistic") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className="inline-flex items-center gap-1.5 text-muted-foreground"
+            data-testid="message-optimistic"
+          >
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span className="text-xs">Sending...</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>Message is being sent</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // Pending/Generating (server confirmed, waiting for or actively generating)
+  if (message.status === "pending" || message.status === "generating") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className="inline-flex items-center gap-1.5 text-muted-foreground"
+            data-testid="message-generating"
+          >
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span className="text-xs">
+              {message.status === "pending" ? "Pending..." : "Generating..."}
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          {message.status === "pending"
+            ? "Waiting for generation"
+            : "Generating response"}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  // Complete (with checkmark)
+  if (message.status === "complete") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className="inline-flex items-center gap-1.5 text-green-500"
+            data-testid="message-complete"
+          >
+            <Check className="w-3 h-3" />
+            {message.role === "user" && (
+              <span className="text-xs">Sent</span>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          {message.role === "user" ? "Sent" : "Complete"}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return null;
+}
 
 // Error display component with feedback modal integration
 function ErrorDisplay({ error }: { error?: string }) {
@@ -58,8 +139,8 @@ function ErrorDisplay({ error }: { error?: string }) {
 }
 
 interface ChatMessageProps {
-  message: Doc<"messages">;
-  nextMessage?: Doc<"messages">;
+  message: Doc<"messages"> | OptimisticMessage;
+  nextMessage?: Doc<"messages"> | OptimisticMessage;
   readOnly?: boolean;
 }
 
@@ -97,7 +178,7 @@ export const ChatMessage = memo(
     // Query for original responses if this is a consolidated message
     const originalResponses = useQuery(
       api.messages.getOriginalResponses,
-      message.isConsolidation ? { consolidatedMessageId: message._id } : "skip",
+      message.isConsolidation && !isTempMessage ? { consolidatedMessageId: message._id as Id<"messages"> } : "skip",
     );
 
     // Query conversation for model recommendation (cost optimization)
@@ -128,7 +209,7 @@ export const ChatMessage = memo(
     // Skip query for temporary optimistic messages
     const attachments = useQuery(
       api.messages.getAttachments,
-      isTempMessage ? "skip" : { messageId: message._id }
+      isTempMessage ? "skip" : { messageId: message._id as Id<"messages"> }
     );
 
     // Fetch URLs for attachments
@@ -152,7 +233,7 @@ export const ChatMessage = memo(
     // Skip query for temporary optimistic messages
     const allToolCalls = useQuery(
       api.messages.getToolCalls,
-      isTempMessage ? "skip" : { messageId: message._id, includePartial: true }
+      isTempMessage ? "skip" : { messageId: message._id as Id<"messages">, includePartial: true }
     );
 
     // Split into complete and partial for backward compatibility
@@ -190,7 +271,7 @@ export const ChatMessage = memo(
     const handleSaveEdit = async () => {
       try {
         await editMessage({
-          messageId: message._id,
+          messageId: message._id as Id<"messages">,
           content: editedContent,
         });
         setIsEditing(false);
@@ -208,7 +289,7 @@ export const ChatMessage = memo(
 
     // Keyboard shortcuts for focused messages
     useMessageKeyboardShortcuts({
-      messageId: message._id,
+      messageId: message._id as Id<"messages">,
       conversationId: message.conversationId,
       content: displayContent,
       isFocused,
@@ -265,8 +346,10 @@ export const ChatMessage = memo(
               isUser ? userMessageClass : assistantMessageClass,
               isFocused && "ring-2 ring-primary/50",
             )}
+            data-testid="message"
             data-message-id={message._id}
             data-message-role={message.role}
+            data-status={message.status}
             aria-label={`${isUser ? "Your" : "Assistant"} message`}
             aria-keyshortcuts="r b c delete"
           >
@@ -303,12 +386,14 @@ export const ChatMessage = memo(
                     {displayContent ||
                     toolCalls?.length ||
                     partialToolCalls?.length ? (
-                      <InlineToolCallContent
-                        content={displayContent || ""}
-                        toolCalls={toolCalls}
-                        partialToolCalls={partialToolCalls}
-                        isStreaming={isGenerating}
-                      />
+                      <div data-testid="message-content">
+                        <InlineToolCallContent
+                          content={displayContent || ""}
+                          toolCalls={toolCalls}
+                          partialToolCalls={partialToolCalls}
+                          isStreaming={isGenerating}
+                        />
+                      </div>
                     ) : isGenerating ? (
                       <MessageLoadingState isThinkingModel={isThinkingModel} />
                     ) : null}
@@ -316,7 +401,7 @@ export const ChatMessage = memo(
                 )}
 
                 {/* Source citations (Phase 2: from normalized tables) */}
-                <SourceList messageId={message._id} />
+                <SourceList messageId={message._id as Id<"messages">} />
 
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
                   <div className="mt-3 pt-3 border-t border-border/10">
@@ -372,11 +457,13 @@ export const ChatMessage = memo(
 
                 {/* Branch indicator */}
                 {!readOnly && (
-                  <MessageBranchIndicator messageId={message._id} />
+                  <MessageBranchIndicator messageId={message._id as Id<"messages">} />
                 )}
                 {!readOnly && features.showNotes && (
-                  <MessageNotesIndicator messageId={message._id} />
+                  <MessageNotesIndicator messageId={message._id as Id<"messages">} />
                 )}
+
+                {/* Status indicator removed - optimistic updates should feel instant */}
 
                 {/* Model and statistics badges - INSIDE bubble */}
                 {!isUser &&

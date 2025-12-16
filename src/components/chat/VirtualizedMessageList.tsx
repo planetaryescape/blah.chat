@@ -1,17 +1,30 @@
 "use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { cn } from "@/lib/utils";
-import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
+import { type ChatWidth } from "@/lib/utils/chatWidth";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { ArrowDown } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { EmptyScreen } from "./EmptyScreen";
+
+/**
+ * Generate a stable React key for messages that persists across optimistic→server transition.
+ *
+ * Uses timestamp+role for ALL messages to ensure the key is identical between
+ * the optimistic version and the server-confirmed version. This prevents React
+ * from treating them as different elements and avoids flash during transition.
+ */
+function getStableMessageKey(message: Doc<"messages">): string {
+  // Always use timestamp + role key - this ensures optimistic and server
+  // versions of the same message share the same key
+  const timestampKey = Math.floor(message.createdAt / 1000);
+  return `msg-${message.role}-${timestampKey}`;
+}
 
 interface VirtualizedMessageListProps {
   messages: Doc<"messages">[];
@@ -198,7 +211,7 @@ export function VirtualizedMessageList({
     if (autoScroll && isAtBottom) {
       scrollToBottom("smooth");
     }
-  }, [autoScroll, isAtBottom, scrollToBottom, highlightMessageId]);
+  }, [messages.length, autoScroll, isAtBottom, scrollToBottom, highlightMessageId]);
 
   if (messages.length === 0) {
     return (
@@ -245,7 +258,7 @@ export function VirtualizedMessageList({
               !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]", // fallback
             )}
           >
-            <AnimatePresence mode="popLayout">
+            <>
               {grouped.map((item, index) => {
                 if (item.type === "message") {
                   const nextItem = grouped[index + 1];
@@ -253,47 +266,29 @@ export function VirtualizedMessageList({
                     nextItem?.type === "message" ? nextItem.data : undefined;
 
                   return (
-                    <motion.div
-                      key={item.data._id}
+                    <div
+                      key={getStableMessageKey(item.data)}
                       className="col-start-2"
-                      layout
-                      transition={{
-                        type: "spring",
-                        damping: 25,
-                        stiffness: 200,
-                      }}
                     >
                       <ChatMessage
                         message={item.data}
                         nextMessage={nextMessage}
                       />
-                    </motion.div>
+                    </div>
                   );
                 } else {
                   // Comparison block: user message + comparison panels
                   return (
                     <Fragment key={item.id}>
-                      <motion.div
-                        key={item.userMessage._id}
+                      <div
+                        key={getStableMessageKey(item.userMessage)}
                         className="col-start-2"
-                        layout
-                        transition={{
-                          type: "spring",
-                          damping: 25,
-                          stiffness: 200,
-                        }}
                       >
                         <ChatMessage message={item.userMessage} />
-                      </motion.div>
-                      <motion.div
+                      </div>
+                      <div
                         key={`comparison-${item.id}`}
                         className="col-span-full"
-                        layout
-                        transition={{
-                          type: "spring",
-                          damping: 25,
-                          stiffness: 200,
-                        }}
                       >
                         <ComparisonView
                           assistantMessages={item.assistantMessages}
@@ -303,12 +298,12 @@ export function VirtualizedMessageList({
                           onConsolidate={onConsolidate || (() => {})}
                           onToggleModelNames={onToggleModelNames || (() => {})}
                         />
-                      </motion.div>
+                      </div>
                     </Fragment>
                   );
                 }
               })}
-            </AnimatePresence>
+            </>
           </div>
         </div>
 

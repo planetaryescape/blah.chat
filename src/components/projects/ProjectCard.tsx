@@ -18,6 +18,7 @@ import {
 import type { Id } from "@/convex/_generated/dataModel";
 import { Edit, FolderOpen, MoreVertical, Trash2, Users } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProjectStats } from "./ProjectStats";
 
 interface ProjectCardProps {
@@ -35,12 +36,14 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onEdit, onDelete, onManage }: ProjectCardProps) {
+  const router = useRouter();
+
   return (
-    <Card className="group relative overflow-hidden bg-background hover:bg-muted/30 border-border/40 shadow-sm hover:shadow-md transition-all duration-300">
-      <div
-        className="absolute inset-0 cursor-pointer z-0"
-        onClick={() => window.location.href = `/projects/${project._id}`}
-      />
+    <Card
+      onClick={() => router.push(`/projects/${project._id}`)}
+      className="group relative overflow-hidden hover:bg-muted/30 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+    >
+
 
       <CardHeader className="relative z-10 pb-2">
         <div className="flex items-start justify-between">
@@ -56,7 +59,7 @@ export function ProjectCard({ project, onEdit, onDelete, onManage }: ProjectCard
           </div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 text-muted-foreground/50 hover:text-foreground relative z-20">
                     <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -97,7 +100,7 @@ export function ProjectCard({ project, onEdit, onDelete, onManage }: ProjectCard
          </p>
       </CardContent>
 
-      <CardFooter className="relative z-10 pt-0 text-xs text-muted-foreground border-t border-border/30 bg-muted/5 p-3 flex justify-between items-center">
+      <CardFooter className="relative z-10 pt-0 text-xs text-muted-foreground border-t bg-muted/5 p-3 flex justify-between items-center">
         <ProjectStats projectId={project._id} />
       </CardFooter>
     </Card>

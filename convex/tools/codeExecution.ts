@@ -3,6 +3,10 @@
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 
+/**
+ * Code execution via Next.js API route
+ * We proxy through Next.js because Convex's bundling has ESM/CommonJS conflicts with chalk
+ */
 export const executeCode = internalAction({
   args: {
     code: v.string(),
@@ -11,50 +15,38 @@ export const executeCode = internalAction({
   },
   handler: async (_ctx, { code, language, timeout = 30 }) => {
     try {
-      // Ensure E2B API key is configured
-      if (!process.env.E2B_API_KEY) {
+      // Get the app URL from environment
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.CONVEX_SITE_URL;
+
+      if (!appUrl) {
         throw new Error(
-          "E2B_API_KEY not configured. Please add it to your environment variables.",
+          "App URL not configured. Set NEXT_PUBLIC_APP_URL or CONVEX_SITE_URL environment variable."
         );
       }
 
-      // Dynamic import for E2B
-      const { Sandbox } = await import("@e2b/code-interpreter");
-
-      // Create sandbox with timeout
-      const sandbox = await Sandbox.create({
-        apiKey: process.env.E2B_API_KEY,
-        timeoutMs: timeout * 1000,
+      // Call the Next.js API route
+      const response = await fetch(`${appUrl}/api/code-execution`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Pass auth context - in production you'd want a service token
+          "X-Convex-Internal": "true",
+        },
+        body: JSON.stringify({
+          code,
+          language,
+          timeout: Math.min(timeout, 60),
+        }),
       });
 
-      try {
-        // Track execution start
-        const startTime = Date.now();
-
-        // Execute code (logs are collected automatically)
-        const execution = await sandbox.runCode(code);
-
-        const executionTime = Date.now() - startTime;
-
-        // Extract results from execution object
-        const stdout = execution.logs.stdout.join("\n");
-        const stderr = execution.logs.stderr.join("\n");
-        const resultValue = execution.text || execution.results;
-
-        return {
-          success: true,
-          language,
-          code,
-          stdout,
-          stderr,
-          result: resultValue,
-          executionTime,
-        };
-      } finally {
-        // Always kill sandbox to prevent resource leaks
-        await sandbox.kill();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API returned ${response.status}`);
       }
+
+      return await response.json();
     } catch (error) {
+      console.error("[CodeExecution] Error:", error);
       return {
         success: false,
         language,
@@ -62,7 +54,7 @@ export const executeCode = internalAction({
         error:
           error instanceof Error
             ? error.message
-            : "Failed to execute code in sandbox",
+            : "Failed to execute code",
       };
     }
   },

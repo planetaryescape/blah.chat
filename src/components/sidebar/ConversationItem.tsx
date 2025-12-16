@@ -221,7 +221,7 @@ export function ConversationItem({
             </div>
 
             {!isSelectionMode && index !== undefined && index < 9 && (
-              <kbd className="h-4 px-1 text-[9px] rounded border border-border/30 bg-background/50 font-mono text-muted-foreground opacity-60">
+              <kbd className="hidden sm:inline-flex h-4 px-1 text-[9px] rounded border border-border/30 bg-background/50 font-mono text-muted-foreground opacity-60">
                 ⌘{index + 1}
               </kbd>
             )}

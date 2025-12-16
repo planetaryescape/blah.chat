@@ -126,6 +126,19 @@
     margin-bottom: 0;
   }
 
+  /* Fix: When markdown parser wraps list content in <p> tags, prevent content from
+     appearing on a new line from the list marker. This happens when the markdown
+     has empty lines or specific formatting that causes <li><p>content</p></li> */
+  .prose li > p:first-child {
+    display: inline;
+  }
+
+  /* Ensure subsequent paragraphs in list items still display as blocks */
+  .prose li > p:not(:first-child) {
+    display: block;
+    margin-top: 0.5em;
+  }
+
   .prose ul ul,
   .prose ul ol,
   .prose ol ul,

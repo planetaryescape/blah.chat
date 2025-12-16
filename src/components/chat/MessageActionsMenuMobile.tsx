@@ -25,10 +25,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 interface MessageActionsMenuMobileProps {
-  message: Doc<"messages">;
+  message: Doc<"messages"> | OptimisticMessage;
   isGenerating: boolean;
   isUser: boolean;
   onCopy: () => void;
@@ -54,7 +55,7 @@ export function MessageActionsMenuMobile({
 
   const handleRegenerate = async () => {
     try {
-      await regenerate({ messageId: message._id });
+      await regenerate({ messageId: message._id as Id<"messages"> });
     } catch (error) {
       console.error("Failed to regenerate:", error);
     }
@@ -63,7 +64,7 @@ export function MessageActionsMenuMobile({
   const handleBranch = async () => {
     try {
       const newConversationId = await branchFromMessage({
-        messageId: message._id,
+        messageId: message._id as Id<"messages">,
       });
       router.push(`/chat/${newConversationId}`);
     } catch (error) {
@@ -73,7 +74,7 @@ export function MessageActionsMenuMobile({
 
   const handleDelete = async () => {
     try {
-      await deleteMsg({ messageId: message._id });
+      await deleteMsg({ messageId: message._id as Id<"messages"> });
     } catch (error) {
       console.error("Failed to delete:", error);
     }

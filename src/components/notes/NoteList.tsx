@@ -43,12 +43,12 @@ export function NoteList({ notes, selectedNoteId, onSelect }: NoteListProps) {
             <div
               key={virtualItem.key}
               data-index={virtualItem.index}
+              ref={virtualizer.measureElement}
               style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
                 width: "100%",
-                height: `${virtualItem.size}px`,
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >

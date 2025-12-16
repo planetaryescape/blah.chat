@@ -52,7 +52,7 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
 
   return (
     <Card
-      className="group relative overflow-hidden bg-background hover:bg-muted/30 border-border/40 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+      className="group relative overflow-hidden hover:bg-muted/30 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
       onClick={handleNavigate}
     >
       <CardHeader className="p-4 pb-2 space-y-0">

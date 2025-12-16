@@ -194,18 +194,18 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     return (
       <Button
         type="button"
-        variant={isRecording ? "default" : "ghost"}
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={toggleRecording}
         disabled={isDisabled || isProcessing || !user}
         aria-label={
           isRecording ? "Stop recording" : `Start voice input (${sttProvider})`
         }
         className={cn(
-          "transition-all duration-300",
+          "h-8 w-8 rounded-full transition-all duration-300",
           isRecording
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "",
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
         )}
       >
         <div

@@ -7,6 +7,8 @@ import type { Id } from "@/convex/_generated/dataModel";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { messageQueue } from "@/lib/offline/messageQueue";
+import { useEffect } from "react";
 
 interface SendMessageArgs {
   conversationId: Id<"conversations">;
@@ -31,6 +33,35 @@ export function useSendMessage(
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+
+  // Auto-process offline queue when connection restored
+  useEffect(() => {
+    const handleOnline = async () => {
+      const queueCount = messageQueue.getCount();
+      if (queueCount === 0) return;
+
+      toast.info(`Processing ${queueCount} queued message${queueCount > 1 ? "s" : ""}...`);
+
+      await messageQueue.processQueue(async (msg) => {
+        // Send queued message
+        await apiClient.post(
+          `/api/v1/conversations/${msg.conversationId}/messages`,
+          {
+            conversationId: msg.conversationId,
+            content: msg.content,
+            modelId: msg.modelId,
+            models: msg.models,
+            attachments: msg.attachments,
+          },
+        );
+      });
+
+      toast.success("All queued messages sent");
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [apiClient]);
 
   return useMutation({
     mutationFn: async (args: SendMessageArgs) => {
@@ -107,20 +138,30 @@ export function useSendMessage(
       });
     },
 
-    onError: (error, _variables, _context) => {
+    onError: (error, variables, _context) => {
       const msg =
         error instanceof Error ? error.message : "Failed to send message";
 
-      // Check if offline
+      // Check if offline - queue for retry
       if (!navigator.onLine) {
-        toast.info("You're offline. Message will send when reconnected.");
-        // TODO: Queue message for offline retry (Step 6)
+        messageQueue.enqueue({
+          conversationId: variables.conversationId,
+          content: variables.content,
+          modelId: variables.modelId,
+          models: variables.models,
+          attachments: variables.attachments,
+        });
+
+        toast.info(
+          "You're offline. Message queued and will send when reconnected.",
+        );
       } else {
+        // Online but failed - show error
         toast.error(msg);
       }
 
-      // Note: Failed message handling will be added in Step 4
-      // For now, optimistic messages will be automatically removed on next server update
+      // Optimistic messages will be cleaned up on next server update
+      // (deduplication logic in chat page removes unconfirmed optimistic messages)
     },
   });
 }

@@ -1,26 +1,3 @@
-import { UserButton } from "@clerk/nextjs";
-import { useAction, useMutation, useQuery } from "convex/react";
-import {
-  Bookmark,
-  Brain,
-  CheckSquare,
-  ChevronDown,
-  FileText,
-  FolderKanban,
-  Keyboard,
-  Mic,
-  MoreHorizontal,
-  NotebookPen,
-  Plus,
-  Search,
-  Settings,
-  Shield,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { ProjectFilter } from "@/components/projects/ProjectFilter";
@@ -54,6 +31,29 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { useNewChat } from "@/hooks/useNewChat";
 import { cn } from "@/lib/utils";
+import { UserButton } from "@clerk/nextjs";
+import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  Bookmark,
+  Brain,
+  CheckSquare,
+  ChevronDown,
+  FileText,
+  FolderKanban,
+  Keyboard,
+  Mic,
+  MoreHorizontal,
+  NotebookPen,
+  Plus,
+  Search,
+  Settings,
+  Shield,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { ConversationList } from "./ConversationList";
@@ -88,7 +88,7 @@ const MENU_ITEMS = [
     href: "/bookmarks",
     featureKey: "showBookmarks" as const,
   },
-  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null },
+  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null }, // Hidden on mobile via featureKey filtering logic update below
   { icon: Settings, label: "Settings", href: "/settings", featureKey: null },
 ];
 
@@ -96,6 +96,7 @@ export function AppSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list, {
     projectId:
       (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
@@ -111,6 +112,7 @@ export function AppSidebar() {
   const bulkAutoRename = useAction(api.conversations.actions.bulkAutoRename);
 
   const router = useRouter();
+  const pathname = usePathname();
   const { isMobile } = useSidebar();
   const { setFilteredConversations } = useConversationContext();
   const { startNewChat } = useNewChat();
@@ -177,6 +179,9 @@ export function AppSidebar() {
 
   // Filter menu items based on feature toggles
   const visibleMenuItems = MENU_ITEMS.filter((item) => {
+    // Special case: Hide Shortcuts on mobile
+    if (isMobile && item.href === "/shortcuts") return false;
+
     if (!item.featureKey) return true; // Always show items without featureKey
     return features[item.featureKey]; // Show only if feature is enabled
   });
@@ -332,7 +337,9 @@ export function AppSidebar() {
               <Plus className="w-4 h-4" />
               New Chat
             </span>
-            <ShortcutBadge keys={["mod", "shift", "O"]} />
+            <div className="hidden sm:flex">
+                <ShortcutBadge keys={["Alt", "N"]} />
+            </div>
           </Button>
         </div>
       </SidebarHeader>
@@ -443,16 +450,19 @@ export function AppSidebar() {
 
       <SidebarFooter className="pb-4">
         <SidebarMenu>
-          {displayedItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton asChild tooltip={item.label}>
-                <Link href={item.href}>
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {displayedItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild tooltip={item.label} isActive={isActive}>
+                  <Link href={item.href}>
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
 
           {isMobile && overflowItems.length > 0 && (
             <SidebarMenuItem>
@@ -468,26 +478,35 @@ export function AppSidebar() {
                   align="end"
                   className="w-48 bg-sidebar border-sidebar-border"
                 >
-                  {overflowItems.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link
-                        href={item.href}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <item.icon className="w-4 h-4 text-muted-foreground" />
-                        <span>{item.label}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {overflowItems.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                      <DropdownMenuItem key={item.href} asChild>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer",
+                            isActive && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          )}
+                        >
+                          <item.icon className="w-4 h-4 text-muted-foreground" />
+                          <span>{item.label}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
           )}
 
-          {/* Admin Dashboard - only visible to admins */}
           {isAdmin && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Admin Dashboard">
+              <SidebarMenuButton
+                asChild
+                tooltip="Admin Dashboard"
+                isActive={pathname.startsWith("/admin")}
+              >
                 <Link
                   href="/admin/feedback"
                   className="text-amber-500 hover:text-amber-400"

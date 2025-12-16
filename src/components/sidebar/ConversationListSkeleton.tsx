@@ -1,28 +1,23 @@
-"use client";
+'use client';
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 export function ConversationListSkeleton() {
   return (
     <div className="space-y-2 px-2 py-2">
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
           className={cn(
-            "flex items-center gap-3 rounded-md p-3",
-            "hover:bg-accent/50 transition-colors",
+            'flex items-center gap-1 rounded-md px-0 py-0',
+            'hover:bg-accent/10 transition-colors'
           )}
         >
-          {/* Icon skeleton */}
-          <Skeleton className="h-5 w-5 rounded shrink-0" />
-
           {/* Text content */}
           <div className="flex-1 space-y-2 min-w-0">
             {/* Title */}
             <Skeleton className="h-4 w-full" />
-            {/* Preview text */}
-            <Skeleton className="h-3 w-2/3" />
           </div>
 
           {/* More menu skeleton */}

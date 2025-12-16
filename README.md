@@ -51,7 +51,11 @@ Since Clerk needs to reach your local server, set up a tunnel:
    CLERK_WEBHOOK_SECRET=whsec_your_signing_secret_here
    ```
 
-> **Note**: Keep your tunnel running during development. Each time your tunnel URL changes, update the webhook endpoint in Clerk.
+> **Tip**: Use a **static ngrok URL** (free tier includes one) to avoid reconfiguring the webhook each session:
+> ```bash
+> ngrok http 3000 --domain=your-static-subdomain.ngrok-free.app
+> ```
+> Set this up once in the Clerk dashboard and you're done.
 
 ### 3. Run Locally
 

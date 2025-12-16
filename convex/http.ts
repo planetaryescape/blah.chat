@@ -78,6 +78,7 @@ http.route({
     const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
     // 1. Check Cache
+    // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
     const cached = await ctx.runQuery(internal.ttsCache.getCache, { hash });
 
     if (cached) {

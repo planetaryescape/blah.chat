@@ -23,7 +23,37 @@ You will need to configure the following API keys in `.env.local`:
 - **Firecrawl** (`FIRECRAWL_API_KEY`): Optional alternative for advanced web scraping/crawling.
 - **OpenAI** (`OPENAI_API_KEY`): Needed for audio transcription (Whisper) if not using Groq.
 
-### 2. Run Locally
+### 2. Clerk Webhook Setup
+
+Clerk webhooks sync user data to Convex. **Without this, users will hit an infinite redirect loop on their first sign-in.**
+
+#### Local Development (Tunnel Required)
+
+Since Clerk needs to reach your local server, set up a tunnel:
+
+1. **Start a tunnel** (choose one):
+   ```bash
+   # Using ngrok
+   ngrok http 3000
+
+   # Using cloudflared
+   cloudflared tunnel --url http://localhost:3000
+   ```
+
+2. **Configure webhook in Clerk Dashboard**:
+   - Go to [Clerk Dashboard](https://dashboard.clerk.com) → Webhooks → Add Endpoint
+   - Set endpoint URL: `https://your-tunnel-url.ngrok.io/api/webhooks/clerk`
+   - Subscribe to events: `user.created`, `user.updated`, `user.deleted`
+   - Copy the **Signing Secret**
+
+3. **Add to `.env.local`**:
+   ```bash
+   CLERK_WEBHOOK_SECRET=whsec_your_signing_secret_here
+   ```
+
+> **Note**: Keep your tunnel running during development. Each time your tunnel URL changes, update the webhook endpoint in Clerk.
+
+### 3. Run Locally
 
 1. Install dependencies:
    ```bash

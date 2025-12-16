@@ -1,6 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
+// Types for E2B execution results
+interface E2BResult {
+  png?: string; // Base64 PNG data
+  jpeg?: string;
+  svg?: string;
+  text?: string;
+  // biome-ignore lint/suspicious/noExplicitAny: E2B result types
+  [key: string]: any;
+}
+
 /**
  * API Route for code execution using E2B
  * This is outside Convex to avoid ESM/CommonJS bundling conflicts
@@ -34,6 +44,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get Convex site URL for storing images
+    const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.replace(
+      ".cloud",
+      ".site"
+    );
+
     // Dynamic import E2B (works correctly in Next.js runtime)
     const { Sandbox } = await import("@e2b/code-interpreter");
 
@@ -50,7 +66,53 @@ export async function POST(request: NextRequest) {
 
       const stdout = execution.logs.stdout.join("\n");
       const stderr = execution.logs.stderr.join("\n");
-      const resultValue = execution.text || execution.results;
+
+      // Process results and extract images
+      const images: Array<{ url: string; storageId: string }> = [];
+      let textResult = execution.text;
+
+      // E2B returns results array with display outputs (including plots)
+      if (execution.results && Array.isArray(execution.results)) {
+        for (const result of execution.results as E2BResult[]) {
+          // Check for PNG image (matplotlib plots)
+          if (result.png && convexSiteUrl) {
+            try {
+              // Decode base64 to binary
+              const imageBuffer = Buffer.from(result.png, "base64");
+
+              // Store in Convex
+              const storeResponse = await fetch(
+                `${convexSiteUrl}/store-code-execution-image`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "image/png",
+                    "X-Convex-Internal": "true",
+                  },
+                  body: imageBuffer,
+                }
+              );
+
+              if (storeResponse.ok) {
+                const { url, storageId } = await storeResponse.json();
+                images.push({ url, storageId });
+              } else {
+                console.error(
+                  "[CodeExecution] Failed to store image:",
+                  await storeResponse.text()
+                );
+              }
+            } catch (imgError) {
+              console.error("[CodeExecution] Image storage error:", imgError);
+            }
+          }
+
+          // Collect text results
+          if (result.text && !textResult) {
+            textResult = result.text;
+          }
+        }
+      }
 
       return NextResponse.json({
         success: true,
@@ -58,7 +120,8 @@ export async function POST(request: NextRequest) {
         code,
         stdout,
         stderr,
-        result: resultValue,
+        result: textResult,
+        images, // Array of { url, storageId }
         executionTime,
       });
     } finally {
@@ -75,3 +138,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

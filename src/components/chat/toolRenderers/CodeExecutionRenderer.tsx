@@ -61,17 +61,34 @@ export function CodeExecutionRenderer({
           {/* Images from code execution (matplotlib plots, etc.) */}
           {images && images.length > 0 && (
             <div className="space-y-2">
-              {images.map((img, idx) => (
-                <div key={img.storageId || idx} className="rounded overflow-hidden border border-border/40">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt={`Code execution output ${idx + 1}`}
-                    className="max-w-full h-auto"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
+              {images.map((img, idx) => {
+                // Debug log
+                console.log("[CodeExecution] Rendering image:", img);
+
+                if (!img.url) {
+                  return (
+                    <div key={idx} className="p-2 bg-yellow-500/10 text-yellow-600 rounded text-[11px]">
+                      Image {idx + 1}: URL not available
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={img.storageId || idx} className="rounded overflow-hidden border border-border/40 bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.url}
+                      alt={`Code execution output ${idx + 1}`}
+                      className="w-full h-auto block"
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error("[CodeExecution] Image failed to load:", img.url);
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
 

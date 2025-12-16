@@ -2,7 +2,7 @@ import type { ToolRendererProps } from "./types";
 
 /**
  * Renderer for the codeExecution tool.
- * Displays code, output (stdout/stderr), errors, and execution time.
+ * Displays code, output (stdout/stderr), errors, images, and execution time.
  */
 export function CodeExecutionRenderer({
   parsedArgs,
@@ -38,9 +38,10 @@ export function CodeExecutionRenderer({
   };
 
   const hasError = parsedResult?.success === false;
+  const images = parsedResult?.images as Array<{ url: string; storageId: string }> | undefined;
 
   return (
-    <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
+    <div className="text-xs space-y-2 border-l-2 border-border/40 pl-3">
       <div className="flex items-center gap-2">
         <ToolIcon className="h-3 w-3 text-muted-foreground" />
         <span className="text-muted-foreground">
@@ -56,7 +57,25 @@ export function CodeExecutionRenderer({
         </pre>
       )}
       {parsedResult && state !== "executing" && (
-        <div className="space-y-1">
+        <div className="space-y-2">
+          {/* Images from code execution (matplotlib plots, etc.) */}
+          {images && images.length > 0 && (
+            <div className="space-y-2">
+              {images.map((img, idx) => (
+                <div key={img.storageId || idx} className="rounded overflow-hidden border border-border/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={`Code execution output ${idx + 1}`}
+                    className="max-w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Text output */}
           <div className="text-muted-foreground">
             {hasError ? "Error:" : "Output:"}
           </div>
@@ -75,3 +94,4 @@ export function CodeExecutionRenderer({
     </div>
   );
 }
+

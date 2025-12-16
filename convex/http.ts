@@ -4,6 +4,56 @@ import { httpAction } from "./_generated/server";
 
 const http = httpRouter();
 
+/**
+ * Store code execution images from E2B
+ * Called by the Next.js API route after running code
+ */
+http.route({
+  path: "/store-code-execution-image",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      // Verify internal call header
+      const isInternal = request.headers.get("X-Convex-Internal") === "true";
+      if (!isInternal) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const contentType = request.headers.get("Content-Type") || "image/png";
+      const imageBuffer = await request.arrayBuffer();
+
+      if (!imageBuffer || imageBuffer.byteLength === 0) {
+        return new Response("Empty image data", { status: 400 });
+      }
+
+      // Store in Convex file storage
+      const storageId = await ctx.storage.store(
+        new Blob([imageBuffer], { type: contentType })
+      );
+
+      // Get the URL
+      const url = await ctx.storage.getUrl(storageId);
+
+      return new Response(
+        JSON.stringify({ storageId, url }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    } catch (error) {
+      console.error("[StoreCodeExecutionImage] Error:", error);
+      return new Response(
+        JSON.stringify({ error: error instanceof Error ? error.message : "Storage failed" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }),
+});
+
 http.route({
   path: "/tts",
   method: "GET",
@@ -112,3 +162,4 @@ http.route({
 });
 
 export default http;
+

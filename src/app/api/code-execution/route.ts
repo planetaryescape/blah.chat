@@ -80,6 +80,11 @@ export async function POST(request: NextRequest) {
               // Decode base64 to binary
               const imageBuffer = Buffer.from(result.png, "base64");
 
+              // Convert to Uint8Array for proper fetch body handling
+              const uint8Array = new Uint8Array(imageBuffer);
+
+              console.log("[CodeExecution] Uploading image, size:", uint8Array.length, "bytes");
+
               // Store in Convex
               const storeResponse = await fetch(
                 `${convexSiteUrl}/store-code-execution-image`,
@@ -87,14 +92,16 @@ export async function POST(request: NextRequest) {
                   method: "POST",
                   headers: {
                     "Content-Type": "image/png",
+                    "Content-Length": uint8Array.length.toString(),
                     "X-Convex-Internal": "true",
                   },
-                  body: imageBuffer,
+                  body: uint8Array,
                 }
               );
 
               if (storeResponse.ok) {
                 const { url, storageId } = await storeResponse.json();
+                console.log("[CodeExecution] Image stored successfully:", url);
                 images.push({ url, storageId });
               } else {
                 console.error(

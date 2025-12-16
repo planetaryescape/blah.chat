@@ -6,9 +6,9 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/share(.*)",
+  "/api/code-execution", // Allow Convex internal calls
 ]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
-
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 

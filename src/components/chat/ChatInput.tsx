@@ -262,6 +262,7 @@ export function ChatInput({
           ) : (
             <Textarea
               ref={textareaRef}
+              data-testid="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -370,6 +371,7 @@ export function ChatInput({
                     ? () => voiceInputRef.current?.stopRecording("send")
                     : undefined
               }
+              data-testid="send-button"
               aria-label={
                 isGenerating
                   ? "Stop generating response"

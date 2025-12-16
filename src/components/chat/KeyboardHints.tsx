@@ -12,7 +12,7 @@ export function KeyboardHints({ isEmpty, hasContent }: KeyboardHintsProps) {
   if (isMobile) return null;
   if (hasContent) {
     return (
-      <div className="flex items-center gap-4 text-xs text-muted-foreground/70">
+      <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground/70">
         <span className="flex items-center gap-1.5">
           <ShortcutBadge keys={["Enter"]} /> send
         </span>
@@ -25,19 +25,19 @@ export function KeyboardHints({ isEmpty, hasContent }: KeyboardHintsProps) {
 
   if (isEmpty) {
     return (
-      <div className="flex items-center gap-4 text-xs text-muted-foreground/70">
+      <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground/70">
         <span className="flex items-center gap-1.5">
           <ShortcutBadge keys={["mod", "K"]} /> commands
         </span>
         <span className="flex items-center gap-1.5">
-          <ShortcutBadge keys={["mod", "N"]} /> new chat
+          <ShortcutBadge keys={["Alt", "N"]} /> new chat
         </span>
       </div>
     );
   }
 
   return (
-    <span className="text-xs text-muted-foreground/70">
+    <span className="hidden sm:inline-flex text-xs text-muted-foreground/70">
       <ShortcutBadge keys={["Shift", "Enter"]} /> new line
     </span>
   );

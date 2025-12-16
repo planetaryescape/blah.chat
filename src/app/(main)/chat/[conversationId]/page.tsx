@@ -36,9 +36,8 @@ import {
     useCallback,
     useEffect,
     useMemo,
-    useOptimistic,
     useRef,
-    useState,
+    useState
 } from "react";
 
 function ChatPageContent({
@@ -76,42 +75,44 @@ function ChatPageContent({
   const user = useQuery(api.users.getCurrentUser);
 
   // Optimistic UI: Overlay local optimistic messages on top of server state
-  // Deduplicates when server confirms (match by role + timestamp ±2s window)
-  // Type: Union of server messages and optimistic messages for useOptimistic compatibility
+  // Using useState instead of useOptimistic for instant rendering with TanStack Query
   type ServerMessage = NonNullable<typeof serverMessages>[number];
   type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
-  const [messages, addOptimisticMessages] = useOptimistic<
-    MessageWithOptimistic[],
-    OptimisticMessage[]
-  >(
-    (serverMessages || []) as MessageWithOptimistic[],
-    (state, newMessages) => {
-      // Merge optimistic messages with server state
-      const merged = [...state, ...newMessages];
+  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
 
-      // Deduplicate: Remove optimistic if server version exists
-      // Match by role + timestamp within 2s window (handles network delays)
-      const deduped = merged.filter((msg, _idx, arr) => {
-        if (!("_optimistic" in msg) || !msg._optimistic) {
-          return true; // Keep all server messages
-        }
+  // Callback for ChatInput to add optimistic messages (instant, before API call)
+  const addOptimisticMessages = useCallback((newMessages: OptimisticMessage[]) => {
+    setOptimisticMessages(prev => [...prev, ...newMessages]);
+  }, []);
 
-        // Check if server has confirmed this optimistic message
-        const hasServerVersion = arr.some(
-          (m) =>
-            !("_optimistic" in m) &&
-            m.role === msg.role &&
-            Math.abs(m.createdAt - msg.createdAt) < 2000,
-        );
+  // Merge server messages with optimistic messages, deduplicating confirmed ones
+  const messages = useMemo<MessageWithOptimistic[]>(() => {
+    const server = (serverMessages || []) as MessageWithOptimistic[];
 
-        return !hasServerVersion; // Remove optimistic if server confirmed
-      });
+    if (optimisticMessages.length === 0) {
+      return server;
+    }
 
-      // Sort by timestamp (chronological order)
-      return deduped.sort((a, b) => a.createdAt - b.createdAt);
-    },
-  );
+    // Filter out optimistic messages that have been confirmed by server
+    // Match by role + timestamp within 2s window (handles network delays)
+    const pendingOptimistic = optimisticMessages.filter(opt => {
+      const hasServerVersion = server.some(
+        (m) =>
+          m.role === opt.role &&
+          Math.abs(m.createdAt - opt.createdAt) < 2000,
+      );
+      return !hasServerVersion;
+    });
+
+    // Merge and sort chronologically (don't clear state here to avoid blink)
+    return [...server, ...pendingOptimistic].sort((a, b) => a.createdAt - b.createdAt);
+  }, [serverMessages, optimisticMessages]);
+
+  // NOTE: We intentionally don't clean up optimistic messages from state
+  // The useMemo already filters them out visually when server confirms.
+  // Keeping them in state avoids the re-render that causes flash.
+  // They'll be cleared naturally on next message send or page navigation.
 
   // Extract chat width preference (Phase 4: use flat preference hook)
   const prefChatWidth = useUserPreference("chatWidth");

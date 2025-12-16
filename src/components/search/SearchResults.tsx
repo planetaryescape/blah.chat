@@ -299,10 +299,17 @@ function SearchResultCard({
 }
 
 function highlightText(text: string, query: string): string {
-  if (!query.trim()) return DOMPurify.sanitize(text);
+  // Normalize content: trim whitespace and collapse excess newlines
+  // This prevents leading whitespace from causing inconsistent card heights
+  const normalizedText = text
+    .trim()
+    .replace(/^\s+/gm, '') // Remove leading whitespace from each line
+    .replace(/\n{3,}/g, '\n\n'); // Collapse 3+ newlines to 2
+
+  if (!query.trim()) return DOMPurify.sanitize(normalizedText);
 
   const terms = query.trim().split(/\s+/);
-  let highlighted = text;
+  let highlighted = normalizedText;
 
   terms.forEach((term) => {
     if (term.length < 2) return; // Skip single chars

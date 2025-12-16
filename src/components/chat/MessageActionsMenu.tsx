@@ -15,11 +15,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { analytics } from "@/lib/analytics";
 
 interface MessageActionsMenuProps {
-  message: Doc<"messages">;
+  message: Doc<"messages"> | OptimisticMessage;
   isGenerating: boolean;
   isUser: boolean;
 }
@@ -30,7 +31,7 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
 
   const handleDelete = async () => {
     try {
-      await deleteMsg({ messageId: message._id });
+      await deleteMsg({ messageId: message._id as Id<"messages"> });
 
       // Track message deletion
       analytics.track("message_deleted", {

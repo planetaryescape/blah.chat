@@ -92,12 +92,14 @@ export function ChatHeader({
         </TooltipProvider>
       </div>
 
-      <ModelBadge
-        modelId={isComparisonActive ? undefined : selectedModel}
-        isComparison={isComparisonActive}
-        comparisonCount={comparisonModelCount}
-        onClick={isComparisonActive ? onComparisonBadgeClick : onModelBadgeClick}
-      />
+      <div className="hidden sm:block">
+        <ModelBadge
+          modelId={isComparisonActive ? undefined : selectedModel}
+          isComparison={isComparisonActive}
+          comparisonCount={comparisonModelCount}
+          onClick={isComparisonActive ? onComparisonBadgeClick : onModelBadgeClick}
+        />
+      </div>
 
       {showProjects && (
         <ProjectSelector

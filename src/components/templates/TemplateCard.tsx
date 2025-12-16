@@ -11,6 +11,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
@@ -85,7 +86,7 @@ export function TemplateCard({ template }: TemplateCardProps) {
 
   return (
     <>
-      <div className="group relative flex flex-col justify-between rounded-xl border border-border/40 bg-background/50 p-4 transition-all duration-300 hover:border-primary/20 hover:bg-muted/20 hover:shadow-sm">
+      <Card className="group relative flex flex-col justify-between p-4 transition-all duration-300 hover:border-primary/20 hover:bg-muted/20 hover:shadow-sm">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5 overflow-hidden">
@@ -147,7 +148,7 @@ export function TemplateCard({ template }: TemplateCardProps) {
                 Use
             </Button>
         </div>
-      </div>
+      </Card>
 
       {!template.isBuiltIn && (
         <>

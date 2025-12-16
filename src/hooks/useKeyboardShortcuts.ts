@@ -34,8 +34,8 @@ export function useKeyboardShortcuts() {
       // Cmd+K - Command palette (handled in CommandPalette component)
       // This is just a placeholder
 
-      // Cmd+Shift+O - New chat
-      if (isMod && e.shiftKey && e.key === "O") {
+      // Alt+N - New chat (Changed from Cmd+Shift+O to avoid browser conflict)
+      if (e.altKey && e.code === "KeyN") {
         e.preventDefault();
         startNewChat();
       }
@@ -139,7 +139,7 @@ export function useKeyboardShortcuts() {
 export const KEYBOARD_SHORTCUTS = {
   global: {
     "Cmd/Ctrl + K": "Open command palette",
-    "Cmd/Ctrl + Shift + O": "New chat",
+    "Alt + N": "New chat",
     "Cmd/Ctrl + 1-9": "Jump to conversation 1-9",
     "Cmd/Ctrl + [": "Previous conversation",
     "Cmd/Ctrl + ]": "Next conversation",

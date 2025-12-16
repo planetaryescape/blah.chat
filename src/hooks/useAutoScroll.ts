@@ -19,7 +19,6 @@ export function useAutoScroll(
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(false);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const resizeRAF = useRef<number | undefined>(undefined);
 
   const [userScrolledUp, setUserScrolledUp] = useState(false);
@@ -109,12 +108,14 @@ export function useAutoScroll(
     return () => container.removeEventListener("scroll", handleScroll);
   }, [checkIfAtBottom]);
 
-  // ResizeObserver for dynamic content changes (code blocks, images, etc)
+  // MutationObserver for dynamic content changes during streaming
+  // ResizeObserver on the container doesn't fire when scrollable content grows,
+  // so we use MutationObserver to detect DOM changes (text updates, new nodes)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    resizeObserverRef.current = new ResizeObserver(() => {
+    const mutationObserver = new MutationObserver(() => {
       // Only auto-scroll if user is at bottom and hasn't scrolled up
       if (!userScrolledUp && isAtBottom) {
         // Debounce - cancel pending RAF before scheduling new
@@ -126,12 +127,17 @@ export function useAutoScroll(
       }
     });
 
-    resizeObserverRef.current.observe(container);
+    // Watch for text content changes and new nodes (covers streaming updates)
+    mutationObserver.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
 
     return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-        resizeObserverRef.current = null;
+      mutationObserver.disconnect();
+      if (resizeRAF.current) {
+        cancelAnimationFrame(resizeRAF.current);
       }
     };
   }, [userScrolledUp, isAtBottom, scrollToBottom]);

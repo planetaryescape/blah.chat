@@ -20,7 +20,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -31,8 +32,8 @@ import { MessageActionsMenuMobile } from "./MessageActionsMenuMobile";
 import { TTSButton } from "./TTSButton";
 
 interface MessageActionsProps {
-  message: Doc<"messages">;
-  nextMessage?: Doc<"messages">;
+  message: Doc<"messages"> | OptimisticMessage;
+  nextMessage?: Doc<"messages"> | OptimisticMessage;
   readOnly?: boolean;
   onEdit?: () => void;
 }
@@ -92,7 +93,7 @@ export function MessageActions({
   const handleBranch = async () => {
     try {
       const newConversationId = await branchFromMessage({
-        messageId: message._id,
+        messageId: message._id as Id<"messages">,
       });
       router.push(`/chat/${newConversationId}`);
     } catch (error) {
@@ -102,7 +103,7 @@ export function MessageActions({
 
   const handleRegenerate = async () => {
     try {
-      await regenerate({ messageId: message._id });
+      await regenerate({ messageId: message._id as Id<"messages"> });
     } catch (error) {
       console.error("Failed to regenerate:", error);
     }
@@ -135,13 +136,13 @@ export function MessageActions({
           open={showCreateNote}
           onOpenChange={setShowCreateNote}
           initialContent={message.content || message.partialContent || ""}
-          sourceMessageId={message._id}
+          sourceMessageId={message._id as Id<"messages">}
           sourceConversationId={message.conversationId}
         />
 
         {features.showBookmarks && (
           <BookmarkButton
-            messageId={message._id}
+            messageId={message._id as Id<"messages">}
             conversationId={message.conversationId}
           />
         )}
@@ -207,7 +208,7 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() => retryMessage({ messageId: message._id })}
+                    onClick={() => retryMessage({ messageId: message._id as Id<"messages"> })}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="sr-only">Retry</span>
@@ -243,7 +244,7 @@ export function MessageActions({
             {/* Bookmark Button */}
             {features.showBookmarks && (
               <BookmarkButton
-                messageId={message._id}
+                messageId={message._id as Id<"messages">}
                 conversationId={message.conversationId}
               />
             )}
@@ -339,7 +340,7 @@ export function MessageActions({
         open={showCreateNote}
         onOpenChange={setShowCreateNote}
         initialContent={message.content || message.partialContent || ""}
-        sourceMessageId={message._id}
+        sourceMessageId={message._id as Id<"messages">}
         sourceConversationId={message.conversationId}
       />
     </>

@@ -10,6 +10,7 @@ import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { Button } from "@/components/ui/button";
 import {
   SidebarProvider,
@@ -112,6 +113,7 @@ export default function MainLayout({
             <CommandPalette />
             <OnboardingTour />
             <SelectionContextMenu />
+            <OfflineQueueIndicator />
           </SidebarProvider>
         )}
       </ConversationProvider>

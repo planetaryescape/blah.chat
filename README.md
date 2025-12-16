@@ -5,6 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ### 1. Environment Variables
 
 Copy the example environment file:
+
 ```bash
 cp .env.local.example .env.local
 ```
@@ -12,11 +13,13 @@ cp .env.local.example .env.local
 You will need to configure the following API keys in `.env.local`:
 
 **Core Services**
+
 - **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`): Required for all AI model inference.
-- **Clerk** (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`): For user authentication.
+- **Clerk** (`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER_DOMAIN`): For user authentication and Convex integration.
 - **Convex** (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOYMENT`): Backend database and functions (configured automatically via `bunx convex dev`).
 
 **AI Tools & Integrations**
+
 - **Tavily** (`TAVILY_API_KEY`): Enables real-time web search capabilities.
 - **Jina** (`JINA_API_KEY`): Used by the URL Reader tool to parse web pages into markdown.
 - **E2B** (`E2B_API_KEY`): Powers the code interpreter sandbox for executing code safely.
@@ -32,6 +35,7 @@ Clerk webhooks sync user data to Convex. **Without this, users will hit an infin
 Since Clerk needs to reach your local server, set up a tunnel:
 
 1. **Start a tunnel** (choose one):
+
    ```bash
    # Using ngrok
    ngrok http 3000
@@ -47,24 +51,65 @@ Since Clerk needs to reach your local server, set up a tunnel:
    - Copy the **Signing Secret**
 
 3. **Add to `.env.local`**:
+
    ```bash
    CLERK_WEBHOOK_SECRET=whsec_your_signing_secret_here
+   CLERK_ISSUER_DOMAIN=your-clerk-frontend-url.clerk.accounts.dev
    ```
 
+   **Important**: `CLERK_ISSUER_DOMAIN` is your Clerk Frontend API URL (found in Clerk Dashboard → API Keys → Frontend API). Format: `your-app-name.clerk.accounts.dev` for development, `clerk.yourdomain.com` for production.
+
 > **Tip**: Use a **static ngrok URL** (free tier includes one) to avoid reconfiguring the webhook each session:
+>
 > ```bash
 > ngrok http 3000 --domain=your-static-subdomain.ngrok-free.app
 > ```
+>
 > Set this up once in the Clerk dashboard and you're done.
 
-### 3. Run Locally
+### 4. Clerk JWT Template Setup
+
+**Required for Convex integration**: Configure Clerk to generate JWTs for Convex.
+
+1. **Create JWT Template**:
+   - Go to [Clerk Dashboard](https://dashboard.clerk.com) → **JWT templates**
+   - Click **New template** → Select **Convex**
+   - Copy the **Issuer** URL (this matches your `CLERK_FRONTEND_API_URL`)
+
+2. **Verify Claims** (pre-configured for Convex):
+   - `aud`: Convex audience (auto-set)
+   - `name`: User's full name from `user.full_name`
+   - Add any additional claims as needed using [shortcodes](https://clerk.com/docs/guides/sessions/jwt-templates#shortcodes)
+
+3. **Configure Convex Auth**:
+   Your `convex/auth.config.ts` should reference the environment variable:
+   ```ts
+   export default {
+     providers: [
+       {
+         domain: process.env.CLERK_ISSUER_DOMAIN,
+         applicationID: 'convex',
+       },
+     ],
+   };
+   ```
+
+**Note**: `CLERK_ISSUER_DOMAIN` should be set without protocol (e.g., `your-app-name.clerk.accounts.dev`, not `https://your-app-name.clerk.accounts.dev`).
+
+**Reference**: For complete Convex + Clerk integration guide, see [Clerk Documentation](https://clerk.com/docs/guides/development/integrations/databases/convex).
+
+**Note**: The `applicationID: 'convex'` is correct - it's a constant identifier, not your deployment name.
+
+### 5. Run Locally
 
 1. Install dependencies:
+
    ```bash
    bun install
    ```
 
 2. Start the Convex backend (in a separate terminal):
+
    ```bash
    bunx convex dev
    ```

@@ -1,17 +1,17 @@
-import { Logo } from '@/components/brand/Logo';
-import { ThemeSwitcher } from '@/components/kibo-ui/theme-switcher';
-import { ProjectFilter } from '@/components/projects/ProjectFilter';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@clerk/nextjs';
+import { Logo } from "@/components/brand/Logo";
+import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
+import { ProjectFilter } from "@/components/projects/ProjectFilter";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { ShortcutBadge } from '@/components/ui/shortcut-badge';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
   Sidebar,
   SidebarContent,
@@ -24,16 +24,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from '@/components/ui/sidebar';
-import { useConversationContext } from '@/contexts/ConversationContext';
-import { api } from '@/convex/_generated/api';
-import type { Id } from '@/convex/_generated/dataModel';
-import { useFeatureToggles } from '@/hooks/useFeatureToggles';
-import { useListKeyboardNavigation } from '@/hooks/useListKeyboardNavigation';
-import { useNewChat } from '@/hooks/useNewChat';
-import { cn } from '@/lib/utils';
-import { UserButton } from '@clerk/nextjs';
-import { useAction, useMutation, useQuery } from 'convex/react';
+} from "@/components/ui/sidebar";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
+import { useNewChat } from "@/hooks/useNewChat";
+import { cn } from "@/lib/utils";
+import { UserButton } from "@clerk/nextjs";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Bookmark,
   Brain,
@@ -49,58 +48,58 @@ import {
   Search,
   Settings,
   Shield,
-} from 'lucide-react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useQueryState } from 'nuqs';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { BulkActionBar } from './BulkActionBar';
-import { BulkDeleteDialog } from './BulkDeleteDialog';
-import { ConversationList } from './ConversationList';
-import { ConversationListSkeleton } from './ConversationListSkeleton';
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { BulkActionBar } from "./BulkActionBar";
+import { BulkDeleteDialog } from "./BulkDeleteDialog";
+import { ConversationList } from "./ConversationList";
+import { ConversationListSkeleton } from "./ConversationListSkeleton";
 
 const MENU_ITEMS = [
-  { icon: Search, label: 'Search', href: '/search', featureKey: null },
+  { icon: Search, label: "Search", href: "/search", featureKey: null },
   {
     icon: NotebookPen,
-    label: 'Notes',
-    href: '/notes',
-    featureKey: 'showNotes' as const,
+    label: "Notes",
+    href: "/notes",
+    featureKey: "showNotes" as const,
   },
-  { icon: Brain, label: 'Memories', href: '/memories', featureKey: null },
+  { icon: Brain, label: "Memories", href: "/memories", featureKey: null },
   {
     icon: FolderKanban,
-    label: 'Projects',
-    href: '/projects',
-    featureKey: 'showProjects' as const,
+    label: "Projects",
+    href: "/projects",
+    featureKey: "showProjects" as const,
   },
-  { icon: CheckSquare, label: 'Tasks', href: '/tasks', featureKey: null },
-  { icon: Mic, label: 'Smart Assistant', href: '/assistant', featureKey: null },
+  { icon: CheckSquare, label: "Tasks", href: "/tasks", featureKey: null },
+  { icon: Mic, label: "Smart Assistant", href: "/assistant", featureKey: null },
   {
     icon: FileText,
-    label: 'Templates',
-    href: '/templates',
-    featureKey: 'showTemplates' as const,
+    label: "Templates",
+    href: "/templates",
+    featureKey: "showTemplates" as const,
   },
   {
     icon: Bookmark,
-    label: 'Bookmarks',
-    href: '/bookmarks',
-    featureKey: 'showBookmarks' as const,
+    label: "Bookmarks",
+    href: "/bookmarks",
+    featureKey: "showBookmarks" as const,
   },
-  { icon: Keyboard, label: 'Shortcuts', href: '/shortcuts', featureKey: null }, // Hidden on mobile via featureKey filtering logic update below
-  { icon: Settings, label: 'Settings', href: '/settings', featureKey: null },
+  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null }, // Hidden on mobile via featureKey filtering logic update below
+  { icon: Settings, label: "Settings", href: "/settings", featureKey: null },
 ];
 
 export function AppSidebar() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [projectFilter, setProjectFilter] = useQueryState('project');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [projectFilter, setProjectFilter] = useQueryState("project");
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list, {
     projectId:
-      (projectFilter as Id<'projects'> | 'none' | undefined) || undefined,
+      (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
   });
 
   // Bulk actions mutations
@@ -119,11 +118,43 @@ export function AppSidebar() {
   const { startNewChat } = useNewChat();
   const { isLoaded: isAuthLoaded } = useAuth();
 
+  // Get advanced settings with proper loading state detection
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const rawAdvancedSettings = useQuery(api.users.getUserPreferencesByCategory, {
+    category: "advanced",
+  });
+
   // Check if current user is admin
   const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
 
-  // Feature toggles for conditional sidebar items
-  const features = useFeatureToggles();
+  // Use advancedSettings for sidebar visibility
+  // Use the raw query state to properly detect loading
+  const sidebarFeatures = useMemo(() => {
+    // rawAdvancedSettings: undefined = loading, null = not authenticated, object = loaded
+    const isLoading = rawAdvancedSettings === undefined;
+    const isNotAuthenticated = rawAdvancedSettings === null;
+
+    if (isLoading || isNotAuthenticated) {
+      // During loading or when not authenticated, don't show any advanced features
+      // This prevents the flicker of items appearing and then disappearing
+      return {
+        showNotes: false,
+        showTemplates: false,
+        showProjects: false,
+        showBookmarks: false,
+        isLoading: true,
+      };
+    }
+
+    // Settings are loaded - use actual values with defaults from PREFERENCE_DEFAULTS
+    return {
+      showNotes: rawAdvancedSettings.showNotes ?? true,
+      showTemplates: rawAdvancedSettings.showTemplates ?? true,
+      showProjects: rawAdvancedSettings.showProjects ?? true,
+      showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
+      isLoading: false,
+    };
+  }, [rawAdvancedSettings]);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -131,8 +162,8 @@ export function AppSidebar() {
 
   // Collapsible state with localStorage
   const [conversationsExpanded, setConversationsExpanded] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('conversationsExpanded');
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("conversationsExpanded");
       return saved !== null ? JSON.parse(saved) : true;
     }
     return true;
@@ -140,8 +171,8 @@ export function AppSidebar() {
 
   useEffect(() => {
     localStorage.setItem(
-      'conversationsExpanded',
-      JSON.stringify(conversationsExpanded)
+      "conversationsExpanded",
+      JSON.stringify(conversationsExpanded),
     );
   }, [conversationsExpanded]);
 
@@ -155,9 +186,9 @@ export function AppSidebar() {
   const filteredConversations = useMemo(
     () =>
       conversations?.filter((conv: any) =>
-        conv.title?.toLowerCase().includes(searchQuery.toLowerCase())
+        conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
       ),
-    [conversations, searchQuery]
+    [conversations, searchQuery],
   );
 
   // Update context whenever filtered conversations change
@@ -179,13 +210,18 @@ export function AppSidebar() {
     getItemId: (conv: any) => conv._id,
   });
 
-  // Filter menu items based on feature toggles
+  // Filter menu items based on advanced settings
+  // Don't render any items with featureKeys during loading to prevent flicker
   const visibleMenuItems = MENU_ITEMS.filter((item) => {
     // Special case: Hide Shortcuts on mobile
-    if (isMobile && item.href === '/shortcuts') return false;
+    if (isMobile && item.href === "/shortcuts") return false;
 
-    if (!item.featureKey) return true; // Always show items without featureKey
-    return features[item.featureKey]; // Show only if feature is enabled
+    if (!item.featureKey) return true; // Always show items without featureKey (Search, Memories, Tasks, etc.)
+
+    // During loading, hide all items with featureKeys to prevent them from showing then disappearing
+    if (sidebarFeatures.isLoading) return false;
+
+    return sidebarFeatures[item.featureKey]; // Show only if feature is enabled in advanced settings
   });
 
   const displayedItems = isMobile
@@ -196,7 +232,7 @@ export function AppSidebar() {
   // Bulk action handlers - wrapped in useCallback to prevent infinite re-renders
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   }, []);
 
@@ -207,7 +243,7 @@ export function AppSidebar() {
   const handleBulkDelete = async () => {
     try {
       await bulkDelete({
-        conversationIds: selectedIds as Id<'conversations'>[],
+        conversationIds: selectedIds as Id<"conversations">[],
       });
       toast.success(`Deleted ${selectedIds.length} conversations`);
       setSelectedIds([]);
@@ -217,19 +253,19 @@ export function AppSidebar() {
       // but convex query update will trigger redirect in ConversationItem if needed?
       // ConversationItem handles redirect if *itself* is deleted.
     } catch (_error) {
-      toast.error('Failed to delete conversations');
+      toast.error("Failed to delete conversations");
     }
   };
 
   const handleBulkArchive = async () => {
     try {
       await bulkArchive({
-        conversationIds: selectedIds as Id<'conversations'>[],
+        conversationIds: selectedIds as Id<"conversations">[],
       });
       toast.success(`Archived ${selectedIds.length} conversations`);
       setSelectedIds([]);
     } catch (_error) {
-      toast.error('Failed to archive conversations');
+      toast.error("Failed to archive conversations");
     }
   };
 
@@ -243,18 +279,18 @@ export function AppSidebar() {
     try {
       if (allPinned) {
         await bulkUnpin({
-          conversationIds: selectedIds as Id<'conversations'>[],
+          conversationIds: selectedIds as Id<"conversations">[],
         });
         toast.success(`Unpinned ${selectedIds.length} conversations`);
       } else {
         await bulkPin({
-          conversationIds: selectedIds as Id<'conversations'>[],
+          conversationIds: selectedIds as Id<"conversations">[],
         });
         toast.success(`Pinned ${selectedIds.length} conversations`);
       }
       setSelectedIds([]);
     } catch (_error) {
-      toast.error('Failed to update pin status');
+      toast.error("Failed to update pin status");
     }
   };
 
@@ -272,32 +308,32 @@ export function AppSidebar() {
     try {
       if (allStarred) {
         await bulkUnstar({
-          conversationIds: selectedIds as Id<'conversations'>[],
+          conversationIds: selectedIds as Id<"conversations">[],
         });
         toast.success(`Unstarred ${selectedIds.length} conversations`);
       } else {
         await bulkStar({
-          conversationIds: selectedIds as Id<'conversations'>[],
+          conversationIds: selectedIds as Id<"conversations">[],
         });
         toast.success(`Starred ${selectedIds.length} conversations`);
       }
       setSelectedIds([]);
     } catch (_error) {
-      toast.error('Failed to update star status');
+      toast.error("Failed to update star status");
     }
   };
 
   const handleBulkAutoRename = async () => {
     try {
-      toast.info('Generating titles...');
+      toast.info("Generating titles...");
       const results = await bulkAutoRename({
-        conversationIds: selectedIds as Id<'conversations'>[],
+        conversationIds: selectedIds as Id<"conversations">[],
       });
       const successCount = results.filter((r: any) => r.success).length;
       toast.success(`Renamed ${successCount} conversations`);
       setSelectedIds([]);
     } catch (_error) {
-      toast.error('Failed to rename conversations');
+      toast.error("Failed to rename conversations");
     }
   };
 
@@ -340,7 +376,7 @@ export function AppSidebar() {
               New Chat
             </span>
             <div className="hidden sm:flex">
-              <ShortcutBadge keys={['Alt', 'N']} />
+              <ShortcutBadge keys={["Alt", "N"]} />
             </div>
           </Button>
         </div>
@@ -356,18 +392,18 @@ export function AppSidebar() {
             <SidebarGroupLabel>Conversations</SidebarGroupLabel>
             <ChevronDown
               className={cn(
-                'w-4 h-4 transition-transform duration-200',
-                !conversationsExpanded && '-rotate-90'
+                "w-4 h-4 transition-transform duration-200",
+                !conversationsExpanded && "-rotate-90",
               )}
             />
           </div>
 
           {!conversationsExpanded && (
             <div className="px-2 pt-2 text-xs text-muted-foreground">
-              Expand to view conversations or press{' '}
+              Expand to view conversations or press{" "}
               <kbd className="px-1 py-0.5 rounded border border-border/30 bg-background/50 font-mono text-[10px]">
                 ⌘K
-              </kbd>{' '}
+              </kbd>{" "}
               to search
             </div>
           )}
@@ -376,7 +412,7 @@ export function AppSidebar() {
             <>
               {/* Project filter and search box - now inside group, below label */}
               <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2 space-y-2">
-                {features.showProjects && (
+                {sidebarFeatures.showProjects && (
                   <ProjectFilter
                     value={projectFilter}
                     onChange={setProjectFilter}
@@ -494,9 +530,9 @@ export function AppSidebar() {
                         <Link
                           href={item.href}
                           className={cn(
-                            'flex items-center gap-2 cursor-pointer',
+                            "flex items-center gap-2 cursor-pointer",
                             isActive &&
-                              'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
                           )}
                         >
                           <item.icon className="w-4 h-4 text-muted-foreground" />
@@ -515,7 +551,7 @@ export function AppSidebar() {
               <SidebarMenuButton
                 asChild
                 tooltip="Admin Dashboard"
-                isActive={pathname.startsWith('/admin')}
+                isActive={pathname.startsWith("/admin")}
               >
                 <Link
                   href="/admin/feedback"

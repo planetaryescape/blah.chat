@@ -528,7 +528,7 @@ export function AppSidebar() {
             </SidebarMenuItem>
           )}
         </SidebarMenu>
-        <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden">
+        <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden min-h-10">
           <div className="flex items-center justify-between">
             {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
             <ThemeSwitcher />

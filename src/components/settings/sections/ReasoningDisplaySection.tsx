@@ -30,7 +30,7 @@ export function ReasoningDisplaySection({
       <AccordionTrigger>Reasoning Display</AccordionTrigger>
       <AccordionContent className="space-y-4 pt-4">
         <p className="text-sm text-muted-foreground">
-          Control how AI thinking is displayed for reasoning models (o1/o3,
+          Control how AI thinking is displayed for reasoning models (GPT-5, Claude Opus,
           DeepSeek R1)
         </p>
 

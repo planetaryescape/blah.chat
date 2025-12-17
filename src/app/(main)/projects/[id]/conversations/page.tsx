@@ -264,7 +264,7 @@ export default function ProjectConversationsPage({
   const handleCreateChat = async () => {
     try {
       const conversationId = await createConversation({
-        model: "openai:gpt-4o",
+        model: "zai:glm-4.6v-flash",
         title: "New Project Chat",
       });
       await addConversation({ projectId, conversationId });

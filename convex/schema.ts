@@ -1063,6 +1063,9 @@ export default defineSchema({
     // Email alerts
     alertEmail: v.string(),
 
+    // Telemetry (self-hosted instances)
+    instanceId: v.optional(v.string()), // Anonymous UUID for telemetry
+
     // Future: General settings, Features
 
     updatedBy: v.id("users"),

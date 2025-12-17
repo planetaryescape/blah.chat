@@ -43,8 +43,8 @@ export function UserSyncError() {
             <div className="space-y-3 text-left bg-muted/50 rounded-lg p-4 mt-4">
               <p className="text-sm text-muted-foreground">
                 <strong className="text-foreground">Development Mode:</strong>{" "}
-                Your user record wasn&apos;t synced to Convex. This usually means
-                the Clerk webhook didn&apos;t fire.
+                Your user record wasn&apos;t synced to Convex. This usually
+                means the Clerk webhook didn&apos;t fire.
               </p>
               <p className="text-sm text-muted-foreground">
                 <strong>Possible causes:</strong>
@@ -52,7 +52,12 @@ export function UserSyncError() {
               <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                 <li>Webhook not configured in Clerk dashboard</li>
                 <li>No tunnel exposing localhost to Clerk</li>
-                <li>Missing <code className="bg-muted px-1 rounded">CLERK_WEBHOOK_SECRET</code></li>
+                <li>
+                  Missing{" "}
+                  <code className="bg-muted px-1 rounded">
+                    CLERK_WEBHOOK_SECRET
+                  </code>
+                </li>
               </ul>
               {user?.id && (
                 <p className="text-xs text-muted-foreground/70 font-mono mt-2">

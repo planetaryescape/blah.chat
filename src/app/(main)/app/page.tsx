@@ -3,7 +3,12 @@
 import { UserSyncError } from "@/components/auth/UserSyncError";
 import { api } from "@/convex/_generated/api";
 import { useNewChat } from "@/hooks/useNewChat";
-import { Authenticated, Unauthenticated, useConvexAuth, useQuery } from "convex/react";
+import {
+  Authenticated,
+  Unauthenticated,
+  useConvexAuth,
+  useQuery,
+} from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -17,7 +22,7 @@ export default function AppPage() {
   // undefined = loading, null = not found (webhook failed), object = user exists
   const convexUser = useQuery(
     api.users.getCurrentUser,
-    isAuthenticated ? {} : "skip"
+    isAuthenticated ? {} : "skip",
   );
 
   // Redirect unauthenticated users to sign-in
@@ -54,4 +59,3 @@ export default function AppPage() {
     </div>
   );
 }
-

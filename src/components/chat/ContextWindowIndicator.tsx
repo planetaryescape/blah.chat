@@ -2,10 +2,10 @@
 
 import { Progress } from "@/components/ui/progress";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getModelConfig } from "@/lib/ai/utils";
 import { useQuery } from "convex/react";
@@ -15,7 +15,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 interface ContextWindowIndicatorProps {
   conversationId: Id<"conversations">;
-  modelId: string;  // Currently selected model
+  modelId: string; // Currently selected model
 }
 
 export function ContextWindowIndicator({
@@ -35,13 +35,12 @@ export function ContextWindowIndicator({
     return null;
   }
 
-  const {
-    systemTokens,
-    messagesTokens,
-    memoriesTokens,
-    totalTokens,
-  } = tokenUsage;
-  const percentage = Math.min(100, Math.round((totalTokens / contextLimit) * 100));
+  const { systemTokens, messagesTokens, memoriesTokens, totalTokens } =
+    tokenUsage;
+  const percentage = Math.min(
+    100,
+    Math.round((totalTokens / contextLimit) * 100),
+  );
 
   // Determine warning level
   const getWarningLevel = () => {

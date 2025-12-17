@@ -36,7 +36,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
   setTemplateText: (text: string, name?: string) => {
     set({
       pendingTemplateText: text,
-      pendingTemplateName: name || null
+      pendingTemplateName: name || null,
     });
   },
 
@@ -49,7 +49,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
 
     return {
       text: pendingTemplateText,
-      name: pendingTemplateName || "Template"
+      name: pendingTemplateName || "Template",
     };
   },
 

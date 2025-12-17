@@ -3,36 +3,36 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-    type ColumnDef,
-    type SortingState,
-    flexRender,
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
 import {
-    ArrowUpDown,
-    Calendar,
-    ExternalLink,
-    MessageSquare,
-    MoreVertical,
-    Trash2
+  ArrowUpDown,
+  Calendar,
+  ExternalLink,
+  MessageSquare,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,10 +43,7 @@ interface BookmarkTableProps {
   onRemove: (id: string) => void;
 }
 
-export function BookmarksTable({
-  bookmarks,
-  onRemove,
-}: BookmarkTableProps) {
+export function BookmarksTable({ bookmarks, onRemove }: BookmarkTableProps) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState({
@@ -91,34 +88,45 @@ export function BookmarksTable({
       header: "Message",
       cell: ({ row }) => {
         const content = row.original.message?.content || "";
-        const preview = content.length > 80 ? content.slice(0, 80) + "..." : content;
+        const preview =
+          content.length > 80 ? content.slice(0, 80) + "..." : content;
         return (
-            <span className="text-sm text-muted-foreground line-clamp-1" title={content}>
-                {preview}
-            </span>
-        )
+          <span
+            className="text-sm text-muted-foreground line-clamp-1"
+            title={content}
+          >
+            {preview}
+          </span>
+        );
       },
     },
     {
       accessorKey: "tags",
       header: "Tags",
       cell: ({ row }) => {
-         const tags = row.original.tags || [];
-         if (tags.length === 0) return <span className="text-muted-foreground text-xs">-</span>;
+        const tags = row.original.tags || [];
+        if (tags.length === 0)
+          return <span className="text-muted-foreground text-xs">-</span>;
 
-         return (
-             <div className="flex flex-wrap gap-1">
-                 {tags.slice(0, 2).map((tag: string) => (
-                     <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground border-border/30">
-                         {tag}
-                     </Badge>
-                 ))}
-                 {tags.length > 2 && (
-                     <span className="text-[10px] text-muted-foreground">+{tags.length - 2}</span>
-                 )}
-             </div>
-         )
-      }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {tags.slice(0, 2).map((tag: string) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground border-border/30"
+              >
+                {tag}
+              </Badge>
+            ))}
+            {tags.length > 2 && (
+              <span className="text-[10px] text-muted-foreground">
+                +{tags.length - 2}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "createdAt",
@@ -149,7 +157,9 @@ export function BookmarksTable({
         const bookmark = row.original;
 
         const handleNavigate = () => {
-             router.push(`/chat/${bookmark.conversationId}?messageId=${bookmark.messageId}`);
+          router.push(
+            `/chat/${bookmark.conversationId}?messageId=${bookmark.messageId}`,
+          );
         };
 
         return (
@@ -163,8 +173,8 @@ export function BookmarksTable({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleNavigate}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Go to Message
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Go to Message
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onRemove(bookmark._id)}
@@ -209,7 +219,7 @@ export function BookmarksTable({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -229,7 +239,7 @@ export function BookmarksTable({
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -251,8 +261,8 @@ export function BookmarksTable({
 
       <div className="flex items-center justify-end space-x-2">
         <div className="text-xs text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+          Page {table.getState().pagination.pageIndex + 1} of{" "}
+          {table.getPageCount()}
         </div>
         <div className="space-x-2">
           <Button

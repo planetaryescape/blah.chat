@@ -32,9 +32,7 @@ export class MessageQueue {
   /**
    * Add message to offline queue
    */
-  enqueue(
-    message: Omit<QueuedMessage, "id" | "timestamp" | "retries">,
-  ): void {
+  enqueue(message: Omit<QueuedMessage, "id" | "timestamp" | "retries">): void {
     const queue = this.getQueue();
 
     const queuedMessage: QueuedMessage = {

@@ -1,12 +1,19 @@
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { query } from "../_generated/server";
 
 export const checkBudget = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    // Get budget from admin settings
-    const adminSettings = await ctx.db.query("adminSettings").first();
-    const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 10;
+    // Get budget from admin settings (with env var overrides)
+    const adminSettings = await ((ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.adminSettings.getWithEnvOverrides,
+    ) as Promise<{
+      defaultMonthlyBudget: number;
+      budgetHardLimitEnabled: boolean;
+    }>);
+    const monthlyBudget = adminSettings.defaultMonthlyBudget;
 
     if (monthlyBudget === 0) {
       return {

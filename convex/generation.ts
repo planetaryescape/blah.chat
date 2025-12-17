@@ -5,9 +5,9 @@ import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import {
-    calculateCost,
-    getModelConfig,
-    type ModelConfig,
+  calculateCost,
+  getModelConfig,
+  type ModelConfig,
 } from "@/lib/ai/utils";
 import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
@@ -19,9 +19,9 @@ import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import {
-    createMemoryDeleteTool,
-    createMemorySaveTool,
-    createMemorySearchTool,
+  createMemoryDeleteTool,
+  createMemorySaveTool,
+  createMemorySearchTool,
 } from "./ai/tools/memories";
 import { createQueryProjectHistoryTool } from "./ai/tools/projectContext/queryProjectHistory";
 import { createSearchProjectFilesTool } from "./ai/tools/projectContext/searchProjectFiles";
@@ -32,18 +32,18 @@ import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
 import { trackServerEvent } from "./lib/analytics";
 import {
-    captureException,
-    classifyStreamingError,
-    estimateWastedCost,
+  captureException,
+  classifyStreamingError,
+  estimateWastedCost,
 } from "./lib/errorTracking";
 import { getBasePrompt } from "./lib/prompts/base";
 import {
-    formatMemoriesByCategory,
-    truncateMemories,
+  formatMemoriesByCategory,
+  truncateMemories,
 } from "./lib/prompts/formatting";
 import {
-    buildSummarizationPrompt,
-    SUMMARIZATION_SYSTEM_PROMPT,
+  buildSummarizationPrompt,
+  SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
@@ -1351,7 +1351,10 @@ export const generateResponse = internalAction({
             fullResponse: parsedBody,
           });
         } catch {
-          console.error("[Generation] Raw gateway responseBody:", causeObj.responseBody);
+          console.error(
+            "[Generation] Raw gateway responseBody:",
+            causeObj.responseBody,
+          );
         }
       }
 
@@ -1472,7 +1475,10 @@ export const generateResponse = internalAction({
           ) {
             userMessage =
               "This model couldn't process the content. Try a different model like GPT-4o-mini or Claude, or start a new conversation.";
-          } else if (specificMessage?.includes("context") || specificMessage?.includes("too long")) {
+          } else if (
+            specificMessage?.includes("context") ||
+            specificMessage?.includes("too long")
+          ) {
             userMessage =
               "The conversation is too long for this model. Try a model with larger context like Gemini 2.5 Pro.";
           } else {

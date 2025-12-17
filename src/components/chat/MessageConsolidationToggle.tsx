@@ -34,7 +34,7 @@ export function MessageConsolidationToggle({
         <ChevronDown
           className={cn(
             "w-3 h-3 transition-transform",
-            showOriginals && "rotate-180"
+            showOriginals && "rotate-180",
           )}
         />
         {showOriginals ? "Hide" : "Show"} original {originalResponses.length}{" "}

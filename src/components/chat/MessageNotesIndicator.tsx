@@ -20,12 +20,13 @@ export function MessageNotesIndicator({
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Check if this is a temporary optimistic message (not yet persisted)
-  const isTempMessage = typeof messageId === "string" && messageId.startsWith("temp-");
+  const isTempMessage =
+    typeof messageId === "string" && messageId.startsWith("temp-");
 
   // Skip query for temporary optimistic messages
   const notes = useQuery(
     api.notes.getNotesFromMessage,
-    isTempMessage ? "skip" : { messageId }
+    isTempMessage ? "skip" : { messageId },
   );
 
   if (!notes || notes.length === 0) {

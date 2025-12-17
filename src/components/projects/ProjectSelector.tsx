@@ -1,11 +1,11 @@
 "use client";
 
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -37,7 +37,10 @@ export function ProjectSelector({
 
   return (
     <Select value={currentProjectId || "none"} onValueChange={handleChange}>
-      <SelectTrigger className="w-auto sm:w-[200px] px-2 sm:px-3" aria-label="Select Project">
+      <SelectTrigger
+        className="w-auto sm:w-[200px] px-2 sm:px-3"
+        aria-label="Select Project"
+      >
         <div className="flex items-center gap-2">
           <FolderOpen className="w-4 h-4 shrink-0" />
           <span className="hidden sm:block truncate">

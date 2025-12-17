@@ -28,27 +28,26 @@ http.route({
 
       // Store in Convex file storage
       const storageId = await ctx.storage.store(
-        new Blob([imageBuffer], { type: contentType })
+        new Blob([imageBuffer], { type: contentType }),
       );
 
       // Get the URL
       const url = await ctx.storage.getUrl(storageId);
 
-      return new Response(
-        JSON.stringify({ storageId, url }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
+      return new Response(JSON.stringify({ storageId, url }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     } catch (error) {
       console.error("[StoreCodeExecutionImage] Error:", error);
       return new Response(
-        JSON.stringify({ error: error instanceof Error ? error.message : "Storage failed" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Storage failed",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
   }),
@@ -163,4 +162,3 @@ http.route({
 });
 
 export default http;
-

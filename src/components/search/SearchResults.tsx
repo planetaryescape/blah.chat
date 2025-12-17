@@ -141,44 +141,44 @@ export function SearchResults({
 
       {/* Results list with stagger animation */}
       <div className="border border-border/40 rounded-lg overflow-hidden bg-muted/5">
-      <motion.div
-        className="divide-y divide-border/40"
-        variants={{
-          hidden: { opacity: 0 },
-          show: {
-            opacity: 1,
-            transition: {
-              staggerChildren: 0.02,
-            },
-          },
-        }}
-        initial="hidden"
-        animate="show"
-      >
-        {results.map((result: any, index: number) => (
-          <motion.div
-            key={result._id}
-            variants={{
-              hidden: { opacity: 0, y: 10 },
-              show: {
-                opacity: 1,
-                y: 0,
-                transition: {
-                  duration: 0.2
-                },
+        <motion.div
+          className="divide-y divide-border/40"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.02,
               },
-            }}
-          >
-            <SearchResultCard
-              message={result}
-              query={query}
-              index={index}
-              isSelected={isSelected ? isSelected(result._id) : false}
-              onToggleSelection={toggleSelection || (() => {})}
-            />
-          </motion.div>
-        ))}
-      </motion.div>
+            },
+          }}
+          initial="hidden"
+          animate="show"
+        >
+          {results.map((result: any, index: number) => (
+            <motion.div
+              key={result._id}
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                show: {
+                  opacity: 1,
+                  y: 0,
+                  transition: {
+                    duration: 0.2,
+                  },
+                },
+              }}
+            >
+              <SearchResultCard
+                message={result}
+                query={query}
+                index={index}
+                isSelected={isSelected ? isSelected(result._id) : false}
+                onToggleSelection={toggleSelection || (() => {})}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
 
       {/* Load more trigger & button */}
@@ -234,66 +234,66 @@ function SearchResultCard({
 
   return (
     <div className="relative group/item z-0">
-        {/* Selected Indicator - Left Bar */}
-        {isSelected && (
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary z-20" />
+      {/* Selected Indicator - Left Bar */}
+      {isSelected && (
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary z-20" />
+      )}
+
+      <div
+        className={cn(
+          "w-full text-left px-4 py-3.5 transition-colors duration-200 border-b border-border/40",
+          isSelected ? "bg-accent/50" : "hover:bg-muted/30",
         )}
+      >
+        <div className="flex items-start gap-3">
+          {/* Checkbox - aligned with content */}
+          <div
+            onClick={(e) => e.preventDefault()}
+            className="pt-1 opacity-10 group-hover/item:opacity-100 transition-opacity" // Hide checkbox by default unless selected? keeping it visible on hover for cleaner look
+          >
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelection(message._id)}
+              className="h-4 w-4 border-muted-foreground/40 data-[state=checked]:border-primary"
+            />
+          </div>
 
-        <div
-            className={cn(
-                "w-full text-left px-4 py-3.5 transition-colors duration-200 border-b border-border/40",
-                 isSelected
-                    ? "bg-accent/50"
-                    : "hover:bg-muted/30"
-            )}
-        >
-            <div className="flex items-start gap-3">
-                 {/* Checkbox - aligned with content */}
-                <div
-                    onClick={(e) => e.preventDefault()}
-                    className="pt-1 opacity-10 group-hover/item:opacity-100 transition-opacity" // Hide checkbox by default unless selected? keeping it visible on hover for cleaner look
+          <Link
+            href={`/chat/${message.conversationId}?messageId=${message._id}#message-${message._id}`}
+            className="flex-1 min-w-0 block"
+            onClick={handleResultClick}
+          >
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3
+                  className={cn(
+                    "text-[13px] truncate font-medium",
+                    isSelected ? "text-foreground" : "text-foreground/90",
+                  )}
                 >
-                    <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => onToggleSelection(message._id)}
-                        className="h-4 w-4 border-muted-foreground/40 data-[state=checked]:border-primary"
-                    />
-                </div>
-
-                <Link
-                    href={`/chat/${message.conversationId}?messageId=${message._id}#message-${message._id}`}
-                    className="flex-1 min-w-0 block"
-                    onClick={handleResultClick}
-                >
-                    <div className="flex items-baseline justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <h3 className={cn(
-                                "text-[13px] truncate font-medium",
-                                isSelected ? "text-foreground" : "text-foreground/90"
-                            )}>
-                                {conversation?.title || "Untitled Conversation"}
-                            </h3>
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted/50 text-muted-foreground font-medium uppercase tracking-wider">
-                                {message.role === "user" ? "You" : "AI"}
-                            </span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
-                            {formatDistanceToNow(message.createdAt, { addSuffix: true })}
-                        </span>
-                    </div>
-
-                    <div className="pr-8">
-                         <p
-                            className={cn(
-                                "text-[12px] line-clamp-2 leading-relaxed text-muted-foreground/70",
-                                isSelected ? "text-muted-foreground/90" : ""
-                            )}
-                            dangerouslySetInnerHTML={{ __html: highlightedContent }}
-                        />
-                    </div>
-                </Link>
+                  {conversation?.title || "Untitled Conversation"}
+                </h3>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-muted/50 text-muted-foreground font-medium uppercase tracking-wider">
+                  {message.role === "user" ? "You" : "AI"}
+                </span>
+              </div>
+              <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
+                {formatDistanceToNow(message.createdAt, { addSuffix: true })}
+              </span>
             </div>
+
+            <div className="pr-8">
+              <p
+                className={cn(
+                  "text-[12px] line-clamp-2 leading-relaxed text-muted-foreground/70",
+                  isSelected ? "text-muted-foreground/90" : "",
+                )}
+                dangerouslySetInnerHTML={{ __html: highlightedContent }}
+              />
+            </div>
+          </Link>
         </div>
+      </div>
     </div>
   );
 }
@@ -303,8 +303,8 @@ function highlightText(text: string, query: string): string {
   // This prevents leading whitespace from causing inconsistent card heights
   const normalizedText = text
     .trim()
-    .replace(/^\s+/gm, '') // Remove leading whitespace from each line
-    .replace(/\n{3,}/g, '\n\n'); // Collapse 3+ newlines to 2
+    .replace(/^\s+/gm, "") // Remove leading whitespace from each line
+    .replace(/\n{3,}/g, "\n\n"); // Collapse 3+ newlines to 2
 
   if (!query.trim()) return DOMPurify.sanitize(normalizedText);
 

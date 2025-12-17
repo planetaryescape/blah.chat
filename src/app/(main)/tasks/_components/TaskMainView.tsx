@@ -74,62 +74,62 @@ export function TaskMainView({
         </div>
       </header>
 
-        <ScrollArea className="flex-1 px-6">
-          <div className="space-y-1 pb-4">
-            {/* Incomplete Tasks */}
-            {tasks
-              .filter((t) => t.status !== "completed")
-              .map((task) => (
-                <TaskListItem
-                  key={task._id}
-                  task={task}
-                  onClick={() => onTaskSelect?.(task._id)}
-                  isSelected={selectedTaskId === task._id}
-                />
-              ))}
+      <ScrollArea className="flex-1 px-6">
+        <div className="space-y-1 pb-4">
+          {/* Incomplete Tasks */}
+          {tasks
+            .filter((t) => t.status !== "completed")
+            .map((task) => (
+              <TaskListItem
+                key={task._id}
+                task={task}
+                onClick={() => onTaskSelect?.(task._id)}
+                isSelected={selectedTaskId === task._id}
+              />
+            ))}
 
-            {/* Completed Tasks Accordion? Or just list at bottom */}
-            {tasks.some((t) => t.status === "completed") && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 px-2">
-                  Completed
-                </h3>
-                <div className="opacity-70">
-                  {tasks
-                    .filter((t) => t.status === "completed")
-                    .map((task) => (
-                      <TaskListItem
-                        key={task._id}
-                        task={task}
-                        onClick={() => onTaskSelect?.(task._id)}
-                        isSelected={selectedTaskId === task._id}
-                      />
-                    ))}
-                </div>
+          {/* Completed Tasks Accordion? Or just list at bottom */}
+          {tasks.some((t) => t.status === "completed") && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3 px-2">
+                Completed
+              </h3>
+              <div className="opacity-70">
+                {tasks
+                  .filter((t) => t.status === "completed")
+                  .map((task) => (
+                    <TaskListItem
+                      key={task._id}
+                      task={task}
+                      onClick={() => onTaskSelect?.(task._id)}
+                      isSelected={selectedTaskId === task._id}
+                    />
+                  ))}
               </div>
-            )}
-          </div>
-        </ScrollArea>
-
-        <div className="p-6 pt-2">
-          <form
-            onSubmit={handleCreateTask}
-            className="flex items-center gap-2 bg-secondary/80 p-3 rounded-md hover:bg-secondary transition-colors group focus-within:bg-background focus-within:ring-1 focus-within:ring-primary focus-within:shadow-lg"
-          >
-            <Plus className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />
-            <Input
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Add a task"
-              className="border-none bg-transparent shadow-none focus-visible:ring-0 px-2 h-auto py-1 text-base placeholder:text-muted-foreground/70"
-            />
-            {newTaskTitle && (
-              <Button size="sm" type="submit" variant="ghost">
-                Add
-              </Button>
-            )}
-          </form>
+            </div>
+          )}
         </div>
+      </ScrollArea>
+
+      <div className="p-6 pt-2">
+        <form
+          onSubmit={handleCreateTask}
+          className="flex items-center gap-2 bg-secondary/80 p-3 rounded-md hover:bg-secondary transition-colors group focus-within:bg-background focus-within:ring-1 focus-within:ring-primary focus-within:shadow-lg"
+        >
+          <Plus className="h-5 w-5 text-muted-foreground group-focus-within:text-primary" />
+          <Input
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            placeholder="Add a task"
+            className="border-none bg-transparent shadow-none focus-visible:ring-0 px-2 h-auto py-1 text-base placeholder:text-muted-foreground/70"
+          />
+          {newTaskTitle && (
+            <Button size="sm" type="submit" variant="ghost">
+              Add
+            </Button>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

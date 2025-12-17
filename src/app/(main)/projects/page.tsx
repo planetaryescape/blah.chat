@@ -8,21 +8,21 @@ import { ProjectsEmptyState } from "@/components/projects/ProjectsEmptyState";
 import { ProjectTable } from "@/components/projects/ProjectTable";
 import { TemplateManager } from "@/components/projects/TemplateManager";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -77,8 +77,8 @@ export default function ProjectsPage() {
     // But specific selectedProject state is better
     const project = projects?.find((p: any) => p._id === id);
     if (project) {
-        setSelectedProject(project);
-        setIsDeleteOpen(true);
+      setSelectedProject(project);
+      setIsDeleteOpen(true);
     }
   };
 
@@ -101,9 +101,11 @@ export default function ProjectsPage() {
   };
 
   // Filter projects
-  const filteredProjects = projects?.filter((p: any) =>
-    !p.isTemplate &&
-    (searchQuery === "" || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredProjects = projects?.filter(
+    (p: any) =>
+      !p.isTemplate &&
+      (searchQuery === "" ||
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   return (
@@ -121,35 +123,48 @@ export default function ProjectsPage() {
                   Manage and organize your conversations with custom context
                 </p>
               </div>
-              <Button onClick={() => setIsCreateOpen(true)} className="shadow-sm">
+              <Button
+                onClick={() => setIsCreateOpen(true)}
+                className="shadow-sm"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New Project
               </Button>
             </div>
 
             <div className="flex items-center justify-between gap-4 mt-2">
-                {/* Search */}
-                <div className="relative max-w-sm w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Filter projects..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 h-9 bg-muted/40 border-transparent hover:bg-muted/60 focus:bg-background transition-colors"
-                    />
-                </div>
+              {/* Search */}
+              <div className="relative max-w-sm w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filter projects..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 bg-muted/40 border-transparent hover:bg-muted/60 focus:bg-background transition-colors"
+                />
+              </div>
 
-                {/* View Toggle */}
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "grid" | "table")} className="w-[120px]">
-                    <TabsList className="grid w-full grid-cols-2 h-9 p-1 bg-muted/50">
-                        <TabsTrigger value="grid" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs">
-                            <LayoutGrid className="h-3.5 w-3.5" />
-                        </TabsTrigger>
-                        <TabsTrigger value="table" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs">
-                            <List className="h-3.5 w-3.5" />
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+              {/* View Toggle */}
+              <Tabs
+                value={viewMode}
+                onValueChange={(v) => setViewMode(v as "grid" | "table")}
+                className="w-[120px]"
+              >
+                <TabsList className="grid w-full grid-cols-2 h-9 p-1 bg-muted/50">
+                  <TabsTrigger
+                    value="grid"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="table"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-xs"
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -165,9 +180,11 @@ export default function ProjectsPage() {
           {/* Projects List */}
           <div>
             {viewMode === "grid" && (
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold tracking-tight">Your Projects</h2>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold tracking-tight">
+                  Your Projects
+                </h2>
+              </div>
             )}
 
             {projects === undefined ? (
@@ -175,34 +192,34 @@ export default function ProjectsPage() {
                 <span className="animate-pulse">Loading projects...</span>
               </div>
             ) : filteredProjects?.length === 0 ? (
-               searchQuery ? (
-                   <div className="text-center py-12 text-muted-foreground">
-                       No projects found matching "{searchQuery}"
-                   </div>
-               ) : (
-                  <ProjectsEmptyState onCreateProject={() => setIsCreateOpen(true)} />
-               )
-            ) : (
-              viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(filteredProjects ?? []).map((project: any) => (
-                      <ProjectCard
-                          key={project._id}
-                          project={project}
-                          onEdit={handleEdit}
-                          onDelete={handleDeleteClick}
-                          onManage={handleManageClick}
-                      />
-                    ))}
-                  </div>
+              searchQuery ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No projects found matching "{searchQuery}"
+                </div>
               ) : (
-                  <ProjectTable
-                      projects={filteredProjects ?? []}
-                      onEdit={handleEdit}
-                      onDelete={handleDeleteClick}
-                      onManage={handleManageClick}
-                  />
+                <ProjectsEmptyState
+                  onCreateProject={() => setIsCreateOpen(true)}
+                />
               )
+            ) : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(filteredProjects ?? []).map((project: any) => (
+                  <ProjectCard
+                    key={project._id}
+                    project={project}
+                    onEdit={handleEdit}
+                    onDelete={handleDeleteClick}
+                    onManage={handleManageClick}
+                  />
+                ))}
+              </div>
+            ) : (
+              <ProjectTable
+                projects={filteredProjects ?? []}
+                onEdit={handleEdit}
+                onDelete={handleDeleteClick}
+                onManage={handleManageClick}
+              />
             )}
           </div>
         </div>
@@ -232,12 +249,12 @@ export default function ProjectsPage() {
 
       {/* Manage Dialog (Bulk Assigner) - Reusing existing component but creating a wrapper logic if needed */}
       {selectedProject && (
-          <BulkConversationAssigner
-            open={isManageOpen}
-            onOpenChange={setIsManageOpen}
-            projectId={selectedProject._id}
-            projectName={selectedProject.name}
-          />
+        <BulkConversationAssigner
+          open={isManageOpen}
+          onOpenChange={setIsManageOpen}
+          projectId={selectedProject._id}
+          projectName={selectedProject.name}
+        />
       )}
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
@@ -245,8 +262,9 @@ export default function ProjectsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the project "{selectedProject?.name}" and unlink all conversations. The
-              conversations themselves will not be deleted.
+              This will remove the project "{selectedProject?.name}" and unlink
+              all conversations. The conversations themselves will not be
+              deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

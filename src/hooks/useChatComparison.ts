@@ -21,11 +21,11 @@ export function useChatComparison({
   const recordVote = useMutation(api.votes.recordVote);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConsolidation = useMutation(
-    api.conversations.createConsolidationConversation
+    api.conversations.createConsolidationConversation,
   );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const consolidateInPlace = useMutation(
-    api.conversations.consolidateInSameChat
+    api.conversations.consolidateInSameChat,
   );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);
@@ -34,7 +34,7 @@ export function useChatComparison({
     async (winnerId: string, rating: string) => {
       // Only handle votes for server-confirmed messages (not optimistic)
       const msg = messages?.find(
-        (m) => !("_optimistic" in m) && m._id === winnerId
+        (m) => !("_optimistic" in m) && m._id === winnerId,
       );
       if (msg?.comparisonGroupId) {
         const voteRating = rating as
@@ -49,7 +49,7 @@ export function useChatComparison({
         });
       }
     },
-    [messages, recordVote]
+    [messages, recordVote],
   );
 
   const handleConsolidate = useCallback(
@@ -86,7 +86,7 @@ export function useChatComparison({
       updateModelMutation,
       createConsolidation,
       router,
-    ]
+    ],
   );
 
   return {

@@ -1,40 +1,39 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
-    type ColumnDef,
-    type SortingState,
-    flexRender,
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
+  type ColumnDef,
+  type SortingState,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
 import { formatDistanceToNow } from "date-fns";
 import {
-    ArrowUpDown,
-    Calendar,
-    FolderOpen,
-    MoreVertical,
-    Settings,
-    Trash2,
+  ArrowUpDown,
+  Calendar,
+  FolderOpen,
+  MoreVertical,
+  Settings,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -144,8 +143,10 @@ export function ProjectTable({
                 <Link href={`/projects/${project._id}`}>
                   <DropdownMenuItem>Open Project</DropdownMenuItem>
                 </Link>
-                <DropdownMenuItem onClick={() => onManage(project._id, project.name)}>
-                    Manage Conversations
+                <DropdownMenuItem
+                  onClick={() => onManage(project._id, project.name)}
+                >
+                  Manage Conversations
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onEdit(project)}>
@@ -195,7 +196,7 @@ export function ProjectTable({
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -215,7 +216,7 @@ export function ProjectTable({
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -237,8 +238,8 @@ export function ProjectTable({
 
       <div className="flex items-center justify-end space-x-2">
         <div className="text-xs text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+          Page {table.getState().pagination.pageIndex + 1} of{" "}
+          {table.getPageCount()}
         </div>
         <div className="space-x-2">
           <Button

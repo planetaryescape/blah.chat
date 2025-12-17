@@ -1,10 +1,10 @@
 "use client";
 
 import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuTrigger,
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
@@ -76,7 +76,10 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const isMyDay = task.deadline && new Date(task.deadline) >= today && new Date(task.deadline) < tomorrow;
+  const isMyDay =
+    task.deadline &&
+    new Date(task.deadline) >= today &&
+    new Date(task.deadline) < tomorrow;
 
   return (
     <ContextMenu>

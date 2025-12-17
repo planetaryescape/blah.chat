@@ -15,9 +15,7 @@ export function SearchHeader({ children }: SearchHeaderProps) {
     >
       <div className="container mx-auto max-w-6xl px-4 py-4">
         <div className="mb-6 space-y-1">
-          <h1 className="text-xl font-bold tracking-tight">
-            Search
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight">Search</h1>
           <p className="text-sm text-muted-foreground">
             Find anything across all your conversations
           </p>

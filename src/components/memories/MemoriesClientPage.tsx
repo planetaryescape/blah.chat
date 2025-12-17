@@ -11,21 +11,37 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { Brain, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
-    parseAsBoolean,
-    parseAsString,
-    parseAsStringEnum,
-    useQueryState,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryState,
 } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
 
-const CATEGORY_LABELS: Record<string, { title: string; description: string }> = {
-  identity: { title: "Identity", description: "Personal info, background, occupation" },
-  preference: { title: "Preferences", description: "Likes, dislikes, style choices" },
-  project: { title: "Projects", description: "Things you're building, tech stack" },
-  context: { title: "Context", description: "Goals, challenges, environment" },
-  relationship: { title: "Relationships", description: "Team members, collaborators" },
-};
+const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
+  {
+    identity: {
+      title: "Identity",
+      description: "Personal info, background, occupation",
+    },
+    preference: {
+      title: "Preferences",
+      description: "Likes, dislikes, style choices",
+    },
+    project: {
+      title: "Projects",
+      description: "Things you're building, tech stack",
+    },
+    context: {
+      title: "Context",
+      description: "Goals, challenges, environment",
+    },
+    relationship: {
+      title: "Relationships",
+      description: "Team members, collaborators",
+    },
+  };
 
 export function MemoriesClientPage() {
   const router = useRouter();
@@ -33,22 +49,28 @@ export function MemoriesClientPage() {
   // URL state for filters and UI toggles
   const [showReasoning, setShowReasoning] = useQueryState(
     "showReasoning",
-    parseAsBoolean.withDefault(false)
+    parseAsBoolean.withDefault(false),
   );
 
   const [categoryFilter, setCategoryFilter] = useQueryState(
     "category",
-    parseAsStringEnum(["identity", "preference", "project", "context", "relationship"])
+    parseAsStringEnum([
+      "identity",
+      "preference",
+      "project",
+      "context",
+      "relationship",
+    ]),
   );
 
   const [sortBy, setSortBy] = useQueryState(
     "sort",
-    parseAsStringEnum(["date", "importance", "confidence"]).withDefault("date")
+    parseAsStringEnum(["date", "importance", "confidence"]).withDefault("date"),
   );
 
   const [searchParam, setSearchParam] = useQueryState(
     "q",
-    parseAsString.withDefault("")
+    parseAsString.withDefault(""),
   );
 
   const debouncedSearchQuery = useDebounce(searchParam, 300);
@@ -88,7 +110,7 @@ export function MemoriesClientPage() {
       const result = await consolidateMemories();
       if (result.created > 0 || result.deleted > 0) {
         toast.success(
-          `Consolidated ${result.original} → ${result.consolidated} memories`
+          `Consolidated ${result.original} → ${result.consolidated} memories`,
         );
       } else {
         toast.info("No duplicate memories found.");
@@ -101,7 +123,10 @@ export function MemoriesClientPage() {
     }
   };
 
-  const handleNavigateToSource = (conversationId: string, messageId: string) => {
+  const handleNavigateToSource = (
+    conversationId: string,
+    messageId: string,
+  ) => {
     router.push(`/chat/${conversationId}?messageId=${messageId}`);
   };
 
@@ -120,7 +145,7 @@ export function MemoriesClientPage() {
       acc[category].push(memory);
       return acc;
     },
-    {}
+    {},
   );
 
   return (
@@ -166,39 +191,41 @@ export function MemoriesClientPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {Object.entries(groupedMemories).map(([category, categoryMemories]) => {
-                const label = CATEGORY_LABELS[category] || {
-                  title: category,
-                  description: "Other memories",
-                };
+              {Object.entries(groupedMemories).map(
+                ([category, categoryMemories]) => {
+                  const label = CATEGORY_LABELS[category] || {
+                    title: category,
+                    description: "Other memories",
+                  };
 
-                return (
-                  <div key={category} className="space-y-4">
-                    <div className="px-1">
-                      <h3 className="text-sm font-semibold text-foreground/90 flex items-center gap-2">
-                        {label.title}
-                        <span className="text-xs font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
-                          {categoryMemories.length}
-                        </span>
-                      </h3>
-                    </div>
+                  return (
+                    <div key={category} className="space-y-4">
+                      <div className="px-1">
+                        <h3 className="text-sm font-semibold text-foreground/90 flex items-center gap-2">
+                          {label.title}
+                          <span className="text-xs font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+                            {categoryMemories.length}
+                          </span>
+                        </h3>
+                      </div>
 
-                    <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
-                      <div className="divide-y divide-border/40">
-                        {categoryMemories.map((memory: any) => (
-                          <MemoryItem
-                            key={memory._id}
-                            memory={memory}
-                            showReasoning={showReasoning}
-                            onDelete={handleDelete}
-                            onNavigateToSource={handleNavigateToSource}
-                          />
-                        ))}
+                      <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
+                        <div className="divide-y divide-border/40">
+                          {categoryMemories.map((memory: any) => (
+                            <MemoryItem
+                              key={memory._id}
+                              memory={memory}
+                              showReasoning={showReasoning}
+                              onDelete={handleDelete}
+                              onNavigateToSource={handleNavigateToSource}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
             </div>
           )}
         </div>

@@ -15,7 +15,9 @@ export function TasksDashboard() {
   const [projectFilter, setProjectFilter] = useState<Id<"projects"> | null>(
     null,
   );
-  const [selectedTaskId, setSelectedTaskId] = useState<Id<"tasks"> | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<Id<"tasks"> | null>(
+    null,
+  );
 
   // Queries
   // @ts-ignore - Type depth exceeded

@@ -112,7 +112,10 @@ export const TYPE_CONFIG: Record<
   },
 };
 
-export const PRIORITY_CONFIG: Record<Priority, { label: string; color: string }> = {
+export const PRIORITY_CONFIG: Record<
+  Priority,
+  { label: string; color: string }
+> = {
   critical: {
     label: "Critical",
     color: "bg-red-500/10 text-red-500 border-red-500",

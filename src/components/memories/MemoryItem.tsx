@@ -1,15 +1,15 @@
 "use client";
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
@@ -99,7 +99,8 @@ export function MemoryItem({
               {/* Expiration date badge */}
               {memory.metadata?.expiresAt && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-orange-500/10 text-orange-600 dark:text-orange-500 border border-orange-500/20">
-                  Exp: {new Date(memory.metadata.expiresAt).toLocaleDateString()}
+                  Exp:{" "}
+                  {new Date(memory.metadata.expiresAt).toLocaleDateString()}
                 </span>
               )}
 

@@ -208,7 +208,9 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() => retryMessage({ messageId: message._id as Id<"messages"> })}
+                    onClick={() =>
+                      retryMessage({ messageId: message._id as Id<"messages"> })
+                    }
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="sr-only">Retry</span>

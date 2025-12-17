@@ -5,44 +5,44 @@ import type { Id } from "@/convex/_generated/dataModel";
  * Replaced by real server message when confirmed
  */
 export interface OptimisticMessage {
-	_id: Id<"messages"> | `temp-${string}`; // Support both real IDs and temp IDs
-	conversationId: Id<"conversations">;
-	userId?: Id<"users">;
-	role: "user" | "assistant";
-	content: string;
-	status: "optimistic" | "pending" | "generating" | "complete" | "error";
-	model?: string;
-	attachments?: Array<{
-		id: string;
-		file?: File;
-		preview?: string;
-		storageId?: Id<"_storage">;
-		uploadStatus?: "pending" | "uploading" | "complete" | "error";
-		_optimistic?: boolean;
-	}>;
-	comparisonGroupId?: string;
-	createdAt: number;
-	updatedAt: number;
-	_creationTime: number; // Convex system field - set to match server messages
-	_optimistic: true;
-	// Optional fields from real messages (for type compatibility)
-	partialContent?: string;
-	reasoning?: string;
-	partialReasoning?: string;
-	reasoningTokens?: number;
-	thinkingStartedAt?: number;
-	thinkingCompletedAt?: number;
-	error?: string;
-	parentMessageId?: Id<"messages">;
-	consolidatedMessageId?: Id<"messages">;
-	isConsolidation?: boolean;
-	generationStartedAt?: number;
-	generationCompletedAt?: number;
-	firstTokenAt?: number;
-	tokensPerSecond?: number;
-	inputTokens?: number;
-	outputTokens?: number;
-	cost?: number;
+  _id: Id<"messages"> | `temp-${string}`; // Support both real IDs and temp IDs
+  conversationId: Id<"conversations">;
+  userId?: Id<"users">;
+  role: "user" | "assistant";
+  content: string;
+  status: "optimistic" | "pending" | "generating" | "complete" | "error";
+  model?: string;
+  attachments?: Array<{
+    id: string;
+    file?: File;
+    preview?: string;
+    storageId?: Id<"_storage">;
+    uploadStatus?: "pending" | "uploading" | "complete" | "error";
+    _optimistic?: boolean;
+  }>;
+  comparisonGroupId?: string;
+  createdAt: number;
+  updatedAt: number;
+  _creationTime: number; // Convex system field - set to match server messages
+  _optimistic: true;
+  // Optional fields from real messages (for type compatibility)
+  partialContent?: string;
+  reasoning?: string;
+  partialReasoning?: string;
+  reasoningTokens?: number;
+  thinkingStartedAt?: number;
+  thinkingCompletedAt?: number;
+  error?: string;
+  parentMessageId?: Id<"messages">;
+  consolidatedMessageId?: Id<"messages">;
+  isConsolidation?: boolean;
+  generationStartedAt?: number;
+  generationCompletedAt?: number;
+  firstTokenAt?: number;
+  tokensPerSecond?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  cost?: number;
 }
 
 /**
@@ -50,8 +50,8 @@ export interface OptimisticMessage {
  * Shown when send fails - allows inline retry
  */
 export interface FailedMessage extends OptimisticMessage {
-	_failed: true;
-	error: string;
+  _failed: true;
+  error: string;
 }
 
 /**
@@ -59,15 +59,15 @@ export interface FailedMessage extends OptimisticMessage {
  * Persisted in localStorage, sent when online
  */
 export interface QueuedMessage {
-	id: string;
-	conversationId: Id<"conversations">;
-	content: string;
-	modelId?: string;
-	models?: string[];
-	attachments?: Array<{
-		id: string;
-		storageId: Id<"_storage">;
-	}>;
-	timestamp: number;
-	retries: number;
+  id: string;
+  conversationId: Id<"conversations">;
+  content: string;
+  modelId?: string;
+  models?: string[];
+  attachments?: Array<{
+    id: string;
+    storageId: Id<"_storage">;
+  }>;
+  timestamp: number;
+  retries: number;
 }

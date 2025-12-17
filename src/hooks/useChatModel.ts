@@ -15,7 +15,7 @@ export function useChatModel({ conversationId }: UseChatModelOptions) {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
     api.conversations.get,
-    conversationId ? { conversationId } : "skip"
+    conversationId ? { conversationId } : "skip",
   );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
@@ -77,7 +77,7 @@ export function useChatModel({ conversationId }: UseChatModelOptions) {
       }
       // New conversations: model saved when first message sent (chat.ts:75)
     },
-    [conversationId, updateModelMutation]
+    [conversationId, updateModelMutation],
   );
 
   return {

@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -86,7 +86,7 @@ export function ChatInput({
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
-    null
+    null,
   );
   const [_isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -149,7 +149,7 @@ export function ChatInput({
           }
           setIsSending(false);
         },
-      }
+      },
     );
   };
 
@@ -216,7 +216,7 @@ export function ChatInput({
     <div
       className={cn(
         "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
-        getChatWidthClass(chatWidth, false)
+        getChatWidthClass(chatWidth, false),
       )}
     >
       <form
@@ -230,11 +230,13 @@ export function ChatInput({
           "rounded-3xl",
           isFocused
             ? "shadow-glow ring-1 ring-ring/10 dark:ring-white/10"
-            : "shadow-lg hover:shadow-xl hover:border-border/80 dark:hover:border-white/20"
+            : "shadow-lg hover:shadow-xl hover:border-border/80 dark:hover:border-white/20",
         )}
       >
         {/* Quote Preview */}
-        {quote && <QuotePreview quote={quote} onDismiss={() => setQuote(null)} />}
+        {quote && (
+          <QuotePreview quote={quote} onDismiss={() => setQuote(null)} />
+        )}
 
         {/* Attachment previews */}
         {attachments.length > 0 && (
@@ -249,7 +251,6 @@ export function ChatInput({
         )}
 
         <div className="flex gap-2 items-end pl-2 pr-2">
-
           {/* Textarea or Waveform */}
           {isRecording ? (
             <div className="relative w-full min-h-[60px] flex items-center justify-center rounded-xl bg-primary/5 my-1 overflow-hidden">
@@ -305,62 +306,63 @@ export function ChatInput({
               </TooltipContent>
             </Tooltip>
 
-            {(
-              (typeof window !== "undefined" &&
-                "webkitSpeechRecognition" in window)) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <VoiceInput
-                      ref={voiceInputRef}
-                      onTranscript={async (text, autoSend) => {
-                        setIsTranscribing(false);
-                        if (autoSend && text.trim()) {
-                          setIsSending(true);
-                          try {
-                            await sendMessage({
-                              conversationId,
-                              content: text.trim(),
-                              ...(isComparisonMode
-                                ? { models: selectedModels }
-                                : { modelId: selectedModel }),
-                              thinkingEffort,
-                              attachments:
-                                attachments.length > 0 ? attachments : undefined,
-                            });
-                            onAttachmentsChange([]);
-                          } catch (error) {
-                            if (
-                              error instanceof Error &&
-                              error.message.includes("Daily message limit")
-                            ) {
-                              setShowRateLimitDialog(true);
-                            } else {
-                              console.error("Failed to send message:", error);
+            {typeof window !== "undefined" &&
+              "webkitSpeechRecognition" in window && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <VoiceInput
+                        ref={voiceInputRef}
+                        onTranscript={async (text, autoSend) => {
+                          setIsTranscribing(false);
+                          if (autoSend && text.trim()) {
+                            setIsSending(true);
+                            try {
+                              await sendMessage({
+                                conversationId,
+                                content: text.trim(),
+                                ...(isComparisonMode
+                                  ? { models: selectedModels }
+                                  : { modelId: selectedModel }),
+                                thinkingEffort,
+                                attachments:
+                                  attachments.length > 0
+                                    ? attachments
+                                    : undefined,
+                              });
+                              onAttachmentsChange([]);
+                            } catch (error) {
+                              if (
+                                error instanceof Error &&
+                                error.message.includes("Daily message limit")
+                              ) {
+                                setShowRateLimitDialog(true);
+                              } else {
+                                console.error("Failed to send message:", error);
+                              }
+                            } finally {
+                              setIsSending(false);
                             }
-                          } finally {
-                            setIsSending(false);
+                          } else {
+                            setInput((prev) =>
+                              prev.trim() ? `${prev} ${text}` : text,
+                            );
                           }
-                        } else {
-                          setInput((prev) =>
-                            prev.trim() ? `${prev} ${text}` : text
-                          );
-                        }
-                      }}
-                      onRecordingStateChange={(recording, stream) => {
-                        setIsRecording(recording);
-                        setRecordingStream(stream || null);
-                        if (!recording && stream) setIsTranscribing(true);
-                      }}
-                      isDisabled={isSending || uploading}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Voice input</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+                        }}
+                        onRecordingStateChange={(recording, stream) => {
+                          setIsRecording(recording);
+                          setRecordingStream(stream || null);
+                          if (!recording && stream) setIsTranscribing(true);
+                        }}
+                        isDisabled={isSending || uploading}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Voice input</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             <Button
               type={isGenerating ? "button" : isRecording ? "button" : "submit"}
               size="icon"
@@ -385,7 +387,7 @@ export function ChatInput({
                   isSending ||
                   uploading
                   ? "bg-muted text-muted-foreground opacity-50"
-                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/25"
+                  : "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-md hover:shadow-primary/25",
               )}
               disabled={
                 (!input.trim() && !quote && !isRecording && !isGenerating) ||

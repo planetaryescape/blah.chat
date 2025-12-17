@@ -40,7 +40,9 @@ export function useSendMessage(
       const queueCount = messageQueue.getCount();
       if (queueCount === 0) return;
 
-      toast.info(`Processing ${queueCount} queued message${queueCount > 1 ? "s" : ""}...`);
+      toast.info(
+        `Processing ${queueCount} queued message${queueCount > 1 ? "s" : ""}...`,
+      );
 
       await messageQueue.processQueue(async (msg) => {
         // Send queued message

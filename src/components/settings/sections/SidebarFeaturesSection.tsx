@@ -1,9 +1,9 @@
 "use client";
 
 import {
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";

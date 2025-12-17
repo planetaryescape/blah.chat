@@ -57,15 +57,46 @@ optional body
 
 **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
-**Examples**:
+### Atomic Commits
+
+One logical change per commit. Group related changes:
+
 ```
-feat: add voice input with Whisper API
-fix: resolve infinite redirect on first sign-in
-docs: update self-hosting guide for Railway
-refactor: extract message generation to reusable hook
+✅ GOOD - Atomic commits:
+feat: add AGPL-3.0 license and update README
+docs: add community guidelines and policies
+chore: add GitHub templates and CI/CD workflows
+
+❌ BAD - Kitchen sink:
+feat: add license, docs, CI, and fix bugs
 ```
 
-**Important**: No attribution footers. Your contribution is credited via Git history.
+### Writing Good Messages
+
+**Concise over verbose**. Focus on outcome, not implementation:
+
+```
+✅ GOOD:
+feat: add opt-in telemetry system
+refactor: humanize landing page copy
+
+❌ BAD (too verbose):
+feat: implement PostHog integration with daily heartbeat cron job that sends anonymous instance statistics
+refactor: replace generic AI-sounding modifiers with human-friendly copy that doesn't sound like a robot wrote it
+```
+
+**Optional body** for context:
+
+```
+feat: add environment variable overrides for self-hosted limits
+
+Allow self-hosters to customize rate limits via env vars
+Defaults: 50 msg/day, $10/mo budget
+```
+
+### No Attribution Footers
+
+Your contribution is credited via Git history.
 
 ```
 ❌ BAD:

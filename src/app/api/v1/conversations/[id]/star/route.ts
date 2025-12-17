@@ -4,21 +4,22 @@ import { withErrorHandling } from "@/lib/api/middleware/errors";
 import { getConvexClient } from "@/lib/api/convex";
 import { api } from "@/convex/_generated/api";
 import { formatEntity } from "@/lib/utils/formatEntity";
+import { trackAPIPerformance } from "@/lib/api/monitoring";
 import type { Id } from "@/convex/_generated/dataModel";
 import logger from "@/lib/logger";
 
-async function patchHandler(
+async function postHandler(
   req: NextRequest,
   {
     params,
     userId,
   }: { params: Promise<Record<string, string | string[]>>; userId: string },
 ) {
-  const startTime = Date.now();
+  const startTime = performance.now();
   const { id } = (await params) as { id: string };
   logger.info(
     { userId, conversationId: id },
-    "PATCH /api/v1/conversations/[id]/star",
+    "POST /api/v1/conversations/[id]/star",
   );
 
   const convex = getConvexClient();
@@ -27,7 +28,14 @@ async function patchHandler(
     conversationId: id as Id<"conversations">,
   });
 
-  const duration = Date.now() - startTime;
+  const duration = performance.now() - startTime;
+  trackAPIPerformance({
+    endpoint: "/api/v1/conversations/:id/star",
+    method: "POST",
+    duration,
+    status: 200,
+    userId,
+  });
   logger.info(
     { userId, conversationId: id, duration },
     "Conversation star toggled",
@@ -39,5 +47,5 @@ async function patchHandler(
   );
 }
 
-export const PATCH = withErrorHandling(withAuth(patchHandler));
+export const POST = withErrorHandling(withAuth(postHandler));
 export const dynamic = "force-dynamic";

@@ -1,12 +1,12 @@
 "use client";
 
 import {
-    BulkActionBar,
-    EmptyState,
-    FeedbackDetail,
-    FeedbackFilterBar,
-    FeedbackList,
-    FeedbackListSkeleton,
+  BulkActionBar,
+  EmptyState,
+  FeedbackDetail,
+  FeedbackFilterBar,
+  FeedbackList,
+  FeedbackListSkeleton,
 } from "@/components/admin/feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

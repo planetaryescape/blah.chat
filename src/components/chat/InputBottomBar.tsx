@@ -7,8 +7,8 @@ import { ComparisonTrigger } from "./ComparisonTrigger";
 import { KeyboardHints } from "./KeyboardHints";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
-    type ThinkingEffort,
-    ThinkingEffortSelector,
+  type ThinkingEffort,
+  ThinkingEffortSelector,
 } from "./ThinkingEffortSelector";
 
 interface InputBottomBarProps {

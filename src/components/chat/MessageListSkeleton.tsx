@@ -8,7 +8,9 @@ interface MessageListSkeletonProps {
   chatWidth?: ChatWidth;
 }
 
-export function MessageListSkeleton({ chatWidth = "standard" }: MessageListSkeletonProps) {
+export function MessageListSkeleton({
+  chatWidth = "standard",
+}: MessageListSkeletonProps) {
   // Message bubble styling (matches ChatMessage.tsx exactly)
   const userMessageClass = cn(
     "relative rounded-[2rem] rounded-tr-sm",
@@ -25,14 +27,21 @@ export function MessageListSkeleton({ chatWidth = "standard" }: MessageListSkele
 
   // Wrapper classes (matches ChatMessage.tsx structure exactly)
   const userWrapperClass = "relative group ml-auto max-w-[90%] sm:max-w-[75%]";
-  const assistantWrapperClass = "relative group mr-auto max-w-[95%] sm:max-w-[85%]";
+  const assistantWrapperClass =
+    "relative group mr-auto max-w-[95%] sm:max-w-[85%]";
 
   // Simulated conversation with varying content lengths
   const skeletonMessages = [
     { isUser: true, lines: [{ width: "w-24" }, { width: "w-40" }] },
-    { isUser: false, lines: [{ width: "w-48" }, { width: "w-72 sm:w-96" }, { width: "w-56" }] },
+    {
+      isUser: false,
+      lines: [{ width: "w-48" }, { width: "w-72 sm:w-96" }, { width: "w-56" }],
+    },
     { isUser: true, lines: [{ width: "w-32" }] },
-    { isUser: false, lines: [{ width: "w-64" }, { width: "w-80 sm:w-[400px]" }] },
+    {
+      isUser: false,
+      lines: [{ width: "w-64" }, { width: "w-80 sm:w-[400px]" }],
+    },
   ];
 
   return (
@@ -64,8 +73,16 @@ export function MessageListSkeleton({ chatWidth = "standard" }: MessageListSkele
                 msg.isUser ? "justify-end" : "justify-start",
               )}
             >
-              <div className={msg.isUser ? userWrapperClass : assistantWrapperClass}>
-                <div className={msg.isUser ? userMessageClass : assistantMessageClass}>
+              <div
+                className={
+                  msg.isUser ? userWrapperClass : assistantWrapperClass
+                }
+              >
+                <div
+                  className={
+                    msg.isUser ? userMessageClass : assistantMessageClass
+                  }
+                >
                   <div className="space-y-2">
                     {msg.lines.map((line, j) => (
                       <Skeleton

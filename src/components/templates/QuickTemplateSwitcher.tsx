@@ -1,18 +1,18 @@
 "use client";
 
 import {
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -123,10 +123,14 @@ export function QuickTemplateSwitcher({
       <CommandItem
         key={template._id}
         value={template._id}
-        keywords={[template.name, template.category, template.description || ""]}
+        keywords={[
+          template.name,
+          template.category,
+          template.description || "",
+        ]}
         onSelect={() => handleSelect(template)}
         className={cn(
-          "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 transition-colors"
+          "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 transition-colors",
         )}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -135,7 +139,7 @@ export function QuickTemplateSwitcher({
               "flex items-center justify-center w-8 h-8 rounded-lg border shrink-0",
               template.isBuiltIn
                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/30"
-                : "bg-primary/10 text-primary border-primary/30"
+                : "bg-primary/10 text-primary border-primary/30",
             )}
           >
             {template.isBuiltIn ? (
@@ -232,7 +236,7 @@ export function QuickTemplateSwitcher({
                   "w-full flex items-center px-2.5 py-2 rounded-md text-sm transition-colors text-left",
                   isActive
                     ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 )}
               >
                 {cat.label}
@@ -250,7 +254,7 @@ export function QuickTemplateSwitcher({
             {filteredTemplates.user.length > 0 && (
               <CommandGroup heading="Your Templates">
                 {filteredTemplates.user.map((template: any) =>
-                  renderTemplateItem(template)
+                  renderTemplateItem(template),
                 )}
               </CommandGroup>
             )}
@@ -262,7 +266,7 @@ export function QuickTemplateSwitcher({
             {filteredTemplates.builtIn.length > 0 && (
               <CommandGroup heading="Built-in Templates">
                 {filteredTemplates.builtIn.map((template: any) =>
-                  renderTemplateItem(template)
+                  renderTemplateItem(template),
                 )}
               </CommandGroup>
             )}

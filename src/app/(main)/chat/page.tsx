@@ -5,7 +5,12 @@ import { useNewChat } from "@/hooks/useNewChat";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
 import { analytics } from "@/lib/analytics";
 import { useTemplateStore } from "@/stores/templateStore";
-import { Authenticated, Unauthenticated, useConvexAuth, useMutation } from "convex/react";
+import {
+  Authenticated,
+  Unauthenticated,
+  useConvexAuth,
+  useMutation,
+} from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 
@@ -77,7 +82,16 @@ function ChatPageContent() {
     };
 
     createChatWithTemplate();
-  }, [authLoading, isAuthenticated, fromTemplate, consumeTemplateText, createConversation, newChatModel, router, startNewChat]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    fromTemplate,
+    consumeTemplateText,
+    createConversation,
+    newChatModel,
+    router,
+    startNewChat,
+  ]);
 
   // Handle normal new chat (no template)
   useEffect(() => {
@@ -116,4 +130,3 @@ export default function ChatPage() {
     </Suspense>
   );
 }
-

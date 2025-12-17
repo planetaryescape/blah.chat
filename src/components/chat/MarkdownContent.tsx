@@ -135,12 +135,13 @@ const markdownComponents = {
         src={src}
         alt={alt || "Image"}
         className="rounded-lg max-w-full h-auto my-4 block"
-        style={{ maxHeight: '600px', backgroundColor: '#fff' }}
+        style={{ maxHeight: "600px", backgroundColor: "#fff" }}
         loading="lazy"
         onError={(e) => {
           console.error("[Markdown] Image failed to load:", src);
           // Replace with error placeholder
-          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect fill='%23f0f0f0' width='200' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23666'%3EImage failed to load%3C/text%3E%3C/svg%3E";
+          (e.target as HTMLImageElement).src =
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect fill='%23f0f0f0' width='200' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23666'%3EImage failed to load%3C/text%3E%3C/svg%3E";
         }}
         {...props}
       />

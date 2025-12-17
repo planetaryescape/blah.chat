@@ -16,11 +16,12 @@ export const executeCode = internalAction({
   handler: async (_ctx, { code, language, timeout = 30 }) => {
     try {
       // Get the app URL from environment
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.CONVEX_SITE_URL;
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL || process.env.CONVEX_SITE_URL;
 
       if (!appUrl) {
         throw new Error(
-          "App URL not configured. Set NEXT_PUBLIC_APP_URL or CONVEX_SITE_URL environment variable."
+          "App URL not configured. Set NEXT_PUBLIC_APP_URL or CONVEX_SITE_URL environment variable.",
         );
       }
 
@@ -52,9 +53,7 @@ export const executeCode = internalAction({
         language,
         code,
         error:
-          error instanceof Error
-            ? error.message
-            : "Failed to execute code",
+          error instanceof Error ? error.message : "Failed to execute code",
       };
     }
   },

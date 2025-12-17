@@ -4,4 +4,3 @@ export * from "./FeedbackDetail";
 export * from "./FeedbackFilterBar";
 export * from "./FeedbackList";
 export * from "./FeedbackLoading";
-

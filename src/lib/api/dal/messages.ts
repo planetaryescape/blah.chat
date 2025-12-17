@@ -1,6 +1,9 @@
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { getAuthenticatedConvexClient, getConvexClient } from "@/lib/api/convex";
+import {
+  getAuthenticatedConvexClient,
+  getConvexClient,
+} from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import { z } from "zod";

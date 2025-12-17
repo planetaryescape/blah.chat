@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export function ConversationListSkeleton() {
   return (
@@ -10,8 +10,8 @@ export function ConversationListSkeleton() {
         <div
           key={i}
           className={cn(
-            'flex items-center gap-1 rounded-md px-0 py-0',
-            'hover:bg-accent/10 transition-colors'
+            "flex items-center gap-1 rounded-md px-0 py-0",
+            "hover:bg-accent/10 transition-colors",
           )}
         >
           {/* Text content */}

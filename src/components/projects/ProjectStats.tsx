@@ -4,12 +4,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import {
-  CheckCircle2,
-  File,
-  FileText,
-  MessageSquare
-} from "lucide-react";
+import { CheckCircle2, File, FileText, MessageSquare } from "lucide-react";
 
 interface ProjectStatsProps {
   projectId: Id<"projects">;
@@ -38,38 +33,57 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
     <div className="flex items-center gap-3 text-xs text-muted-foreground/80">
       <div className="flex items-center gap-3">
         {conversationCount > 0 && (
-          <div className="flex items-center gap-1.5" title={`${conversationCount} conversations`}>
+          <div
+            className="flex items-center gap-1.5"
+            title={`${conversationCount} conversations`}
+          >
             <MessageSquare className="w-3.5 h-3.5" />
             <span>{conversationCount}</span>
           </div>
         )}
         {noteCount > 0 && (
-          <div className="flex items-center gap-1.5" title={`${noteCount} notes`}>
+          <div
+            className="flex items-center gap-1.5"
+            title={`${noteCount} notes`}
+          >
             <FileText className="w-3.5 h-3.5" />
             <span>{noteCount}</span>
           </div>
         )}
         {fileCount > 0 && (
-          <div className="flex items-center gap-1.5" title={`${fileCount} files`}>
+          <div
+            className="flex items-center gap-1.5"
+            title={`${fileCount} files`}
+          >
             <File className="w-3.5 h-3.5" />
             <span>{fileCount}</span>
           </div>
         )}
         {taskStats.total > 0 && (
-            <div className="flex items-center gap-1.5" title={`${taskStats.completed}/${taskStats.total} tasks completed`}>
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{taskStats.completed}/{taskStats.total}</span>
-            </div>
+          <div
+            className="flex items-center gap-1.5"
+            title={`${taskStats.completed}/${taskStats.total} tasks completed`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>
+              {taskStats.completed}/{taskStats.total}
+            </span>
+          </div>
         )}
       </div>
 
       <div className="ml-auto">
         {lastActivityAt > 0 ? (
-          <span className="text-[10px] text-muted-foreground/60" title={`Last active ${formatDistanceToNow(lastActivityAt)} ago`}>
-             {formatDistanceToNow(lastActivityAt, { addSuffix: true })}
+          <span
+            className="text-[10px] text-muted-foreground/60"
+            title={`Last active ${formatDistanceToNow(lastActivityAt)} ago`}
+          >
+            {formatDistanceToNow(lastActivityAt, { addSuffix: true })}
           </span>
         ) : (
-          <span className="text-[10px] text-muted-foreground/60">No activity</span>
+          <span className="text-[10px] text-muted-foreground/60">
+            No activity
+          </span>
         )}
       </div>
     </div>

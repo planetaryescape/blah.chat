@@ -4,12 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
-    FeedbackType,
-    PRIORITY_CONFIG,
-    Priority,
-    STATUS_COLORS,
-    STATUS_LABELS,
-    TYPE_CONFIG,
+  FeedbackType,
+  PRIORITY_CONFIG,
+  Priority,
+  STATUS_COLORS,
+  STATUS_LABELS,
+  TYPE_CONFIG,
 } from "@/lib/constants/feedback";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -39,7 +39,7 @@ export function FeedbackList({
           className={cn(
             "flex items-start gap-2 p-4 hover:bg-muted/50 transition-colors cursor-pointer",
             selectedId === item._id && "bg-muted",
-            selectedIds.has(item._id) && "bg-primary/5"
+            selectedIds.has(item._id) && "bg-primary/5",
           )}
         >
           {/* Checkbox */}
@@ -56,7 +56,9 @@ export function FeedbackList({
             className="flex-1 text-left min-w-0"
           >
             <div className="flex items-start justify-between gap-2">
-              <span className="font-medium truncate block">{item.userName}</span>
+              <span className="font-medium truncate block">
+                {item.userName}
+              </span>
               <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                 {formatDistanceToNow(new Date(item.createdAt), {
                   addSuffix: true,
@@ -73,7 +75,7 @@ export function FeedbackList({
                 variant="outline"
                 className={cn(
                   "text-[10px] px-1.5 py-0 h-5 font-normal border-0",
-                  TYPE_CONFIG[item.feedbackType as FeedbackType].color
+                  TYPE_CONFIG[item.feedbackType as FeedbackType].color,
                 )}
               >
                 {TYPE_CONFIG[item.feedbackType as FeedbackType].icon}
@@ -86,7 +88,7 @@ export function FeedbackList({
                 variant="outline"
                 className={cn(
                   "text-[10px] px-1.5 py-0 h-5 font-normal border",
-                  STATUS_COLORS[item.status]
+                  STATUS_COLORS[item.status],
                 )}
               >
                 {STATUS_LABELS[item.status] || item.status}
@@ -97,7 +99,7 @@ export function FeedbackList({
                   variant="outline"
                   className={cn(
                     "text-[10px] px-1.5 py-0 h-5 font-normal border",
-                    PRIORITY_CONFIG[item.priority as Priority]?.color
+                    PRIORITY_CONFIG[item.priority as Priority]?.color,
                   )}
                 >
                   {PRIORITY_CONFIG[item.priority as Priority]?.label}

@@ -211,7 +211,13 @@ export function VirtualizedMessageList({
     if (autoScroll && isAtBottom) {
       scrollToBottom("smooth");
     }
-  }, [messages.length, autoScroll, isAtBottom, scrollToBottom, highlightMessageId]);
+  }, [
+    messages.length,
+    autoScroll,
+    isAtBottom,
+    scrollToBottom,
+    highlightMessageId,
+  ]);
 
   if (messages.length === 0) {
     return (

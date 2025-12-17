@@ -1,9 +1,9 @@
 "use client";
 
 import {
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -65,7 +65,9 @@ export function ReasoningDisplaySection({
 
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label htmlFor="show-streaming">Show reasoning while generating</Label>
+            <Label htmlFor="show-streaming">
+              Show reasoning while generating
+            </Label>
             <p className="text-sm text-muted-foreground">
               Display reasoning as it streams in real-time during AI response
               generation

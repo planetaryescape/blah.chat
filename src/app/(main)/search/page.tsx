@@ -10,8 +10,8 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
 import {
-    type SearchFilters as SearchFiltersType,
-    useSearchResults,
+  type SearchFilters as SearchFiltersType,
+  useSearchResults,
 } from "@/hooks/useSearchResults";
 import { useSearchState } from "@/hooks/useSearchState";
 import { analytics } from "@/lib/analytics";
@@ -111,7 +111,6 @@ function SearchPageContent() {
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
       {/* Background gradients */}
 
-
       {/* Fixed header */}
       <div className="flex-none z-50">
         <SearchHeader>
@@ -178,7 +177,6 @@ export default function SearchPage() {
 function SearchPageSkeleton() {
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-
       <div className="flex-none z-50 p-6">
         <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
       </div>

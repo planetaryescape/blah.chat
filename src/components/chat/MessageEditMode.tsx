@@ -39,12 +39,7 @@ export function MessageEditMode({
           <Check className="w-3.5 h-3.5 mr-1.5" />
           Save
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onCancel}
-          className="h-8"
-        >
+        <Button size="sm" variant="outline" onClick={onCancel} className="h-8">
           <X className="w-3.5 h-3.5 mr-1.5" />
           Cancel
         </Button>

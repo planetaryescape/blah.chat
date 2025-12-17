@@ -4,9 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -24,14 +24,15 @@ export function SourceList({ messageId, className }: SourceListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Check if this is a temporary optimistic message (not yet persisted)
-  const isTempMessage = typeof messageId === "string" && messageId.startsWith("temp-");
+  const isTempMessage =
+    typeof messageId === "string" && messageId.startsWith("temp-");
 
   // Fetch sources from normalized tables (Phase 2 migration complete)
   // Skip query for temporary optimistic messages
   const sources = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.sources.operations.getSources,
-    isTempMessage ? "skip" : { messageId }
+    isTempMessage ? "skip" : { messageId },
   );
 
   // Hide if no sources

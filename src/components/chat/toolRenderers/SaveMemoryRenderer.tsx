@@ -31,9 +31,7 @@ export function SaveMemoryRenderer({
       </div>
       {parsedResult?.message && state !== "executing" && (
         <div
-          className={
-            parsedResult.success ? "text-green-500" : "text-amber-500"
-          }
+          className={parsedResult.success ? "text-green-500" : "text-amber-500"}
         >
           {parsedResult.message}
         </div>

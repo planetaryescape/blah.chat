@@ -1,9 +1,9 @@
 "use client";
 
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -93,9 +93,7 @@ function MessageStatusIndicator({
             data-testid="message-complete"
           >
             <Check className="w-3 h-3" />
-            {message.role === "user" && (
-              <span className="text-xs">Sent</span>
-            )}
+            {message.role === "user" && <span className="text-xs">Sent</span>}
           </div>
         </TooltipTrigger>
         <TooltipContent>
@@ -157,15 +155,14 @@ export const ChatMessage = memo(
     const isError = message.status === "error";
 
     // Check if this is a temporary optimistic message (not yet persisted)
-    const isTempMessage = typeof message._id === "string" && message._id.startsWith("temp-");
+    const isTempMessage =
+      typeof message._id === "string" && message._id.startsWith("temp-");
 
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
     const editMessage = useMutation(api.chat.editMessage);
 
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
     const updateModel = useMutation(api.conversations.updateModel);
-
-
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
@@ -178,7 +175,9 @@ export const ChatMessage = memo(
     // Query for original responses if this is a consolidated message
     const originalResponses = useQuery(
       api.messages.getOriginalResponses,
-      message.isConsolidation && !isTempMessage ? { consolidatedMessageId: message._id as Id<"messages"> } : "skip",
+      message.isConsolidation && !isTempMessage
+        ? { consolidatedMessageId: message._id as Id<"messages"> }
+        : "skip",
     );
 
     // Query conversation for model recommendation (cost optimization)
@@ -209,7 +208,7 @@ export const ChatMessage = memo(
     // Skip query for temporary optimistic messages
     const attachments = useQuery(
       api.messages.getAttachments,
-      isTempMessage ? "skip" : { messageId: message._id as Id<"messages"> }
+      isTempMessage ? "skip" : { messageId: message._id as Id<"messages"> },
     );
 
     // Fetch URLs for attachments
@@ -233,7 +232,9 @@ export const ChatMessage = memo(
     // Skip query for temporary optimistic messages
     const allToolCalls = useQuery(
       api.messages.getToolCalls,
-      isTempMessage ? "skip" : { messageId: message._id as Id<"messages">, includePartial: true }
+      isTempMessage
+        ? "skip"
+        : { messageId: message._id as Id<"messages">, includePartial: true },
     );
 
     // Split into complete and partial for backward compatibility
@@ -324,7 +325,9 @@ export const ChatMessage = memo(
     // Wrapper classes handle alignment and max-width
     const wrapperClass = cn(
       "relative group",
-      isUser ? "ml-auto max-w-[90%] sm:max-w-[75%]" : "mr-auto max-w-[95%] sm:max-w-[85%]",
+      isUser
+        ? "ml-auto max-w-[90%] sm:max-w-[75%]"
+        : "mr-auto max-w-[95%] sm:max-w-[85%]",
     );
 
     return (
@@ -457,10 +460,14 @@ export const ChatMessage = memo(
 
                 {/* Branch indicator */}
                 {!readOnly && (
-                  <MessageBranchIndicator messageId={message._id as Id<"messages">} />
+                  <MessageBranchIndicator
+                    messageId={message._id as Id<"messages">}
+                  />
                 )}
                 {!readOnly && features.showNotes && (
-                  <MessageNotesIndicator messageId={message._id as Id<"messages">} />
+                  <MessageNotesIndicator
+                    messageId={message._id as Id<"messages">}
+                  />
                 )}
 
                 {/* Status indicator removed - optimistic updates should feel instant */}

@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandList,
-    CommandSeparator,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
 import { api } from "@/convex/_generated/api";
 import { useFavoriteModels } from "@/hooks/useFavoriteModels";
@@ -87,12 +87,19 @@ export function QuickModelSwitcher({
   const filteredModels = useMemo(() => {
     const category = MODEL_CATEGORIES.find((c) => c.id === activeCategory);
     if (!category || category.id === "all") {
-      return { defaultModel, favorites: favModels, recents: recentModels, rest };
+      return {
+        defaultModel,
+        favorites: favModels,
+        recents: recentModels,
+        rest,
+      };
     }
 
     return {
       defaultModel:
-        defaultModel && category.filter(defaultModel) ? defaultModel : undefined,
+        defaultModel && category.filter(defaultModel)
+          ? defaultModel
+          : undefined,
       favorites: favModels.filter(category.filter),
       recents: recentModels.filter(category.filter),
       rest: rest.filter(category.filter),
@@ -106,7 +113,7 @@ export function QuickModelSwitcher({
       acc[provider].push(model);
       return acc;
     },
-    {} as Record<string, ModelConfig[]>
+    {} as Record<string, ModelConfig[]>,
   );
 
   const handleSelect = (modelId: string) => {
@@ -239,14 +246,16 @@ export function QuickModelSwitcher({
               {filteredModels.favorites.length > 0 && (
                 <CommandGroup heading="Favorites">
                   {filteredModels.favorites.map((model) =>
-                    renderModelItem(model)
+                    renderModelItem(model),
                   )}
                 </CommandGroup>
               )}
 
               {filteredModels.recents.length > 0 && (
                 <CommandGroup heading="Recent">
-                  {filteredModels.recents.map((model) => renderModelItem(model))}
+                  {filteredModels.recents.map((model) =>
+                    renderModelItem(model),
+                  )}
                 </CommandGroup>
               )}
 

@@ -14,11 +14,11 @@ import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft } from "lucide-react";
 import {
-    parseAsArrayOf,
-    parseAsBoolean,
-    parseAsString,
-    parseAsStringEnum,
-    useQueryState,
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryState,
 } from "nuqs";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";

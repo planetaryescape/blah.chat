@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { BranchBadge } from '@/components/chat/BranchBadge';
-import { ContextWindowIndicator } from '@/components/chat/ContextWindowIndicator';
-import { ConversationHeaderMenu } from '@/components/chat/ConversationHeaderMenu';
-import { ExtractMemoriesButton } from '@/components/chat/ExtractMemoriesButton';
-import { ModelBadge } from '@/components/chat/ModelBadge';
-import { ShareDialog } from '@/components/chat/ShareDialog';
-import { ProjectSelector } from '@/components/projects/ProjectSelector';
-import { Button } from '@/components/ui/button';
+import { BranchBadge } from "@/components/chat/BranchBadge";
+import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
+import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
+import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
+import { ModelBadge } from "@/components/chat/ModelBadge";
+import { ShareDialog } from "@/components/chat/ShareDialog";
+import { ProjectSelector } from "@/components/projects/ProjectSelector";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import type { Doc, Id } from '@/convex/_generated/dataModel';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+} from "@/components/ui/tooltip";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ChatHeaderProps {
-  conversation: Doc<'conversations'> | null | undefined;
-  conversationId: Id<'conversations'>;
+  conversation: Doc<"conversations"> | null | undefined;
+  conversationId: Id<"conversations">;
   selectedModel: string;
   modelLoading: boolean;
   hasMessages: boolean;
@@ -73,7 +73,7 @@ export function ChatHeader({
         </TooltipProvider>
 
         <h1 className="text-lg font-semibold truncate">
-          {conversation?.title || 'New Chat'}
+          {conversation?.title || "New Chat"}
         </h1>
 
         <TooltipProvider>

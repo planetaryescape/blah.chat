@@ -18,24 +18,24 @@ export function useFeedbackAdmin() {
   // URL-persisted filters
   const [statusFilter, setStatusFilter] = useQueryState(
     "status",
-    parseAsString
+    parseAsString,
   );
   const [typeFilter, setTypeFilter] = useQueryState("type", parseAsString);
   const [priorityFilter, setPriorityFilter] = useQueryState(
     "priority",
-    parseAsString
+    parseAsString,
   );
   const [searchParam, setSearchParam] = useQueryState(
     "q",
-    parseAsString.withDefault("")
+    parseAsString.withDefault(""),
   );
   const [sortBy, setSortBy] = useQueryState(
     "sort",
-    parseAsString.withDefault("createdAt")
+    parseAsString.withDefault("createdAt"),
   );
   const [sortOrder, setSortOrder] = useQueryState(
     "order",
-    parseAsString.withDefault("desc")
+    parseAsString.withDefault("desc"),
   );
 
   // Debounced search
@@ -50,7 +50,7 @@ export function useFeedbackAdmin() {
 
   // Check if any filters are active
   const hasActiveFilters = Boolean(
-    statusFilter || typeFilter || priorityFilter || searchParam
+    statusFilter || typeFilter || priorityFilter || searchParam,
   );
 
   // Clear all filters
@@ -77,7 +77,7 @@ export function useFeedbackAdmin() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const selectedFeedback = useQuery(
     api.feedback.getFeedback,
-    selectedId ? { feedbackId: selectedId } : "skip"
+    selectedId ? { feedbackId: selectedId } : "skip",
   );
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
@@ -90,7 +90,7 @@ export function useFeedbackAdmin() {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const archiveFeedback = useMutation(api.feedback.archiveFeedback);
   const acceptTriage = useMutation(
-    (api.feedback as any).triage.acceptTriageSuggestion
+    (api.feedback as any).triage.acceptTriageSuggestion,
   );
 
   const handleStatusChange = async (newStatus: string) => {

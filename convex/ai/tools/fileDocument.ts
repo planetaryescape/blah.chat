@@ -33,8 +33,13 @@ export function createFileDocumentTool(
         ),
     }),
     execute: async ({ fileIndex, action }) => {
-      console.log(`[Tool:fileDocument] Executing with fileIndex=${fileIndex}, action=${action}`);
-      console.log(`[Tool:fileDocument] Attachments available:`, messageAttachments?.length ?? 0);
+      console.log(
+        `[Tool:fileDocument] Executing with fileIndex=${fileIndex}, action=${action}`,
+      );
+      console.log(
+        `[Tool:fileDocument] Attachments available:`,
+        messageAttachments?.length ?? 0,
+      );
 
       // Check if attachments exist
       if (!messageAttachments || messageAttachments.length === 0) {
@@ -47,7 +52,9 @@ export function createFileDocumentTool(
 
       // Validate file index
       if (fileIndex >= messageAttachments.length) {
-        console.error(`[Tool:fileDocument] ❌ File index ${fileIndex} out of range (${messageAttachments.length} files)`);
+        console.error(
+          `[Tool:fileDocument] ❌ File index ${fileIndex} out of range (${messageAttachments.length} files)`,
+        );
         return {
           success: false,
           error: `File index ${fileIndex} out of range. ${messageAttachments.length} file(s) attached.`,
@@ -65,7 +72,9 @@ export function createFileDocumentTool(
 
       // Only process file types (not images/audio)
       if (attachment.type !== "file") {
-        console.error(`[Tool:fileDocument] ❌ Wrong attachment type: ${attachment.type}`);
+        console.error(
+          `[Tool:fileDocument] ❌ Wrong attachment type: ${attachment.type}`,
+        );
         return {
           success: false,
           error: `Cannot process ${attachment.type} attachments. Only file documents are supported.`,
@@ -86,14 +95,20 @@ export function createFileDocumentTool(
         );
 
         if (result.success) {
-          console.log(`[Tool:fileDocument] ✅ Success: ${attachment.name} (${result.wordCount} words)`);
+          console.log(
+            `[Tool:fileDocument] ✅ Success: ${attachment.name} (${result.wordCount} words)`,
+          );
         } else {
-          console.error(`[Tool:fileDocument] ❌ Processing failed:`, result.error);
+          console.error(
+            `[Tool:fileDocument] ❌ Processing failed:`,
+            result.error,
+          );
         }
 
         return result;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         console.error(`[Tool:fileDocument] ❌ Exception during processing:`, {
           fileName: attachment.name,
           error: errorMessage,

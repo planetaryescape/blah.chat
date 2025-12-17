@@ -11,7 +11,9 @@ interface MessageLoadingStateProps {
  * Shows either a "Thinking..." label with spinner for reasoning models,
  * or bouncing dots for standard models.
  */
-export function MessageLoadingState({ isThinkingModel }: MessageLoadingStateProps) {
+export function MessageLoadingState({
+  isThinkingModel,
+}: MessageLoadingStateProps) {
   if (isThinkingModel) {
     return (
       <div className="flex items-center gap-2 h-6 text-xs font-medium text-muted-foreground uppercase tracking-widest">

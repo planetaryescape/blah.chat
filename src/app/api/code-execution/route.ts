@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!code || !language) {
       return NextResponse.json(
         { error: "Missing required fields: code, language" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,14 +40,14 @@ export async function POST(request: NextRequest) {
     if (!process.env.E2B_API_KEY) {
       return NextResponse.json(
         { error: "E2B_API_KEY not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Get Convex site URL for storing images
     const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.replace(
       ".cloud",
-      ".site"
+      ".site",
     );
 
     // Dynamic import E2B (works correctly in Next.js runtime)
@@ -83,7 +83,11 @@ export async function POST(request: NextRequest) {
               // Convert to Uint8Array for proper fetch body handling
               const uint8Array = new Uint8Array(imageBuffer);
 
-              console.log("[CodeExecution] Uploading image, size:", uint8Array.length, "bytes");
+              console.log(
+                "[CodeExecution] Uploading image, size:",
+                uint8Array.length,
+                "bytes",
+              );
 
               // Store in Convex
               const storeResponse = await fetch(
@@ -96,7 +100,7 @@ export async function POST(request: NextRequest) {
                     "X-Convex-Internal": "true",
                   },
                   body: uint8Array,
-                }
+                },
               );
 
               if (storeResponse.ok) {
@@ -106,7 +110,7 @@ export async function POST(request: NextRequest) {
               } else {
                 console.error(
                   "[CodeExecution] Failed to store image:",
-                  await storeResponse.text()
+                  await storeResponse.text(),
                 );
               }
             } catch (imgError) {
@@ -141,8 +145,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: error instanceof Error ? error.message : "Execution failed",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

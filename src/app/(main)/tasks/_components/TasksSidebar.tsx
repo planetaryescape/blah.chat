@@ -7,14 +7,14 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
-    CalendarDays,
-    ChevronDown,
-    ChevronRight,
-    Home,
-    List,
-    Plus,
-    Star,
-    Sun,
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  Home,
+  List,
+  Plus,
+  Star,
+  Sun,
 } from "lucide-react";
 import { useState } from "react";
 

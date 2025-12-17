@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { isValidModel } from "@/lib/ai/utils";
+import { useUserPreference } from "./useUserPreference";
 
 interface UseChatModelOptions {
   conversationId: Id<"conversations"> | undefined;
@@ -19,11 +20,11 @@ export function useChatModel({ conversationId }: UseChatModelOptions) {
   );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
+  const userDefaultModel = useUserPreference("defaultModel");
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
     // Initialize with conversation model if valid, else user preference if valid, else default
     const conversationModel = conversation?.model;
-    const userDefaultModel = user?.preferences?.defaultModel;
 
     if (conversationModel && isValidModel(conversationModel)) {
       return conversationModel;
@@ -43,17 +44,14 @@ export function useChatModel({ conversationId }: UseChatModelOptions) {
     }
 
     // Fall back to user's default if it's valid
-    if (
-      user?.preferences?.defaultModel &&
-      isValidModel(user.preferences.defaultModel)
-    ) {
-      setSelectedModel(user.preferences.defaultModel);
+    if (userDefaultModel && isValidModel(userDefaultModel)) {
+      setSelectedModel(userDefaultModel);
       return;
     }
 
     // Ultimate fallback to system default
     setSelectedModel(DEFAULT_MODEL_ID);
-  }, [conversation?.model, user?.preferences?.defaultModel]);
+  }, [conversation?.model, userDefaultModel]);
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);

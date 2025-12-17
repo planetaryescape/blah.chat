@@ -93,11 +93,13 @@ export const backfillBatch = internalMutation({
         continue;
       }
 
+      // @ts-ignore - Migration reads old embedded preferences field (pre-Phase 4)
       if (!user.preferences) {
         skipped++;
         continue;
       }
 
+      // @ts-ignore - Migration reads old embedded preferences field (pre-Phase 4)
       const prefs = user.preferences;
 
       // Insert individual preferences (skip undefined/null)
@@ -165,12 +167,14 @@ export const backfillSingleUser = internalMutation({
       await ctx.db.delete(pref._id);
     }
 
+    // @ts-ignore - Migration reads old embedded preferences field (pre-Phase 4)
     if (!user.preferences) {
       return { status: "no_preferences", inserted: 0 };
     }
 
     let inserted = 0;
     const now = Date.now();
+    // @ts-ignore - Migration reads old embedded preferences field (pre-Phase 4)
     const prefs = user.preferences;
 
     // Insert preferences

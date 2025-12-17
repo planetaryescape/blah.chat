@@ -24,11 +24,11 @@ export const create = action({
     if (!identity) throw new Error("Unauthorized");
 
     // Get user from DB
-    const user = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
-    )(internal.shares.getUserInternal, {
-      clerkId: identity.subject,
-    });
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getUserInternal,
+      { clerkId: identity.subject },
+    )) as Doc<"users"> | null;
     if (!user) throw new Error("User not found");
 
     // Verify conversation ownership
@@ -125,6 +125,7 @@ export const get = query({
     return {
       _id: share._id,
       conversationId: share.conversationId,
+      userId: share.userId,
       requiresPassword: !!share.password,
       anonymizeUsernames: share.anonymizeUsernames,
       expiresAt: share.expiresAt,
@@ -300,5 +301,573 @@ export const getConversationInternal = internalQuery({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.conversationId);
+  },
+});
+
+export const getMessagesInternal = internalQuery({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .collect();
+  },
+});
+
+export const getAttachmentsByMessageInternal = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("attachments")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+  },
+});
+
+export const getToolCallsByMessageInternal = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("toolCalls")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+  },
+});
+
+export const getSourcesByMessageInternal = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("sources")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+  },
+});
+
+/**
+ * Fork a shared conversation privately
+ * Creates a new conversation owned by the current user with all messages copied
+ */
+export const forkPrivate = action({
+  args: { shareId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // Get current user
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getUserInternal,
+      { clerkId: identity.subject },
+    )) as Doc<"users"> | null;
+    if (!user) throw new Error("User not found");
+
+    // Get share + validate
+    const share = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getByShareId,
+      { shareId: args.shareId },
+    )) as Doc<"shares"> | null;
+    if (!share || !share.isActive) throw new Error("Share not found");
+    if (share.expiresAt && share.expiresAt < Date.now())
+      throw new Error("Expired");
+
+    // Get original conversation
+    const original = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getConversationInternal,
+      { conversationId: share.conversationId },
+    )) as Doc<"conversations"> | null;
+    if (!original) throw new Error("Conversation not found");
+
+    // Get messages
+    const messages = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getMessagesInternal,
+      { conversationId: share.conversationId },
+    )) as Doc<"messages">[];
+
+    // Create new private conversation via internal mutation
+    const newId = (await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.createForkedConversation,
+      {
+        userId: user._id,
+        title: `${original.title} (continued)`,
+        model: original.model,
+        systemPrompt: original.systemPrompt,
+        isCollaborative: false,
+        messageCount: messages.length,
+      },
+    )) as string;
+
+    // Copy messages + attachments + toolCalls + sources
+    for (const msg of messages) {
+      const newMsgId = (await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.copyMessage,
+        {
+          conversationId: newId,
+          userId: user._id, // All messages belong to new owner
+          originalMessage: msg,
+        },
+      )) as string;
+
+      // Copy attachments
+      const attachments = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.getAttachmentsByMessageInternal,
+        { messageId: msg._id },
+      )) as Doc<"attachments">[];
+
+      for (const att of attachments) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.shares.copyAttachment,
+          {
+            messageId: newMsgId,
+            conversationId: newId,
+            userId: user._id,
+            original: att,
+          },
+        );
+      }
+
+      // Copy tool calls
+      const toolCalls = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.getToolCallsByMessageInternal,
+        { messageId: msg._id },
+      )) as Doc<"toolCalls">[];
+
+      for (const tc of toolCalls) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.shares.copyToolCall,
+          {
+            messageId: newMsgId,
+            conversationId: newId,
+            userId: user._id,
+            original: tc,
+          },
+        );
+      }
+
+      // Copy sources
+      const sources = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.getSourcesByMessageInternal,
+        { messageId: msg._id },
+      )) as Doc<"sources">[];
+
+      for (const src of sources) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.shares.copySource,
+          {
+            messageId: newMsgId,
+            conversationId: newId,
+            userId: user._id,
+            original: src,
+          },
+        );
+      }
+    }
+
+    return newId;
+  },
+});
+
+/**
+ * Fork a shared conversation collaboratively
+ * Creates a new conversation with both users as participants
+ */
+export const forkCollaborative = action({
+  args: { shareId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // Get current user
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getUserInternal,
+      { clerkId: identity.subject },
+    )) as Doc<"users"> | null;
+    if (!user) throw new Error("User not found");
+
+    // Get share + validate
+    const share = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getByShareId,
+      { shareId: args.shareId },
+    )) as Doc<"shares"> | null;
+    if (!share || !share.isActive) throw new Error("Share not found");
+    if (share.expiresAt && share.expiresAt < Date.now())
+      throw new Error("Expired");
+
+    // Get original conversation
+    const original = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getConversationInternal,
+      { conversationId: share.conversationId },
+    )) as Doc<"conversations"> | null;
+    if (!original) throw new Error("Conversation not found");
+
+    // Prevent self-collaboration
+    if (original.userId === user._id) {
+      throw new Error("Cannot collaborate with yourself");
+    }
+
+    // Get original owner
+    const originalOwner = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getUserByIdInternal,
+      { userId: original.userId },
+    )) as Doc<"users"> | null;
+
+    // Get messages
+    const messages = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.getMessagesInternal,
+      { conversationId: share.conversationId },
+    )) as Doc<"messages">[];
+
+    // Create collaborative conversation (owner stays original)
+    const collabId = (await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.createForkedConversation,
+      {
+        userId: original.userId, // Original owner remains primary
+        title: `${original.title} (shared)`,
+        model: original.model,
+        systemPrompt: original.systemPrompt,
+        isCollaborative: true,
+        messageCount: messages.length,
+      },
+    )) as string;
+
+    // Add both users as participants
+    await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.addParticipant,
+      {
+        conversationId: collabId,
+        userId: original.userId,
+        role: "owner",
+      },
+    );
+
+    await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.addParticipant,
+      {
+        conversationId: collabId,
+        userId: user._id,
+        role: "collaborator",
+        invitedBy: original.userId,
+        sourceShareId: args.shareId,
+      },
+    );
+
+    // Copy messages + attachments + toolCalls + sources (preserve original userIds)
+    for (const msg of messages) {
+      const newMsgId = (await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.copyMessage,
+        {
+          conversationId: collabId,
+          userId: msg.userId, // Keep original author for attribution
+          originalMessage: msg,
+        },
+      )) as string;
+
+      // Copy attachments
+      const attachments = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.getAttachmentsByMessageInternal,
+        { messageId: msg._id },
+      )) as Doc<"attachments">[];
+
+      for (const att of attachments) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.shares.copyAttachment,
+          {
+            messageId: newMsgId,
+            conversationId: collabId,
+            userId: att.userId, // Preserve original owner
+            original: att,
+          },
+        );
+      }
+
+      // Copy tool calls
+      const toolCalls = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.getToolCallsByMessageInternal,
+        { messageId: msg._id },
+      )) as Doc<"toolCalls">[];
+
+      for (const tc of toolCalls) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.shares.copyToolCall,
+          {
+            messageId: newMsgId,
+            conversationId: collabId,
+            userId: tc.userId, // Preserve original owner
+            original: tc,
+          },
+        );
+      }
+
+      // Copy sources
+      const sources = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.shares.getSourcesByMessageInternal,
+        { messageId: msg._id },
+      )) as Doc<"sources">[];
+
+      for (const src of sources) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.shares.copySource,
+          {
+            messageId: newMsgId,
+            conversationId: collabId,
+            userId: src.userId, // Preserve original owner
+            original: src,
+          },
+        );
+      }
+    }
+
+    // Create notification for original owner
+    await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.createJoinNotification,
+      {
+        ownerId: original.userId,
+        conversationId: collabId,
+        conversationTitle: original.title,
+        joinedUserId: user._id,
+        joinedUserName: user.name,
+      },
+    );
+
+    return collabId;
+  },
+});
+
+// Internal helpers for fork operations
+
+export const getUserByIdInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId);
+  },
+});
+
+export const createForkedConversation = internalMutation({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    model: v.string(),
+    systemPrompt: v.optional(v.string()),
+    isCollaborative: v.boolean(),
+    messageCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const id = await ctx.db.insert("conversations", {
+      userId: args.userId,
+      title: args.title,
+      model: args.model,
+      systemPrompt: args.systemPrompt,
+      isCollaborative: args.isCollaborative,
+      pinned: false,
+      archived: false,
+      starred: false,
+      messageCount: args.messageCount,
+      lastMessageAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id;
+  },
+});
+
+export const copyMessage = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    userId: v.optional(v.id("users")),
+    originalMessage: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const msg = args.originalMessage;
+    const now = Date.now();
+
+    // Copy all message fields, excluding IDs and streaming partial content
+    // Note: partialContent/partialReasoning/partialSources are streaming-only, not needed
+    // Note: embedding not copied - would need re-generation for new context
+    // Note: comparison/branching fields reset - forked conv has no branches yet
+    const id = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      userId: args.userId,
+      role: msg.role,
+      content: msg.content,
+      // status: use original status (might be "error" with error message)
+      status: msg.status === "generating" || msg.status === "pending" ? "complete" : msg.status,
+      model: msg.model,
+      inputTokens: msg.inputTokens,
+      outputTokens: msg.outputTokens,
+      cost: msg.cost,
+      // Reasoning/thinking
+      reasoning: msg.reasoning,
+      reasoningTokens: msg.reasoningTokens,
+      thinkingStartedAt: msg.thinkingStartedAt,
+      thinkingCompletedAt: msg.thinkingCompletedAt,
+      // Error state
+      error: msg.error,
+      // Provider metadata
+      providerMetadata: msg.providerMetadata,
+      // Generation timing
+      generationStartedAt: msg.generationStartedAt,
+      generationCompletedAt: msg.generationCompletedAt,
+      // Performance metrics
+      firstTokenAt: msg.firstTokenAt,
+      tokensPerSecond: msg.tokensPerSecond,
+      // Memory extraction (reset - new conv hasn't extracted yet)
+      memoryExtracted: false,
+      // DEPRECATED source fields (copy for backward compat)
+      sources: msg.sources,
+      sourceMetadata: msg.sourceMetadata,
+      // Timestamps
+      createdAt: msg.createdAt ?? now,
+      updatedAt: now,
+    });
+    return id;
+  },
+});
+
+export const copyAttachment = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    original: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const att = args.original;
+    await ctx.db.insert("attachments", {
+      messageId: args.messageId,
+      conversationId: args.conversationId,
+      userId: args.userId,
+      storageId: att.storageId,
+      name: att.name,
+      type: att.type,
+      mimeType: att.mimeType,
+      size: att.size,
+      metadata: att.metadata,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const copyToolCall = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    original: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const tc = args.original;
+    await ctx.db.insert("toolCalls", {
+      messageId: args.messageId,
+      conversationId: args.conversationId,
+      userId: args.userId,
+      toolCallId: tc.toolCallId,
+      toolName: tc.toolName,
+      args: tc.args,
+      result: tc.result,
+      textPosition: tc.textPosition,
+      isPartial: false, // Completed tool calls only
+      timestamp: tc.timestamp,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const copySource = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    original: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const src = args.original;
+    await ctx.db.insert("sources", {
+      messageId: args.messageId,
+      conversationId: args.conversationId,
+      userId: args.userId,
+      position: src.position,
+      provider: src.provider,
+      title: src.title,
+      snippet: src.snippet,
+      urlHash: src.urlHash,
+      url: src.url,
+      isPartial: false, // Completed sources only
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const addParticipant = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    role: v.union(v.literal("owner"), v.literal("collaborator")),
+    invitedBy: v.optional(v.id("users")),
+    sourceShareId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("conversationParticipants", {
+      conversationId: args.conversationId,
+      userId: args.userId,
+      role: args.role,
+      joinedAt: Date.now(),
+      invitedBy: args.invitedBy,
+      sourceShareId: args.sourceShareId,
+    });
+  },
+});
+
+export const createJoinNotification = internalMutation({
+  args: {
+    ownerId: v.id("users"),
+    conversationId: v.id("conversations"),
+    conversationTitle: v.string(),
+    joinedUserId: v.id("users"),
+    joinedUserName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("notifications", {
+      userId: args.ownerId,
+      type: "collaboration_joined",
+      title: "New collaborator",
+      message: `${args.joinedUserName || "Someone"} joined "${args.conversationTitle}"`,
+      data: {
+        conversationId: args.conversationId,
+        joinedUserId: args.joinedUserId,
+        joinedUserName: args.joinedUserName,
+      },
+      read: false,
+      createdAt: Date.now(),
+    });
   },
 });

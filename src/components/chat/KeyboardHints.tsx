@@ -1,4 +1,5 @@
 import { ShortcutBadge } from "@/components/ui/shortcut-badge";
+import { HydrationSafeShortcutBadge } from "@/components/chat/HydrationSafeShortcutBadge";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 
 interface KeyboardHintsProps {
@@ -27,7 +28,7 @@ export function KeyboardHints({ isEmpty, hasContent }: KeyboardHintsProps) {
     return (
       <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground/70">
         <span className="flex items-center gap-1.5">
-          <ShortcutBadge keys={["mod", "K"]} /> commands
+          <HydrationSafeShortcutBadge keys={["mod", "K"]} /> commands
         </span>
         <span className="flex items-center gap-1.5">
           <ShortcutBadge keys={["Alt", "N"]} /> new chat

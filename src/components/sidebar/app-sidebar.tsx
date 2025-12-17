@@ -21,6 +21,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import useLocalStorage from "@/hooks/useLocalStorage";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { ProjectFilter } from "@/components/projects/ProjectFilter";
@@ -159,21 +160,11 @@ export function AppSidebar() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Collapsible state with localStorage
-  const [conversationsExpanded, setConversationsExpanded] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("conversationsExpanded");
-      return saved !== null ? JSON.parse(saved) : true;
-    }
-    return true;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "conversationsExpanded",
-      JSON.stringify(conversationsExpanded),
-    );
-  }, [conversationsExpanded]);
+  // Collapsible state with SSR-safe localStorage
+  const [conversationsExpanded, setConversationsExpanded] = useLocalStorage(
+    "conversationsExpanded",
+    true,
+  );
 
   const handleNewChat = () => {
     startNewChat();

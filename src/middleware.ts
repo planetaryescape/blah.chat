@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/share(.*)",
+  "/api/webhooks/clerk", // Clerk webhooks
   "/api/code-execution", // Allow Convex internal calls
 ]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);

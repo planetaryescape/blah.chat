@@ -486,7 +486,7 @@ function ChatPageContent({
     };
   }, [filteredConversations, conversationId]);
 
-  const navigateToPrevious = () => {
+  const navigateToPrevious = useCallback(() => {
     if (isFirst || !filteredConversations?.length) return;
 
     const sorted = [...filteredConversations].sort(
@@ -494,9 +494,9 @@ function ChatPageContent({
     );
     const prevIdx = Math.max(currentIndex - 1, 0);
     router.push(`/chat/${sorted[prevIdx]._id}`);
-  };
+  }, [isFirst, filteredConversations, currentIndex, router]);
 
-  const navigateToNext = () => {
+  const navigateToNext = useCallback(() => {
     if (isLast || !filteredConversations?.length) return;
 
     const sorted = [...filteredConversations].sort(
@@ -504,7 +504,7 @@ function ChatPageContent({
     );
     const nextIdx = Math.min(currentIndex + 1, sorted.length - 1);
     router.push(`/chat/${sorted[nextIdx]._id}`);
-  };
+  }, [isLast, filteredConversations, currentIndex, router]);
 
   return (
     <TTSProvider defaultSpeed={ttsSpeed}>
@@ -671,9 +671,5 @@ export default function ChatPage({
 }: {
   params: Promise<{ conversationId: Id<"conversations"> }>;
 }) {
-  return (
-    <Suspense>
-      <ChatPageContent params={params} />
-    </Suspense>
-  );
+  return <ChatPageContent params={params} />;
 }

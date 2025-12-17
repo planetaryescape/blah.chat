@@ -18,6 +18,7 @@ export function ProjectBadge({
   onClick,
   collapsed,
 }: ProjectBadgeProps) {
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
   const project = useQuery(api.projects.get, { id: projectId });
 
   if (!project) {
@@ -34,9 +35,10 @@ export function ProjectBadge({
       variant="secondary"
       className={cn(
         "text-xs cursor-pointer transition-all duration-200",
+        "max-w-40 min-w-0",
         collapsed
           ? "px-0.5 py-0 bg-transparent opacity-30 hover:opacity-100 hover:bg-secondary/80"
-          : "hover:bg-secondary/80",
+          : "hover:bg-secondary/80"
       )}
       onClick={(e) => {
         if (onClick) {
@@ -44,10 +46,12 @@ export function ProjectBadge({
           onClick();
         }
       }}
-      title={collapsed ? project.name : undefined}
+      title={project.name} // Always show full name in tooltip
     >
-      <FolderOpen className={cn("w-3 h-3", !collapsed && "mr-1")} />
-      {!collapsed && project.name}
+      <FolderOpen className={cn("w-3 h-3 shrink-0", !collapsed && "mr-1")} />
+      {!collapsed && (
+        <span className="truncate min-w-0 flex-1">{project.name}</span>
+      )}
     </Badge>
   );
 }

@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { useApiClient } from "@/lib/api/client";
-import { analytics } from "@/lib/analytics";
-import { queryKeys } from "@/lib/query/keys";
-import type { Id } from "@/convex/_generated/dataModel";
-import type { OptimisticMessage } from "@/types/optimistic";
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { messageQueue } from "@/lib/offline/messageQueue";
 import { useEffect } from "react";
+import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
+import { useApiClient } from "@/lib/api/client";
+import { messageQueue } from "@/lib/offline/messageQueue";
+import { queryKeys } from "@/lib/query/keys";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 interface SendMessageArgs {
   conversationId: Id<"conversations">;

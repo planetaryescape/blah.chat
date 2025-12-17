@@ -1,5 +1,8 @@
 "use client";
 
+import { useAction, useMutation } from "convex/react";
+import { ArrowRightLeft, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +16,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
-import { useAction, useMutation } from "convex/react";
-import { ArrowRightLeft, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { MarkdownContent } from "./MarkdownContent";
 
 interface Props {
@@ -47,10 +47,11 @@ export function ModelPreviewModal({
   const suggestedModel = MODEL_CONFIG[suggestedModelId];
 
   // Mutations
-  // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
   const dismissRecommendation = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
     api.conversations.dismissModelRecommendation,
   );
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 
   // Scroll synchronization refs
@@ -61,12 +62,46 @@ export function ModelPreviewModal({
   // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
   const generatePreview = useAction(api.ai.modelTriage.generatePreview);
 
+  const generatePreviewResponse = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await generatePreview({
+        conversationId,
+        suggestedModelId,
+        userMessage,
+      });
+      setPreviewResponse(result.content);
+
+      analytics.track("recommendation_preview_completed", {
+        conversationId,
+        currentModel: currentModelId,
+        suggestedModel: suggestedModelId,
+        generationTimeMs: Date.now() - comparisonStartTime,
+        responseLength: result.content.length,
+        timestamp: Date.now(),
+      });
+
+      analytics.track("recommendation_preview_compared", {
+        conversationId,
+        currentModel: currentModelId,
+        suggestedModel: suggestedModelId,
+        userSpentTimeComparingMs: Date.now() - comparisonStartTime,
+        timestamp: Date.now(),
+      });
+    } catch (error) {
+      console.error("Failed to generate preview:", error);
+      setPreviewResponse("Failed to generate preview. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [generatePreview, conversationId, suggestedModelId, userMessage, currentModelId, comparisonStartTime]);
+
   useEffect(() => {
     if (open) {
       setComparisonStartTime(Date.now());
       generatePreviewResponse();
     }
-  }, [open]);
+  }, [open, generatePreviewResponse]);
 
   // Synchronized scrolling logic
   useEffect(() => {
@@ -125,41 +160,7 @@ export function ModelPreviewModal({
       leftEl.removeEventListener("scroll", handleScrollLeft);
       rightEl.removeEventListener("scroll", handleScrollRight);
     };
-  }, [previewResponse, loading, open]); // Re-attach when content changes
-
-  const generatePreviewResponse = async () => {
-    setLoading(true);
-    try {
-      const result = await generatePreview({
-        conversationId,
-        suggestedModelId,
-        userMessage,
-      });
-      setPreviewResponse(result.content);
-
-      analytics.track("recommendation_preview_completed", {
-        conversationId,
-        currentModel: currentModelId,
-        suggestedModel: suggestedModelId,
-        generationTimeMs: Date.now() - comparisonStartTime,
-        responseLength: result.content.length,
-        timestamp: Date.now(),
-      });
-
-      analytics.track("recommendation_preview_compared", {
-        conversationId,
-        currentModel: currentModelId,
-        suggestedModel: suggestedModelId,
-        userSpentTimeComparingMs: Date.now() - comparisonStartTime,
-        timestamp: Date.now(),
-      });
-    } catch (error) {
-      console.error("Failed to generate preview:", error);
-      setPreviewResponse("Failed to generate preview. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []); // Re-attach when content changes
 
   const handleSwitch = async () => {
     if (!suggestedModel || !currentModel) return;

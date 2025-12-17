@@ -1,5 +1,18 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { useRouter, useSearchParams } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
+import {
+  Suspense,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
@@ -26,19 +39,6 @@ import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
-import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
-import { useMutation } from "convex/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { parseAsBoolean, useQueryState } from "nuqs";
-import {
-  Suspense,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
 function ChatPageContent({
   params,

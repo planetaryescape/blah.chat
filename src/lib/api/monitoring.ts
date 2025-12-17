@@ -64,7 +64,7 @@ export function trackAPIPerformance(metrics: PerformanceMetrics): void {
  * Performance monitoring middleware wrapper
  * Usage: wrap API handler to auto-track timing
  */
-export function withPerformanceTracking<T>(
+export function withPerformanceTracking<_T>(
   handler: (req: Request) => Promise<Response>,
   endpoint: string,
 ): (req: Request) => Promise<Response> {

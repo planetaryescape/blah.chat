@@ -1,5 +1,7 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { FolderOpen } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -9,8 +11,6 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
-import { FolderOpen } from "lucide-react";
 
 interface ProjectSelectorProps {
   conversationId: Id<"conversations">;

@@ -1,9 +1,9 @@
 import type { ComponentType } from "react";
 import type { ToolRendererProps } from "./types";
 
+export type { ToolCall, ToolCallState, ToolRendererProps } from "./types";
 // Export types and utilities
 export { getCallState } from "./types";
-export type { ToolCall, ToolCallState, ToolRendererProps } from "./types";
 
 // Import all renderers
 import { CalculatorRenderer } from "./CalculatorRenderer";

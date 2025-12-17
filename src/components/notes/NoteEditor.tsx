@@ -1,5 +1,22 @@
 "use client";
 
+import { EditorContent, useEditor } from "@tiptap/react";
+import { useMutation, useQuery } from "convex/react";
+import { motion } from "framer-motion";
+import {
+  ArrowUpRight,
+  Clock,
+  FolderOpen,
+  Loader2,
+  MessageSquare,
+  MoreHorizontal,
+  Pin,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import TextareaAutosize from "react-textarea-autosize";
+import { toast } from "sonner";
 import { NoteEditorSkeleton } from "@/components/notes/NoteEditorSkeleton";
 import { NoteShareDialog } from "@/components/notes/NoteShareDialog";
 import { NoteToolbar } from "@/components/notes/NoteToolbar";
@@ -33,23 +50,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { createExtensions } from "@/lib/tiptap/extensions";
 import { cn } from "@/lib/utils";
-import { EditorContent, useEditor } from "@tiptap/react";
-import { useMutation, useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import {
-  ArrowUpRight,
-  Clock,
-  FolderOpen,
-  Loader2,
-  MessageSquare,
-  MoreHorizontal,
-  Pin,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import TextareaAutosize from "react-textarea-autosize";
-import { toast } from "sonner";
 
 interface NoteEditorProps {
   noteId: Id<"notes">;
@@ -61,7 +61,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   // @ts-ignore - Type depth exceeded
   const projects = useQuery(api.projects.list);
   const updateNote = useMutation(api.notes.updateNote);
-  const togglePin = useMutation(api.notes.togglePin);
+  const _togglePin = useMutation(api.notes.togglePin);
   const deleteNote = useMutation(api.notes.deleteNote);
 
   const { isMobile } = useMobileDetect();
@@ -121,7 +121,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
       // Sync title if changed externally and we are not currently saving
       setTitle(note.title);
     }
-  }, [note, editor, noteId]); // Correct dependencies: re-run when note data loads
+  }, [note, editor, isSaving, title]); // Correct dependencies: re-run when note data loads
 
   // Debounced auto-save
   const debouncedSave = (content: string, currentTitle: string) => {

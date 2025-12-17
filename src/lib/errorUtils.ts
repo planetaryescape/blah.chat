@@ -9,7 +9,7 @@ export type ErrorSeverity = "fatal" | "error" | "warning" | "info";
  */
 export function classifyErrorSeverity(
   error: Error,
-  context?: string,
+  _context?: string,
 ): ErrorSeverity {
   const message = error.message.toLowerCase();
 

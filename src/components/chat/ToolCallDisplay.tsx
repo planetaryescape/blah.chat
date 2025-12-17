@@ -22,8 +22,8 @@ import { useMemo, useState } from "react";
 import {
   DefaultToolRenderer,
   getCallState,
-  toolRenderers,
   type ToolCall,
+  toolRenderers,
 } from "./toolRenderers";
 
 interface ToolCallDisplayProps {

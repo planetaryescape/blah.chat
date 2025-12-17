@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,9 +14,6 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
-import { useState } from "react";
 
 interface SourceListProps {
   messageId: Id<"messages">;
@@ -100,7 +100,7 @@ function SourceCard({ source, position }: SourceCardProps) {
         target="_blank"
         rel="noopener noreferrer"
         className="flex gap-3"
-        onClick={(e) => {
+        onClick={(_e) => {
           // Let hover card handle desktop, direct link for mobile
           if (window.innerWidth < 640) {
             return; // Allow default link behavior

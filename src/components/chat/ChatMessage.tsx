@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { memo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -15,10 +19,6 @@ import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import type { OptimisticMessage } from "@/types/optimistic";
-import { useMutation, useQuery } from "convex/react";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
-import { memo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { FeedbackModal } from "../feedback/FeedbackModal";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { InlineToolCallContent } from "./InlineToolCallContent";
@@ -34,7 +34,7 @@ import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
 
 // Status indicator for optimistic messages
-function MessageStatusIndicator({
+function _MessageStatusIndicator({
   message,
 }: {
   message: Doc<"messages"> | OptimisticMessage;
@@ -341,7 +341,6 @@ export const ChatMessage = memo(
           <div
             ref={messageRef}
             id={`message-${message._id}`}
-            tabIndex={0}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             className={cn(

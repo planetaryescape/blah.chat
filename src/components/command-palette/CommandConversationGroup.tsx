@@ -1,8 +1,8 @@
 "use client";
 
-import type { Doc } from "@/convex/_generated/dataModel";
 import { Command } from "cmdk";
 import type { LucideIcon } from "lucide-react";
+import type { Doc } from "@/convex/_generated/dataModel";
 
 interface CommandConversationGroupProps {
   heading: string;

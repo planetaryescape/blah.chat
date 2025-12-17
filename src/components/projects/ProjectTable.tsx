@@ -1,5 +1,25 @@
 "use client";
 
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { formatDistanceToNow } from "date-fns";
+import {
+  ArrowUpDown,
+  Calendar,
+  FolderOpen,
+  MoreVertical,
+  Settings,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,26 +37,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Id } from "@/convex/_generated/dataModel";
-import {
-  type ColumnDef,
-  type SortingState,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { formatDistanceToNow } from "date-fns";
-import {
-  ArrowUpDown,
-  Calendar,
-  FolderOpen,
-  MoreVertical,
-  Settings,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { ProjectStats } from "./ProjectStats";
 
 interface Project {

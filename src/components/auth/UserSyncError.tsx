@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { AlertTriangle, LogOut, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * UserSyncError Component

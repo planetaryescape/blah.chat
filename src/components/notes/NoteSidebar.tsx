@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus, Search, Settings2 } from "lucide-react";
 import { ProjectFilterSelect } from "@/components/projects/ProjectFilterSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,6 @@ import {
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { cn } from "@/lib/utils";
-import { Plus, Search, Settings2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { NoteFilters } from "./NoteFilters";
 import { NoteList } from "./NoteList";

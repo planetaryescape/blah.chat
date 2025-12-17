@@ -1,7 +1,7 @@
+import { auth } from "@clerk/nextjs/server";
+import { type NextRequest, NextResponse } from "next/server";
 import logger from "@/lib/logger";
 import { formatErrorEntity } from "@/lib/utils/formatEntity";
-import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
 
 type AuthContext = {
   params: Promise<Record<string, string | string[]>>;

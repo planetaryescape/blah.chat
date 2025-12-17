@@ -200,7 +200,7 @@ export const addTagInternal = internalMutation({
     const existing = await ctx.db
       .query("taskTags")
       .withIndex("by_task_tag", (q) =>
-        q.eq("taskId", args.taskId).eq("tagId", tagDoc!._id),
+        q.eq("taskId", args.taskId).eq("tagId", tagDoc?._id),
       )
       .first();
 

@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import type { OptimisticMessage } from "@/types/optimistic";
 import { analytics } from "@/lib/analytics";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 interface MessageActionsMenuProps {
   message: Doc<"messages"> | OptimisticMessage;

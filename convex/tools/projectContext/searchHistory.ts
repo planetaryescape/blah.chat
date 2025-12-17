@@ -5,10 +5,10 @@
  * Uses vector search with conversationId filtering.
  */
 
-import { internalAction } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
+import { internalAction } from "../../_generated/server";
 
 export const searchHistory = internalAction({
   args: {

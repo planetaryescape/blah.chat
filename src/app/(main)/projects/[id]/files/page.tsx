@@ -32,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export default function ProjectFilesPage({
   params,
@@ -59,7 +59,7 @@ export default function ProjectFilesPage({
   // @ts-ignore - Type depth exceeded
   const addFileToProject = useMutation(api.projects.addFileToProject);
   // @ts-ignore - Type depth exceeded
-  const deleteFile = useMutation(api.files.deleteFile);
+  const _deleteFile = useMutation(api.files.deleteFile);
   // @ts-ignore - Type depth exceeded
   const removeFileFromProject = useMutation(api.projects.removeFileFromProject);
 
@@ -107,7 +107,7 @@ export default function ProjectFilesPage({
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
   };
 
   const getFileIcon = (mimeType: string) => {

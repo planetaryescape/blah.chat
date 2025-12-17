@@ -1,19 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  FeedbackType,
-  STATUS_BY_TYPE,
-  STATUS_LABELS,
-} from "@/lib/constants/feedback";
 import {
   ArrowDown,
   ArrowUp,
@@ -25,6 +11,20 @@ import {
   X,
 } from "lucide-react";
 import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  type FeedbackType,
+  STATUS_BY_TYPE,
+  STATUS_LABELS,
+} from "@/lib/constants/feedback";
 
 interface FeedbackFilterBarProps {
   statusFilter: string | null;

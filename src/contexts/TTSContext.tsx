@@ -1,9 +1,5 @@
 "use client";
 
-import { useTTSAudioPlayer } from "@/hooks/useTTSAudioPlayer";
-import { analytics } from "@/lib/analytics";
-import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
-import { chunkText, clamp, getTTSUrl } from "@/lib/utils/ttsUtils";
 import {
   createContext,
   type ReactNode,
@@ -13,6 +9,10 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { useTTSAudioPlayer } from "@/hooks/useTTSAudioPlayer";
+import { analytics } from "@/lib/analytics";
+import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
+import { chunkText, clamp, getTTSUrl } from "@/lib/utils/ttsUtils";
 
 interface TTSState {
   isVisible: boolean;
@@ -87,7 +87,7 @@ export function TTSProvider({
     audioPlayer.setSpeed(clamped);
     setState((prev) => ({ ...prev, speed: clamped }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultSpeed]);
+  }, [defaultSpeed, audioPlayer.setSpeed]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -95,7 +95,7 @@ export function TTSProvider({
       audioPlayer.cleanupAudio();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [audioPlayer.cleanupAudio]);
 
   const close = useCallback(() => {
     audioPlayer.cleanupAudio();

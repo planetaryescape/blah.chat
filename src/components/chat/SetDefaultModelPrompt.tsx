@@ -1,9 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import type { Id } from "@/convex/_generated/dataModel";
 import { analytics } from "@/lib/analytics";
 

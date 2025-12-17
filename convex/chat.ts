@@ -1,5 +1,5 @@
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { v } from "convex/values";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation } from "./_generated/server";
@@ -215,7 +215,7 @@ export const regenerate = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const user = await getCurrentUserOrCreate(ctx);
+    const _user = await getCurrentUserOrCreate(ctx);
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
@@ -386,7 +386,7 @@ export const retryMessage = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const user = await getCurrentUserOrCreate(ctx);
+    const _user = await getCurrentUserOrCreate(ctx);
     const userMessage = await ctx.db.get(args.messageId);
     if (!userMessage) throw new Error("Message not found");
     if (userMessage.role !== "user") {

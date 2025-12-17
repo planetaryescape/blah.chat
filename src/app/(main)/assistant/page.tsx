@@ -1,12 +1,5 @@
 "use client";
 
-import { TaskReviewPanel } from "@/components/assistant/TaskReviewPanel";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/convex/_generated/api";
 import { useAction, useMutation } from "convex/react";
 import {
   ArrowRight,
@@ -19,6 +12,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { TaskReviewPanel } from "@/components/assistant/TaskReviewPanel";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
 import { VideoUploadTab } from "./_components/VideoUploadTab";
 
 type ProcessingState =

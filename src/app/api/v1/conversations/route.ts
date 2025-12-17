@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
+import { conversationsDAL } from "@/lib/api/dal/conversations";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { conversationsDAL } from "@/lib/api/dal/conversations";
-import { parseBody, getQueryParam } from "@/lib/api/utils";
-import { formatEntity } from "@/lib/utils/formatEntity";
-import logger from "@/lib/logger";
-import { z } from "zod";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import { getCacheControl, CachePresets } from "@/lib/api/cache";
+import { getQueryParam, parseBody } from "@/lib/api/utils";
+import logger from "@/lib/logger";
+import { formatEntity } from "@/lib/utils/formatEntity";
 
 const createSchema = z.object({
   title: z.string().optional(),
@@ -40,7 +40,7 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 
-  const limit = Number.parseInt(getQueryParam(req, "limit") || "50");
+  const limit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
   const archived = getQueryParam(req, "archived") === "true";
 
   const conversations = await conversationsDAL.list(userId, limit, archived);

@@ -3,11 +3,9 @@
  * Migrates tags from 4 entities (bookmarks, snippets, notes, feedback) to centralized tags table
  */
 
-import { internalMutation, internalAction } from "../_generated/server";
-import { internal } from "../_generated/api";
-import { v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
 import { normalizeTagSlug } from "../../src/lib/utils/tagUtils";
+import { internal } from "../_generated/api";
+import { internalAction, internalMutation } from "../_generated/server";
 
 /**
  * Step 1: Backfill bookmarks tags

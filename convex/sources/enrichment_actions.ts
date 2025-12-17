@@ -2,8 +2,8 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { internalAction } from "../_generated/server";
 
 /**
  * Enriches source citations with OpenGraph metadata (Phase 2: writes to sourceMetadata table)

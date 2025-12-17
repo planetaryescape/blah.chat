@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,8 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { getLastNDays, formatDateToISO } from "@/lib/utils/date";
-import { format } from "date-fns";
+import { formatDateToISO, getLastNDays } from "@/lib/utils/date";
 
 interface DateRangePickerProps {
   value: { startDate: string; endDate: string };

@@ -155,14 +155,14 @@ export const messagesDAL = {
    * NOTE: Currently not supported - Convex doesn't have editMessage mutation
    * To edit a message, delete and resend instead
    */
-  update: async (userId: string, messageId: string, content: string) => {
+  update: async (_userId: string, _messageId: string, _content: string) => {
     throw new Error("Message editing not yet implemented");
   },
 
   /**
    * Regenerate assistant response
    */
-  regenerate: async (userId: string, messageId: string, modelId?: string) => {
+  regenerate: async (userId: string, messageId: string, _modelId?: string) => {
     const convex = getConvexClient();
 
     // Verify ownership

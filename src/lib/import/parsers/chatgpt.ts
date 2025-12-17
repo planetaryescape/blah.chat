@@ -1,4 +1,4 @@
-import type { ImportData, ImportResult } from "../types";
+import type { ImportResult } from "../types";
 
 interface ChatGPTMessage {
   id: string;

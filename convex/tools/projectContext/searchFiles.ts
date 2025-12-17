@@ -5,10 +5,10 @@
  * Leverages Phase 4 file RAG system (chunking, embeddings, vector search).
  */
 
-import { internalAction } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
+import { internalAction } from "../../_generated/server";
 import type { FileChunkResult } from "../../files/search";
 
 export const searchFiles = internalAction({

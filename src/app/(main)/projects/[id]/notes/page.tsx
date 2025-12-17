@@ -1,17 +1,17 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Plus } from "lucide-react";
+import { use, useState } from "react";
+import { toast } from "sonner";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { NoteList } from "@/components/notes/NoteList";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { Plus } from "lucide-react";
-import { use, useState } from "react";
-import { toast } from "sonner";
 
 export default function ProjectNotesPage({
   params,
@@ -25,7 +25,7 @@ export default function ProjectNotesPage({
   const [selectedNoteId, setSelectedNoteId] = useState<Id<"notes"> | null>(
     null,
   );
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, _setSearchQuery] = useState("");
 
   // Queries
   // @ts-ignore - Type depth exceeded
@@ -47,7 +47,7 @@ export default function ProjectNotesPage({
       });
       setSelectedNoteId(noteId);
       toast.success("Note created in project");
-    } catch (e) {
+    } catch (_e) {
       toast.error("Failed to create note");
     }
   };

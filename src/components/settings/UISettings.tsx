@@ -1,5 +1,8 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +15,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import { useUISettingsState } from "@/hooks/useUISettingsState";
-import { useMutation } from "convex/react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   ComparisonSettingsSection,
   DisplayLayoutSection,

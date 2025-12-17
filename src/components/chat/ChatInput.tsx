@@ -1,5 +1,8 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Loader2, Send, Square } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -18,9 +21,6 @@ import { useSendMessage } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
 import { type ChatWidth, getChatWidthClass } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
-import { useMutation, useQuery } from "convex/react";
-import { Loader2, Send, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AudioWaveform } from "./AudioWaveform";
 import { FileUpload } from "./FileUpload";
@@ -110,7 +110,8 @@ export function ChatInput({
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
-  const supportsVision = modelConfig?.capabilities?.includes("vision") ?? false;
+  const _supportsVision =
+    modelConfig?.capabilities?.includes("vision") ?? false;
   const supportsThinking = !!modelConfig?.reasoning;
 
   const handleSubmit = async (e: React.FormEvent | React.KeyboardEvent) => {
@@ -195,7 +196,7 @@ export function ChatInput({
     if (!textarea) return;
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
-  }, [input]);
+  }, []);
 
   // Dynamic placeholder based on model capabilities
   const getPlaceholder = () => {

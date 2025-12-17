@@ -1,9 +1,9 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
 import { ComparisonView } from "./ComparisonView";
 
 interface MessageConsolidationToggleProps {

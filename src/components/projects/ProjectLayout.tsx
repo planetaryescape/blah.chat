@@ -1,11 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
   Archive,
@@ -18,7 +12,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
 
 interface ProjectLayoutProps {
   projectId: Id<"projects">;
@@ -26,7 +26,7 @@ interface ProjectLayoutProps {
 }
 
 export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const pathname = usePathname();
   // @ts-ignore - Type depth exceeded
   const project = useQuery(api.projects.get, { id: projectId });

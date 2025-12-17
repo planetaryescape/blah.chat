@@ -1,5 +1,5 @@
-import type { Id } from "@/convex/_generated/dataModel";
 import { useCallback, useState } from "react";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export function useBulkSelection() {
   const [selectedIds, setSelectedIds] = useState<Set<Id<"messages">>>(

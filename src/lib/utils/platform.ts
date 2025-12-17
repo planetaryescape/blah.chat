@@ -14,6 +14,21 @@ export function getModifierKey(): string {
   return getPlatform() === "mac" ? "⌘" : "Ctrl";
 }
 
+/**
+ * Server-safe modifier key that returns "Ctrl" during SSR
+ * and the correct platform-specific key on the client.
+ * Use this to avoid hydration mismatches.
+ */
+export function getServerSafeModifierKey(): string {
+  if (typeof window === "undefined") {
+    // During SSR, always return "Ctrl" to match initial hydration
+    return "Ctrl";
+  }
+
+  // On client, return the actual platform-specific key
+  return getPlatform() === "mac" ? "⌘" : "Ctrl";
+}
+
 // Device Platform (mobile vs web)
 export type DevicePlatform = "web" | "mobile";
 export type DataFetchingStrategy = "convex" | "sse" | "polling";

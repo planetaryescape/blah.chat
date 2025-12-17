@@ -206,7 +206,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       "Compact MoE optimized for low-latency and edge deployments (1000 T/sec)",
     contextWindow: 131000,
     pricing: { input: 0.1, output: 0.5 },
-    capabilities: ["function-calling"],
+    capabilities: ["function-calling", "thinking"],
     providerOrder: ["cerebras", "groq"],
     userFriendlyDescription:
       "Instant responses. Blazing-fast model for when you need answers right now.",
@@ -343,6 +343,32 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Deep thinker with huge memory. Can analyze entire books (2 million words!) and think through complex problems.",
     bestFor: "Deep reasoning, complex multi-step analysis, research",
+  },
+  "google:gemini-3-flash": {
+    id: "google:gemini-3-flash",
+    provider: "google",
+    name: "Gemini 3 Flash",
+    description:
+      "Google's most intelligent model built for speed. Frontier intelligence with superior search and grounding.",
+    contextWindow: 1000000,
+    pricing: {
+      input: 0.5,
+      output: 3.0,
+      cached: 0.125,
+    },
+    capabilities: ["vision", "function-calling", "thinking"],
+    reasoning: {
+      type: "google-thinking-budget",
+      budgetMapping: {
+        low: 4096,
+        medium: 12288,
+        high: 24576,
+      },
+    },
+    knowledgeCutoff: "August 2025",
+    userFriendlyDescription:
+      "Fast frontier intelligence. Google's smartest model optimized for speed with 1M context and built-in search grounding.",
+    bestFor: "Speed-critical tasks, real-time applications, search-grounded responses",
   },
   "google:gemini-2.0-flash": {
     id: "google:gemini-2.0-flash",

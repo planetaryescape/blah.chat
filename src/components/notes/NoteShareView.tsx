@@ -1,10 +1,11 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import DOMPurify from "dompurify";
 import { motion } from "framer-motion";
 import katex from "katex";
-import { FileText, Loader2 } from "lucide-react";
+import { ExternalLink, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { Logo } from "@/components/brand/Logo";
@@ -20,8 +21,16 @@ interface NoteShareViewProps {
 }
 
 export function NoteShareView({ noteId }: NoteShareViewProps) {
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
+
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const note = useQuery(api.notes.getPublicNote, { noteId });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const currentUser = useQuery(api.users.getCurrentUser);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Check if current user is the owner
+  const isOwner = currentUser && note && note.userId === currentUser._id;
 
   // Sanitize HTML content
   const sanitizedHtml = useMemo(() => {
@@ -87,14 +96,31 @@ export function NoteShareView({ noteId }: NoteShareViewProps) {
           </div>
           <div className="flex-shrink-0 ml-4 flex items-center gap-2">
             <ThemeToggle />
-            <Button
-              asChild
-              variant="default"
-              size="sm"
-              className="font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
-            >
-              <Link href="/">Try blah.chat</Link>
-            </Button>
+            {/* Owner: show "Open Note" button */}
+            {authLoaded && isOwner && (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+              >
+                <Link href={`/notes?id=${noteId}`}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Note
+                </Link>
+              </Button>
+            )}
+            {/* Non-owner: show CTA */}
+            {authLoaded && !isOwner && (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+              >
+                <Link href="/">Start chatting</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -131,38 +157,39 @@ export function NoteShareView({ noteId }: NoteShareViewProps) {
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
           />
 
-          {/* Try blah.chat CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="mt-12 pt-8 border-t border-border/40"
-          >
-            <Card className="surface-glass border-primary/20 overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-              <CardContent className="p-8 flex flex-col md:flex-row items-center gap-8 relative z-10">
-                <div className="flex-shrink-0 p-4 rounded-2xl bg-background/50 border border-white/10 shadow-xl">
-                  <Logo size="lg" />
-                </div>
-                <div className="flex-1 text-center md:text-left space-y-2">
-                  <h3 className="text-2xl font-display font-bold">
-                    Experience the future of chat
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Create your own personal AI assistant with multi-model
-                    support, RAG memory, and full data ownership.
-                  </p>
-                </div>
-                <Button
-                  asChild
-                  size="lg"
-                  className="flex-shrink-0 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
-                >
-                  <Link href="/">Get Started Free</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+          {/* Try blah.chat CTA - only for non-owners */}
+          {!isOwner && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="mt-12 pt-8 border-t border-border/40"
+            >
+              <Card className="surface-glass border-primary/20 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+                <CardContent className="p-8 flex flex-col md:flex-row items-center gap-8 relative z-10">
+                  <div className="flex-shrink-0 p-4 rounded-2xl bg-background/50 border border-white/10 shadow-xl">
+                    <Logo size="lg" />
+                  </div>
+                  <div className="flex-1 text-center md:text-left space-y-2">
+                    <h3 className="text-2xl font-display font-bold">
+                      Write your own notes with AI
+                    </h3>
+                    <p className="text-muted-foreground">
+                      All models. Your data. Notes that never get lost.
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="flex-shrink-0 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
+                  >
+                    <Link href="/">Try it free</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </motion.div>
       </main>
 
@@ -177,7 +204,7 @@ export function NoteShareView({ noteId }: NoteShareViewProps) {
             >
               blah.chat
             </Link>{" "}
-            • AI-powered conversations
+            • Total control. One interface.
           </p>
         </div>
       </footer>

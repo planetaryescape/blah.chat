@@ -1,8 +1,15 @@
 "use client";
 
+import { Command } from "cmdk";
+import { useAction, useQuery } from "convex/react";
+import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
+import { matchSorter } from "match-sorter";
+import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    CommandActionGroup,
-    CommandConversationGroup,
+  CommandActionGroup,
+  CommandConversationGroup,
 } from "@/components/command-palette";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { api } from "@/convex/_generated/api";
@@ -11,13 +18,6 @@ import { useConversationActions } from "@/hooks/useConversationActions";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useNewChat } from "@/hooks/useNewChat";
 import { createActionItems } from "@/lib/command-palette-actions";
-import { Command } from "cmdk";
-import { useAction, useQuery } from "convex/react";
-import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
-import { matchSorter } from "match-sorter";
-import { useTheme } from "next-themes";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
 import { RenameDialog } from "./sidebar/RenameDialog";
 
@@ -25,7 +25,7 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Doc<"conversations">[]>(
-    []
+    [],
   );
   const [isSearching, setIsSearching] = useState(false);
   const [showRename, setShowRename] = useState(false);
@@ -36,7 +36,7 @@ export function CommandPalette() {
   const _listRef = useRef<HTMLDivElement>(null);
   const conversations = useQuery(api.conversations.list, {});
   const hybridSearchAction = useAction(
-    api.conversations.hybridSearch.hybridSearch
+    api.conversations.hybridSearch.hybridSearch,
   );
   const { startNewChat } = useNewChat();
   const features = useFeatureToggles();
@@ -48,12 +48,12 @@ export function CommandPalette() {
   const currentConversation = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
-    conversationId ? { conversationId } : "skip"
+    conversationId ? { conversationId } : "skip",
   );
 
   const conversationActions = useConversationActions(
     conversationId,
-    "command_palette"
+    "command_palette",
   );
 
   // Keyboard shortcut to open
@@ -140,13 +140,13 @@ export function CommandPalette() {
         },
         onTogglePin: async () => {
           await conversationActions.handleTogglePin(
-            currentConversation?.pinned || false
+            currentConversation?.pinned || false,
           );
           setOpen(false);
         },
         onToggleStar: async () => {
           await conversationActions.handleToggleStar(
-            currentConversation?.starred || false
+            currentConversation?.starred || false,
           );
           setOpen(false);
         },
@@ -167,7 +167,7 @@ export function CommandPalette() {
       features.showTemplates,
       features.showProjects,
       features.showBookmarks,
-    ]
+    ],
   );
 
   const filteredActions = useMemo(() => {
@@ -190,12 +190,15 @@ export function CommandPalette() {
     };
   }, [conversations, searchQuery, searchResults]);
 
-  const actionsByGroup = useMemo(() => ({
-    actions: filteredActions.filter((a) => a.group === "actions"),
-    navigation: filteredActions.filter((a) => a.group === "navigation"),
-    conversation: filteredActions.filter((a) => a.group === "conversation"),
-    theme: filteredActions.filter((a) => a.group === "theme"),
-  }), [filteredActions]);
+  const actionsByGroup = useMemo(
+    () => ({
+      actions: filteredActions.filter((a) => a.group === "actions"),
+      navigation: filteredActions.filter((a) => a.group === "navigation"),
+      conversation: filteredActions.filter((a) => a.group === "conversation"),
+      theme: filteredActions.filter((a) => a.group === "theme"),
+    }),
+    [filteredActions],
+  );
 
   return (
     <>
@@ -222,8 +225,15 @@ export function CommandPalette() {
                   {searchQuery ? "No conversations found" : "No results found."}
                 </Command.Empty>
 
-                <CommandActionGroup heading="Actions" actions={actionsByGroup.actions} />
-                <CommandActionGroup heading="Navigation" actions={actionsByGroup.navigation} className="mt-2" />
+                <CommandActionGroup
+                  heading="Actions"
+                  actions={actionsByGroup.actions}
+                />
+                <CommandActionGroup
+                  heading="Navigation"
+                  actions={actionsByGroup.navigation}
+                  className="mt-2"
+                />
 
                 <CommandConversationGroup
                   heading="Pinned"
@@ -233,7 +243,11 @@ export function CommandPalette() {
                 />
 
                 <CommandConversationGroup
-                  heading={searchQuery.trim() ? "Search Results" : "Recent Conversations"}
+                  heading={
+                    searchQuery.trim()
+                      ? "Search Results"
+                      : "Recent Conversations"
+                  }
                   conversations={groupedConversations.recent}
                   icon={MessageSquare}
                   onSelect={handleNavigate}
@@ -246,8 +260,16 @@ export function CommandPalette() {
                   onSelect={handleNavigate}
                 />
 
-                <CommandActionGroup heading="Conversation" actions={actionsByGroup.conversation} className="mt-2" />
-                <CommandActionGroup heading="Theme" actions={actionsByGroup.theme} className="mt-2" />
+                <CommandActionGroup
+                  heading="Conversation"
+                  actions={actionsByGroup.conversation}
+                  className="mt-2"
+                />
+                <CommandActionGroup
+                  heading="Theme"
+                  actions={actionsByGroup.theme}
+                  className="mt-2"
+                />
               </Command.List>
             </Command>
           </div>

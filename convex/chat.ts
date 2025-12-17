@@ -1,5 +1,5 @@
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { v } from "convex/values";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation } from "./_generated/server";
@@ -51,9 +51,7 @@ export const sendMessage = mutation({
     // Limit checks and housekeeping are deferred to background mutation
 
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
-    const modelsToUse = args.models || [
-      args.modelId || "openai:gpt-4o-mini",
-    ];
+    const modelsToUse = args.models || [args.modelId || "openai:gpt-4o-mini"];
 
     // Generate comparison group ID if multiple models
     const comparisonGroupId =
@@ -162,7 +160,7 @@ export const runHousekeeping = internalMutation({
 
     // 1. Increment daily message count (handle day reset)
     const currentCount =
-      user.lastMessageDate === today ? (user.dailyMessageCount || 0) : 0;
+      user.lastMessageDate === today ? user.dailyMessageCount || 0 : 0;
 
     await ctx.db.patch(args.userId, {
       dailyMessageCount: currentCount + 1,
@@ -175,8 +173,10 @@ export const runHousekeeping = internalMutation({
     });
 
     // 3. Check if limits exceeded (soft check - for analytics/flagging)
-    const adminSettings = await ctx.db.query("adminSettings").first();
-    const dailyLimit = adminSettings?.defaultDailyMessageLimit ?? 50;
+    const adminSettings = await ctx.runQuery(
+      internal.adminSettings.getWithEnvOverrides,
+    );
+    const dailyLimit = adminSettings.defaultDailyMessageLimit;
 
     if (currentCount + 1 >= dailyLimit) {
       // User will be blocked on next message, but current one goes through
@@ -184,8 +184,7 @@ export const runHousekeeping = internalMutation({
     }
 
     // 4. Check if memory extraction should trigger (auto-extraction)
-    const autoExtractEnabled =
-      adminSettings?.autoMemoryExtractEnabled ?? true;
+    const autoExtractEnabled = adminSettings?.autoMemoryExtractEnabled ?? true;
     const interval = adminSettings?.autoMemoryExtractInterval ?? 5;
 
     if (autoExtractEnabled) {
@@ -216,7 +215,7 @@ export const regenerate = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const user = await getCurrentUserOrCreate(ctx);
+    const _user = await getCurrentUserOrCreate(ctx);
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
@@ -231,8 +230,8 @@ export const regenerate = mutation({
     // Phase 4: Get default model from new preference system
     const userDefaultModel = await (
       ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-      // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
     )(api.users.getUserPreference as any, { key: "defaultModel" });
+    // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
 
     // Priority: message.model → conversation.model → user defaultModel preference → fallback
     const modelId =
@@ -387,7 +386,7 @@ export const retryMessage = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const user = await getCurrentUserOrCreate(ctx);
+    const _user = await getCurrentUserOrCreate(ctx);
     const userMessage = await ctx.db.get(args.messageId);
     if (!userMessage) throw new Error("Message not found");
     if (userMessage.role !== "user") {

@@ -1,16 +1,16 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { FolderOpen } from "lucide-react";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import { FolderOpen } from "lucide-react";
 
 interface ProjectFilterSelectProps {
   value: Id<"projects"> | null;

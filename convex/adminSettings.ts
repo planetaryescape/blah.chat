@@ -109,3 +109,47 @@ export const getInternal = internalQuery({
     return await ctx.db.query("adminSettings").first();
   },
 });
+
+/**
+ * Get admin settings with environment variable overrides
+ * Self-hosted instances can override defaults via env vars
+ */
+export const getWithEnvOverrides = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const dbSettings = await ctx.db.query("adminSettings").first();
+
+    // Default values
+    const defaults = {
+      autoMemoryExtractEnabled: true,
+      autoMemoryExtractInterval: 5,
+      enableHybridSearch: false,
+      defaultMonthlyBudget: 10,
+      defaultBudgetAlertThreshold: 0.8,
+      budgetHardLimitEnabled: true,
+      defaultDailyMessageLimit: 50,
+      alertEmail: "blah.chat@bhekani.com",
+    };
+
+    // Merge: env vars > database > defaults
+    const settings = dbSettings || defaults;
+
+    return {
+      ...settings,
+      // Environment variable overrides (for self-hosted instances)
+      defaultDailyMessageLimit: process.env.DEFAULT_DAILY_MESSAGE_LIMIT
+        ? Number.parseInt(process.env.DEFAULT_DAILY_MESSAGE_LIMIT, 10)
+        : settings.defaultDailyMessageLimit,
+      defaultMonthlyBudget: process.env.DEFAULT_MONTHLY_BUDGET
+        ? Number.parseFloat(process.env.DEFAULT_MONTHLY_BUDGET)
+        : settings.defaultMonthlyBudget,
+      defaultBudgetAlertThreshold: process.env.BUDGET_ALERT_THRESHOLD
+        ? Number.parseFloat(process.env.BUDGET_ALERT_THRESHOLD)
+        : settings.defaultBudgetAlertThreshold,
+      budgetHardLimitEnabled: process.env.BUDGET_HARD_LIMIT_ENABLED
+        ? process.env.BUDGET_HARD_LIMIT_ENABLED === "true"
+        : settings.budgetHardLimitEnabled,
+      alertEmail: process.env.ALERT_EMAIL || settings.alertEmail,
+    };
+  },
+});

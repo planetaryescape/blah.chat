@@ -1,13 +1,13 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 
@@ -56,32 +56,32 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
       onClick={handleNavigate}
     >
       <CardHeader className="p-4 pb-2 space-y-0">
-         <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0 pr-3">
-               <div className="flex items-center gap-2 mb-1.5 text-xs text-muted-foreground">
-                  <span className="font-medium text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
-                     {bookmark.conversation.title}
-                  </span>
-                  <span>•</span>
-                  <span>{format(bookmark.createdAt, "MMM d")}</span>
-               </div>
-               <div className="text-sm text-foreground/90 line-clamp-3 leading-relaxed">
-                  {messagePreview}
-               </div>
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="flex items-center gap-2 mb-1.5 text-xs text-muted-foreground">
+              <span className="font-medium text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
+                {bookmark.conversation.title}
+              </span>
+              <span>•</span>
+              <span>{format(bookmark.createdAt, "MMM d")}</span>
             </div>
+            <div className="text-sm text-foreground/90 line-clamp-3 leading-relaxed">
+              {messagePreview}
+            </div>
+          </div>
 
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1 -mr-2 -mt-2">
-                 <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={handleDelete}
-                    title="Delete bookmark"
-                 >
-                    <Trash2 className="h-3.5 w-3.5" />
-                 </Button>
-            </div>
-         </div>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1 -mr-2 -mt-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              onClick={handleDelete}
+              title="Delete bookmark"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="p-4 pt-2">
@@ -93,15 +93,15 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
 
         {bookmark.tags && bookmark.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/30">
-              {bookmark.tags.map((tag: any) => (
-                <Badge
-                  key={tag}
-                  variant="secondary"
-                  className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground border-border/30"
-                >
-                  {tag}
-                </Badge>
-              ))}
+            {bookmark.tags.map((tag: any) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground border-border/30"
+              >
+                {tag}
+              </Badge>
+            ))}
           </div>
         )}
       </CardContent>

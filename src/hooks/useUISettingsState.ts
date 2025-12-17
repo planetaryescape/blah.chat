@@ -1,12 +1,12 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
-import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface ReasoningSettings {
   showByDefault: boolean;
@@ -56,7 +56,9 @@ export function useUISettingsState() {
 
   // Get preference values from hooks
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
-  const prefShowModelNames = useUserPreference("showModelNamesDuringComparison");
+  const prefShowModelNames = useUserPreference(
+    "showModelNamesDuringComparison",
+  );
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
   const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
   const prefReasoning = useUserPreference("reasoning");
@@ -73,53 +75,56 @@ export function useUISettingsState() {
     useState<boolean>(prefShowModelNames);
   const [showMessageStats, setShowMessageStats] =
     useState<boolean>(prefShowMessageStats);
-  const [showComparisonStats, setShowComparisonStats] =
-    useState<boolean>(prefShowComparisonStats);
+  const [showComparisonStats, setShowComparisonStats] = useState<boolean>(
+    prefShowComparisonStats,
+  );
   const [showByDefault, setShowByDefault] = useState<boolean>(
-    prefReasoning.showByDefault
+    prefReasoning.showByDefault,
   );
   const [autoExpand, setAutoExpand] = useState<boolean>(
-    prefReasoning.autoExpand
+    prefReasoning.autoExpand,
   );
   const [showDuringStreaming, setShowDuringStreaming] = useState<boolean>(
-    prefReasoning.showDuringStreaming
+    prefReasoning.showDuringStreaming,
   );
   const [chatWidth, setChatWidth] = useState<ChatWidth>(
-    prefChatWidth as ChatWidth
+    prefChatWidth as ChatWidth,
   );
   const [showNotes, setShowNotes] = useState<boolean>(prefShowNotes);
-  const [showTemplates, setShowTemplates] = useState<boolean>(prefShowTemplates);
+  const [showTemplates, setShowTemplates] =
+    useState<boolean>(prefShowTemplates);
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
-  const [showBookmarks, setShowBookmarks] = useState<boolean>(prefShowBookmarks);
+  const [showBookmarks, setShowBookmarks] =
+    useState<boolean>(prefShowBookmarks);
 
   // Sync local state when hook values change
   useEffect(
     () => setAlwaysShowMessageActions(prefAlwaysShowActions),
-    [prefAlwaysShowActions]
+    [prefAlwaysShowActions],
   );
   useEffect(
     () => setShowModelNamesDuringComparison(prefShowModelNames),
-    [prefShowModelNames]
+    [prefShowModelNames],
   );
   useEffect(
     () => setShowMessageStats(prefShowMessageStats),
-    [prefShowMessageStats]
+    [prefShowMessageStats],
   );
   useEffect(
     () => setShowComparisonStats(prefShowComparisonStats),
-    [prefShowComparisonStats]
+    [prefShowComparisonStats],
   );
   useEffect(
     () => setShowByDefault(prefReasoning.showByDefault),
-    [prefReasoning.showByDefault]
+    [prefReasoning.showByDefault],
   );
   useEffect(
     () => setAutoExpand(prefReasoning.autoExpand),
-    [prefReasoning.autoExpand]
+    [prefReasoning.autoExpand],
   );
   useEffect(
     () => setShowDuringStreaming(prefReasoning.showDuringStreaming),
-    [prefReasoning.showDuringStreaming]
+    [prefReasoning.showDuringStreaming],
   );
   useEffect(() => setChatWidth(prefChatWidth as ChatWidth), [prefChatWidth]);
   useEffect(() => setShowNotes(prefShowNotes), [prefShowNotes]);
@@ -132,7 +137,7 @@ export function useUISettingsState() {
     key: string,
     setter: (value: boolean) => void,
     analyticsEvent: string,
-    successMessage = "Settings saved!"
+    successMessage = "Settings saved!",
   ) => {
     return async (checked: boolean) => {
       setter(checked);
@@ -156,7 +161,7 @@ export function useUISettingsState() {
   // Reasoning handlers need special handling (nested object)
   const createReasoningHandler = (
     field: keyof ReasoningSettings,
-    setter: (value: boolean) => void
+    setter: (value: boolean) => void,
   ) => {
     return async (checked: boolean) => {
       setter(checked);
@@ -164,7 +169,8 @@ export function useUISettingsState() {
         await updatePreferences({
           preferences: {
             reasoning: {
-              showByDefault: field === "showByDefault" ? checked : showByDefault,
+              showByDefault:
+                field === "showByDefault" ? checked : showByDefault,
               autoExpand: field === "autoExpand" ? checked : autoExpand,
               showDuringStreaming:
                 field === "showDuringStreaming" ? checked : showDuringStreaming,
@@ -203,53 +209,53 @@ export function useUISettingsState() {
       "alwaysShowMessageActions",
       setAlwaysShowMessageActions,
       "always_show_message_actions",
-      "UI settings saved!"
+      "UI settings saved!",
     ),
     handleShowModelNamesChange: createBooleanHandler(
       "showModelNamesDuringComparison",
       setShowModelNamesDuringComparison,
       "show_model_names_during_comparison",
-      "UI settings saved!"
+      "UI settings saved!",
     ),
     handleMessageStatsChange: createBooleanHandler(
       "showMessageStatistics",
       setShowMessageStats,
-      "show_message_statistics"
+      "show_message_statistics",
     ),
     handleComparisonStatsChange: createBooleanHandler(
       "showComparisonStatistics",
       setShowComparisonStats,
-      "show_comparison_statistics"
+      "show_comparison_statistics",
     ),
     handleShowByDefaultChange: createReasoningHandler(
       "showByDefault",
-      setShowByDefault
+      setShowByDefault,
     ),
     handleAutoExpandChange: createReasoningHandler("autoExpand", setAutoExpand),
     handleShowDuringStreamingChange: createReasoningHandler(
       "showDuringStreaming",
-      setShowDuringStreaming
+      setShowDuringStreaming,
     ),
     handleChatWidthChange,
     handleShowNotesChange: createBooleanHandler(
       "showNotes",
       setShowNotes,
-      "show_notes"
+      "show_notes",
     ),
     handleShowTemplatesChange: createBooleanHandler(
       "showTemplates",
       setShowTemplates,
-      "show_templates"
+      "show_templates",
     ),
     handleShowProjectsChange: createBooleanHandler(
       "showProjects",
       setShowProjects,
-      "show_projects"
+      "show_projects",
     ),
     handleShowBookmarksChange: createBooleanHandler(
       "showBookmarks",
       setShowBookmarks,
-      "show_bookmarks"
+      "show_bookmarks",
     ),
   };
 

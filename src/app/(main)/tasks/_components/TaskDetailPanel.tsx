@@ -1,41 +1,35 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { format } from "date-fns";
+import { NotebookPen, Star, Sun, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { format } from "date-fns";
-import {
-    NotebookPen,
-    Star,
-    Sun,
-    Trash2,
-    X
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface TaskDetailPanelProps {
   taskId: Id<"tasks">;
@@ -54,7 +48,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [_isSaving, setIsSaving] = useState(false);
 
   // Sync local state with task data
   useEffect(() => {
@@ -68,7 +62,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     setIsSaving(true);
     try {
       await updateTask({ id: taskId, ...updates });
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update task");
     } finally {
       setIsSaving(false);
@@ -108,7 +102,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
       await deleteTask({ id: taskId });
       toast.success("Task deleted");
       onClose();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete task");
     }
   };
@@ -149,7 +143,12 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
         <h3 className="font-semibold text-sm text-muted-foreground">
           Task Details
         </h3>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-8 w-8"
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -163,13 +162,15 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 "flex items-center justify-center h-5 w-5 rounded-full border cursor-pointer mt-1 shrink-0 transition-colors",
                 isCompleted
                   ? "bg-primary border-primary"
-                  : "border-primary/50 hover:bg-primary/10"
+                  : "border-primary/50 hover:bg-primary/10",
               )}
               onClick={() =>
                 handleStatusChange(isCompleted ? "in_progress" : "completed")
               }
             >
-              {isCompleted && <div className="h-3 w-3 rounded-full bg-background" />}
+              {isCompleted && (
+                <div className="h-3 w-3 rounded-full bg-background" />
+              )}
             </div>
             <Input
               value={title}
@@ -177,7 +178,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               onBlur={handleTitleBlur}
               className={cn(
                 "border-none bg-transparent px-0 text-lg font-medium focus-visible:ring-0 shadow-none h-auto",
-                isCompleted && "line-through text-muted-foreground"
+                isCompleted && "line-through text-muted-foreground",
               )}
               placeholder="Task title"
             />
@@ -190,7 +191,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               onClick={handleToggleMyDay}
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-md hover:bg-secondary/50 transition-colors text-sm",
-                isToday && "text-primary"
+                isToday && "text-primary",
               )}
             >
               <Sun className={cn("h-4 w-4", isToday && "fill-primary")} />
@@ -202,11 +203,13 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               onClick={handleToggleImportant}
               className={cn(
                 "w-full flex items-center gap-3 p-3 rounded-md hover:bg-secondary/50 transition-colors text-sm",
-                isImportant && "text-primary"
+                isImportant && "text-primary",
               )}
             >
               <Star className={cn("h-4 w-4", isImportant && "fill-primary")} />
-              <span>{isImportant ? "Marked as Important" : "Mark as Important"}</span>
+              <span>
+                {isImportant ? "Marked as Important" : "Mark as Important"}
+              </span>
             </button>
           </div>
 
@@ -237,7 +240,10 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Priority
             </label>
-            <Select value={task.urgency || "medium"} onValueChange={handleUrgencyChange}>
+            <Select
+              value={task.urgency || "medium"}
+              onValueChange={handleUrgencyChange}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -281,7 +287,11 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
             <div className="space-y-2">
               <input
                 type="date"
-                value={task.deadline ? format(new Date(task.deadline), "yyyy-MM-dd") : ""}
+                value={
+                  task.deadline
+                    ? format(new Date(task.deadline), "yyyy-MM-dd")
+                    : ""
+                }
                 onChange={(e) => {
                   if (e.target.value) {
                     const date = new Date(e.target.value);
@@ -337,10 +347,16 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
           {/* Created/Updated timestamps */}
           <div className="text-xs text-muted-foreground space-y-1 pt-4">
             {task.createdAt && (
-              <p>Created {format(new Date(task.createdAt), "MMM d, yyyy 'at' h:mm a")}</p>
+              <p>
+                Created{" "}
+                {format(new Date(task.createdAt), "MMM d, yyyy 'at' h:mm a")}
+              </p>
             )}
             {task.updatedAt && task.updatedAt !== task.createdAt && (
-              <p>Updated {format(new Date(task.updatedAt), "MMM d, yyyy 'at' h:mm a")}</p>
+              <p>
+                Updated{" "}
+                {format(new Date(task.updatedAt), "MMM d, yyyy 'at' h:mm a")}
+              </p>
             )}
           </div>
         </div>
@@ -363,7 +379,8 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Task</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this task? This action cannot be undone.
+                Are you sure you want to delete this task? This action cannot be
+                undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

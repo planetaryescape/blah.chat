@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+import type { z } from "zod";
 import type { PaginatedResponse } from "./types";
 
 export async function parseBody<T>(
@@ -15,8 +15,11 @@ export function getPaginationParams(req: NextRequest): {
   pageSize: number;
 } {
   const url = new URL(req.url);
-  const page = Number.parseInt(url.searchParams.get("page") || "1");
-  const pageSize = Number.parseInt(url.searchParams.get("pageSize") || "50");
+  const page = Number.parseInt(url.searchParams.get("page") || "1", 10);
+  const pageSize = Number.parseInt(
+    url.searchParams.get("pageSize") || "50",
+    10,
+  );
 
   return {
     page: Math.max(1, page),

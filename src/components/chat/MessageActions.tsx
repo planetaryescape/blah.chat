@@ -21,11 +21,11 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import type { OptimisticMessage } from "@/types/optimistic";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { BookmarkButton } from "./BookmarkButton";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { MessageActionsMenuMobile } from "./MessageActionsMenuMobile";
@@ -48,7 +48,7 @@ export function MessageActions({
   const [showCreateNote, setShowCreateNote] = useState(false);
   const router = useRouter();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser as any);
+  const _user = useQuery(api.users.getCurrentUser as any);
   const retryMessage = useMutation(api.chat.retryMessage);
   const stop = useMutation(api.chat.stopGeneration);
   const regenerate = useMutation(api.chat.regenerate);
@@ -208,7 +208,9 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() => retryMessage({ messageId: message._id as Id<"messages"> })}
+                    onClick={() =>
+                      retryMessage({ messageId: message._id as Id<"messages"> })
+                    }
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span className="sr-only">Retry</span>

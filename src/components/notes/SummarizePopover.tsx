@@ -68,7 +68,7 @@ export function SummarizePopover({
     if (open && selectedText) {
       generateSummary();
     }
-  }, [open, selectedText]);
+  }, [open, selectedText, generateSummary]);
 
   const handleSaveAsNote = () => {
     onSaveAsNote(summary);

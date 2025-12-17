@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
+import { Suspense, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { BookmarkCard } from "@/components/bookmarks/BookmarkCard";
 import { BookmarksTable } from "@/components/bookmarks/BookmarksTable";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
@@ -7,10 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import { useMutation, useQuery } from "convex/react";
-import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
-import { Suspense, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 
 export const dynamic = "force-dynamic";
@@ -54,12 +54,12 @@ function BookmarksPageContent() {
   }, [bookmarks, searchQuery]);
 
   const handleRemove = async (id: string) => {
-      try {
-          await removeBookmark({ bookmarkId: id as any });
-          toast.success("Bookmark removed");
-      } catch (error) {
-          toast.error("Failed to remove bookmark");
-      }
+    try {
+      await removeBookmark({ bookmarkId: id as any });
+      toast.success("Bookmark removed");
+    } catch (_error) {
+      toast.error("Failed to remove bookmark");
+    }
   };
 
   if (bookmarks === undefined) {
@@ -92,22 +92,22 @@ function BookmarksPageContent() {
               {/* View Toggle */}
               <div className="flex items-center p-1 bg-muted/50 rounded-lg border border-border/40">
                 <Button
-                    variant={viewMode === "grid" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="h-7 w-7 rounded-md"
-                    onClick={() => setViewMode("grid")}
-                    title="Grid View"
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7 rounded-md"
+                  onClick={() => setViewMode("grid")}
+                  title="Grid View"
                 >
-                    <LayoutGrid className="h-4 w-4" />
+                  <LayoutGrid className="h-4 w-4" />
                 </Button>
                 <Button
-                    variant={viewMode === "table" ? "secondary" : "ghost"}
-                    size="icon"
-                    className="h-7 w-7 rounded-md"
-                    onClick={() => setViewMode("table")}
-                    title="Table View"
+                  variant={viewMode === "table" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7 rounded-md"
+                  onClick={() => setViewMode("table")}
+                  title="Table View"
                 >
-                    <List className="h-4 w-4" />
+                  <List className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -144,16 +144,17 @@ function BookmarksPageContent() {
                 </p>
               </div>
             </div>
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredBookmarks.map((bookmark: any) => (
+                <BookmarkCard key={bookmark._id} bookmark={bookmark} />
+              ))}
+            </div>
           ) : (
-            viewMode === "grid" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredBookmarks.map((bookmark: any) => (
-                    <BookmarkCard key={bookmark._id} bookmark={bookmark} />
-                  ))}
-                </div>
-            ) : (
-                <BookmarksTable bookmarks={filteredBookmarks} onRemove={handleRemove} />
-            )
+            <BookmarksTable
+              bookmarks={filteredBookmarks}
+              onRemove={handleRemove}
+            />
           )}
         </div>
       </ScrollArea>

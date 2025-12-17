@@ -32,9 +32,7 @@ export class MessageQueue {
   /**
    * Add message to offline queue
    */
-  enqueue(
-    message: Omit<QueuedMessage, "id" | "timestamp" | "retries">,
-  ): void {
+  enqueue(message: Omit<QueuedMessage, "id" | "timestamp" | "retries">): void {
     const queue = this.getQueue();
 
     const queuedMessage: QueuedMessage = {
@@ -65,7 +63,7 @@ export class MessageQueue {
 
         // Success - remove from queue
         this.remove(msg.id);
-      } catch (error) {
+      } catch (_error) {
         // Failed - increment retry count
         if (msg.retries >= this.MAX_RETRIES) {
           // Max retries exceeded - remove permanently

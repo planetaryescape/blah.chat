@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { getConvexClient } from "@/lib/api/convex";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 const updatePreferenceSchema = z.object({
@@ -13,7 +13,7 @@ export const preferencesDAL = {
   /**
    * Get single preference by key
    */
-  get: async (userId: string, key: string) => {
+  get: async (_userId: string, key: string) => {
     const convex = getConvexClient();
 
     const preference = (await (convex.query as any)(
@@ -30,7 +30,7 @@ export const preferencesDAL = {
   /**
    * Get all user preferences
    */
-  getAll: async (userId: string) => {
+  getAll: async (_userId: string) => {
     const convex = getConvexClient();
 
     const preferences = (await (convex.query as any)(
@@ -46,7 +46,7 @@ export const preferencesDAL = {
    * Update single preference
    */
   update: async (
-    userId: string,
+    _userId: string,
     data: z.infer<typeof updatePreferenceSchema>,
   ) => {
     const validated = updatePreferenceSchema.parse(data);

@@ -1,7 +1,7 @@
-import { useConversationContext } from "@/contexts/ConversationContext";
-import { useNewChat } from "@/hooks/useNewChat";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { useNewChat } from "@/hooks/useNewChat";
 
 export function useKeyboardShortcuts() {
   const router = useRouter();

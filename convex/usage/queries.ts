@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { query } from "../_generated/server";
 
 export const getDailySpend = query({
   args: {
@@ -386,7 +386,7 @@ export const getUserUsageSummary = query({
           q.gte(q.field("createdAt"), new Date(args.startDate).getTime()),
           q.lte(
             q.field("createdAt"),
-            new Date(args.endDate + "T23:59:59").getTime(),
+            new Date(`${args.endDate}T23:59:59`).getTime(),
           ),
         ),
       )

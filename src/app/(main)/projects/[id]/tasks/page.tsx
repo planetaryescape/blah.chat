@@ -1,14 +1,14 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { Plus } from "lucide-react";
+import { use, useState } from "react";
 import { CreateTaskDialog } from "@/app/(main)/tasks/_components/CreateTaskDialog";
 import { TaskListItem } from "@/app/(main)/tasks/_components/TaskListItem";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import { Plus } from "lucide-react";
-import { use, useState } from "react";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export default function ProjectTasksPage({
   params,

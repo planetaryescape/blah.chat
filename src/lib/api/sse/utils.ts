@@ -48,7 +48,7 @@ export function createSSEResponse(): SSEConnection {
       try {
         const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
         await writer.write(encoder.encode(payload));
-      } catch (error) {
+      } catch (_error) {
         // Client disconnected
         closed = true;
       }
@@ -62,7 +62,7 @@ export function createSSEResponse(): SSEConnection {
 
       try {
         await writer.write(encoder.encode(payload));
-      } catch (err) {
+      } catch (_err) {
         closed = true;
       }
     },
@@ -73,7 +73,7 @@ export function createSSEResponse(): SSEConnection {
       closed = true;
       try {
         await writer.close();
-      } catch (error) {
+      } catch (_error) {
         // Already closed
       }
     },

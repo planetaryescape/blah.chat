@@ -1,9 +1,9 @@
 import "server-only";
 
+import type { fetchMutation, fetchQuery } from "convex/nextjs";
 import { z } from "zod";
 import { api, internal } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { fetchMutation, fetchQuery } from "convex/nextjs";
 
 type FetchMutation = typeof fetchMutation;
 type FetchQuery = typeof fetchQuery;

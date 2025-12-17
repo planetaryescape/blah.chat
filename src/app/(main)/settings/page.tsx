@@ -100,7 +100,11 @@ export default function SettingsPage() {
               {/* Content area */}
               <div className="flex-1 min-h-0">
                 {SETTINGS_SECTIONS.map((section: any) => (
-                  <TabsContent key={section.id} value={section.id} className="mt-0">
+                  <TabsContent
+                    key={section.id}
+                    value={section.id}
+                    className="mt-0"
+                  >
                     <section.component />
                   </TabsContent>
                 ))}

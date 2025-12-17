@@ -1,35 +1,9 @@
-'use client';
+"use client";
 
-import { ChatHeader } from '@/components/chat/ChatHeader';
-import { ChatInput } from '@/components/chat/ChatInput';
-import { MessageListSkeleton } from '@/components/chat/MessageListSkeleton';
-import { ModelPreviewModal } from '@/components/chat/ModelPreviewModal';
-import { ModelRecommendationBanner } from '@/components/chat/ModelRecommendationBanner';
-import { QuickModelSwitcher } from '@/components/chat/QuickModelSwitcher';
-import { SetDefaultModelPrompt } from '@/components/chat/SetDefaultModelPrompt';
-import type { ThinkingEffort } from '@/components/chat/ThinkingEffortSelector';
-import { TTSPlayerBar } from '@/components/chat/TTSPlayerBar';
-import { VirtualizedMessageList } from '@/components/chat/VirtualizedMessageList';
-import { QuickTemplateSwitcher } from '@/components/templates/QuickTemplateSwitcher';
-import { Button } from '@/components/ui/button';
-import { ProgressiveHints } from '@/components/ui/ProgressiveHints';
-import { useConversationContext } from '@/contexts/ConversationContext';
-import { TTSProvider } from '@/contexts/TTSContext';
-import { api } from '@/convex/_generated/api';
-import type { Doc, Id } from '@/convex/_generated/dataModel';
-import { useComparisonMode } from '@/hooks/useComparisonMode';
-import { useFeatureToggles } from '@/hooks/useFeatureToggles';
-import { useMobileDetect } from '@/hooks/useMobileDetect';
-import { useUserPreference } from '@/hooks/useUserPreference';
-import { MODEL_CONFIG } from '@/lib/ai/models';
-import { DEFAULT_MODEL_ID } from '@/lib/ai/operational-models';
-import { getModelConfig, isValidModel } from '@/lib/ai/utils';
-import type { ChatWidth } from '@/lib/utils/chatWidth';
-import type { OptimisticMessage } from '@/types/optimistic';
-import { usePaginatedQuery, useQuery } from 'convex-helpers/react/cache';
-import { useMutation } from 'convex/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { parseAsBoolean, useQueryState } from 'nuqs';
+import { useMutation } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { useRouter, useSearchParams } from "next/navigation";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import {
   Suspense,
   use,
@@ -38,18 +12,44 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react';
+} from "react";
+import { ChatHeader } from "@/components/chat/ChatHeader";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
+import { ModelPreviewModal } from "@/components/chat/ModelPreviewModal";
+import { ModelRecommendationBanner } from "@/components/chat/ModelRecommendationBanner";
+import { QuickModelSwitcher } from "@/components/chat/QuickModelSwitcher";
+import { SetDefaultModelPrompt } from "@/components/chat/SetDefaultModelPrompt";
+import type { ThinkingEffort } from "@/components/chat/ThinkingEffortSelector";
+import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
+import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
+import { QuickTemplateSwitcher } from "@/components/templates/QuickTemplateSwitcher";
+import { Button } from "@/components/ui/button";
+import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
+import { useConversationContext } from "@/contexts/ConversationContext";
+import { TTSProvider } from "@/contexts/TTSContext";
+import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { useUserPreference } from "@/hooks/useUserPreference";
+import { MODEL_CONFIG } from "@/lib/ai/models";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
+import { getModelConfig, isValidModel } from "@/lib/ai/utils";
+import type { ChatWidth } from "@/lib/utils/chatWidth";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 function ChatPageContent({
   params,
 }: {
-  params: Promise<{ conversationId: Id<'conversations'> }>;
+  params: Promise<{ conversationId: Id<"conversations"> }>;
 }) {
   const unwrappedParams = use(params);
   const conversationId = unwrappedParams.conversationId;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const highlightMessageId = searchParams.get('messageId') ?? undefined;
+  const highlightMessageId = searchParams.get("messageId") ?? undefined;
 
   const { filteredConversations } = useConversationContext();
 
@@ -57,7 +57,7 @@ function ChatPageContent({
   const conversation = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.conversations.get,
-    conversationId ? { conversationId } : 'skip'
+    conversationId ? { conversationId } : "skip",
   );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const {
@@ -66,10 +66,10 @@ function ChatPageContent({
     loadMore,
   } = usePaginatedQuery(
     api.messages.listPaginated,
-    conversationId ? { conversationId } : 'skip',
+    conversationId ? { conversationId } : "skip",
     {
       initialNumItems: 50,
-    }
+    },
   );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
@@ -88,7 +88,7 @@ function ChatPageContent({
     (newMessages: OptimisticMessage[]) => {
       setOptimisticMessages((prev) => [...prev, ...newMessages]);
     },
-    []
+    [],
   );
 
   // Merge server messages with optimistic messages, deduplicating confirmed ones
@@ -104,14 +104,14 @@ function ChatPageContent({
     const pendingOptimistic = optimisticMessages.filter((opt) => {
       const hasServerVersion = server.some(
         (m) =>
-          m.role === opt.role && Math.abs(m.createdAt - opt.createdAt) < 2000
+          m.role === opt.role && Math.abs(m.createdAt - opt.createdAt) < 2000,
       );
       return !hasServerVersion;
     });
 
     // Merge and sort chronologically (don't clear state here to avoid blink)
     return [...server, ...pendingOptimistic].sort(
-      (a, b) => a.createdAt - b.createdAt
+      (a, b) => a.createdAt - b.createdAt,
     );
   }, [serverMessages, optimisticMessages]);
 
@@ -121,8 +121,8 @@ function ChatPageContent({
   // They'll be cleared naturally on next message send or page navigation.
 
   // Extract chat width preference (Phase 4: use flat preference hook)
-  const prefChatWidth = useUserPreference('chatWidth');
-  const chatWidth = (prefChatWidth as ChatWidth | undefined) || 'standard';
+  const prefChatWidth = useUserPreference("chatWidth");
+  const chatWidth = (prefChatWidth as ChatWidth | undefined) || "standard";
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
@@ -135,7 +135,7 @@ function ChatPageContent({
     const userLoaded = user !== undefined;
 
     if (!conversationLoaded || !userLoaded) {
-      return { selectedModel: '', modelLoading: true };
+      return { selectedModel: "", modelLoading: true };
     }
 
     // Now we can determine the final model without flickering
@@ -167,10 +167,10 @@ function ChatPageContent({
   const displayModel = optimisticModel || selectedModel;
 
   const [thinkingEffort, setThinkingEffort] =
-    useState<ThinkingEffort>('medium');
+    useState<ThinkingEffort>("medium");
   const [attachments, setAttachments] = useState<
     Array<{
-      type: 'file' | 'image' | 'audio';
+      type: "file" | "image" | "audio";
       name: string;
       storageId: string;
       mimeType: string;
@@ -180,14 +180,14 @@ function ChatPageContent({
 
   // URL state for comparison view toggles
   const [showModelNames, setShowModelNames] = useQueryState(
-    'showModelNames',
+    "showModelNames",
     parseAsBoolean.withDefault(
-      user?.preferences?.showModelNamesDuringComparison ?? false
-    )
+      user?.preferences?.showModelNamesDuringComparison ?? false,
+    ),
   );
   const [syncScroll, _setSyncScroll] = useQueryState(
-    'syncScroll',
-    parseAsBoolean.withDefault(true)
+    "syncScroll",
+    parseAsBoolean.withDefault(true),
   );
 
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -213,11 +213,11 @@ function ChatPageContent({
   const recordVote = useMutation(api.votes.recordVote);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConsolidation = useMutation(
-    api.conversations.createConsolidationConversation
+    api.conversations.createConsolidationConversation,
   );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const consolidateInPlace = useMutation(
-    api.conversations.consolidateInSameChat
+    api.conversations.consolidateInSameChat,
   );
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);
@@ -239,30 +239,30 @@ function ChatPageContent({
           // Clear optimistic state after successful persist
           setOptimisticModel(null);
         } catch (error) {
-          console.error('Failed to persist model:', error);
+          console.error("Failed to persist model:", error);
           // Revert optimistic update on failure
           setOptimisticModel(null);
         }
       }
       // New conversations: model saved when first message sent (chat.ts:75)
     },
-    [conversationId, updateModelMutation]
+    [conversationId, updateModelMutation],
   );
 
   const handleVote = async (winnerId: string, rating: string) => {
     // Only handle votes for server-confirmed messages (not optimistic)
     const msg = messages?.find(
-      (m) => !('_optimistic' in m) && m._id === winnerId
+      (m) => !("_optimistic" in m) && m._id === winnerId,
     );
     if (msg?.comparisonGroupId) {
       const voteRating = rating as
-        | 'left_better'
-        | 'right_better'
-        | 'tie'
-        | 'both_bad';
+        | "left_better"
+        | "right_better"
+        | "tie"
+        | "both_bad";
       await recordVote({
         comparisonGroupId: msg.comparisonGroupId,
-        winnerId: msg._id as Id<'messages'>,
+        winnerId: msg._id as Id<"messages">,
         rating: voteRating,
       });
     }
@@ -270,12 +270,12 @@ function ChatPageContent({
 
   const handleConsolidate = async (
     model: string,
-    mode: 'same-chat' | 'new-chat'
+    mode: "same-chat" | "new-chat",
   ) => {
     const msg = messages?.find((m) => m.comparisonGroupId);
     if (!msg?.comparisonGroupId) return;
 
-    if (mode === 'same-chat') {
+    if (mode === "same-chat") {
       // Consolidate in place - no navigation
       await consolidateInPlace({
         conversationId: conversationId!,
@@ -308,7 +308,7 @@ function ChatPageContent({
       setSwitchedModelId(modelId);
       setSwitchedModelAt(Date.now());
     },
-    [handleModelChange]
+    [handleModelChange],
   );
 
   const handlePreviewModel = useCallback((modelId: string) => {
@@ -335,8 +335,8 @@ function ChatPageContent({
 
       // Check if last message was generated with switched model and completed
       if (
-        lastMessage.role === 'assistant' &&
-        lastMessage.status === 'complete' &&
+        lastMessage.role === "assistant" &&
+        lastMessage.status === "complete" &&
         conversation?.model === switchedModelId &&
         lastMessage._creationTime > switchedModelAt
       ) {
@@ -353,42 +353,42 @@ function ChatPageContent({
   // Quick model switcher keyboard shortcut (⌘J)
   useEffect(() => {
     const handler = () => setQuickSwitcherOpen(true);
-    window.addEventListener('open-quick-model-switcher', handler);
+    window.addEventListener("open-quick-model-switcher", handler);
     return () =>
-      window.removeEventListener('open-quick-model-switcher', handler);
+      window.removeEventListener("open-quick-model-switcher", handler);
   }, []);
 
   // Quick template switcher keyboard shortcut (⌘;)
   useEffect(() => {
     const handler = () => setTemplateSelectorOpen(true);
-    window.addEventListener('open-quick-template-switcher', handler);
+    window.addEventListener("open-quick-template-switcher", handler);
     return () =>
-      window.removeEventListener('open-quick-template-switcher', handler);
+      window.removeEventListener("open-quick-template-switcher", handler);
   }, []);
 
   // Handle template insertion from sessionStorage (after navigation from templates page)
   useEffect(() => {
-    const insertTemplate = searchParams.get('insertTemplate');
-    if (insertTemplate !== 'true') return;
+    const insertTemplate = searchParams.get("insertTemplate");
+    if (insertTemplate !== "true") return;
 
     // Read template text from sessionStorage
-    const templateText = sessionStorage.getItem('pending-template-text');
+    const templateText = sessionStorage.getItem("pending-template-text");
     if (templateText) {
       // Clear sessionStorage
-      sessionStorage.removeItem('pending-template-text');
+      sessionStorage.removeItem("pending-template-text");
 
       // Dispatch insert-prompt event after a brief delay to ensure ChatInput is mounted
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent('insert-prompt', { detail: templateText })
+          new CustomEvent("insert-prompt", { detail: templateText }),
         );
-        window.dispatchEvent(new CustomEvent('focus-chat-input'));
+        window.dispatchEvent(new CustomEvent("focus-chat-input"));
       }, 100);
     }
 
     // Clean up URL param
     const url = new URL(window.location.href);
-    url.searchParams.delete('insertTemplate');
+    url.searchParams.delete("insertTemplate");
     router.replace(url.pathname + url.search, { scroll: false });
   }, [searchParams, router]);
 
@@ -399,23 +399,23 @@ function ChatPageContent({
       setPreviewModelId(customEvent.detail.modelId);
       setPreviewModalOpen(true);
     };
-    window.addEventListener('open-model-preview', handler);
-    return () => window.removeEventListener('open-model-preview', handler);
+    window.addEventListener("open-model-preview", handler);
+    return () => window.removeEventListener("open-model-preview", handler);
   }, []);
 
   // Infinite scroll for loading more messages (at top of list)
   useEffect(() => {
-    if (!messageListTopRef.current || paginationStatus !== 'CanLoadMore') {
+    if (!messageListTopRef.current || paginationStatus !== "CanLoadMore") {
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && paginationStatus === 'CanLoadMore') {
+        if (entries[0].isIntersecting && paginationStatus === "CanLoadMore") {
           loadMore(50);
         }
       },
-      { threshold: 1.0 }
+      { threshold: 1.0 },
     );
 
     observer.observe(messageListTopRef.current);
@@ -439,7 +439,7 @@ function ChatPageContent({
 
     // Only redirect if truly null (deleted/invalid conversation)
     if (conversation === null) {
-      router.push('/app');
+      router.push("/app");
     }
   }, [conversation, router]);
 
@@ -448,7 +448,7 @@ function ChatPageContent({
     if (!conversationId || isMobile || isTouchDevice) return;
 
     const timer = setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('focus-chat-input'));
+      window.dispatchEvent(new CustomEvent("focus-chat-input"));
     }, 50);
 
     return () => clearTimeout(timer);
@@ -458,8 +458,8 @@ function ChatPageContent({
   const isGenerating =
     messages?.some(
       (m) =>
-        m.role === 'assistant' &&
-        ['pending', 'generating'].includes(m.status || '')
+        m.role === "assistant" &&
+        ["pending", "generating"].includes(m.status || ""),
     ) ?? false;
 
   const modelConfig = getModelConfig(displayModel);
@@ -475,7 +475,7 @@ function ChatPageContent({
     }
 
     const sorted = [...filteredConversations].sort(
-      (a, b) => b._creationTime - a._creationTime
+      (a, b) => b._creationTime - a._creationTime,
     );
     const idx = sorted.findIndex((c) => c._id === conversationId);
 
@@ -490,7 +490,7 @@ function ChatPageContent({
     if (isFirst || !filteredConversations?.length) return;
 
     const sorted = [...filteredConversations].sort(
-      (a, b) => b._creationTime - a._creationTime
+      (a, b) => b._creationTime - a._creationTime,
     );
     const prevIdx = Math.max(currentIndex - 1, 0);
     router.push(`/chat/${sorted[prevIdx]._id}`);
@@ -500,7 +500,7 @@ function ChatPageContent({
     if (isLast || !filteredConversations?.length) return;
 
     const sorted = [...filteredConversations].sort(
-      (a, b) => b._creationTime - a._creationTime
+      (a, b) => b._creationTime - a._creationTime,
     );
     const nextIdx = Math.min(currentIndex + 1, sorted.length - 1);
     router.push(`/chat/${sorted[nextIdx]._id}`);
@@ -530,12 +530,12 @@ function ChatPageContent({
         <TTSPlayerBar />
 
         {serverMessages === undefined ||
-        paginationStatus === 'LoadingFirstPage' ? (
+        paginationStatus === "LoadingFirstPage" ? (
           <MessageListSkeleton chatWidth={chatWidth} />
         ) : (
           <>
             {/* Load More Button (fallback for top of list) */}
-            {paginationStatus === 'CanLoadMore' && (
+            {paginationStatus === "CanLoadMore" && (
               <div className="flex justify-center p-4">
                 <Button
                   variant="ghost"
@@ -547,7 +547,7 @@ function ChatPageContent({
                 </Button>
               </div>
             )}
-            {paginationStatus === 'LoadingMore' && (
+            {paginationStatus === "LoadingMore" && (
               <div className="flex justify-center p-4">
                 <div className="text-sm text-muted-foreground">
                   Loading more messages...
@@ -559,7 +559,7 @@ function ChatPageContent({
             <div ref={messageListTopRef} className="h-px" />
 
             <VirtualizedMessageList
-              messages={messages as Doc<'messages'>[]}
+              messages={messages as Doc<"messages">[]}
               selectedModel={displayModel}
               chatWidth={chatWidth}
               onVote={handleVote}
@@ -633,12 +633,12 @@ function ChatPageContent({
               currentModelId={conversation.modelRecommendation.currentModelId}
               suggestedModelId={previewModelId}
               currentResponse={
-                messages?.find((m) => m.role === 'assistant')?.content ?? ''
+                messages?.find((m) => m.role === "assistant")?.content ?? ""
               }
               onSwitch={handleSwitchModel}
               conversationId={conversationId}
               userMessage={
-                messages?.find((m) => m.role === 'user')?.content ?? ''
+                messages?.find((m) => m.role === "user")?.content ?? ""
               }
             />
           )}
@@ -657,7 +657,7 @@ function ChatPageContent({
           onSelectTemplate={(prompt) => {
             // Dispatch event to insert template into chat input
             window.dispatchEvent(
-              new CustomEvent('insert-prompt', { detail: prompt })
+              new CustomEvent("insert-prompt", { detail: prompt }),
             );
           }}
         />
@@ -669,7 +669,7 @@ function ChatPageContent({
 export default function ChatPage({
   params,
 }: {
-  params: Promise<{ conversationId: Id<'conversations'> }>;
+  params: Promise<{ conversationId: Id<"conversations"> }>;
 }) {
   return (
     <Suspense>

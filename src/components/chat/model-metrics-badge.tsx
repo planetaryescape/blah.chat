@@ -1,5 +1,6 @@
 "use client";
 
+import { Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   getBenchmarkScores,
@@ -10,7 +11,6 @@ import {
 import type { ModelConfig } from "@/lib/ai/models";
 import type { ComputedMetrics } from "@/lib/ai/types";
 import { cn } from "@/lib/utils";
-import { Info } from "lucide-react";
 
 interface MetricBarProps {
   label: string;

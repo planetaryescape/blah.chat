@@ -1,14 +1,14 @@
-import { NextRequest } from "next/server";
 import { fetchQuery } from "convex/nextjs";
+import type { NextRequest } from "next/server";
+import type { Id } from "@/convex/_generated/dataModel";
+import { getJobById } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
-import { getJobById } from "@/lib/api/dal/jobs";
-import type { Id } from "@/convex/_generated/dataModel";
 import logger from "@/lib/logger";
+import { formatEntity, formatErrorEntity } from "@/lib/utils/formatEntity";
 
 async function handler(
-  req: NextRequest,
+  _req: NextRequest,
   {
     userId,
     params,

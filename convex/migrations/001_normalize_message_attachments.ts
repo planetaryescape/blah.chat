@@ -275,7 +275,7 @@ export const completeMigration = internalMutation({
     totalAttachments: v.number(),
     totalToolCalls: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, _args) => {
     const migration = await ctx.db
       .query("migrations")
       .withIndex("by_migration_id", (q) => q.eq("migrationId", MIGRATION_ID))

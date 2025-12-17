@@ -5,10 +5,10 @@
  * Uses structured data (no semantic search needed for tasks).
  */
 
-import { internalAction } from "../../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
+import { internalAction } from "../../_generated/server";
 
 export const searchTasks = internalAction({
   args: {

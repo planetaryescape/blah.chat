@@ -1,9 +1,9 @@
 "use client";
 
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ModelConfig } from "@/lib/ai/utils";
-import { X } from "lucide-react";
 
 interface SelectedModelsChipsProps {
   selectedIds: string[];
@@ -26,7 +26,11 @@ export function SelectedModelsChips({
       {selectedIds.map((id) => {
         const model = allModels.find((m) => m.id === id);
         return (
-          <Badge key={id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 h-7">
+          <Badge
+            key={id}
+            variant="secondary"
+            className="gap-1 pl-2 pr-1 py-1 h-7"
+          >
             {model?.name}
             <Button
               variant="ghost"

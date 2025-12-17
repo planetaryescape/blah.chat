@@ -1,0 +1,44 @@
+GNU AFFERO GENERAL PUBLIC LICENSE
+Version 3, 19 November 2007
+
+Copyright (C) 2025 Bhekani Khumalo
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+For the full license text, visit: https://www.gnu.org/licenses/agpl-3.0.txt
+
+---
+
+ADDITIONAL TERMS:
+
+1. SELF-HOSTED USAGE LIMITS
+Self-hosted instances of this software are subject to the following default limits:
+- 50 messages per user per day
+- $10 USD monthly budget per user
+
+These limits may be modified via environment variables for personal use.
+Commercial use exceeding these limits requires a commercial license.
+
+2. COMMERCIAL LICENSE
+Commercial use of this software at scale (exceeding self-hosted limits) or
+without source disclosure obligations is available under a separate commercial license.
+
+Contact: blah.chat@bhekani.com for commercial licensing inquiries.
+
+3. NETWORK USE DISCLOSURE
+As required by AGPLv3 Section 13, if you modify this software and make it
+available over a network, you must provide users with access to the modified
+source code.

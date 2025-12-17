@@ -1,18 +1,18 @@
 "use client";
 
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { toast } from "sonner";
 import { useTTSAudioPlayer } from "@/hooks/useTTSAudioPlayer";
 import { analytics } from "@/lib/analytics";
 import { markdownToSpeechText } from "@/lib/utils/markdownToSpeech";
 import { chunkText, clamp, getTTSUrl } from "@/lib/utils/ttsUtils";
-import {
-    createContext,
-    type ReactNode,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
-} from "react";
-import { toast } from "sonner";
 
 interface TTSState {
   isVisible: boolean;
@@ -30,7 +30,10 @@ interface TTSState {
 
 interface TTSContextValue {
   state: TTSState;
-  playFromText: (options: { text: string; messageId?: string }) => Promise<void>;
+  playFromText: (options: {
+    text: string;
+    messageId?: string;
+  }) => Promise<void>;
   pause: () => void;
   resume: () => Promise<void>;
   stop: () => void;
@@ -84,7 +87,7 @@ export function TTSProvider({
     audioPlayer.setSpeed(clamped);
     setState((prev) => ({ ...prev, speed: clamped }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultSpeed]);
+  }, [defaultSpeed, audioPlayer.setSpeed]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -92,7 +95,7 @@ export function TTSProvider({
       audioPlayer.cleanupAudio();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [audioPlayer.cleanupAudio]);
 
   const close = useCallback(() => {
     audioPlayer.cleanupAudio();
@@ -158,14 +161,22 @@ export function TTSProvider({
           setState((prev) => ({ ...prev, currentChunk: i + 1 }));
 
           const chunk = chunks[i];
-          const ttsUrl = getTTSUrl(chunk, undefined, audioPlayer.speedRef.current);
+          const ttsUrl = getTTSUrl(
+            chunk,
+            undefined,
+            audioPlayer.speedRef.current,
+          );
 
           const response = await fetch(ttsUrl, {
             signal: audioPlayer.getAbortSignal(),
           });
 
           if (!response.ok) {
-            console.error("TTS Fetch failed", response.status, response.statusText);
+            console.error(
+              "TTS Fetch failed",
+              response.status,
+              response.statusText,
+            );
             continue;
           }
 
@@ -188,7 +199,7 @@ export function TTSProvider({
         audioPlayer.cleanupAudio();
       }
     },
-    [audioPlayer]
+    [audioPlayer],
   );
 
   const pause = useCallback(() => {
@@ -216,14 +227,14 @@ export function TTSProvider({
     (seconds: number) => {
       audioPlayer.seekBy(seconds);
     },
-    [audioPlayer]
+    [audioPlayer],
   );
 
   const seekTo = useCallback(
     (time: number) => {
       audioPlayer.seekTo(time);
     },
-    [audioPlayer]
+    [audioPlayer],
   );
 
   const setSpeed = useCallback(
@@ -231,7 +242,7 @@ export function TTSProvider({
       const clamped = audioPlayer.setSpeed(speed);
       setState((prev) => ({ ...prev, speed: clamped }));
     },
-    [audioPlayer]
+    [audioPlayer],
   );
 
   return (

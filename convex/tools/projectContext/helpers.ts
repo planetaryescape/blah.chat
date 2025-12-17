@@ -5,12 +5,12 @@
  * Follows pattern from convex/lib/helpers.ts.
  */
 
-import { internalQuery, internalAction } from "../../_generated/server";
-import { v } from "convex/values";
-import type { Doc } from "../../_generated/dataModel";
 import { embed } from "ai";
+import { v } from "convex/values";
 import { EMBEDDING_MODEL } from "../../../src/lib/ai/operational-models";
 import { internal } from "../../_generated/api";
+import type { Doc } from "../../_generated/dataModel";
+import { internalAction, internalQuery } from "../../_generated/server";
 
 /**
  * Get note IDs for a project (via junction table)
@@ -130,8 +130,7 @@ export const vectorSearchMessages = internalAction({
       )) as Doc<"messages"> | null;
 
       if (
-        message &&
-        message.embedding &&
+        message?.embedding &&
         args.conversationIds.includes(message.conversationId as any)
       ) {
         const score = cosineSimilarity(queryEmbedding, message.embedding);

@@ -1,9 +1,9 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
 import { ComparisonView } from "./ComparisonView";
 
 interface MessageConsolidationToggleProps {
@@ -34,7 +34,7 @@ export function MessageConsolidationToggle({
         <ChevronDown
           className={cn(
             "w-3 h-3 transition-transform",
-            showOriginals && "rotate-180"
+            showOriginals && "rotate-180",
           )}
         />
         {showOriginals ? "Hide" : "Show"} original {originalResponses.length}{" "}

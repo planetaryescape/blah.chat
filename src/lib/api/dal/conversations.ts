@@ -23,7 +23,7 @@ export const conversationsDAL = {
    * Create new conversation
    */
   create: async (
-    userId: string,
+    _userId: string,
     data: z.infer<typeof createConversationSchema>,
   ) => {
     const validated = createConversationSchema.parse(data);
@@ -79,7 +79,7 @@ export const conversationsDAL = {
   /**
    * List conversations (paginated)
    */
-  list: async (userId: string, limit = 50, archived = false) => {
+  list: async (_userId: string, limit = 50, archived = false) => {
     const convex = getConvexClient();
 
     const conversations = (await (convex.query as any)(

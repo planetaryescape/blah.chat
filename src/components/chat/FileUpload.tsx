@@ -1,14 +1,14 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { analytics } from "@/lib/analytics";
 import { useMutation } from "convex/react";
 import { Loader2, Paperclip } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
 
 interface Attachment {
   type: "file" | "image" | "audio";

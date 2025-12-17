@@ -1,14 +1,14 @@
 "use client";
 
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import { ComparisonTrigger } from "./ComparisonTrigger";
 import { KeyboardHints } from "./KeyboardHints";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
-    type ThinkingEffort,
-    ThinkingEffortSelector,
+  type ThinkingEffort,
+  ThinkingEffortSelector,
 } from "./ThinkingEffortSelector";
 
 interface InputBottomBarProps {

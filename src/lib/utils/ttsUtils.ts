@@ -16,7 +16,10 @@ const CHUNK_LIMIT = 200;
  * Chunk text into smaller pieces for TTS processing.
  * Splits at sentence boundaries when possible.
  */
-export function chunkText(text: string, maxChars: number = CHUNK_LIMIT): string[] {
+export function chunkText(
+  text: string,
+  maxChars: number = CHUNK_LIMIT,
+): string[] {
   if (text.length <= maxChars) return [text];
 
   const chunks: string[] = [];
@@ -38,7 +41,7 @@ export function chunkText(text: string, maxChars: number = CHUNK_LIMIT): string[
       searchArea.lastIndexOf("? "),
       searchArea.lastIndexOf(".\n"),
       searchArea.lastIndexOf("!\n"),
-      searchArea.lastIndexOf("?\n")
+      searchArea.lastIndexOf("?\n"),
     );
 
     if (lastPeriod > maxChars * 0.3) {
@@ -67,7 +70,11 @@ export function chunkText(text: string, maxChars: number = CHUNK_LIMIT): string[
 /**
  * Construct TTS API URL with parameters.
  */
-export function getTTSUrl(text: string, voice?: string, speed?: number): string {
+export function getTTSUrl(
+  text: string,
+  voice?: string,
+  speed?: number,
+): string {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || "";
   let baseUrl = "";
 

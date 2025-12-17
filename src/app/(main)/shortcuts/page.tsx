@@ -1,11 +1,11 @@
 "use client";
 
+import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KEYBOARD_SHORTCUTS } from "@/hooks/useKeyboardShortcuts";
 import { getModifierKey } from "@/lib/utils/platform";
-import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
 
 // Helper to parse shortcut string into display parts
 function parseShortcut(shortcut: string): string {
@@ -79,7 +79,9 @@ export default function ShortcutsPage() {
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-1">
-              <h1 className="text-xl font-bold tracking-tight">Keyboard Shortcuts</h1>
+              <h1 className="text-xl font-bold tracking-tight">
+                Keyboard Shortcuts
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Work faster with keyboard shortcuts
               </p>
@@ -147,9 +149,7 @@ function ShortcutCard({
 
   return (
     <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all">
-      <span className="text-sm text-foreground/80">
-        {description}
-      </span>
+      <span className="text-sm text-foreground/80">{description}</span>
       <ShortcutBadge keys={displayKeys} />
     </div>
   );

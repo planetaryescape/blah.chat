@@ -26,19 +26,22 @@ export function CodeExecutionRenderer({
 
     // Add result value if present
     if (parsedResult.result) {
-      const resultStr = typeof parsedResult.result === 'string'
-        ? parsedResult.result
-        : JSON.stringify(parsedResult.result, null, 2);
-      if (resultStr && resultStr !== outputs.join('\n')) {
+      const resultStr =
+        typeof parsedResult.result === "string"
+          ? parsedResult.result
+          : JSON.stringify(parsedResult.result, null, 2);
+      if (resultStr && resultStr !== outputs.join("\n")) {
         outputs.push(`Result: ${resultStr}`);
       }
     }
 
-    return outputs.join('\n') || '(no output)';
+    return outputs.join("\n") || "(no output)";
   };
 
   const hasError = parsedResult?.success === false;
-  const images = parsedResult?.images as Array<{ url: string; storageId: string }> | undefined;
+  const images = parsedResult?.images as
+    | Array<{ url: string; storageId: string }>
+    | undefined;
 
   return (
     <div className="text-xs space-y-2 border-l-2 border-border/40 pl-3">
@@ -47,9 +50,7 @@ export function CodeExecutionRenderer({
         <span className="text-muted-foreground">
           {parsedArgs?.language || "Code"}
         </span>
-        {hasError && (
-          <span className="text-red-500 text-[10px]">Failed</span>
-        )}
+        {hasError && <span className="text-red-500 text-[10px]">Failed</span>}
       </div>
       {parsedArgs?.code && (
         <pre className="bg-muted p-2 rounded text-[11px] overflow-x-auto max-h-32 overflow-y-auto">
@@ -67,14 +68,20 @@ export function CodeExecutionRenderer({
 
                 if (!img.url) {
                   return (
-                    <div key={idx} className="p-2 bg-yellow-500/10 text-yellow-600 rounded text-[11px]">
+                    <div
+                      key={idx}
+                      className="p-2 bg-yellow-500/10 text-yellow-600 rounded text-[11px]"
+                    >
                       Image {idx + 1}: URL not available
                     </div>
                   );
                 }
 
                 return (
-                  <div key={img.storageId || idx} className="rounded overflow-hidden border border-border/40 bg-white">
+                  <div
+                    key={img.storageId || idx}
+                    className="rounded overflow-hidden border border-border/40 bg-white"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={img.url}
@@ -82,8 +89,11 @@ export function CodeExecutionRenderer({
                       className="w-full h-auto block"
                       loading="lazy"
                       onError={(e) => {
-                        console.error("[CodeExecution] Image failed to load:", img.url);
-                        (e.target as HTMLImageElement).style.display = 'none';
+                        console.error(
+                          "[CodeExecution] Image failed to load:",
+                          img.url,
+                        );
+                        (e.target as HTMLImageElement).style.display = "none";
                       }}
                     />
                   </div>
@@ -96,9 +106,11 @@ export function CodeExecutionRenderer({
           <div className="text-muted-foreground">
             {hasError ? "Error:" : "Output:"}
           </div>
-          <pre className={`p-2 rounded text-[11px] max-h-48 overflow-y-auto ${
-            hasError ? "bg-red-500/10 text-red-500" : "bg-muted"
-          }`}>
+          <pre
+            className={`p-2 rounded text-[11px] max-h-48 overflow-y-auto ${
+              hasError ? "bg-red-500/10 text-red-500" : "bg-muted"
+            }`}
+          >
             <code>{getOutputContent()}</code>
           </pre>
           {parsedResult.executionTime && !hasError && (
@@ -111,4 +123,3 @@ export function CodeExecutionRenderer({
     </div>
   );
 }
-

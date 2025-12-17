@@ -1,12 +1,12 @@
-import { NextRequest } from "next/server";
 import { fetchAction } from "convex/nextjs";
-import { withAuth } from "@/lib/api/middleware/auth";
-import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { formatEntityList } from "@/lib/utils/formatEntity";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { z } from "zod";
+import { withAuth } from "@/lib/api/middleware/auth";
+import { withErrorHandling } from "@/lib/api/middleware/errors";
 import logger from "@/lib/logger";
+import { formatEntityList } from "@/lib/utils/formatEntity";
 
 const searchSchema = z.object({
   query: z.string().min(1).max(500),

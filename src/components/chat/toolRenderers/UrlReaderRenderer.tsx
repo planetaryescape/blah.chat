@@ -33,7 +33,7 @@ export function UrlReaderRenderer({
           </div>
           <div className="max-h-48 overflow-y-auto text-muted-foreground">
             <pre className="whitespace-pre-wrap font-sans text-[11px]">
-              {content.length > 500 ? truncated + "..." : content}
+              {content.length > 500 ? `${truncated}...` : content}
             </pre>
           </div>
         </div>

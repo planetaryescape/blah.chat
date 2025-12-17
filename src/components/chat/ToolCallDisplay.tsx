@@ -2,28 +2,28 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    AlertCircle,
-    BookmarkPlus,
-    Calculator,
-    Calendar,
-    CheckCircle2,
-    ChevronDown,
-    ChevronRight,
-    Cloud,
-    Code,
-    ExternalLink,
-    FileText,
-    FolderTree,
-    Globe,
-    Loader2,
-    Search,
+  AlertCircle,
+  BookmarkPlus,
+  Calculator,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Cloud,
+  Code,
+  ExternalLink,
+  FileText,
+  FolderTree,
+  Globe,
+  Loader2,
+  Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
-    DefaultToolRenderer,
-    getCallState,
-    toolRenderers,
-    type ToolCall,
+  DefaultToolRenderer,
+  getCallState,
+  type ToolCall,
+  toolRenderers,
 } from "./toolRenderers";
 
 interface ToolCallDisplayProps {
@@ -67,7 +67,7 @@ function getToolIcon(toolName: string) {
 function getToolLabel(
   toolName: string,
   isExecuting: boolean,
-  result: any
+  result: any,
 ): string {
   switch (toolName) {
     case "saveMemory":
@@ -188,7 +188,7 @@ export function ToolCallDisplay({
 
     if (anyExecuting) {
       const executingCall = uniqueCalls.find(
-        (c) => getCallState(c) === "executing"
+        (c) => getCallState(c) === "executing",
       );
       return getToolLabel(executingCall?.name || "", true, null);
     }
@@ -196,7 +196,7 @@ export function ToolCallDisplay({
     const parts = [];
     if (searchCalls.length > 0) {
       parts.push(
-        `${totalResults} memor${totalResults !== 1 ? "ies" : "y"} found`
+        `${totalResults} memor${totalResults !== 1 ? "ies" : "y"} found`,
       );
     }
     if (saveCalls.length > 0) {
@@ -279,7 +279,8 @@ export function ToolCallDisplay({
                 }
 
                 // Get the renderer for this tool, or use the default
-                const Renderer = toolRenderers[call.name] || DefaultToolRenderer;
+                const Renderer =
+                  toolRenderers[call.name] || DefaultToolRenderer;
 
                 return (
                   <Renderer

@@ -1,16 +1,16 @@
 "use client";
 
+import { Check, ChevronRight, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { getModelCategories } from "@/lib/ai/categories";
 import type { ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, Star, Zap } from "lucide-react";
 import { ModelDetailCard } from "./ModelDetailCard";
 
 interface ModelSelectorItemProps {
@@ -48,7 +48,7 @@ export function ModelSelectorItem({
   onToggleFavorite,
 }: ModelSelectorItemProps) {
   // Get model categories (only for "All" view)
-  const categories = activeCategory === "all" ? getModelCategories(model) : [];
+  const _categories = activeCategory === "all" ? getModelCategories(model) : [];
 
   const itemContent = (
     <CommandItem
@@ -58,7 +58,7 @@ export function ModelSelectorItem({
       onSelect={() => onSelect(model.id)}
       className={cn(
         "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 data-[selected=true]:bg-muted/50 transition-colors",
-        isSelected ? "bg-primary/5" : ""
+        isSelected ? "bg-primary/5" : "",
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -68,7 +68,7 @@ export function ModelSelectorItem({
             "flex items-center justify-center w-4 h-4 rounded-full border transition-all",
             isSelected
               ? "bg-primary border-primary text-primary-foreground"
-              : "border-muted-foreground/30 group-hover:border-primary/50"
+              : "border-muted-foreground/30 group-hover:border-primary/50",
           )}
         >
           {isSelected && <Check className="w-2.5 h-2.5" />}
@@ -79,7 +79,7 @@ export function ModelSelectorItem({
             <span
               className={cn(
                 "font-medium text-sm truncate",
-                isSelected ? "text-primary" : "text-foreground"
+                isSelected ? "text-primary" : "text-foreground",
               )}
             >
               {model.name}
@@ -136,7 +136,7 @@ export function ModelSelectorItem({
               "h-4 w-4 transition-colors",
               isFavorite
                 ? "fill-amber-400 text-amber-400 opacity-100"
-                : "text-muted-foreground hover:text-amber-400"
+                : "text-muted-foreground hover:text-amber-400",
             )}
           />
         </Button>

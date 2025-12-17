@@ -1,10 +1,10 @@
 "use client";
 
+import { ExternalLink, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import type { Id } from "@/convex/_generated/dataModel";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ExternalLink } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export function ProjectConversations({
   projectId,

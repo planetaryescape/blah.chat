@@ -1,22 +1,22 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  Home,
+  List,
+  Plus,
+  Star,
+  Sun,
+} from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import {
-    CalendarDays,
-    ChevronDown,
-    ChevronRight,
-    Home,
-    List,
-    Plus,
-    Star,
-    Sun,
-} from "lucide-react";
-import { useState } from "react";
 
 interface TasksSidebarProps {
   currentView: string;

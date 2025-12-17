@@ -15,7 +15,7 @@
  * ```
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export interface UseSSEOptions {
@@ -173,7 +173,7 @@ export function useSSE<T>(
           if (isMountedRef.current) {
             setError(new Error(errorData.error || "SSE error"));
           }
-        } catch (err) {
+        } catch (_err) {
           // Generic SSE error (connection lost)
           if (isMountedRef.current && reconnectAttemptsRef.current === 0) {
             console.warn("SSE connection error, falling back to polling");

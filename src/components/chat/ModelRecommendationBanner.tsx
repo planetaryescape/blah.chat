@@ -1,14 +1,14 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Eye, Lightbulb, X } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
-import { useMutation } from "convex/react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Eye, Lightbulb, X } from "lucide-react";
-import { useEffect } from "react";
 
 interface Props {
   recommendation: NonNullable<Doc<"conversations">["modelRecommendation"]>;

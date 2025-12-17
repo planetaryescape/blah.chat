@@ -9,7 +9,7 @@ import {
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
-export type ThinkingEffort = "low" | "medium" | "high";
+export type ThinkingEffort = "none" | "low" | "medium" | "high";
 
 interface ThinkingEffortSelectorProps {
   value: ThinkingEffort;
@@ -18,6 +18,7 @@ interface ThinkingEffortSelectorProps {
 }
 
 const efforts = [
+  { value: "none", label: "No Reasoning" },
   { value: "low", label: "Low Reasoning" },
   { value: "medium", label: "Medium Reasoning" },
   { value: "high", label: "High Reasoning" },

@@ -169,7 +169,7 @@ function ChatPageContent({
   const displayModel = optimisticModel || selectedModel;
 
   const [thinkingEffort, setThinkingEffort] =
-    useState<ThinkingEffort>("medium");
+    useState<ThinkingEffort>("none");
   const [attachments, setAttachments] = useState<
     Array<{
       type: "file" | "image" | "audio";
@@ -463,7 +463,10 @@ function ChatPageContent({
     ) ?? false;
 
   const modelConfig = getModelConfig(displayModel);
-  const showThinkingEffort = !!modelConfig?.reasoning;
+  // Show selector if model has reasoning config OR "thinking" capability (native reasoning)
+  const showThinkingEffort =
+    !!modelConfig?.reasoning ||
+    modelConfig?.capabilities?.includes("thinking");
   const hasMessages = (messages?.length ?? 0) > 0;
   // If conversation is loading, default to 0 count
   const messageCount = conversation?.messageCount || 0;

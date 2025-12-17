@@ -15,7 +15,12 @@ export const generateImage = internalAction({
     model: v.optional(v.string()),
     referenceImageStorageId: v.optional(v.string()),
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
     ),
   },
   handler: async (ctx, args) => {
@@ -34,10 +39,12 @@ export const generateImage = internalAction({
         ? buildReasoningOptions(modelConfig, args.thinkingEffort)
         : null;
 
-    const isReasoningModel = !!reasoningResult;
+    // Check if user wants reasoning displayed (not "none")
+    const wantsReasoning =
+      args.thinkingEffort && args.thinkingEffort !== "none";
 
-    // Mark thinking started
-    if (isReasoningModel && args.thinkingEffort) {
+    // Mark thinking started when user wants reasoning
+    if (wantsReasoning) {
       await ctx.runMutation(internal.messages.markThinkingStarted, {
         messageId: args.messageId,
       });
@@ -98,8 +105,8 @@ export const generateImage = internalAction({
       for await (const chunk of result.fullStream) {
         const now = Date.now();
 
-        // Handle reasoning chunks
-        if (chunk.type === "reasoning-delta") {
+        // Handle reasoning chunks (only when user wants reasoning displayed)
+        if (chunk.type === "reasoning-delta" && wantsReasoning) {
           reasoningBuffer += chunk.text;
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
@@ -130,15 +137,15 @@ export const generateImage = internalAction({
       // Get token usage
       const usage = await result.usage;
 
-      // Extract final thinking
+      // Extract final thinking (only if user wants reasoning)
       const reasoningOutputs = await result.reasoning;
       const finalReasoning =
-        reasoningOutputs && reasoningOutputs.length > 0
+        wantsReasoning && reasoningOutputs && reasoningOutputs.length > 0
           ? reasoningOutputs.map((r) => r.text).join("\n")
           : undefined;
 
-      // Complete thinking if present
-      if (finalReasoning && finalReasoning.trim().length > 0) {
+      // Complete thinking if reasoning was requested and content present
+      if (wantsReasoning && finalReasoning && finalReasoning.trim().length > 0) {
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.messageId,
           reasoning: finalReasoning,
@@ -229,6 +236,7 @@ export const generateImage = internalAction({
       });
 
       // Complete message with content + tokens
+      // Store reasoning if present - models may return it natively
       const finalContent = accumulated || `Generated image: ${args.prompt}`;
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.messageId,

@@ -63,7 +63,12 @@ export const sendMessage = mutation({
     modelId: v.optional(v.string()), // Single model (backwards compat)
     models: v.optional(v.array(v.string())), // NEW: Array for comparison
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
     ),
     attachments: v.optional(v.array(attachmentValidator)),
   },

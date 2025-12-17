@@ -461,7 +461,12 @@ export const generateResponse = internalAction({
     modelId: v.string(),
     userId: v.id("users"),
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
     ),
     systemPromptOverride: v.optional(v.string()), // For consolidation
   },
@@ -884,12 +889,18 @@ export const generateResponse = internalAction({
         options.headers = reasoningResult.headers;
       }
 
-      // 14. Detect if reasoning model (check config, not flags)
-      const isReasoningModel = !!modelConfig?.reasoning;
+      // 14. Detect if model supports reasoning (config or native capability)
+      const hasReasoningCapability =
+        !!modelConfig?.reasoning ||
+        modelConfig?.capabilities?.includes("thinking");
 
-      // Mark thinking phase started for reasoning models
-
-      if (isReasoningModel && args.thinkingEffort) {
+      // Mark thinking phase started when user wants reasoning AND model supports it
+      // Works for both configurable models (reasoningResult) and native reasoning models
+      const shouldShowThinking =
+        args.thinkingEffort &&
+        args.thinkingEffort !== "none" &&
+        hasReasoningCapability;
+      if (shouldShowThinking) {
         await ctx.runMutation(internal.messages.markThinkingStarted, {
           messageId: args.assistantMessageId,
         });
@@ -960,8 +971,11 @@ export const generateResponse = internalAction({
           }
         }
 
-        // Handle reasoning chunks
-        if (chunk.type === "reasoning-delta") {
+        // Handle reasoning chunks (only when user wants reasoning displayed)
+        // Skip when thinkingEffort is "none" - works for both configurable and native reasoning models
+        const wantsReasoningStreamed =
+          args.thinkingEffort && args.thinkingEffort !== "none";
+        if (chunk.type === "reasoning-delta" && wantsReasoningStreamed) {
           reasoningBuffer += chunk.text;
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
@@ -1001,14 +1015,17 @@ export const generateResponse = internalAction({
       // Get final usage info
       const usage = await result.usage;
 
-      // Complete thinking if reasoning present
+      // Complete thinking if user requested reasoning (thinkingEffort not "none")
+      // This handles both configurable models (via reasoningResult) and native reasoning models
+      const wantsReasoning =
+        args.thinkingEffort && args.thinkingEffort !== "none";
       const reasoningOutputs = await result.reasoning;
       const finalReasoning =
-        reasoningOutputs && reasoningOutputs.length > 0
+        wantsReasoning && reasoningOutputs && reasoningOutputs.length > 0
           ? reasoningOutputs.map((r) => r.text).join("\n")
           : undefined;
 
-      if (finalReasoning && finalReasoning.trim().length > 0) {
+      if (reasoningResult && finalReasoning && finalReasoning.trim().length > 0) {
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.assistantMessageId,
           reasoning: finalReasoning,
@@ -1221,6 +1238,7 @@ export const generateResponse = internalAction({
       }
 
       // 10. Final completion
+      // Store reasoning if present - models may return it natively even without config
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.assistantMessageId,
         content: accumulated,

@@ -97,6 +97,108 @@ Frontend: **always unwrap `.data`** before using.
 
 Key tables: `users`, `conversations`, `messages`, `memories`, `projects`, `bookmarks`, `shares`, `scheduledPrompts`, `usageRecords`
 
+### API Architecture (Hybrid Approach)
+
+bl ah.chat uses **dual architecture** for maximum compatibility:
+
+1. **Web**: Convex client SDK (real-time WebSocket subscriptions)
+   - Instant updates (<100ms latency)
+   - Reactive queries (automatic re-renders)
+   - Best for web apps
+
+2. **Mobile**: REST API + React Query (HTTP polling + SSE)
+   - React Native compatible
+   - Standard HTTP caching
+   - Best for mobile apps
+
+**Why hybrid?**
+- Convex SDK: Superior web UX (instant updates)
+- REST API: Mobile compatibility (React Native, iOS, Android)
+
+#### API Patterns
+
+**1. Envelope Format** (all responses):
+```typescript
+{
+  status: "success" | "error",
+  sys: { entity, id?, timestamps },
+  data: T,        // On success
+  error: string   // On error
+}
+```
+
+**2. Authentication** (Clerk JWT):
+```typescript
+const token = await getToken();
+fetch("/api/v1/endpoint", {
+  headers: { Authorization: `Bearer ${token}` },
+});
+```
+
+**3. Mutations** (write operations):
+```typescript
+// React Query mutation
+const { mutate } = useMutation({
+  mutationFn: (data) => apiClient.post("/conversations", data),
+  onMutate: (data) => {
+    // Optimistic update
+    queryClient.setQueryData(["conversations"], (old) => [...old, data]);
+  },
+  onError: (err, data, context) => {
+    // Rollback on error
+    queryClient.setQueryData(["conversations"], context.previous);
+  },
+});
+```
+
+**4. Queries** (read operations):
+```typescript
+// Hybrid query (Convex for web, API for mobile)
+const { data } = useConversations(); // Auto-detects platform
+```
+
+**5. Real-Time** (SSE for mobile):
+```typescript
+const { messages } = useMessagesSSE(conversationId);
+// Streams message updates via Server-Sent Events
+```
+
+#### Migration Context
+
+**Phase 0-8 Complete** (as of 2025-12-17):
+- Phase 0: Foundation (auth, DAL, envelope)
+- Phase 1: Mutations (POST/PATCH/DELETE endpoints)
+- Phase 2: React Query (useMutation hooks)
+- Phase 3: Queries (GET endpoints, polling)
+- Phase 4: Actions (long-running operations)
+- Phase 5: Real-Time (SSE streaming, optimistic UI)
+- Phase 6: Validation (manual testing checklist)
+- Phase 7: Performance (caching, optimization, monitoring)
+- Phase 8: Documentation (API reference, mobile guide)
+
+**Key Files**:
+- `src/lib/api/dal/*` - Data Access Layer
+- `src/lib/hooks/mutations/*` - React Query mutations
+- `src/lib/hooks/queries/*` - Hybrid queries
+- `src/app/api/v1/*` - REST endpoints
+- `docs/api/*` - API documentation
+
+**Resilient Generation** (unchanged):
+- Still uses Convex actions (10min timeout)
+- partialContent updates every ~100ms
+- Survives page refresh, tab close, browser crash
+
+#### Mobile Considerations
+
+When building mobile features:
+1. **Use API endpoints** (not Convex SDK)
+2. **Add to React Query hooks** (mutations/queries)
+3. **Test platform detection** (isPlatformMobile)
+4. **Validate offline behavior** (queue mutations)
+5. **Monitor battery drain** (reduce polling)
+
+See `docs/api/mobile-integration.md` for full guide.
+
 ### Schema Design Principles
 
 **CRITICAL**: Use normalized, SQL-ready schema design. Avoid nested documents.

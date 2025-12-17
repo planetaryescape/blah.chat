@@ -13,6 +13,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useChatInputEvents } from "@/hooks/useChatInputEvents";
+import useBrowserFeature from "@/hooks/useBrowserFeature";
 import { useChatInputKeyboard } from "@/hooks/useChatInputKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
@@ -100,6 +101,7 @@ export function ChatInput({
   const formRef = useRef<HTMLFormElement>(null);
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const { isMobile, isTouchDevice } = useMobileDetect();
+  const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
 
   const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
@@ -307,63 +309,62 @@ export function ChatInput({
               </TooltipContent>
             </Tooltip>
 
-            {typeof window !== "undefined" &&
-              "webkitSpeechRecognition" in window && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <VoiceInput
-                        ref={voiceInputRef}
-                        onTranscript={async (text, autoSend) => {
-                          setIsTranscribing(false);
-                          if (autoSend && text.trim()) {
-                            setIsSending(true);
-                            try {
-                              await sendMessage({
-                                conversationId,
-                                content: text.trim(),
-                                ...(isComparisonMode
-                                  ? { models: selectedModels }
-                                  : { modelId: selectedModel }),
-                                thinkingEffort,
-                                attachments:
-                                  attachments.length > 0
-                                    ? attachments
-                                    : undefined,
-                              });
-                              onAttachmentsChange([]);
-                            } catch (error) {
-                              if (
-                                error instanceof Error &&
-                                error.message.includes("Daily message limit")
-                              ) {
-                                setShowRateLimitDialog(true);
-                              } else {
-                                console.error("Failed to send message:", error);
-                              }
-                            } finally {
-                              setIsSending(false);
+            {hasSpeechRecognition && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <VoiceInput
+                      ref={voiceInputRef}
+                      onTranscript={async (text, autoSend) => {
+                        setIsTranscribing(false);
+                        if (autoSend && text.trim()) {
+                          setIsSending(true);
+                          try {
+                            await sendMessage({
+                              conversationId,
+                              content: text.trim(),
+                              ...(isComparisonMode
+                                ? { models: selectedModels }
+                                : { modelId: selectedModel }),
+                              thinkingEffort,
+                              attachments:
+                                attachments.length > 0
+                                  ? attachments
+                                  : undefined,
+                            });
+                            onAttachmentsChange([]);
+                          } catch (error) {
+                            if (
+                              error instanceof Error &&
+                              error.message.includes("Daily message limit")
+                            ) {
+                              setShowRateLimitDialog(true);
+                            } else {
+                              console.error("Failed to send message:", error);
                             }
-                          } else {
-                            setInput((prev) =>
-                              prev.trim() ? `${prev} ${text}` : text,
-                            );
+                          } finally {
+                            setIsSending(false);
                           }
-                        }}
-                        onRecordingStateChange={(recording, stream) => {
-                          setIsRecording(recording);
-                          setRecordingStream(stream || null);
-                          if (!recording && stream) setIsTranscribing(true);
-                        }}
-                        isDisabled={isSending || uploading}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Voice input</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+                        } else {
+                          setInput((prev) =>
+                            prev.trim() ? `${prev} ${text}` : text,
+                          );
+                        }
+                      }}
+                      onRecordingStateChange={(recording, stream) => {
+                        setIsRecording(recording);
+                        setRecordingStream(stream || null);
+                        if (!recording && stream) setIsTranscribing(true);
+                      }}
+                      isDisabled={isSending || uploading}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Voice input</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             <Button
               type={isGenerating ? "button" : isRecording ? "button" : "submit"}
               size="icon"

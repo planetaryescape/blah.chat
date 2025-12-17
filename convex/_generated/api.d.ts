@@ -103,6 +103,7 @@ import type * as migrations_verify_dual_write from "../migrations/verify_dual_wr
 import type * as notes from "../notes.js";
 import type * as notes_generateTitle from "../notes/generateTitle.js";
 import type * as notes_tags from "../notes/tags.js";
+import type * as notifications from "../notifications.js";
 import type * as onboarding from "../onboarding.js";
 import type * as projects from "../projects.js";
 import type * as search from "../search.js";
@@ -257,6 +258,7 @@ declare const fullApi: ApiFromModules<{
   notes: typeof notes;
   "notes/generateTitle": typeof notes_generateTitle;
   "notes/tags": typeof notes_tags;
+  notifications: typeof notifications;
   onboarding: typeof onboarding;
   projects: typeof projects;
   search: typeof search;

@@ -12,6 +12,10 @@ import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { EmptyScreen } from "./EmptyScreen";
 
+type MessageWithUser = Doc<"messages"> & {
+  senderUser?: { name?: string; imageUrl?: string } | null;
+};
+
 /**
  * Generate a stable React key for messages that persists across optimistic→server transition.
  *
@@ -27,7 +31,7 @@ function getStableMessageKey(message: Doc<"messages">): string {
 }
 
 interface VirtualizedMessageListProps {
-  messages: Doc<"messages">[];
+  messages: MessageWithUser[];
   selectedModel?: string;
   autoScroll?: boolean;
   onVote?: (winnerId: string, rating: string) => void;
@@ -37,6 +41,7 @@ interface VirtualizedMessageListProps {
   highlightMessageId?: string;
   syncScroll?: boolean;
   chatWidth?: ChatWidth;
+  isCollaborative?: boolean;
 }
 
 export function VirtualizedMessageList({
@@ -50,6 +55,7 @@ export function VirtualizedMessageList({
   chatWidth,
   highlightMessageId,
   syncScroll = true,
+  isCollaborative,
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
     useAutoScroll({
@@ -68,7 +74,7 @@ export function VirtualizedMessageList({
     );
 
     // First, group comparison messages by ID
-    const comparisonGroups: Record<string, Doc<"messages">[]> = {};
+    const comparisonGroups: Record<string, MessageWithUser[]> = {};
 
     for (const msg of visibleMessages) {
       if (msg.comparisonGroupId) {
@@ -79,12 +85,12 @@ export function VirtualizedMessageList({
 
     // Build chronological list of items (messages + comparison blocks)
     type Item =
-      | { type: "message"; data: Doc<"messages"> }
+      | { type: "message"; data: MessageWithUser }
       | {
           type: "comparison";
           id: string;
-          userMessage: Doc<"messages">;
-          assistantMessages: Doc<"messages">[];
+          userMessage: MessageWithUser;
+          assistantMessages: MessageWithUser[];
           timestamp: number;
         };
 
@@ -272,6 +278,8 @@ export function VirtualizedMessageList({
                     <ChatMessage
                       message={item.data}
                       nextMessage={nextMessage}
+                      isCollaborative={isCollaborative}
+                      senderUser={item.data.senderUser}
                     />
                   </div>
                 );
@@ -283,7 +291,11 @@ export function VirtualizedMessageList({
                       key={getStableMessageKey(item.userMessage)}
                       className="col-start-2"
                     >
-                      <ChatMessage message={item.userMessage} />
+                      <ChatMessage
+                        message={item.userMessage}
+                        isCollaborative={isCollaborative}
+                        senderUser={item.userMessage.senderUser}
+                      />
                     </div>
                     <div
                       key={`comparison-${item.id}`}
@@ -383,12 +395,18 @@ export function VirtualizedMessageList({
                             ? nextItem.data
                             : undefined;
                         })()}
+                        isCollaborative={isCollaborative}
+                        senderUser={item.data.senderUser}
                       />
                     </div>
                   ) : (
                     <>
                       <div className="col-start-2">
-                        <ChatMessage message={item.userMessage} />
+                        <ChatMessage
+                          message={item.userMessage}
+                          isCollaborative={isCollaborative}
+                          senderUser={item.userMessage.senderUser}
+                        />
                       </div>
                       <div className="col-span-full mt-4">
                         <ComparisonView

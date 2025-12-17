@@ -1,9 +1,5 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -15,6 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useMutation, useQuery } from "convex/react";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function ReasoningSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -118,8 +118,7 @@ export function ReasoningSettings() {
         <CardTitle>Reasoning Display</CardTitle>
         <CardDescription>
           Control how AI thinking and reasoning is displayed in conversations
-          with reasoning models (OpenAI o1/o3, Claude extended thinking,
-          DeepSeek R1)
+          with reasoning models (GPT-5, Claude extended thinking, DeepSeek R1)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

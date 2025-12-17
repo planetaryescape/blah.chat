@@ -568,6 +568,7 @@ function ChatPageContent({
               showModelNames={showModelNames ?? false}
               syncScroll={syncScroll ?? true}
               highlightMessageId={highlightMessageId}
+              isCollaborative={conversation?.isCollaborative}
             />
           </>
         )}

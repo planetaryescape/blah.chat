@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { DatabaseReader } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
@@ -217,7 +217,7 @@ export const bulkCreate = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
-    const bookmarkIds = [];
+    const bookmarkIds: Id<"bookmarks">[] = [];
 
     for (const messageId of args.messageIds) {
       const message = await ctx.db.get(messageId);
@@ -291,7 +291,6 @@ export const addTag = mutation({
 
     let centralTag = await ctx.db
       .query("tags")
-      // @ts-ignore - Type depth exceeded
       .withIndex("by_user_slug", (q) =>
         q.eq("userId", user._id).eq("slug", slug),
       )
@@ -317,7 +316,6 @@ export const addTag = mutation({
     // Create junction entry
     const existingJunction = await ctx.db
       .query("bookmarkTags")
-      // @ts-ignore - Type depth exceeded
       .withIndex("by_bookmark_tag", (q) =>
         q.eq("bookmarkId", bookmarkId).eq("tagId", centralTag._id),
       )
@@ -366,7 +364,6 @@ export const removeTag = mutation({
 
     const centralTag = await ctx.db
       .query("tags")
-      // @ts-ignore - Type depth exceeded
       .withIndex("by_user_slug", (q) =>
         q.eq("userId", user._id).eq("slug", slug),
       )
@@ -375,7 +372,6 @@ export const removeTag = mutation({
     if (centralTag) {
       const junction = await ctx.db
         .query("bookmarkTags")
-        // @ts-ignore - Type depth exceeded
         .withIndex("by_bookmark_tag", (q) =>
           q.eq("bookmarkId", bookmarkId).eq("tagId", centralTag._id),
         )

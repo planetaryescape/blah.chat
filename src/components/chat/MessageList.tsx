@@ -10,13 +10,18 @@ import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { EmptyScreen } from "./EmptyScreen";
 
+type MessageWithUser = Doc<"messages"> & {
+  senderUser?: { name?: string; imageUrl?: string } | null;
+};
+
 interface MessageListProps {
-  messages: Doc<"messages">[];
+  messages: MessageWithUser[];
   selectedModel?: string;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
   showModelNames: boolean;
+  isCollaborative?: boolean;
 }
 
 export function MessageList({
@@ -26,6 +31,7 @@ export function MessageList({
   onConsolidate,
   onToggleModelNames,
   showModelNames,
+  isCollaborative,
 }: MessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
     useAutoScroll({
@@ -41,7 +47,7 @@ export function MessageList({
     );
 
     // First, group comparison messages by ID
-    const comparisonGroups: Record<string, Doc<"messages">[]> = {};
+    const comparisonGroups: Record<string, MessageWithUser[]> = {};
 
     for (const msg of visibleMessages) {
       if (msg.comparisonGroupId) {
@@ -52,12 +58,12 @@ export function MessageList({
 
     // Build chronological list of items (messages + comparison blocks)
     type Item =
-      | { type: "message"; data: Doc<"messages"> }
+      | { type: "message"; data: MessageWithUser }
       | {
           type: "comparison";
           id: string;
-          userMessage: Doc<"messages">;
-          assistantMessages: Doc<"messages">[];
+          userMessage: MessageWithUser;
+          assistantMessages: MessageWithUser[];
           timestamp: number;
         };
 
@@ -154,7 +160,12 @@ export function MessageList({
                   layout
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
                 >
-                  <ChatMessage message={item.data} nextMessage={nextMessage} />
+                  <ChatMessage
+                    message={item.data}
+                    nextMessage={nextMessage}
+                    isCollaborative={isCollaborative}
+                    senderUser={item.data.senderUser}
+                  />
                 </motion.div>
               );
             } else {
@@ -166,7 +177,11 @@ export function MessageList({
                     layout
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
                   >
-                    <ChatMessage message={item.userMessage} />
+                    <ChatMessage
+                      message={item.userMessage}
+                      isCollaborative={isCollaborative}
+                      senderUser={item.userMessage.senderUser}
+                    />
                   </motion.div>
                   <motion.div
                     key={`comparison-${item.id}`}

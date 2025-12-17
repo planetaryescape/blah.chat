@@ -17,6 +17,7 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
   const projects = useQuery(api.projects.list);
 
   const handleChange = (newValue: string) => {

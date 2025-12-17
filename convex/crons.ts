@@ -35,4 +35,12 @@ crons.daily(
   internal.telemetry.heartbeat.sendDailyHeartbeat as any,
 );
 
+// Clean up old notifications daily at 4 AM UTC (30+ days old)
+crons.daily(
+  "cleanup-old-notifications",
+  { hourUTC: 4, minuteUTC: 0 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.notifications.cleanupOld as any,
+);
+
 export default crons;

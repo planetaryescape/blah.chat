@@ -70,6 +70,8 @@ export default defineSchema({
     // Branching support
     parentConversationId: v.optional(v.id("conversations")),
     parentMessageId: v.optional(v.id("messages")),
+    // Collaborative conversations (multi-user)
+    isCollaborative: v.optional(v.boolean()),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -95,6 +97,19 @@ export default defineSchema({
       searchField: "title",
       filterFields: ["userId", "archived"],
     }),
+
+  // Shared Conversations: Multi-user participants
+  conversationParticipants: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    role: v.union(v.literal("owner"), v.literal("collaborator")),
+    joinedAt: v.number(),
+    invitedBy: v.optional(v.id("users")),
+    sourceShareId: v.optional(v.string()), // Track which share link they joined from
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"])
+    .index("by_user_conversation", ["userId", "conversationId"]),
 
   conversationTokenUsage: defineTable({
     conversationId: v.id("conversations"),
@@ -956,6 +971,26 @@ export default defineSchema({
   })
     .index("by_name", ["name"])
     .index("by_usage", ["usageCount"]),
+
+  // Shared Conversations: Global notification system
+  notifications: defineTable({
+    userId: v.id("users"), // Recipient
+    type: v.string(), // "collaboration_joined", "mention", etc.
+    title: v.string(),
+    message: v.string(),
+    data: v.optional(
+      v.object({
+        conversationId: v.optional(v.id("conversations")),
+        joinedUserId: v.optional(v.id("users")),
+        joinedUserName: v.optional(v.string()),
+      }),
+    ),
+    read: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_unread", ["userId", "read"])
+    .index("by_created", ["createdAt"]), // For cleanup cron
 
   // Admin Settings (global platform settings)
   adminSettings: defineTable({

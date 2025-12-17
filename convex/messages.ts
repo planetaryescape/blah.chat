@@ -161,14 +161,26 @@ export const create = internalMutation({
 export const list = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
-    // Security: Verify user owns the conversation before returning messages
+    // Security: Verify user owns the conversation OR is a participant
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation || conversation.userId !== user._id) {
-      return [];
+    if (!conversation) return [];
+
+    // Check ownership or participant access for collaborative conversations
+    let hasAccess = conversation.userId === user._id;
+    if (!hasAccess && conversation.isCollaborative) {
+      const participant = await ctx.db
+        .query("conversationParticipants")
+        .withIndex("by_user_conversation", (q) =>
+          q.eq("userId", user._id).eq("conversationId", args.conversationId),
+        )
+        .first();
+      hasAccess = participant !== null;
     }
+
+    if (!hasAccess) return [];
 
     const messages = await ctx.db
       .query("messages")
@@ -179,6 +191,57 @@ export const list = query({
       .collect();
 
     return messages;
+  },
+});
+
+/**
+ * List messages with sender user info (for collaborative conversations)
+ */
+export const listWithUsers = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) return [];
+
+    // Check access
+    let hasAccess = conversation.userId === user._id;
+    if (!hasAccess && conversation.isCollaborative) {
+      const participant = await ctx.db
+        .query("conversationParticipants")
+        .withIndex("by_user_conversation", (q) =>
+          q.eq("userId", user._id).eq("conversationId", args.conversationId),
+        )
+        .first();
+      hasAccess = participant !== null;
+    }
+
+    if (!hasAccess) return [];
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .order("asc")
+      .collect();
+
+    // Fetch user info for each message
+    const messagesWithUsers = await Promise.all(
+      messages.map(async (msg) => {
+        const sender = msg.userId ? await ctx.db.get(msg.userId) : null;
+        return {
+          ...msg,
+          senderUser: sender
+            ? { name: sender.name, imageUrl: sender.imageUrl }
+            : null,
+        };
+      }),
+    );
+
+    return messagesWithUsers;
   },
 });
 
@@ -198,7 +261,7 @@ export const listPaginated = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
-    // Security: Verify user owns the conversation
+    // Security: Verify user owns OR is participant
     const user = await getCurrentUser(ctx);
     if (!user) {
       return {
@@ -209,7 +272,27 @@ export const listPaginated = query({
     }
 
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation || conversation.userId !== user._id) {
+    if (!conversation) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    // Check ownership or participant access
+    let hasAccess = conversation.userId === user._id;
+    if (!hasAccess && conversation.isCollaborative) {
+      const participant = await ctx.db
+        .query("conversationParticipants")
+        .withIndex("by_user_conversation", (q) =>
+          q.eq("userId", user._id).eq("conversationId", args.conversationId),
+        )
+        .first();
+      hasAccess = participant !== null;
+    }
+
+    if (!hasAccess) {
       return {
         page: [],
         isDone: true,

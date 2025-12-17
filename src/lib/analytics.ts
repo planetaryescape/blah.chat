@@ -58,7 +58,7 @@ interface AnalyticsEvent {
     attachmentTypes?: string;
     inputLength?: number;
     hasQuote?: boolean;
-    thinkingEffort?: "low" | "medium" | "high";
+    thinkingEffort?: "none" | "low" | "medium" | "high";
     voiceUsed?: boolean;
   };
   message_streaming_started: {
@@ -148,9 +148,9 @@ interface AnalyticsEvent {
     originalModelCount?: number;
   };
   thinking_effort_selected: {
-    effort: "low" | "medium" | "high";
+    effort: "none" | "low" | "medium" | "high";
     model?: string;
-    previousEffort?: "low" | "medium" | "high";
+    previousEffort?: "none" | "low" | "medium" | "high";
   };
   reasoning_viewed: {
     messageId: string;

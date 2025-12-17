@@ -389,11 +389,12 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
-                {/* Reasoning block - shows thinking for reasoning models or if reasoning content exists */}
+                {/* Reasoning block - only shows when reasoning is active or has content */}
+                {/* Don't render for "No Reasoning" - requires thinkingStartedAt or actual reasoning content */}
                 {message.role === "assistant" &&
-                  (isThinkingModel ||
-                    message.reasoning ||
-                    message.partialReasoning) && (
+                  (message.reasoning ||
+                    message.partialReasoning ||
+                    message.thinkingStartedAt) && (
                     <ReasoningBlock
                       reasoning={message.reasoning}
                       partialReasoning={message.partialReasoning}
@@ -427,7 +428,11 @@ export const ChatMessage = memo(
                         />
                       </div>
                     ) : isGenerating ? (
-                      <MessageLoadingState isThinkingModel={isThinkingModel} />
+                      <MessageLoadingState
+                        isThinkingModel={
+                          isThinkingModel && !!message.thinkingStartedAt
+                        }
+                      />
                     ) : null}
                   </>
                 )}
@@ -459,7 +464,7 @@ export const ChatMessage = memo(
                     {/* Generating */}
                     {message.status === "generating" && (
                       <div role="status" aria-live="polite" className="sr-only">
-                        {isThinkingModel
+                        {isThinkingModel && message.thinkingStartedAt
                           ? "AI is thinking about your question"
                           : "AI is generating a response"}
                       </div>

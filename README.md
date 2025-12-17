@@ -20,7 +20,18 @@ Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xA
 
 ## 📸 Preview
 
-![blah.chat interface](./public/assets/app-preview.jpeg)
+<table>
+  <tr>
+    <td width="50%">
+      <img src="./public/assets/app-preview.jpeg" alt="Dark mode" />
+      <p align="center"><em>Dark mode</em></p>
+    </td>
+    <td width="50%">
+      <img src="./public/assets/app-preview-light.jpeg" alt="Light mode" />
+      <p align="center"><em>Light mode</em></p>
+    </td>
+  </tr>
+</table>
 
 ## 🚀 Quick Deploy
 

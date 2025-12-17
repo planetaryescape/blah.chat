@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ApiError } from "@/lib/api/errors";
-import { formatErrorEntity } from "@/lib/utils/formatEntity";
 import logger from "@/lib/logger";
+import { formatErrorEntity } from "@/lib/utils/formatEntity";
 
 export function withErrorHandling(
   handler: (req: NextRequest, context: any) => Promise<Response>,

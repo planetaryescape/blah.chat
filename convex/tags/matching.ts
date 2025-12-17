@@ -7,13 +7,13 @@
  * 3. Semantic similarity (embedding cosine ≥0.85 for synonyms)
  */
 
-import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { normalizeTagSlug } from "../../src/lib/utils/tagUtils";
+import { embed } from "ai";
 import { levenshteinDistance } from "../../src/lib/utils/stringUtils";
+import { normalizeTagSlug } from "../../src/lib/utils/tagUtils";
 import { internal } from "../_generated/api";
-import type { ActionCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { cosineSimilarity } from "./embeddings";
 
 const EMBEDDING_MODEL = openai.embedding("text-embedding-3-small");
@@ -41,7 +41,7 @@ export interface MatchResult {
 export async function findSimilarTag(
   ctx: ActionCtx,
   candidateTag: string,
-  userId: Id<"users">,
+  _userId: Id<"users">,
   existingTags: Doc<"tags">[],
   embeddingCache: Map<string, number[]>,
 ): Promise<MatchResult> {

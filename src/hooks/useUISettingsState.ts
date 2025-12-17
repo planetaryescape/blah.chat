@@ -1,12 +1,12 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
-import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface ReasoningSettings {
   showByDefault: boolean;

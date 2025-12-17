@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
+import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { messagesDAL } from "@/lib/api/dal/messages";
-import { getCacheControl, CachePresets } from "@/lib/api/cache";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
 import logger from "@/lib/logger";
 
 async function getHandler(
-  req: NextRequest,
+  _req: NextRequest,
   {
     params,
     userId,
@@ -35,7 +35,7 @@ async function getHandler(
 }
 
 async function deleteHandler(
-  req: NextRequest,
+  _req: NextRequest,
   {
     params,
     userId,

@@ -1,8 +1,5 @@
 "use client";
 
-import { UserSyncError } from "@/components/auth/UserSyncError";
-import { api } from "@/convex/_generated/api";
-import { useNewChat } from "@/hooks/useNewChat";
 import {
   Authenticated,
   Unauthenticated,
@@ -11,6 +8,9 @@ import {
 } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { UserSyncError } from "@/components/auth/UserSyncError";
+import { api } from "@/convex/_generated/api";
+import { useNewChat } from "@/hooks/useNewChat";
 
 export default function AppPage() {
   const router = useRouter();

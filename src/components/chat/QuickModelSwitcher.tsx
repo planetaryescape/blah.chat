@@ -1,5 +1,10 @@
 "use client";
 
+import commandScore from "command-score";
+import { useQuery } from "convex/react";
+import { ChevronRight, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -17,11 +22,6 @@ import { MODEL_CATEGORIES } from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
-import commandScore from "command-score";
-import { useQuery } from "convex/react";
-import { ChevronRight, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
@@ -51,7 +51,7 @@ export function QuickModelSwitcher({
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const _user = useQuery(api.users.getCurrentUser);
 
   const prefDefaultModel = useUserPreference("defaultModel");
 
@@ -211,7 +211,7 @@ export function QuickModelSwitcher({
         <div className="flex items-center border-b px-4 py-3 shrink-0">
           <Search className="w-4 h-4 mr-2 text-muted-foreground" />
           <CommandInput
-            placeholder={`Search ${activeCategory === "all" ? "" : activeCategory + " "}models...`}
+            placeholder={`Search ${activeCategory === "all" ? "" : `${activeCategory} `}models...`}
             className="flex-1 h-9 bg-transparent border-0 ring-0 focus:ring-0 text-sm"
           />
         </div>

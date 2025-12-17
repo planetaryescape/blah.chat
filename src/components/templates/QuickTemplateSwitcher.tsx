@@ -1,5 +1,10 @@
 "use client";
 
+import commandScore from "command-score";
+import { useMutation, useQuery } from "convex/react";
+import { FileText, Search, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -18,11 +23,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
-import commandScore from "command-score";
-import { useMutation, useQuery } from "convex/react";
-import { FileText, Search, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useTemplateStore } from "@/stores/templateStore";
 
@@ -154,7 +154,7 @@ export function QuickTemplateSwitcher({
               {template.name}
             </span>
             <span className="text-xs text-muted-foreground truncate">
-              {template.description || template.prompt.slice(0, 60) + "..."}
+              {template.description || `${template.prompt.slice(0, 60)}...`}
             </span>
           </div>
         </div>
@@ -214,7 +214,7 @@ export function QuickTemplateSwitcher({
       <div className="flex items-center border-b px-4 py-3 shrink-0">
         <Search className="w-4 h-4 mr-2 text-muted-foreground" />
         <CommandInput
-          placeholder={`Search ${activeCategory === "all" ? "" : activeCategory + " "}templates...`}
+          placeholder={`Search ${activeCategory === "all" ? "" : `${activeCategory} `}templates...`}
           className="flex-1 h-9 bg-transparent border-0 ring-0 focus:ring-0 text-sm"
         />
       </div>

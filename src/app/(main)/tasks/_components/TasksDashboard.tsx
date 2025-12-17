@@ -1,9 +1,9 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { useMemo, useState } from "react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { TaskMainView } from "./TaskMainView";
 import { TasksSidebar } from "./TasksSidebar";
@@ -68,7 +68,6 @@ export function TasksDashboard() {
         return { tasks: tasksImportant || [], title: "Important" };
       case "completed":
         return { tasks: tasksCompleted || [], title: "Completed" };
-      case "all":
       default:
         return {
           tasks: tasksAll || [],

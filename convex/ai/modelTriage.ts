@@ -1,9 +1,9 @@
 "use node";
 
-import { getModel } from "@/lib/ai/registry";
 import { generateObject, generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import type { ModelConfig } from "../../src/lib/ai/models";
 import { MODEL_CONFIG } from "../../src/lib/ai/models";
@@ -290,7 +290,7 @@ function getCheaperAlternatives(currentModel: ModelConfig): string[] {
     (currentModel.pricing.input + currentModel.pricing.output) / 2;
 
   return Object.entries(MODEL_CONFIG)
-    .filter(([id, model]) => {
+    .filter(([_id, model]) => {
       const candidateAvg = (model.pricing.input + model.pricing.output) / 2;
 
       return (

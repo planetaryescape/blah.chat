@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useConvexAuth } from "convex/react";
 import { Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
@@ -8,9 +8,9 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
+import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { Button } from "@/components/ui/button";
 import {
   SidebarProvider,

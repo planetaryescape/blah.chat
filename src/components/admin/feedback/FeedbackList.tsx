@@ -1,18 +1,18 @@
 "use client";
 
+import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
-  FeedbackType,
+  type FeedbackType,
   PRIORITY_CONFIG,
-  Priority,
+  type Priority,
   STATUS_COLORS,
   STATUS_LABELS,
   TYPE_CONFIG,
 } from "@/lib/constants/feedback";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
 
 interface FeedbackListProps {
   items: Doc<"feedback">[];

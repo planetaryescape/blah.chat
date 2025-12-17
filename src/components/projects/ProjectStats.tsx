@@ -1,10 +1,10 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCircle2, File, FileText, MessageSquare } from "lucide-react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface ProjectStatsProps {
   projectId: Id<"projects">;
@@ -27,7 +27,7 @@ export function ProjectStats({ projectId }: ProjectStatsProps) {
 
   const { conversationCount, noteCount, fileCount, taskStats, lastActivityAt } =
     stats;
-  const totalResources = conversationCount + noteCount + fileCount;
+  const _totalResources = conversationCount + noteCount + fileCount;
 
   return (
     <div className="flex items-center gap-3 text-xs text-muted-foreground/80">

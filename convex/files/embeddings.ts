@@ -6,12 +6,11 @@
  * Pattern: Follow convex/messages/embeddings.ts batch processing pattern.
  */
 
-import { internalAction, internalMutation } from "../_generated/server";
-import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
-import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
 import { embed } from "ai";
+import { v } from "convex/values";
+import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
+import { internal } from "../_generated/api";
+import { internalAction, internalMutation } from "../_generated/server";
 
 // Batch size for embedding generation (API rate limits)
 const EMBEDDING_BATCH_SIZE = 100;
@@ -66,7 +65,7 @@ export const generateFileEmbeddings = internalAction({
       );
 
       // 4. Generate embeddings in batches
-      let processedCount = 0;
+      let _processedCount = 0;
       for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
         const batchChunks = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
         const batchStart = Date.now();
@@ -95,7 +94,7 @@ export const generateFileEmbeddings = internalAction({
           },
         )) as Promise<void>;
 
-        processedCount += batchChunks.length;
+        _processedCount += batchChunks.length;
         const batchDuration = Date.now() - batchStart;
         console.log(
           `[FileEmbedding] Batch ${Math.floor(i / EMBEDDING_BATCH_SIZE) + 1}: ${batchChunks.length} chunks (${batchDuration}ms)`,

@@ -1,8 +1,30 @@
+import { UserButton, useAuth } from "@clerk/nextjs";
+import { useAction, useMutation, useQuery } from "convex/react";
+import {
+  Bookmark,
+  Brain,
+  CheckSquare,
+  ChevronDown,
+  FileText,
+  FolderKanban,
+  Keyboard,
+  Mic,
+  MoreHorizontal,
+  NotebookPen,
+  Plus,
+  Search,
+  Settings,
+  Shield,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { ProjectFilter } from "@/components/projects/ProjectFilter";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@clerk/nextjs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,29 +53,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { useNewChat } from "@/hooks/useNewChat";
 import { cn } from "@/lib/utils";
-import { UserButton } from "@clerk/nextjs";
-import { useAction, useMutation, useQuery } from "convex/react";
-import {
-  Bookmark,
-  Brain,
-  CheckSquare,
-  ChevronDown,
-  FileText,
-  FolderKanban,
-  Keyboard,
-  Mic,
-  MoreHorizontal,
-  NotebookPen,
-  Plus,
-  Search,
-  Settings,
-  Shield,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { ConversationList } from "./ConversationList";

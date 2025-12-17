@@ -1,10 +1,10 @@
 "use client";
 
+import { Eye, FunctionSquare, Image, Sparkles, Zap } from "lucide-react";
+import { useMemo } from "react";
 import { getProviderIcon } from "@/lib/ai/icons";
 import { getModelMetrics } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
-import { Eye, FunctionSquare, Image, Sparkles, Zap } from "lucide-react";
-import { useMemo } from "react";
 import { ModelMetricsBadge } from "./model-metrics-badge";
 
 interface ModelDetailCardProps {

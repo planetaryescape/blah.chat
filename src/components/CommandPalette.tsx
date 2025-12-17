@@ -1,5 +1,12 @@
 "use client";
 
+import { Command } from "cmdk";
+import { useAction, useQuery } from "convex/react";
+import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
+import { matchSorter } from "match-sorter";
+import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CommandActionGroup,
   CommandConversationGroup,
@@ -11,13 +18,6 @@ import { useConversationActions } from "@/hooks/useConversationActions";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useNewChat } from "@/hooks/useNewChat";
 import { createActionItems } from "@/lib/command-palette-actions";
-import { Command } from "cmdk";
-import { useAction, useQuery } from "convex/react";
-import { Archive, Loader2, MessageSquare, Pin, Search } from "lucide-react";
-import { matchSorter } from "match-sorter";
-import { useTheme } from "next-themes";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConversationDialog } from "./sidebar/DeleteConversationDialog";
 import { RenameDialog } from "./sidebar/RenameDialog";
 

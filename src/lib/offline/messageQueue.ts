@@ -63,7 +63,7 @@ export class MessageQueue {
 
         // Success - remove from queue
         this.remove(msg.id);
-      } catch (error) {
+      } catch (_error) {
         // Failed - increment retry count
         if (msg.retries >= this.MAX_RETRIES) {
           // Max retries exceeded - remove permanently

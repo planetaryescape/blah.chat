@@ -1,11 +1,11 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { isValidModel } from "@/lib/ai/utils";
-import { useMutation, useQuery } from "convex/react";
-import { useCallback, useEffect, useState } from "react";
 
 interface UseChatModelOptions {
   conversationId: Id<"conversations"> | undefined;

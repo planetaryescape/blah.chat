@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 export interface UsePollJobOptions {

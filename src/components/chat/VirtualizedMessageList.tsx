@@ -1,12 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useAutoScroll } from "@/hooks/useAutoScroll";
-import { cn } from "@/lib/utils";
-import { type ChatWidth } from "@/lib/utils/chatWidth";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { cn } from "@/lib/utils";
+import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
@@ -211,13 +211,7 @@ export function VirtualizedMessageList({
     if (autoScroll && isAtBottom) {
       scrollToBottom("smooth");
     }
-  }, [
-    messages.length,
-    autoScroll,
-    isAtBottom,
-    scrollToBottom,
-    highlightMessageId,
-  ]);
+  }, [autoScroll, isAtBottom, scrollToBottom, highlightMessageId]);
 
   if (messages.length === 0) {
     return (
@@ -264,52 +258,50 @@ export function VirtualizedMessageList({
               !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]", // fallback
             )}
           >
-            <>
-              {grouped.map((item, index) => {
-                if (item.type === "message") {
-                  const nextItem = grouped[index + 1];
-                  const nextMessage =
-                    nextItem?.type === "message" ? nextItem.data : undefined;
+            {grouped.map((item, index) => {
+              if (item.type === "message") {
+                const nextItem = grouped[index + 1];
+                const nextMessage =
+                  nextItem?.type === "message" ? nextItem.data : undefined;
 
-                  return (
+                return (
+                  <div
+                    key={getStableMessageKey(item.data)}
+                    className="col-start-2"
+                  >
+                    <ChatMessage
+                      message={item.data}
+                      nextMessage={nextMessage}
+                    />
+                  </div>
+                );
+              } else {
+                // Comparison block: user message + comparison panels
+                return (
+                  <Fragment key={item.id}>
                     <div
-                      key={getStableMessageKey(item.data)}
+                      key={getStableMessageKey(item.userMessage)}
                       className="col-start-2"
                     >
-                      <ChatMessage
-                        message={item.data}
-                        nextMessage={nextMessage}
+                      <ChatMessage message={item.userMessage} />
+                    </div>
+                    <div
+                      key={`comparison-${item.id}`}
+                      className="col-span-full"
+                    >
+                      <ComparisonView
+                        assistantMessages={item.assistantMessages}
+                        comparisonGroupId={item.id}
+                        showModelNames={showModelNames}
+                        onVote={onVote || (() => {})}
+                        onConsolidate={onConsolidate || (() => {})}
+                        onToggleModelNames={onToggleModelNames || (() => {})}
                       />
                     </div>
-                  );
-                } else {
-                  // Comparison block: user message + comparison panels
-                  return (
-                    <Fragment key={item.id}>
-                      <div
-                        key={getStableMessageKey(item.userMessage)}
-                        className="col-start-2"
-                      >
-                        <ChatMessage message={item.userMessage} />
-                      </div>
-                      <div
-                        key={`comparison-${item.id}`}
-                        className="col-span-full"
-                      >
-                        <ComparisonView
-                          assistantMessages={item.assistantMessages}
-                          comparisonGroupId={item.id}
-                          showModelNames={showModelNames}
-                          onVote={onVote || (() => {})}
-                          onConsolidate={onConsolidate || (() => {})}
-                          onToggleModelNames={onToggleModelNames || (() => {})}
-                        />
-                      </div>
-                    </Fragment>
-                  );
-                }
-              })}
-            </>
+                  </Fragment>
+                );
+              }
+            })}
           </div>
         </div>
 

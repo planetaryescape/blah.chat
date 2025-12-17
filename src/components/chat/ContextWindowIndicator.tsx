@@ -1,5 +1,7 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { AlertCircle, Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -8,8 +10,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getModelConfig } from "@/lib/ai/utils";
-import { useQuery } from "convex/react";
-import { AlertCircle, Info } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 

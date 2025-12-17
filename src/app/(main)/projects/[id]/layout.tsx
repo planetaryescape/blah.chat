@@ -1,6 +1,6 @@
+import type { ReactNode } from "react";
 import { ProjectLayout } from "@/components/projects/ProjectLayout";
-import { Id } from "@/convex/_generated/dataModel";
-import { ReactNode } from "react";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export default async function Layout({
   children,

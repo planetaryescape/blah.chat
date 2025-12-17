@@ -1,12 +1,12 @@
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
 import { messagesDAL } from "@/lib/api/dal/messages";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { parseBody, getQueryParam } from "@/lib/api/utils";
-import { getCacheControl, CachePresets } from "@/lib/api/cache";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
+import { parseBody } from "@/lib/api/utils";
 import logger from "@/lib/logger";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
 const sendSchema = z.object({
   content: z.string().min(1),
@@ -25,7 +25,7 @@ const sendSchema = z.object({
 });
 
 async function getHandler(
-  req: NextRequest,
+  _req: NextRequest,
   {
     params,
     userId,

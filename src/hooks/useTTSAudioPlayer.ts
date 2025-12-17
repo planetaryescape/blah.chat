@@ -1,7 +1,7 @@
 "use client";
 
-import { clamp } from "@/lib/utils/ttsUtils";
 import { useCallback, useRef } from "react";
+import { clamp } from "@/lib/utils/ttsUtils";
 
 export interface TTSAudioState {
   currentTime: number;

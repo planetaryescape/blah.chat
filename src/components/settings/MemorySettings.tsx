@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  useAction,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
+import { Loader2, MoreVertical } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
 import { MemorySettingsItem } from "@/components/memories/MemorySettingsItem";
@@ -20,15 +29,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
-import {
-  useAction,
-  useMutation,
-  usePaginatedQuery,
-  useQuery,
-} from "convex/react";
-import { Loader2, MoreVertical } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export function MemorySettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)

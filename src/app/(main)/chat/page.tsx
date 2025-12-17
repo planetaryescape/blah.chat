@@ -1,10 +1,5 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import { useNewChat } from "@/hooks/useNewChat";
-import { useNewChatModel } from "@/hooks/useNewChatModel";
-import { analytics } from "@/lib/analytics";
-import { useTemplateStore } from "@/stores/templateStore";
 import {
   Authenticated,
   Unauthenticated,
@@ -13,6 +8,11 @@ import {
 } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
+import { api } from "@/convex/_generated/api";
+import { useNewChat } from "@/hooks/useNewChat";
+import { useNewChatModel } from "@/hooks/useNewChatModel";
+import { analytics } from "@/lib/analytics";
+import { useTemplateStore } from "@/stores/templateStore";
 
 function ChatPageContent() {
   const router = useRouter();

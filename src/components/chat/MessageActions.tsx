@@ -21,11 +21,11 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import type { OptimisticMessage } from "@/types/optimistic";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { BookmarkButton } from "./BookmarkButton";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { MessageActionsMenuMobile } from "./MessageActionsMenuMobile";
@@ -48,7 +48,7 @@ export function MessageActions({
   const [showCreateNote, setShowCreateNote] = useState(false);
   const router = useRouter();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser as any);
+  const _user = useQuery(api.users.getCurrentUser as any);
   const retryMessage = useMutation(api.chat.retryMessage);
   const stop = useMutation(api.chat.stopGeneration);
   const regenerate = useMutation(api.chat.regenerate);

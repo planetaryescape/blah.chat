@@ -5,8 +5,8 @@
  * Embeddings are generated lazily on-demand during first match check.
  */
 
-import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { embed } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";

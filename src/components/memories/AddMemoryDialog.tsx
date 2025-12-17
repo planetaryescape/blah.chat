@@ -1,5 +1,7 @@
 "use client";
 
+import { Plus } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,8 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
-import { useState } from "react";
 
 interface AddMemoryDialogProps {
   open: boolean;

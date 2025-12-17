@@ -1,14 +1,14 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
-import { Plus } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { TaskListItem } from "./TaskListItem";
 
 interface TaskMainViewProps {
@@ -47,7 +47,7 @@ export function TaskMainView({
       });
       setNewTaskTitle("");
       // Sound effect?
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to create task");
     }
   };

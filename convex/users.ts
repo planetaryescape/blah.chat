@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import {
+  getAllUserPreferences as getAllUserPreferencesHelper,
   getUserPreference as getUserPreferenceHelper,
   getUserPreferencesByCategory as getUserPreferencesByCategoryHelper,
-  getAllUserPreferences as getAllUserPreferencesHelper,
   updateUserPreference as updateUserPreferenceHelper,
 } from "./users/preferences";
 

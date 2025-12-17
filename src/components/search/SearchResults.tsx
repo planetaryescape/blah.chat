@@ -1,12 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { analytics } from "@/lib/analytics";
-import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import DOMPurify from "dompurify";
@@ -14,6 +7,13 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 import { BulkActionToolbar } from "./BulkActionToolbar";
 import { SearchEmptyState } from "./SearchEmptyState";
 import { SearchResultSkeletonList } from "./SearchResultSkeleton";

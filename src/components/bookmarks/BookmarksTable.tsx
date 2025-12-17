@@ -1,5 +1,26 @@
 "use client";
 
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { formatDistanceToNow } from "date-fns";
+import {
+  ArrowUpDown,
+  Calendar,
+  ExternalLink,
+  MessageSquare,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,27 +37,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  type ColumnDef,
-  type SortingState,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { formatDistanceToNow } from "date-fns";
-import {
-  ArrowUpDown,
-  Calendar,
-  ExternalLink,
-  MessageSquare,
-  MoreVertical,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 interface BookmarkTableProps {
   bookmarks: any[];
@@ -89,7 +89,7 @@ export function BookmarksTable({ bookmarks, onRemove }: BookmarkTableProps) {
       cell: ({ row }) => {
         const content = row.original.message?.content || "";
         const preview =
-          content.length > 80 ? content.slice(0, 80) + "..." : content;
+          content.length > 80 ? `${content.slice(0, 80)}...` : content;
         return (
           <span
             className="text-sm text-muted-foreground line-clamp-1"

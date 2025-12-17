@@ -1,5 +1,17 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import {
+  Copy,
+  Edit,
+  FileText,
+  MoreHorizontal,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,18 +41,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useTemplateStore } from "@/stores/templateStore";
-import { useMutation } from "convex/react";
-import {
-  Copy,
-  Edit,
-  FileText,
-  MoreHorizontal,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
 import { TemplateForm } from "./TemplateForm";
 
 interface TemplateCardProps {

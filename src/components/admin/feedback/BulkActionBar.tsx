@@ -1,5 +1,6 @@
 "use client";
 
+import { Archive, CheckSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Archive, CheckSquare, X } from "lucide-react";
 
 interface BulkActionBarProps {
   selectedCount: number;

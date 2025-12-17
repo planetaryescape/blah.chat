@@ -1,5 +1,8 @@
 "use client";
 
+import { Edit, FolderOpen, MoreVertical, Trash2, Users } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,9 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Edit, FolderOpen, MoreVertical, Trash2, Users } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ProjectStats } from "./ProjectStats";
 
 interface ProjectCardProps {

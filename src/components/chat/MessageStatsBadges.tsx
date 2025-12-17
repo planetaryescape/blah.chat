@@ -1,5 +1,6 @@
 "use client";
 
+import { Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -9,7 +10,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatTTFT } from "@/lib/utils/formatMetrics";
-import { Zap } from "lucide-react";
 
 interface MessageStatsBadgesProps {
   modelName: string;

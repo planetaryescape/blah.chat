@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronRight, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import {
@@ -10,7 +11,6 @@ import {
 import { getModelCategories } from "@/lib/ai/categories";
 import type { ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, Star, Zap } from "lucide-react";
 import { ModelDetailCard } from "./ModelDetailCard";
 
 interface ModelSelectorItemProps {
@@ -48,7 +48,7 @@ export function ModelSelectorItem({
   onToggleFavorite,
 }: ModelSelectorItemProps) {
   // Get model categories (only for "All" view)
-  const categories = activeCategory === "all" ? getModelCategories(model) : [];
+  const _categories = activeCategory === "all" ? getModelCategories(model) : [];
 
   const itemContent = (
     <CommandItem

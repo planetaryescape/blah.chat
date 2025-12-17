@@ -1,12 +1,5 @@
 "use client";
 
-import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
-import { MemoriesHeader } from "@/components/memories/MemoriesHeader";
-import { MemoryFilters } from "@/components/memories/MemoryFilters";
-import { MemoryItem } from "@/components/memories/MemoryItem";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/convex/_generated/api";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Brain, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -18,6 +11,13 @@ import {
 } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
+import { MemoriesHeader } from "@/components/memories/MemoriesHeader";
+import { MemoryFilters } from "@/components/memories/MemoryFilters";
+import { MemoryItem } from "@/components/memories/MemoryItem";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
   {

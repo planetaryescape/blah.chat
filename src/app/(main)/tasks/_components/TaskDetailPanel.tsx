@@ -1,5 +1,10 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { format } from "date-fns";
+import { NotebookPen, Star, Sun, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,11 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { format } from "date-fns";
-import { NotebookPen, Star, Sun, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface TaskDetailPanelProps {
   taskId: Id<"tasks">;
@@ -48,7 +48,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [_isSaving, setIsSaving] = useState(false);
 
   // Sync local state with task data
   useEffect(() => {
@@ -62,7 +62,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     setIsSaving(true);
     try {
       await updateTask({ id: taskId, ...updates });
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update task");
     } finally {
       setIsSaving(false);
@@ -102,7 +102,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
       await deleteTask({ id: taskId });
       toast.success("Task deleted");
       onClose();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete task");
     }
   };

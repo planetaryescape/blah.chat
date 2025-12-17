@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense, useEffect, useRef } from "react";
 import { RecentSearches } from "@/components/search/RecentSearches";
 import { SearchBar } from "@/components/search/SearchBar";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -15,7 +16,6 @@ import {
 } from "@/hooks/useSearchResults";
 import { useSearchState } from "@/hooks/useSearchState";
 import { analytics } from "@/lib/analytics";
-import { Suspense, useEffect, useRef } from "react";
 
 function SearchPageContent() {
   // URL-persisted state
@@ -52,7 +52,7 @@ function SearchPageContent() {
   // Clear selection when filter/search changes
   useEffect(() => {
     clearSelection();
-  }, [debouncedQuery, filters, clearSelection]);
+  }, [clearSelection]);
 
   // Reset page when query or filters change
   useEffect(() => {
@@ -87,7 +87,6 @@ function SearchPageContent() {
     isSearching,
     addSearch,
     hasActiveFilters,
-    page,
   ]);
 
   const handleSelectRecentSearch = (query: string) => {

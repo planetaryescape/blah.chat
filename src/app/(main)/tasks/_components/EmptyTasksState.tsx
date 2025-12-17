@@ -1,12 +1,12 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
 import {
-  CheckSquare,
   Calendar,
   CalendarCheck,
   CheckCircle2,
+  CheckSquare,
 } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const EMPTY_STATES = {
   all: {

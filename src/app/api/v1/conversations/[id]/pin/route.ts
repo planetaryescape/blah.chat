@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { getConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { getConvexClient } from "@/lib/api/convex";
-import { api } from "@/convex/_generated/api";
-import { formatEntity } from "@/lib/utils/formatEntity";
 import { trackAPIPerformance } from "@/lib/api/monitoring";
-import type { Id } from "@/convex/_generated/dataModel";
 import logger from "@/lib/logger";
+import { formatEntity } from "@/lib/utils/formatEntity";
 
 async function postHandler(
-  req: NextRequest,
+  _req: NextRequest,
   {
     params,
     userId,
@@ -24,6 +24,7 @@ async function postHandler(
 
   const convex = getConvexClient();
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   await convex.mutation(api.conversations.togglePin, {
     conversationId: id as Id<"conversations">,
   });

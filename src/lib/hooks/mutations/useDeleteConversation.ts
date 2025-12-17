@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
-import type { Id } from "@/convex/_generated/dataModel";
 
 interface DeleteConversationArgs {
   conversationId: Id<"conversations">;
@@ -17,7 +17,7 @@ export function useDeleteConversation() {
       return api.delete(`/api/v1/conversations/${conversationId}`);
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Invalidate conversations list
       queryClient.invalidateQueries({
         queryKey: queryKeys.conversations.lists(),

@@ -5,7 +5,7 @@
  * Provides server-side data operations with ownership verification.
  */
 
-export * from "./users";
 export * from "./conversations";
 export * from "./messages";
 export * from "./preferences";
+export * from "./users";

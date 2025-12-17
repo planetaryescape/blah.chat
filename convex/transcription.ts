@@ -7,7 +7,7 @@ import { action, internalAction } from "./_generated/server";
  * Wrap promise with timeout to prevent infinite hangs
  * Pattern from videoAnalysis.ts lines 110-137
  */
-async function withTimeout<T>(
+async function _withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   operation: string,

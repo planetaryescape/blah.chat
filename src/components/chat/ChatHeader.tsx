@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
@@ -15,7 +16,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ChatHeaderProps {
   conversation: Doc<"conversations"> | null | undefined;

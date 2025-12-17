@@ -99,11 +99,11 @@ export const processDocument = internalAction({
           const pptxModule = await import("pptx-content-extractor");
           const extractPptx =
             pptxModule.extractPptx ||
-            (pptxModule.default && pptxModule.default.extractPptx) ||
+            pptxModule.default?.extractPptx ||
             pptxModule.default;
-          const fs = await import("fs");
-          const os = await import("os");
-          const path = await import("path");
+          const fs = await import("node:fs");
+          const os = await import("node:os");
+          const path = await import("node:path");
 
           // Write to temp file (library requires file path)
           const tempDir = os.tmpdir();
@@ -171,7 +171,7 @@ export const processDocument = internalAction({
               // Ignore cleanup errors
             }
           }
-        } catch (pptxError) {
+        } catch (_pptxError) {
           // Fallback: use officeparser for robust text extraction
           console.log(
             `[Tool:fileDocument] pptx-content-extractor failed, falling back to officeparser`,

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery, query } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
+import { internalMutation, query } from "../_generated/server";
 
 // Job type definitions
 export const jobTypes = v.union(
@@ -142,7 +142,7 @@ export const listRecent = query({
 
     if (!user) throw new Error("User not found");
 
-    let query = ctx.db
+    const query = ctx.db
       .query("jobs")
       .withIndex("by_user", (q) => q.eq("userId", user._id));
 

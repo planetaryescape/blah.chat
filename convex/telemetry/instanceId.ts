@@ -1,5 +1,5 @@
-import { internalMutation, internalQuery } from "../_generated/server";
 import { nanoid } from "nanoid";
+import { internalMutation, internalQuery } from "../_generated/server";
 
 /**
  * Get instance ID (read-only)

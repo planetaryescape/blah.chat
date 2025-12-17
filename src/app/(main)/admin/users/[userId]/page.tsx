@@ -1,36 +1,37 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect, use, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useQuery } from "convex/react";
 import {
   ArrowLeft,
-  DollarSign,
-  Zap,
-  MessageSquare,
-  TrendingUp,
-  FileText,
-  Folder,
   Bookmark,
   Clock,
+  DollarSign,
+  FileText,
+  Folder,
   Loader2,
+  MessageSquare,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
+  CartesianGrid,
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
 } from "recharts";
+import { DateRangePicker } from "@/components/admin/DateRangePicker";
+import { ExportButton } from "@/components/admin/ExportButton";
+import { UsageKPICard } from "@/components/admin/UsageKPICard";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,6 +40,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -47,17 +49,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { DateRangePicker } from "@/components/admin/DateRangePicker";
-import { UsageKPICard } from "@/components/admin/UsageKPICard";
-import { ExportButton } from "@/components/admin/ExportButton";
 import {
-  getLastNDays,
-  formatCurrency,
   formatCompactNumber,
+  formatCurrency,
+  getLastNDays,
 } from "@/lib/utils/date";
 
 const COLORS = [
@@ -351,7 +348,7 @@ export default function UserDetailPage({
                       fill="#8884d8"
                       dataKey="totalCost"
                     >
-                      {modelBreakdown.map((entry, index) => (
+                      {modelBreakdown.map((_entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}

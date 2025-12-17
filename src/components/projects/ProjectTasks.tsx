@@ -1,14 +1,14 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { CheckSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 const URGENCY_COLORS = {
   low: "bg-gray-500",
@@ -39,7 +39,7 @@ export function ProjectTasks({
       toast.success(
         currentStatus === "completed" ? "Task reopened" : "Task completed",
       );
-    } catch (error: any) {
+    } catch (_error: any) {
       toast.error("Failed to update task");
     }
   };

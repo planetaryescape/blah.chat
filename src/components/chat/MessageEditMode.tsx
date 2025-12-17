@@ -1,8 +1,8 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X } from "lucide-react";
 
 interface MessageEditModeProps {
   editedContent: string;

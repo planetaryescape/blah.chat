@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, MessageSquare } from "lucide-react";
 import {
   BulkActionBar,
   EmptyState,
@@ -11,7 +12,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFeedbackAdmin } from "@/hooks/useFeedbackAdmin";
-import { ChevronLeft, MessageSquare } from "lucide-react";
 
 export default function FeedbackPageContent() {
   const { state, actions } = useFeedbackAdmin();

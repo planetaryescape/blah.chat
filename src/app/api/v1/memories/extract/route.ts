@@ -1,16 +1,16 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
-import logger from "@/lib/logger";
-import type { Id } from "@/convex/_generated/dataModel";
 import { fetchMutation } from "convex/nextjs";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import type { Id } from "@/convex/_generated/dataModel";
+import { createExtractMemoriesJob } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
+import logger from "@/lib/logger";
 import {
+  createHeartbeat,
   createSSEResponse,
   type SSEStream,
-  createHeartbeat,
 } from "../../../_lib/sse-helpers";
-import { createExtractMemoriesJob } from "@/lib/api/dal/jobs";
 
 const extractMemoriesSchema = z.object({
   conversationId: z.string(),

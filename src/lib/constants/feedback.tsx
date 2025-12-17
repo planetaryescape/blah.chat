@@ -1,5 +1,5 @@
 import { Bug, Heart, Lightbulb, MessageCircle } from "lucide-react";
-import React from "react";
+import type React from "react";
 
 // ============================================================================
 // TYPES & CONFIGURATIONS

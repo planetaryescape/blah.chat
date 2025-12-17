@@ -1,16 +1,5 @@
 "use client";
 
-import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
-import { EmptyState } from "@/components/notes/EmptyState";
-import { NoteEditor } from "@/components/notes/NoteEditor";
-import { NoteListSkeleton } from "@/components/notes/NoteListSkeleton";
-import { NoteSidebar } from "@/components/notes/NoteSidebar";
-import { Button } from "@/components/ui/button";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useMutation, useQuery } from "convex/react";
 import { ChevronLeft } from "lucide-react";
 import {
@@ -22,6 +11,17 @@ import {
 } from "nuqs";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { EmptyState } from "@/components/notes/EmptyState";
+import { NoteEditor } from "@/components/notes/NoteEditor";
+import { NoteListSkeleton } from "@/components/notes/NoteListSkeleton";
+import { NoteSidebar } from "@/components/notes/NoteSidebar";
+import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMobileDetect } from "@/hooks/useMobileDetect";
 
 function NotesPageContent() {
   const features = useFeatureToggles();

@@ -1,6 +1,6 @@
 import "server-only";
-import { getConvexClient } from "@/lib/api/convex";
 import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 
 export const usersDAL = {

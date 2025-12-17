@@ -1,0 +1,133 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the sections below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: Clear, concise description of what went wrong.
+      placeholder: "When I click X, Y happens instead of Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Detailed steps to reproduce the issue.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen?
+      placeholder: "I expected X to happen..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened?
+      placeholder: "Instead, Y happened..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or videos
+      description: If applicable, add screenshots or screen recordings.
+      placeholder: Drag and drop images/videos here
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment type
+      description: How are you running blah.chat?
+      options:
+        - Self-hosted (Vercel)
+        - Self-hosted (Railway)
+        - Self-hosted (Fly.io)
+        - Self-hosted (Docker)
+        - Self-hosted (VPS/custom)
+        - Cloud (blah.chat SaaS)
+        - Local development
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which version? (Check package.json or GitHub release)
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: Which browser? (if web UI issue)
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Arc
+        - Other
+        - N/A (not a browser issue)
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which OS?
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Docker container
+        - Other
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Console errors, server logs, Convex logs, etc.
+      placeholder: |
+        Paste logs here (remove sensitive data like API keys!)
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else relevant? Related issues, workarounds tried, etc.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I searched existing issues and didn't find a duplicate
+          required: true
+        - label: I'm on the latest version (or noted my version above)
+          required: true
+        - label: I removed sensitive data from logs/screenshots
+          required: true

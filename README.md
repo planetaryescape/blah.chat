@@ -18,6 +18,10 @@ Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xA
 - **Cost Tracking**: Per-message token usage and cost breakdown
 - **Real-Time Collaboration**: Multi-user projects with live sync (via Convex)
 
+## 📸 Preview
+
+![blah.chat interface](./public/assets/app-preview.jpeg)
+
 ## 🚀 Quick Deploy
 
 ### Vercel (Recommended - 10 minutes)

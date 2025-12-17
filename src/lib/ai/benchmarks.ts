@@ -19,10 +19,6 @@ export const BENCHMARK_DATA: Record<string, BenchmarkScores> = {
   "openai:gpt-5": { intelligence: 94, coding: 85, reasoning: 88 },
   "openai:gpt-5-mini": { intelligence: 75, coding: 68, reasoning: 70 },
   "openai:gpt-5-nano": { intelligence: 65, coding: 60, reasoning: 62 },
-  "openai:gpt-4o": { intelligence: 88, coding: 75, reasoning: 82 },
-  "openai:o1": { intelligence: 92, coding: 82, reasoning: 90 },
-  "openai:o1-mini": { intelligence: 85, coding: 72, reasoning: 83 },
-  "openai:o3-mini": { intelligence: 82, coding: 70, reasoning: 80 },
 
   // Anthropic
   "anthropic:claude-opus-4.5": { intelligence: 95, coding: 81, reasoning: 90 },
@@ -36,13 +32,6 @@ export const BENCHMARK_DATA: Record<string, BenchmarkScores> = {
   // Google
   "google:gemini-2.5-pro": { intelligence: 86, coding: 72, reasoning: 84 },
   "google:gemini-2.5-flash": { intelligence: 85, coding: 70, reasoning: 82 },
-  "google:gemini-1.5-pro": { intelligence: 84, coding: 70, reasoning: 80 },
-  "google:gemini-1.5-flash": { intelligence: 78, coding: 65, reasoning: 75 },
-  "google:gemini-2.0-flash-thinking": {
-    intelligence: 87,
-    coding: 73,
-    reasoning: 85,
-  },
 
   // xAI
   "xai:grok-4": { intelligence: 100, coding: 75, reasoning: 88 },
@@ -73,17 +62,11 @@ const SPEED_TIERS: Record<string, { tier: SpeedTier; tps?: number }> = {
 
   // Specific fast models
   "gemini-2.5-flash": { tier: "fast" },
-  "gemini-2.0-flash": { tier: "fast" },
-  "gemini-1.5-flash": { tier: "fast" },
   "gpt-5-nano": { tier: "fast" },
-  "gpt-4o-mini": { tier: "fast" },
-  "claude-3.5-haiku": { tier: "fast" },
-  "claude-haiku": { tier: "fast" },
 
   // Reasoning models (slower due to thinking)
-  o1: { tier: "slow" },
-  "o1-mini": { tier: "slow" },
-  "o3-mini": { tier: "slow" },
+  "gpt-5": { tier: "slow" },
+  "claude-opus-4.5": { tier: "slow" },
   "deepseek-r1": { tier: "slow" },
   "gemini-2.0-flash-thinking": { tier: "medium" }, // Fast but with thinking
 };

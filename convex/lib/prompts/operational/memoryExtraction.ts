@@ -39,7 +39,7 @@ Convert all facts to third-person for AI context injection:
 - "We're building a startup" → "User is building a startup"
 
 Preserve specifics exactly:
-- Technical terms: "Next.js 15", "gpt-4o", "React 19"
+- Technical terms: "Next.js 15", "gpt-5", "React 19"
 - Version numbers: "TypeScript 5.3"
 - Project names: "blah.chat"
 

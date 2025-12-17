@@ -12,7 +12,7 @@ export const PREFERENCE_DEFAULTS = {
   chatWidth: "standard" as const,
 
   // Models
-  defaultModel: "openai:gpt-4o-mini",
+  defaultModel: "zai:glm-4.6v-flash",
   favoriteModels: [] as string[],
   recentModels: [] as string[],
   newChatModelSelection: "recent" as const,

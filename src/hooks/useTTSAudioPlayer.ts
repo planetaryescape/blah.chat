@@ -1,7 +1,7 @@
 "use client";
 
-import { clamp } from "@/lib/utils/ttsUtils";
 import { useCallback, useRef } from "react";
+import { clamp } from "@/lib/utils/ttsUtils";
 
 export interface TTSAudioState {
   currentTime: number;
@@ -95,65 +95,66 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
   /**
    * Initialize MSE audio playback with a new MediaSource.
    */
-  const initializeAudio = useCallback(async (): Promise<HTMLAudioElement | null> => {
-    cleanupAudio();
-    abortControllerRef.current = new AbortController();
+  const initializeAudio =
+    useCallback(async (): Promise<HTMLAudioElement | null> => {
+      cleanupAudio();
+      abortControllerRef.current = new AbortController();
 
-    // Setup MSE
-    const mediaSource = new MediaSource();
-    mediaSourceRef.current = mediaSource;
-    const objectUrl = URL.createObjectURL(mediaSource);
-    objectUrlRef.current = objectUrl;
+      // Setup MSE
+      const mediaSource = new MediaSource();
+      mediaSourceRef.current = mediaSource;
+      const objectUrl = URL.createObjectURL(mediaSource);
+      objectUrlRef.current = objectUrl;
 
-    // Create Audio Element
-    const audio = new Audio();
-    audio.src = objectUrl;
-    currentAudioRef.current = audio;
-    audio.playbackRate = speedRef.current;
-    if ("preservesPitch" in audio) {
-      audio.preservesPitch = true;
-    }
-
-    // Event Listeners
-    audio.ontimeupdate = () => {
-      onTimeUpdate?.(audio.currentTime, audio.duration);
-    };
-
-    audio.onended = () => {
-      onEnded?.();
-    };
-
-    audio.onerror = (e: Event | string) => {
-      console.error("Audio error", e);
-      if (typeof e !== "string" && e instanceof Event) {
-        onError?.(e);
+      // Create Audio Element
+      const audio = new Audio();
+      audio.src = objectUrl;
+      currentAudioRef.current = audio;
+      audio.playbackRate = speedRef.current;
+      if ("preservesPitch" in audio) {
+        audio.preservesPitch = true;
       }
-    };
 
-    // Wait for sourceopen
-    await new Promise<void>((resolve) => {
-      mediaSource.addEventListener(
-        "sourceopen",
-        () => {
-          try {
-            const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-            sourceBufferRef.current = sourceBuffer;
+      // Event Listeners
+      audio.ontimeupdate = () => {
+        onTimeUpdate?.(audio.currentTime, audio.duration);
+      };
 
-            sourceBuffer.addEventListener("updateend", () => {
-              processBufferQueue();
-            });
-            resolve();
-          } catch (e) {
-            console.error("MSE addSourceBuffer failed", e);
-            resolve();
-          }
-        },
-        { once: true }
-      );
-    });
+      audio.onended = () => {
+        onEnded?.();
+      };
 
-    return sourceBufferRef.current ? audio : null;
-  }, [cleanupAudio, processBufferQueue, onTimeUpdate, onEnded, onError]);
+      audio.onerror = (e: Event | string) => {
+        console.error("Audio error", e);
+        if (typeof e !== "string" && e instanceof Event) {
+          onError?.(e);
+        }
+      };
+
+      // Wait for sourceopen
+      await new Promise<void>((resolve) => {
+        mediaSource.addEventListener(
+          "sourceopen",
+          () => {
+            try {
+              const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+              sourceBufferRef.current = sourceBuffer;
+
+              sourceBuffer.addEventListener("updateend", () => {
+                processBufferQueue();
+              });
+              resolve();
+            } catch (e) {
+              console.error("MSE addSourceBuffer failed", e);
+              resolve();
+            }
+          },
+          { once: true },
+        );
+      });
+
+      return sourceBufferRef.current ? audio : null;
+    }, [cleanupAudio, processBufferQueue, onTimeUpdate, onEnded, onError]);
 
   /**
    * Append audio buffer to the queue.
@@ -163,7 +164,7 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
       bufferQueueRef.current.push(buffer);
       processBufferQueue();
     },
-    [processBufferQueue]
+    [processBufferQueue],
   );
 
   /**
@@ -237,7 +238,7 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
     const target = clamp(
       (currentAudioRef.current.currentTime || 0) + seconds,
       0,
-      currentAudioRef.current.duration || Number.POSITIVE_INFINITY
+      currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
     );
     if (Number.isFinite(target)) {
       currentAudioRef.current.currentTime = target;
@@ -252,7 +253,7 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
     const target = clamp(
       time,
       0,
-      currentAudioRef.current.duration || Number.POSITIVE_INFINITY
+      currentAudioRef.current.duration || Number.POSITIVE_INFINITY,
     );
     if (Number.isFinite(target)) {
       currentAudioRef.current.currentTime = target;

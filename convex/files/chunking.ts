@@ -8,10 +8,10 @@
  * Pattern: Follow convex/messages/embeddings.ts for batch processing
  */
 
-import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
+import { action } from "../_generated/server";
 
 // Chunk configuration
 const CHARS_PER_TOKEN = 4; // Approximate (actual varies by model)

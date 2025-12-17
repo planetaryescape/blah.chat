@@ -1,21 +1,21 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Bookmark, BookmarkCheck } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { analytics } from "@/lib/analytics";
-import { useMutation, useQuery } from "convex/react";
-import { Bookmark, BookmarkCheck } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -33,13 +33,14 @@ export function BookmarkButton({
   const [tags, setTags] = useState("");
 
   // Check if this is a temporary optimistic message (not yet persisted)
-  const isTempMessage = typeof messageId === "string" && messageId.startsWith("temp-");
+  const isTempMessage =
+    typeof messageId === "string" && messageId.startsWith("temp-");
 
   // Skip query for temporary optimistic messages
   const existingBookmark = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.bookmarks.getByMessage,
-    isTempMessage ? "skip" : { messageId }
+    isTempMessage ? "skip" : { messageId },
   );
   const createBookmark = useMutation(api.bookmarks.create);
   const removeBookmark = useMutation(api.bookmarks.remove);

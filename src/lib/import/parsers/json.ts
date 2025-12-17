@@ -1,5 +1,5 @@
 import type { ExportData } from "../../export/json";
-import type { ImportData, ImportResult } from "../types";
+import type { ImportResult } from "../types";
 
 export function parseJSON(content: string): ImportResult {
   try {

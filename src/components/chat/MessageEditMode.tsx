@@ -1,8 +1,8 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X } from "lucide-react";
 
 interface MessageEditModeProps {
   editedContent: string;
@@ -39,12 +39,7 @@ export function MessageEditMode({
           <Check className="w-3.5 h-3.5 mr-1.5" />
           Save
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onCancel}
-          className="h-8"
-        >
+        <Button size="sm" variant="outline" onClick={onCancel} className="h-8">
           <X className="w-3.5 h-3.5 mr-1.5" />
           Cancel
         </Button>

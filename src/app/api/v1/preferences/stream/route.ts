@@ -1,15 +1,15 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+import { api } from "@/convex/_generated/api";
+import { getConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { getConvexClient } from "@/lib/api/convex";
-import { api } from "@/convex/_generated/api";
-import logger from "@/lib/logger";
 import {
-  createSSEResponse,
   createHeartbeatLoop,
   createPollingLoop,
+  createSSEResponse,
   setupSSECleanup,
 } from "@/lib/api/sse/utils";
+import logger from "@/lib/logger";
 
 async function getHandler(
   req: NextRequest,

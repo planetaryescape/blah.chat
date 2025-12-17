@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Command } from "cmdk";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ActionItem {
   id: string;
@@ -34,7 +34,7 @@ export function CommandActionGroup({
       heading={heading}
       className={cn(
         "px-2 pb-2 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider",
-        className
+        className,
       )}
     >
       {actions.map((action) => (
@@ -44,7 +44,8 @@ export function CommandActionGroup({
           onSelect={action.onSelect}
           className={cn(
             "flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-sm text-muted-foreground aria-selected:bg-primary/10 aria-selected:text-primary transition-colors",
-            action.destructive && "text-destructive aria-selected:text-destructive"
+            action.destructive &&
+              "text-destructive aria-selected:text-destructive",
           )}
           aria-keyshortcuts={action.shortcut}
         >

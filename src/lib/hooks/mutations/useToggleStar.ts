@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
-import type { Id } from "@/convex/_generated/dataModel";
 
 interface ToggleStarArgs {
   conversationId: Id<"conversations">;
@@ -42,7 +42,7 @@ export function useToggleStar() {
       return { previous };
     },
 
-    onError: (error, variables, context: any) => {
+    onError: (_error, _variables, context: any) => {
       // Rollback on error
       if (context?.previous) {
         queryClient.setQueryData(

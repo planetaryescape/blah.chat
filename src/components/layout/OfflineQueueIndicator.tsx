@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Loader2, WifiOff } from "lucide-react";
+import { useEffect, useState } from "react";
 import { messageQueue } from "@/lib/offline/messageQueue";
 
 /**

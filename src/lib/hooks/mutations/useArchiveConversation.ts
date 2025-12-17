@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
-import type { Id } from "@/convex/_generated/dataModel";
 
 interface ArchiveConversationArgs {
   conversationId: Id<"conversations">;
@@ -17,7 +17,7 @@ export function useArchiveConversation() {
       return api.patch(`/api/v1/conversations/${conversationId}/archive`);
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, _variables) => {
       // Invalidate conversations list
       queryClient.invalidateQueries({
         queryKey: queryKeys.conversations.lists(),

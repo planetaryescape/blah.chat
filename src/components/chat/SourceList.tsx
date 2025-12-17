@@ -1,19 +1,19 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
-import { useState } from "react";
 
 interface SourceListProps {
   messageId: Id<"messages">;
@@ -24,14 +24,15 @@ export function SourceList({ messageId, className }: SourceListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Check if this is a temporary optimistic message (not yet persisted)
-  const isTempMessage = typeof messageId === "string" && messageId.startsWith("temp-");
+  const isTempMessage =
+    typeof messageId === "string" && messageId.startsWith("temp-");
 
   // Fetch sources from normalized tables (Phase 2 migration complete)
   // Skip query for temporary optimistic messages
   const sources = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.sources.operations.getSources,
-    isTempMessage ? "skip" : { messageId }
+    isTempMessage ? "skip" : { messageId },
   );
 
   // Hide if no sources
@@ -99,7 +100,7 @@ function SourceCard({ source, position }: SourceCardProps) {
         target="_blank"
         rel="noopener noreferrer"
         className="flex gap-3"
-        onClick={(e) => {
+        onClick={(_e) => {
           // Let hover card handle desktop, direct link for mobile
           if (window.innerWidth < 640) {
             return; // Allow default link behavior

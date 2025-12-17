@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { CachePresets, getCacheControl } from "@/lib/api/cache";
+import { preferencesDAL } from "@/lib/api/dal/preferences";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { preferencesDAL } from "@/lib/api/dal/preferences";
-import { parseBody, getQueryParam } from "@/lib/api/utils";
+import { trackAPIPerformance } from "@/lib/api/monitoring";
+import { getQueryParam, parseBody } from "@/lib/api/utils";
 import logger from "@/lib/logger";
-import { z } from "zod";
 
 const updateSchema = z.object({
   key: z.string(),
@@ -12,7 +14,7 @@ const updateSchema = z.object({
 });
 
 async function getHandler(req: NextRequest, { userId }: { userId: string }) {
-  const startTime = Date.now();
+  const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/preferences");
 
   const key = getQueryParam(req, "key");
@@ -22,10 +24,20 @@ async function getHandler(req: NextRequest, { userId }: { userId: string }) {
     ? await preferencesDAL.get(userId, key)
     : await preferencesDAL.getAll(userId);
 
-  const duration = Date.now() - startTime;
+  const duration = performance.now() - startTime;
+  trackAPIPerformance({
+    endpoint: "/api/v1/preferences",
+    method: "GET",
+    duration,
+    status: 200,
+    userId,
+  });
   logger.info({ userId, key: key || "all", duration }, "Preferences retrieved");
 
-  return NextResponse.json(result);
+  const cacheControl = getCacheControl(CachePresets.STATIC);
+  return NextResponse.json(result, {
+    headers: { "Cache-Control": cacheControl },
+  });
 }
 
 async function patchHandler(req: NextRequest, { userId }: { userId: string }) {

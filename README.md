@@ -1,4 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# blah.chat
+
+Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xAI, Perplexity, and more), mid-chat model switching, conversation branching, and transparent cost tracking.
+
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](./LICENSE)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhekanik/blah.chat&integration-ids=oac_VqOgBHqhEoFTPzGZ8ZzE1Qsa,oac_7yeSwUoVR5no3SlA9WM6oZ7l)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/blah-chat)
+
+## ✨ Features
+
+- **All Models in One Place**: Access GPT-5, Claude Opus 4.5, Gemini 2.5 Pro, Grok, and 50+ models via Vercel AI Gateway
+- **Mid-Chat Model Switching**: Compare responses or switch models without losing context
+- **Conversation Branching**: Fork conversations to explore different directions
+- **Resilient Generation**: Responses survive page refresh, tab close, even browser crashes
+- **RAG Memory**: Automatic semantic memory extraction and retrieval
+- **Voice Input**: Audio transcription with Whisper (OpenAI/Groq)
+- **AI Tools**: Web search (Tavily), code execution (E2B), URL parsing (Jina)
+- **Cost Tracking**: Per-message token usage and cost breakdown
+- **Real-Time Collaboration**: Multi-user projects with live sync (via Convex)
+
+## 🚀 Quick Deploy
+
+### Vercel (Recommended - 10 minutes)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhekanik/blah.chat&integration-ids=oac_VqOgBHqhEoFTPzGZ8ZzE1Qsa,oac_7yeSwUoVR5no3SlA9WM6oZ7l)
+
+Auto-configures Convex and Clerk integrations. Just add your `AI_GATEWAY_API_KEY`.
+
+### Railway (10 minutes)
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/blah-chat)
+
+Railway auto-detects environment variables and guides you through setup.
+
+### Self-Hosting
+
+For full instructions on self-hosting (including Fly.io, custom VPS, Docker), see [SELF_HOSTING.md](./SELF_HOSTING.md).
+
+## 📄 License
+
+blah.chat is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE).
+
+**Self-hosted usage**: Free under AGPL-3.0 with default limits (50 messages/day, $10/month budget per user).
+**Commercial usage** (exceeding limits or without source disclosure): Requires commercial license.
+**Cloud version**: Coming soon with subscription plans.
+
+For commercial licensing or questions, contact: blah.chat@bhekani.com
+
+### Why AGPL?
+
+We chose AGPL to:
+- Protect the community from exploitation by cloud providers
+- Ensure improvements are shared back with the community
+- Allow free self-hosting while building a sustainable business
+
+If you modify blah.chat and run it as a network service, AGPL Section 13 requires you to provide users with access to your modified source code.
+
+---
 
 ## Development Setup
 

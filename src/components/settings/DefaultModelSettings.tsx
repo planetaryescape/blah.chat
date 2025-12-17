@@ -23,17 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import {
   getModelConfig,
   getModelsByProvider,
   isValidModel,
 } from "@/lib/ai/utils";
-import { useUserPreference } from "@/hooks/useUserPreference";
 
 export function DefaultModelSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const _user = useQuery(api.users.getCurrentUser);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePrefs = useMutation(api.users.updatePreferences);
   const hasInitialized = useRef(false);

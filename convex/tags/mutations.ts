@@ -1,8 +1,8 @@
-import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
 import { normalizeTagSlug } from "../../src/lib/utils/tagUtils";
+import type { Id } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
+import { mutation } from "../_generated/server";
 
 /**
  * Helper: Get current user from auth context (mutation version)
@@ -41,7 +41,7 @@ export const getOrCreate = mutation({
     const slug = normalizeTagSlug(args.displayName);
 
     // Check for existing tag
-    let tag = await ctx.db
+    const tag = await ctx.db
       .query("tags")
       .withIndex("by_user_slug", (q) =>
         q.eq("userId", user._id).eq("slug", slug),

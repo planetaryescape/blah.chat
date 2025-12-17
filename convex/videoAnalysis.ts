@@ -1,12 +1,12 @@
 "use node";
 
-import { v } from "convex/values";
-import { action } from "./_generated/server";
 import { google } from "@ai-sdk/google";
+import { GoogleAIFileManager } from "@google/generative-ai/server";
 import { generateObject } from "ai";
+import { v } from "convex/values";
 import { z } from "zod";
 import { internal } from "./_generated/api";
-import { GoogleAIFileManager } from "@google/generative-ai/server";
+import { action } from "./_generated/server";
 
 /**
  * Analyze video content using Gemini 2.0 Flash
@@ -80,9 +80,9 @@ export const analyzeVideo = action({
       }
 
       // Create temp file in Node.js environment
-      const fs = await import("fs");
-      const path = await import("path");
-      const os = await import("os");
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const os = await import("node:os");
 
       const tempDir = os.tmpdir();
       const tempPath = path.join(tempDir, args.filename);

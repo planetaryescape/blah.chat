@@ -1,15 +1,15 @@
 "use client";
 
+import { Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatTTFT } from "@/lib/utils/formatMetrics";
-import { Zap } from "lucide-react";
 
 interface MessageStatsBadgesProps {
   modelName: string;
@@ -79,7 +79,7 @@ export function MessageStatsBadges({
                       variant="outline"
                       className={cn(
                         "text-[10px] h-5 font-mono tabular-nums cursor-help bg-background/50 backdrop-blur border-border/50 text-muted-foreground",
-                        status === "generating" && "animate-pulse"
+                        status === "generating" && "animate-pulse",
                       )}
                     >
                       TTFT: {formatTTFT(ttft)}
@@ -147,7 +147,9 @@ export function MessageStatsBadges({
                     </div>
                     <div className="text-muted-foreground font-semibold mt-1">
                       Total:{" "}
-                      {((inputTokens || 0) + (outputTokens || 0)).toLocaleString()}
+                      {(
+                        (inputTokens || 0) + (outputTokens || 0)
+                      ).toLocaleString()}
                     </div>
                   </div>
                 </TooltipContent>

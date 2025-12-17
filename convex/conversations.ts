@@ -3,10 +3,10 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
-    internalMutation,
-    internalQuery,
-    mutation,
-    query,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 

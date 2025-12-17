@@ -1,40 +1,35 @@
+import { useAction, useMutation } from "convex/react";
+import { GitBranch, MoreVertical, Pin, Star } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { ProjectBadge } from "@/components/projects/ProjectBadge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation } from "convex/react";
-import {
-    GitBranch,
-    MoreVertical,
-    Pin,
-    Star,
-} from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { useQueryState } from "nuqs";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
 import { getConversationMenuItems } from "./ConversationMenuItems";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
@@ -152,7 +147,7 @@ export function ConversationItem({
               isSelected &&
                 !isSelectionMode &&
                 "bg-primary/10 ring-1 ring-primary",
-              isSelectedById && "bg-primary/5 ring-1 ring-primary/20"
+              isSelectedById && "bg-primary/5 ring-1 ring-primary/20",
             )}
             onClick={handleClick}
             onMouseEnter={onClearSelection}
@@ -186,7 +181,7 @@ export function ConversationItem({
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(
-                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`
+                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`,
                         );
                       }}
                       aria-label="Go to parent conversation"
@@ -204,7 +199,7 @@ export function ConversationItem({
               <p
                 className={cn(
                   "text-sm truncate flex-1",
-                  isSelectedById && "text-primary font-medium"
+                  isSelectedById && "text-primary font-medium",
                 )}
               >
                 {conversation.title || "New conversation"}
@@ -259,7 +254,7 @@ export function ConversationItem({
                       <Pin
                         className={cn(
                           "w-2.5 h-2.5",
-                          conversation.pinned && "text-primary fill-primary"
+                          conversation.pinned && "text-primary fill-primary",
                         )}
                       />
                     </Button>
@@ -314,7 +309,7 @@ export function ConversationItem({
                           {item.icon}
                           {item.label}
                         </DropdownMenuItem>
-                      )
+                      ),
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -336,7 +331,7 @@ export function ConversationItem({
                 {item.icon}
                 {item.label}
               </ContextMenuItem>
-            )
+            ),
           )}
         </ContextMenuContent>
       </ContextMenu>

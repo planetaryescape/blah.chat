@@ -1,15 +1,19 @@
 "use client";
 
+import { Plus, Search, Settings2 } from "lucide-react";
 import { ProjectFilterSelect } from "@/components/projects/ProjectFilterSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { cn } from "@/lib/utils";
-import { Plus, Search, Settings2 } from "lucide-react";
 import { EmptyState } from "./EmptyState";
 import { NoteFilters } from "./NoteFilters";
 import { NoteList } from "./NoteList";
@@ -61,7 +65,7 @@ export function NoteSidebar({
     <div
       className={cn(
         "flex flex-col h-full bg-muted/5 border-r border-border/40",
-        className
+        className,
       )}
     >
       {/* Header Section */}
@@ -121,12 +125,12 @@ export function NoteSidebar({
               className="w-full"
             />
             <NoteFilters
-                filterPinned={filterPinned}
-                onTogglePinned={onTogglePinned}
-                selectedTags={selectedTags}
-                onTagsChange={onTagsChange}
-                tagFilterMode={tagFilterMode}
-                onTagFilterModeChange={onTagFilterModeChange}
+              filterPinned={filterPinned}
+              onTogglePinned={onTogglePinned}
+              selectedTags={selectedTags}
+              onTagsChange={onTagsChange}
+              tagFilterMode={tagFilterMode}
+              onTagFilterModeChange={onTagFilterModeChange}
             />
             <TagManagement />
           </div>
@@ -139,16 +143,16 @@ export function NoteSidebar({
       <div className="flex-1 overflow-hidden relative">
         {notes === undefined ? (
           <div className="p-4">
-             <NoteListSkeleton />
+            <NoteListSkeleton />
           </div>
         ) : notes.length === 0 ? (
           searchParam || filterPinned || selectedTags.length > 0 ? (
             <div className="p-8">
-                <EmptyState variant="no-results" />
+              <EmptyState variant="no-results" />
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-muted/5">
-                <EmptyState variant="no-notes" onCreateNote={onCreateNote} />
+              <EmptyState variant="no-notes" onCreateNote={onCreateNote} />
             </div>
           )
         ) : (
@@ -163,9 +167,9 @@ export function NoteSidebar({
       {/* Footer / Status Bar */}
       <div className="flex-none p-2 bg-muted/10 border-t border-border/40 text-[10px] text-muted-foreground text-center font-medium uppercase tracking-wider">
         {notes ? (
-           <>
-             {notes.length} {notes.length === 1 ? "Note" : "Notes"}
-           </>
+          <>
+            {notes.length} {notes.length === 1 ? "Note" : "Notes"}
+          </>
         ) : (
           <Skeleton className="h-3 w-12 inline-block" />
         )}

@@ -1,3 +1,4 @@
+import type { NextRequest } from "next/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { getConvexClient } from "@/lib/api/convex";
@@ -10,7 +11,6 @@ import {
   setupSSECleanup,
 } from "@/lib/api/sse/utils";
 import logger from "@/lib/logger";
-import { NextRequest } from "next/server";
 
 async function getHandler(
   req: NextRequest,

@@ -1,14 +1,14 @@
 "use client";
 
+import { Eye, EyeOff, Loader2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, EyeOff, Loader2, MoreVertical } from "lucide-react";
 
 interface MemoriesHeaderProps {
   showReasoning: boolean;

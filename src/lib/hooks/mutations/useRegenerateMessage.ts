@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/keys";
-import type { Id } from "@/convex/_generated/dataModel";
 
 interface RegenerateMessageArgs {
   messageId: Id<"messages">;
@@ -18,7 +18,7 @@ export function useRegenerateMessage() {
       return api.post(`/api/v1/messages/${messageId}/regenerate`);
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Invalidate messages for this conversation
       queryClient.invalidateQueries({
         queryKey: queryKeys.messages.list(variables.conversationId),

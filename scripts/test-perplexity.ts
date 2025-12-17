@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
+
 /**
  * Test script to inspect Perplexity API response structure
  * Usage: bun run scripts/test-perplexity.ts
  */
 
-import { generateText } from "ai";
 import { createGateway } from "@ai-sdk/gateway";
+import { generateText } from "ai";
 
 // Load environment
 const AI_GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
@@ -39,28 +40,28 @@ async function testPerplexity() {
     const duration = Date.now() - startTime;
 
     console.log("✅ Response received!\n");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log("RESPONSE TEXT");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log(result.text);
     console.log("\n");
 
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log("USAGE STATS");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log(JSON.stringify(result.usage, null, 2));
     console.log("\n");
 
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log("PROVIDER METADATA (CRITICAL - CITATIONS SHOULD BE HERE)");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log(JSON.stringify(result.providerMetadata, null, 2));
     console.log("\n");
 
     // Check for sources property
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log("SOURCES PROPERTY CHECK");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     if ("sources" in result) {
       console.log("✅ result.sources exists!");
       console.log(JSON.stringify((result as any).sources, null, 2));
@@ -70,16 +71,16 @@ async function testPerplexity() {
     console.log("\n");
 
     // Inspect all result keys
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log("ALL RESULT KEYS");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log(Object.keys(result));
     console.log("\n");
 
     // Check for citations in various places
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
     console.log("CITATION FIELD SEARCH");
-    console.log("=" + "=".repeat(79));
+    console.log(`=${"=".repeat(79)}`);
 
     const metadata = result.providerMetadata as any;
 

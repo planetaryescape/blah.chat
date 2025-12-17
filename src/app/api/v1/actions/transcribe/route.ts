@@ -1,11 +1,11 @@
-import { NextRequest } from "next/server";
 import { fetchMutation } from "convex/nextjs";
+import type { NextRequest } from "next/server";
+import type { Id } from "@/convex/_generated/dataModel";
+import { createTranscribeJob, transcribeInputSchema } from "@/lib/api/dal/jobs";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
-import { formatEntity } from "@/lib/utils/formatEntity";
-import { createTranscribeJob, transcribeInputSchema } from "@/lib/api/dal/jobs";
-import type { Id } from "@/convex/_generated/dataModel";
 import logger from "@/lib/logger";
+import { formatEntity } from "@/lib/utils/formatEntity";
 
 async function handler(req: NextRequest, { userId }: { userId: string }) {
   const startTime = Date.now();

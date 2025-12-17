@@ -1,20 +1,20 @@
 "use client";
 
+import { useAction, useMutation, useQuery } from "convex/react";
+import { Mic } from "lucide-react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
-import { useAction, useMutation, useQuery } from "convex/react";
-import { Mic } from "lucide-react";
-import {
-    forwardRef,
-    useCallback,
-    useImperativeHandle,
-    useRef,
-    useState,
-} from "react";
-import { toast } from "sonner";
 
 interface VoiceInputProps {
   onTranscript: (text: string, autoSend: boolean) => void;
@@ -151,7 +151,13 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         console.error("MediaRecorder failed:", error);
         toast.error("Microphone access denied");
       }
-    }, [sttEnabled, transcribeAudio, onTranscript, onRecordingStateChange]);
+    }, [
+      sttEnabled,
+      transcribeAudio,
+      onTranscript,
+      onRecordingStateChange,
+      generateUploadUrl,
+    ]);
 
     const stopRecording = useCallback(
       (mode: "preview" | "send") => {

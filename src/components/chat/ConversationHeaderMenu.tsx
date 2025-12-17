@@ -55,7 +55,7 @@ export function ConversationHeaderMenu({
   const actions = useConversationActions(conversation._id, "header_menu");
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const _user = useQuery(api.users.getCurrentUser);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePreferences = useMutation(api.users.updatePreferences);
 

@@ -1,28 +1,28 @@
 "use client";
 
-import {
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-} from "@/components/ui/command";
-import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { analytics } from "@/lib/analytics";
-import { cn } from "@/lib/utils";
 import commandScore from "command-score";
 import { useMutation, useQuery } from "convex/react";
 import { FileText, Search, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { analytics } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
 import { useTemplateStore } from "@/stores/templateStore";
 
@@ -123,10 +123,14 @@ export function QuickTemplateSwitcher({
       <CommandItem
         key={template._id}
         value={template._id}
-        keywords={[template.name, template.category, template.description || ""]}
+        keywords={[
+          template.name,
+          template.category,
+          template.description || "",
+        ]}
         onSelect={() => handleSelect(template)}
         className={cn(
-          "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 transition-colors"
+          "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 transition-colors",
         )}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -135,7 +139,7 @@ export function QuickTemplateSwitcher({
               "flex items-center justify-center w-8 h-8 rounded-lg border shrink-0",
               template.isBuiltIn
                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/30"
-                : "bg-primary/10 text-primary border-primary/30"
+                : "bg-primary/10 text-primary border-primary/30",
             )}
           >
             {template.isBuiltIn ? (
@@ -150,7 +154,7 @@ export function QuickTemplateSwitcher({
               {template.name}
             </span>
             <span className="text-xs text-muted-foreground truncate">
-              {template.description || template.prompt.slice(0, 60) + "..."}
+              {template.description || `${template.prompt.slice(0, 60)}...`}
             </span>
           </div>
         </div>
@@ -210,7 +214,7 @@ export function QuickTemplateSwitcher({
       <div className="flex items-center border-b px-4 py-3 shrink-0">
         <Search className="w-4 h-4 mr-2 text-muted-foreground" />
         <CommandInput
-          placeholder={`Search ${activeCategory === "all" ? "" : activeCategory + " "}templates...`}
+          placeholder={`Search ${activeCategory === "all" ? "" : `${activeCategory} `}templates...`}
           className="flex-1 h-9 bg-transparent border-0 ring-0 focus:ring-0 text-sm"
         />
       </div>
@@ -232,7 +236,7 @@ export function QuickTemplateSwitcher({
                   "w-full flex items-center px-2.5 py-2 rounded-md text-sm transition-colors text-left",
                   isActive
                     ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                 )}
               >
                 {cat.label}
@@ -250,7 +254,7 @@ export function QuickTemplateSwitcher({
             {filteredTemplates.user.length > 0 && (
               <CommandGroup heading="Your Templates">
                 {filteredTemplates.user.map((template: any) =>
-                  renderTemplateItem(template)
+                  renderTemplateItem(template),
                 )}
               </CommandGroup>
             )}
@@ -262,7 +266,7 @@ export function QuickTemplateSwitcher({
             {filteredTemplates.builtIn.length > 0 && (
               <CommandGroup heading="Built-in Templates">
                 {filteredTemplates.builtIn.map((template: any) =>
-                  renderTemplateItem(template)
+                  renderTemplateItem(template),
                 )}
               </CommandGroup>
             )}

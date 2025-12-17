@@ -1,27 +1,27 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import { useUISettingsState } from "@/hooks/useUISettingsState";
-import { useMutation } from "convex/react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import {
-    ComparisonSettingsSection,
-    DisplayLayoutSection,
-    MessageBehaviorSection,
-    ReasoningDisplaySection,
-    SidebarFeaturesSection,
-    StatisticsSection,
+  ComparisonSettingsSection,
+  DisplayLayoutSection,
+  MessageBehaviorSection,
+  ReasoningDisplaySection,
+  SidebarFeaturesSection,
+  StatisticsSection,
 } from "./sections";
 
 export function UISettings() {
@@ -85,11 +85,15 @@ export function UISettings() {
             showDuringStreaming={state.showDuringStreaming}
             onShowByDefaultChange={handlers.handleShowByDefaultChange}
             onAutoExpandChange={handlers.handleAutoExpandChange}
-            onShowDuringStreamingChange={handlers.handleShowDuringStreamingChange}
+            onShowDuringStreamingChange={
+              handlers.handleShowDuringStreamingChange
+            }
           />
 
           <ComparisonSettingsSection
-            showModelNamesDuringComparison={state.showModelNamesDuringComparison}
+            showModelNamesDuringComparison={
+              state.showModelNamesDuringComparison
+            }
             onShowModelNamesChange={handlers.handleShowModelNamesChange}
           />
 

@@ -99,18 +99,15 @@ export const processDocument = internalAction({
           const pptxModule = await import("pptx-content-extractor");
           const extractPptx =
             pptxModule.extractPptx ||
-            (pptxModule.default && pptxModule.default.extractPptx) ||
+            pptxModule.default?.extractPptx ||
             pptxModule.default;
-          const fs = await import("fs");
-          const os = await import("os");
-          const path = await import("path");
+          const fs = await import("node:fs");
+          const os = await import("node:os");
+          const path = await import("node:path");
 
           // Write to temp file (library requires file path)
           const tempDir = os.tmpdir();
-          const tempFile = path.join(
-            tempDir,
-            `pptx_${Date.now()}_${fileName}`,
-          );
+          const tempFile = path.join(tempDir, `pptx_${Date.now()}_${fileName}`);
           fs.writeFileSync(tempFile, buffer);
 
           try {
@@ -145,13 +142,11 @@ export const processDocument = internalAction({
             // Extract images
             const imageCount = pptxContent.media?.length || 0;
             if (imageCount > 0) {
-              const images = pptxContent.media
-                .slice(0, 10)
-                .map((img, i) => ({
-                  index: i,
-                  name: img.name || `image_${i + 1}`,
-                  base64: img.content as string,
-                }));
+              const images = pptxContent.media.slice(0, 10).map((img, i) => ({
+                index: i,
+                name: img.name || `image_${i + 1}`,
+                base64: img.content as string,
+              }));
               if (images.length > 0) {
                 slideTexts.push(
                   `## Images\n\nThis presentation contains ${images.length} image(s).`,
@@ -176,7 +171,7 @@ export const processDocument = internalAction({
               // Ignore cleanup errors
             }
           }
-        } catch (pptxError) {
+        } catch (_pptxError) {
           // Fallback: use officeparser for robust text extraction
           console.log(
             `[Tool:fileDocument] pptx-content-extractor failed, falling back to officeparser`,
@@ -184,8 +179,7 @@ export const processDocument = internalAction({
           usedFallback = true;
 
           const officeparserModule = await import("officeparser");
-          const officeparser =
-            officeparserModule.default || officeparserModule;
+          const officeparser = officeparserModule.default || officeparserModule;
           content = await officeparser.parseOfficeAsync(buffer);
           metadata = {
             type: "presentation",

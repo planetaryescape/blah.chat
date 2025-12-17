@@ -1,15 +1,8 @@
 "use client";
 
+import { Archive, Edit, Pin, Sparkles, Star, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { Doc } from "@/convex/_generated/dataModel";
-import {
-    Archive,
-    Edit,
-    Pin,
-    Sparkles,
-    Star,
-    Trash2,
-} from "lucide-react";
-import { ReactNode } from "react";
 
 interface ConversationMenuAction {
   id: string;

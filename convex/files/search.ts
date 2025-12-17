@@ -6,12 +6,12 @@
  * Pattern: Follow convex/search/semantic.ts for vector search patterns.
  */
 
-import { action } from "../_generated/server";
+import { embed } from "ai";
 import { v } from "convex/values";
+import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
-import { embed } from "ai";
+import { action } from "../_generated/server";
 
 export interface FileChunkResult {
   chunk: Doc<"fileChunks">;
@@ -155,7 +155,7 @@ export const vectorSearchChunks = internalAction({
       let filteredChunks = chunks;
       if (args.fileIds && args.fileIds.length > 0) {
         filteredChunks = chunks.filter((chunk) =>
-          args.fileIds!.includes(chunk.fileId as any),
+          args.fileIds?.includes(chunk.fileId as any),
         );
       }
 

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import type { DatabaseReader } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import type { DatabaseReader } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 

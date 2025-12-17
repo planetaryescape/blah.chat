@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { type RefObject, useEffect } from "react";
 
 interface UseChatInputEventsProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -40,7 +40,7 @@ export function useChatInputEvents({
     return () => {
       window.removeEventListener(
         "insert-prompt" as any,
-        handleInsertPrompt as any
+        handleInsertPrompt as any,
       );
     };
   }, [setInput, textareaRef]);
@@ -54,12 +54,12 @@ export function useChatInputEvents({
 
     window.addEventListener(
       "quote-selection" as any,
-      handleQuoteSelection as any
+      handleQuoteSelection as any,
     );
     return () => {
       window.removeEventListener(
         "quote-selection" as any,
-        handleQuoteSelection as any
+        handleQuoteSelection as any,
       );
     };
   }, [setQuote, textareaRef]);

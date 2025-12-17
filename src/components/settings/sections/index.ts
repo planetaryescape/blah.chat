@@ -4,4 +4,3 @@ export { MessageBehaviorSection } from "./MessageBehaviorSection";
 export { ReasoningDisplaySection } from "./ReasoningDisplaySection";
 export { SidebarFeaturesSection } from "./SidebarFeaturesSection";
 export { StatisticsSection } from "./StatisticsSection";
-

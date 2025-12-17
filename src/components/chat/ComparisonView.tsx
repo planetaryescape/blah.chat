@@ -50,7 +50,7 @@ export function ComparisonView({
 
   // Get user preferences for statistics display
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const _user = useQuery(api.users.getCurrentUser);
 
   // Phase 4: Use new preference hook
   const showStats = useUserPreference("showComparisonStatistics");

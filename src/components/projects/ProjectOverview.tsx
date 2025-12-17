@@ -1,13 +1,13 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import type { Id } from "@/convex/_generated/dataModel";
 import {
   CheckSquare,
   FileText,
   MessageSquare,
   NotebookPen,
 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export function ProjectOverview({
   projectId,

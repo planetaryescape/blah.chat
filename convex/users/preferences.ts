@@ -4,9 +4,9 @@
  * Core API for reading and writing user preferences in the flat key-value table.
  */
 
-import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { PREFERENCE_DEFAULTS, PREFERENCE_CATEGORIES } from "./constants";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { PREFERENCE_CATEGORIES, PREFERENCE_DEFAULTS } from "./constants";
 
 /**
  * Get single preference with fallback to default

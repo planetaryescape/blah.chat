@@ -1,7 +1,7 @@
-import { query } from "../_generated/server";
 import { v } from "convex/values";
-import type { QueryCtx } from "../_generated/server";
 import { normalizeTagSlug } from "../../src/lib/utils/tagUtils";
+import type { QueryCtx } from "../_generated/server";
+import { query } from "../_generated/server";
 
 /**
  * Helper: Get current user from auth context (query version)
@@ -260,7 +260,7 @@ export const getTagCooccurrence = query({
       if (!noteTagGroups.has(noteId)) {
         noteTagGroups.set(noteId, []);
       }
-      noteTagGroups.get(noteId)!.push(tag.displayName);
+      noteTagGroups.get(noteId)?.push(tag.displayName);
     }
 
     // Calculate co-occurrence from note groups

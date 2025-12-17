@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Backfill all Convex users with correct data from Clerk
  *
@@ -10,8 +11,8 @@
  * Usage: bun run scripts/backfill-users-from-clerk.ts
  */
 
-import { ConvexHttpClient } from "convex/browser";
 import { clerkClient } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL;

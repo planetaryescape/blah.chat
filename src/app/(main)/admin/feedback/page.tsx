@@ -1,17 +1,17 @@
 "use client";
 
+import { ChevronLeft, MessageSquare } from "lucide-react";
 import {
-    BulkActionBar,
-    EmptyState,
-    FeedbackDetail,
-    FeedbackFilterBar,
-    FeedbackList,
-    FeedbackListSkeleton,
+  BulkActionBar,
+  EmptyState,
+  FeedbackDetail,
+  FeedbackFilterBar,
+  FeedbackList,
+  FeedbackListSkeleton,
 } from "@/components/admin/feedback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFeedbackAdmin } from "@/hooks/useFeedbackAdmin";
-import { ChevronLeft, MessageSquare } from "lucide-react";
 
 export default function FeedbackPageContent() {
   const { state, actions } = useFeedbackAdmin();

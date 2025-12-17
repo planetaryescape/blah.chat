@@ -145,7 +145,7 @@
 }
 
 .dark {
-    /*
+  /*
      * OBSIDIAN VOID THEME
      * Base Hue: 285 (Deep Indigo/Violet)
      * Accent: #F4E0DC (Rose Quartz/Mist) -> oklch(90% 0.03 25)
@@ -165,52 +165,68 @@
   /* Level 1: Sidebar - Darkest anchor (approx #1B1B2B) */
   --sidebar: oklch(18% 0.035 285);
   --sidebar-foreground: oklch(98% 0.01 285);
-    --sidebar-primary: oklch(90% 0.03 25); /* #F4E0DC */
-    --sidebar-primary-foreground: oklch(14% 0.02 285);
-    --sidebar-accent: oklch(25% 0.04 285);
-    --sidebar-accent-foreground: oklch(98% 0.01 285);
-    --sidebar-border: oklch(30% 0.04 285 / 0.4);
-    --sidebar-ring: oklch(90% 0.03 25 / 0.2);
+  --sidebar-primary: oklch(90% 0.03 25); /* #F4E0DC */
+  --sidebar-primary-foreground: oklch(14% 0.02 285);
+  --sidebar-accent: oklch(25% 0.04 285);
+  --sidebar-accent-foreground: oklch(98% 0.01 285);
+  --sidebar-border: oklch(30% 0.04 285 / 0.4);
+  --sidebar-ring: oklch(90% 0.03 25 / 0.2);
 
-    /* Brand/Primary - Rose Quartz */
-    --primary: oklch(90% 0.03 25);
-    --primary-foreground: oklch(14% 0.02 285);
-    --primary-underline: oklch(90% 0.03 25 / 0.5);
-    --primary-hover: oklch(94% 0.03 25); /* Slightly lighter on hover */
+  /* Brand/Primary - Rose Quartz */
+  --primary: oklch(90% 0.03 25);
+  --primary-foreground: oklch(14% 0.02 285);
+  --primary-underline: oklch(90% 0.03 25 / 0.5);
+  --primary-hover: oklch(94% 0.03 25); /* Slightly lighter on hover */
 
-    --secondary: oklch(25% 0.04 285);
-    --secondary-foreground: oklch(98% 0.01 285);
+  --secondary: oklch(25% 0.04 285);
+  --secondary-foreground: oklch(98% 0.01 285);
 
-    --muted: oklch(25% 0.03 285);
-    --muted-foreground: oklch(70% 0.02 285);
+  --muted: oklch(25% 0.03 285);
+  --muted-foreground: oklch(70% 0.02 285);
 
-    --accent: oklch(25% 0.04 285);
-    --accent-foreground: oklch(98% 0.01 285);
+  --accent: oklch(25% 0.04 285);
+  --accent-foreground: oklch(98% 0.01 285);
 
-    --destructive: oklch(62% 0.22 25);
-    --destructive-foreground: oklch(98% 0.01 285);
+  --destructive: oklch(62% 0.22 25);
+  --destructive-foreground: oklch(98% 0.01 285);
 
-    /* Glassmorphic Borders */
-    --border: oklch(30% 0.04 285 / 0.4);
-    --input: oklch(30% 0.04 285);
-    --ring: oklch(90% 0.03 25 / 0.2);
+  /* Glassmorphic Borders */
+  --border: oklch(30% 0.04 285 / 0.4);
+  --input: oklch(30% 0.04 285);
+  --ring: oklch(90% 0.03 25 / 0.2);
 
-    /* Charts */
-    --chart-1: oklch(90% 0.03 25); /* Rose Quartz */
-    --chart-2: oklch(65% 0.18 285);
-    --chart-3: oklch(60% 0.15 330);
-    --chart-4: oklch(75% 0.15 85);
-    --chart-5: oklch(70% 0.12 180);
+  /* Charts */
+  --chart-1: oklch(90% 0.03 25); /* Rose Quartz */
+  --chart-2: oklch(65% 0.18 285);
+  --chart-3: oklch(60% 0.15 330);
+  --chart-4: oklch(75% 0.15 85);
+  --chart-5: oklch(70% 0.12 180);
 
-    /* Shadows - Deep Violet Tint */
-    --shadow-sm: 0 1px 2px 0 oklch(5% 0.05 285 / 0.4);
-    --shadow-md: 0 4px 6px -1px oklch(5% 0.05 285 / 0.4), 0 2px 4px -2px oklch(5% 0.05 285 / 0.4);
-    --shadow-lg: 0 10px 15px -3px oklch(5% 0.05 285 / 0.4), 0 4px 6px -4px oklch(5% 0.05 285 / 0.4);
+  /* Shadows - Deep Violet Tint */
+  --shadow-sm: 0 1px 2px 0 oklch(5% 0.05 285 / 0.4);
+  --shadow-md:
+    0 4px 6px -1px oklch(5% 0.05 285 / 0.4), 0 2px 4px -2px
+    oklch(5% 0.05 285 / 0.4);
+  --shadow-lg:
+    0 10px 15px -3px oklch(5% 0.05 285 / 0.4), 0 4px 6px -4px
+    oklch(5% 0.05 285 / 0.4);
 
-    /* Texture/Mesh - Void */
-    --bg-mesh-1: radial-gradient(at 0% 0%, oklch(25% 0.06 285 / 0.15) 0px, transparent 50%);
-    --bg-mesh-2: radial-gradient(at 100% 0%, oklch(90% 0.03 25 / 0.05) 0px, transparent 50%); /* Subtle Rose glow */
-    --bg-mesh-3: radial-gradient(at 100% 100%, oklch(25% 0.06 285 / 0.15) 0px, transparent 50%);
+  /* Texture/Mesh - Void */
+  --bg-mesh-1: radial-gradient(
+    at 0% 0%,
+    oklch(25% 0.06 285 / 0.15) 0px,
+    transparent 50%
+  );
+  --bg-mesh-2: radial-gradient(
+    at 100% 0%,
+    oklch(90% 0.03 25 / 0.05) 0px,
+    transparent 50%
+  ); /* Subtle Rose glow */
+  --bg-mesh-3: radial-gradient(
+    at 100% 100%,
+    oklch(25% 0.06 285 / 0.15) 0px,
+    transparent 50%
+  );
   --bg-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
 
   --surface-glass: oklch(25% 0.05 285 / 0.7);

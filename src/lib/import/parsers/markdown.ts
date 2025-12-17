@@ -1,4 +1,4 @@
-import type { ImportData, ImportMessage, ImportResult } from "../types";
+import type { ImportMessage, ImportResult } from "../types";
 
 export function parseMarkdown(content: string): ImportResult {
   try {

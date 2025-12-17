@@ -1,34 +1,34 @@
 "use client";
 
+import {
+  useAction,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from "convex/react";
+import { Loader2, MoreVertical } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
 import { MemorySettingsItem } from "@/components/memories/MemorySettingsItem";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
-import {
-    useAction,
-    useMutation,
-    usePaginatedQuery,
-    useQuery,
-} from "convex/react";
-import { Loader2, MoreVertical } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export function MemorySettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -46,7 +46,7 @@ export function MemorySettings() {
   const deleteMemory = useMutation(api.memories.deleteMemory);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const scanRecentConversations = useMutation(
-    api.memories.scanRecentConversations
+    api.memories.scanRecentConversations,
   );
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
@@ -106,7 +106,7 @@ export function MemorySettings() {
       const result = await consolidateMemories();
       if (result.created > 0 || result.deleted > 0) {
         toast.success(
-          `Consolidated ${result.original} → ${result.consolidated} memories`
+          `Consolidated ${result.original} → ${result.consolidated} memories`,
         );
       } else {
         toast.info("No duplicate memories found.");

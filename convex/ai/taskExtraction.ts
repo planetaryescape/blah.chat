@@ -1,16 +1,16 @@
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import {
-    DEADLINE_PARSING_MODEL,
-    TASK_EXTRACTION_MODEL,
-} from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
-import {
-    DEADLINE_PARSING_PROMPT,
-    TASK_EXTRACTION_PROMPT,
-} from "@/lib/prompts/taskExtraction";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import {
+  DEADLINE_PARSING_MODEL,
+  TASK_EXTRACTION_MODEL,
+} from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
+import {
+  DEADLINE_PARSING_PROMPT,
+  TASK_EXTRACTION_PROMPT,
+} from "@/lib/prompts/taskExtraction";
 import { action } from "../_generated/server";
 
 // Smart Manager Phase 2: Task Extraction from Transcripts
@@ -38,15 +38,17 @@ export const extractTasksFromTranscript = action({
     transcript: v.string(),
     sourceId: v.optional(v.string()),
   },
-  handler: async (ctx, args): Promise<ExtractedTask[]> => {
+  handler: async (_ctx, args): Promise<ExtractedTask[]> => {
     try {
       // Use LLM to extract tasks from transcript
       const result = await generateObject({
         model: getModel(TASK_EXTRACTION_MODEL.id),
         schema: TaskExtractionSchema,
-        providerOptions: getGatewayOptions(TASK_EXTRACTION_MODEL.id, undefined, [
-          "task-extraction",
-        ]),
+        providerOptions: getGatewayOptions(
+          TASK_EXTRACTION_MODEL.id,
+          undefined,
+          ["task-extraction"],
+        ),
         prompt: `${TASK_EXTRACTION_PROMPT}
 
 Transcript:

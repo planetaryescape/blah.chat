@@ -1,7 +1,7 @@
 "use client";
 
-import { TaskItem } from "./TaskItem";
 import { EmptyTasksState } from "./EmptyTasksState";
+import { TaskItem } from "./TaskItem";
 
 export function TaskList({ tasks, view }: { tasks: any[]; view: string }) {
   if (tasks.length === 0) {

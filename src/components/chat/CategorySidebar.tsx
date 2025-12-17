@@ -1,6 +1,6 @@
 "use client";
 
-import { MODEL_CATEGORIES, countModelsInCategory } from "@/lib/ai/categories";
+import { countModelsInCategory, MODEL_CATEGORIES } from "@/lib/ai/categories";
 import type { ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ export function CategorySidebar({
               "w-full flex items-center justify-between px-2.5 py-2 rounded-md text-sm transition-colors",
               isActive
                 ? "bg-primary/10 text-primary font-medium"
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
             )}
           >
             <div className="flex items-center gap-2.5">
@@ -49,7 +49,7 @@ export function CategorySidebar({
                   "text-[10px] tabular-nums px-1.5 py-0.5 rounded-full",
                   isActive
                     ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 {count}

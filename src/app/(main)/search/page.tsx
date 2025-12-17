@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense, useEffect, useRef } from "react";
 import { RecentSearches } from "@/components/search/RecentSearches";
 import { SearchBar } from "@/components/search/SearchBar";
 import { SearchFilters } from "@/components/search/SearchFilters";
@@ -10,12 +11,11 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
 import {
-    type SearchFilters as SearchFiltersType,
-    useSearchResults,
+  type SearchFilters as SearchFiltersType,
+  useSearchResults,
 } from "@/hooks/useSearchResults";
 import { useSearchState } from "@/hooks/useSearchState";
 import { analytics } from "@/lib/analytics";
-import { Suspense, useEffect, useRef } from "react";
 
 function SearchPageContent() {
   // URL-persisted state
@@ -52,7 +52,7 @@ function SearchPageContent() {
   // Clear selection when filter/search changes
   useEffect(() => {
     clearSelection();
-  }, [debouncedQuery, filters, clearSelection]);
+  }, [clearSelection]);
 
   // Reset page when query or filters change
   useEffect(() => {
@@ -87,7 +87,6 @@ function SearchPageContent() {
     isSearching,
     addSearch,
     hasActiveFilters,
-    page,
   ]);
 
   const handleSelectRecentSearch = (query: string) => {
@@ -110,7 +109,6 @@ function SearchPageContent() {
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
       {/* Background gradients */}
-
 
       {/* Fixed header */}
       <div className="flex-none z-50">
@@ -178,7 +176,6 @@ export default function SearchPage() {
 function SearchPageSkeleton() {
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-
       <div className="flex-none z-50 p-6">
         <div className="h-12 bg-muted/50 rounded-lg animate-pulse" />
       </div>

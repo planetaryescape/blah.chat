@@ -800,7 +800,7 @@ export const searchNotes = query({
 
     if (!searchQuery || searchQuery.trim() === "") {
       // No search query: return recent notes
-      let query = ctx.db
+      const query = ctx.db
         .query("notes")
         .withIndex("by_user_updated", (q) => q.eq("userId", user._id));
 

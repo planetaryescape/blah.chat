@@ -1,17 +1,17 @@
 "use client";
 
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { api } from "@/convex/_generated/api";
-import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { Calendar, Star, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { api } from "@/convex/_generated/api";
+import { cn } from "@/lib/utils";
 
 interface TaskListItemProps {
   task: any; // Using explicit any as in original file to match schema flexibility
@@ -29,7 +29,7 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
     try {
       await deleteTask({ id: task._id });
       toast.success("Task deleted");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete task");
     }
   };
@@ -48,7 +48,7 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
         status: task.status === "completed" ? "in_progress" : "completed",
       });
       // Optional: play sound
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update task");
     }
   };
@@ -61,7 +61,7 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
         id: task._id,
         urgency: newUrgency,
       });
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update importance");
     }
   };
@@ -76,7 +76,10 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const isMyDay = task.deadline && new Date(task.deadline) >= today && new Date(task.deadline) < tomorrow;
+  const isMyDay =
+    task.deadline &&
+    new Date(task.deadline) >= today &&
+    new Date(task.deadline) < tomorrow;
 
   return (
     <ContextMenu>

@@ -32,12 +32,6 @@ export async function getCurrentUserOrCreate(
         : identity.pictureUrl
           ? String(identity.pictureUrl)
           : undefined,
-      preferences: {
-        theme: "dark",
-        defaultModel: "cerebras:qwen-3-32b",
-        favoriteModels: [],
-        sendOnEnter: true,
-      },
       dailyMessageCount: 0,
       lastMessageDate: new Date().toISOString().split("T")[0],
       createdAt: Date.now(),

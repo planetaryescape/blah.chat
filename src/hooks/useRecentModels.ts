@@ -1,13 +1,13 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "./useUserPreference";
 // import { toast } from "sonner"; // Optional notification on error
 
 export function useRecentModels() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const recentModels = useUserPreference("recentModels");
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePrefs = useMutation(api.users.updatePreferences);
 
@@ -15,10 +15,8 @@ export function useRecentModels() {
 
   // Sync from Convex on load
   useEffect(() => {
-    if (user?.preferences?.recentModels) {
-      setLocalRecents(user.preferences.recentModels);
-    }
-  }, [user?.preferences?.recentModels]);
+    setLocalRecents(recentModels);
+  }, [recentModels]);
 
   const addRecent = async (modelId: string) => {
     // If it's already the most recent, do nothing

@@ -32,12 +32,6 @@ export const createUser = mutation({
       email: args.email,
       name: args.name,
       imageUrl: args.imageUrl,
-      preferences: {
-        theme: "dark",
-        defaultModel: DEFAULT_MODEL_FOR_NEW_USERS,
-        favoriteModels: [],
-        sendOnEnter: true,
-      },
       dailyMessageCount: 0,
       lastMessageDate: new Date().toISOString().split("T")[0],
       createdAt: Date.now(),

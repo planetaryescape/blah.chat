@@ -1,13 +1,13 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "./useUserPreference";
 
 export function useFavoriteModels() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const favoriteModels = useUserPreference("favoriteModels");
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePrefs = useMutation(api.users.updatePreferences);
 
@@ -15,10 +15,8 @@ export function useFavoriteModels() {
 
   // Sync from Convex on load
   useEffect(() => {
-    if (user?.preferences?.favoriteModels) {
-      setLocalFavorites(user.preferences.favoriteModels);
-    }
-  }, [user?.preferences?.favoriteModels]);
+    setLocalFavorites(favoriteModels);
+  }, [favoriteModels]);
 
   const toggleFavorite = async (modelId: string) => {
     const current = localFavorites;

@@ -1,21 +1,21 @@
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useUserPreference } from "./useUserPreference";
 
 /**
  * Custom hook for accessing feature visibility preferences.
  * Returns feature toggles with safe defaults (all enabled).
  *
- * @returns Feature toggle states and loading status
+ * @returns Feature toggle states
  */
 export function useFeatureToggles() {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const user = useQuery(api.users.getCurrentUser);
+  const showNotes = useUserPreference("showNotes");
+  const showTemplates = useUserPreference("showTemplates");
+  const showProjects = useUserPreference("showProjects");
+  const showBookmarks = useUserPreference("showBookmarks");
 
   return {
-    showNotes: user?.preferences?.showNotes ?? true,
-    showTemplates: user?.preferences?.showTemplates ?? true,
-    showProjects: user?.preferences?.showProjects ?? true,
-    showBookmarks: user?.preferences?.showBookmarks ?? true,
-    isLoading: user === undefined,
+    showNotes,
+    showTemplates,
+    showProjects,
+    showBookmarks,
   };
 }

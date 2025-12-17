@@ -123,6 +123,11 @@ function ChatPageContent({
   // Extract chat width preference (Phase 4: use flat preference hook)
   const prefChatWidth = useUserPreference("chatWidth");
   const chatWidth = (prefChatWidth as ChatWidth | undefined) || "standard";
+  const defaultModel = useUserPreference("defaultModel");
+  const showModelNamesDuringComparison = useUserPreference(
+    "showModelNamesDuringComparison",
+  );
+  const ttsSpeed = useUserPreference("ttsSpeed");
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
@@ -146,11 +151,8 @@ function ChatPageContent({
       finalModel = conversation.model;
     }
     // Priority 2: User's default model (if valid)
-    else if (
-      user?.preferences?.defaultModel &&
-      isValidModel(user.preferences.defaultModel)
-    ) {
-      finalModel = user.preferences.defaultModel;
+    else if (defaultModel && isValidModel(defaultModel)) {
+      finalModel = defaultModel;
     }
     // Priority 3: System default (always valid)
     else {
@@ -158,7 +160,7 @@ function ChatPageContent({
     }
 
     return { selectedModel: finalModel, modelLoading: false };
-  }, [conversation, user]);
+  }, [conversation, user, defaultModel]);
 
   // Separate state for optimistic updates during model changes
   const [optimisticModel, setOptimisticModel] = useState<string | null>(null);
@@ -181,9 +183,7 @@ function ChatPageContent({
   // URL state for comparison view toggles
   const [showModelNames, setShowModelNames] = useQueryState(
     "showModelNames",
-    parseAsBoolean.withDefault(
-      user?.preferences?.showModelNamesDuringComparison ?? false,
-    ),
+    parseAsBoolean.withDefault(showModelNamesDuringComparison),
   );
   const [syncScroll, _setSyncScroll] = useQueryState(
     "syncScroll",
@@ -507,7 +507,7 @@ function ChatPageContent({
   };
 
   return (
-    <TTSProvider defaultSpeed={user?.preferences?.ttsSpeed ?? 1}>
+    <TTSProvider defaultSpeed={ttsSpeed}>
       <div className="relative flex h-[100dvh] flex-col overflow-hidden">
         <ChatHeader
           conversation={conversation}

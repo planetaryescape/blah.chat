@@ -1,11 +1,12 @@
 "use client";
 
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { AdminSidebar } from "@/components/sidebar/admin-sidebar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { api } from "@/convex/_generated/api";
 
 export default function AdminLayout({
   children,
@@ -13,15 +14,22 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/sign-in");
     }
-  }, [isAuthenticated, isLoading, router]);
+    // Redirect non-admins to home
+    if (!isLoading && isAuthenticated && isAdmin === false) {
+      router.push("/");
+    }
+  }, [isAuthenticated, isLoading, isAdmin, router]);
 
-  if (isLoading) {
+  // Show loading while checking auth AND admin status
+  if (isLoading || isAdmin === undefined) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -29,7 +37,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !isAdmin) {
     return null;
   }
 

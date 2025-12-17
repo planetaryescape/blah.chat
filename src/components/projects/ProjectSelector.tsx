@@ -38,21 +38,23 @@ export function ProjectSelector({
   return (
     <Select value={currentProjectId || "none"} onValueChange={handleChange}>
       <SelectTrigger
-        className="w-auto sm:w-[200px] px-2 sm:px-3"
+        className="w-auto sm:w-[200px] px-2 sm:px-3 max-w-[180px] min-w-0"
         aria-label="Select Project"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <FolderOpen className="w-4 h-4 shrink-0" />
-          <span className="hidden sm:block truncate">
+          <span className="hidden sm:block truncate min-w-0 flex-1">
             <SelectValue placeholder="No project" />
           </span>
         </div>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">No project</SelectItem>
-        {projects.map((project: any) => (
+        {projects?.map((project: any) => (
           <SelectItem key={project._id} value={project._id}>
-            {project.name}
+            <span className="truncate" title={project.name}>
+              {project.name}
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

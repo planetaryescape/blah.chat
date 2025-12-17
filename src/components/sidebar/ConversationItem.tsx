@@ -147,7 +147,7 @@ export function ConversationItem({
               isSelected &&
                 !isSelectionMode &&
                 "bg-primary/10 ring-1 ring-primary",
-              isSelectedById && "bg-primary/5 ring-1 ring-primary/20",
+              isSelectedById && "bg-primary/5 ring-1 ring-primary/20"
             )}
             onClick={handleClick}
             onMouseEnter={onClearSelection}
@@ -158,7 +158,7 @@ export function ConversationItem({
           >
             {/* Selection Checkbox */}
             {(isSelectionMode || isSelectedById) && (
-              <div className="flex-shrink-0 animate-in fade-in zoom-in duration-200">
+              <div className="shrink-0 animate-in fade-in zoom-in duration-200">
                 <Checkbox
                   checked={isSelectedById}
                   onCheckedChange={() => onToggleSelection?.(conversation._id)}
@@ -177,11 +177,11 @@ export function ConversationItem({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="flex-shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+                      className="shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(
-                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`,
+                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`
                         );
                       }}
                       aria-label="Go to parent conversation"
@@ -195,17 +195,17 @@ export function ConversationItem({
                 </Tooltip>
               )}
 
-            <div className="flex-1 flex items-center gap-2 min-w-0">
+            <div className="flex-1 flex flex-col gap-1 min-w-0">
               <p
                 className={cn(
-                  "text-sm truncate flex-1",
-                  isSelectedById && "text-primary font-medium",
+                  "text-sm truncate",
+                  isSelectedById && "text-primary font-medium"
                 )}
               >
                 {conversation.title || "New conversation"}
               </p>
               {features.showProjects && conversation.projectId && (
-                <div className="flex-shrink-0">
+                <div className="flex">
                   <ProjectBadge
                     projectId={conversation.projectId}
                     onClick={handleProjectFilterClick}
@@ -254,7 +254,7 @@ export function ConversationItem({
                       <Pin
                         className={cn(
                           "w-2.5 h-2.5",
-                          conversation.pinned && "text-primary fill-primary",
+                          conversation.pinned && "text-primary fill-primary"
                         )}
                       />
                     </Button>
@@ -309,7 +309,7 @@ export function ConversationItem({
                           {item.icon}
                           {item.label}
                         </DropdownMenuItem>
-                      ),
+                      )
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -331,7 +331,7 @@ export function ConversationItem({
                 {item.icon}
                 {item.label}
               </ContextMenuItem>
-            ),
+            )
           )}
         </ContextMenuContent>
       </ContextMenu>

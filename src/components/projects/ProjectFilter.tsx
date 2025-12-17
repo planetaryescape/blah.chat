@@ -32,22 +32,28 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
   }
 
   return (
-    <Select value={value || "all"} onValueChange={handleChange}>
-      <SelectTrigger className="w-full">
-        <div className="flex items-center gap-2">
-          <FolderOpen className="w-4 h-4" />
-          <SelectValue placeholder="All projects" />
-        </div>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">All projects</SelectItem>
-        <SelectItem value="none">Unassigned</SelectItem>
-        {projects.map((project: any) => (
-          <SelectItem key={project._id} value={project._id}>
-            {project.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-full min-w-0">
+      <Select value={value || "all"} onValueChange={handleChange}>
+        <SelectTrigger className="w-full min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <FolderOpen className="w-4 h-4 shrink-0" />
+            <div className="truncate min-w-0 ">
+              <SelectValue placeholder="All projects" />
+            </div>
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All projects</SelectItem>
+          <SelectItem value="none">Unassigned</SelectItem>
+          {projects?.map((project: any) => (
+            <SelectItem key={project._id} value={project._id}>
+              <span className="truncate" title={project.name}>
+                {project.name}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

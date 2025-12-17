@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/bhekanik/blah.chat/discussions
+    about: Questions, ideas, general chat
+  - name: Self-Hosting Guide
+    url: https://github.com/bhekanik/blah.chat/blob/main/SELF_HOSTING.md
+    about: Complete guide for self-hosting blah.chat
+  - name: Contributing Guide
+    url: https://github.com/bhekanik/blah.chat/blob/main/CONTRIBUTING.md
+    about: How to contribute (PRs, code style, auth adapters)
+  - name: Security Issue
+    url: mailto:blah.chat@bhekani.com?subject=Security%20Issue
+    about: Private security vulnerabilities (do NOT open public issue)

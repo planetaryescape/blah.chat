@@ -1,0 +1,107 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! We love community ideas.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem you're trying to solve
+      description: What's missing or frustrating about current functionality?
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would this feature solve your problem?
+      placeholder: "Add a button that does X, allowing users to Y..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other solutions did you think about?
+      placeholder: "I considered using Z, but that doesn't work because..."
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples from other tools
+      description: Have you seen this feature elsewhere? Links/screenshots help!
+      placeholder: "Tool ABC does this by..."
+
+  - type: dropdown
+    id: willing-to-implement
+    attributes:
+      label: Would you be willing to implement this?
+      description: PRs welcome! (No pressure if not.)
+      options:
+        - "Yes, I can submit a PR"
+        - "Yes, with guidance"
+        - "No, just suggesting"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      description: Helps us prioritize.
+      options:
+        - "Critical - blocking my use case"
+        - "High - would significantly improve my workflow"
+        - "Medium - nice to have"
+        - "Low - just an idea"
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Your use case
+      description: How would you use this feature? Helps us understand context.
+      placeholder: "I run blah.chat for my team and need X because..."
+
+  - type: checkboxes
+    id: feature-area
+    attributes:
+      label: Which area does this affect?
+      description: Check all that apply
+      options:
+        - label: Chat interface
+        - label: AI models
+        - label: Voice input
+        - label: Memory/RAG
+        - label: Search
+        - label: Projects/organization
+        - label: Cost tracking
+        - label: Self-hosting
+        - label: Mobile
+        - label: API
+        - label: Other
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mockups, diagrams, related links, etc.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I searched existing issues/discussions for duplicates
+          required: true
+        - label: This feature aligns with blah.chat's goals (see README)
+          required: true

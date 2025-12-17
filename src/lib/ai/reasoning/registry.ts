@@ -3,15 +3,15 @@ import { buildDeepSeekReasoning } from "./handlers/deepseek";
 import { buildGoogleReasoning } from "./handlers/google";
 import { buildOpenAIReasoning } from "./handlers/openai";
 import type {
+  ActiveThinkingEffort,
   ReasoningConfig,
   ReasoningHandler,
-  ThinkingEffort,
 } from "./types";
 
 // Generic handler for simple providers (xAI, Perplexity, Groq)
 function buildGenericReasoning(
   config: ReasoningConfig,
-  effort: ThinkingEffort,
+  effort: ActiveThinkingEffort,
 ) {
   if (config.type !== "generic-reasoning-effort") {
     throw new Error(`Invalid config type: ${config.type}`);

@@ -1,5 +1,5 @@
 import { extractReasoningMiddleware, wrapLanguageModel } from "ai";
-import type { ReasoningConfig, ThinkingEffort } from "../types";
+import type { ActiveThinkingEffort, ReasoningConfig } from "../types";
 
 export interface ReasoningResult {
   providerOptions?: any;
@@ -10,7 +10,7 @@ export interface ReasoningResult {
 
 export function buildDeepSeekReasoning(
   config: ReasoningConfig,
-  _effort: ThinkingEffort, // Not used for DeepSeek
+  _effort: ActiveThinkingEffort, // Not used for DeepSeek (tag extraction always enabled)
 ): ReasoningResult {
   if (config.type !== "deepseek-tag-extraction") {
     throw new Error(`Invalid config type: ${config.type}`);

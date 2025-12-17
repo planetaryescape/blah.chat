@@ -2,31 +2,23 @@ import { getModelConfig } from "@/lib/ai/utils";
 
 // Exact model matches (top models)
 const SUGGESTED_PROMPTS: Record<string, readonly string[]> = {
-  "gpt-4o": [
+  "gpt-5": [
     "Analyze this architecture diagram and suggest improvements",
     "Debug React useEffect infinite loop with async dependencies",
     "Extract structured data from handwritten notes",
     "Compare these two UI mockups and list differences",
-  ],
-  "claude-3-5-sonnet-20241022": [
     "Review this PR for security vulnerabilities and best practices",
     "Refactor this component to follow React composition patterns",
     "Explain TCP/IP handshake like I'm interviewing for senior engineer",
     "Write comprehensive test cases for this authentication flow",
-  ],
-  "o1-preview": [
     "Prove: sum of first n cubes equals (n(n+1)/2)²",
     "Find the logic error in this distributed consensus algorithm",
     "Debug race condition in concurrent Rust code",
     "Analyze failure scenario in blockchain consensus",
-  ],
-  "gemini-2.0-flash-thinking-exp": [
     "Derive Black-Scholes equation from first principles",
     "Find edge case causing intermittent deadlock",
     "Prove correctness of this sorting algorithm variant",
     "Optimize this dynamic programming solution",
-  ],
-  "gpt-5": [
     "Design distributed caching system for 1M requests/sec",
     "Analyze architectural tradeoffs for microservices migration",
     "Review API design for RESTful best practices",

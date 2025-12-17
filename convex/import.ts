@@ -47,7 +47,7 @@ export const importConversations = mutation({
           internal.conversations.createInternal,
           {
             userId: user._id,
-            model: conv.model || "openai:gpt-4o-mini",
+            model: conv.model || "openai:gpt-oss-20b",
             title: conv.title,
             systemPrompt: conv.systemPrompt,
           },
@@ -67,7 +67,7 @@ export const importConversations = mutation({
               model:
                 msg.model ||
                 (msg.role === "assistant"
-                  ? conv.model || "openai:gpt-4o-mini"
+                  ? conv.model || "openai:gpt-oss-20b"
                   : undefined),
             },
           );

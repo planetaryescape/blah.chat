@@ -1,4 +1,4 @@
-import type { ReasoningConfig, ThinkingEffort } from "../types";
+import type { ActiveThinkingEffort, ReasoningConfig } from "../types";
 
 export interface ReasoningResult {
   providerOptions?: any;
@@ -9,7 +9,7 @@ export interface ReasoningResult {
 
 export function buildAnthropicReasoning(
   config: ReasoningConfig,
-  effort: ThinkingEffort,
+  effort: ActiveThinkingEffort,
 ): ReasoningResult {
   if (config.type !== "anthropic-extended-thinking") {
     throw new Error(`Invalid config type: ${config.type}`);

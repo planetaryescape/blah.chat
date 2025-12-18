@@ -265,10 +265,6 @@ export function AppSidebar() {
     }
   };
 
-  const _handleBulkUnpin = async () => {
-    // Handled by handleBulkPin directly via toggle logic
-  };
-
   const handleBulkStar = async () => {
     // Check if all selected are already starred
     const selectedConvos =

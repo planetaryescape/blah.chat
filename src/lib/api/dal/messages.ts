@@ -11,6 +11,8 @@ import { z } from "zod";
 const sendMessageSchema = z.object({
   content: z.string().min(1),
   modelId: z.string().optional(),
+  models: z.array(z.string()).optional(),
+  thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   attachments: z
     .array(
       z.object({
@@ -63,6 +65,8 @@ export const messagesDAL = {
       conversationId: conversationId as Id<"conversations">,
       content: validated.content,
       modelId: validated.modelId,
+      models: validated.models,
+      thinkingEffort: validated.thinkingEffort,
       attachments: validated.attachments,
     });
 

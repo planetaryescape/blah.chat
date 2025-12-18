@@ -113,7 +113,7 @@ export function QuickModelSwitcher({
       acc[provider].push(model);
       return acc;
     },
-    {} as Record<string, ModelConfig[]>,
+    {} as Record<string, ModelConfig[]>
   );
 
   const handleSelect = (modelId: string) => {
@@ -146,6 +146,10 @@ export function QuickModelSwitcher({
   };
 
   const handleConfirm = () => {
+    if (internalSelected.length < 2) {
+      toast.error("Select at least 2 models to compare");
+      return;
+    }
     onSelectedModelsChange?.(internalSelected);
     onOpenChange(false);
 
@@ -246,7 +250,7 @@ export function QuickModelSwitcher({
               {filteredModels.favorites.length > 0 && (
                 <CommandGroup heading="Favorites">
                   {filteredModels.favorites.map((model) =>
-                    renderModelItem(model),
+                    renderModelItem(model)
                   )}
                 </CommandGroup>
               )}
@@ -254,7 +258,7 @@ export function QuickModelSwitcher({
               {filteredModels.recents.length > 0 && (
                 <CommandGroup heading="Recent">
                   {filteredModels.recents.map((model) =>
-                    renderModelItem(model),
+                    renderModelItem(model)
                   )}
                 </CommandGroup>
               )}
@@ -291,7 +295,7 @@ export function QuickModelSwitcher({
               </Button>
               <Button
                 onClick={handleConfirm}
-                disabled={internalSelected.length === 0}
+                disabled={internalSelected.length < 2}
                 size="sm"
               >
                 Compare Models

@@ -25,9 +25,9 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 
-    // Check for admin role in session claims metadata
+    // Check for admin role in session claims publicMetadata
     const isAdmin =
-      (sessionClaims?.metadata as { isAdmin?: boolean })?.isAdmin === true;
+      (sessionClaims?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
     if (!isAdmin) {
       // Not an admin, redirect to /app
       return NextResponse.redirect(new URL("/app", req.url));

@@ -152,7 +152,7 @@ export default function UserDetailPage({
     enabled: shouldVirtualizeModels,
   });
 
-  const user = users?.find((u: Doc<"users">) => u._id === userId);
+  const user = users?.find((u: any) => u._id === userId);
 
   // Early return check AFTER all hooks
   if (

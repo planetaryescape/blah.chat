@@ -38,12 +38,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
   formatCompactNumber,
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
+
+type UsageSummary = {
+  userId: Id<"users">;
+  totalCost: number;
+  totalTokens: number;
+  totalRequests: number;
+};
 
 type UserWithUsage = {
   _id: Id<"users">;
@@ -129,10 +136,10 @@ function UsersPageContent() {
     if (!users || !usageSummary) return [];
 
     const usageByUserId = new Map(
-      usageSummary.map((usage) => [usage.userId, usage]),
+      usageSummary.map((usage: any) => [usage.userId, usage]),
     );
 
-    return users.map((user) => ({
+    return users.map((user: any) => ({
       ...user,
       usage: usageByUserId.get(user._id) || {
         totalCost: 0,

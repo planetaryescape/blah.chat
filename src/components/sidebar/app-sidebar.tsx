@@ -4,7 +4,6 @@ import {
   Bookmark,
   Brain,
   CheckSquare,
-  ChevronDown,
   FileText,
   FolderKanban,
   Keyboard,
@@ -21,7 +20,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import useLocalStorage from "@/hooks/useLocalStorage";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { ProjectFilter } from "@/components/projects/ProjectFilter";
@@ -32,7 +30,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
@@ -93,7 +90,6 @@ const MENU_ITEMS = [
 ];
 
 export function AppSidebar() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -160,35 +156,20 @@ export function AppSidebar() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Collapsible state with SSR-safe localStorage
-  const [conversationsExpanded, setConversationsExpanded] = useLocalStorage(
-    "conversationsExpanded",
-    true,
-  );
-
   const handleNewChat = () => {
     startNewChat();
   };
 
   // Keyboard shortcuts removed - now centralized in useKeyboardShortcuts hook
 
-  // Memoize filtered conversations to prevent unnecessary re-renders
-  const filteredConversations = useMemo(
-    () =>
-      conversations?.filter((conv: any) =>
-        conv.title?.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    [conversations, searchQuery],
-  );
-
-  // Update context whenever filtered conversations change
+  // Update context whenever conversations change
   useEffect(() => {
-    setFilteredConversations(filteredConversations);
-  }, [filteredConversations, setFilteredConversations]);
+    setFilteredConversations(conversations);
+  }, [conversations, setFilteredConversations]);
 
   // Arrow key navigation
   const { selectedId, clearSelection } = useListKeyboardNavigation<any>({
-    items: filteredConversations || [],
+    items: conversations || [],
     onSelect: (conv: any) => {
       // If in selection mode, select it? Or just navigate?
       // For now, keep standard navigation to avoid confusion unless keys are bound differently
@@ -334,7 +315,7 @@ export function AppSidebar() {
       role="navigation"
       aria-label="Main navigation and conversations"
     >
-      <SidebarHeader className="pt-6 px-4 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="pt-6 px-1.5 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           <Link
             href="/app"
@@ -358,7 +339,7 @@ export function AppSidebar() {
         <div className="mt-4 group-data-[collapsible=icon]:hidden">
           <Button
             onClick={handleNewChat}
-            className="w-full bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9"
+            className="w-full px-2.5 py-2.5 bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9 cursor-pointer"
             data-tour="new-chat"
           >
             <span className="flex items-center gap-2">
@@ -372,107 +353,70 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden relative min-h-[200px]">
-          {/* Collapsible header with chevron */}
-          <div
-            onClick={() => setConversationsExpanded(!conversationsExpanded)}
-            className="flex items-center justify-between px-2 cursor-pointer hover:bg-sidebar-accent/50 rounded-md transition-colors"
-          >
-            <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-            <ChevronDown
-              className={cn(
-                "w-4 h-4 transition-transform duration-200",
-                !conversationsExpanded && "-rotate-90",
-              )}
-            />
-          </div>
+      <SidebarContent className="flex flex-col gap-0">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0">
+          <SidebarGroupLabel>Conversations</SidebarGroupLabel>
 
-          {!conversationsExpanded && (
-            <div className="px-2 pt-2 text-xs text-muted-foreground">
-              Expand to view conversations or press{" "}
-              <kbd className="px-1 py-0.5 rounded border border-border/30 bg-background/50 font-mono text-[10px]">
-                ⌘K
-              </kbd>{" "}
-              to search
-            </div>
-          )}
-
-          {conversationsExpanded && (
-            <>
-              {/* Project filter and search box - now inside group, below label */}
-              <div className="sticky top-0 z-10 pb-3 bg-gradient-to-b from-sidebar via-sidebar to-transparent px-2 space-y-2">
-                {sidebarFeatures.showProjects && (
-                  <ProjectFilter
-                    value={projectFilter}
-                    onChange={setProjectFilter}
-                  />
-                )}
-                <div
-                  role="search"
-                  aria-label="Search conversations"
-                  className="relative"
-                >
-                  <Search
-                    className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    type="search"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search conversations"
-                    className="pl-8 h-9 text-sm bg-background/50 border-sidebar-border focus:border-primary/50 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <SidebarGroupContent>
-                {conversations === undefined ? (
-                  <ConversationListSkeleton />
-                ) : (
-                  <>
-                    {/* Bulk Action Bar - Top Position */}
-                    {selectedIds.length > 0 ? (
-                      <div className="px-2 pb-2">
-                        <BulkActionBar
-                          selectedCount={selectedIds.length}
-                          onClearSelection={handleClearSelection}
-                          onDelete={() => setShowBulkDeleteConfirm(true)}
-                          onArchive={handleBulkArchive}
-                          onPin={handleBulkPin}
-                          onUnpin={() => {}}
-                          onStar={handleBulkStar}
-                          onUnstar={() => {}}
-                          onAutoRename={handleBulkAutoRename}
-                          className="w-full border shadow-sm"
-                        />
-                      </div>
-                    ) : (
-                      /* Selection Mode Hint */
-                      <div className="px-2 pb-2 text-[10px] text-muted-foreground hidden sm:block">
-                        Tip: Right-click to select
-                      </div>
-                    )}
-
-                    <ConversationList
-                      conversations={filteredConversations || []}
-                      selectedId={selectedId}
-                      onClearSelection={clearSelection}
-                      selectedIds={selectedIds}
-                      onToggleSelection={toggleSelection}
-                    />
-                  </>
-                )}
-              </SidebarGroupContent>
-            </>
+          {/* Project filter - Fixed */}
+          {sidebarFeatures.showProjects && (
+            <ProjectFilter value={projectFilter} onChange={setProjectFilter} />
           )}
         </SidebarGroup>
+
+        {/* Scrollable conversations area */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden h-full pt-0">
+            <SidebarGroupContent className="h-full overflow-y-auto">
+              {conversations === undefined ? (
+                <ConversationListSkeleton />
+              ) : (
+                <>
+                  {/* Bulk Action Bar - Top Position */}
+                  {selectedIds.length > 0 ? (
+                    <div className="px-2 pb-2 sticky top-0 bg-sidebar z-10">
+                      <BulkActionBar
+                        selectedCount={selectedIds.length}
+                        onClearSelection={handleClearSelection}
+                        onDelete={() => setShowBulkDeleteConfirm(true)}
+                        onArchive={handleBulkArchive}
+                        onPin={handleBulkPin}
+                        onUnpin={() => {}}
+                        onStar={handleBulkStar}
+                        onUnstar={() => {}}
+                        onAutoRename={handleBulkAutoRename}
+                        className="w-full border shadow-sm"
+                      />
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  <ConversationList
+                    conversations={conversations || []}
+                    selectedId={selectedId}
+                    onClearSelection={clearSelection}
+                    selectedIds={selectedIds}
+                    onToggleSelection={toggleSelection}
+                  />
+                  <div className="mt-2">
+                    {/* Selection Mode Hint */}
+                    <div className="px-2 pb-2 text-[10px] text-muted-foreground hidden sm:block">
+                      Tip: Right-click to select
+                    </div>
+
+                    {/* Keyboard Shortcut Hint */}
+                    <kbd className="hidden sm:inline-flex px-2 text-[9px] opacity-60">
+                      ⌘1,⌘2... to jump to conversations
+                    </kbd>
+                  </div>
+                </>
+              )}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
       </SidebarContent>
 
       {/* Separator between conversations and tools */}
-      <div className="px-2 py-3">
+      <div className="px-2 py-1">
         <Separator />
       </div>
 
@@ -487,6 +431,7 @@ export function AppSidebar() {
                   asChild
                   tooltip={item.label}
                   isActive={isActive}
+                  className="p-2.5"
                 >
                   <Link href={item.href}>
                     <item.icon className="w-4 h-4" />

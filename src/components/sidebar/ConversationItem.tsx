@@ -36,7 +36,6 @@ import { RenameDialog } from "./RenameDialog";
 
 export function ConversationItem({
   conversation,
-  index,
   selectedId,
   onClearSelection,
   isSelectionMode = false,
@@ -44,7 +43,6 @@ export function ConversationItem({
   onToggleSelection,
 }: {
   conversation: Doc<"conversations">;
-  index?: number;
   selectedId?: string | null;
   onClearSelection?: () => void;
   isSelectionMode?: boolean;
@@ -139,7 +137,7 @@ export function ConversationItem({
         <ContextMenuTrigger asChild>
           <div
             className={cn(
-              "group/item relative flex items-center gap-2 px-2 mx-2 mb-0.5 py-2 sm:py-1 rounded-md cursor-pointer transition-all duration-200",
+              "group/item relative flex items-center gap-1 px-2.5 py-1.5 rounded-md cursor-pointer transition-all duration-200",
               "hover:bg-sidebar-accent/50 hover:shadow-none",
               isActive && !isSelectionMode
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm ring-1 ring-sidebar-border/50"
@@ -176,8 +174,7 @@ export function ConversationItem({
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+                      className="shrink-0 text-muted-foreground/60 hover:text-primary hover:bg-primary/10 rounded-md !h-[15px] !w-[15px] !p-2 !min-h-[15px] !min-w-[15px]"
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(
@@ -186,7 +183,7 @@ export function ConversationItem({
                       }}
                       aria-label="Go to parent conversation"
                     >
-                      <GitBranch className="h-3 w-3" />
+                      <GitBranch className="!h-[15px] !w-[15px]" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -219,21 +216,13 @@ export function ConversationItem({
                 {conversation.title || "New conversation"}
               </p>
               {features.showProjects && conversation.projectId && (
-                <div className="flex">
-                  <ProjectBadge
-                    projectId={conversation.projectId}
-                    onClick={handleProjectFilterClick}
-                    collapsed={projectFilter === conversation.projectId}
-                  />
-                </div>
+                <ProjectBadge
+                  projectId={conversation.projectId}
+                  onClick={handleProjectFilterClick}
+                  collapsed={projectFilter === conversation.projectId}
+                />
               )}
             </div>
-
-            {!isSelectionMode && index !== undefined && index < 9 && (
-              <kbd className="hidden sm:inline-flex h-4 px-1 text-[9px] rounded border border-border/30 bg-background/50 font-mono text-muted-foreground opacity-60">
-                ⌘{index + 1}
-              </kbd>
-            )}
 
             {/* Status indicators */}
             {(conversation.starred || conversation.pinned) && (
@@ -249,40 +238,43 @@ export function ConversationItem({
 
             {/* Quick actions overlay on hover */}
             {!isSelectionMode && (
-              <div className="absolute top-2 bottom-2 sm:top-[2.5px] sm:bottom-[2.5px] right-2 flex items-center gap-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-gradient-to-l from-sidebar-accent via-sidebar-accent/80 to-transparent pl-8 pr-1">
+              <div className="absolute top-2 bottom-2 sm:top-[2.5px] sm:bottom-[2.5px] right-2 flex items-center gap-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent/80 to-transparent pl-8 pr-1">
                 {/* Pin button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handlePinClick}
-                      variant="ghost"
-                      size="icon"
-                      className="h-3 w-3 min-w-0 min-h-0 p-0"
-                      disabled={
-                        !conversation.pinned && conversation.messageCount === 0
-                      }
-                      aria-label={
-                        conversation.pinned ? "Unpin" : "Pin conversation"
-                      }
-                    >
-                      <Pin
-                        className={cn(
-                          "w-2.5 h-2.5",
-                          conversation.pinned && "text-primary fill-primary"
-                        )}
-                      />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {conversation.pinned
-                        ? "Unpin"
-                        : conversation.messageCount === 0
-                          ? "Cannot pin empty"
-                          : "Pin"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                {conversation.messageCount !== undefined &&
+                  conversation.messageCount > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handlePinClick}
+                          variant="ghost"
+                          className="h-6 w-6 p-0 rounded-md cursor-pointer"
+                          disabled={
+                            !conversation.pinned &&
+                            conversation.messageCount === 0
+                          }
+                          aria-label={
+                            conversation.pinned ? "Unpin" : "Pin conversation"
+                          }
+                        >
+                          <Pin
+                            className={cn(
+                              "w-2.5 h-2.5",
+                              conversation.pinned && "text-primary fill-primary"
+                            )}
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {conversation.pinned
+                            ? "Unpin"
+                            : conversation.messageCount === 0
+                              ? "Cannot pin empty"
+                              : "Pin"}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
 
                 {/* Dropdown menu */}
                 <DropdownMenu>
@@ -294,8 +286,7 @@ export function ConversationItem({
                       >
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-3 w-3 min-w-0 min-h-0 p-0"
+                          className="h-6 w-6 rounded-md cursor-pointer"
                           aria-label="Options"
                         >
                           <MoreVertical className="w-2.5 h-2.5" />

@@ -51,8 +51,8 @@ export function ImageGenerateButton({
     "google:gemini-3-pro-image",
   );
   const [thinkingEffort, setThinkingEffort] = useState<
-    "low" | "medium" | "high"
-  >("medium");
+    "none" | "low" | "medium" | "high"
+  >("none");
 
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -168,13 +168,14 @@ export function ImageGenerateButton({
               <Select
                 value={thinkingEffort}
                 onValueChange={(v) =>
-                  setThinkingEffort(v as "low" | "medium" | "high")
+                  setThinkingEffort(v as "none" | "low" | "medium" | "high")
                 }
               >
                 <SelectTrigger id="thinking-effort">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None - No Reasoning</SelectItem>
                   <SelectItem value="low">Low - Fast</SelectItem>
                   <SelectItem value="medium">Medium - Balanced</SelectItem>
                   <SelectItem value="high">High - Creative</SelectItem>

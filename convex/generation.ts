@@ -1,7 +1,5 @@
 "use node";
 
-import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
@@ -11,9 +9,11 @@ import {
   getModelConfig,
   type ModelConfig,
 } from "@/lib/ai/utils";
+import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { type ActionCtx, action, internalAction } from "./_generated/server";
+import { action, type ActionCtx, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDateTimeTool } from "./ai/tools/datetime";
@@ -461,7 +461,12 @@ export const generateResponse = internalAction({
     modelId: v.string(),
     userId: v.id("users"),
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
     ),
     systemPromptOverride: v.optional(v.string()), // For consolidation
   },
@@ -884,12 +889,18 @@ export const generateResponse = internalAction({
         options.headers = reasoningResult.headers;
       }
 
-      // 14. Detect if reasoning model (check config, not flags)
-      const isReasoningModel = !!modelConfig?.reasoning;
+      // 14. Detect if model supports reasoning (config or native capability)
+      const hasReasoningCapability =
+        !!modelConfig?.reasoning ||
+        modelConfig?.capabilities?.includes("thinking");
 
-      // Mark thinking phase started for reasoning models
-
-      if (isReasoningModel && args.thinkingEffort) {
+      // Mark thinking phase started when user wants reasoning AND model supports it
+      // Works for both configurable models (reasoningResult) and native reasoning models
+      const shouldShowThinking =
+        args.thinkingEffort &&
+        args.thinkingEffort !== "none" &&
+        hasReasoningCapability;
+      if (shouldShowThinking) {
         await ctx.runMutation(internal.messages.markThinkingStarted, {
           messageId: args.assistantMessageId,
         });
@@ -960,8 +971,11 @@ export const generateResponse = internalAction({
           }
         }
 
-        // Handle reasoning chunks
-        if (chunk.type === "reasoning-delta") {
+        // Handle reasoning chunks (only when user wants reasoning displayed)
+        // Skip when thinkingEffort is "none" - works for both configurable and native reasoning models
+        const wantsReasoningStreamed =
+          args.thinkingEffort && args.thinkingEffort !== "none";
+        if (chunk.type === "reasoning-delta" && wantsReasoningStreamed) {
           reasoningBuffer += chunk.text;
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
@@ -1001,14 +1015,17 @@ export const generateResponse = internalAction({
       // Get final usage info
       const usage = await result.usage;
 
-      // Complete thinking if reasoning present
+      // Complete thinking if user requested reasoning (thinkingEffort not "none")
+      // This handles both configurable models (via reasoningResult) and native reasoning models
+      const wantsReasoning =
+        args.thinkingEffort && args.thinkingEffort !== "none";
       const reasoningOutputs = await result.reasoning;
       const finalReasoning =
-        reasoningOutputs && reasoningOutputs.length > 0
+        wantsReasoning && reasoningOutputs && reasoningOutputs.length > 0
           ? reasoningOutputs.map((r) => r.text).join("\n")
           : undefined;
 
-      if (finalReasoning && finalReasoning.trim().length > 0) {
+      if (reasoningResult && finalReasoning && finalReasoning.trim().length > 0) {
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.assistantMessageId,
           reasoning: finalReasoning,
@@ -1221,6 +1238,7 @@ export const generateResponse = internalAction({
       }
 
       // 10. Final completion
+      // Store reasoning if present - models may return it natively even without config
       await ctx.runMutation(internal.messages.completeMessage, {
         messageId: args.assistantMessageId,
         content: accumulated,
@@ -1474,7 +1492,7 @@ export const generateResponse = internalAction({
             specificMessage?.includes("content")
           ) {
             userMessage =
-              "This model couldn't process the content. Try a different model like GPT-4o-mini or Claude, or start a new conversation.";
+              "This model couldn't process the content. Try a different model like GPT-OSS-20B or Claude, or start a new conversation.";
           } else if (
             specificMessage?.includes("context") ||
             specificMessage?.includes("too long")

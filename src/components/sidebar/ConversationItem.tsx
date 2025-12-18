@@ -1,5 +1,5 @@
 import { useAction, useMutation } from "convex/react";
-import { GitBranch, MoreVertical, Pin, Star } from "lucide-react";
+import { GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useState } from "react";
@@ -194,6 +194,20 @@ export function ConversationItem({
                   </TooltipContent>
                 </Tooltip>
               )}
+
+            {/* Collaborative indicator */}
+            {!isSelectionMode && conversation.isCollaborative && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 flex items-center justify-center text-blue-500">
+                    <Users className="h-3 w-3" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Collaborative conversation</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             <div className="flex-1 flex flex-col gap-1 min-w-0">
               <p

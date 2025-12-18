@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
+import { NotificationBell } from "@/components/notifications";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -55,7 +56,8 @@ function Header() {
           </Button>
         </div>
       )}
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-1">
+        <NotificationBell />
         <FeedbackButton />
       </div>
     </header>

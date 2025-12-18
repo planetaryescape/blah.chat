@@ -1,6 +1,6 @@
 import type { ModelConfig } from "../models";
 import { REASONING_HANDLERS } from "./registry";
-import type { ThinkingEffort } from "./types";
+import type { ActiveThinkingEffort, ThinkingEffort } from "./types";
 
 export interface ReasoningResult {
   providerOptions?: any;
@@ -13,6 +13,9 @@ export function buildReasoningOptions(
   modelConfig: ModelConfig,
   effortLevel: ThinkingEffort,
 ): ReasoningResult | null {
+  // "none" effort = skip reasoning entirely (run model without thinking)
+  if (effortLevel === "none") return null;
+
   // No reasoning config? Graceful degradation
   if (!modelConfig.reasoning) return null;
 
@@ -26,8 +29,9 @@ export function buildReasoningOptions(
   }
 
   // Call handler with config + effort (try/catch prevents crashes)
+  // After "none" check, effortLevel is guaranteed to be ActiveThinkingEffort
   try {
-    return handler(modelConfig.reasoning, effortLevel);
+    return handler(modelConfig.reasoning, effortLevel as ActiveThinkingEffort);
   } catch (error) {
     console.error("[Reasoning] Handler failed:", error);
     return null;

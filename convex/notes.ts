@@ -927,6 +927,7 @@ export const getPublicNote = query({
     // Return public-safe fields only
     return {
       _id: note._id,
+      userId: note.userId,
       title: note.title,
       htmlContent: note.htmlContent,
       content: note.content,

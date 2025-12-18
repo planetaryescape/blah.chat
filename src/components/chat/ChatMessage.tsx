@@ -9,6 +9,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
@@ -140,10 +145,18 @@ interface ChatMessageProps {
   message: Doc<"messages"> | OptimisticMessage;
   nextMessage?: Doc<"messages"> | OptimisticMessage;
   readOnly?: boolean;
+  isCollaborative?: boolean;
+  senderUser?: { name?: string; imageUrl?: string } | null;
 }
 
 export const ChatMessage = memo(
-  function ChatMessage({ message, nextMessage, readOnly }: ChatMessageProps) {
+  function ChatMessage({
+    message,
+    nextMessage,
+    readOnly,
+    isCollaborative,
+    senderUser,
+  }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -359,11 +372,29 @@ export const ChatMessage = memo(
               <ErrorDisplay error={message.error} />
             ) : (
               <>
-                {/* Reasoning block - shows thinking for reasoning models or if reasoning content exists */}
+                {/* Sender attribution for collaborative conversations */}
+                {isCollaborative && senderUser && (
+                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/20">
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={senderUser.imageUrl} />
+                      <AvatarFallback className="text-[10px]">
+                        {senderUser.name?.[0]?.toUpperCase() || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {isUser
+                        ? senderUser.name || "User"
+                        : `Triggered by ${senderUser.name || "User"}`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Reasoning block - only shows when reasoning is active or has content */}
+                {/* Don't render for "No Reasoning" - requires thinkingStartedAt or actual reasoning content */}
                 {message.role === "assistant" &&
-                  (isThinkingModel ||
-                    message.reasoning ||
-                    message.partialReasoning) && (
+                  (message.reasoning ||
+                    message.partialReasoning ||
+                    message.thinkingStartedAt) && (
                     <ReasoningBlock
                       reasoning={message.reasoning}
                       partialReasoning={message.partialReasoning}
@@ -397,7 +428,11 @@ export const ChatMessage = memo(
                         />
                       </div>
                     ) : isGenerating ? (
-                      <MessageLoadingState isThinkingModel={isThinkingModel} />
+                      <MessageLoadingState
+                        isThinkingModel={
+                          isThinkingModel && !!message.thinkingStartedAt
+                        }
+                      />
                     ) : null}
                   </>
                 )}
@@ -429,7 +464,7 @@ export const ChatMessage = memo(
                     {/* Generating */}
                     {message.status === "generating" && (
                       <div role="status" aria-live="polite" className="sr-only">
-                        {isThinkingModel
+                        {isThinkingModel && message.thinkingStartedAt
                           ? "AI is thinking about your question"
                           : "AI is generating a response"}
                       </div>
@@ -540,7 +575,9 @@ export const ChatMessage = memo(
       prev.message._id === next.message._id &&
       prev.message.partialContent === next.message.partialContent &&
       prev.message.status === next.message.status &&
-      prev.nextMessage?.status === next.nextMessage?.status
+      prev.nextMessage?.status === next.nextMessage?.status &&
+      prev.isCollaborative === next.isCollaborative &&
+      prev.senderUser?.name === next.senderUser?.name
     );
   },
 );

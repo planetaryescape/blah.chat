@@ -1,4 +1,4 @@
-import type { ReasoningConfig, ThinkingEffort } from "../types";
+import type { ActiveThinkingEffort, ReasoningConfig } from "../types";
 
 export interface ReasoningResult {
   providerOptions?: any;
@@ -9,7 +9,7 @@ export interface ReasoningResult {
 
 export function buildGoogleReasoning(
   config: ReasoningConfig,
-  effort: ThinkingEffort,
+  effort: ActiveThinkingEffort,
 ): ReasoningResult {
   // PRIMARY: Gemini 2.5 uses thinking budgets
   if (config.type === "google-thinking-budget") {

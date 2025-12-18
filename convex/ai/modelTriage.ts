@@ -1,9 +1,9 @@
 "use node";
 
+import { getModel } from "@/lib/ai/registry";
 import { generateObject, generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import type { ModelConfig } from "../../src/lib/ai/models";
 import { MODEL_CONFIG } from "../../src/lib/ai/models";
@@ -14,12 +14,12 @@ import { action, internalAction } from "../_generated/server";
 /**
  * Cost threshold for triggering triage analysis
  * $5/M average cost catches truly expensive models:
- * - GPT-4 ($30/M)
+ * - GPT-5 ($30/M)
  * - Claude Opus ($15/M)
- * - o1 ($60/M)
+ * - Sonar ($60/M)
  *
  * Ignores mid-tier models already reasonable:
- * - GPT-4o ($2.50/M)
+ * - GPT-5-mini ($2.50/M)
  * - Claude Sonnet ($3/M)
  */
 const EXPENSIVE_THRESHOLD = 5.0;

@@ -1,9 +1,40 @@
-import { v } from "convex/values";
 import { MODEL_CONFIG } from "@/lib/ai/models";
+import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { internalMutation, mutation } from "./_generated/server";
 import { getCurrentUserOrCreate } from "./lib/userSync";
+
+/**
+ * Check if user can access a conversation
+ * Returns true if user is owner OR participant (for collaborative)
+ */
+async function canAccessConversation(
+  ctx: MutationCtx,
+  conversationId: Id<"conversations">,
+  userId: Id<"users">,
+): Promise<boolean> {
+  const conversation = await ctx.db.get(conversationId);
+  if (!conversation) return false;
+
+  // Owner always has access
+  if (conversation.userId === userId) return true;
+
+  // Check participant table for collaborative conversations
+  if (conversation.isCollaborative) {
+    const participant = await ctx.db
+      .query("conversationParticipants")
+      .withIndex("by_user_conversation", (q) =>
+        q.eq("userId", userId).eq("conversationId", conversationId),
+      )
+      .first();
+
+    return participant !== null;
+  }
+
+  return false;
+}
 
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
@@ -32,7 +63,12 @@ export const sendMessage = mutation({
     modelId: v.optional(v.string()), // Single model (backwards compat)
     models: v.optional(v.array(v.string())), // NEW: Array for comparison
     thinkingEffort: v.optional(
-      v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+      ),
     ),
     attachments: v.optional(v.array(attachmentValidator)),
   },
@@ -51,7 +87,7 @@ export const sendMessage = mutation({
     // Limit checks and housekeeping are deferred to background mutation
 
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
-    const modelsToUse = args.models || [args.modelId || "openai:gpt-4o-mini"];
+    const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
 
     // Generate comparison group ID if multiple models
     const comparisonGroupId =
@@ -111,6 +147,7 @@ export const sendMessage = mutation({
     if (conversationId && shouldAnalyzeModelFit(modelsToUse[0])) {
       await ctx.scheduler.runAfter(
         0, // Immediate, non-blocking
+        // @ts-ignore
         internal.ai.modelTriage.analyzeModelFit,
         {
           conversationId,
@@ -168,6 +205,7 @@ export const runHousekeeping = internalMutation({
     });
 
     // 2. Update conversation timestamp
+    // @ts-ignore
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
       conversationId: args.conversationId,
     });
@@ -230,6 +268,7 @@ export const regenerate = mutation({
     // Phase 4: Get default model from new preference system
     const userDefaultModel = await (
       ctx.runQuery as (ref: any, args: any) => Promise<string | null>
+      // @ts-ignore
     )(api.users.getUserPreference as any, { key: "defaultModel" });
     // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
 
@@ -238,7 +277,7 @@ export const regenerate = mutation({
       message.model ||
       conversation.model ||
       userDefaultModel ||
-      "openai:gpt-4o-mini";
+      "openai:gpt-oss-20b";
 
     // Reset the message in-place (replace, not create sibling)
     await ctx.db.patch(args.messageId, {
@@ -327,11 +366,18 @@ export const editMessage = mutation({
 export const deleteMessage = mutation({
   args: { messageId: v.id("messages") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const user = await getCurrentUserOrCreate(ctx);
 
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
+
+    // Security: Verify user can access this conversation
+    const hasAccess = await canAccessConversation(
+      ctx,
+      message.conversationId,
+      user._id,
+    );
+    if (!hasAccess) throw new Error("Unauthorized");
 
     await ctx.db.delete(args.messageId);
 
@@ -348,8 +394,15 @@ export const deleteMessage = mutation({
 export const stopGeneration = mutation({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args): Promise<void> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const user = await getCurrentUserOrCreate(ctx);
+
+    // Security: Verify user can access this conversation
+    const hasAccess = await canAccessConversation(
+      ctx,
+      args.conversationId,
+      user._id,
+    );
+    if (!hasAccess) throw new Error("Unauthorized");
 
     // Find generating message
     const messages = await ctx.db
@@ -437,7 +490,7 @@ export const retryMessage = mutation({
       aiMessage.model ||
       conversation.model ||
       userDefaultModel2 ||
-      "openai:gpt-4o-mini";
+      "openai:gpt-oss-20b";
 
     // Create new pending assistant message
     const newMessageId: Id<"messages"> = await ctx.runMutation(

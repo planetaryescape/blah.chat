@@ -1,9 +1,11 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useAction, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, Lock, Share2 } from "lucide-react";
+import { AlertCircle, ExternalLink, Loader2, Lock, Share2, Users, Copy } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { ChatMessage } from "@/components/chat/ChatMessage";
@@ -26,12 +28,20 @@ export default function SharePage({
   params: Promise<{ shareId: string }>;
 }) {
   const { shareId } = use(params);
+  const router = useRouter();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const [password, setPassword] = useState("");
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState("");
   const [entityType, setEntityType] = useState<"conversation" | "note" | null>(
     null,
   );
+  const [isForking, setIsForking] = useState<"private" | "collab" | null>(null);
+  const [forkError, setForkError] = useState("");
+
+  // Get current user to check ownership
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const currentUser = useQuery(api.users.getCurrentUser);
 
   // Try conversation share first
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -59,8 +69,17 @@ export default function SharePage({
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const verifyNoteShare = useAction(api.notes.verifyShare);
 
+  // Fork actions
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const forkPrivate = useAction(api.shares.forkPrivate);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const forkCollaborative = useAction(api.shares.forkCollaborative);
+
   // Use the appropriate share
   const share = entityType === "note" ? noteShare : conversationShare;
+
+  // Check if current user is the owner
+  const isOwner = currentUser && share && "userId" in share && share.userId === currentUser._id;
   const conversation = useQuery(
     api.conversations.get,
     verified && share && "conversationId" in share && share.conversationId
@@ -94,7 +113,69 @@ export default function SharePage({
     }
   };
 
-  if (!share) {
+  // Fork handlers
+  const handleForkPrivate = async () => {
+    if (!isSignedIn) {
+      router.push(`/sign-in?redirect_url=/share/${shareId}`);
+      return;
+    }
+    setIsForking("private");
+    setForkError("");
+    try {
+      const newId = await forkPrivate({ shareId });
+      router.push(`/chat/${newId}`);
+    } catch (err) {
+      setForkError(err instanceof Error ? err.message : "Failed to fork");
+      setIsForking(null);
+    }
+  };
+
+  const handleForkCollaborative = async () => {
+    if (!isSignedIn) {
+      router.push(`/sign-in?redirect_url=/share/${shareId}`);
+      return;
+    }
+    setIsForking("collab");
+    setForkError("");
+    try {
+      const collabId = await forkCollaborative({ shareId });
+      router.push(`/chat/${collabId}`);
+    } catch (err) {
+      setForkError(err instanceof Error ? err.message : "Failed to create collaborative conversation");
+      setIsForking(null);
+    }
+  };
+
+  // LOADING STATE: Wait for conversation share query to resolve
+  if (conversationShare === undefined) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">
+            Accessing shared content...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // LOADING STATE: Conversation not found, wait for note share query
+  if (conversationShare === null && noteShare === undefined) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">
+            Accessing shared content...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // NOT FOUND: Both queries resolved to null - share doesn't exist
+  if (conversationShare === null && noteShare === null) {
     return (
       <div className="flex-1 flex items-center justify-center p-4 min-h-screen bg-background relative">
         <div className="absolute top-4 right-4 z-50">
@@ -158,7 +239,7 @@ export default function SharePage({
     );
   }
 
-  if ("revoked" in share && share.revoked) {
+  if (share && "revoked" in share && share.revoked) {
     return (
       <div className="flex-1 flex items-center justify-center p-4 min-h-screen bg-background relative">
         <div className="absolute top-4 right-4 z-50">
@@ -223,7 +304,7 @@ export default function SharePage({
     );
   }
 
-  if (!verified && share.requiresPassword) {
+  if (!verified && share?.requiresPassword) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
         <div className="absolute top-4 right-4">
@@ -265,10 +346,24 @@ export default function SharePage({
   }
 
   if (!verified) {
+    // Wait for entity type to be determined before auto-verifying
+    if (!entityType) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground animate-pulse">
+              Accessing shared content...
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     // No password required, auto-verify
     if (entityType === "note" && noteShare?._id) {
       verifyNoteShare({ noteId: noteShare._id }).then(() => setVerified(true));
-    } else {
+    } else if (entityType === "conversation") {
       verifyConversationShare({ shareId }).then(() => setVerified(true));
     }
     return (
@@ -319,18 +414,89 @@ export default function SharePage({
             </h1>
           </div>
           <div className="flex-shrink-0 ml-4 flex items-center gap-2">
+            {/* Owner: show "Open Conversation" button */}
+            {authLoaded && entityType === "conversation" && isOwner && share && "conversationId" in share && (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+              >
+                <Link href={`/chat/${share.conversationId}`}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Conversation
+                </Link>
+              </Button>
+            )}
+            {/* Non-owner: show fork buttons */}
+            {authLoaded && entityType === "conversation" && !isOwner && (
+              <>
+                <Button
+                  onClick={handleForkPrivate}
+                  disabled={!!isForking}
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:flex"
+                >
+                  {isForking === "private" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Continue Privately
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleForkCollaborative}
+                  disabled={!!isForking}
+                  variant="default"
+                  size="sm"
+                >
+                  {isForking === "collab" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Continue with Creator</span>
+                      <span className="sm:hidden">Join</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
             <ThemeToggle />
-            <Button
-              asChild
-              variant="default"
-              size="sm"
-              className="font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
-            >
-              <Link href="/">Try blah.chat</Link>
-            </Button>
+            {!isSignedIn && authLoaded && (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+              >
+                <Link href="/">Start chatting</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
+
+      {/* Fork error toast */}
+      {forkError && (
+        <div className="fixed top-20 right-4 z-50 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg shadow-lg animate-in slide-in-from-right">
+          {forkError}
+          <button
+            onClick={() => setForkError("")}
+            className="ml-2 hover:opacity-70"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 container max-w-4xl mx-auto px-4 py-8 md:py-12 space-y-8">
@@ -348,7 +514,9 @@ export default function SharePage({
             </span>
           </div>
           <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
-            This is a read-only view of a conversation shared from blah.chat.
+            {isSignedIn
+              ? "Continue this conversation privately or collaborate with the creator."
+              : "Sign in to continue this conversation or try blah.chat for free."}
           </p>
         </motion.div>
 
@@ -373,11 +541,10 @@ export default function SharePage({
                 </div>
                 <div className="flex-1 text-center md:text-left space-y-2">
                   <h3 className="text-2xl font-display font-bold">
-                    Experience the future of chat
+                    Pick up where they left off
                   </h3>
                   <p className="text-muted-foreground">
-                    Create your own personal AI assistant with multi-model
-                    support, RAG memory, and full data ownership.
+                    All models. Your data. Conversations that survive anything.
                   </p>
                 </div>
                 <Button
@@ -385,7 +552,7 @@ export default function SharePage({
                   size="lg"
                   className="flex-shrink-0 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
                 >
-                  <Link href="/">Get Started Free</Link>
+                  <Link href="/">Try it free</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -404,7 +571,7 @@ export default function SharePage({
             >
               blah.chat
             </Link>{" "}
-            • AI-powered conversations
+            • Total control. One interface.
           </p>
         </div>
       </footer>

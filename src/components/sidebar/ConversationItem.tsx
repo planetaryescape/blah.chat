@@ -145,7 +145,7 @@ export function ConversationItem({
               isSelected &&
                 !isSelectionMode &&
                 "bg-primary/10 ring-1 ring-primary",
-              isSelectedById && "bg-primary/5 ring-1 ring-primary/20"
+              isSelectedById && "bg-primary/5 ring-1 ring-primary/20",
             )}
             onClick={handleClick}
             onMouseEnter={onClearSelection}
@@ -178,7 +178,7 @@ export function ConversationItem({
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(
-                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`
+                          `/chat/${conversation.parentConversationId}?messageId=${conversation.parentMessageId}#message-${conversation.parentMessageId}`,
                         );
                       }}
                       aria-label="Go to parent conversation"
@@ -210,7 +210,7 @@ export function ConversationItem({
               <p
                 className={cn(
                   "text-sm truncate",
-                  isSelectedById && "text-primary font-medium"
+                  isSelectedById && "text-primary font-medium",
                 )}
               >
                 {conversation.title || "New conversation"}
@@ -259,7 +259,7 @@ export function ConversationItem({
                           <Pin
                             className={cn(
                               "w-2.5 h-2.5",
-                              conversation.pinned && "text-primary fill-primary"
+                              conversation.pinned && "text-primary fill-primary",
                             )}
                           />
                         </Button>
@@ -314,7 +314,7 @@ export function ConversationItem({
                           {item.icon}
                           {item.label}
                         </DropdownMenuItem>
-                      )
+                      ),
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -336,7 +336,7 @@ export function ConversationItem({
                 {item.icon}
                 {item.label}
               </ContextMenuItem>
-            )
+            ),
           )}
         </ContextMenuContent>
       </ContextMenu>

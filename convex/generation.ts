@@ -1025,7 +1025,11 @@ export const generateResponse = internalAction({
           ? reasoningOutputs.map((r) => r.text).join("\n")
           : undefined;
 
-      if (reasoningResult && finalReasoning && finalReasoning.trim().length > 0) {
+      if (
+        reasoningResult &&
+        finalReasoning &&
+        finalReasoning.trim().length > 0
+      ) {
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.assistantMessageId,
           reasoning: finalReasoning,

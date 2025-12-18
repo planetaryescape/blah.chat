@@ -94,7 +94,14 @@ export function ModelPreviewModal({
     } finally {
       setLoading(false);
     }
-  }, [generatePreview, conversationId, suggestedModelId, userMessage, currentModelId, comparisonStartTime]);
+  }, [
+    generatePreview,
+    conversationId,
+    suggestedModelId,
+    userMessage,
+    currentModelId,
+    comparisonStartTime,
+  ]);
 
   useEffect(() => {
     if (open) {

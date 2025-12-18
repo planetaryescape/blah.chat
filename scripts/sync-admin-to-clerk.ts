@@ -41,7 +41,9 @@ async function syncAdminToClerk() {
     // @ts-ignore - Type depth exceeded with complex Convex query
     const users = await convex.query(api.users.listAllUsers);
 
-    const admins = users.filter((u: { isAdmin?: boolean }) => u.isAdmin === true);
+    const admins = users.filter(
+      (u: { isAdmin?: boolean }) => u.isAdmin === true,
+    );
     console.log(`Found ${admins.length} admin(s) in Convex\n`);
 
     if (admins.length === 0) {
@@ -66,7 +68,7 @@ async function syncAdminToClerk() {
       } catch (error) {
         console.error(
           `${progress} Failed: ${admin.email || admin.clerkId}`,
-          error instanceof Error ? error.message : error
+          error instanceof Error ? error.message : error,
         );
         failCount++;
       }
@@ -82,7 +84,9 @@ async function syncAdminToClerk() {
 
     if (failCount === 0) {
       console.log("Sync completed successfully!");
-      console.log("\nIMPORTANT: Sign out and back in to refresh your session token.");
+      console.log(
+        "\nIMPORTANT: Sign out and back in to refresh your session token.",
+      );
     } else {
       console.log("Sync completed with errors. Review failed updates above.");
     }

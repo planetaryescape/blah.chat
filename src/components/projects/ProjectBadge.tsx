@@ -37,7 +37,7 @@ export function ProjectBadge({
         "max-w-[220px] min-w-0",
         collapsed
           ? "px-0.5 py-0 bg-transparent opacity-30 hover:opacity-100 hover:bg-secondary/80"
-          : "hover:bg-secondary/80"
+          : "hover:bg-secondary/80",
       )}
       onClick={(e) => {
         if (onClick) {

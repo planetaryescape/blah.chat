@@ -20,7 +20,9 @@ export function NotificationBell() {
   const markAllRead = useMutation(api.notifications.markAllRead);
   const dismiss = useMutation(api.notifications.dismiss);
 
-  const handleNotificationClick = async (notification: NonNullable<typeof notifications>[number]) => {
+  const handleNotificationClick = async (
+    notification: NonNullable<typeof notifications>[number],
+  ) => {
     if (!notification.read) {
       await markRead({ notificationId: notification._id });
     }
@@ -67,7 +69,7 @@ export function NotificationBell() {
                 key={n._id}
                 className={cn(
                   "flex items-start gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer border-b last:border-0 transition-colors",
-                  !n.read && "bg-primary/5"
+                  !n.read && "bg-primary/5",
                 )}
                 onClick={() => handleNotificationClick(n)}
               >

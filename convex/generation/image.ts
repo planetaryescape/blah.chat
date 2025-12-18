@@ -145,7 +145,11 @@ export const generateImage = internalAction({
           : undefined;
 
       // Complete thinking if reasoning was requested and content present
-      if (wantsReasoning && finalReasoning && finalReasoning.trim().length > 0) {
+      if (
+        wantsReasoning &&
+        finalReasoning &&
+        finalReasoning.trim().length > 0
+      ) {
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.messageId,
           reasoning: finalReasoning,

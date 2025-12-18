@@ -682,7 +682,7 @@ export const generateResponse = internalAction({
             // Build attachment metadata info for ALL models (so they know to use fileDocument tool)
             const attachmentInfo = attachments
               .map(
-                (a, i) =>
+                (a: Doc<"attachments">, i: number) =>
                   `[Attached file ${i}: ${a.name} (${a.mimeType}, ${Math.round(a.size / 1024)}KB)]`,
               )
               .join("\n");
@@ -748,7 +748,7 @@ export const generateResponse = internalAction({
 
       // 7. Combine: system prompts FIRST, then history
       // Filter out empty messages (Gemini requires non-empty content parts)
-      const nonEmptyHistory = history.filter((msg) => {
+      const nonEmptyHistory = history.filter((msg: CoreMessage) => {
         if (Array.isArray(msg.content)) {
           return msg.content.length > 0;
         }
@@ -758,7 +758,7 @@ export const generateResponse = internalAction({
       // Clean providerMetadata for cross-model compatibility
       // Gemini rejects messages with metadata from other providers (e.g., thought_signature)
       const isGeminiModel = args.modelId.includes("gemini");
-      const cleanedHistory = nonEmptyHistory.map((msg) => {
+      const cleanedHistory = nonEmptyHistory.map((msg: CoreMessage) => {
         if (isGeminiModel && msg.providerMetadata) {
           // Remove providerMetadata for Gemini models to avoid cross-model conflicts
           const { providerMetadata: _removed, ...rest } = msg;

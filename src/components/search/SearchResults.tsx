@@ -301,7 +301,7 @@ function SearchResultCard({
 function highlightText(text: string, query: string): string {
   // Normalize content: trim whitespace and collapse excess newlines
   // This prevents leading whitespace from causing inconsistent card heights
-  const normalizedText = text
+  const normalizedText = (text ?? "")
     .trim()
     .replace(/^\s+/gm, "") // Remove leading whitespace from each line
     .replace(/\n{3,}/g, "\n\n"); // Collapse 3+ newlines to 2

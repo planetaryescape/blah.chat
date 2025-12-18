@@ -278,7 +278,9 @@ function SearchResultCard({
                 </span>
               </div>
               <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
-                {formatDistanceToNow(message.createdAt, { addSuffix: true })}
+                {message.createdAt
+                  ? formatDistanceToNow(message.createdAt, { addSuffix: true })
+                  : ""}
               </span>
             </div>
 

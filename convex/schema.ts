@@ -1015,6 +1015,10 @@ export default defineSchema({
     // Telemetry (self-hosted instances)
     instanceId: v.optional(v.string()), // Anonymous UUID for telemetry
 
+    // Integrations
+    transcriptProvider: v.optional(v.string()), // "openai" | "deepgram" | "assemblyai" | "groq"
+    transcriptCostPerMinute: v.optional(v.number()), // USD per minute
+
     // Future: General settings, Features
 
     updatedBy: v.id("users"),

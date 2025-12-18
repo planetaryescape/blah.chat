@@ -34,6 +34,8 @@ export const get = query({
         budgetHardLimitEnabled: true,
         defaultDailyMessageLimit: 50,
         alertEmail: "blah.chat@bhekani.com",
+        transcriptProvider: "groq",
+        transcriptCostPerMinute: 0.0067,
       }
     );
   },
@@ -52,6 +54,8 @@ export const update = mutation({
     budgetHardLimitEnabled: v.optional(v.boolean()),
     defaultDailyMessageLimit: v.optional(v.number()),
     alertEmail: v.optional(v.string()),
+    transcriptProvider: v.optional(v.string()),
+    transcriptCostPerMinute: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -67,6 +71,18 @@ export const update = mutation({
 
     if (!user || user.isAdmin !== true) {
       throw new Error("Unauthorized: Admin access required");
+    }
+
+    // Validate transcript provider has corresponding API key
+    if (args.transcriptProvider) {
+      const keyEnvVar = `${args.transcriptProvider.toUpperCase()}_API_KEY`;
+      if (!process.env[keyEnvVar]) {
+        const errorMsg =
+          process.env.NODE_ENV === "production"
+            ? "Cannot set transcript provider: API key not configured"
+            : `Cannot set ${args.transcriptProvider} as STT provider: ${keyEnvVar} environment variable is missing`;
+        throw new Error(errorMsg);
+      }
     }
 
     const userId = user._id;
@@ -90,6 +106,8 @@ export const update = mutation({
         budgetHardLimitEnabled: args.budgetHardLimitEnabled ?? true,
         defaultDailyMessageLimit: args.defaultDailyMessageLimit ?? 50,
         alertEmail: args.alertEmail ?? "blah.chat@bhekani.com",
+        transcriptProvider: args.transcriptProvider ?? "groq",
+        transcriptCostPerMinute: args.transcriptCostPerMinute ?? 0.0067,
         updatedBy: userId,
         updatedAt: Date.now(),
       });
@@ -129,6 +147,8 @@ export const getWithEnvOverrides = internalQuery({
       budgetHardLimitEnabled: true,
       defaultDailyMessageLimit: 50,
       alertEmail: "blah.chat@bhekani.com",
+      transcriptProvider: "groq",
+      transcriptCostPerMinute: 0.0067,
     };
 
     // Merge: env vars > database > defaults
@@ -150,6 +170,111 @@ export const getWithEnvOverrides = internalQuery({
         ? process.env.BUDGET_HARD_LIMIT_ENABLED === "true"
         : settings.budgetHardLimitEnabled,
       alertEmail: process.env.ALERT_EMAIL || settings.alertEmail,
+    };
+  },
+});
+
+/**
+ * Check if migration is needed (for UI display)
+ */
+export const checkMigrationNeeded = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user || user.isAdmin !== true) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const settings = await ctx.db.query("adminSettings").first();
+    const needsMigration = !settings?.transcriptProvider;
+
+    // Count user preferences that will be deleted
+    const userPrefs = await ctx.db.query("userPreferences").collect();
+    const sttPrefsCount = userPrefs.filter(
+      (p) => p.key === "sttProvider",
+    ).length;
+
+    return {
+      needsMigration,
+      userPreferencesCount: sttPrefsCount,
+    };
+  },
+});
+
+/**
+ * One-time migration: Move STT provider from user preferences to admin settings
+ * Sets Groq as default and deletes all user sttProvider preferences
+ */
+export const migrateSTTPreferences = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // Get user to check admin status
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user || user.isAdmin !== true) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    const settings = await ctx.db.query("adminSettings").first();
+
+    // Set Groq as default if not already set
+    if (settings && !settings.transcriptProvider) {
+      await ctx.db.patch(settings._id, {
+        transcriptProvider: "groq",
+        transcriptCostPerMinute: 0.0067,
+        updatedBy: user._id,
+        updatedAt: Date.now(),
+      });
+    } else if (!settings) {
+      // Create settings if they don't exist
+      await ctx.db.insert("adminSettings", {
+        autoMemoryExtractEnabled: true,
+        autoMemoryExtractInterval: 5,
+        enableHybridSearch: false,
+        defaultMonthlyBudget: 10,
+        defaultBudgetAlertThreshold: 0.8,
+        budgetHardLimitEnabled: true,
+        defaultDailyMessageLimit: 50,
+        alertEmail: "blah.chat@bhekani.com",
+        transcriptProvider: "groq",
+        transcriptCostPerMinute: 0.0067,
+        updatedBy: user._id,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // Delete all user sttProvider preferences (they're now ignored)
+    const userPrefs = await ctx.db.query("userPreferences").collect();
+
+    let deletedCount = 0;
+    for (const pref of userPrefs) {
+      if (pref.key === "sttProvider") {
+        await ctx.db.delete(pref._id);
+        deletedCount++;
+      }
+    }
+
+    return {
+      success: true,
+      deletedPreferences: deletedCount,
+      message: `Migration complete. Deleted ${deletedCount} user STT preferences. Admin default set to Groq.`,
     };
   },
 });

@@ -55,20 +55,13 @@ export const transcribeAudio = action({
 
     console.log("[Transcription] User authorized:", user._id);
 
-    // Phase 4: Get STT preferences from new system
+    // Phase 4: Get STT enabled preference from user
     const sttEnabled = await (
       ctx.runQuery as (ref: any, args: any) => Promise<boolean | null>
     )(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       api.users.getUserPreference as any,
       { key: "sttEnabled" },
-    );
-    const sttProvider = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-    )(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      api.users.getUserPreference as any,
-      { key: "sttProvider" },
     );
 
     // Check if STT is enabled
@@ -77,8 +70,23 @@ export const transcribeAudio = action({
       throw new Error("Voice input disabled in settings");
     }
 
-    const provider = sttProvider ?? "openai";
-    console.log("[Transcription] Using provider:", provider);
+    // Get transcript provider from admin settings (global org setting)
+    const adminSettings = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<any>
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.adminSettings.get,
+      {},
+    );
+
+    const provider = adminSettings?.transcriptProvider ?? "groq";
+    const costPerMinute = adminSettings?.transcriptCostPerMinute ?? 0.0067;
+    console.log(
+      "[Transcription] Using admin provider:",
+      provider,
+      "cost/min:",
+      costPerMinute,
+    );
 
     // Fetch audio from Convex storage
     console.log("[Transcription] Fetching audio from storage...");
@@ -190,7 +198,7 @@ export const transcribeAudio = action({
           console.log("[Transcription] Parsing response JSON...");
           const result = await response.json();
           text = result.text;
-          cost = durationMinutes * 0.006;
+          cost = durationMinutes * costPerMinute;
           console.log(
             "[Transcription] Transcription successful, text length:",
             text.length,
@@ -255,7 +263,7 @@ export const transcribeAudio = action({
 
           const result = await response.json();
           text = result.text;
-          cost = (durationMinutes / 60) * 0.04; // $0.04/hour
+          cost = durationMinutes * costPerMinute;
         } catch (err: any) {
           clearTimeout(timeoutId);
 
@@ -293,6 +301,7 @@ export const transcribeAudio = action({
 /**
  * Internal version of transcribeAudio for background jobs
  * Doesn't require user auth since jobs are triggered by authenticated endpoints
+ * Uses admin-configured transcript provider
  */
 export const transcribeAudioInternal = internalAction({
   args: {
@@ -300,6 +309,17 @@ export const transcribeAudioInternal = internalAction({
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
+    // Get transcript provider from admin settings
+    const adminSettings = await (
+      ctx.runQuery as (ref: any, args: any) => Promise<any>
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.adminSettings.getInternal,
+      {},
+    );
+
+    const provider = adminSettings?.transcriptProvider ?? "groq";
+
     // Fetch audio from Convex storage
     const audioBlob = await ctx.storage.get(args.storageId);
     if (!audioBlob) {
@@ -324,35 +344,65 @@ export const transcribeAudioInternal = internalAction({
       );
     }
 
-    // Use OpenAI Whisper by default for internal jobs
-    const formData = new FormData();
-    formData.append("file", audioFile);
-    formData.append("model", "whisper-1");
-
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/audio/transcriptions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      let result: any;
+
+      if (provider === "groq") {
+        const formData = new FormData();
+        formData.append("file", audioFile);
+        formData.append("model", "whisper-large-v3-turbo");
+
+        const response = await fetch(
+          "https://api.groq.com/openai/v1/audio/transcriptions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            },
+            body: formData,
+            signal: controller.signal,
           },
-          body: formData,
-          signal: controller.signal,
-        },
-      );
+        );
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`OpenAI Whisper failed: ${error}`);
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Groq Whisper failed: ${error}`);
+        }
+
+        result = await response.json();
+      } else {
+        // Fallback to OpenAI for other providers
+        const formData = new FormData();
+        formData.append("file", audioFile);
+        formData.append("model", "whisper-1");
+
+        const response = await fetch(
+          "https://api.openai.com/v1/audio/transcriptions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            },
+            body: formData,
+            signal: controller.signal,
+          },
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`OpenAI Whisper failed: ${error}`);
+        }
+
+        result = await response.json();
       }
 
-      const result = await response.json();
       return result.text;
     } catch (err: any) {
       clearTimeout(timeoutId);

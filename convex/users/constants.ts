@@ -27,7 +27,7 @@ export const PREFERENCE_DEFAULTS = {
 
   // Audio
   sttEnabled: true,
-  sttProvider: "openai" as const,
+  sttProvider: "openai" as const, // DEPRECATED (2025-12-18): Moved to adminSettings.transcriptProvider - kept for rollback safety only
   ttsEnabled: false,
   ttsProvider: "deepgram",
   ttsVoice: "aura-asteria-en",

@@ -24,7 +24,7 @@ export function useSearchResults(
 
   // Execute search when query or filters change
   useEffect(() => {
-    const trimmedQuery = query.trim();
+    const trimmedQuery = query?.trim() ?? "";
 
     if (!trimmedQuery) {
       setResults([]);

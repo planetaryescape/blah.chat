@@ -33,6 +33,31 @@ Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xA
   </tr>
 </table>
 
+## 🔑 Required API Keys
+
+blah.chat requires API keys for certain features:
+
+### Core Features (Required)
+- **`AI_GATEWAY_API_KEY`** - Vercel AI Gateway for all AI model access
+
+### Speech Features (Optional)
+
+#### Speech-to-Text (STT)
+Requires ONE of the following providers (configured by admin in Settings):
+- **`GROQ_API_KEY`** - Groq Whisper Turbo (default, $0.04/hour)
+- **`OPENAI_API_KEY`** - OpenAI Whisper ($0.006/min)
+- **`DEEPGRAM_API_KEY`** - Deepgram Nova-3 ($0.0077/min)
+- **`ASSEMBLYAI_API_KEY`** - AssemblyAI ($0.0025/min)
+
+#### Text-to-Speech (TTS)
+- **`DEEPGRAM_API_KEY`** - Deepgram Aura voices (required)
+
+**Note:** If STT/TTS API keys are not configured, these features will be automatically disabled. Users will see an error message when attempting to enable them:
+- **Development**: Specific missing key name shown
+- **Production**: "Please contact your administrator" message
+
+See the [Self-Hosting Guide](SELF_HOSTING.md) for full environment variable setup.
+
 ## 🚀 Quick Deploy
 
 ### Vercel (Recommended - 10 minutes)

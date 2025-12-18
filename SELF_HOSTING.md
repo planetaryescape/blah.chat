@@ -46,6 +46,94 @@ Railway auto-detects environment variables from `.env.example` and guides you th
 
 ---
 
+## Environment Variables Reference
+
+### Core Variables (Required)
+
+These environment variables are required for basic functionality:
+
+```bash
+# Convex Backend
+NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
+CONVEX_DEPLOY_KEY=prod:your-project|your-deploy-key
+
+# Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_SECRET_KEY=sk_live_...
+CLERK_WEBHOOK_SECRET=whsec_...
+
+# AI Models
+AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
+```
+
+### Speech Features (Optional)
+
+Speech-to-text and text-to-speech are optional features. If API keys are not configured, these features will be automatically disabled for users.
+
+#### Speech-to-Text (STT)
+
+**Configure ONE provider** (admin selects in Settings → Admin → General → Integrations):
+
+```bash
+# Groq (Recommended, Default)
+GROQ_API_KEY=gsk_...
+# Cost: $0.04/hour, fastest processing
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+# Cost: $0.006/min, industry standard
+
+# Deepgram
+DEEPGRAM_API_KEY=...
+# Cost: $0.0077/min, high accuracy
+
+# AssemblyAI
+ASSEMBLYAI_API_KEY=...
+# Cost: $0.0025/min, most affordable
+```
+
+Admin users select the active provider in **Settings → Admin → General → Integrations**. The system validates that the corresponding API key exists before allowing the change.
+
+#### Text-to-Speech (TTS)
+
+```bash
+# Deepgram (Required for TTS)
+DEEPGRAM_API_KEY=...
+```
+
+TTS uses Deepgram Aura voices exclusively. $200 free credits, then pay-as-you-go.
+
+### Feature Availability Behavior
+
+**When API keys are missing:**
+- Settings UI shows warning banner with error message
+- Toggle switches are disabled (cannot be turned on)
+- **Development mode**: Specific error like "STT requires GROQ_API_KEY"
+- **Production mode**: Generic error "Please contact your administrator"
+- Modal appears if user attempts to enable feature
+
+**When API keys are present:**
+- Features work normally
+- Users can toggle on/off freely
+- Cost tracking works as expected
+
+### Optional Features
+
+```bash
+# Analytics
+POSTHOG_KEY=phc_...
+
+# Local Models
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Email Alerts
+RESEND_API_KEY=re_...
+```
+
+See [Environment Variables](#configuration) section below for detailed descriptions of each variable.
+
+---
+
 ## Manual Setup (20 minutes)
 
 For full control or non-Vercel deployments.

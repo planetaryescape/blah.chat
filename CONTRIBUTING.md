@@ -34,6 +34,48 @@ bun dev
 
 Visit http://localhost:3000
 
+### Environment Variables
+
+Copy the example environment file:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Add required API keys to `.env.local`:
+
+#### Required Keys
+```bash
+# Convex Backend
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-url.convex.cloud
+CONVEX_DEPLOY_KEY=your-convex-deploy-key
+
+# Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+CLERK_WEBHOOK_SECRET=whsec_...
+
+# AI Gateway (Required for all AI models)
+AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
+```
+
+#### Optional Keys (Speech Features)
+```bash
+# Speech-to-Text (add ONE provider)
+GROQ_API_KEY=gsk_...           # Recommended, default
+# OPENAI_API_KEY=sk-...        # Alternative
+# DEEPGRAM_API_KEY=...         # Alternative
+# ASSEMBLYAI_API_KEY=...       # Alternative
+
+# Text-to-Speech
+DEEPGRAM_API_KEY=...           # Required for TTS
+```
+
+**Note on Speech Features:**
+- If STT/TTS API keys are missing, these features will be disabled in settings
+- Development mode shows specific error: "STT requires GROQ_API_KEY"
+- You can still develop and test all other features without speech keys
+
 ### Code Quality
 
 **Before committing**, run:

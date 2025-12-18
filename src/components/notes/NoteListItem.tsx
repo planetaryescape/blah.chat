@@ -26,7 +26,7 @@ export function NoteListItem({ note, isSelected, onClick }: NoteListItemProps) {
         className={cn(
           "w-full text-left px-4 py-3.5 transition-colors duration-200 group relative z-0",
           // Selection state: Minimal, distinct background
-          isSelected ? "bg-accent/50" : "hover:bg-muted/30 hover:z-10",
+          isSelected ? "bg-secondary" : "hover:bg-muted/30 hover:z-10",
         )}
       >
         {/* Selected Indicator - Left Bar */}

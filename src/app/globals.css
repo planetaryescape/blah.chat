@@ -419,6 +419,15 @@
       backdrop-filter: blur(20px) saturate(180%);
     }
   }
+
+  /* Skeleton Styling - Light mode override */
+  [data-slot="skeleton"] {
+    background-color: oklch(85% 0.02 80);
+  }
+
+  .dark [data-slot="skeleton"] {
+    background-color: var(--accent);
+  }
 }
 
 /* Reduced Motion Support */

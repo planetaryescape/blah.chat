@@ -6,7 +6,7 @@ export function NoteEditorSkeleton() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-4 p-4 border-b border-border">
+      <div className="flex items-center gap-4 p-8 border-b border-border">
         {/* Title */}
         <Skeleton className="h-6 w-1/2" />
 
@@ -22,15 +22,7 @@ export function NoteEditorSkeleton() {
         {/* Buttons */}
         <Skeleton className="h-8 w-8 rounded-md" />
         <Skeleton className="h-8 w-8 rounded-md" />
-      </div>
-
-      {/* Toolbar */}
-      <div className="border-b border-border p-2">
-        <div className="flex gap-1">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-8 rounded-md" />
-          ))}
-        </div>
+        <Skeleton className="h-8 w-8 rounded-md" />
       </div>
 
       {/* Editor content */}

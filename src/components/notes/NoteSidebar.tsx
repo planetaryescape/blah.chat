@@ -65,7 +65,7 @@ export function NoteSidebar({
     <div
       className={cn(
         "flex flex-col h-full bg-muted/5 border-r border-border/40",
-        className,
+        className
       )}
     >
       {/* Header Section */}
@@ -142,9 +142,7 @@ export function NoteSidebar({
       {/* Note List */}
       <div className="flex-1 overflow-hidden relative">
         {notes === undefined ? (
-          <div className="p-4">
-            <NoteListSkeleton />
-          </div>
+          <NoteListSkeleton />
         ) : notes.length === 0 ? (
           searchParam || filterPinned || selectedTags.length > 0 ? (
             <div className="p-8">

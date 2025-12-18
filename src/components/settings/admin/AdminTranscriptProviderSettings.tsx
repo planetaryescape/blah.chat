@@ -52,17 +52,12 @@ const TRANSCRIPT_PROVIDERS = [
 export function AdminTranscriptProviderSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
   const settings = useQuery(api.adminSettings.get);
-  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
-  const migrationStatus = useQuery(api.adminSettings.checkMigrationNeeded);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const updateSettings = useMutation(api.adminSettings.update);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
-  const runMigration = useMutation(api.adminSettings.migrateSTTPreferences);
 
   const [provider, setProvider] = useState("groq");
   const [costPerMinute, setCostPerMinute] = useState(0.0067);
   const [saving, setSaving] = useState(false);
-  const [migrating, setMigrating] = useState(false);
 
   // Load settings from query
   useEffect(() => {
@@ -105,25 +100,11 @@ export function AdminTranscriptProviderSettings() {
     }
   };
 
-  const handleMigration = async () => {
-    setMigrating(true);
-    try {
-      const result = await runMigration();
-      toast.success(result.message);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to run migration",
-      );
-    } finally {
-      setMigrating(false);
-    }
-  };
-
   const hasChanges =
     provider !== settings?.transcriptProvider ||
     costPerMinute !== settings?.transcriptCostPerMinute;
 
-  if (!settings || !migrationStatus) {
+  if (!settings) {
     return (
       <Card>
         <CardHeader>
@@ -143,41 +124,6 @@ export function AdminTranscriptProviderSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Migration Banner */}
-        {migrationStatus.needsMigration && (
-          <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 text-yellow-600 dark:text-yellow-400">
-                ⚠️
-              </div>
-              <div className="flex-1 space-y-2">
-                <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-                  Migration Required
-                </p>
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Transcript provider is now a global admin setting. This will:
-                </p>
-                <ul className="text-sm text-yellow-800 dark:text-yellow-200 list-disc list-inside space-y-1">
-                  <li>Set Groq Whisper Turbo as the default provider</li>
-                  <li>
-                    Delete {migrationStatus.userPreferencesCount} user-specific
-                    provider preferences
-                  </li>
-                  <li>All users will use the admin-configured provider</li>
-                </ul>
-                <Button
-                  onClick={handleMigration}
-                  disabled={migrating}
-                  size="sm"
-                  className="mt-2"
-                >
-                  {migrating ? "Running Migration..." : "Run Migration"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="provider">Provider</Label>

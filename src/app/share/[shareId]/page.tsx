@@ -3,7 +3,15 @@
 import { useAuth } from "@clerk/nextjs";
 import { useAction, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { AlertCircle, ExternalLink, Loader2, Lock, Share2, Users, Copy } from "lucide-react";
+import {
+  AlertCircle,
+  ExternalLink,
+  Loader2,
+  Lock,
+  Share2,
+  Users,
+  Copy,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
@@ -79,19 +87,54 @@ export default function SharePage({
   const share = entityType === "note" ? noteShare : conversationShare;
 
   // Check if current user is the owner
-  const isOwner = currentUser && share && "userId" in share && share.userId === currentUser._id;
+  const isOwner =
+    currentUser &&
+    share &&
+    "userId" in share &&
+    share.userId === currentUser._id;
+
+  // Use public queries for shared content (no auth required)
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
-    api.conversations.get,
-    verified && share && "conversationId" in share && share.conversationId
-      ? { conversationId: share.conversationId }
-      : "skip",
+    api.shares.getSharedConversation,
+    verified && entityType === "conversation" ? { shareId } : "skip",
   );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const messages = useQuery(
-    api.messages.list,
-    verified && share && "conversationId" in share && share.conversationId
-      ? { conversationId: share.conversationId }
-      : "skip",
+    api.shares.getSharedMessages,
+    verified && entityType === "conversation" ? { shareId } : "skip",
   );
+
+  // Auto-verify shares that don't require password
+  useEffect(() => {
+    // Skip if already verified or password required
+    if (verified || share?.requiresPassword) return;
+    // Skip if entity type not determined yet
+    if (!entityType) return;
+
+    const autoVerify = async () => {
+      try {
+        if (entityType === "note" && noteShare?._id) {
+          await verifyNoteShare({ noteId: noteShare._id });
+        } else if (entityType === "conversation") {
+          await verifyConversationShare({ shareId });
+        }
+        setVerified(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Verification failed");
+      }
+    };
+
+    autoVerify();
+  }, [
+    entityType,
+    verified,
+    share?.requiresPassword,
+    noteShare?._id,
+    shareId,
+    verifyNoteShare,
+    verifyConversationShare,
+  ]);
 
   const handleVerify = async () => {
     try {
@@ -141,7 +184,11 @@ export default function SharePage({
       const collabId = await forkCollaborative({ shareId });
       router.push(`/chat/${collabId}`);
     } catch (err) {
-      setForkError(err instanceof Error ? err.message : "Failed to create collaborative conversation");
+      setForkError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create collaborative conversation",
+      );
       setIsForking(null);
     }
   };
@@ -360,18 +407,13 @@ export default function SharePage({
       );
     }
 
-    // No password required, auto-verify
-    if (entityType === "note" && noteShare?._id) {
-      verifyNoteShare({ noteId: noteShare._id }).then(() => setVerified(true));
-    } else if (entityType === "conversation") {
-      verifyConversationShare({ shareId }).then(() => setVerified(true));
-    }
+    // useEffect handles auto-verification, just show loading
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground animate-pulse">
-            Accessing shared content...
+            Verifying access...
           </p>
         </div>
       </div>
@@ -415,61 +457,66 @@ export default function SharePage({
           </div>
           <div className="flex-shrink-0 ml-4 flex items-center gap-2">
             {/* Owner: show "Open Conversation" button */}
-            {authLoaded && entityType === "conversation" && isOwner && share && "conversationId" in share && (
-              <Button
-                asChild
-                variant="default"
-                size="sm"
-              >
-                <Link href={`/chat/${share.conversationId}`}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Conversation
-                </Link>
-              </Button>
-            )}
-            {/* Non-owner: show fork buttons */}
-            {authLoaded && entityType === "conversation" && !isOwner && (
-              <>
-                <Button
-                  onClick={handleForkPrivate}
-                  disabled={!!isForking}
-                  variant="outline"
-                  size="sm"
-                  className="hidden sm:flex"
-                >
-                  {isForking === "private" ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Continue Privately
-                    </>
-                  )}
+            {authLoaded &&
+              entityType === "conversation" &&
+              isOwner &&
+              share &&
+              "conversationId" in share && (
+                <Button asChild variant="default" size="sm">
+                  <Link href={`/chat/${share.conversationId}`}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Conversation
+                  </Link>
                 </Button>
-                <Button
-                  onClick={handleForkCollaborative}
-                  disabled={!!isForking}
-                  variant="default"
-                  size="sm"
-                >
-                  {isForking === "collab" ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Users className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Continue with Creator</span>
-                      <span className="sm:hidden">Join</span>
-                    </>
-                  )}
-                </Button>
-              </>
-            )}
+              )}
+            {/* Non-owner signed-in: show fork buttons */}
+            {authLoaded &&
+              isSignedIn &&
+              entityType === "conversation" &&
+              !isOwner && (
+                <>
+                  <Button
+                    onClick={handleForkPrivate}
+                    disabled={!!isForking}
+                    variant="outline"
+                    size="sm"
+                    className="hidden sm:flex"
+                  >
+                    {isForking === "private" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Continue Privately
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleForkCollaborative}
+                    disabled={!!isForking}
+                    variant="default"
+                    size="sm"
+                  >
+                    {isForking === "collab" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">
+                          Continue with Creator
+                        </span>
+                        <span className="sm:hidden">Join</span>
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             <ThemeToggle />
             {!isSignedIn && authLoaded && (
               <Button
@@ -478,7 +525,7 @@ export default function SharePage({
                 size="sm"
                 className="font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
               >
-                <Link href="/">Start chatting</Link>
+                <Link href="/sign-up">Start chatting</Link>
               </Button>
             )}
           </div>
@@ -526,37 +573,40 @@ export default function SharePage({
             <ChatMessage key={message._id} message={message} readOnly={true} />
           ))}
 
-          {/* Try blah.chat CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="mt-12 pt-8 border-t border-border/40"
-          >
-            <Card className="surface-glass border-primary/20 overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-              <CardContent className="p-8 flex flex-col md:flex-row items-center gap-8 relative z-10">
-                <div className="flex-shrink-0 p-4 rounded-2xl bg-background/50 border border-white/10 shadow-xl">
-                  <Logo size="lg" />
-                </div>
-                <div className="flex-1 text-center md:text-left space-y-2">
-                  <h3 className="text-2xl font-display font-bold">
-                    Pick up where they left off
-                  </h3>
-                  <p className="text-muted-foreground">
-                    All models. Your data. Conversations that survive anything.
-                  </p>
-                </div>
-                <Button
-                  asChild
-                  size="lg"
-                  className="flex-shrink-0 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
-                >
-                  <Link href="/">Try it free</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+          {/* Try blah.chat CTA - only show to unauthenticated users */}
+          {!isSignedIn && authLoaded && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="mt-12 pt-8 border-t border-border/40"
+            >
+              <Card className="surface-glass border-primary/20 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+                <CardContent className="p-8 flex flex-col md:flex-row items-center gap-8 relative z-10">
+                  <div className="flex-shrink-0 p-4 rounded-2xl bg-background/50 border border-white/10 shadow-xl">
+                    <Logo size="lg" />
+                  </div>
+                  <div className="flex-1 text-center md:text-left space-y-2">
+                    <h3 className="text-2xl font-display font-bold">
+                      Pick up where they left off
+                    </h3>
+                    <p className="text-muted-foreground">
+                      All models. Your data. Conversations that survive
+                      anything.
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="flex-shrink-0 rounded-xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all duration-300"
+                  >
+                    <Link href="/sign-up">Try it free</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
       </main>
 

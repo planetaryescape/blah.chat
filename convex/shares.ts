@@ -134,6 +134,52 @@ export const get = query({
   },
 });
 
+/**
+ * Get shared conversation (public - no auth required)
+ * Only returns data if share is valid and active
+ */
+export const getSharedConversation = query({
+  args: { shareId: v.string() },
+  handler: async (ctx, args) => {
+    const share = await ctx.db
+      .query("shares")
+      .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
+      .first();
+
+    if (!share || !share.isActive) return null;
+    if (share.expiresAt && share.expiresAt < Date.now()) return null;
+
+    const conversation = await ctx.db.get(share.conversationId);
+    return conversation;
+  },
+});
+
+/**
+ * Get shared messages (public - no auth required)
+ * Only returns data if share is valid and active
+ */
+export const getSharedMessages = query({
+  args: { shareId: v.string() },
+  handler: async (ctx, args) => {
+    const share = await ctx.db
+      .query("shares")
+      .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
+      .first();
+
+    if (!share || !share.isActive) return null;
+    if (share.expiresAt && share.expiresAt < Date.now()) return null;
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", share.conversationId),
+      )
+      .collect();
+
+    return messages;
+  },
+});
+
 export const verify = action({
   args: {
     shareId: v.string(),
@@ -720,7 +766,10 @@ export const copyMessage = internalMutation({
       role: msg.role,
       content: msg.content,
       // status: use original status (might be "error" with error message)
-      status: msg.status === "generating" || msg.status === "pending" ? "complete" : msg.status,
+      status:
+        msg.status === "generating" || msg.status === "pending"
+          ? "complete"
+          : msg.status,
       model: msg.model,
       inputTokens: msg.inputTokens,
       outputTokens: msg.outputTokens,

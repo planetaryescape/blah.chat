@@ -76,7 +76,7 @@
   --destructive-foreground: oklch(98% 0 0);
 
   --border: oklch(80% 0.03 80); /* Improved from 85% for WCAG AA 3:1 contrast */
-  --input: oklch(92% 0.01 80);
+  --input: oklch(80% 0.03 80); /* Match border color for better visibility */
   --ring: oklch(60% 0.16 70);
 
   --card: oklch(99% 0.005 80 / 0.95);

@@ -10,12 +10,14 @@ import { cn } from "@/lib/utils";
 interface ProjectBadgeProps {
   projectId: Id<"projects">;
   onClick?: () => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
   collapsed?: boolean;
 }
 
 export function ProjectBadge({
   projectId,
   onClick,
+  onKeyDown,
   collapsed,
 }: ProjectBadgeProps) {
   const project = useQuery(api.projects.get, { id: projectId });
@@ -29,15 +31,16 @@ export function ProjectBadge({
     );
   }
 
+  if (collapsed) {
+    return;
+  }
+
   return (
     <Badge
       variant="secondary"
       className={cn(
         "text-xs cursor-pointer transition-all duration-200",
         "max-w-[220px] min-w-0",
-        collapsed
-          ? "px-0.5 py-0 bg-transparent opacity-30 hover:opacity-100 hover:bg-secondary/80"
-          : "hover:bg-secondary/80",
       )}
       onClick={(e) => {
         if (onClick) {
@@ -45,6 +48,14 @@ export function ProjectBadge({
           onClick();
         }
       }}
+      onKeyDown={(e) => {
+        if (onKeyDown) {
+          e.stopPropagation();
+          onKeyDown(e);
+        }
+      }}
+      tabIndex={onClick ? 0 : -1}
+      role={onClick ? "button" : undefined}
       title={project.name} // Always show full name in tooltip
     >
       <FolderOpen className={cn("w-3 h-3 shrink-0", !collapsed && "mr-1")} />

@@ -24,7 +24,7 @@ export function getModelConfig(modelId: string): ModelConfig | undefined {
     };
   }
 
-  // Handle legacy model IDs without provider prefix (e.g., "gpt-4o", "claude-3-opus")
+  // Handle legacy model IDs without provider prefix (e.g., "claude-3-opus")
   // Infer provider from model name
   const legacyProviderMap: Record<string, ModelConfig["provider"]> = {
     gpt: "openai",

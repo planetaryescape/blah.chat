@@ -172,7 +172,20 @@ Since Clerk needs to reach your local server, set up a tunnel:
 
 **Note**: The `applicationID: 'convex'` is correct - it's a constant identifier, not your deployment name.
 
-### 5. Run Locally
+### 5. Admin Access Setup (Optional)
+
+To access the admin dashboard (`/admin`):
+
+1. **Set yourself as admin** in Convex Dashboard → Data → `users` table → set `isAdmin: true`
+2. **Sync to Clerk**:
+   ```bash
+   bun run scripts/sync-admin-to-clerk.ts
+   ```
+3. **Sign out and back in** to refresh your session token.
+
+Future admin changes via `/admin/users` auto-sync to Clerk.
+
+### 6. Run Locally
 
 1. Install dependencies:
 

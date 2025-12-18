@@ -26,6 +26,19 @@ export function useAutoScroll(
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
+  // Refs to avoid stale closures in MutationObserver callback
+  const userScrolledUpRef = useRef(userScrolledUp);
+  const isAtBottomRef = useRef(isAtBottom);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    userScrolledUpRef.current = userScrolledUp;
+  }, [userScrolledUp]);
+
+  useEffect(() => {
+    isAtBottomRef.current = isAtBottom;
+  }, [isAtBottom]);
+
   // Detect prefers-reduced-motion preference
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -108,6 +121,12 @@ export function useAutoScroll(
     return () => container.removeEventListener("scroll", handleScroll);
   }, [checkIfAtBottom]);
 
+  // Ref for scrollToBottom to avoid recreating MutationObserver
+  const scrollToBottomRef = useRef(scrollToBottom);
+  useEffect(() => {
+    scrollToBottomRef.current = scrollToBottom;
+  }, [scrollToBottom]);
+
   // MutationObserver for dynamic content changes during streaming
   // ResizeObserver on the container doesn't fire when scrollable content grows,
   // so we use MutationObserver to detect DOM changes (text updates, new nodes)
@@ -116,13 +135,14 @@ export function useAutoScroll(
     if (!container) return;
 
     const mutationObserver = new MutationObserver(() => {
+      // Use refs for fresh values - avoids stale closure issue
       // Only auto-scroll if user is at bottom and hasn't scrolled up
-      if (!userScrolledUp && isAtBottom) {
+      if (!userScrolledUpRef.current && isAtBottomRef.current) {
         // Debounce - cancel pending RAF before scheduling new
         if (resizeRAF.current) cancelAnimationFrame(resizeRAF.current);
 
         resizeRAF.current = requestAnimationFrame(() => {
-          scrollToBottom("auto");
+          scrollToBottomRef.current("auto");
         });
       }
     });
@@ -140,7 +160,7 @@ export function useAutoScroll(
         cancelAnimationFrame(resizeRAF.current);
       }
     };
-  }, [userScrolledUp, isAtBottom, scrollToBottom]);
+  }, []); // Empty deps - observer setup only once, uses refs for fresh values
 
   return {
     containerRef,

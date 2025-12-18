@@ -15,7 +15,7 @@ interface SendMessageArgs {
   content: string;
   modelId?: string;
   models?: string[];
-  thinkingEffort?: "low" | "medium" | "high";
+  thinkingEffort?: "none" | "low" | "medium" | "high";
   attachments?: Array<{
     type: "file" | "image" | "audio";
     name: string;

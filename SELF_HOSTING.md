@@ -130,7 +130,25 @@ DEFAULT_MONTHLY_BUDGET=10
 TELEMETRY_DISABLED=1
 ```
 
-### Step 6: Run Locally
+### Step 6: Set Up Admin Access
+
+To access the admin dashboard (`/admin`), you need to:
+
+1. **Set your first admin via Convex Dashboard**:
+   - Go to your Convex Dashboard → Data → `users` table
+   - Find your user and set `isAdmin: true`
+
+2. **Sync admin status to Clerk** (required for middleware):
+   ```bash
+   bun run scripts/sync-admin-to-clerk.ts
+   ```
+   This syncs the `isAdmin` flag to Clerk's `publicMetadata` so the middleware can verify admin access.
+
+3. **Sign out and back in** to refresh your session token.
+
+**Note**: Future admin role changes via the Admin Dashboard automatically sync to Clerk.
+
+### Step 7: Run Locally
 
 ```bash
 bun dev
@@ -138,7 +156,7 @@ bun dev
 
 Visit http://localhost:3000
 
-### Step 7: Deploy to Production
+### Step 8: Deploy to Production
 
 #### Vercel (Recommended)
 ```bash
@@ -280,6 +298,20 @@ Compare to blah.chat cloud (when launched): $X/month for similar usage.
 3. Subscribe to: `user.created`, `user.updated`, `user.deleted`
 4. Copy webhook secret to `CLERK_WEBHOOK_SECRET` env var
 5. Restart app
+
+### Admin Dashboard Redirect (Can't Access /admin)
+
+**Symptom**: You're an admin in Convex (sidebar shows admin link) but clicking it redirects to `/app`.
+
+**Cause**: Admin status exists in Convex but not synced to Clerk's `publicMetadata`.
+
+**Fix**:
+```bash
+bun run scripts/sync-admin-to-clerk.ts
+```
+Then sign out and back in to refresh your session token.
+
+**Why?** The middleware checks `sessionClaims.publicMetadata.isAdmin` (from Clerk JWT) for fast edge-level protection. This must be synced from the Convex `users.isAdmin` field.
 
 ### Convex Deployment Errors
 

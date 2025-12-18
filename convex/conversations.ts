@@ -9,6 +9,37 @@ import {
   query,
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
+
+/**
+ * Check if user can access a conversation
+ * Returns true if user is owner OR participant (for collaborative)
+ */
+async function canAccessConversation(
+  ctx: QueryCtx | MutationCtx,
+  conversationId: Id<"conversations">,
+  userId: Id<"users">,
+): Promise<boolean> {
+  const conversation = await ctx.db.get(conversationId);
+  if (!conversation) return false;
+
+  // Owner always has access
+  if (conversation.userId === userId) return true;
+
+  // Check participant table for collaborative conversations
+  if (conversation.isCollaborative) {
+    const participant = await ctx.db
+      .query("conversationParticipants")
+      .withIndex("by_user_conversation", (q) =>
+        q.eq("userId", userId).eq("conversationId", conversationId),
+      )
+      .first();
+
+    return participant !== null;
+  }
+
+  return false;
+}
 
 export const create = mutation({
   args: {
@@ -70,12 +101,69 @@ export const get = query({
     if (!user) return null;
 
     const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) return null;
 
-    if (!conversation || conversation.userId !== user._id) {
-      return null;
-    }
+    // Check access: owner OR participant
+    const hasAccess = await canAccessConversation(
+      ctx,
+      args.conversationId,
+      user._id,
+    );
+
+    if (!hasAccess) return null;
 
     return conversation;
+  },
+});
+
+/**
+ * Get all participants for a conversation
+ * Useful for showing who's in a collaborative conversation
+ */
+export const getParticipants = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    // Check access first
+    const hasAccess = await canAccessConversation(
+      ctx,
+      args.conversationId,
+      user._id,
+    );
+    if (!hasAccess) return [];
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || !conversation.isCollaborative) return [];
+
+    // Get participants
+    const participants = await ctx.db
+      .query("conversationParticipants")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .collect();
+
+    // Fetch user details
+    const participantsWithUsers = await Promise.all(
+      participants.map(async (p) => {
+        const participantUser = await ctx.db.get(p.userId);
+        return {
+          ...p,
+          user: participantUser
+            ? {
+                _id: participantUser._id,
+                name: participantUser.name,
+                email: participantUser.email,
+                imageUrl: participantUser.imageUrl,
+              }
+            : null,
+        };
+      }),
+    );
+
+    return participantsWithUsers;
   },
 });
 
@@ -148,30 +236,71 @@ export const list = query({
       });
     }
 
-    // DEFAULT MODE: Recent conversations
-    let query = ctx.db
+    // DEFAULT MODE: Get owned + collaborative conversations
+
+    // 1. Get owned conversations
+    let ownedQuery = ctx.db
       .query("conversations")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .filter((q) => q.eq(q.field("archived"), false));
 
-    // Apply project filter
+    // Apply project filter to owned
     if (args.projectId !== undefined) {
       if (args.projectId === "none") {
-        query = query.filter((q) => q.eq(q.field("projectId"), undefined));
+        ownedQuery = ownedQuery.filter((q) =>
+          q.eq(q.field("projectId"), undefined),
+        );
       } else {
-        query = query.filter((q) => q.eq(q.field("projectId"), args.projectId));
+        ownedQuery = ownedQuery.filter((q) =>
+          q.eq(q.field("projectId"), args.projectId),
+        );
       }
     }
 
-    const convos = args.limit
-      ? await query.take(args.limit)
-      : await query.collect();
+    const owned = await ownedQuery.collect();
 
-    // Sort: pinned first, then by lastMessageAt
-    return convos.sort((a, b) => {
+    // 2. Get collaborative conversations where user is participant
+    const participations = await ctx.db
+      .query("conversationParticipants")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // 3. Fetch collaborative conversations
+    const collabConversations = await Promise.all(
+      participations.map((p) => ctx.db.get(p.conversationId)),
+    );
+
+    // 4. Filter collaborative: not null, not archived, apply project filter
+    let filteredCollab = collabConversations.filter(
+      (c): c is NonNullable<typeof c> => c !== null && !c.archived,
+    );
+
+    if (args.projectId !== undefined) {
+      if (args.projectId === "none") {
+        filteredCollab = filteredCollab.filter((c) => !c.projectId);
+      } else {
+        filteredCollab = filteredCollab.filter(
+          (c) => c.projectId === args.projectId,
+        );
+      }
+    }
+
+    // 5. Merge and dedupe (owner might also be in participants)
+    const allConversations = [...owned];
+    for (const collab of filteredCollab) {
+      if (!allConversations.find((c) => c._id === collab._id)) {
+        allConversations.push(collab);
+      }
+    }
+
+    // 6. Sort: pinned first, then by lastMessageAt
+    const sorted = allConversations.sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.lastMessageAt - a.lastMessageAt;
     });
+
+    // 7. Apply limit if specified
+    return args.limit ? sorted.slice(0, args.limit) : sorted;
   },
 });
 
@@ -325,7 +454,20 @@ export const deleteConversation = mutation({
       await ctx.db.delete(junction._id);
     }
 
-    // 6. Delete messages
+    // 6. Delete participants (for collaborative conversations)
+    if (conv.isCollaborative) {
+      const participants = await ctx.db
+        .query("conversationParticipants")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", args.conversationId),
+        )
+        .collect();
+      for (const p of participants) {
+        await ctx.db.delete(p._id);
+      }
+    }
+
+    // 7. Delete messages
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -336,7 +478,7 @@ export const deleteConversation = mutation({
       await ctx.db.delete(msg._id);
     }
 
-    // 7. Delete conversation
+    // 8. Delete conversation
     await ctx.db.delete(args.conversationId);
   },
 });

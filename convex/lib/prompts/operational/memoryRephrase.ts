@@ -22,7 +22,7 @@ Rephrasing rules:
 - "We're building X" → "User is building X"
 
 Preserve specifics exactly:
-- Technical terms: "Next.js 15", "gpt-4o", "React 19"
+- Technical terms: "Next.js 15", "gpt-5", "React 19"
 - Version numbers: "TypeScript 5.3"
 - Project names: "blah.chat"
 - Code snippets: \`const\` vs \`let\`

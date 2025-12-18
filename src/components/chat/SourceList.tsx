@@ -15,6 +15,24 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
+type SourceWithMetadata = {
+  position: number;
+  provider: string;
+  title?: string;
+  snippet?: string;
+  url: string;
+  isPartial: boolean;
+  createdAt: number;
+  metadata: {
+    title?: string;
+    description?: string;
+    ogImage?: string;
+    favicon?: string;
+    siteName?: string;
+    enriched: boolean;
+  } | null;
+};
+
 interface SourceListProps {
   messageId: Id<"messages">;
   className?: string;
@@ -62,7 +80,7 @@ export function SourceList({ messageId, className }: SourceListProps) {
       {/* Expandable Sources Grid */}
       {isExpanded && (
         <div className="grid gap-2 sm:grid-cols-2">
-          {sources.map((source, idx) => (
+          {sources.map((source: SourceWithMetadata, idx: number) => (
             <SourceCard
               key={source.position || idx}
               source={source}
@@ -76,7 +94,7 @@ export function SourceList({ messageId, className }: SourceListProps) {
 }
 
 interface SourceCardProps {
-  source: any; // Type from Convex query
+  source: SourceWithMetadata;
   position: number;
 }
 

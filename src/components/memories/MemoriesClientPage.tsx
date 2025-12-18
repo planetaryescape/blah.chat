@@ -17,6 +17,7 @@ import { MemoryFilters } from "@/components/memories/MemoryFilters";
 import { MemoryItem } from "@/components/memories/MemoryItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
 
 const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
@@ -139,7 +140,7 @@ export function MemoriesClientPage() {
   }
 
   const groupedMemories = memories.reduce<Record<string, typeof memories>>(
-    (acc, memory: any) => {
+    (acc, memory: Doc<"memories">) => {
       const category = (memory.metadata?.category as string) || "other";
       if (!acc[category]) acc[category] = [];
       acc[category].push(memory);
@@ -192,7 +193,7 @@ export function MemoriesClientPage() {
           ) : (
             <div className="space-y-8">
               {Object.entries(groupedMemories).map(
-                ([category, categoryMemories]) => {
+                ([category, categoryMemories]: [string, Doc<"memories">[]]) => {
                   const label = CATEGORY_LABELS[category] || {
                     title: category,
                     description: "Other memories",
@@ -211,7 +212,7 @@ export function MemoriesClientPage() {
 
                       <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
                         <div className="divide-y divide-border/40">
-                          {categoryMemories.map((memory: any) => (
+                          {categoryMemories.map((memory: Doc<"memories">) => (
                             <MemoryItem
                               key={memory._id}
                               memory={memory}

@@ -46,7 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { createExtensions } from "@/lib/tiptap/extensions";
 import { cn } from "@/lib/utils";
@@ -340,7 +340,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No Project</SelectItem>
-                    {projects?.map((project) => (
+                    {projects?.map((project: Doc<"projects">) => (
                       <SelectItem key={project._id} value={project._id}>
                         {project.name}
                       </SelectItem>

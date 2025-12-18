@@ -95,6 +95,7 @@ export function InputBottomBar({
           <ComparisonTrigger
             onStartComparison={onStartComparison}
             isActive={isComparisonMode}
+            selectedModels={selectedModels}
             open={comparisonDialogOpen}
             onOpenChange={onComparisonDialogOpenChange}
           />

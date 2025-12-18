@@ -97,7 +97,7 @@ export const updateUserRole = mutation({
         {
           clerkId: targetUser.clerkId,
           isAdmin,
-        }
+        },
       );
     }
 
@@ -124,19 +124,16 @@ export const syncAdminToClerk = internalAction({
       throw new Error("CLERK_SECRET_KEY not configured");
     }
 
-    const response = await fetch(
-      `https://api.clerk.com/v1/users/${clerkId}`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${clerkSecretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          public_metadata: { isAdmin },
-        }),
-      }
-    );
+    const response = await fetch(`https://api.clerk.com/v1/users/${clerkId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${clerkSecretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        public_metadata: { isAdmin },
+      }),
+    });
 
     if (!response.ok) {
       const error = await response.text();

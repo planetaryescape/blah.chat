@@ -368,7 +368,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     knowledgeCutoff: "August 2025",
     userFriendlyDescription:
       "Fast frontier intelligence. Google's smartest model optimized for speed with 1M context and built-in search grounding.",
-    bestFor: "Speed-critical tasks, real-time applications, search-grounded responses",
+    bestFor:
+      "Speed-critical tasks, real-time applications, search-grounded responses",
   },
   "google:gemini-2.0-flash": {
     id: "google:gemini-2.0-flash",

@@ -268,8 +268,8 @@ export const regenerate = mutation({
     // Phase 4: Get default model from new preference system
     const userDefaultModel = await (
       ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-      // @ts-ignore
     )(api.users.getUserPreference as any, { key: "defaultModel" });
+    // @ts-ignore
     // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
 
     // Priority: message.model → conversation.model → user defaultModel preference → fallback

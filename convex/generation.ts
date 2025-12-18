@@ -748,7 +748,7 @@ export const generateResponse = internalAction({
 
       // 7. Combine: system prompts FIRST, then history
       // Filter out empty messages (Gemini requires non-empty content parts)
-      const nonEmptyHistory = history.filter((msg: CoreMessage) => {
+      const nonEmptyHistory = history.filter((msg: any) => {
         if (Array.isArray(msg.content)) {
           return msg.content.length > 0;
         }
@@ -758,7 +758,7 @@ export const generateResponse = internalAction({
       // Clean providerMetadata for cross-model compatibility
       // Gemini rejects messages with metadata from other providers (e.g., thought_signature)
       const isGeminiModel = args.modelId.includes("gemini");
-      const cleanedHistory = nonEmptyHistory.map((msg: CoreMessage) => {
+      const cleanedHistory = nonEmptyHistory.map((msg: any) => {
         if (isGeminiModel && msg.providerMetadata) {
           // Remove providerMetadata for Gemini models to avoid cross-model conflicts
           const { providerMetadata: _removed, ...rest } = msg;

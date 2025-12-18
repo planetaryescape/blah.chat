@@ -5,15 +5,17 @@ export function useComparisonMode() {
   const [isActive, setIsActive] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [activeComparisonId, setActiveComparisonId] = useState<string | null>(
-    null,
+    null
   );
 
   const startComparison = (models: string[]) => {
     if (models.length < 2) {
-      throw new Error("Select at least 2 models");
+      console.warn("Cannot start comparison: Select at least 2 models");
+      return false;
     }
     if (models.length > 4) {
-      throw new Error("Maximum 4 models allowed");
+      console.warn("Cannot start comparison: Maximum 4 models allowed");
+      return false;
     }
     setSelectedModels(models);
     setIsActive(true);
@@ -23,6 +25,8 @@ export function useComparisonMode() {
       modelCount: models.length,
       models: models.join(","),
     });
+
+    return true;
   };
 
   const exitComparison = () => {

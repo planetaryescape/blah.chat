@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Bell, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -14,7 +15,9 @@ import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const router = useRouter();
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const unreadCount = useQuery(api.notifications.getUnreadCount);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const notifications = useQuery(api.notifications.list, { limit: 10 });
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
@@ -64,7 +67,7 @@ export function NotificationBell() {
               No notifications
             </div>
           ) : (
-            notifications.map((n) => (
+            notifications.map((n: Doc<"notifications">) => (
               <div
                 key={n._id}
                 className={cn(

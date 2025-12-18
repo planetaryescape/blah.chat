@@ -74,6 +74,17 @@ export function ConversationItem({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (isSelectionMode) {
+        onToggleSelection?.(conversation._id);
+      } else {
+        router.push(`/chat/${conversation._id}`);
+      }
+    }
+  };
+
   const handleDelete = async () => {
     await deleteConversation({ conversationId: conversation._id });
     if (isActive) {
@@ -117,6 +128,16 @@ export function ConversationItem({
     }
   }, [conversation.projectId, setProjectFilter]);
 
+  const handleProjectFilterKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleProjectFilterClick();
+      }
+    },
+    [handleProjectFilterClick],
+  );
+
   // Get shared menu items
   const menuItems = getConversationMenuItems({
     conversation,
@@ -148,6 +169,7 @@ export function ConversationItem({
               isSelectedById && "bg-primary/5 ring-1 ring-primary/20",
             )}
             onClick={handleClick}
+            onKeyDown={handleKeyDown}
             onMouseEnter={onClearSelection}
             data-list-id={conversation._id}
             role="option"
@@ -219,6 +241,7 @@ export function ConversationItem({
                 <ProjectBadge
                   projectId={conversation.projectId}
                   onClick={handleProjectFilterClick}
+                  onKeyDown={handleProjectFilterKeyDown}
                   collapsed={projectFilter === conversation.projectId}
                 />
               )}
@@ -259,7 +282,8 @@ export function ConversationItem({
                           <Pin
                             className={cn(
                               "w-2.5 h-2.5",
-                              conversation.pinned && "text-primary fill-primary",
+                              conversation.pinned &&
+                                "text-primary fill-primary",
                             )}
                           />
                         </Button>

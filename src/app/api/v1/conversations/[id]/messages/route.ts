@@ -11,6 +11,8 @@ import logger from "@/lib/logger";
 const sendSchema = z.object({
   content: z.string().min(1),
   modelId: z.string().optional(),
+  models: z.array(z.string()).optional(),
+  thinkingEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   attachments: z
     .array(
       z.object({
@@ -19,7 +21,7 @@ const sendSchema = z.object({
         storageId: z.string(),
         mimeType: z.string(),
         size: z.number(),
-      }),
+      })
     )
     .optional(),
 });
@@ -29,13 +31,13 @@ async function getHandler(
   {
     params,
     userId,
-  }: { params: Promise<Record<string, string | string[]>>; userId: string },
+  }: { params: Promise<Record<string, string | string[]>>; userId: string }
 ) {
   const { id: conversationId } = (await params) as { id: string };
   const startTime = performance.now();
   logger.info(
     { userId, conversationId },
-    "GET /api/v1/conversations/:id/messages",
+    "GET /api/v1/conversations/:id/messages"
   );
 
   // Note: messagesDAL.list doesn't support pagination (returns all messages)
@@ -67,13 +69,13 @@ async function postHandler(
     params: Promise<Record<string, string | string[]>>;
     userId: string;
     sessionToken: string;
-  },
+  }
 ) {
   const { id: conversationId } = (await params) as { id: string };
   const startTime = Date.now();
   logger.info(
     { userId, conversationId },
-    "POST /api/v1/conversations/:id/messages",
+    "POST /api/v1/conversations/:id/messages"
   );
 
   const body = await parseBody(req, sendSchema);
@@ -81,7 +83,7 @@ async function postHandler(
     userId,
     conversationId,
     body,
-    sessionToken,
+    sessionToken
   );
 
   const duration = Date.now() - startTime;
@@ -92,7 +94,7 @@ async function postHandler(
       assistantMessageId: result.data.assistantMessageId,
       duration,
     },
-    "Message sent (async generation started)",
+    "Message sent (async generation started)"
   );
 
   // 202 Accepted - generation happens async

@@ -2,6 +2,25 @@ import { action, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 
 /**
+ * API key availability return type
+ */
+type ApiKeyAvailability = {
+  stt: {
+    groq: boolean;
+    openai: boolean;
+    deepgram: boolean;
+    assemblyai: boolean;
+    currentProvider: string;
+    currentProviderKeyName: string;
+    hasCurrentProviderKey: boolean;
+  };
+  tts: {
+    deepgram: boolean;
+  };
+  isProduction: boolean;
+};
+
+/**
  * Check which API keys are configured (returns boolean, NOT actual keys)
  * Used by frontend to disable features if prerequisites missing
  *
@@ -59,7 +78,16 @@ const getApiKeyAvailabilityInternal = internalQuery({
  */
 export const getApiKeyAvailability = action({
   args: {},
-  handler: async (ctx) => {
-    return await ctx.runQuery(internal.settings.apiKeys.getApiKeyAvailabilityInternal, {});
+  handler: async (ctx): Promise<ApiKeyAvailability> => {
+    return await (
+      ctx.runQuery as (
+        ref: any,
+        args: any,
+      ) => Promise<ApiKeyAvailability>
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.settings.apiKeys.getApiKeyAvailabilityInternal,
+      {},
+    );
   },
 });

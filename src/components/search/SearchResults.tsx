@@ -218,8 +218,8 @@ function SearchResultCard({
   isSelected: boolean;
   onToggleSelection: (id: Id<"messages">) => void;
 }) {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
     message.conversationId ? { conversationId: message.conversationId } : "skip",
   );

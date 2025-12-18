@@ -219,9 +219,10 @@ function SearchResultCard({
   onToggleSelection: (id: Id<"messages">) => void;
 }) {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversation = useQuery(api.conversations.get, {
-    conversationId: message.conversationId,
-  });
+  const conversation = useQuery(
+    api.conversations.get,
+    message.conversationId ? { conversationId: message.conversationId } : "skip",
+  );
 
   // Highlight query terms in content (sanitized)
   const highlightedContent = highlightText(message.content, query);

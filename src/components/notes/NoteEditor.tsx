@@ -64,8 +64,6 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   const _togglePin = useMutation(api.notes.togglePin);
   const deleteNote = useMutation(api.notes.deleteNote);
 
-  const { isMobile } = useMobileDetect();
-
   const [title, setTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);

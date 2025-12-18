@@ -5,6 +5,7 @@ const MAX_RECENT_SEARCHES = 6;
 
 export function useRecentSearches() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -18,6 +19,8 @@ export function useRecentSearches() {
       }
     } catch (error) {
       console.error("Failed to load recent searches:", error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -54,6 +57,7 @@ export function useRecentSearches() {
 
   return {
     recentSearches,
+    isLoading,
     addSearch,
     clearRecent,
   };

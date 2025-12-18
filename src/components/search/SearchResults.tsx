@@ -306,9 +306,9 @@ function highlightText(text: string, query: string): string {
     .replace(/^\s+/gm, "") // Remove leading whitespace from each line
     .replace(/\n{3,}/g, "\n\n"); // Collapse 3+ newlines to 2
 
-  if (!query.trim()) return DOMPurify.sanitize(normalizedText);
+  if (!query?.trim()) return DOMPurify.sanitize(normalizedText);
 
-  const terms = query.trim().split(/\s+/);
+  const terms = query?.trim().split(/\s+/) ?? [];
   let highlighted = normalizedText;
 
   terms.forEach((term) => {

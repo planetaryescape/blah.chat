@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 export function TaskFilters({
   view,
@@ -55,7 +55,7 @@ export function TaskFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Projects</SelectItem>
-            {projects?.map((project) => (
+            {projects?.map((project: Doc<"projects">) => (
               <SelectItem key={project._id} value={project._id}>
                 {project.name}
               </SelectItem>

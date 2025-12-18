@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 export function CreateTaskDialog({
   open,
@@ -207,7 +207,7 @@ export function CreateTaskDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No project</SelectItem>
-                {projects?.map((project) => (
+                {projects?.map((project: Doc<"projects">) => (
                   <SelectItem key={project._id} value={project._id}>
                     {project.name}
                   </SelectItem>

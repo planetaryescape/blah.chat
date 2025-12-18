@@ -15,7 +15,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
 interface TasksSidebarProps {
@@ -111,7 +111,7 @@ export function TasksSidebar({
 
           {isProjectsExpanded && (
             <div className="space-y-1 mt-1">
-              {projects?.map((project) => (
+              {projects?.map((project: Doc<"projects">) => (
                 <Button
                   key={project._id}
                   variant="ghost"

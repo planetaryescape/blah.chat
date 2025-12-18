@@ -6,7 +6,7 @@ export function NoteListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-1 p-2">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="p-3 rounded-lg border bg-card">
+        <div key={i} className="p-3 rounded-lg">
           {/* Title */}
           <Skeleton className="h-4 w-3/4 mb-2" />
 

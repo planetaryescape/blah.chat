@@ -5,8 +5,10 @@ import { cn } from "@/lib/utils";
 
 export function ConversationListSkeleton() {
   return (
-    <div className="space-y-2 px-2 py-2">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="space-y-2 px-0 pb-1">
+      {/* Project filter skeleton */}
+      <Skeleton className="h-8 w-full mb-4" />
+      {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
           className={cn(

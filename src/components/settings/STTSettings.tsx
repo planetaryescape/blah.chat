@@ -1,10 +1,12 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TTSSettings } from "@/components/settings/TTSSettings";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,17 +14,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 
 export function STTSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -32,7 +36,6 @@ export function STTSettings() {
 
   // Phase 4: Use new preference hooks for source of truth
   const prefSttEnabled = useUserPreference("sttEnabled");
-  const prefSttProvider = useUserPreference("sttProvider");
   const prefTtsEnabled = useUserPreference("ttsEnabled");
   const prefTtsProvider = useUserPreference("ttsProvider");
   const prefTtsVoice = useUserPreference("ttsVoice");
@@ -41,17 +44,23 @@ export function STTSettings() {
 
   // Local state for optimistic updates (initialized from hooks)
   const [sttEnabled, setSttEnabled] = useState<boolean>(prefSttEnabled);
-  const [sttProvider, setSttProvider] = useState<
-    "openai" | "deepgram" | "assemblyai" | "groq"
-  >(prefSttProvider);
+  const [showKeyMissingModal, setShowKeyMissingModal] = useState(false);
+
+  // API key validation
+  const validation = useApiKeyValidation();
 
   // Sync local state when hook values change
   useEffect(() => {
     setSttEnabled(prefSttEnabled);
-    setSttProvider(prefSttProvider);
-  }, [prefSttEnabled, prefSttProvider]);
+  }, [prefSttEnabled]);
 
   const handleToggleChange = async (checked: boolean) => {
+    // Check if trying to enable without API key
+    if (checked && !validation.stt.enabled) {
+      setShowKeyMissingModal(true);
+      return;
+    }
+
     setSttEnabled(checked);
     try {
       await updatePreferences({
@@ -66,24 +75,7 @@ export function STTSettings() {
     }
   };
 
-  const handleProviderChange = async (
-    value: "openai" | "deepgram" | "assemblyai" | "groq",
-  ) => {
-    setSttProvider(value);
-    try {
-      await updatePreferences({
-        preferences: {
-          sttProvider: value,
-        },
-      });
-      toast.success(`Provider changed to ${value}!`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save");
-      setSttProvider(sttProvider);
-    }
-  };
-
-  if (!user) {
+  if (!user || validation.loading) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -102,58 +94,55 @@ export function STTSettings() {
         <CardHeader>
           <CardTitle>Speech-to-Text (Input)</CardTitle>
           <CardDescription>
-            Choose your voice transcription provider
+            Use voice input to send messages (transcription via{" "}
+            {validation.stt.provider || "admin-selected provider"})
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
+          {/* Warning if API key missing */}
+          {!validation.stt.enabled && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {validation.getSTTErrorMessage()}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Enable/disable toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="stt-enabled">Enable voice input</Label>
               <p className="text-sm text-muted-foreground">
-                Allow voice-to-text transcription in chat
+                Allow microphone access to send voice messages
               </p>
             </div>
             <Switch
               id="stt-enabled"
               checked={sttEnabled}
               onCheckedChange={handleToggleChange}
+              disabled={!validation.stt.enabled && !sttEnabled}
             />
-          </div>
-
-          {/* Provider selection */}
-          <div className="space-y-2">
-            <Label htmlFor="stt-provider">Transcription Provider</Label>
-            <Select
-              value={sttProvider}
-              onValueChange={handleProviderChange}
-              disabled={!sttEnabled}
-            >
-              <SelectTrigger id="stt-provider">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">
-                  OpenAI Whisper ($0.006/min) - Simplest
-                </SelectItem>
-                <SelectItem value="deepgram">
-                  Deepgram Nova-3 ($0.0077/min) - Fastest
-                </SelectItem>
-                <SelectItem value="assemblyai">
-                  AssemblyAI ($0.0025/min) - Most Accurate
-                </SelectItem>
-                <SelectItem value="groq">
-                  Groq Whisper Turbo ($0.04/hour) - Fast & Affordable
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              All providers require server-side processing. Works on any
-              network.
-            </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal for missing API key */}
+      <Dialog open={showKeyMissingModal} onOpenChange={setShowKeyMissingModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>API Key Required</DialogTitle>
+            <DialogDescription className="pt-4">
+              {validation.getSTTErrorMessage()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowKeyMissingModal(false)}>
+              Understood
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Text-to-Speech Settings */}
       <TTSSettings

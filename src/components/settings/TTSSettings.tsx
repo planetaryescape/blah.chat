@@ -1,7 +1,9 @@
 "use client";
 
-import { Info } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,6 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 
 interface TTSSettingsProps {
   ttsEnabled: boolean;
@@ -49,6 +60,20 @@ export function TTSSettings({
   onSettingsChange,
 }: TTSSettingsProps) {
   const [localSpeed, setLocalSpeed] = useState(ttsSpeed);
+  const [showKeyMissingModal, setShowKeyMissingModal] = useState(false);
+
+  // API key validation
+  const validation = useApiKeyValidation();
+
+  const handleToggle = (checked: boolean) => {
+    // Check if trying to enable without API key
+    if (checked && !validation.tts.enabled) {
+      setShowKeyMissingModal(true);
+      return;
+    }
+
+    onSettingsChange({ ttsEnabled: checked });
+  };
 
   // Voice options per provider
   const voiceOptions = {
@@ -122,6 +147,16 @@ export function TTSSettings({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Warning if API key missing */}
+        {!validation.tts.enabled && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {validation.getTTSErrorMessage()}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Enable/Disable */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -133,9 +168,8 @@ export function TTSSettings({
           <Switch
             id="tts-enabled"
             checked={ttsEnabled}
-            onCheckedChange={(checked) =>
-              onSettingsChange({ ttsEnabled: checked })
-            }
+            onCheckedChange={handleToggle}
+            disabled={!validation.tts.enabled && !ttsEnabled}
           />
         </div>
 
@@ -229,6 +263,23 @@ export function TTSSettings({
           </>
         )}
       </CardContent>
+
+      {/* Modal for missing API key */}
+      <Dialog open={showKeyMissingModal} onOpenChange={setShowKeyMissingModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>API Key Required</DialogTitle>
+            <DialogDescription className="pt-4">
+              {validation.getTTSErrorMessage()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowKeyMissingModal(false)}>
+              Understood
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

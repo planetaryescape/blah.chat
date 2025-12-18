@@ -108,6 +108,7 @@ import type * as onboarding from "../onboarding.js";
 import type * as projects from "../projects.js";
 import type * as search from "../search.js";
 import type * as search_hybrid from "../search/hybrid.js";
+import type * as settings_apiKeys from "../settings/apiKeys.js";
 import type * as shares from "../shares.js";
 import type * as shares_password from "../shares/password.js";
 import type * as snippets from "../snippets.js";
@@ -263,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   search: typeof search;
   "search/hybrid": typeof search_hybrid;
+  "settings/apiKeys": typeof settings_apiKeys;
   shares: typeof shares;
   "shares/password": typeof shares_password;
   snippets: typeof snippets;

@@ -26,17 +26,15 @@ export function ConversationList({
 
   return (
     <div
-      className="py-2"
       role="listbox"
       aria-label="Conversations"
       aria-activedescendant={selectedId ? `conv-${selectedId}` : undefined}
       tabIndex={0}
     >
-      {conversations.map((conversation: any, index: number) => (
+      {conversations.map((conversation: any) => (
         <ConversationItem
           key={conversation._id}
           conversation={conversation}
-          index={index}
           selectedId={selectedId}
           onClearSelection={onClearSelection}
           isSelectionMode={isSelectionMode}

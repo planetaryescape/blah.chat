@@ -35,7 +35,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
   return (
     <div className="w-full min-w-0">
       <Select value={value || "all"} onValueChange={handleChange}>
-        <SelectTrigger className="w-full min-w-0">
+        <SelectTrigger className="w-full min-w-0 px-2.5">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <FolderOpen className="w-4 h-4 shrink-0" />
             <div className="truncate min-w-0 ">

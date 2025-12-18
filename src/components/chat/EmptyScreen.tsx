@@ -76,7 +76,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center animate-message-enter">
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8 bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 sm:mb-8 bg-linear-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
         How can I help you?
       </h1>
 
@@ -89,7 +89,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
               key={category.key}
               variant="outline"
               className={cn(
-                "rounded-full gap-2 px-4 h-9 transition-all duration-300 border-white/10 hover:scale-105",
+                "rounded-full gap-2 px-4 h-9 transition-all duration-300 border-white/10 hover:scale-105 cursor-pointer",
                 activeCategory === category.key
                   ? "bg-primary/20 text-primary border-primary/20 hover:bg-primary/30"
                   : "bg-background/40 hover:bg-background/80 hover:border-white/20",
@@ -117,7 +117,7 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
                 onClick(prompt);
               }
             }}
-            className="group flex items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-xs sm:text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+            className="group flex h-16 items-center justify-between p-2 sm:p-3 rounded-lg sm:rounded-xl hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-white/5 text-xs sm:text-sm text-muted-foreground hover:text-foreground cursor-pointer"
             style={{
               animationDelay: `${i * 100}ms`,
             }}

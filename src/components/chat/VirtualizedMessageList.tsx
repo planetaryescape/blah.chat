@@ -66,6 +66,17 @@ export function VirtualizedMessageList({
   // Track if we've scrolled to highlighted message
   const scrolledToHighlight = useRef(false);
 
+  // Track previous message count to detect new messages
+  const prevMessageCount = useRef(messages.length);
+
+  // Track if user was at bottom before new message (avoids stale isAtBottom)
+  const wasAtBottomRef = useRef(true);
+
+  // Update wasAtBottomRef whenever isAtBottom changes
+  useEffect(() => {
+    wasAtBottomRef.current = isAtBottom;
+  }, [isAtBottom]);
+
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
     // FILTER: Remove assistant messages that have been consolidated
@@ -208,16 +219,26 @@ export function VirtualizedMessageList({
     scrolledToHighlight.current = false;
   }, []);
 
-  // Scroll on new content
+  // Scroll when new messages are added
   useEffect(() => {
     // Skip auto-scroll if highlighting a specific message from URL
     if (highlightMessageId) return;
 
-    // Only auto-scroll if user is at bottom and autoScroll enabled
-    if (autoScroll && isAtBottom) {
-      scrollToBottom("smooth");
+    const currentCount = messages.length;
+    const prevCount = prevMessageCount.current;
+
+    // New message was added
+    if (currentCount > prevCount) {
+      // Use wasAtBottomRef to check position BEFORE message was added
+      // (isAtBottom state will be stale/false because content just grew)
+      if (autoScroll && wasAtBottomRef.current) {
+        // Use "auto" (instant) scroll for immediate feedback
+        scrollToBottom("auto");
+      }
     }
-  }, [autoScroll, isAtBottom, scrollToBottom, highlightMessageId]);
+
+    prevMessageCount.current = currentCount;
+  }, [messages.length, autoScroll, scrollToBottom, highlightMessageId]);
 
   if (messages.length === 0) {
     return (

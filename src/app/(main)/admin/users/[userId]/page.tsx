@@ -50,12 +50,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
   formatCompactNumber,
   formatCurrency,
   getLastNDays,
 } from "@/lib/utils/date";
+
+type ModelBreakdown = {
+  model: string;
+  totalCost: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  requestCount: number;
+};
 
 const COLORS = [
   "#8b5cf6",
@@ -144,7 +152,7 @@ export default function UserDetailPage({
     enabled: shouldVirtualizeModels,
   });
 
-  const user = users?.find((u) => u._id === userId);
+  const user = users?.find((u: Doc<"users">) => u._id === userId);
 
   // Early return check AFTER all hooks
   if (
@@ -163,7 +171,7 @@ export default function UserDetailPage({
   }
 
   // Prepare export data
-  const exportData = modelBreakdown.map((model) => ({
+  const exportData = modelBreakdown.map((model: ModelBreakdown) => ({
     Model: model.model,
     "Total Cost": model.totalCost.toFixed(4),
     "Input Tokens": model.totalInputTokens,
@@ -348,7 +356,7 @@ export default function UserDetailPage({
                       fill="#8884d8"
                       dataKey="totalCost"
                     >
-                      {modelBreakdown.map((_entry, index) => (
+                      {modelBreakdown.map((_entry: ModelBreakdown, index: number) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={COLORS[index % COLORS.length]}
@@ -489,7 +497,7 @@ export default function UserDetailPage({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {modelBreakdown.map((model) => (
+                    {modelBreakdown.map((model: ModelBreakdown) => (
                       <TableRow key={model.model}>
                         <TableCell className="font-medium">
                           {model.model}

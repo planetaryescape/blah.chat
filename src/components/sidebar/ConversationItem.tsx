@@ -237,38 +237,42 @@ export function ConversationItem({
             {!isSelectionMode && (
               <div className="absolute top-2 bottom-2 sm:top-[2.5px] sm:bottom-[2.5px] right-2 flex items-center gap-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-gradient-to-l from-sidebar-accent via-sidebar-accent/80 to-transparent pl-8 pr-1">
                 {/* Pin button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handlePinClick}
-                      variant="ghost"
-                      size="icon"
-                      className="h-3 w-3 min-w-0 min-h-0 p-0"
-                      disabled={
-                        !conversation.pinned && conversation.messageCount === 0
-                      }
-                      aria-label={
-                        conversation.pinned ? "Unpin" : "Pin conversation"
-                      }
-                    >
-                      <Pin
-                        className={cn(
-                          "w-2.5 h-2.5",
-                          conversation.pinned && "text-primary fill-primary"
-                        )}
-                      />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {conversation.pinned
-                        ? "Unpin"
-                        : conversation.messageCount === 0
-                          ? "Cannot pin empty"
-                          : "Pin"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                {conversation.messageCount !== undefined &&
+                  conversation.messageCount > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handlePinClick}
+                          variant="ghost"
+                          size="icon"
+                          className="h-3 w-3 min-w-0 min-h-0 p-0"
+                          disabled={
+                            !conversation.pinned &&
+                            conversation.messageCount === 0
+                          }
+                          aria-label={
+                            conversation.pinned ? "Unpin" : "Pin conversation"
+                          }
+                        >
+                          <Pin
+                            className={cn(
+                              "w-2.5 h-2.5",
+                              conversation.pinned && "text-primary fill-primary"
+                            )}
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {conversation.pinned
+                            ? "Unpin"
+                            : conversation.messageCount === 0
+                              ? "Cannot pin empty"
+                              : "Pin"}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
 
                 {/* Dropdown menu */}
                 <DropdownMenu>

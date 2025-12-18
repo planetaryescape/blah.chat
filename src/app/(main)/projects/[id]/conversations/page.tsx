@@ -113,7 +113,7 @@ export default function ProjectConversationsPage({
         if (allConversations) {
           const lowerQuery = query.toLowerCase();
           const filtered = allConversations.filter(
-            (c) =>
+            (c: Doc<"conversations">) =>
               c.title?.toLowerCase().includes(lowerQuery) ||
               c.model?.toLowerCase().includes(lowerQuery),
           );
@@ -138,7 +138,7 @@ export default function ProjectConversationsPage({
   // Transform data for table
   const tableData = useMemo<ConversationRow[]>(() => {
     if (!displayedConversations) return [];
-    return displayedConversations.map((conv) => ({
+    return displayedConversations.map((conv: Doc<"conversations">) => ({
       _id: conv._id,
       title: conv.title || "Untitled Chat",
       model: conv.model,

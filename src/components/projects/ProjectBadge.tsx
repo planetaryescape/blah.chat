@@ -18,7 +18,6 @@ export function ProjectBadge({
   onClick,
   collapsed,
 }: ProjectBadgeProps) {
-  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
   const project = useQuery(api.projects.get, { id: projectId });
 
   if (!project) {
@@ -35,7 +34,7 @@ export function ProjectBadge({
       variant="secondary"
       className={cn(
         "text-xs cursor-pointer transition-all duration-200",
-        "max-w-40 min-w-0",
+        "max-w-[220px] min-w-0",
         collapsed
           ? "px-0.5 py-0 bg-transparent opacity-30 hover:opacity-100 hover:bg-secondary/80"
           : "hover:bg-secondary/80"

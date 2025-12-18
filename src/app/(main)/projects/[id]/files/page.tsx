@@ -32,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 export default function ProjectFilesPage({
   params,
@@ -194,7 +194,7 @@ export default function ProjectFilesPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projectFiles.map((file) => (
+                  {projectFiles.map((file: any) => (
                     <TableRow key={file._id}>
                       <TableCell className="font-medium flex items-center gap-2">
                         {getFileIcon(file.mimeType)}
@@ -220,7 +220,7 @@ export default function ProjectFilesPage({
                             ) {
                               await removeFileFromProject({
                                 projectId,
-                                fileId: file._id,
+                                fileId: file.fileId,
                               });
                             }
                           }}

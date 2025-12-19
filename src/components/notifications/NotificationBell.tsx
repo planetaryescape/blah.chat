@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { Bell, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -71,21 +72,34 @@ export function NotificationBell() {
               <div
                 key={n._id}
                 className={cn(
-                  "flex items-start gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer border-b last:border-0 transition-colors",
+                  "group flex items-start gap-3 px-4 py-3 hover:bg-muted/50 cursor-pointer border-b last:border-0 transition-colors",
                   !n.read && "bg-primary/5",
                 )}
                 onClick={() => handleNotificationClick(n)}
               >
+                {/* Unread indicator dot */}
+                <div className="mt-1.5 flex-shrink-0">
+                  {!n.read ? (
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                  ) : (
+                    <div className="h-2 w-2" />
+                  )}
+                </div>
+
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{n.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-sm font-medium leading-tight">{n.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                     {n.message}
                   </p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    {formatDistanceToNow(n.createdAt, { addSuffix: true })}
+                  </p>
                 </div>
+
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:opacity-100"
+                  className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation();
                     dismiss({ notificationId: n._id });

@@ -218,3 +218,50 @@ export const getFileChunk = internalQuery({
     return await ctx.db.get(args.chunkId);
   },
 });
+
+/**
+ * Get API key availability (which keys are configured)
+ * Returns boolean flags only, never exposes actual key values
+ * Replaces: internal.settings.apiKeys.getApiKeyAvailabilityInternal
+ */
+export const getApiKeyAvailability = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // Get current admin-selected STT provider
+    const adminSettings = await ctx.db.query("adminSettings").first();
+    const currentSTTProvider = adminSettings?.transcriptProvider || "groq";
+
+    // Dynamically check current provider's key
+    const providerKeyMap: Record<string, string> = {
+      groq: "GROQ_API_KEY",
+      openai: "OPENAI_API_KEY",
+      deepgram: "DEEPGRAM_API_KEY",
+      assemblyai: "ASSEMBLYAI_API_KEY",
+    };
+
+    const currentProviderKeyName = providerKeyMap[currentSTTProvider];
+    const hasCurrentProviderKey = !!process.env[currentProviderKeyName];
+
+    return {
+      stt: {
+        // Individual provider availability
+        groq: !!process.env.GROQ_API_KEY,
+        openai: !!process.env.OPENAI_API_KEY,
+        deepgram: !!process.env.DEEPGRAM_API_KEY,
+        assemblyai: !!process.env.ASSEMBLYAI_API_KEY,
+
+        // Current admin selection
+        currentProvider: currentSTTProvider,
+        currentProviderKeyName,
+        hasCurrentProviderKey,
+      },
+      tts: {
+        // TTS currently uses Deepgram exclusively
+        deepgram: !!process.env.DEEPGRAM_API_KEY,
+      },
+      isProduction,
+    };
+  },
+});

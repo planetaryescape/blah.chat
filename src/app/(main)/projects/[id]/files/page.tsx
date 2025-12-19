@@ -3,6 +3,8 @@
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import {
+  AlertCircle,
+  CheckCircle2,
   FileText,
   ImageIcon,
   Loader2,
@@ -11,10 +13,21 @@ import {
   Upload,
 } from "lucide-react";
 import Link from "next/link";
-import { use, useCallback, useState } from "react";
+import { parseAsString, useQueryState } from "nuqs";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,8 +44,90 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { FileDetailPanel } from "@/components/files/FileDetailPanel";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
+
+// Embedding status badge component
+function EmbeddingStatusBadge({
+  status,
+  chunkCount,
+}: {
+  status?: "pending" | "processing" | "completed" | "failed";
+  chunkCount?: number;
+}) {
+  if (!status) {
+    return (
+      <Tooltip>
+        <TooltipTrigger>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+            —
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Not processed</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  switch (status) {
+    case "pending":
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+              <Loader2 className="w-2.5 h-2.5" />
+              Pending
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Waiting to be processed</TooltipContent>
+        </Tooltip>
+      );
+    case "processing":
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              Processing
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Extracting text and generating embeddings</TooltipContent>
+        </Tooltip>
+      );
+    case "completed":
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="w-2.5 h-2.5" />
+              Ready
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {chunkCount ? `${chunkCount} chunks indexed` : "Indexed and searchable"}
+          </TooltipContent>
+        </Tooltip>
+      );
+    case "failed":
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400">
+              <AlertCircle className="w-2.5 h-2.5" />
+              Failed
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Processing failed - file may not be searchable</TooltipContent>
+        </Tooltip>
+      );
+  }
+}
 
 export default function ProjectFilesPage({
   params,
@@ -41,6 +136,34 @@ export default function ProjectFilesPage({
 }) {
   const { id } = use(params);
   const projectId = id as Id<"projects">;
+
+  // URL-persisted file selection (supports deep linking from search results)
+  const [fileParam, setFileParam] = useQueryState(
+    "file",
+    parseAsString.withDefault(""),
+  );
+  const [chunkParam, setChunkParam] = useQueryState(
+    "chunk",
+    parseAsString.withDefault(""),
+  );
+
+  // Derive selected IDs from URL params
+  const selectedFileId = useMemo(() => {
+    return fileParam ? (fileParam as Id<"files">) : null;
+  }, [fileParam]);
+
+  const highlightChunkId = useMemo(() => {
+    return chunkParam ? (chunkParam as Id<"fileChunks">) : null;
+  }, [chunkParam]);
+
+  const setSelectedFileId = useCallback(
+    (id: Id<"files"> | null) => {
+      setFileParam(id || "");
+      // Clear chunk highlight when changing files
+      if (!id) setChunkParam("");
+    },
+    [setFileParam, setChunkParam],
+  );
 
   // Data Fetching
   // @ts-ignore - Type depth exceeded
@@ -64,6 +187,7 @@ export default function ProjectFilesPage({
   const removeFileFromProject = useMutation(api.projects.removeFileFromProject);
 
   const [uploading, setUploading] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ id: Id<"files">; name: string } | null>(null);
 
   // File Upload Logic
   const onDrop = useCallback(
@@ -121,8 +245,29 @@ export default function ProjectFilesPage({
   const projectFiles = resources?.files || [];
   const conversationAttachments = attachments?.page || [];
 
+  // Validate selected file exists in project
+  const selectedFileExists = useMemo(() => {
+    if (!selectedFileId || !projectFiles.length) return false;
+    return projectFiles.some((f: any) => f._id === selectedFileId);
+  }, [selectedFileId, projectFiles]);
+
+  // Clear invalid selection from URL
+  useEffect(() => {
+    if (selectedFileId && projectFiles.length > 0 && !selectedFileExists) {
+      setFileParam(null);
+      setChunkParam(null);
+    }
+  }, [selectedFileId, projectFiles, selectedFileExists, setFileParam, setChunkParam]);
+
   return (
-    <div className="h-full flex flex-col space-y-8 p-6 overflow-y-auto">
+    <div className="h-full flex">
+      {/* Main content - Files list */}
+      <div
+        className={cn(
+          "flex-1 flex flex-col space-y-8 p-6 overflow-y-auto transition-all",
+          selectedFileId && "max-w-[60%]",
+        )}
+      >
       {/* Header */}
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Files</h2>
@@ -186,16 +331,24 @@ export default function ProjectFilesPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40%]">Name</TableHead>
+                    <TableHead className="w-[35%]">Name</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Size</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Added</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {projectFiles.map((file: any) => (
-                    <TableRow key={file._id}>
+                    <TableRow
+                      key={file._id}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                        selectedFileId === file._id && "bg-primary/10 hover:bg-primary/15",
+                      )}
+                      onClick={() => setSelectedFileId(file._id)}
+                    >
                       <TableCell className="font-medium flex items-center gap-2">
                         {getFileIcon(file.mimeType)}
                         {file.name}
@@ -206,6 +359,12 @@ export default function ProjectFilesPage({
                       <TableCell className="text-xs font-mono">
                         {formatSize(file.size)}
                       </TableCell>
+                      <TableCell>
+                        <EmbeddingStatusBadge
+                          status={file.embeddingStatus}
+                          chunkCount={file.chunkCount}
+                        />
+                      </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
                         {format(file.createdAt, "MMM d, yyyy")}
                       </TableCell>
@@ -214,15 +373,9 @@ export default function ProjectFilesPage({
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0 text-destructive"
-                          onClick={async () => {
-                            if (
-                              confirm("Remove this file from project context?")
-                            ) {
-                              await removeFileFromProject({
-                                projectId,
-                                fileId: file.fileId,
-                              });
-                            }
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row selection
+                            setFileToDelete({ id: file._id, name: file.name });
                           }}
                         >
                           <span className="sr-only">Remove</span>
@@ -297,6 +450,49 @@ export default function ProjectFilesPage({
           )}
         </CardContent>
       </Card>
+      </div>
+
+      {/* File Detail Panel - slides in from right */}
+      {selectedFileId && (
+        <div className="w-[40%] min-w-[350px] h-full overflow-hidden">
+          <FileDetailPanel
+            fileId={selectedFileId}
+            highlightChunkId={highlightChunkId}
+            onClose={() => setSelectedFileId(null)}
+          />
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove file from project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove <span className="font-medium">{fileToDelete?.name}</span> from the project context.
+              The file will no longer be available for AI conversations in this project.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (fileToDelete) {
+                  await removeFileFromProject({
+                    projectId,
+                    fileId: fileToDelete.id,
+                  });
+                  toast.success("File removed from project");
+                  setFileToDelete(null);
+                }
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

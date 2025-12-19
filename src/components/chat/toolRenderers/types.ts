@@ -22,7 +22,12 @@ export interface ToolRendererProps {
  * Determine the state of a tool call based on its result
  */
 export function getCallState(call: ToolCall): ToolCallState {
-  if (!call.result) return "executing";
+  if (!call.result) {
+    // Check if tool has been "executing" too long (> 30s = likely stuck)
+    const elapsed = Date.now() - call.timestamp;
+    if (elapsed > 30000) return "error";
+    return "executing";
+  }
 
   try {
     const parsed = JSON.parse(call.result);

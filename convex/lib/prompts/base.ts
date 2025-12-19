@@ -1,10 +1,21 @@
 import type { ModelConfig } from "@/lib/ai/models";
 
+interface CustomInstructions {
+  enabled: boolean;
+  nickname?: string;
+  occupation?: string;
+  aboutUser?: string;
+  moreAboutYou?: string;
+  responseStyle?: string;
+  baseStyleAndTone?: string;
+}
+
 interface BasePromptOptions {
   modelConfig: ModelConfig;
   hasFunctionCalling: boolean;
   prefetchedMemories: string | null;
   currentDate: string;
+  customInstructions?: CustomInstructions | null;
 }
 
 function formatContextWindow(contextWindow: number): string {
@@ -15,8 +26,19 @@ function formatContextWindow(contextWindow: number): string {
 }
 
 export function getBasePrompt(options: BasePromptOptions): string {
-  const { modelConfig, hasFunctionCalling, prefetchedMemories, currentDate } =
-    options;
+  const {
+    modelConfig,
+    hasFunctionCalling,
+    prefetchedMemories,
+    currentDate,
+    customInstructions,
+  } = options;
+
+  // Check if user has custom tone/style that should override defaults
+  const hasCustomTone =
+    customInstructions?.enabled &&
+    customInstructions?.baseStyleAndTone &&
+    customInstructions.baseStyleAndTone !== "default";
 
   const knowledgeCutoff = modelConfig.knowledgeCutoff || "Unknown";
   const _contextWindowFormatted = formatContextWindow(
@@ -34,6 +56,9 @@ export function getBasePrompt(options: BasePromptOptions): string {
 
   // Build provider-specific section
   const providerSection = getProviderOptimizations(modelConfig);
+
+  // Build tone section - conditional based on user preferences
+  const toneSection = buildToneSection(!!hasCustomTone);
 
   return `<system>
   <identity>
@@ -68,17 +93,7 @@ ${capabilities}
 ${memorySection}
 
   <response_style>
-    <tone>
-      - Conversational, genuine, direct
-      - Adapt to the user's style and energy
-      - Playful when appropriate, serious when needed
-      - If the user's name is known (from identity preferences), use it naturally in conversation as you would with a friend—not in every message, but when it feels natural
-      - Avoid corporate/HR-speak and generic AI phrases ("I'd be happy to help!", "Certainly!", "Great question!", "Absolutely!")
-      - Don't start responses with sycophantic openers. Just answer the question.
-      - Skip excessive hedging phrases: "It's worth noting that...", "It's important to remember...", "I should mention..."
-      - Avoid formal transition words that sound like an essay: "Furthermore", "Moreover", "Additionally", "In conclusion"
-      - Write like you're texting a smart friend, not drafting a formal letter
-    </tone>
+${toneSection}
 
     <length>
       - Default to concise, clear answers
@@ -311,6 +326,30 @@ ${memorySection}
 
 ${providerSection}
 </system>`;
+}
+
+function buildToneSection(hasCustomTone: boolean): string {
+  if (hasCustomTone) {
+    // User has custom tone - only include non-tone guidance, defer to their preferences
+    return `    <tone>
+      <!-- User has custom tone/style preferences - see user_preferences section below -->
+      - Adapt to the user's explicitly configured style and tone preferences
+      - The user's custom instructions take absolute priority over default behavior
+    </tone>`;
+  }
+
+  // Default tone for users without custom preferences
+  return `    <tone>
+      - Conversational, genuine, direct
+      - Adapt to the user's style and energy
+      - Playful when appropriate, serious when needed
+      - If the user's name is known (from identity preferences), use it naturally in conversation as you would with a friend—not in every message, but when it feels natural
+      - Avoid corporate/HR-speak and generic AI phrases ("I'd be happy to help!", "Certainly!", "Great question!", "Absolutely!")
+      - Don't start responses with sycophantic openers. Just answer the question.
+      - Skip excessive hedging phrases: "It's worth noting that...", "It's important to remember...", "I should mention..."
+      - Avoid formal transition words that sound like an essay: "Furthermore", "Moreover", "Additionally", "In conclusion"
+      - Write like you're texting a smart friend, not drafting a formal letter
+    </tone>`;
 }
 
 function buildCapabilities(

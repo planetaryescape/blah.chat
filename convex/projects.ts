@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
@@ -389,6 +390,14 @@ export const addFileToProject = mutation({
       metadata: { filename: file.name },
       createdAt: Date.now(),
     });
+
+    // Trigger file embedding generation if not already processed
+    if (!file.embeddingStatus || file.embeddingStatus === "pending") {
+      // @ts-ignore - Type depth exceeded with internal reference
+      await ctx.scheduler.runAfter(0, internal.files.embeddings.generateFileEmbeddings, {
+        fileId: args.fileId,
+      });
+    }
 
     return junctionId;
   },

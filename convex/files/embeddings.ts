@@ -37,10 +37,10 @@ export const generateFileEmbeddings = internalAction({
         },
       )) as Promise<void>;
 
-      // 2. Extract text from file
+      // 2. Extract text from file using LLM-based extraction
       const text = (await (ctx.runAction as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.files.chunking.extractFileText,
+        internal.files.extraction.extractText,
         { fileId: args.fileId },
       )) as string;
 
@@ -206,12 +206,21 @@ export const insertFileChunks = internalMutation({
       throw new Error("File not found");
     }
 
+    // Look up projectId from projectFiles junction table
+    const projectFile = await ctx.db
+      .query("projectFiles")
+      .withIndex("by_file", (q) => q.eq("fileId", args.fileId))
+      .first();
+
+    const projectId = projectFile?.projectId;
+
     // Insert all chunks
     const now = Date.now();
     for (const chunk of args.chunks) {
       await ctx.db.insert("fileChunks", {
         fileId: args.fileId,
         userId: file.userId,
+        projectId, // Include projectId for project-scoped search
         chunkIndex: chunk.chunkIndex,
         content: chunk.content,
         embedding: chunk.embedding,

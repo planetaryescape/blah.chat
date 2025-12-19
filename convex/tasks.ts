@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 // Smart Manager Phase 2: Task CRUD Operations
@@ -89,6 +90,12 @@ export const create = mutation({
       });
     }
 
+    // Schedule embedding generation (async, non-blocking)
+    // @ts-ignore - Type depth exceeded with internal reference
+    await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
+      taskId,
+    });
+
     return taskId;
   },
 });
@@ -148,9 +155,16 @@ export const update = mutation({
     if (args.projectId !== undefined) updates.projectId = args.projectId;
     if (args.priority !== undefined) updates.priority = args.priority;
     if (args.tags !== undefined) updates.tags = args.tags;
-    if (args.tags !== undefined) updates.tags = args.tags;
 
     await ctx.db.patch(args.id, updates);
+
+    // Re-generate embedding if title or description changed
+    if (args.title !== undefined || args.description !== undefined) {
+      // @ts-ignore - Type depth exceeded with internal reference
+      await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
+        taskId: args.id,
+      });
+    }
   },
 });
 
@@ -361,5 +375,218 @@ export const get = query({
     if (!task || task.userId !== user._id) return null;
 
     return task;
+  },
+});
+
+// ============================================================================
+// Internal mutations for AI tool access (bypasses auth - caller must validate)
+// ============================================================================
+
+export const createInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("suggested"),
+        v.literal("confirmed"),
+        v.literal("in_progress"),
+        v.literal("completed"),
+        v.literal("cancelled"),
+      ),
+    ),
+    deadline: v.optional(v.number()),
+    deadlineSource: v.optional(v.string()),
+    urgency: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+      ),
+    ),
+    sourceType: v.optional(
+      v.union(
+        v.literal("transcript"),
+        v.literal("conversation"),
+        v.literal("manual"),
+        v.literal("file"),
+      ),
+    ),
+    projectId: v.optional(v.id("projects")),
+  },
+  handler: async (ctx, args) => {
+    // Validate project ownership if projectId provided
+    if (args.projectId) {
+      const project = await ctx.db.get(args.projectId);
+      if (!project || project.userId !== args.userId) {
+        throw new Error("Project not found");
+      }
+    }
+
+    const taskId = await ctx.db.insert("tasks", {
+      userId: args.userId,
+      title: args.title,
+      description: args.description,
+      status: args.status || "confirmed",
+      deadline: args.deadline,
+      deadlineSource: args.deadlineSource,
+      urgency: args.urgency,
+      sourceType: args.sourceType || "conversation",
+      projectId: args.projectId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // Create activity event if part of a project
+    if (args.projectId) {
+      await ctx.db.insert("activityEvents", {
+        userId: args.userId,
+        projectId: args.projectId,
+        eventType: "task_created",
+        resourceType: "task",
+        resourceId: taskId,
+        metadata: { title: args.title },
+        createdAt: Date.now(),
+      });
+    }
+
+    // Schedule embedding generation (async, non-blocking)
+    // @ts-ignore - Type depth exceeded with internal reference
+    await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
+      taskId,
+    });
+
+    return taskId;
+  },
+});
+
+export const updateInternal = internalMutation({
+  args: {
+    id: v.id("tasks"),
+    userId: v.id("users"),
+    title: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("suggested"),
+        v.literal("confirmed"),
+        v.literal("in_progress"),
+        v.literal("completed"),
+        v.literal("cancelled"),
+      ),
+    ),
+    deadline: v.optional(v.number()),
+    deadlineSource: v.optional(v.string()),
+    urgency: v.optional(
+      v.union(
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+      ),
+    ),
+    projectId: v.optional(v.id("projects")),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== args.userId) {
+      throw new Error("Task not found");
+    }
+
+    // Validate new project ownership if changing project
+    if (args.projectId !== undefined && args.projectId !== null) {
+      const project = await ctx.db.get(args.projectId);
+      if (!project || project.userId !== args.userId) {
+        throw new Error("Project not found");
+      }
+    }
+
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+    if (args.title !== undefined) updates.title = args.title;
+    if (args.description !== undefined) updates.description = args.description;
+    if (args.status !== undefined) updates.status = args.status;
+    if (args.deadline !== undefined) updates.deadline = args.deadline;
+    if (args.deadlineSource !== undefined)
+      updates.deadlineSource = args.deadlineSource;
+    if (args.urgency !== undefined) updates.urgency = args.urgency;
+    if (args.projectId !== undefined) updates.projectId = args.projectId;
+
+    await ctx.db.patch(args.id, updates);
+
+    // Re-generate embedding if title or description changed
+    if (args.title !== undefined || args.description !== undefined) {
+      // @ts-ignore - Type depth exceeded with internal reference
+      await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
+        taskId: args.id,
+      });
+    }
+  },
+});
+
+export const completeInternal = internalMutation({
+  args: {
+    id: v.id("tasks"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== args.userId) {
+      throw new Error("Task not found");
+    }
+
+    await ctx.db.patch(args.id, {
+      status: "completed",
+      completedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // Create activity event if part of a project
+    if (task.projectId) {
+      await ctx.db.insert("activityEvents", {
+        userId: args.userId,
+        projectId: task.projectId,
+        eventType: "task_completed",
+        resourceType: "task",
+        resourceId: args.id,
+        metadata: { title: task.title },
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+export const deleteInternal = internalMutation({
+  args: {
+    id: v.id("tasks"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.id);
+    if (!task || task.userId !== args.userId) {
+      throw new Error("Task not found");
+    }
+
+    // Delete associated task tags
+    const taskTags = await ctx.db
+      .query("taskTags")
+      .withIndex("by_task", (q) => q.eq("taskId", args.id))
+      .collect();
+
+    for (const taskTag of taskTags) {
+      await ctx.db.delete(taskTag._id);
+
+      // Decrement tag usage count
+      const tag = await ctx.db.get(taskTag.tagId);
+      if (tag) {
+        await ctx.db.patch(tag._id, {
+          usageCount: Math.max(0, tag.usageCount - 1),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    await ctx.db.delete(args.id);
   },
 });

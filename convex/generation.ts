@@ -23,10 +23,14 @@ import {
   createMemorySaveTool,
   createMemorySearchTool,
 } from "./ai/tools/memories";
-import { createQueryProjectHistoryTool } from "./ai/tools/projectContext/queryProjectHistory";
-import { createSearchProjectFilesTool } from "./ai/tools/projectContext/searchProjectFiles";
-import { createSearchProjectNotesTool } from "./ai/tools/projectContext/searchProjectNotes";
-import { createSearchProjectTasksTool } from "./ai/tools/projectContext/searchProjectTasks";
+import {
+  createQueryHistoryTool,
+  createSearchAllTool,
+  createSearchFilesTool,
+  createSearchNotesTool,
+  createSearchTasksTool,
+} from "./ai/tools/search";
+import { createTaskManagerTool } from "./ai/tools/taskManager";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
@@ -95,6 +99,8 @@ function detectCreditsError(error: any): boolean {
 }
 
 // Helper function to build system prompts from multiple sources
+// ORDER MATTERS: Later messages have higher effective priority (recency bias in LLMs)
+// Structure: Base (foundation) → Context → User Preferences (highest priority, last)
 async function buildSystemPrompts(
   ctx: ActionCtx,
   args: {
@@ -119,7 +125,7 @@ async function buildSystemPrompts(
     }),
   ])) as [Doc<"users"> | null, Doc<"conversations"> | null];
 
-  // 1. User custom instructions (highest priority)
+  // Load custom instructions early (needed for base prompt conditional tone)
   // Phase 4: Load from new preference system
   const customInstructions = user
     ? await ctx.runQuery(
@@ -131,96 +137,24 @@ async function buildSystemPrompts(
       )
     : null;
 
-  if (customInstructions?.enabled) {
-    const {
-      aboutUser,
-      responseStyle,
-      baseStyleAndTone,
-      nickname,
-      occupation,
-      moreAboutYou,
-    } = customInstructions;
+  // === 1. BASE IDENTITY (foundation) ===
+  // Comes first to establish baseline behavior, which user preferences can override
+  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  const basePromptOptions = {
+    modelConfig: args.modelConfig,
+    hasFunctionCalling: args.hasFunctionCalling,
+    prefetchedMemories: args.prefetchedMemories,
+    currentDate,
+    customInstructions: customInstructions, // Pass to conditionally modify tone section
+  };
+  const basePrompt = getBasePrompt(basePromptOptions);
 
-    // Build personalization sections
-    const sections: string[] = [];
+  systemMessages.push({
+    role: "system",
+    content: basePrompt,
+  });
 
-    // User identity section
-    const identityParts: string[] = [];
-    if (nickname) identityParts.push(`Name: ${nickname}`);
-    if (occupation) identityParts.push(`Role: ${occupation}`);
-    if (identityParts.length > 0) {
-      sections.push(`## User Identity\n${identityParts.join("\n")}`);
-    }
-
-    // About the user
-    if (aboutUser || moreAboutYou) {
-      const aboutSections: string[] = [];
-      if (aboutUser) aboutSections.push(aboutUser);
-      if (moreAboutYou) aboutSections.push(moreAboutYou);
-      sections.push(`## About the User\n${aboutSections.join("\n\n")}`);
-    }
-
-    // Response style
-    if (responseStyle) {
-      sections.push(`## Response Style\n${responseStyle}`);
-    }
-
-    // Base style and tone directive
-    if (baseStyleAndTone && baseStyleAndTone !== "default") {
-      const toneDescriptions: Record<string, string> = {
-        professional:
-          "Be polished and precise. Use formal language and structured responses.",
-        friendly:
-          "Be warm and chatty. Use casual language and show enthusiasm.",
-        candid:
-          "Be direct and encouraging. Get straight to the point while being supportive.",
-        quirky:
-          "Be playful and imaginative. Use creative language and unexpected analogies.",
-        efficient: "Be concise and plain. Minimize words, maximize clarity.",
-        nerdy:
-          "Be exploratory and enthusiastic. Dive deep into technical details.",
-        cynical:
-          "Be critical and sarcastic. Question assumptions, use dry humor.",
-      };
-      const toneDirective = toneDescriptions[baseStyleAndTone];
-      if (toneDirective) {
-        sections.push(`## Tone Directive\n${toneDirective}`);
-      }
-    }
-
-    if (sections.length > 0) {
-      systemMessages.push({
-        role: "system",
-        content: sections.join("\n\n"),
-      });
-    }
-  }
-
-  // 2. Project context (if conversation is in a project)
-  if (conversation?.projectId) {
-    const project: Doc<"projects"> | null = await ctx.runQuery(
-      internal.lib.helpers.getProject,
-      {
-        id: conversation.projectId,
-      },
-    );
-    if (project?.systemPrompt) {
-      systemMessages.push({
-        role: "system",
-        content: `Project: ${project.systemPrompt}`,
-      });
-    }
-  }
-
-  // 3. Conversation-level system prompt
-  if (conversation?.systemPrompt) {
-    systemMessages.push({
-      role: "system",
-      content: conversation.systemPrompt,
-    });
-  }
-
-  // 4. Identity memories (always loaded, instant)
+  // === 2. IDENTITY MEMORIES ===
   try {
     const identityMemories: Doc<"memories">[] = await ctx.runQuery(
       internal.memories.search.getIdentityMemories,
@@ -251,7 +185,7 @@ async function buildSystemPrompts(
     // Continue without memories (graceful degradation)
   }
 
-  // 5. Contextual memories (for non-tool models only)
+  // === 3. CONTEXTUAL MEMORIES (for non-tool models only) ===
   if (args.prefetchedMemories) {
     systemMessages.push({
       role: "system",
@@ -259,20 +193,107 @@ async function buildSystemPrompts(
     });
   }
 
-  // 6. Base identity (foundation) - with dynamic date injection
-  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-  const basePromptOptions = {
-    modelConfig: args.modelConfig,
-    hasFunctionCalling: args.hasFunctionCalling,
-    prefetchedMemories: args.prefetchedMemories,
-    currentDate,
-  };
-  const basePrompt = getBasePrompt(basePromptOptions);
+  // === 4. PROJECT CONTEXT ===
+  if (conversation?.projectId) {
+    const project: Doc<"projects"> | null = await ctx.runQuery(
+      internal.lib.helpers.getProject,
+      {
+        id: conversation.projectId,
+      },
+    );
+    if (project?.systemPrompt) {
+      systemMessages.push({
+        role: "system",
+        content: `## Project Context\n${project.systemPrompt}`,
+      });
+    }
+  }
 
-  systemMessages.push({
-    role: "system",
-    content: basePrompt,
-  });
+  // === 5. CONVERSATION-LEVEL SYSTEM PROMPT ===
+  if (conversation?.systemPrompt) {
+    systemMessages.push({
+      role: "system",
+      content: `## Conversation Instructions\n${conversation.systemPrompt}`,
+    });
+  }
+
+  // === 6. USER CUSTOM INSTRUCTIONS (HIGHEST PRIORITY - LAST) ===
+  // Placed last to leverage recency bias in LLMs
+  // Wrapped with explicit override directive
+  if (customInstructions?.enabled) {
+    const {
+      aboutUser,
+      responseStyle,
+      baseStyleAndTone,
+      nickname,
+      occupation,
+      moreAboutYou,
+    } = customInstructions;
+
+    // Build personalization sections
+    const sections: string[] = [];
+
+    // User identity section
+    const identityParts: string[] = [];
+    if (nickname) identityParts.push(`Name: ${nickname}`);
+    if (occupation) identityParts.push(`Role: ${occupation}`);
+    if (identityParts.length > 0) {
+      sections.push(`### User Identity\n${identityParts.join("\n")}`);
+    }
+
+    // About the user
+    if (aboutUser || moreAboutYou) {
+      const aboutSections: string[] = [];
+      if (aboutUser) aboutSections.push(aboutUser);
+      if (moreAboutYou) aboutSections.push(moreAboutYou);
+      sections.push(`### About the User\n${aboutSections.join("\n\n")}`);
+    }
+
+    // Response style (custom instructions from user)
+    if (responseStyle) {
+      sections.push(`### Response Style Instructions\n${responseStyle}`);
+    }
+
+    // Base style and tone directive
+    if (baseStyleAndTone && baseStyleAndTone !== "default") {
+      const toneDescriptions: Record<string, string> = {
+        professional:
+          "Be polished and precise. Use formal language and structured responses.",
+        friendly:
+          "Be warm and chatty. Use casual language and show enthusiasm.",
+        candid:
+          "Be direct and encouraging. Get straight to the point while being supportive.",
+        quirky:
+          "Be playful and imaginative. Use creative language and unexpected analogies.",
+        efficient: "Be concise and plain. Minimize words, maximize clarity.",
+        nerdy:
+          "Be exploratory and enthusiastic. Dive deep into technical details.",
+        cynical:
+          "Be critical and sarcastic. Question assumptions, use dry humor.",
+      };
+      const toneDirective = toneDescriptions[baseStyleAndTone];
+      if (toneDirective) {
+        sections.push(`### Tone Directive\n${toneDirective}`);
+      }
+    }
+
+    if (sections.length > 0) {
+      // Wrap with explicit override directive for maximum priority
+      const userPreferencesContent = `<user_preferences priority="highest">
+## User Personalization Settings
+**IMPORTANT**: These are the user's explicitly configured preferences. They take absolute priority over any default behavior or tone guidelines defined earlier.
+
+${sections.join("\n\n")}
+
+**Reminder**: Always honor these preferences. The user has specifically configured these settings.
+</user_preferences>`;
+
+      systemMessages.push({
+        role: "system",
+        content: userPreferencesContent,
+      });
+    }
+  }
 
   return { messages: systemMessages, memoryContent: memoryContentForTracking };
 }
@@ -822,7 +843,29 @@ export const generateResponse = internalAction({
         const codeExecutionTool = createCodeExecutionTool(ctx);
         const weatherTool = createWeatherTool(ctx);
 
-        // Base tools available to all conversations
+        // Search tools (always enabled, work with optional projectId filter)
+        const searchFilesTool = createSearchFilesTool(ctx, args.userId);
+        const searchNotesTool = createSearchNotesTool(ctx, args.userId);
+        const searchTasksTool = createSearchTasksTool(ctx, args.userId);
+        const queryHistoryTool = createQueryHistoryTool(
+          ctx,
+          args.userId,
+          args.conversationId,
+        );
+        const searchAllTool = createSearchAllTool(
+          ctx,
+          args.userId,
+          args.conversationId,
+        );
+
+        // Task management tool (uses projectId from conversation context)
+        const taskManagerTool = createTaskManagerTool(
+          ctx,
+          args.userId,
+          conversation?.projectId,
+        );
+
+        // All tools available to all conversations
         options.tools = {
           searchMemories: memorySearchTool,
           saveMemory: memorySaveTool,
@@ -834,27 +877,15 @@ export const generateResponse = internalAction({
           fileDocument: fileDocumentTool,
           codeExecution: codeExecutionTool,
           weather: weatherTool,
+          // Search tools (work with or without projectId filter)
+          searchFiles: searchFilesTool,
+          searchNotes: searchNotesTool,
+          searchTasks: searchTasksTool,
+          queryHistory: queryHistoryTool,
+          searchAll: searchAllTool,
+          // Task management
+          manageTasks: taskManagerTool,
         };
-
-        // Add project-specific tools if conversation has projectId
-        if (conversation?.projectId) {
-          options.tools.searchProjectFiles = createSearchProjectFilesTool(
-            ctx,
-            args.conversationId,
-          );
-          options.tools.searchProjectNotes = createSearchProjectNotesTool(
-            ctx,
-            args.conversationId,
-          );
-          options.tools.searchProjectTasks = createSearchProjectTasksTool(
-            ctx,
-            args.conversationId,
-          );
-          options.tools.queryProjectHistory = createQueryProjectHistoryTool(
-            ctx,
-            args.conversationId,
-          );
-        }
 
         // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
         options.onStepFinish = async (step: any) => {

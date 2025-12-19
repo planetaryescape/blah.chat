@@ -26,11 +26,6 @@ import { useMobileDetect } from "@/hooks/useMobileDetect";
 function NotesPageContent() {
   const features = useFeatureToggles();
 
-  // Route guard: show disabled page if notes feature is off
-  if (!features.showNotes) {
-    return <DisabledFeaturePage featureName="Notes" settingKey="showNotes" />;
-  }
-
   // URL-persisted state
   const [filterPinned, setFilterPinned] = useQueryState(
     "pinned",
@@ -91,13 +86,13 @@ function NotesPageContent() {
 
   const { isMobile } = useMobileDetect();
 
-  // @ts-ignore - Type depth exceeded with complex Convex query
+  // @ts-expect-error - Type depth exceeded with complex Convex query
   const notes = useQuery(api.notes.searchNotes, {
     searchQuery,
     filterPinned: filterPinned || undefined,
     filterTags: selectedTags.length > 0 ? selectedTags : undefined,
     tagFilterMode,
-    projectId: projectId || undefined,
+    ...(projectId && { projectId }),
   });
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation
@@ -117,11 +112,12 @@ function NotesPageContent() {
   }, [selectedNoteId, notes, selectedNote, setSelectedNoteId]);
 
   // Create new note handler
-  const createNewNote = async () => {
+  const createNewNote = useCallback(async () => {
     try {
       const noteId = await createNote({
         content: "# New Note\n\nStart writing...",
         title: "New Note",
+        projectId: projectId || undefined,
       });
       setSelectedNoteId(noteId);
       if (isMobile) setMobileView("editor");
@@ -130,7 +126,7 @@ function NotesPageContent() {
       console.error("Failed to create note:", error);
       toast.error("Failed to create note");
     }
-  };
+  }, [createNote, projectId, setSelectedNoteId, isMobile]);
 
   // Keyboard shortcuts event listeners
   useEffect(() => {
@@ -148,6 +144,11 @@ function NotesPageContent() {
       window.removeEventListener("clear-note-selection", handleClearSelection);
     };
   }, [isMobile, setSelectedNoteId, createNewNote]);
+
+  // Route guard: show disabled page if notes feature is off
+  if (!features.showNotes) {
+    return <DisabledFeaturePage featureName="Notes" settingKey="showNotes" />;
+  }
 
   // Handle note selection
   const handleNoteSelect = (noteId: Id<"notes">) => {

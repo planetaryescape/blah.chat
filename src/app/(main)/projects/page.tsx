@@ -1,9 +1,5 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { LayoutGrid, List, Plus, Search } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { BulkConversationAssigner } from "@/components/projects/BulkConversationAssigner";
 import { ProjectCard } from "@/components/projects/ProjectCard";
@@ -12,21 +8,21 @@ import { ProjectsEmptyState } from "@/components/projects/ProjectsEmptyState";
 import { ProjectTable } from "@/components/projects/ProjectTable";
 import { TemplateManager } from "@/components/projects/TemplateManager";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +31,10 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { analytics } from "@/lib/analytics";
+import { useMutation, useQuery } from "convex/react";
+import { LayoutGrid, List, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function ProjectsPage() {
   const features = useFeatureToggles();
@@ -202,7 +202,7 @@ export default function ProjectsPage() {
                 />
               )
             ) : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(filteredProjects ?? []).map((project: any) => (
                   <ProjectCard
                     key={project._id}

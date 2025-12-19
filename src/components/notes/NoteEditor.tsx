@@ -70,6 +70,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoad = useRef(true);
+  const lastServerTitle = useRef<string | null>(null);
 
   // Initialize editor with SSR-safe config
   const editor = useEditor({
@@ -103,6 +104,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
       storage.currentNoteId = note._id;
       isInitialLoad.current = true;
       setTitle(note.title);
+      lastServerTitle.current = note.title;
 
       // Set editor content from markdown
       editor.commands.setContent(note.content || "", {
@@ -115,11 +117,13 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
           isInitialLoad.current = false;
         }
       }, 50);
-    } else if (note.title !== title && !isSaving) {
-      // Sync title if changed externally and we are not currently saving
+    } else if (note.title !== lastServerTitle.current) {
+      // Server title changed externally (e.g., from another tab)
+      // Only sync if the server value actually changed, not just local edits
       setTitle(note.title);
+      lastServerTitle.current = note.title;
     }
-  }, [note, editor, isSaving, title]); // Correct dependencies: re-run when note data loads
+  }, [note, editor]); // Only re-run when note data changes from server
 
   // Debounced auto-save
   const debouncedSave = (content: string, currentTitle: string) => {

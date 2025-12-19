@@ -1,28 +1,28 @@
 "use client";
 
-import { FileText, Plus } from "lucide-react";
-import { useState } from "react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Plus } from "lucide-react";
+import { useState } from "react";
 
 const CATEGORIES = ["all", "coding", "writing", "analysis", "creative"];
 
-import { useMutation, useQuery } from "convex/react";
-import { useEffect } from "react";
-import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 // ... imports
 
@@ -126,7 +126,7 @@ export default function TemplatesPage() {
                 <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">
                   Your Templates
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {userTemplates.map((template: any) => (
                     <TemplateCard key={template._id} template={template} />
                   ))}
@@ -139,7 +139,7 @@ export default function TemplatesPage() {
                 <h2 className="text-sm font-semibold mb-4 text-muted-foreground uppercase tracking-wider">
                   Built-in Templates
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {builtInTemplates.map((template: any) => (
                     <TemplateCard key={template._id} template={template} />
                   ))}

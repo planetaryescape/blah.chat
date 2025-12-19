@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
-import { use, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useQueryState } from "nuqs";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { NoteList } from "@/components/notes/NoteList";
 import { Button } from "@/components/ui/button";
@@ -21,11 +22,15 @@ export default function ProjectNotesPage({
   const { id } = use(params);
   const projectId = id as Id<"projects">;
 
-  // State
-  const [selectedNoteId, setSelectedNoteId] = useState<Id<"notes"> | null>(
-    null,
-  );
+  // URL-persisted note selection (supports deep linking from search results)
+  const [noteParam, setNoteParam] = useQueryState("note");
   const [searchQuery, _setSearchQuery] = useState("");
+
+  // Derive selectedNoteId from URL param
+  const selectedNoteId = noteParam as Id<"notes"> | null;
+  const setSelectedNoteId = (id: Id<"notes"> | null) => {
+    setNoteParam(id);
+  };
 
   // Queries
   // @ts-ignore - Type depth exceeded
@@ -38,6 +43,19 @@ export default function ProjectNotesPage({
   const createNote = useMutation(api.notes.createNote);
 
   const { isMobile } = useMobileDetect();
+
+  // Validate selected note exists in this project's notes
+  const selectedNote = useMemo(() => {
+    if (!selectedNoteId || !notes) return null;
+    return notes.find((n: { _id: string }) => n._id === selectedNoteId);
+  }, [selectedNoteId, notes]);
+
+  // Clear invalid selection from URL (note doesn't exist or not in this project)
+  useEffect(() => {
+    if (selectedNoteId && notes && !selectedNote) {
+      setNoteParam(null);
+    }
+  }, [selectedNoteId, notes, selectedNote, setNoteParam]);
 
   const handleCreateNote = async () => {
     try {

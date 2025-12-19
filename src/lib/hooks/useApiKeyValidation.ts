@@ -21,7 +21,9 @@ type AvailabilityData = {
 export function useApiKeyValidation() {
   // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
   const getAvailability = useAction(api.settings.apiKeys.getApiKeyAvailability);
-  const [availability, setAvailability] = useState<AvailabilityData | null>(null);
+  const [availability, setAvailability] = useState<AvailabilityData | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

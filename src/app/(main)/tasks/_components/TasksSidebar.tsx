@@ -7,14 +7,14 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
-    CalendarDays,
-    ChevronDown,
-    ChevronRight,
-    Home,
-    List,
-    Plus,
-    Star,
-    Sun,
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  Home,
+  List,
+  Plus,
+  Star,
+  Sun,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -76,7 +76,9 @@ export function TasksSidebar({
             <item.icon
               className={cn(
                 "mr-3 h-4 w-4",
-                currentView === item.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                currentView === item.id
+                  ? "text-primary"
+                  : "text-muted-foreground group-hover:text-foreground",
               )}
             />
             {item.label}

@@ -92,9 +92,13 @@ export const create = mutation({
 
     // Schedule embedding generation (async, non-blocking)
     // @ts-ignore - Type depth exceeded with internal reference
-    await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
-      taskId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.tasks.embeddings.generateEmbedding,
+      {
+        taskId,
+      },
+    );
 
     return taskId;
   },
@@ -161,9 +165,13 @@ export const update = mutation({
     // Re-generate embedding if title or description changed
     if (args.title !== undefined || args.description !== undefined) {
       // @ts-ignore - Type depth exceeded with internal reference
-      await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
-        taskId: args.id,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.tasks.embeddings.generateEmbedding,
+        {
+          taskId: args.id,
+        },
+      );
     }
   },
 });
@@ -454,9 +462,13 @@ export const createInternal = internalMutation({
 
     // Schedule embedding generation (async, non-blocking)
     // @ts-ignore - Type depth exceeded with internal reference
-    await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
-      taskId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.tasks.embeddings.generateEmbedding,
+      {
+        taskId,
+      },
+    );
 
     return taskId;
   },
@@ -518,9 +530,13 @@ export const updateInternal = internalMutation({
     // Re-generate embedding if title or description changed
     if (args.title !== undefined || args.description !== undefined) {
       // @ts-ignore - Type depth exceeded with internal reference
-      await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
-        taskId: args.id,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.tasks.embeddings.generateEmbedding,
+        {
+          taskId: args.id,
+        },
+      );
     }
   },
 });

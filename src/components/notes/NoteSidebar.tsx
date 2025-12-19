@@ -63,7 +63,7 @@ export function NoteSidebar({
     <div
       className={cn(
         "flex flex-col h-full bg-muted/5 border-r border-border/40",
-        className
+        className,
       )}
     >
       {/* Header Section */}

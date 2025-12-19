@@ -3,8 +3,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface DisabledFeaturePageProps {
-  featureName: "Notes" | "Templates" | "Projects" | "Bookmarks";
-  settingKey: "showNotes" | "showTemplates" | "showProjects" | "showBookmarks";
+  featureName: "Notes" | "Templates" | "Projects" | "Bookmarks" | "Slides";
+  settingKey:
+    | "showNotes"
+    | "showTemplates"
+    | "showProjects"
+    | "showBookmarks"
+    | "showSlides";
 }
 
 /**
@@ -45,7 +50,7 @@ export function DisabledFeaturePage({
         <div className="pt-4">
           <Button asChild size="lg">
             <Link
-              href={`/settings?tab=interface&focus=${settingKey}`}
+              href={`/settings?tab=ui&focus=${settingKey}`}
               className="gap-2"
             >
               <Settings className="h-5 w-5" />

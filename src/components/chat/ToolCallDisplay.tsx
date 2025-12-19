@@ -7,6 +7,7 @@ import {
   Calculator,
   Calendar,
   CheckCircle2,
+  CheckSquare,
   ChevronDown,
   ChevronRight,
   Cloud,
@@ -56,6 +57,8 @@ function getToolIcon(toolName: string) {
       return Cloud;
     case "projectContext":
       return FolderTree;
+    case "manageTasks":
+      return CheckSquare;
     default:
       return Search;
   }
@@ -127,6 +130,17 @@ function getToolLabel(
         return `${result?.totalCount || 0} conversation${result?.totalCount !== 1 ? "s" : ""}`;
       }
       return "Project context";
+    }
+    case "manageTasks": {
+      if (isExecuting) return "Managing tasks...";
+      if (result?.success === false) return result?.message || "Task operation failed";
+      const op = result?.operation;
+      if (op === "create") return `Created: ${result?.task?.title || "task"}`;
+      if (op === "complete") return `Completed: ${result?.task?.title || "task"}`;
+      if (op === "delete") return result?.deleted ? "Task deleted" : "Ready to delete";
+      if (op === "update") return `Updated: ${result?.task?.title || "task"}`;
+      if (op === "list") return `${result?.totalCount || 0} task${result?.totalCount !== 1 ? "s" : ""}`;
+      return "Task manager";
     }
     default:
       if (isExecuting) return "Processing...";

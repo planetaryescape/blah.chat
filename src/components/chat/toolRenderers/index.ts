@@ -13,8 +13,14 @@ import { DefaultToolRenderer } from "./DefaultToolRenderer";
 import { DeleteMemoryRenderer } from "./DeleteMemoryRenderer";
 import { FileDocumentRenderer } from "./FileDocumentRenderer";
 import { ProjectContextRenderer } from "./ProjectContextRenderer";
+import { QueryHistoryRenderer } from "./QueryHistoryRenderer";
 import { SaveMemoryRenderer } from "./SaveMemoryRenderer";
+import { SearchAllRenderer } from "./SearchAllRenderer";
+import { SearchFilesRenderer } from "./SearchFilesRenderer";
 import { SearchMemoriesRenderer } from "./SearchMemoriesRenderer";
+import { SearchNotesRenderer } from "./SearchNotesRenderer";
+import { SearchTasksRenderer } from "./SearchTasksRenderer";
+import { TaskManagerRenderer } from "./TaskManagerRenderer";
 import { UrlReaderRenderer } from "./UrlReaderRenderer";
 import { WeatherRenderer } from "./WeatherRenderer";
 import { WebSearchRenderer } from "./WebSearchRenderer";
@@ -35,6 +41,14 @@ export const toolRenderers: Record<string, ComponentType<ToolRendererProps>> = {
   fileDocument: FileDocumentRenderer,
   projectContext: ProjectContextRenderer,
   deleteMemory: DeleteMemoryRenderer,
+  // Search tools
+  searchNotes: SearchNotesRenderer,
+  searchTasks: SearchTasksRenderer,
+  searchFiles: SearchFilesRenderer,
+  queryHistory: QueryHistoryRenderer,
+  searchAll: SearchAllRenderer,
+  // Task management
+  manageTasks: TaskManagerRenderer,
 };
 
 // Export the default as a named export for explicit usage

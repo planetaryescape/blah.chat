@@ -91,6 +91,14 @@ export const TASK_EXTRACTION_MODEL: ModelConfig =
 export const DEADLINE_PARSING_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
+/**
+ * Document extraction (OCR/text extraction from files).
+ * Uses Gemini 2.0 Flash for native PDF/document support.
+ * Extracts text from PDFs, images, DOCX, etc. page-by-page.
+ */
+export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
+  MODEL_CONFIG["google:gemini-2.0-flash"];
+
 // ============================================================================
 // EMBEDDING MODEL
 // ============================================================================
@@ -120,5 +128,6 @@ export const OPERATIONAL_MODELS = {
   feedbackTriage: FEEDBACK_TRIAGE_MODEL,
   taskExtraction: TASK_EXTRACTION_MODEL,
   deadlineParsing: DEADLINE_PARSING_MODEL,
+  documentExtraction: DOCUMENT_EXTRACTION_MODEL,
   embedding: EMBEDDING_MODEL,
 } as const;

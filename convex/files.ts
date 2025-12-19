@@ -167,6 +167,54 @@ export const listByConversation = query({
 });
 
 /**
+ * Get file with all its chunks (for detail view)
+ * Returns file metadata and all chunks sorted by index
+ */
+export const getFileWithChunks = query({
+  args: { fileId: v.id("files") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    // Get file and verify ownership
+    const file = await ctx.db.get(args.fileId);
+    if (!file || file.userId !== user._id) return null;
+
+    // Get file URL
+    const url = await ctx.storage.getUrl(file.storageId);
+
+    // Get all chunks for this file, sorted by index
+    const chunks = await ctx.db
+      .query("fileChunks")
+      .withIndex("by_file", (q) => q.eq("fileId", args.fileId))
+      .collect();
+
+    // Sort by chunk index
+    chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
+
+    // Return chunks without embeddings (too large for frontend)
+    const chunksWithoutEmbeddings = chunks.map((chunk) => ({
+      _id: chunk._id,
+      _creationTime: chunk._creationTime,
+      fileId: chunk.fileId,
+      chunkIndex: chunk.chunkIndex,
+      content: chunk.content,
+      startPage: chunk.startPage,
+      endPage: chunk.endPage,
+      section: chunk.section,
+      charOffset: chunk.charOffset,
+      tokenCount: chunk.tokenCount,
+    }));
+
+    return {
+      ...file,
+      url,
+      chunks: chunksWithoutEmbeddings,
+    };
+  },
+});
+
+/**
  * Delete file
  */
 export const deleteFile = mutation({

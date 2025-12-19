@@ -2,6 +2,7 @@
 
 import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Accordion } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -24,10 +25,76 @@ import {
   StatisticsSection,
 } from "./sections";
 
-export function UISettings() {
+// Map setting keys to their accordion section
+const SETTING_TO_SECTION: Record<string, string> = {
+  // Sidebar features
+  showNotes: "sidebar-features",
+  showTemplates: "sidebar-features",
+  showProjects: "sidebar-features",
+  showBookmarks: "sidebar-features",
+  showSlides: "sidebar-features",
+  // Display
+  chatWidth: "display",
+  // Stats
+  showMessageStats: "stats",
+  showComparisonStats: "stats",
+  // Messages
+  alwaysShowMessageActions: "messages",
+  // Reasoning
+  showByDefault: "reasoning",
+  autoExpand: "reasoning",
+  showDuringStreaming: "reasoning",
+  // Comparison
+  showModelNamesDuringComparison: "comparison",
+};
+
+const DEFAULT_EXPANDED = [
+  "display",
+  "stats",
+  "messages",
+  "reasoning",
+  "comparison",
+  "sidebar-features",
+];
+
+interface UISettingsProps {
+  focusSettingKey?: string | null;
+}
+
+export function UISettings({ focusSettingKey }: UISettingsProps) {
   const { state, handlers, isLoading } = useUISettingsState();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const resetOnboarding = useMutation(api.onboarding.resetOnboarding);
+
+  // Controlled accordion state for deep linking
+  const [expandedSections, setExpandedSections] =
+    useState<string[]>(DEFAULT_EXPANDED);
+
+  // Handle focus param - expand section and scroll to element
+  useEffect(() => {
+    if (!focusSettingKey || isLoading) return;
+
+    const section = SETTING_TO_SECTION[focusSettingKey];
+    if (section && !expandedSections.includes(section)) {
+      setExpandedSections((prev) => [...prev, section]);
+    }
+
+    // Scroll after a short delay to allow accordion to expand
+    const timer = setTimeout(() => {
+      const element = document.getElementById(`setting-${focusSettingKey}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Add highlight ring
+        element.classList.add("ring-2", "ring-primary", "ring-offset-2");
+        // Remove highlight after 2 seconds
+        setTimeout(() => {
+          element.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+        }, 2000);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [focusSettingKey, isLoading]);
 
   if (isLoading) {
     return (
@@ -52,14 +119,8 @@ export function UISettings() {
       <CardContent className="space-y-6">
         <Accordion
           type="multiple"
-          defaultValue={[
-            "display",
-            "stats",
-            "messages",
-            "reasoning",
-            "comparison",
-            "sidebar-features",
-          ]}
+          value={expandedSections}
+          onValueChange={setExpandedSections}
           className="space-y-4"
         >
           <DisplayLayoutSection
@@ -102,10 +163,12 @@ export function UISettings() {
             showTemplates={state.showTemplates}
             showProjects={state.showProjects}
             showBookmarks={state.showBookmarks}
+            showSlides={state.showSlides}
             onShowNotesChange={handlers.handleShowNotesChange}
             onShowTemplatesChange={handlers.handleShowTemplatesChange}
             onShowProjectsChange={handlers.handleShowProjectsChange}
             onShowBookmarksChange={handlers.handleShowBookmarksChange}
+            onShowSlidesChange={handlers.handleShowSlidesChange}
           />
         </Accordion>
 

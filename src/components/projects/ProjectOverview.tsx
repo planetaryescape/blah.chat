@@ -5,12 +5,12 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
-    ArrowRight,
-    CheckSquare,
-    Clock,
-    FileText,
-    MessageSquare,
-    NotebookPen
+  ArrowRight,
+  CheckSquare,
+  Clock,
+  FileText,
+  MessageSquare,
+  NotebookPen,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -28,14 +28,14 @@ export function ProjectOverview({
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const item = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    show: { opacity: 1, y: 0 },
   };
 
   return (
@@ -83,47 +83,58 @@ export function ProjectOverview({
         </div>
 
         <Card className="border shadow-sm bg-card/50 overflow-hidden">
-           {resources && (
-             <div className="divide-y divide-border/40">
-               {/* Merge and sort resources if possible, or just display them cleanly */}
-               {[...(resources.conversations || []), ...(resources.files || [])].length > 0 ? (
-                 <>
-                   {resources.conversations?.slice(0, 3).map((conv: any) => (
-                     <ActivityItem
-                       key={conv._id}
-                       type="conversation"
-                       title={conv.title || "Untitled conversation"}
-                       date={conv.createdAt}
-                       id={conv._id}
-                       projectId={projectId}
-                     />
-                   ))}
-                   {resources.files?.slice(0, 3).map((file: any) => (
-                     <ActivityItem
-                       key={file._id}
-                       type="file"
-                       title={file.name}
-                       date={file.createdAt}
-                       id={file._id}
-                       projectId={projectId}
-                     />
-                   ))}
-                 </>
-               ) : (
-                  <div className="p-12 text-center flex flex-col items-center justify-center text-muted-foreground/60">
-                    <Clock className="w-8 h-8 mb-3 opacity-20" />
-                    <p className="text-sm">No recent activity found</p>
-                  </div>
-               )}
-             </div>
-           )}
+          {resources && (
+            <div className="divide-y divide-border/40">
+              {/* Merge and sort resources if possible, or just display them cleanly */}
+              {[...(resources.conversations || []), ...(resources.files || [])]
+                .length > 0 ? (
+                <>
+                  {resources.conversations?.slice(0, 3).map((conv: any) => (
+                    <ActivityItem
+                      key={conv._id}
+                      type="conversation"
+                      title={conv.title || "Untitled conversation"}
+                      date={conv.createdAt}
+                      id={conv._id}
+                      projectId={projectId}
+                    />
+                  ))}
+                  {resources.files?.slice(0, 3).map((file: any) => (
+                    <ActivityItem
+                      key={file._id}
+                      type="file"
+                      title={file.name}
+                      date={file.createdAt}
+                      id={file._id}
+                      projectId={projectId}
+                    />
+                  ))}
+                </>
+              ) : (
+                <div className="p-12 text-center flex flex-col items-center justify-center text-muted-foreground/60">
+                  <Clock className="w-8 h-8 mb-3 opacity-20" />
+                  <p className="text-sm">No recent activity found</p>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
     </motion.div>
   );
 }
 
-function StatsCard({ icon: Icon, label, value, delay }: { icon: any, label: string, value: number, delay: number }) {
+function StatsCard({
+  icon: Icon,
+  label,
+  value,
+  delay,
+}: {
+  icon: any;
+  label: string;
+  value: number;
+  delay: number;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -146,15 +157,31 @@ function StatsCard({ icon: Icon, label, value, delay }: { icon: any, label: stri
   );
 }
 
-function ActivityItem({ type, title, date, id, projectId }: { type: 'conversation' | 'file', title: string, date: number, id: string, projectId: string }) {
+function ActivityItem({
+  type,
+  title,
+  date,
+  id,
+  projectId,
+}: {
+  type: "conversation" | "file";
+  title: string;
+  date: number;
+  id: string;
+  projectId: string;
+}) {
   return (
     <Link
-      href={type === 'conversation' ? `/chat/${id}` : `#`}
+      href={type === "conversation" ? `/chat/${id}` : `#`}
       className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors group cursor-pointer border-b border-border/40 last:border-0"
     >
       <div className="flex items-center gap-3 overflow-hidden">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary shrink-0">
-          {type === 'conversation' ? <MessageSquare className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+          {type === "conversation" ? (
+            <MessageSquare className="h-4 w-4" />
+          ) : (
+            <FileText className="h-4 w-4" />
+          )}
         </div>
         <div className="min-w-0">
           <h4 className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">

@@ -99,6 +99,14 @@ export const DEADLINE_PARSING_MODEL: ModelConfig =
 export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
   MODEL_CONFIG["google:gemini-2.0-flash"];
 
+/**
+ * Design system generation for presentations.
+ * Uses GLM-4.6 for creative, distinctive visual design generation.
+ * Higher temperature (0.9) for creative output.
+ */
+export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
+  MODEL_CONFIG["zai:glm-4.6"];
+
 // ============================================================================
 // EMBEDDING MODEL
 // ============================================================================
@@ -129,5 +137,6 @@ export const OPERATIONAL_MODELS = {
   taskExtraction: TASK_EXTRACTION_MODEL,
   deadlineParsing: DEADLINE_PARSING_MODEL,
   documentExtraction: DOCUMENT_EXTRACTION_MODEL,
+  designSystemGeneration: DESIGN_SYSTEM_GENERATION_MODEL,
   embedding: EMBEDDING_MODEL,
 } as const;

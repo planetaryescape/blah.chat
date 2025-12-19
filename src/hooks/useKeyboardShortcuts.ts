@@ -35,9 +35,15 @@ export function useKeyboardShortcuts() {
       // This is just a placeholder
 
       // Alt+N - New chat (Changed from Cmd+Shift+O to avoid browser conflict)
-      if (e.altKey && e.code === "KeyN") {
+      if (e.altKey && !e.shiftKey && e.code === "KeyN") {
         e.preventDefault();
         startNewChat();
+      }
+
+      // Shift+Alt+N - New incognito chat
+      if (e.altKey && e.shiftKey && e.code === "KeyN") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("open-new-incognito-dialog"));
       }
 
       // Cmd+J - Quick model switcher
@@ -140,6 +146,7 @@ export const KEYBOARD_SHORTCUTS = {
   global: {
     "Cmd/Ctrl + K": "Open command palette",
     "Alt + N": "New chat",
+    "Shift + Alt + N": "New incognito chat",
     "Cmd/Ctrl + 1-9": "Jump to conversation 1-9",
     "Cmd/Ctrl + [": "Previous conversation",
     "Cmd/Ctrl + ]": "Next conversation",

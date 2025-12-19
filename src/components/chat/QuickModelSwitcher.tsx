@@ -113,7 +113,7 @@ export function QuickModelSwitcher({
       acc[provider].push(model);
       return acc;
     },
-    {} as Record<string, ModelConfig[]>
+    {} as Record<string, ModelConfig[]>,
   );
 
   const handleSelect = (modelId: string) => {
@@ -250,7 +250,7 @@ export function QuickModelSwitcher({
               {filteredModels.favorites.length > 0 && (
                 <CommandGroup heading="Favorites">
                   {filteredModels.favorites.map((model) =>
-                    renderModelItem(model)
+                    renderModelItem(model),
                   )}
                 </CommandGroup>
               )}
@@ -258,7 +258,7 @@ export function QuickModelSwitcher({
               {filteredModels.recents.length > 0 && (
                 <CommandGroup heading="Recent">
                   {filteredModels.recents.map((model) =>
-                    renderModelItem(model)
+                    renderModelItem(model),
                   )}
                 </CommandGroup>
               )}

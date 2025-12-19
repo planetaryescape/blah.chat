@@ -39,6 +39,7 @@ export const PREFERENCE_DEFAULTS = {
   showTemplates: true,
   showProjects: true,
   showBookmarks: true,
+  showSlides: false,
 
   // Custom Instructions (single object)
   customInstructions: {
@@ -94,6 +95,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showTemplates: "advanced",
   showProjects: "advanced",
   showBookmarks: "advanced",
+  showSlides: "advanced",
 
   // Special: nested objects stored as single rows
   customInstructions: "customInstructions",

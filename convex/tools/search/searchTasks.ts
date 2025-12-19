@@ -100,7 +100,8 @@ export const searchTasks = internalAction({
       limit: args.limit * 2, // Over-fetch for filtering
       filter: args.projectId
         ? // biome-ignore lint/suspicious/noExplicitAny: Convex filter builder type depth
-          (q: any) => q.eq("userId", args.userId).eq("projectId", args.projectId)
+          (q: any) =>
+            q.eq("userId", args.userId).eq("projectId", args.projectId)
         : (q: any) => q.eq("userId", args.userId),
     });
 

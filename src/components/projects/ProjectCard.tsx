@@ -2,21 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Id } from "@/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import {
-    ArrowUpRight,
-    Clock,
-    FolderOpen,
-    Layout,
-    MoreVertical,
-    Star,
+  ArrowUpRight,
+  Clock,
+  FolderOpen,
+  Layout,
+  MoreVertical,
+  Star,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProjectStats } from "./ProjectStats";
@@ -79,7 +79,9 @@ export function ProjectCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => router.push(`/projects/${project._id}`)}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/projects/${project._id}`)}
+              >
                 <ArrowUpRight className="w-4 h-4 mr-2" />
                 Open Project
               </DropdownMenuItem>
@@ -121,7 +123,7 @@ export function ProjectCard({
 
         {/* Footer / Stats */}
         <div className="pt-4 mt-auto border-t border-border/40">
-           <ProjectStats projectId={project._id} />
+          <ProjectStats projectId={project._id} />
         </div>
       </div>
     </div>

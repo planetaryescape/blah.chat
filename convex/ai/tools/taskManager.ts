@@ -49,28 +49,21 @@ export function createTaskManagerTool(
         .describe("The task operation to perform"),
 
       // For create
-      title: z
-        .string()
-        .optional()
-        .describe("Task title (required for create)"),
-      description: z
-        .string()
-        .optional()
-        .describe("Task description"),
+      title: z.string().optional().describe("Task title (required for create)"),
+      description: z.string().optional().describe("Task description"),
       deadline: z
         .string()
         .optional()
-        .describe("Deadline in natural language: 'tomorrow', 'next Friday', 'Dec 25'"),
+        .describe(
+          "Deadline in natural language: 'tomorrow', 'next Friday', 'Dec 25'",
+        ),
       urgency: z
         .enum(["low", "medium", "high", "urgent"])
         .optional()
         .describe("Task urgency level"),
 
       // For update/complete/delete - task identification
-      taskId: z
-        .string()
-        .optional()
-        .describe("Exact task ID if known"),
+      taskId: z.string().optional().describe("Exact task ID if known"),
       taskTitle: z
         .string()
         .optional()
@@ -83,10 +76,7 @@ export function createTaskManagerTool(
         .describe("Must be true on second call to confirm deletion"),
 
       // For update - new values
-      newTitle: z
-        .string()
-        .optional()
-        .describe("New title for the task"),
+      newTitle: z.string().optional().describe("New title for the task"),
       newDescription: z
         .string()
         .optional()
@@ -100,13 +90,25 @@ export function createTaskManagerTool(
         .optional()
         .describe("New urgency level"),
       newStatus: z
-        .enum(["suggested", "confirmed", "in_progress", "completed", "cancelled"])
+        .enum([
+          "suggested",
+          "confirmed",
+          "in_progress",
+          "completed",
+          "cancelled",
+        ])
         .optional()
         .describe("New status for the task"),
 
       // For list
       status: z
-        .enum(["suggested", "confirmed", "in_progress", "completed", "cancelled"])
+        .enum([
+          "suggested",
+          "confirmed",
+          "in_progress",
+          "completed",
+          "cancelled",
+        ])
         .optional()
         .describe("Filter tasks by status"),
       limit: z

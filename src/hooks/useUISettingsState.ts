@@ -27,6 +27,7 @@ export interface UISettingsState {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
+  showSlides: boolean;
 }
 
 export interface UISettingsHandlers {
@@ -42,6 +43,7 @@ export interface UISettingsHandlers {
   handleShowTemplatesChange: (checked: boolean) => Promise<void>;
   handleShowProjectsChange: (checked: boolean) => Promise<void>;
   handleShowBookmarksChange: (checked: boolean) => Promise<void>;
+  handleShowSlidesChange: (checked: boolean) => Promise<void>;
 }
 
 /**
@@ -67,6 +69,7 @@ export function useUISettingsState() {
   const prefShowTemplates = useUserPreference("showTemplates");
   const prefShowProjects = useUserPreference("showProjects");
   const prefShowBookmarks = useUserPreference("showBookmarks");
+  const prefShowSlides = useUserPreference("showSlides");
 
   // Local state for optimistic updates
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
@@ -96,6 +99,7 @@ export function useUISettingsState() {
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
   const [showBookmarks, setShowBookmarks] =
     useState<boolean>(prefShowBookmarks);
+  const [showSlides, setShowSlides] = useState<boolean>(prefShowSlides);
 
   // Sync local state when hook values change
   useEffect(
@@ -131,6 +135,7 @@ export function useUISettingsState() {
   useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);
   useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
   useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
+  useEffect(() => setShowSlides(prefShowSlides), [prefShowSlides]);
 
   // Generic handler for simple boolean preferences
   const createBooleanHandler = (
@@ -257,6 +262,11 @@ export function useUISettingsState() {
       setShowBookmarks,
       "show_bookmarks",
     ),
+    handleShowSlidesChange: createBooleanHandler(
+      "showSlides",
+      setShowSlides,
+      "show_slides",
+    ),
   };
 
   const state: UISettingsState = {
@@ -272,6 +282,7 @@ export function useUISettingsState() {
     showTemplates,
     showProjects,
     showBookmarks,
+    showSlides,
   };
 
   return {

@@ -20,9 +20,12 @@ export const generateEmbedding = internalAction({
   },
   handler: async (ctx, args) => {
     // Get task content
-    const task = (await ctx.runQuery(internal.tasks.embeddings.getTaskInternal, {
-      taskId: args.taskId,
-    })) as { title: string; description?: string } | null;
+    const task = (await ctx.runQuery(
+      internal.tasks.embeddings.getTaskInternal,
+      {
+        taskId: args.taskId,
+      },
+    )) as { title: string; description?: string } | null;
 
     if (!task) {
       console.error("Task not found:", args.taskId);
@@ -63,7 +66,11 @@ export const generateEmbedding = internalAction({
         embedding,
       });
     } catch (error) {
-      console.error("Failed to generate embedding for task:", args.taskId, error);
+      console.error(
+        "Failed to generate embedding for task:",
+        args.taskId,
+        error,
+      );
       await ctx.runMutation(internal.tasks.embeddings.updateEmbeddingStatus, {
         taskId: args.taskId,
         status: "failed",

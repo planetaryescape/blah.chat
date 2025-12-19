@@ -221,7 +221,9 @@ function SearchResultCard({
   const conversation = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
-    message.conversationId ? { conversationId: message.conversationId } : "skip",
+    message.conversationId
+      ? { conversationId: message.conversationId }
+      : "skip",
   );
 
   // Highlight query terms in content (sanitized)

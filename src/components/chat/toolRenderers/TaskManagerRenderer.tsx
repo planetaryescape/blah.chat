@@ -48,7 +48,9 @@ export function TaskManagerRenderer({
         case "complete":
           return "Completing task...";
         case "delete":
-          return parsedArgs?.confirmDelete ? "Deleting task..." : "Finding task...";
+          return parsedArgs?.confirmDelete
+            ? "Deleting task..."
+            : "Finding task...";
         case "list":
           return "Loading tasks...";
         default:
@@ -97,7 +99,9 @@ export function TaskManagerRenderer({
         ) : (
           <span
             className={`font-medium ${
-              task.status === "completed" ? "line-through text-muted-foreground" : ""
+              task.status === "completed"
+                ? "line-through text-muted-foreground"
+                : ""
             }`}
           >
             {task.title}

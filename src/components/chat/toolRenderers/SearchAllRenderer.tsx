@@ -71,7 +71,8 @@ export function SearchAllRenderer({
     files: parsedResult?.files?.totalResults || 0,
     conversations: parsedResult?.conversations?.totalResults || 0,
   };
-  const totalCount = totals.notes + totals.tasks + totals.files + totals.conversations;
+  const totalCount =
+    totals.notes + totals.tasks + totals.files + totals.conversations;
 
   return (
     <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
@@ -102,16 +103,27 @@ export function SearchAllRenderer({
                     href={item.url}
                     className="font-medium text-primary hover:underline truncate max-w-[200px]"
                   >
-                    {item.title || item.filename || item.conversationTitle || "Untitled"}
+                    {item.title ||
+                      item.filename ||
+                      item.conversationTitle ||
+                      "Untitled"}
                   </a>
                 ) : (
                   <span className="font-medium text-foreground truncate max-w-[200px]">
-                    {item.title || item.filename || item.conversationTitle || "Untitled"}
+                    {item.title ||
+                      item.filename ||
+                      item.conversationTitle ||
+                      "Untitled"}
                   </span>
                 )}
               </div>
               <p className="text-muted-foreground text-[11px] line-clamp-1 pl-10">
-                {(item.preview || item.content || item.description || "")?.substring(0, 100)}
+                {(
+                  item.preview ||
+                  item.content ||
+                  item.description ||
+                  ""
+                )?.substring(0, 100)}
               </p>
             </div>
           ))}

@@ -107,7 +107,9 @@ export function FileDetailPanel({
             <span className="text-muted-foreground text-xs">Status</span>
             <div className="flex items-center gap-1.5 mt-0.5">
               {getStatusIcon(fileData.embeddingStatus || "pending")}
-              <span>{getStatusLabel(fileData.embeddingStatus || "pending")}</span>
+              <span>
+                {getStatusLabel(fileData.embeddingStatus || "pending")}
+              </span>
             </div>
           </div>
           <div>

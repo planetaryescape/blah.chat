@@ -45,7 +45,9 @@ Parameters:
       projectId: z
         .string()
         .optional()
-        .describe("Optional project ID to filter results to a specific project"),
+        .describe(
+          "Optional project ID to filter results to a specific project",
+        ),
       limit: z
         .number()
         .min(1)
@@ -85,7 +87,8 @@ Parameters:
         if (error.message?.includes("does not match the table name")) {
           return {
             success: false,
-            error: "Invalid projectId - the ID provided is not a valid project ID",
+            error:
+              "Invalid projectId - the ID provided is not a valid project ID",
             results: [],
           };
         }

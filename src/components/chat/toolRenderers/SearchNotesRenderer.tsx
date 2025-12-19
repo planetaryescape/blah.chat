@@ -38,7 +38,10 @@ export function SearchNotesRenderer({
               </a>
               {r.tags?.length > 0 && (
                 <span className="ml-2 text-[10px] text-muted-foreground">
-                  {r.tags.slice(0, 3).map((tag: string) => `#${tag}`).join(" ")}
+                  {r.tags
+                    .slice(0, 3)
+                    .map((tag: string) => `#${tag}`)
+                    .join(" ")}
                 </span>
               )}
               <p className="text-muted-foreground text-[11px] line-clamp-2">

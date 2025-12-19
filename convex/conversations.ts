@@ -45,21 +45,45 @@ export const create = mutation({
   args: {
     model: v.string(),
     title: v.optional(v.string()),
+    systemPrompt: v.optional(v.string()),
+    // Incognito mode support
+    isIncognito: v.optional(v.boolean()),
+    incognitoSettings: v.optional(
+      v.object({
+        enableReadTools: v.optional(v.boolean()),
+        applyCustomInstructions: v.optional(v.boolean()),
+        inactivityTimeoutMinutes: v.optional(v.number()),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
 
+    const now = Date.now();
     const conversationId = await ctx.db.insert("conversations", {
       userId: user._id,
-      title: args.title || "New Chat",
+      title: args.title || (args.isIncognito ? "Incognito Chat" : "New Chat"),
       model: args.model,
+      systemPrompt: args.systemPrompt,
       pinned: false,
       archived: false,
       starred: false,
       messageCount: 0,
-      lastMessageAt: Date.now(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      lastMessageAt: now,
+      createdAt: now,
+      updatedAt: now,
+      // Incognito fields
+      ...(args.isIncognito && {
+        isIncognito: true,
+        incognitoSettings: {
+          enableReadTools: args.incognitoSettings?.enableReadTools ?? true,
+          applyCustomInstructions:
+            args.incognitoSettings?.applyCustomInstructions ?? true,
+          inactivityTimeoutMinutes:
+            args.incognitoSettings?.inactivityTimeoutMinutes,
+          lastActivityAt: now,
+        },
+      }),
     });
 
     // Update user stats for progressive hints

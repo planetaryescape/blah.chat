@@ -5,6 +5,8 @@ import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
 import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
+import { FireButton } from "@/components/chat/FireButton";
+import { IncognitoBadge } from "@/components/chat/IncognitoBadge";
 import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
@@ -94,7 +96,7 @@ export function ChatHeader({
         </TooltipProvider>
       </div>
 
-      <div className="hidden sm:block">
+      <div className="hidden sm:flex items-center gap-2">
         {!modelLoading && selectedModel && (
           <ModelBadge
             modelId={isComparisonActive ? undefined : selectedModel}
@@ -105,9 +107,10 @@ export function ChatHeader({
             }
           />
         )}
+        {conversation?.isIncognito && <IncognitoBadge />}
       </div>
 
-      {showProjects && (
+      {showProjects && !conversation?.isIncognito && (
         <ProjectSelector
           conversationId={conversationId}
           currentProjectId={conversation?.projectId ?? undefined}
@@ -115,7 +118,8 @@ export function ChatHeader({
       )}
 
       <div className="flex items-center gap-2">
-        {conversationId && messageCount >= 3 && (
+        {/* Hide memory extraction for incognito - no memories saved */}
+        {conversationId && messageCount >= 3 && !conversation?.isIncognito && (
           <ExtractMemoriesButton conversationId={conversationId} />
         )}
         {hasMessages && conversationId && (
@@ -125,8 +129,13 @@ export function ChatHeader({
           />
         )}
         {conversationId && <BranchBadge conversationId={conversationId} />}
-        {hasMessages && conversationId && (
+        {/* Hide sharing for incognito - ephemeral by design */}
+        {hasMessages && conversationId && !conversation?.isIncognito && (
           <ShareDialog conversationId={conversationId} />
+        )}
+        {/* Fire button for incognito conversations */}
+        {conversation?.isIncognito && (
+          <FireButton conversationId={conversationId} />
         )}
         {conversation && <ConversationHeaderMenu conversation={conversation} />}
       </div>

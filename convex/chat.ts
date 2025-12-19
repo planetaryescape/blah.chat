@@ -222,12 +222,13 @@ export const runHousekeeping = internalMutation({
     }
 
     // 4. Check if memory extraction should trigger (auto-extraction)
+    // Skip for incognito conversations - they don't save memories
+    const conversation = await ctx.db.get(args.conversationId);
     const autoExtractEnabled = adminSettings?.autoMemoryExtractEnabled ?? true;
     const interval = adminSettings?.autoMemoryExtractInterval ?? 5;
 
-    if (autoExtractEnabled) {
+    if (autoExtractEnabled && !conversation?.isIncognito) {
       // Use conversation's messageCount for efficient check (avoid full query)
-      const conversation = await ctx.db.get(args.conversationId);
       const messageCount = conversation?.messageCount || 0;
 
       // Approximate user message count as ~half of total messages
@@ -243,6 +244,13 @@ export const runHousekeeping = internalMutation({
           },
         );
       }
+    }
+
+    // 5. Record activity for incognito conversations (resets deletion timer)
+    if (conversation?.isIncognito) {
+      await ctx.scheduler.runAfter(0, internal.incognito.recordActivity, {
+        conversationId: args.conversationId,
+      });
     }
   },
 });
@@ -266,10 +274,11 @@ export const regenerate = mutation({
     }
 
     // Phase 4: Get default model from new preference system
-    const userDefaultModel = await (
-      ctx.runQuery as (ref: any, args: any) => Promise<string | null>
-      // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
-    )(api.users.getUserPreference as any, { key: "defaultModel" });
+    const userDefaultModel = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getUserPreference,
+      { key: "defaultModel" },
+    )) as string | null;
 
     // Priority: message.model → conversation.model → user defaultModel preference → fallback
     const modelId =

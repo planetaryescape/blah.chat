@@ -35,7 +35,9 @@ Parameters:
       projectId: z
         .string()
         .optional()
-        .describe("Optional project ID to filter results to a specific project"),
+        .describe(
+          "Optional project ID to filter results to a specific project",
+        ),
       resourceTypes: z
         .array(z.enum(["files", "notes", "tasks", "conversations"]))
         .optional()
@@ -73,7 +75,8 @@ Parameters:
         if (error.message?.includes("does not match the table name")) {
           return {
             success: false,
-            error: "Invalid projectId - the ID provided is not a valid project ID",
+            error:
+              "Invalid projectId - the ID provided is not a valid project ID",
             results: { files: [], notes: [], tasks: [], conversations: [] },
           };
         }

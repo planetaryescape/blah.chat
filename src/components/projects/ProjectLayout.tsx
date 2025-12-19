@@ -8,14 +8,14 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
-    Archive,
-    ChevronLeft,
-    FileText,
-    FolderOpen,
-    LayoutGrid,
-    MessageSquare,
-    MoreHorizontal,
-    Settings,
+  Archive,
+  ChevronLeft,
+  FileText,
+  FolderOpen,
+  LayoutGrid,
+  MessageSquare,
+  MoreHorizontal,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -159,11 +159,18 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
             asChild
             className={cn(
               "w-full justify-start h-9 px-3 font-normal text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
-              isActive("settings") && "bg-secondary text-primary font-medium"
+              isActive("settings") && "bg-secondary text-primary font-medium",
             )}
           >
             <Link href={`/projects/${projectId}/settings`}>
-              <Settings className={cn("mr-3 h-4 w-4", isActive("settings") ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+              <Settings
+                className={cn(
+                  "mr-3 h-4 w-4",
+                  isActive("settings")
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground",
+                )}
+              />
               Settings
             </Link>
           </Button>

@@ -116,10 +116,16 @@ export const extractText = internalAction({
     const mimeType = file.mimeType.toLowerCase();
 
     // Route based on file type
-    if (TEXT_TYPES.some((t) => mimeType.includes(t) || mimeType.startsWith("text/"))) {
+    if (
+      TEXT_TYPES.some(
+        (t) => mimeType.includes(t) || mimeType.startsWith("text/"),
+      )
+    ) {
       // Direct text extraction - no LLM needed
       const text = await blob.text();
-      console.log(`[Extraction] Direct text: ${file.name} (${text.length} chars)`);
+      console.log(
+        `[Extraction] Direct text: ${file.name} (${text.length} chars)`,
+      );
       return text;
     }
 
@@ -137,7 +143,9 @@ export const extractText = internalAction({
     try {
       const text = await blob.text();
       if (text && text.trim().length > 0) {
-        console.log(`[Extraction] Fallback text: ${file.name} (${text.length} chars)`);
+        console.log(
+          `[Extraction] Fallback text: ${file.name} (${text.length} chars)`,
+        );
         return text;
       }
     } catch {
@@ -153,7 +161,10 @@ export const extractText = internalAction({
  * Extract text from PDF using LLM page-by-page
  * Document is cached after first request for faster subsequent pages
  */
-async function extractPdfWithLlm(blob: Blob, fileName: string): Promise<string> {
+async function extractPdfWithLlm(
+  blob: Blob,
+  fileName: string,
+): Promise<string> {
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
@@ -236,7 +247,10 @@ async function extractPdfWithLlm(blob: Blob, fileName: string): Promise<string> 
 /**
  * Extract text from DOCX using LLM
  */
-async function extractDocWithLlm(blob: Blob, fileName: string): Promise<string> {
+async function extractDocWithLlm(
+  blob: Blob,
+  fileName: string,
+): Promise<string> {
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");

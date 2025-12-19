@@ -238,6 +238,7 @@ function validatePreference(key: string, value: any): void {
     case "showTemplates":
     case "showProjects":
     case "showBookmarks":
+    case "showSlides":
       if (typeof value !== "boolean") {
         throw new Error(`${key} must be a boolean`);
       }

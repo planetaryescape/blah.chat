@@ -134,7 +134,8 @@ export function TaskReviewPanel({
                           task.sourceContext.confidence,
                         )}`}
                       />
-                      {Math.round(task.sourceContext.confidence * 100)}% confident
+                      {Math.round(task.sourceContext.confidence * 100)}%
+                      confident
                     </Badge>
                   )}
 

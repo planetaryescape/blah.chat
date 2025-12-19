@@ -17,7 +17,10 @@ interface TasksDashboardProps {
   hideSidebar?: boolean;
 }
 
-export function TasksDashboard({ initialProjectId, hideSidebar = false }: TasksDashboardProps) {
+export function TasksDashboard({
+  initialProjectId,
+  hideSidebar = false,
+}: TasksDashboardProps) {
   const [view, setView] = useState<ViewType>(initialProjectId ? "all" : "all");
   const [projectFilter, setProjectFilter] = useState<Id<"projects"> | null>(
     initialProjectId || null,
@@ -132,10 +135,12 @@ export function TasksDashboard({ initialProjectId, hideSidebar = false }: TasksD
       {/* Assuming 4rem header height or similar global layout structure.
           If not, h-full might work if parent has height. */}
 
-      <main className={cn(
-        "flex w-full h-full overflow-hidden bg-background",
-        !hideSidebar && "rounded-tl-xl border-t border-l shadow-2xl"
-      )}>
+      <main
+        className={cn(
+          "flex w-full h-full overflow-hidden bg-background",
+          !hideSidebar && "rounded-tl-xl border-t border-l shadow-2xl",
+        )}
+      >
         {!hideSidebar && (
           <TasksSidebar
             currentView={view}

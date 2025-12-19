@@ -394,9 +394,13 @@ export const addFileToProject = mutation({
     // Trigger file embedding generation if not already processed
     if (!file.embeddingStatus || file.embeddingStatus === "pending") {
       // @ts-ignore - Type depth exceeded with internal reference
-      await ctx.scheduler.runAfter(0, internal.files.embeddings.generateFileEmbeddings, {
-        fileId: args.fileId,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.files.embeddings.generateFileEmbeddings,
+        {
+          fileId: args.fileId,
+        },
+      );
     }
 
     return junctionId;

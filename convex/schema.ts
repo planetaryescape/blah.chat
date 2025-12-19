@@ -11,6 +11,8 @@ export default defineSchema({
     // Daily message tracking (stored per user, limit from admin settings)
     dailyMessageCount: v.optional(v.number()),
     lastMessageDate: v.optional(v.string()),
+    // Preferences
+    disabledBuiltInTemplateIds: v.optional(v.array(v.id("templates"))),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -454,6 +456,16 @@ export default defineSchema({
     position: v.optional(v.number()), // For manual ordering
     // Completion tracking
     completedAt: v.optional(v.number()),
+    // RAG: Semantic search support
+    embedding: v.optional(v.array(v.float64())),
+    embeddingStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("failed"),
+      ),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -465,6 +477,11 @@ export default defineSchema({
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "status", "projectId"],
+    })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["userId", "projectId"],
     }),
 
   projectConversations: defineTable({
@@ -529,6 +546,7 @@ export default defineSchema({
   fileChunks: defineTable({
     fileId: v.id("files"),
     userId: v.id("users"),
+    projectId: v.optional(v.id("projects")), // For project-scoped search
     chunkIndex: v.number(),
     content: v.string(),
     // Metadata
@@ -542,10 +560,11 @@ export default defineSchema({
   })
     .index("by_file", ["fileId"])
     .index("by_user", ["userId"])
+    .index("by_project", ["projectId"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
-      filterFields: ["userId", "fileId"],
+      filterFields: ["userId", "projectId"],
     }),
 
   bookmarks: defineTable({
@@ -605,6 +624,17 @@ export default defineSchema({
     shareCreatedAt: v.optional(v.number()), // when share was created
     shareViewCount: v.optional(v.number()), // track view analytics
 
+    // RAG: Semantic search support
+    embedding: v.optional(v.array(v.float64())),
+    embeddingStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("failed"),
+      ),
+    ),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -616,6 +646,11 @@ export default defineSchema({
     .searchIndex("search_notes", {
       searchField: "content",
       filterFields: ["userId"],
+    })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["userId", "projectId"],
     }),
 
   // Smart Manager Phase 1: Activity feed for projects and tasks

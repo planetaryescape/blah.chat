@@ -82,6 +82,7 @@ import type * as lib_prompts_operational_memoryRerank from "../lib/prompts/opera
 import type * as lib_prompts_operational_summarization from "../lib/prompts/operational/summarization.js";
 import type * as lib_prompts_operational_tagExtraction from "../lib/prompts/operational/tagExtraction.js";
 import type * as lib_prompts_operational_titleGeneration from "../lib/prompts/operational/titleGeneration.js";
+import type * as lib_prompts_operational_visualFormatting from "../lib/prompts/operational/visualFormatting.js";
 import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/builtIn.js";
 import type * as lib_userSync from "../lib/userSync.js";
 import type * as memories from "../memories.js";
@@ -255,6 +256,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/operational/summarization": typeof lib_prompts_operational_summarization;
   "lib/prompts/operational/tagExtraction": typeof lib_prompts_operational_tagExtraction;
   "lib/prompts/operational/titleGeneration": typeof lib_prompts_operational_titleGeneration;
+  "lib/prompts/operational/visualFormatting": typeof lib_prompts_operational_visualFormatting;
   "lib/prompts/templates/builtIn": typeof lib_prompts_templates_builtIn;
   "lib/userSync": typeof lib_userSync;
   memories: typeof memories;

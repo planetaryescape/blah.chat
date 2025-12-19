@@ -5,7 +5,6 @@ import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import {
-  Suspense,
   use,
   useCallback,
   useEffect,

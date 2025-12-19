@@ -97,7 +97,9 @@ function EmbeddingStatusBadge({
               Processing
             </span>
           </TooltipTrigger>
-          <TooltipContent>Extracting text and generating embeddings</TooltipContent>
+          <TooltipContent>
+            Extracting text and generating embeddings
+          </TooltipContent>
         </Tooltip>
       );
     case "completed":
@@ -110,7 +112,9 @@ function EmbeddingStatusBadge({
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            {chunkCount ? `${chunkCount} chunks indexed` : "Indexed and searchable"}
+            {chunkCount
+              ? `${chunkCount} chunks indexed`
+              : "Indexed and searchable"}
           </TooltipContent>
         </Tooltip>
       );
@@ -123,7 +127,9 @@ function EmbeddingStatusBadge({
               Failed
             </span>
           </TooltipTrigger>
-          <TooltipContent>Processing failed - file may not be searchable</TooltipContent>
+          <TooltipContent>
+            Processing failed - file may not be searchable
+          </TooltipContent>
         </Tooltip>
       );
   }
@@ -187,7 +193,10 @@ export default function ProjectFilesPage({
   const removeFileFromProject = useMutation(api.projects.removeFileFromProject);
 
   const [uploading, setUploading] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<{ id: Id<"files">; name: string } | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<{
+    id: Id<"files">;
+    name: string;
+  } | null>(null);
 
   // File Upload Logic
   const onDrop = useCallback(
@@ -257,7 +266,13 @@ export default function ProjectFilesPage({
       setFileParam(null);
       setChunkParam(null);
     }
-  }, [selectedFileId, projectFiles, selectedFileExists, setFileParam, setChunkParam]);
+  }, [
+    selectedFileId,
+    projectFiles,
+    selectedFileExists,
+    setFileParam,
+    setChunkParam,
+  ]);
 
   return (
     <div className="h-full flex">
@@ -268,188 +283,192 @@ export default function ProjectFilesPage({
           selectedFileId && "max-w-[60%]",
         )}
       >
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Files</h2>
-        <p className="text-muted-foreground">
-          Manage project context and view attachments from conversations.
-        </p>
-      </div>
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Files</h2>
+          <p className="text-muted-foreground">
+            Manage project context and view attachments from conversations.
+          </p>
+        </div>
 
-      {/* Section 1: Project Context Files */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Project Context</CardTitle>
-            <CardDescription>
-              Files uploaded here are available as context for all project
-              conversations.
-            </CardDescription>
-          </div>
-          <div {...getRootProps()}>
-            <input {...getInputProps()} />
-            <Button disabled={uploading} size="sm">
-              {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              Add File
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {uploading && (
-            <div className="flex items-center justify-center p-8 border-2 border-dashed rounded-lg mb-4">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">
-                Uploading...
-              </span>
+        {/* Section 1: Project Context Files */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Project Context</CardTitle>
+              <CardDescription>
+                Files uploaded here are available as context for all project
+                conversations.
+              </CardDescription>
             </div>
-          )}
-
-          {projectFiles.length === 0 && !uploading ? (
-            <div
-              {...getRootProps()}
-              className={`flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                isDragActive
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/50"
-              }`}
-            >
+            <div {...getRootProps()}>
               <input {...getInputProps()} />
-              <Upload className="w-8 h-8 text-muted-foreground mb-4" />
-              <p className="text-sm font-medium">
-                Drag & drop context files here, or click to select
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PDF, TXT, MD, Images (Max 10MB)
-              </p>
+              <Button disabled={uploading} size="sm">
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Add File
+              </Button>
             </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[35%]">Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Added</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projectFiles.map((file: any) => (
-                    <TableRow
-                      key={file._id}
-                      className={cn(
-                        "cursor-pointer hover:bg-muted/50 transition-colors",
-                        selectedFileId === file._id && "bg-primary/10 hover:bg-primary/15",
-                      )}
-                      onClick={() => setSelectedFileId(file._id)}
-                    >
-                      <TableCell className="font-medium flex items-center gap-2">
-                        {getFileIcon(file.mimeType)}
-                        {file.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {file.mimeType}
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        {formatSize(file.size)}
-                      </TableCell>
-                      <TableCell>
-                        <EmbeddingStatusBadge
-                          status={file.embeddingStatus}
-                          chunkCount={file.chunkCount}
-                        />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {format(file.createdAt, "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent row selection
-                            setFileToDelete({ id: file._id, name: file.name });
-                          }}
-                        >
-                          <span className="sr-only">Remove</span>
-                          &times;
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {uploading && (
+              <div className="flex items-center justify-center p-8 border-2 border-dashed rounded-lg mb-4">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Uploading...
+                </span>
+              </div>
+            )}
 
-      {/* Section 2: Conversation Attachments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Conversation Attachments</CardTitle>
-          <CardDescription>
-            Files attached to conversations linked to this project.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {conversationAttachments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground italic text-sm">
-              No attachments found in linked conversations.
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Conversation</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {conversationAttachments.map((file: any) => (
-                    <TableRow key={file._id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        {getFileIcon(file.mimeType)}
-                        {file.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {file.mimeType}
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        {formatSize(file.size)}
-                      </TableCell>
-                      <TableCell>
-                        {file.conversationId && (
-                          <Link
-                            href={`/chat/${file.conversationId}`}
-                            className="text-xs text-primary hover:underline"
-                          >
-                            View Chat
-                          </Link>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {format(file.createdAt, "MMM d, yyyy")}
-                      </TableCell>
+            {projectFiles.length === 0 && !uploading ? (
+              <div
+                {...getRootProps()}
+                className={`flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-primary/50"
+                }`}
+              >
+                <input {...getInputProps()} />
+                <Upload className="w-8 h-8 text-muted-foreground mb-4" />
+                <p className="text-sm font-medium">
+                  Drag & drop context files here, or click to select
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PDF, TXT, MD, Images (Max 10MB)
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[35%]">Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Added</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {projectFiles.map((file: any) => (
+                      <TableRow
+                        key={file._id}
+                        className={cn(
+                          "cursor-pointer hover:bg-muted/50 transition-colors",
+                          selectedFileId === file._id &&
+                            "bg-primary/10 hover:bg-primary/15",
+                        )}
+                        onClick={() => setSelectedFileId(file._id)}
+                      >
+                        <TableCell className="font-medium flex items-center gap-2">
+                          {getFileIcon(file.mimeType)}
+                          {file.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {file.mimeType}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {formatSize(file.size)}
+                        </TableCell>
+                        <TableCell>
+                          <EmbeddingStatusBadge
+                            status={file.embeddingStatus}
+                            chunkCount={file.chunkCount}
+                          />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {format(file.createdAt, "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row selection
+                              setFileToDelete({
+                                id: file._id,
+                                name: file.name,
+                              });
+                            }}
+                          >
+                            <span className="sr-only">Remove</span>
+                            &times;
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Section 2: Conversation Attachments */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Conversation Attachments</CardTitle>
+            <CardDescription>
+              Files attached to conversations linked to this project.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {conversationAttachments.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground italic text-sm">
+                No attachments found in linked conversations.
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40%]">Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Conversation</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {conversationAttachments.map((file: any) => (
+                      <TableRow key={file._id}>
+                        <TableCell className="font-medium flex items-center gap-2">
+                          {getFileIcon(file.mimeType)}
+                          {file.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {file.mimeType}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {formatSize(file.size)}
+                        </TableCell>
+                        <TableCell>
+                          {file.conversationId && (
+                            <Link
+                              href={`/chat/${file.conversationId}`}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              View Chat
+                            </Link>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {format(file.createdAt, "MMM d, yyyy")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* File Detail Panel - slides in from right */}
@@ -464,13 +483,18 @@ export default function ProjectFilesPage({
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+      <AlertDialog
+        open={!!fileToDelete}
+        onOpenChange={(open) => !open && setFileToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove file from project?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove <span className="font-medium">{fileToDelete?.name}</span> from the project context.
-              The file will no longer be available for AI conversations in this project.
+              This will remove{" "}
+              <span className="font-medium">{fileToDelete?.name}</span> from the
+              project context. The file will no longer be available for AI
+              conversations in this project.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

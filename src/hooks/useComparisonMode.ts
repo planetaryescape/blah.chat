@@ -5,7 +5,7 @@ export function useComparisonMode() {
   const [isActive, setIsActive] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [activeComparisonId, setActiveComparisonId] = useState<string | null>(
-    null
+    null,
   );
 
   const startComparison = (models: string[]) => {

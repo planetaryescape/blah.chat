@@ -356,12 +356,14 @@ export default function UserDetailPage({
                       fill="#8884d8"
                       dataKey="totalCost"
                     >
-                      {modelBreakdown.map((_entry: ModelBreakdown, index: number) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
+                      {modelBreakdown.map(
+                        (_entry: ModelBreakdown, index: number) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ),
+                      )}
                     </Pie>
                     <Tooltip
                       formatter={(value: number) => formatCurrency(value)}

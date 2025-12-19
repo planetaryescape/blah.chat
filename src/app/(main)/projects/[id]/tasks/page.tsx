@@ -7,7 +7,9 @@ import { Suspense, use } from "react";
 function TasksDashboardFallback() {
   return (
     <div className="h-full w-full flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading tasks...</div>
+      <div className="animate-pulse text-muted-foreground">
+        Loading tasks...
+      </div>
     </div>
   );
 }

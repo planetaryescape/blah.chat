@@ -61,7 +61,11 @@ export const generateEmbedding = internalAction({
         embedding,
       });
     } catch (error) {
-      console.error("Failed to generate embedding for note:", args.noteId, error);
+      console.error(
+        "Failed to generate embedding for note:",
+        args.noteId,
+        error,
+      );
       await ctx.runMutation(internal.notes.embeddings.updateEmbeddingStatus, {
         noteId: args.noteId,
         status: "failed",

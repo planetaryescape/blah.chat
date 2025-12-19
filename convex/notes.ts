@@ -105,6 +105,12 @@ export const createNote = mutation({
       });
     }
 
+    // Schedule embedding generation (async, non-blocking)
+    // @ts-ignore - Type depth exceeded with internal reference
+    await ctx.scheduler.runAfter(0, internal.notes.embeddings.generateEmbedding, {
+      noteId,
+    });
+
     return noteId;
   },
 });
@@ -145,6 +151,14 @@ export const updateNote = mutation({
     if (updates.content && updates.content.length >= 50) {
       // @ts-ignore - Type depth exceeded with internal reference
       await ctx.scheduler.runAfter(0, internal.notes.tags.extractAndApplyTags, {
+        noteId,
+      });
+    }
+
+    // Re-generate embedding if title or content changed
+    if (updates.content || updates.title) {
+      // @ts-ignore - Type depth exceeded with internal reference
+      await ctx.scheduler.runAfter(0, internal.notes.embeddings.generateEmbedding, {
         noteId,
       });
     }

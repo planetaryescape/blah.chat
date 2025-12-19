@@ -59,8 +59,6 @@ export function NoteSidebar({
   showFilters = false,
   onToggleFilters,
 }: NoteSidebarProps) {
-  const { isMobile } = useMobileDetect();
-
   return (
     <div
       className={cn(

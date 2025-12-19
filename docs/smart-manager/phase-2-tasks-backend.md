@@ -1,3 +1,8 @@
+> **STATUS: IMPLEMENTED**
+>
+> This phase has been fully implemented and verified as of December 2025.
+> See `convex/tasks.ts`, `convex/ai/taskExtraction.ts`, `convex/tasks/tags.ts` for actual implementation.
+
 # Phase 2: Tasks Backend - CRUD, Extraction & Auto-Tagging
 
 ## Overview

@@ -1,3 +1,8 @@
+> **STATUS: IMPLEMENTED**
+>
+> This phase has been fully implemented and verified as of December 2025.
+> See `convex/projects.ts` for actual implementation.
+
 # Phase 3: Project Expansion Backend - Junctions, Resources & Activity
 
 ## Overview

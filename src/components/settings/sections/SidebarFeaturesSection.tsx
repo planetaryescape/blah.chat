@@ -13,10 +13,12 @@ interface SidebarFeaturesSectionProps {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
+  showSlides: boolean;
   onShowNotesChange: (checked: boolean) => Promise<void>;
   onShowTemplatesChange: (checked: boolean) => Promise<void>;
   onShowProjectsChange: (checked: boolean) => Promise<void>;
   onShowBookmarksChange: (checked: boolean) => Promise<void>;
+  onShowSlidesChange: (checked: boolean) => Promise<void>;
 }
 
 export function SidebarFeaturesSection({
@@ -24,16 +26,21 @@ export function SidebarFeaturesSection({
   showTemplates,
   showProjects,
   showBookmarks,
+  showSlides,
   onShowNotesChange,
   onShowTemplatesChange,
   onShowProjectsChange,
   onShowBookmarksChange,
+  onShowSlidesChange,
 }: SidebarFeaturesSectionProps) {
   return (
     <AccordionItem value="sidebar-features">
       <AccordionTrigger>Sidebar Features</AccordionTrigger>
       <AccordionContent className="space-y-4 pt-4">
-        <div className="flex items-center justify-between">
+        <div
+          id="setting-showNotes"
+          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
+        >
           <div className="space-y-0.5">
             <Label htmlFor="show-notes">Show Notes</Label>
             <p className="text-sm text-muted-foreground">
@@ -47,7 +54,10 @@ export function SidebarFeaturesSection({
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div
+          id="setting-showTemplates"
+          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
+        >
           <div className="space-y-0.5">
             <Label htmlFor="show-templates">Show Templates</Label>
             <p className="text-sm text-muted-foreground">
@@ -61,7 +71,10 @@ export function SidebarFeaturesSection({
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div
+          id="setting-showProjects"
+          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
+        >
           <div className="space-y-0.5">
             <Label htmlFor="show-projects">Show Projects</Label>
             <p className="text-sm text-muted-foreground">
@@ -75,7 +88,10 @@ export function SidebarFeaturesSection({
           />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div
+          id="setting-showBookmarks"
+          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
+        >
           <div className="space-y-0.5">
             <Label htmlFor="show-bookmarks">Show Bookmarks</Label>
             <p className="text-sm text-muted-foreground">
@@ -86,6 +102,23 @@ export function SidebarFeaturesSection({
             id="show-bookmarks"
             checked={showBookmarks}
             onCheckedChange={onShowBookmarksChange}
+          />
+        </div>
+
+        <div
+          id="setting-showSlides"
+          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
+        >
+          <div className="space-y-0.5">
+            <Label htmlFor="show-slides">Show Slides</Label>
+            <p className="text-sm text-muted-foreground">
+              Create AI-powered presentations
+            </p>
+          </div>
+          <Switch
+            id="show-slides"
+            checked={showSlides}
+            onCheckedChange={onShowSlidesChange}
           />
         </div>
       </AccordionContent>

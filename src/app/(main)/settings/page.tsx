@@ -1,5 +1,8 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
+import { Suspense } from "react";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
@@ -43,7 +46,14 @@ const SETTINGS_SECTIONS = [
   },
 ];
 
-export default function SettingsPage() {
+function SettingsContent() {
+  // Query state for deep linking
+  const [activeTab, setActiveTab] = useQueryState(
+    "tab",
+    parseAsString.withDefault("personalization"),
+  );
+  const [focusSetting] = useQueryState("focus", parseAsString);
+
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
       {/* Fixed Header */}
@@ -71,7 +81,11 @@ export default function SettingsPage() {
                   <Separator className="flex-1" />
                 </div>
                 <div className="px-1">
-                  <section.component />
+                  {section.id === "ui" ? (
+                    <UISettings focusSettingKey={focusSetting} />
+                  ) : (
+                    <section.component />
+                  )}
                 </div>
               </section>
             ))}
@@ -80,7 +94,8 @@ export default function SettingsPage() {
           {/* Desktop View: Vertical Tabs */}
           <div className="hidden md:block">
             <Tabs
-              defaultValue="personalization"
+              value={activeTab}
+              onValueChange={setActiveTab}
               orientation="vertical"
               className="w-full flex flex-row gap-6"
             >
@@ -105,7 +120,15 @@ export default function SettingsPage() {
                     value={section.id}
                     className="mt-0"
                   >
-                    <section.component />
+                    {section.id === "ui" ? (
+                      <UISettings
+                        focusSettingKey={
+                          activeTab === "ui" ? focusSetting : undefined
+                        }
+                      />
+                    ) : (
+                      <section.component />
+                    )}
                   </TabsContent>
                 ))}
               </div>
@@ -114,5 +137,19 @@ export default function SettingsPage() {
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[calc(100vh-theme(spacing.16))] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
   );
 }

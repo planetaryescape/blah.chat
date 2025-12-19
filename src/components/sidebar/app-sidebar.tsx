@@ -2,7 +2,6 @@ import { UserButton, useAuth } from "@clerk/nextjs";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Bookmark,
-  Brain,
   CheckSquare,
   FileText,
   FolderKanban,
@@ -64,7 +63,6 @@ const MENU_ITEMS = [
     href: "/notes",
     featureKey: "showNotes" as const,
   },
-  { icon: Brain, label: "Memories", href: "/memories", featureKey: null },
   {
     icon: FolderKanban,
     label: "Projects",

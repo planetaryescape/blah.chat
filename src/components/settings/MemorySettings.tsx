@@ -1,17 +1,14 @@
 "use client";
 
-import {
-  useAction,
-  useMutation,
-  usePaginatedQuery,
-  useQuery,
-} from "convex/react";
-import { Loader2, MoreVertical } from "lucide-react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { Brain, Eye, EyeOff, Loader2, MoreVertical } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
-import { MemorySettingsItem } from "@/components/memories/MemorySettingsItem";
+import { MemoryFilters } from "@/components/memories/MemoryFilters";
+import { MemoryItem } from "@/components/memories/MemoryItem";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,31 +24,75 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
+import { useDebounce } from "@/hooks/useDebounce";
+
+type Category =
+  | "identity"
+  | "preference"
+  | "project"
+  | "context"
+  | "relationship";
+type SortBy = "date" | "importance" | "confidence";
+
+const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
+  {
+    identity: {
+      title: "Identity",
+      description: "Personal info, background, occupation",
+    },
+    preference: {
+      title: "Preferences",
+      description: "Likes, dislikes, style choices",
+    },
+    project: {
+      title: "Projects",
+      description: "Things you're building, tech stack",
+    },
+    context: {
+      title: "Context",
+      description: "Goals, challenges, environment",
+    },
+    relationship: {
+      title: "Relationships",
+      description: "Team members, collaborators",
+    },
+  };
 
 export function MemorySettings() {
+  const router = useRouter();
+
+  // Local filter state
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<Category | null>(null);
+  const [sortBy, setSortBy] = useState<SortBy>("date");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
-  const {
-    results: memories,
-    status,
-    loadMore,
-  } = usePaginatedQuery(api.memories.list, {}, { initialNumItems: 10 });
+
+  // @ts-ignore - Type instantiation is excessively deep and possibly infinite
+  const memories = useQuery(api.memories.listFiltered, {
+    category: categoryFilter || undefined,
+    sortBy: sortBy || undefined,
+    searchQuery: debouncedSearchQuery || undefined,
+  });
+
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createMemory = useMutation(api.memories.createManual);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateMemory = useMutation(api.memories.update);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMemory = useMutation(api.memories.deleteMemory);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const scanRecentConversations = useMutation(
     api.memories.scanRecentConversations,
   );
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);
@@ -67,23 +108,18 @@ export function MemorySettings() {
     }
   };
 
-  const handleUpdateMemory = async (id: string, content: string) => {
-    try {
-      await updateMemory({ id: id as any, content });
-      toast.success("Memory updated!");
-    } catch (_error) {
-      toast.error("Failed to update memory");
-      throw _error;
-    }
-  };
-
-  const handleDeleteMemory = async (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
       await deleteMemory({ id: id as any });
-      toast.success("Memory deleted!");
+      toast.success("Memory deleted");
     } catch (_error) {
       toast.error("Failed to delete memory");
     }
+  };
+
+  const handleDeleteAll = async () => {
+    const result = await deleteAllMemories({});
+    toast.success(`Deleted ${result.deleted} memories`);
   };
 
   const handleScanRecent = async () => {
@@ -119,9 +155,11 @@ export function MemorySettings() {
     }
   };
 
-  const handleDeleteAll = async () => {
-    const result = await deleteAllMemories();
-    toast.success(`Deleted ${result.deleted} memories`);
+  const handleNavigateToSource = (
+    conversationId: string,
+    messageId: string,
+  ) => {
+    router.push(`/chat/${conversationId}?messageId=${messageId}`);
   };
 
   if (!user) {
@@ -136,57 +174,70 @@ export function MemorySettings() {
     );
   }
 
+  // Group memories by category
+  const groupedMemories = (memories || []).reduce<
+    Record<string, Doc<"memories">[]>
+  >((acc, memory: Doc<"memories">) => {
+    const category = (memory.metadata?.category as string) || "other";
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(memory);
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
+      {/* Actions Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Memory Settings</CardTitle>
-          <CardDescription>
-            Control how AI extracts and remembers facts from conversations
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Memory Actions</Label>
-              <p className="text-sm text-muted-foreground">
-                Scan, consolidate, migrate, or delete all memories
-              </p>
+            <div>
+              <CardTitle>Memory Settings</CardTitle>
+              <CardDescription>
+                Control how AI extracts and remembers facts from conversations
+              </CardDescription>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={handleScanRecent}>
-                  Scan Recent Chats
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleConsolidate}
-                  disabled={isConsolidating}
-                >
-                  {isConsolidating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Consolidating...
-                    </>
-                  ) : (
-                    "Consolidate Memories"
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive"
-                >
-                  Delete All Memories
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+              <AddMemoryDialog
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                onAdd={handleAddMemory}
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={handleScanRecent}>
+                    Scan Recent Chats
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleConsolidate}
+                    disabled={isConsolidating}
+                  >
+                    {isConsolidating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Consolidating...
+                      </>
+                    ) : (
+                      "Consolidate Memories"
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-destructive"
+                  >
+                    Delete All Memories
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-
+        </CardHeader>
+        <CardContent>
           <div className="rounded-lg bg-muted p-4">
             <p className="text-sm">
               <strong>How it works:</strong> AI analyzes your conversations and
@@ -198,52 +249,96 @@ export function MemorySettings() {
         </CardContent>
       </Card>
 
+      {/* Filters & Memories Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>My Memories</CardTitle>
-            <CardDescription>
-              View and manage what the AI remembers about you
-            </CardDescription>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>My Memories</CardTitle>
+              <CardDescription>
+                {memories?.length || 0} memories stored
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowReasoning(!showReasoning)}
+              className="gap-2"
+            >
+              {showReasoning ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              {showReasoning ? "Hide" : "Show"} Reasoning
+            </Button>
           </div>
-          <AddMemoryDialog
-            open={isAddDialogOpen}
-            onOpenChange={setIsAddDialogOpen}
-            onAdd={handleAddMemory}
-          />
         </CardHeader>
-        <CardContent>
-          {!memories ? (
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <MemoryFilters
+            category={categoryFilter}
+            setCategory={setCategoryFilter}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+
+          {/* Memory List */}
+          {memories === undefined ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : memories.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No memories found. Start chatting or add one manually!
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-muted/30 p-4 rounded-full mb-4 ring-1 ring-border/50">
+                <Brain className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-medium mb-2 text-foreground/90">
+                No memories found
+              </h3>
+              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                As you chat, the AI will automatically extract and organize
+                important details about you and your preferences.
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {memories.map((memory: any) => (
-                <MemorySettingsItem
-                  key={memory._id}
-                  memory={memory}
-                  onUpdate={handleUpdateMemory}
-                  onDelete={handleDeleteMemory}
-                />
-              ))}
-              {(status === "CanLoadMore" || status === "LoadingMore") && (
-                <div className="flex justify-center pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => loadMore(10)}
-                    disabled={status === "LoadingMore"}
-                  >
-                    {status === "LoadingMore" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Load More
-                  </Button>
-                </div>
+            <div className="space-y-6">
+              {Object.entries(groupedMemories).map(
+                ([category, categoryMemories]) => {
+                  const label = CATEGORY_LABELS[category] || {
+                    title: category,
+                    description: "Other memories",
+                  };
+
+                  return (
+                    <div key={category} className="space-y-2">
+                      <div className="px-1">
+                        <h3 className="text-sm font-semibold text-foreground/90 flex items-center gap-2">
+                          {label.title}
+                          <span className="text-xs font-normal text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+                            {categoryMemories.length}
+                          </span>
+                        </h3>
+                      </div>
+
+                      <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
+                        <div className="divide-y divide-border/40">
+                          {categoryMemories.map((memory: Doc<"memories">) => (
+                            <MemoryItem
+                              key={memory._id}
+                              memory={memory}
+                              showReasoning={showReasoning}
+                              onDelete={handleDelete}
+                              onNavigateToSource={handleNavigateToSource}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                },
               )}
             </div>
           )}

@@ -157,6 +157,7 @@ export const updatePreferences = mutation({
       showTemplates: v.optional(v.boolean()),
       showProjects: v.optional(v.boolean()),
       showBookmarks: v.optional(v.boolean()),
+      showSlides: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {

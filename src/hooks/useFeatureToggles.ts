@@ -11,11 +11,13 @@ export function useFeatureToggles() {
   const showTemplates = useUserPreference("showTemplates");
   const showProjects = useUserPreference("showProjects");
   const showBookmarks = useUserPreference("showBookmarks");
+  const showSlides = useUserPreference("showSlides");
 
   return {
     showNotes,
     showTemplates,
     showProjects,
     showBookmarks,
+    showSlides,
   };
 }

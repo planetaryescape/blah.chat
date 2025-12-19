@@ -67,8 +67,8 @@ export function TaskReviewPanel({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full space-y-6">
+      <div className="shrink-0 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Review Extracted Tasks</h2>
           <p className="text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ export function TaskReviewPanel({
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-2">
         {editedTasks.map((task, i) => (
           <Card key={i} className="p-4">
             <div className="flex items-start gap-4">
@@ -127,14 +127,16 @@ export function TaskReviewPanel({
                 {/* Metadata badges */}
                 <div className="flex flex-wrap gap-2">
                   {/* Confidence */}
-                  <Badge variant="outline" className="gap-1">
-                    <div
-                      className={`h-2 w-2 rounded-full ${getConfidenceColor(
-                        task.sourceContext.confidence,
-                      )}`}
-                    />
-                    {Math.round(task.sourceContext.confidence * 100)}% confident
-                  </Badge>
+                  {task.sourceContext?.confidence !== undefined && (
+                    <Badge variant="outline" className="gap-1">
+                      <div
+                        className={`h-2 w-2 rounded-full ${getConfidenceColor(
+                          task.sourceContext.confidence,
+                        )}`}
+                      />
+                      {Math.round(task.sourceContext.confidence * 100)}% confident
+                    </Badge>
+                  )}
 
                   {/* Urgency */}
                   {task.urgency && (
@@ -170,14 +172,16 @@ export function TaskReviewPanel({
                 </div>
 
                 {/* Context snippet */}
-                <details className="text-sm">
-                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                    Show context
-                  </summary>
-                  <p className="mt-2 rounded bg-muted p-2 italic">
-                    "{task.sourceContext.snippet}"
-                  </p>
-                </details>
+                {task.sourceContext?.snippet && (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                      Show context
+                    </summary>
+                    <p className="mt-2 rounded bg-muted p-2 italic">
+                      "{task.sourceContext.snippet}"
+                    </p>
+                  </details>
+                )}
               </div>
             </div>
           </Card>

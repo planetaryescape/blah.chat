@@ -1,22 +1,22 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import {
-  CalendarDays,
-  ChevronDown,
-  ChevronRight,
-  Home,
-  List,
-  Plus,
-  Star,
-  Sun,
-} from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import {
+    CalendarDays,
+    ChevronDown,
+    ChevronRight,
+    Home,
+    List,
+    Plus,
+    Star,
+    Sun,
+} from "lucide-react";
+import { useState } from "react";
 
 interface TasksSidebarProps {
   currentView: string;
@@ -36,25 +36,22 @@ export function TasksSidebar({
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
 
   const mainNavItems = [
-    { id: "today", label: "My Day", icon: Sun, activeColor: "text-blue-500" },
+    { id: "today", label: "My Day", icon: Sun },
     {
       id: "important",
       label: "Important",
       icon: Star,
-      activeColor: "text-red-500",
     },
     {
       id: "upcoming",
       label: "Planned",
       icon: CalendarDays,
-      activeColor: "text-cyan-500",
     },
-    { id: "all", label: "Tasks", icon: Home, activeColor: "text-purple-500" },
+    { id: "all", label: "Tasks", icon: Home },
     {
       id: "completed",
       label: "Completed",
       icon: List,
-      activeColor: "text-green-500",
     }, // Added Completed explicitly
   ];
 
@@ -68,9 +65,8 @@ export function TasksSidebar({
             className={cn(
               "w-full justify-start mb-1 text-sm font-normal",
               currentView === item.id
-                ? "bg-secondary text-primary"
-                : "text-muted-foreground hover:bg-secondary/50",
-              currentView === item.id && item.activeColor,
+                ? "bg-secondary text-primary font-medium"
+                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
             )}
             onClick={() => {
               onViewChange(item.id);
@@ -80,7 +76,7 @@ export function TasksSidebar({
             <item.icon
               className={cn(
                 "mr-3 h-4 w-4",
-                currentView !== item.id && item.activeColor,
+                currentView === item.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
               )}
             />
             {item.label}

@@ -6,11 +6,13 @@ import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
+import { useTheme } from "next-themes";
 import { Component, memo, type ReactNode, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";
 import { MathErrorBoundary } from "./MathErrorBoundary";
 import { MathSkeleton } from "./MathSkeleton";
+import { MermaidRenderer } from "./MermaidRenderer";
 
 interface CodeBlockErrorBoundaryProps {
   children: ReactNode;
@@ -95,32 +97,54 @@ const _katexOptions = {
 };
 
 /**
- * Standard components for Streamdown - no animation classes
- * Animation is handled by character-level reveal in useStreamBuffer
+ * Standard components for Streamdown
  *
  * Math support via Streamdown's built-in remark-math + rehype-katex:
  * - Inline: $$x = 5$$ (keep $$ on same line as text)
  * - Block/Display: $$ on separate lines
  * - Chemistry: $$\ce{H2O}$$ (mhchem extension loaded above)
  * NOTE: Single $ delimiters are NOT supported (to avoid currency conflicts)
+ *
+ * Code handling:
+ * - Mermaid diagrams: Use custom MermaidRenderer with fullscreen/download/copy controls (theme-aware)
+ * - All other code: Use custom CodeBlock with copy/wrap buttons and syntax highlighting
+ *
+ * Note: This is now created inside MarkdownContent component to access theme
  */
-const markdownComponents = {
-  code: ({
-    className,
-    children,
-  }: {
-    className?: string;
-    children?: ReactNode;
-  }) => {
+const createMarkdownComponents = () => ({
+  // Custom code component - routes mermaid to MermaidRenderer, everything else to CodeBlock
+  code: ({ className, children, ...props }: any) => {
     const match = /language-(\w+)/.exec(className || "");
+    const language = match?.[1];
     const code = String(children).replace(/\n$/, "");
-    const inline = !match && !className;
 
+    // Route mermaid diagrams to MermaidRenderer
+    // Theme colors are now handled inside MermaidRenderer via useTheme
+    if (language === "mermaid") {
+      return (
+        <MermaidRenderer
+          code={code}
+          config={{
+            flowchart: { nodeSpacing: 50, rankSpacing: 50, curve: "basis" },
+            sequence: {
+              actorMargin: 50,
+              boxMargin: 10,
+              boxTextMargin: 5,
+              diagramMarginX: 50,
+              diagramMarginY: 10,
+              messageMargin: 35,
+            },
+            state: { titleTopMargin: 25 },
+          }}
+        />
+      );
+    }
+    const inline = !match && !className;
     if (inline) {
       return <CodeBlock code={code} inline />;
     }
 
-    const language = match?.[1];
+    // All other code blocks use CodeBlock component
     return (
       <CodeBlockErrorBoundary code={code} language={language}>
         <CodeBlock code={code} language={language} />
@@ -175,7 +199,7 @@ const markdownComponents = {
       </a>
     );
   },
-};
+});
 
 /**
  * Markdown content renderer with smooth character-by-character streaming
@@ -243,6 +267,9 @@ export function MarkdownContent({
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Create markdown components (including theme-aware Mermaid)
+  const markdownComponents = createMarkdownComponents();
+
   // Normalize LaTeX delimiters before other processing
   // AI models often output \(...\) but Streamdown expects $$...$$
   const normalizedContent = normalizeLatexDelimiters(content);
@@ -302,6 +329,10 @@ export function MarkdownContent({
         <Streamdown
           components={markdownComponents}
           parseIncompleteMarkdown={isStreaming}
+          controls={{
+            code: false, // We handle code controls via custom CodeBlock component
+            mermaid: false, // We handle mermaid controls via custom MermaidRenderer
+          }}
         >
           {displayContent}
         </Streamdown>

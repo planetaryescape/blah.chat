@@ -43,4 +43,12 @@ crons.daily(
   internal.notifications.cleanupOld as any,
 );
 
+// Clean up stale incognito conversations (24h+ since last activity)
+crons.hourly(
+  "cleanup-stale-incognito",
+  { minuteUTC: 30 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.incognito.cleanupStale as any,
+);
+
 export default crons;

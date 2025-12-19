@@ -1,5 +1,5 @@
 import { useAction, useMutation } from "convex/react";
-import { GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
+import { Ghost, GitBranch, MoreVertical, Pin, Star, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useState } from "react";
@@ -56,6 +56,7 @@ export function ConversationItem({
   const [projectFilter, setProjectFilter] = useQueryState("project");
   const features = useFeatureToggles();
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteConversation = useMutation(api.conversations.deleteConversation);
   const togglePin = useMutation(api.conversations.togglePin);
   const toggleStar = useMutation(api.conversations.toggleStar);
@@ -225,6 +226,20 @@ export function ConversationItem({
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   <p>Collaborative conversation</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {/* Incognito indicator */}
+            {!isSelectionMode && conversation.isIncognito && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="shrink-0 h-5 w-5 min-w-0 min-h-0 p-0.5 flex items-center justify-center text-violet-400">
+                    <Ghost className="h-3 w-3" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Incognito - ephemeral, no memories</p>
                 </TooltipContent>
               </Tooltip>
             )}

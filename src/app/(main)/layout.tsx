@@ -1,10 +1,11 @@
 "use client";
 
 import { useConvexAuth } from "convex/react";
-import { Plus, Search } from "lucide-react";
+import { Ghost, MoreHorizontal, Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
+import { NewIncognitoDialog } from "@/components/chat/NewIncognitoDialog";
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { NotificationBell } from "@/components/notifications";
@@ -13,6 +14,12 @@ import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -26,41 +33,81 @@ function Header() {
   const { open } = useSidebar();
   const router = useRouter();
   const { startNewChat } = useNewChat();
+  const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
 
   const handleNewChat = () => {
     startNewChat();
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-all duration-300 ease-in-out">
-      <SidebarTrigger />
-      {!open && (
-        <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNewChat}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            aria-label="New Chat"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/search")}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            aria-label="Search conversations"
-          >
-            <Search className="h-4 w-4" aria-hidden="true" />
-          </Button>
+    <>
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-all duration-300 ease-in-out">
+        <SidebarTrigger />
+        {!open && (
+          <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewChat}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="New Chat"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            {/* Desktop: show incognito button inline with other actions */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowIncognitoDialog(true)}
+              className="hidden sm:inline-flex h-8 w-8 text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
+              aria-label="New Incognito Chat"
+              title="New Incognito Chat (Shift+Alt+N)"
+            >
+              <Ghost className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push("/search")}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="Search conversations"
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        )}
+        <div className="ml-auto flex items-center gap-1">
+          <NotificationBell />
+          <FeedbackButton />
+          {/* Mobile: three-dots menu with incognito option */}
+          <div className="sm:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  aria-label="More options"
+                >
+                  <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowIncognitoDialog(true)}>
+                  <Ghost className="h-4 w-4 mr-2 text-violet-400" />
+                  New Incognito Chat
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      )}
-      <div className="ml-auto flex items-center gap-1">
-        <NotificationBell />
-        <FeedbackButton />
-      </div>
-    </header>
+      </header>
+
+      <NewIncognitoDialog
+        open={showIncognitoDialog}
+        onOpenChange={setShowIncognitoDialog}
+      />
+    </>
   );
 }
 

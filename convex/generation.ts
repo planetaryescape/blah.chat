@@ -125,6 +125,11 @@ async function buildSystemPrompts(
     }),
   ])) as [Doc<"users"> | null, Doc<"conversations"> | null];
 
+  // Incognito blank slate: skip custom instructions and memories when configured
+  const isBlankSlate =
+    conversation?.isIncognito &&
+    conversation?.incognitoSettings?.applyCustomInstructions === false;
+
   // Load custom instructions early (needed for base prompt conditional tone)
   // Phase 4: Load from new preference system
   const customInstructions = user
@@ -155,38 +160,44 @@ async function buildSystemPrompts(
   });
 
   // === 2. IDENTITY MEMORIES ===
-  try {
-    const identityMemories: Doc<"memories">[] = await ctx.runQuery(
-      internal.memories.search.getIdentityMemories,
-      {
-        userId: args.userId,
-        limit: 20,
-      },
-    );
+  // Skip for incognito blank slate mode
+  if (!isBlankSlate) {
+    try {
+      const identityMemories: Doc<"memories">[] = await ctx.runQuery(
+        internal.memories.search.getIdentityMemories,
+        {
+          userId: args.userId,
+          limit: 20,
+        },
+      );
 
-    if (identityMemories.length > 0) {
-      // Calculate 10% budget for identity memories (conservative)
-      const maxMemoryTokens = Math.floor(args.modelConfig.contextWindow * 0.1);
+      if (identityMemories.length > 0) {
+        // Calculate 10% budget for identity memories (conservative)
+        const maxMemoryTokens = Math.floor(
+          args.modelConfig.contextWindow * 0.1,
+        );
 
-      // Truncate by priority
-      const truncated = truncateMemories(identityMemories, maxMemoryTokens);
+        // Truncate by priority
+        const truncated = truncateMemories(identityMemories, maxMemoryTokens);
 
-      memoryContentForTracking = formatMemoriesByCategory(truncated);
+        memoryContentForTracking = formatMemoriesByCategory(truncated);
 
-      if (memoryContentForTracking) {
-        systemMessages.push({
-          role: "system",
-          content: `## Identity & Preferences\n\n${memoryContentForTracking}`,
-        });
+        if (memoryContentForTracking) {
+          systemMessages.push({
+            role: "system",
+            content: `## Identity & Preferences\n\n${memoryContentForTracking}`,
+          });
+        }
       }
+    } catch (error) {
+      console.error("[Identity] Failed to load identity memories:", error);
+      // Continue without memories (graceful degradation)
     }
-  } catch (error) {
-    console.error("[Identity] Failed to load identity memories:", error);
-    // Continue without memories (graceful degradation)
   }
 
   // === 3. CONTEXTUAL MEMORIES (for non-tool models only) ===
-  if (args.prefetchedMemories) {
+  // Skip for incognito blank slate mode
+  if (args.prefetchedMemories && !isBlankSlate) {
     systemMessages.push({
       role: "system",
       content: `## Contextual Memories\n\n${args.prefetchedMemories}`,
@@ -220,7 +231,8 @@ async function buildSystemPrompts(
   // === 6. USER CUSTOM INSTRUCTIONS (HIGHEST PRIORITY - LAST) ===
   // Placed last to leverage recency bias in LLMs
   // Wrapped with explicit override directive
-  if (customInstructions?.enabled) {
+  // Skip for incognito blank slate mode
+  if (customInstructions?.enabled && !isBlankSlate) {
     const {
       aboutUser,
       responseStyle,
@@ -827,10 +839,14 @@ export const generateResponse = internalAction({
       const isGeminiFlashLite = args.modelId === "google:gemini-2.0-flash-lite";
       const shouldEnableTools = hasFunctionCalling && !isGeminiFlashLite;
 
+      // Incognito mode settings
+      const isIncognito = conversation?.isIncognito ?? false;
+      const incognitoSettings = conversation?.incognitoSettings;
+      const enableReadTools =
+        !isIncognito || incognitoSettings?.enableReadTools !== false;
+
       if (shouldEnableTools) {
-        const memorySearchTool = createMemorySearchTool(ctx, args.userId);
-        const memorySaveTool = createMemorySaveTool(ctx, args.userId);
-        const memoryDeleteTool = createMemoryDeleteTool(ctx, args.userId);
+        // Capability tools: ALWAYS available (stateless, no persistent writes)
         const calculatorTool = createCalculatorTool();
         const dateTimeTool = createDateTimeTool();
         const webSearchTool = createWebSearchTool(ctx);
@@ -843,33 +859,9 @@ export const generateResponse = internalAction({
         const codeExecutionTool = createCodeExecutionTool(ctx);
         const weatherTool = createWeatherTool(ctx);
 
-        // Search tools (always enabled, work with optional projectId filter)
-        const searchFilesTool = createSearchFilesTool(ctx, args.userId);
-        const searchNotesTool = createSearchNotesTool(ctx, args.userId);
-        const searchTasksTool = createSearchTasksTool(ctx, args.userId);
-        const queryHistoryTool = createQueryHistoryTool(
-          ctx,
-          args.userId,
-          args.conversationId,
-        );
-        const searchAllTool = createSearchAllTool(
-          ctx,
-          args.userId,
-          args.conversationId,
-        );
-
-        // Task management tool (uses projectId from conversation context)
-        const taskManagerTool = createTaskManagerTool(
-          ctx,
-          args.userId,
-          conversation?.projectId,
-        );
-
-        // All tools available to all conversations
-        options.tools = {
-          searchMemories: memorySearchTool,
-          saveMemory: memorySaveTool,
-          deleteMemory: memoryDeleteTool,
+        // Start with capability tools
+        // biome-ignore lint/suspicious/noExplicitAny: Tool types are complex
+        const tools: Record<string, any> = {
           calculator: calculatorTool,
           datetime: dateTimeTool,
           webSearch: webSearchTool,
@@ -877,15 +869,47 @@ export const generateResponse = internalAction({
           fileDocument: fileDocumentTool,
           codeExecution: codeExecutionTool,
           weather: weatherTool,
-          // Search tools (work with or without projectId filter)
-          searchFiles: searchFilesTool,
-          searchNotes: searchNotesTool,
-          searchTasks: searchTasksTool,
-          queryHistory: queryHistoryTool,
-          searchAll: searchAllTool,
-          // Task management
-          manageTasks: taskManagerTool,
         };
+
+        // Write tools: DISABLED for incognito (saveMemory, deleteMemory, manageTasks)
+        if (!isIncognito) {
+          const memorySaveTool = createMemorySaveTool(ctx, args.userId);
+          const memoryDeleteTool = createMemoryDeleteTool(ctx, args.userId);
+          const taskManagerTool = createTaskManagerTool(
+            ctx,
+            args.userId,
+            conversation?.projectId,
+          );
+          tools.saveMemory = memorySaveTool;
+          tools.deleteMemory = memoryDeleteTool;
+          tools.manageTasks = taskManagerTool;
+        }
+
+        // Read tools: Configurable for incognito (search user data)
+        if (enableReadTools) {
+          const memorySearchTool = createMemorySearchTool(ctx, args.userId);
+          const searchFilesTool = createSearchFilesTool(ctx, args.userId);
+          const searchNotesTool = createSearchNotesTool(ctx, args.userId);
+          const searchTasksTool = createSearchTasksTool(ctx, args.userId);
+          const queryHistoryTool = createQueryHistoryTool(
+            ctx,
+            args.userId,
+            args.conversationId,
+          );
+          const searchAllTool = createSearchAllTool(
+            ctx,
+            args.userId,
+            args.conversationId,
+          );
+          tools.searchMemories = memorySearchTool;
+          tools.searchFiles = searchFilesTool;
+          tools.searchNotes = searchNotesTool;
+          tools.searchTasks = searchTasksTool;
+          tools.queryHistory = queryHistoryTool;
+          tools.searchAll = searchAllTool;
+        }
+
+        options.tools = tools;
 
         // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
         options.onStepFinish = async (step: any) => {

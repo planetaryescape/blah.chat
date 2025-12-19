@@ -5,11 +5,13 @@ import {
   CheckSquare,
   FileText,
   FolderKanban,
+  Ghost,
   Keyboard,
   Mic,
   MoreHorizontal,
   NotebookPen,
   Plus,
+  Presentation,
   Search,
   Settings,
   Shield,
@@ -20,6 +22,7 @@ import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
+import { NewIncognitoDialog } from "@/components/chat/NewIncognitoDialog";
 import { ThemeSwitcher } from "@/components/kibo-ui/theme-switcher";
 import { ProjectFilter } from "@/components/projects/ProjectFilter";
 import { Button } from "@/components/ui/button";
@@ -70,6 +73,12 @@ const MENU_ITEMS = [
     featureKey: "showProjects" as const,
   },
   { icon: CheckSquare, label: "Tasks", href: "/tasks", featureKey: null },
+  {
+    icon: Presentation,
+    label: "Slides",
+    href: "/slides",
+    featureKey: "showSlides" as const,
+  },
   { icon: Mic, label: "Smart Assistant", href: "/assistant", featureKey: null },
   {
     icon: FileText,
@@ -136,6 +145,7 @@ export function AppSidebar() {
         showTemplates: false,
         showProjects: false,
         showBookmarks: false,
+        showSlides: false,
         isLoading: true,
       };
     }
@@ -146,6 +156,7 @@ export function AppSidebar() {
       showTemplates: rawAdvancedSettings.showTemplates ?? true,
       showProjects: rawAdvancedSettings.showProjects ?? true,
       showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
+      showSlides: rawAdvancedSettings.showSlides ?? false,
       isLoading: false,
     };
   }, [rawAdvancedSettings]);
@@ -153,10 +164,19 @@ export function AppSidebar() {
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
 
   const handleNewChat = () => {
     startNewChat();
   };
+
+  // Listen for keyboard shortcut to open incognito dialog
+  useEffect(() => {
+    const handler = () => setShowIncognitoDialog(true);
+    window.addEventListener("open-new-incognito-dialog", handler);
+    return () =>
+      window.removeEventListener("open-new-incognito-dialog", handler);
+  }, []);
 
   // Keyboard shortcuts removed - now centralized in useKeyboardShortcuts hook
 
@@ -330,10 +350,10 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <div className="mt-4 group-data-[collapsible=icon]:hidden">
+        <div className="mt-4 group-data-[collapsible=icon]:hidden flex gap-2">
           <Button
             onClick={handleNewChat}
-            className="w-full px-2.5 py-2.5 bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9 cursor-pointer"
+            className="flex-1 px-2.5 py-2.5 bg-sidebar-accent hover:bg-sidebar-accent/80 text-sidebar-foreground border border-sidebar-border shadow-sm transition-all duration-200 justify-between h-9 cursor-pointer"
             data-tour="new-chat"
           >
             <span className="flex items-center gap-2">
@@ -343,6 +363,15 @@ export function AppSidebar() {
             <div className="hidden sm:flex">
               <ShortcutBadge keys={["Alt", "N"]} />
             </div>
+          </Button>
+          <Button
+            onClick={() => setShowIncognitoDialog(true)}
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 border border-sidebar-border text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
+            title="New Incognito Chat (Shift+Alt+N)"
+          >
+            <Ghost className="h-4 w-4" />
           </Button>
         </div>
       </SidebarHeader>
@@ -509,6 +538,11 @@ export function AppSidebar() {
         onOpenChange={setShowBulkDeleteConfirm}
         onConfirm={handleBulkDelete}
         count={selectedIds.length}
+      />
+
+      <NewIncognitoDialog
+        open={showIncognitoDialog}
+        onOpenChange={setShowIncognitoDialog}
       />
     </Sidebar>
   );

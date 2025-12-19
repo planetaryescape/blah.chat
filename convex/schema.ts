@@ -74,6 +74,17 @@ export default defineSchema({
     parentMessageId: v.optional(v.id("messages")),
     // Collaborative conversations (multi-user)
     isCollaborative: v.optional(v.boolean()),
+    // Incognito mode (ephemeral conversations)
+    isIncognito: v.optional(v.boolean()),
+    incognitoSettings: v.optional(
+      v.object({
+        enableReadTools: v.boolean(), // Allow search of notes/files/tasks
+        applyCustomInstructions: v.boolean(), // Use custom system prompt + memories
+        inactivityTimeoutMinutes: v.optional(v.number()), // Auto-delete after inactivity
+        scheduledDeletionId: v.optional(v.id("_scheduled_functions")), // Track scheduled cleanup
+        lastActivityAt: v.number(), // For inactivity timer
+      }),
+    ),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -1185,4 +1196,107 @@ export default defineSchema({
     .index("by_status_expires", ["status", "expiresAt"])
     .index("by_type_status", ["type", "status"])
     .index("by_expires", ["expiresAt"]),
+
+  // ===== SLIDES FEATURE =====
+
+  // Presentations (AI-generated slide decks)
+  presentations: defineTable({
+    userId: v.id("users"),
+    conversationId: v.optional(v.id("conversations")), // Links to outline chat iteration
+    title: v.string(),
+
+    // Generation state tracking
+    status: v.union(
+      v.literal("outline_pending"),
+      v.literal("outline_generating"),
+      v.literal("outline_complete"),
+      v.literal("design_generating"),
+      v.literal("design_complete"),
+      v.literal("slides_generating"),
+      v.literal("slides_complete"),
+      v.literal("error"),
+    ),
+
+    // AI-generated design system (small fixed-schema metadata)
+    designSystem: v.optional(
+      v.object({
+        theme: v.string(),
+        themeRationale: v.string(),
+        primaryColor: v.string(),
+        secondaryColor: v.string(),
+        accentColor: v.string(),
+        backgroundColor: v.string(),
+        fontPairings: v.object({
+          heading: v.string(),
+          body: v.string(),
+        }),
+        visualStyle: v.string(),
+        layoutPrinciples: v.array(v.string()),
+        iconStyle: v.string(),
+        imageGuidelines: v.string(),
+        designInspiration: v.string(),
+      }),
+    ),
+
+    // Model selection
+    imageModel: v.string(),
+
+    // Progress tracking
+    totalSlides: v.number(),
+    generatedSlideCount: v.number(),
+
+    // PPTX export caching
+    pptxStorageId: v.optional(v.id("_storage")),
+    pptxGeneratedAt: v.optional(v.number()),
+
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_conversation", ["conversationId"])
+    .index("by_user_status", ["userId", "status"]),
+
+  // Individual slides within presentations
+  slides: defineTable({
+    presentationId: v.id("presentations"),
+    userId: v.id("users"), // Denormalized for filtering
+
+    position: v.number(), // Slide order (1, 2, 3...)
+    slideType: v.union(
+      v.literal("title"),
+      v.literal("section"),
+      v.literal("content"),
+    ),
+
+    // Text content (from outline, editable)
+    title: v.string(),
+    content: v.string(), // Markdown bullets
+    speakerNotes: v.optional(v.string()),
+
+    // Image generation state
+    imageStatus: v.union(
+      v.literal("pending"),
+      v.literal("generating"),
+      v.literal("complete"),
+      v.literal("error"),
+    ),
+    imageStorageId: v.optional(v.id("_storage")),
+    imagePrompt: v.optional(v.string()),
+    imageError: v.optional(v.string()),
+
+    // Cost tracking (per slide)
+    generationCost: v.optional(v.number()),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_presentation", ["presentationId"])
+    .index("by_presentation_position", ["presentationId", "position"])
+    .index("by_presentation_type", ["presentationId", "slideType"])
+    .index("by_user", ["userId"])
+    .index("by_image_status", ["imageStatus"]),
 });

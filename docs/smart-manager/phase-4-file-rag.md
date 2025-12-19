@@ -1,3 +1,8 @@
+> **STATUS: IMPLEMENTED**
+>
+> This phase has been fully implemented and verified as of December 2025.
+> See `convex/files/`, `convex/files.ts` for actual implementation.
+
 # Phase 4: File RAG System - Chunking, Embeddings & Semantic Search
 
 ## Overview

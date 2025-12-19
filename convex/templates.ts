@@ -48,6 +48,11 @@ export const list = query({
       )
       .collect();
 
+    if (user.disabledBuiltInTemplateIds) {
+      const disabledIds = new Set(user.disabledBuiltInTemplateIds);
+      templates = templates.filter((t) => !disabledIds.has(t._id));
+    }
+
     if (args.category) {
       templates = templates.filter((t) => t.category === args.category);
     }
@@ -114,11 +119,32 @@ export const deleteTemplate = mutation({
     const user = await getCurrentUserOrCreate(ctx);
     const template = await ctx.db.get(args.id);
 
-    if (!template || template.userId !== user._id || template.isBuiltIn) {
-      throw new Error("Template not found or cannot be deleted");
+    if (!template) {
+      throw new Error("Template not found");
     }
 
-    await ctx.db.delete(args.id);
+    // Handle User Templates: Delete directly
+    if (!template.isBuiltIn) {
+      if (template.userId !== user._id) {
+        throw new Error("Cannot delete template owned by another user");
+      }
+      await ctx.db.delete(args.id);
+      return;
+    }
+
+    // Handle Built-in Templates: Add to disabled list
+    // verify it is actually built-in to be safe
+    if (!template.isBuiltIn) {
+      // Should be covered above, but just in case logic drifts
+      throw new Error("Template is not built-in");
+    }
+
+    const currentDisabled = user.disabledBuiltInTemplateIds || [];
+    if (!currentDisabled.includes(args.id)) {
+      await ctx.db.patch(user._id, {
+        disabledBuiltInTemplateIds: [...currentDisabled, args.id],
+      });
+    }
   },
 });
 

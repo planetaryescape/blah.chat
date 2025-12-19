@@ -12,6 +12,10 @@ export { getBasePrompt } from "./base";
 // Formatting utilities
 export { formatMemoriesByCategory, truncateMemories } from "./formatting";
 export {
+  buildDesignSystemPrompt,
+  DESIGN_SYSTEM_PROMPT,
+} from "./operational/designSystem";
+export {
   buildImageGenerationPrompt,
   IMAGE_GENERATION_SYSTEM_PROMPT,
 } from "./operational/imageGeneration";

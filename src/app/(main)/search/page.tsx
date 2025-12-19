@@ -40,7 +40,8 @@ function SearchPageContent() {
   );
 
   // Local state
-  const { recentSearches, addSearch, clearRecent } = useRecentSearches();
+  const { recentSearches, isLoading, addSearch, clearRecent } =
+    useRecentSearches();
   const {
     selectedCount,
     toggleSelection,
@@ -136,6 +137,7 @@ function SearchPageContent() {
           {!debouncedQuery && !queryParam && (
             <RecentSearches
               recentSearches={recentSearches}
+              isLoading={isLoading}
               onSelectSearch={handleSelectRecentSearch}
               onClearRecent={clearRecent}
             />

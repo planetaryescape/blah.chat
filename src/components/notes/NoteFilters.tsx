@@ -27,7 +27,7 @@ export function NoteFilters({
         variant={filterPinned ? "default" : "outline"}
         size="sm"
         onClick={onTogglePinned}
-        className="w-full"
+        className="w-full cursor-pointer"
       >
         <Pin className="h-3 w-3 mr-1" />
         Pinned Only

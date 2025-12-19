@@ -38,22 +38,41 @@ export function ProjectFilterSelect({
     return null;
   }
 
+  // Determine if a specific project is selected (not "All Projects")
+  const isProjectSelected = value !== null;
+
   return (
-    <Select value={value || "all"} onValueChange={handleChange}>
-      <SelectTrigger className={className}>
-        <div className="flex items-center gap-2">
-          <FolderOpen className="w-4 h-4 text-muted-foreground" />
-          <SelectValue placeholder="All Projects" />
-        </div>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">All Projects</SelectItem>
-        {projects.map((project: any) => (
-          <SelectItem key={project._id} value={project._id}>
-            {project.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="min-w-0">
+      <Select value={value || "all"} onValueChange={handleChange}>
+        <SelectTrigger
+          className={`${className} min-w-0 px-2.5 transition-all duration-200 ${
+            isProjectSelected
+              ? "border-primary bg-primary/5 text-primary shadow-sm ring-1 ring-primary/20"
+              : ""
+          }`}
+        >
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <FolderOpen
+              className={`w-4 h-4 shrink-0 transition-colors ${
+                isProjectSelected ? "text-primary" : "text-muted-foreground"
+              }`}
+            />
+            <div className="truncate min-w-0">
+              <SelectValue placeholder="All Projects" />
+            </div>
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Projects</SelectItem>
+          {projects.map((project: any) => (
+            <SelectItem key={project._id} value={project._id}>
+              <span className="truncate" title={project.name}>
+                {project.name}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

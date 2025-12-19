@@ -1,4 +1,5 @@
 import type { ModelConfig } from "@/lib/ai/models";
+import { VISUAL_FORMATTING_PROMPT } from "./operational/visualFormatting";
 
 interface CustomInstructions {
   enabled: boolean;
@@ -110,6 +111,8 @@ ${toneSection}
       - LaTeX for math: ALWAYS use $$...$$ for ALL mathematical expressions (our renderer uses KaTeX and single $ is disabled to avoid currency symbol conflicts). For inline math like $$ax^2 + bx + c = 0$$, keep the $$ on the same line. For block/display equations, put $$ on separate lines. Never use single $ or (...) or [...] syntax.
       - Avoid overusing em dashes (—). They've become a telltale sign of AI writing. Use commas, parentheses, colons, or just split into separate sentences. Even if technically "incorrect," natural punctuation sounds more authentic.
     </formatting>
+
+    ${VISUAL_FORMATTING_PROMPT}
 
 
     <code_responses>

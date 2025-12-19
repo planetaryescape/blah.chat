@@ -1,24 +1,25 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import {
-  Archive,
-  ChevronLeft,
-  FileText,
-  LayoutGrid,
-  MessageSquare,
-  MoreHorizontal,
-  Settings,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import {
+    Archive,
+    ChevronLeft,
+    FileText,
+    FolderOpen,
+    LayoutGrid,
+    MessageSquare,
+    MoreHorizontal,
+    Settings,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 
 interface ProjectLayoutProps {
   projectId: Id<"projects">;
@@ -71,6 +72,13 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
       count: stats?.noteCount || undefined,
     },
     {
+      id: "files",
+      label: "Files",
+      icon: FolderOpen,
+      path: `/projects/${projectId}/files`,
+      count: stats?.fileCount || undefined,
+    },
+    {
       id: "conversations",
       label: "Conversations",
       icon: MessageSquare,
@@ -82,24 +90,24 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-[260px] flex-none border-r bg-muted/10 flex flex-col pt-3 pb-4">
+      <aside className="w-[260px] flex-none border-r bg-muted/10 flex flex-col">
         {/* Project Header */}
-        <div className="px-4 mb-6">
+        <div className="p-4 pt-6">
           <Link
             href="/projects"
-            className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center mb-4 transition-colors"
+            className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center mb-6 transition-colors group"
           >
-            <ChevronLeft className="h-3 w-3 mr-1" />
-            All Projects
+            <ChevronLeft className="h-3 w-3 mr-1 transition-transform group-hover:-translate-x-0.5" />
+            Back to Projects
           </Link>
-          <div className="flex items-start justify-between group">
+          <div className="flex items-center justify-between group mb-2">
             <h1 className="font-semibold text-lg tracking-tight truncate pr-2">
               {project.name}
             </h1>
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -115,26 +123,26 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
                 variant="ghost"
                 asChild
                 className={cn(
-                  "w-full justify-between h-8 px-2.5 font-normal",
+                  "w-full justify-between h-9 px-3 font-normal",
                   isActive(item.id)
-                    ? "bg-secondary/50 text-foreground font-medium"
-                    : "text-muted-foreground hover:bg-secondary/30 hover:text-foreground",
+                    ? "bg-secondary text-primary font-medium"
+                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
                 )}
               >
                 <Link href={item.path}>
                   <div className="flex items-center">
                     <item.icon
                       className={cn(
-                        "mr-2.5 h-4 w-4",
+                        "mr-3 h-4 w-4",
                         isActive(item.id)
                           ? "text-primary"
-                          : "text-muted-foreground/70",
+                          : "text-muted-foreground group-hover:text-foreground",
                       )}
                     />
                     {item.label}
                   </div>
                   {item.count !== undefined && item.count > 0 && (
-                    <span className="text-xs text-muted-foreground/50 font-mono">
+                    <span className="text-xs text-muted-foreground/60 font-mono">
                       {item.count}
                     </span>
                   )}
@@ -150,22 +158,20 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
             variant="ghost"
             asChild
             className={cn(
-              "w-full justify-start h-8 px-2.5 font-normal text-muted-foreground hover:bg-secondary/30 hover:text-foreground",
+              "w-full justify-start h-9 px-3 font-normal text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
+              isActive("settings") && "bg-secondary text-primary font-medium"
             )}
           >
             <Link href={`/projects/${projectId}/settings`}>
-              <Settings className="mr-2.5 h-4 w-4 text-muted-foreground/70" />
+              <Settings className={cn("mr-3 h-4 w-4", isActive("settings") ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
               Settings
             </Link>
           </Button>
         </ScrollArea>
       </aside>
 
-      {/* Main Content Shell */}
-      <main className="flex-1 flex flex-col min-w-0 bg-background relative z-10 shadow-xl rounded-l-2xl border-l -ml-1 my-0 overflow-hidden">
-        {/* Top Gradient - subtle */}
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0 bg-background relative z-10 overflow-hidden">
         {children}
       </main>
     </div>

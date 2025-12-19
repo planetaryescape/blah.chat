@@ -1,27 +1,49 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useMemo, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
+import { useQuery } from "convex/react";
+import { parseAsString, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { TaskMainView } from "./TaskMainView";
 import { TasksSidebar } from "./TasksSidebar";
 
 type ViewType = "all" | "today" | "upcoming" | "completed" | "important";
 
-export function TasksDashboard() {
-  const [view, setView] = useState<ViewType>("all");
+interface TasksDashboardProps {
+  initialProjectId?: Id<"projects">;
+  hideSidebar?: boolean;
+}
+
+export function TasksDashboard({ initialProjectId, hideSidebar = false }: TasksDashboardProps) {
+  const [view, setView] = useState<ViewType>(initialProjectId ? "all" : "all");
   const [projectFilter, setProjectFilter] = useState<Id<"projects"> | null>(
-    null,
+    initialProjectId || null,
   );
-  const [selectedTaskId, setSelectedTaskId] = useState<Id<"tasks"> | null>(
-    null,
+
+  // URL-persisted task selection (supports deep linking from search results)
+  const [taskParam, setTaskParam] = useQueryState(
+    "task",
+    parseAsString.withDefault(""),
+  );
+
+  // Derive selectedTaskId from URL param
+  const selectedTaskId = useMemo(() => {
+    return taskParam ? (taskParam as Id<"tasks">) : null;
+  }, [taskParam]);
+
+  const setSelectedTaskId = useCallback(
+    (id: Id<"tasks"> | null) => {
+      setTaskParam(id || "");
+    },
+    [setTaskParam],
   );
 
   // Queries
-  // @ts-ignore - Type depth exceeded
   const tasksAll = useQuery(
+    // @ts-ignore - Type depth exceeded with 94+ Convex modules
     api.tasks.list,
     view === "all" ? { projectId: projectFilter || undefined } : "skip",
   );
@@ -92,18 +114,36 @@ export function TasksDashboard() {
   );
   const displayTitle = projectFilter && project ? project.name : title;
 
+  // Validate selected task exists in current tasks list
+  const selectedTaskExists = useMemo(() => {
+    if (!selectedTaskId || !tasks) return false;
+    return tasks.some((t: { _id: string }) => t._id === selectedTaskId);
+  }, [selectedTaskId, tasks]);
+
+  // Clear invalid selection from URL (task doesn't exist or filtered out)
+  useEffect(() => {
+    if (selectedTaskId && tasks && tasks.length > 0 && !selectedTaskExists) {
+      setTaskParam(null);
+    }
+  }, [selectedTaskId, tasks, selectedTaskExists, setTaskParam]);
+
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* Assuming 4rem header height or similar global layout structure.
           If not, h-full might work if parent has height. */}
 
-      <main className="flex w-full h-full rounded-tl-xl border-t border-l overflow-hidden bg-background shadow-2xl">
-        <TasksSidebar
-          currentView={view}
-          onViewChange={(v) => setView(v as ViewType)}
-          projectFilter={projectFilter}
-          onProjectFilterChange={setProjectFilter}
-        />
+      <main className={cn(
+        "flex w-full h-full overflow-hidden bg-background",
+        !hideSidebar && "rounded-tl-xl border-t border-l shadow-2xl"
+      )}>
+        {!hideSidebar && (
+          <TasksSidebar
+            currentView={view}
+            onViewChange={(v) => setView(v as ViewType)}
+            projectFilter={projectFilter}
+            onProjectFilterChange={setProjectFilter}
+          />
+        )}
 
         <TaskMainView
           title={displayTitle}

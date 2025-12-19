@@ -1,17 +1,17 @@
 "use client";
 
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { api } from "@/convex/_generated/api";
+import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { Calendar, Star, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { api } from "@/convex/_generated/api";
-import { cn } from "@/lib/utils";
 
 interface TaskListItemProps {
   task: any; // Using explicit any as in original file to match schema flexibility
@@ -110,34 +110,34 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
             </span>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
               {isMyDay && (
-                <span className="flex items-center gap-1 text-blue-500">
+                <span className="flex items-center gap-1 text-primary">
                   <Sun className="h-3 w-3 fill-current" />
                   <span className="font-medium">My Day</span>
                 </span>
               )}
               {/* Status indicator - only show non-completed status */}
               {!isCompleted && task.status === "in_progress" && (
-                <span className="flex items-center gap-1 text-cyan-500">
-                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                <span className="flex items-center gap-1 text-primary">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                   <span>In Progress</span>
                 </span>
               )}
               {!isCompleted && task.status === "suggested" && (
-                <span className="flex items-center gap-1 text-purple-500">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
                   <span>Suggested</span>
                 </span>
               )}
               {!isCompleted && task.status === "confirmed" && (
-                <span className="flex items-center gap-1 text-amber-500">
-                  <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                <span className="flex items-center gap-1 text-primary">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                   <span>Confirmed</span>
                 </span>
               )}
               {/* Urgency indicator */}
               {task.urgency === "urgent" && (
-                <span className="flex items-center gap-1 text-red-500 font-medium">
-                  <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                <span className="flex items-center gap-1 text-destructive font-medium">
+                  <div className="h-1.5 w-1.5 rounded-full bg-destructive" />
                   <span>Urgent</span>
                 </span>
               )}
@@ -148,9 +148,9 @@ export function TaskListItem({ task, onClick, isSelected }: TaskListItemProps) {
                 </span>
               )}
               {task.projectId && (
-                <span className="flex items-center gap-1">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                  {project?.name || "Project"}
+                <span className="flex items-center gap-1 max-w-[120px]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                  <span className="truncate">{project?.name || "Project"}</span>
                 </span>
               )}
               {task.tags?.map((tag: string) => (

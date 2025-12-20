@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { BYODSettings } from "@/components/settings/BYODSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
@@ -13,6 +13,7 @@ import { UISettings } from "@/components/settings/UISettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
 
 const SETTINGS_SECTIONS = [
   {
@@ -59,6 +60,17 @@ function SettingsContent() {
     parseAsString.withDefault("personalization"),
   );
   const [focusSetting] = useQueryState("focus", parseAsString);
+  const isBYODEnabled = useFeatureFlag("byod");
+
+  // Filter sections based on feature flags
+  const visibleSections = useMemo(() => {
+    return SETTINGS_SECTIONS.filter((section) => {
+      if (section.id === "database") {
+        return isBYODEnabled === true;
+      }
+      return true;
+    });
+  }, [isBYODEnabled]);
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
@@ -78,7 +90,7 @@ function SettingsContent() {
         <div className="container mx-auto max-w-4xl px-4 py-8">
           {/* Mobile View: Sectioned List */}
           <div className="block md:hidden space-y-10">
-            {SETTINGS_SECTIONS.map((section: any) => (
+            {visibleSections.map((section: any) => (
               <section key={section.id} className="space-y-4">
                 <div className="flex items-center gap-4">
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -107,7 +119,7 @@ function SettingsContent() {
             >
               {/* Sidebar with vertical tabs */}
               <TabsList className="flex-shrink-0 w-48 h-fit flex-col items-stretch justify-start p-1.5 bg-muted/50 rounded-lg gap-1">
-                {SETTINGS_SECTIONS.map((section: any) => (
+                {visibleSections.map((section: any) => (
                   <TabsTrigger
                     key={section.id}
                     value={section.id}
@@ -120,7 +132,7 @@ function SettingsContent() {
 
               {/* Content area */}
               <div className="flex-1 min-h-0">
-                {SETTINGS_SECTIONS.map((section: any) => (
+                {visibleSections.map((section: any) => (
                   <TabsContent
                     key={section.id}
                     value={section.id}

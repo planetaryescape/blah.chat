@@ -50,11 +50,17 @@ export function DownloadButton({ presentationId }: Props) {
     if (!presentation) return;
 
     setError(null);
-    console.log("[DownloadButton] handleDownload called, pptxUrl:", presentation.pptxUrl);
+    console.log(
+      "[DownloadButton] handleDownload called, pptxUrl:",
+      presentation.pptxUrl,
+    );
 
     try {
       // Always regenerate to ensure PPTX has latest images
-      const result = await downloadPPTX({ presentationId, forceRegenerate: true });
+      const result = await downloadPPTX({
+        presentationId,
+        forceRegenerate: true,
+      });
       console.log("[DownloadButton] Mutation result:", result);
 
       if (result.cached && result.url) {
@@ -72,13 +78,16 @@ export function DownloadButton({ presentationId }: Props) {
   };
 
   const isDisabled =
-    !presentation ||
-    presentation.status !== "slides_complete" ||
-    isGenerating;
+    !presentation || presentation.status !== "slides_complete" || isGenerating;
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button variant="outline" size="sm" onClick={handleDownload} disabled={isDisabled}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleDownload}
+        disabled={isDisabled}
+      >
         {isGenerating ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />

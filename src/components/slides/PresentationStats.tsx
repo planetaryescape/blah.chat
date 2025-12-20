@@ -19,14 +19,23 @@ interface PresentationStatsProps {
   modelName: string;
 }
 
-export function PresentationStats({ slides, modelName }: PresentationStatsProps) {
+export function PresentationStats({
+  slides,
+  modelName,
+}: PresentationStatsProps) {
   const showStats = useUserPreference("showSlideStatistics");
 
   if (!showStats) return null;
 
   const totalCost = slides.reduce((sum, s) => sum + (s.generationCost || 0), 0);
-  const totalInputTokens = slides.reduce((sum, s) => sum + (s.inputTokens || 0), 0);
-  const totalOutputTokens = slides.reduce((sum, s) => sum + (s.outputTokens || 0), 0);
+  const totalInputTokens = slides.reduce(
+    (sum, s) => sum + (s.inputTokens || 0),
+    0,
+  );
+  const totalOutputTokens = slides.reduce(
+    (sum, s) => sum + (s.outputTokens || 0),
+    0,
+  );
 
   // Don't show if no cost data yet
   if (totalCost === 0 && totalInputTokens === 0) return null;
@@ -51,7 +60,8 @@ export function PresentationStats({ slides, modelName }: PresentationStatsProps)
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Tokens</span>
             <span className="font-mono text-xs">
-              {totalInputTokens.toLocaleString()} in / {totalOutputTokens.toLocaleString()} out
+              {totalInputTokens.toLocaleString()} in /{" "}
+              {totalOutputTokens.toLocaleString()} out
             </span>
           </div>
         </TooltipContent>

@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -66,11 +66,17 @@ export default function OutlineEditorPage({
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const updateImageModel = useMutation(api.presentations.updateImageModel);
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const parseOutlineMessage = useMutation(api.presentations.parseOutlineMessage);
+  const parseOutlineMessage = useMutation(
+    api.presentations.parseOutlineMessage,
+  );
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const regenerateSlides = useMutation(api.presentations.regenerateSlidesFromOutline);
+  const regenerateSlides = useMutation(
+    api.presentations.regenerateSlidesFromOutline,
+  );
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const recreateOutline = useMutation(api.presentations.recreateOutlineFromSlides);
+  const recreateOutline = useMutation(
+    api.presentations.recreateOutlineFromSlides,
+  );
 
   // Local state
   const [localItems, setLocalItems] = useState<Doc<"outlineItems">[] | null>(
@@ -159,7 +165,13 @@ export default function OutlineEditorPage({
       .finally(() => {
         setIsRecreatingOutline(false);
       });
-  }, [outlineItems, slides, presentationId, recreateOutline, isRecreatingOutline]);
+  }, [
+    outlineItems,
+    slides,
+    presentationId,
+    recreateOutline,
+    isRecreatingOutline,
+  ]);
 
   // Sync server items to local state for optimistic reordering
   const items = useMemo(() => {
@@ -198,7 +210,8 @@ export default function OutlineEditorPage({
     isRecreatingOutline;
   const slidesGenerating = presentation?.status === "slides_generating";
   const canApprove = items.length > 0 && !isGenerating && !slidesGenerating;
-  const canRegenerate = items.length > 0 && !isGenerating && !slidesGenerating && !isRegenerating;
+  const canRegenerate =
+    items.length > 0 && !isGenerating && !slidesGenerating && !isRegenerating;
 
   // Handle feedback change on individual items
   const handleFeedbackChange = useCallback(
@@ -355,7 +368,8 @@ export default function OutlineEditorPage({
                     Editing generated slides
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Changes to the outline require regenerating all slides. This will delete existing slides and images.
+                    Changes to the outline require regenerating all slides. This
+                    will delete existing slides and images.
                   </p>
                 </div>
               </div>

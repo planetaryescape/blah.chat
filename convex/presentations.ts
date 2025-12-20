@@ -6,15 +6,15 @@ import { TITLE_GENERATION_MODEL } from "../src/lib/ai/operational-models";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import {
-    internalAction,
-    internalMutation,
-    internalQuery,
-    mutation,
-    query,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
 import {
-    buildFeedbackPrompt,
-    OUTLINE_FEEDBACK_SYSTEM_PROMPT,
+  buildFeedbackPrompt,
+  OUTLINE_FEEDBACK_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/outlineFeedback";
 import { parseOutlineMarkdown } from "./lib/slides/parseOutline";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
@@ -195,9 +195,18 @@ export const listByUserWithStats = query({
           .withIndex("by_presentation", (q) => q.eq("presentationId", p._id))
           .collect();
 
-        const totalCost = slides.reduce((sum, s) => sum + (s.generationCost || 0), 0);
-        const totalInputTokens = slides.reduce((sum, s) => sum + (s.inputTokens || 0), 0);
-        const totalOutputTokens = slides.reduce((sum, s) => sum + (s.outputTokens || 0), 0);
+        const totalCost = slides.reduce(
+          (sum, s) => sum + (s.generationCost || 0),
+          0,
+        );
+        const totalInputTokens = slides.reduce(
+          (sum, s) => sum + (s.inputTokens || 0),
+          0,
+        );
+        const totalOutputTokens = slides.reduce(
+          (sum, s) => sum + (s.outputTokens || 0),
+          0,
+        );
 
         return {
           ...p,
@@ -207,7 +216,7 @@ export const listByUserWithStats = query({
             totalOutputTokens,
           },
         };
-      })
+      }),
     );
 
     return presentationsWithStats;
@@ -1224,7 +1233,9 @@ export const approveOutlineFromItems = mutation({
     const items = await ctx.db
       .query("outlineItems")
       .withIndex("by_presentation_version", (q) =>
-        q.eq("presentationId", args.presentationId).eq("version", currentVersion),
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("version", currentVersion),
       )
       .collect();
 
@@ -1322,12 +1333,16 @@ export const regenerateSlidesFromOutline = mutation({
     const items = await ctx.db
       .query("outlineItems")
       .withIndex("by_presentation_version", (q) =>
-        q.eq("presentationId", args.presentationId).eq("version", currentVersion),
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("version", currentVersion),
       )
       .collect();
 
     if (items.length === 0) {
-      throw new Error("No outline items found. Please create an outline first.");
+      throw new Error(
+        "No outline items found. Please create an outline first.",
+      );
     }
 
     // Sort by position
@@ -1425,7 +1440,9 @@ export const recreateOutlineFromSlides = mutation({
     const existingItems = await ctx.db
       .query("outlineItems")
       .withIndex("by_presentation_version", (q) =>
-        q.eq("presentationId", args.presentationId).eq("version", currentVersion),
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("version", currentVersion),
       )
       .collect();
 
@@ -1489,7 +1506,11 @@ export const parseOutlineMessage = mutation({
 
     // Get the message
     const message = await ctx.db.get(args.messageId);
-    if (!message || message.role !== "assistant" || message.status !== "complete") {
+    if (
+      !message ||
+      message.role !== "assistant" ||
+      message.status !== "complete"
+    ) {
       throw new Error("Invalid message for parsing");
     }
 
@@ -1504,9 +1525,16 @@ export const parseOutlineMessage = mutation({
     const parsedSlides = parseOutlineMarkdown(content);
 
     if (parsedSlides.length === 0) {
-      console.error("Failed to parse outline. Content preview:", content.substring(0, 500));
+      console.error(
+        "Failed to parse outline. Content preview:",
+        content.substring(0, 500),
+      );
       // Return gracefully instead of throwing - allow retry
-      return { itemCount: 0, alreadyParsed: false, error: "No slides found in content" };
+      return {
+        itemCount: 0,
+        alreadyParsed: false,
+        error: "No slides found in content",
+      };
     }
 
     // Create outlineItems
@@ -1606,15 +1634,19 @@ export const regenerateSlideImage = mutation({
     }
 
     // Schedule the regeneration action with custom prompt and context
-    await ctx.scheduler.runAfter(0, internal.generation.slideImage.generateSlideImage, {
-      slideId: args.slideId,
-      modelId: presentation.imageModel,
-      designSystem: presentation.designSystem,
-      contextSlides,
-      customPrompt: args.customPrompt,
-      slideStyle: presentation.slideStyle ?? "illustrative",
-      isTemplateBased: !!presentation.templateId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.generation.slideImage.generateSlideImage,
+      {
+        slideId: args.slideId,
+        modelId: presentation.imageModel,
+        designSystem: presentation.designSystem,
+        contextSlides,
+        customPrompt: args.customPrompt,
+        slideStyle: presentation.slideStyle ?? "illustrative",
+        isTemplateBased: !!presentation.templateId,
+      },
+    );
 
     return { success: true };
   },

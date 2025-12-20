@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -24,17 +24,17 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useQuery } from "convex/react";
 import {
-    AlertCircle,
-    ArrowLeft,
-    CheckCircle,
-    ChevronLeft,
-    ChevronRight,
-    Clock,
-    FileEdit,
-    Loader2,
-    Palette,
-    Play,
-    Presentation,
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FileEdit,
+  Loader2,
+  Palette,
+  Play,
+  Presentation,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
@@ -203,9 +203,11 @@ export default function PreviewPage({
 
   // Format model name for display
   const getModelDisplayName = () => {
-    const model = presentation.imageModel || "google:gemini-3-pro-image-preview";
+    const model =
+      presentation.imageModel || "google:gemini-3-pro-image-preview";
     if (model.includes("gemini-3")) return "Gemini 3";
-    if (model.includes("gemini-2.5") || model.includes("gemini-2-5")) return "Gemini 2.5";
+    if (model.includes("gemini-2.5") || model.includes("gemini-2-5"))
+      return "Gemini 2.5";
     if (model.includes("gemini-2")) return "Gemini 2";
     // Fallback: extract model name
     return model.replace(/^google:/, "").replace(/-/g, " ");
@@ -228,7 +230,10 @@ export default function PreviewPage({
           <span className="font-medium truncate flex-1">
             {presentation.title}
           </span>
-          <PresentationStats slides={slides} modelName={getModelDisplayName()} />
+          <PresentationStats
+            slides={slides}
+            modelName={getModelDisplayName()}
+          />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger className="shrink-0">
@@ -240,11 +245,7 @@ export default function PreviewPage({
             </Tooltip>
           </TooltipProvider>
           {isComplete && (
-            <Button
-              size="icon"
-              className="shrink-0"
-              onClick={handlePresent}
-            >
+            <Button size="icon" className="shrink-0" onClick={handlePresent}>
               <Play className="h-4 w-4" />
             </Button>
           )}
@@ -328,12 +329,13 @@ export default function PreviewPage({
         </div>
 
         <div className="flex items-center gap-3">
-          <PresentationStats slides={slides} modelName={getModelDisplayName()} />
+          <PresentationStats
+            slides={slides}
+            modelName={getModelDisplayName()}
+          />
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger>
-                {getStatusIcon("h-4 w-4")}
-              </TooltipTrigger>
+              <TooltipTrigger>{getStatusIcon("h-4 w-4")}</TooltipTrigger>
               <TooltipContent side="bottom">
                 <p>{getStatusText()}</p>
               </TooltipContent>
@@ -348,11 +350,7 @@ export default function PreviewPage({
             Edit Outline
           </Button>
           <DownloadButton presentationId={presentationId} />
-          <Button
-            size="sm"
-            onClick={handlePresent}
-            disabled={!isComplete}
-          >
+          <Button size="sm" onClick={handlePresent} disabled={!isComplete}>
             <Play className="h-4 w-4 mr-2" />
             Present
           </Button>

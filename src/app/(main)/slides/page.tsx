@@ -1,27 +1,27 @@
 "use client";
 
 import {
-    type ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    type SortingState,
-    useReactTable,
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
 } from "@tanstack/react-table";
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
-    ArrowUpDown,
-    Clock,
-    DollarSign,
-    LayoutGrid,
-    List,
-    Loader2,
-    MoreHorizontal,
-    Plus,
-    Presentation,
-    Trash2
+  ArrowUpDown,
+  Clock,
+  DollarSign,
+  LayoutGrid,
+  List,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Presentation,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -30,35 +30,30 @@ import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
@@ -112,7 +107,11 @@ export default function SlidesPage() {
 
   // Define type for presentation with stats
   type PresentationWithStats = Doc<"presentations"> & {
-    stats: { totalCost: number; totalInputTokens: number; totalOutputTokens: number };
+    stats: {
+      totalCost: number;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+    };
     statusLabel?: any;
   };
 
@@ -125,7 +124,9 @@ export default function SlidesPage() {
             <Button
               variant="ghost"
               className="-ml-4 h-8 data-[state=open]:bg-accent"
-              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === "asc")
+              }
             >
               <span>Title</span>
               {column.getIsSorted() === "desc" ? (
@@ -154,9 +155,7 @@ export default function SlidesPage() {
       },
       {
         accessorKey: "totalSlides",
-        header: ({ column }) => (
-          <div className="text-right">Slides</div>
-        ),
+        header: ({ column }) => <div className="text-right">Slides</div>,
         cell: ({ row }) => (
           <div className="text-right text-muted-foreground">
             {row.getValue("totalSlides") || "-"}
@@ -170,7 +169,10 @@ export default function SlidesPage() {
           const model = row.original.imageModel;
           if (!model || !showStats) return null;
           return (
-            <div className="text-center text-xs text-muted-foreground truncate max-w-[100px]" title={model}>
+            <div
+              className="text-center text-xs text-muted-foreground truncate max-w-[100px]"
+              title={model}
+            >
               {model.replace(/^google:/, "").replace(/-/g, " ")}
             </div>
           );
@@ -181,7 +183,8 @@ export default function SlidesPage() {
         header: () => <div className="text-right">Cost</div>,
         cell: ({ row }) => {
           const cost = row.original.stats?.totalCost;
-          if (!cost || cost === 0 || !showStats) return <div className="text-right text-muted-foreground">-</div>;
+          if (!cost || cost === 0 || !showStats)
+            return <div className="text-right text-muted-foreground">-</div>;
           return (
             <div className="text-right font-mono text-xs">
               ${cost.toFixed(4)}
@@ -228,7 +231,10 @@ export default function SlidesPage() {
           return (
             <div className="flex justify-end">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuTrigger
+                  asChild
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -251,7 +257,7 @@ export default function SlidesPage() {
         },
       },
     ],
-    []
+    [],
   );
 
   const tableData = useMemo(() => {
@@ -389,8 +395,15 @@ export default function SlidesPage() {
                         {status.label}
                       </span>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -429,13 +442,20 @@ export default function SlidesPage() {
                   {showStats && presentation.stats?.totalCost > 0 && (
                     <div className="flex items-center gap-3 mt-2 pt-2 border-t text-xs text-muted-foreground">
                       {presentation.imageModel && (
-                        <span className="truncate max-w-[100px]" title={presentation.imageModel}>
-                          {presentation.imageModel.replace(/^google:/, "").replace(/-/g, " ")}
+                        <span
+                          className="truncate max-w-[100px]"
+                          title={presentation.imageModel}
+                        >
+                          {presentation.imageModel
+                            .replace(/^google:/, "")
+                            .replace(/-/g, " ")}
                         </span>
                       )}
                       <div className="flex items-center gap-0.5 ml-auto">
                         <DollarSign className="h-3 w-3" />
-                        <span className="font-mono">{presentation.stats.totalCost.toFixed(4)}</span>
+                        <span className="font-mono">
+                          {presentation.stats.totalCost.toFixed(4)}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -456,7 +476,7 @@ export default function SlidesPage() {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   ))}
@@ -476,7 +496,7 @@ export default function SlidesPage() {
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </TableCell>
                     ))}
@@ -496,35 +516,38 @@ export default function SlidesPage() {
           </Table>
 
           {(table.getCanPreviousPage() || table.getCanNextPage()) && (
-             <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
-               <div className="flex-1 text-sm text-muted-foreground">
-                 {table.getFilteredRowModel().rows.length} presentation(s)
-               </div>
-               <div className="space-x-2">
-                 <Button
-                   variant="outline"
-                   size="sm"
-                   onClick={() => table.previousPage()}
-                   disabled={!table.getCanPreviousPage()}
-                 >
-                   Previous
-                 </Button>
-                 <Button
-                   variant="outline"
-                   size="sm"
-                   onClick={() => table.nextPage()}
-                   disabled={!table.getCanNextPage()}
-                 >
-                   Next
-                 </Button>
-               </div>
-             </div>
+            <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
+              <div className="flex-1 text-sm text-muted-foreground">
+                {table.getFilteredRowModel().rows.length} presentation(s)
+              </div>
+              <div className="space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Presentation</AlertDialogTitle>

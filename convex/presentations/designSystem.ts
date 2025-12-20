@@ -154,7 +154,10 @@ export const generateDesignSystem = internalAction({
       }
 
       const outlineContent = buildOutlineContent(slides);
-      const prompt = buildDesignSystemPrompt(outlineContent, templateConstraints);
+      const prompt = buildDesignSystemPrompt(
+        outlineContent,
+        templateConstraints,
+      );
 
       const result = streamText({
         model: getModel(DESIGN_SYSTEM_GENERATION_MODEL.id),

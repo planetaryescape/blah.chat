@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  GripVertical,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,11 +34,16 @@ const slideTypeLabels: Record<string, string> = {
 
 const slideTypeColors: Record<string, string> = {
   title: "bg-primary/20 text-primary border-primary/30",
-  section: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  section:
+    "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
   content: "bg-muted text-muted-foreground border-muted-foreground/30",
 };
 
-export function OutlineCard({ item, index, onFeedbackChange }: OutlineCardProps) {
+export function OutlineCard({
+  item,
+  index,
+  onFeedbackChange,
+}: OutlineCardProps) {
   const [showFeedback, setShowFeedback] = useState(!!item.feedback);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [localFeedback, setLocalFeedback] = useState(item.feedback || "");

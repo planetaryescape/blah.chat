@@ -2,36 +2,33 @@ import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { getModel } from "@/lib/ai/registry";
-import { getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
   EMBEDDING_MODEL,
   MEMORY_EXTRACTION_MODEL,
-} from "../../src/lib/ai/operational-models";
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
-// import { trackServerEvent } from "../lib/analytics"; // Disabled: requires Node runtime, file has queries
+import { isMemoryDuplicate } from "../lib/utils/memory";
 import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
 
 // Constants for memory extraction quality control
-const IMPORTANCE_THRESHOLD = 7; // Only save facts rated 7+
-const MIN_CONFIDENCE = 0.7; // Only save facts with 70%+ confidence
-const _MIN_CONTENT_LENGTH = 10;
-const _MAX_CONTENT_LENGTH = 500;
-const SIMILARITY_THRESHOLD = 0.85; // Cosine similarity threshold for duplicates
+const IMPORTANCE_THRESHOLD = 7;
+const MIN_CONFIDENCE = 0.7;
 
 // TTL configuration (in milliseconds)
 const EXPIRATION_MS = {
-  contextual: 7 * 24 * 60 * 60 * 1000, // 7 days
-  preference: null, // Never expires
-  deadline: null, // TODO: parse from fact content
-  temporary: 1 * 24 * 60 * 60 * 1000, // 1 day
+  contextual: 7 * 24 * 60 * 60 * 1000,
+  preference: null,
+  deadline: null,
+  temporary: 1 * 24 * 60 * 60 * 1000,
 } as const;
 
 const memorySchema = z.object({
   facts: z.array(
     z.object({
-      content: z.string().min(10).max(500), // Enforce length bounds
+      content: z.string().min(10).max(500),
       category: z.enum([
         "identity",
         "preference",
@@ -39,49 +36,15 @@ const memorySchema = z.object({
         "context",
         "relationship",
       ]),
-      importance: z.number().min(1).max(10), // Required: 1-10 scale
-      reasoning: z.string().min(10).max(300), // Required: 1-2 sentences explaining importance
-      confidence: z.number().min(0).max(1), // NEW: 0.0-1.0 confidence score
+      importance: z.number().min(1).max(10),
+      reasoning: z.string().min(10).max(300),
+      confidence: z.number().min(0).max(1),
       expirationHint: z
         .enum(["contextual", "preference", "deadline", "temporary"])
-        .optional(), // NEW: TTL hint
+        .optional(),
     }),
   ),
 });
-
-// Helper: Check if memory is duplicate using semantic similarity
-async function isMemoryDuplicate(
-  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
-  ctx: any,
-  userId: string,
-  _newContent: string,
-  newEmbedding: number[],
-): Promise<boolean> {
-  try {
-    // Phase 7: Use native vector search with similarity scores
-    const similarMemories = await ctx.vectorSearch("memories", "by_embedding", {
-      vector: newEmbedding,
-      // biome-ignore lint/suspicious/noExplicitAny: Convex query filter types
-      filter: (q: any) => q.eq("userId", userId),
-      limit: 5, // Check top 5 most similar
-    });
-
-    // Check if any result exceeds similarity threshold
-    // vectorSearch returns results with _score (cosine similarity)
-    for (const result of similarMemories) {
-      // Type assertion: vectorSearch returns { _score, ...document fields }
-      const score = (result as any)._score as number;
-      if (score > SIMILARITY_THRESHOLD) {
-        return true;
-      }
-    }
-
-    return false;
-  } catch (error) {
-    console.error("Error checking duplicate:", error);
-    return false; // Don't block on error
-  }
-}
 
 export const extractMemories = internalAction({
   args: {
@@ -230,10 +193,9 @@ export const extractMemories = internalAction({
         const expiresAt = expirationMs ? extractedAt + expirationMs : undefined;
 
         // Check if duplicate
-        const isDuplicate = await isMemoryDuplicate(
+        const { isDuplicate } = await isMemoryDuplicate(
           ctx,
           conversation.userId,
-          fact.content,
           embedding,
         );
 

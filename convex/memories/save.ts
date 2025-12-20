@@ -1,51 +1,10 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
+import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
-
-// Constants matching extract.ts
-const SIMILARITY_THRESHOLD = 0.85;
-
-// Helper: Check if memory is duplicate using semantic similarity
-// Phase 7: Uses native vector search scores (no manual cosine similarity)
-async function isMemoryDuplicate(
-  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
-  ctx: any,
-  userId: string,
-  newEmbedding: number[],
-): Promise<{ isDuplicate: boolean; similarContent?: string }> {
-  try {
-    const similarMemories = await ctx.vectorSearch("memories", "by_embedding", {
-      vector: newEmbedding,
-      // biome-ignore lint/suspicious/noExplicitAny: Convex query filter types
-      filter: (q: any) => q.eq("userId", userId),
-      limit: 5,
-    });
-
-    // Check if any result exceeds similarity threshold
-    // vectorSearch returns results with _score (cosine similarity)
-    for (const result of similarMemories) {
-      const score = (result as any)._score as number;
-      if (score > SIMILARITY_THRESHOLD) {
-        // Return the similar content for user feedback
-        const fullMemory = await ctx.runQuery(internal.memories.getMemoryById, {
-          id: (result as any)._id,
-        });
-        return {
-          isDuplicate: true,
-          similarContent: fullMemory?.content,
-        };
-      }
-    }
-
-    return { isDuplicate: false };
-  } catch (error) {
-    console.error("Error checking duplicate:", error);
-    return { isDuplicate: false };
-  }
-}
+import { isMemoryDuplicate } from "../lib/utils/memory";
 
 /**
  * Save a memory from LLM tool call.

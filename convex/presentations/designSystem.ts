@@ -1,8 +1,8 @@
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { getModel } from "@/lib/ai/registry";
-import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { DESIGN_SYSTEM_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { DESIGN_SYSTEM_GENERATION_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import {

@@ -1,8 +1,8 @@
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { FEEDBACK_TRIAGE_MODEL } from "../../src/lib/ai/operational-models";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { FEEDBACK_TRIAGE_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";

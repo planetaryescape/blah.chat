@@ -107,6 +107,14 @@ export const DOCUMENT_EXTRACTION_MODEL: ModelConfig =
 export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
   MODEL_CONFIG["zai:glm-4.6"];
 
+/**
+ * Template analysis for brand extraction.
+ * Uses Claude 4.5 Sonnet for multimodal analysis of templates (PDF, PPTX, images).
+ * Extracts colors, fonts, layout patterns from organization templates.
+ */
+export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
+  MODEL_CONFIG["anthropic:claude-sonnet-4.5"];
+
 // ============================================================================
 // EMBEDDING MODEL
 // ============================================================================
@@ -138,5 +146,6 @@ export const OPERATIONAL_MODELS = {
   deadlineParsing: DEADLINE_PARSING_MODEL,
   documentExtraction: DOCUMENT_EXTRACTION_MODEL,
   designSystemGeneration: DESIGN_SYSTEM_GENERATION_MODEL,
+  templateAnalysis: TEMPLATE_ANALYSIS_MODEL,
   embedding: EMBEDDING_MODEL,
 } as const;

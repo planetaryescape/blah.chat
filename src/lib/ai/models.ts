@@ -434,8 +434,8 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     bestFor: "Advanced reasoning, research, testing future capabilities",
   },
 
-  "google:gemini-3-pro-image": {
-    id: "google:gemini-3-pro-image",
+  "google:gemini-3-pro-image-preview": {
+    id: "google:gemini-3-pro-image-preview",
     name: "Gemini 3 Pro Image (Nano Banana Pro)",
     provider: "google",
     contextWindow: 65536, // 65K tokens
@@ -460,6 +460,24 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Creates images. Generate visuals from text descriptions with advanced understanding. Free preview.",
     bestFor: "Image generation, visual creativity, design prototyping",
+  },
+
+  "google:gemini-2.5-flash-image": {
+    id: "google:gemini-2.5-flash-image",
+    provider: "google",
+    name: "Gemini 2.5 Flash Image",
+    description: "Cost-effective image generation with hybrid reasoning",
+    contextWindow: 32768,
+    pricing: {
+      input: 0.3,
+      output: 2.5,
+    },
+    capabilities: ["image-generation", "vision"],
+    isExperimental: true,
+    knowledgeCutoff: "August 2025",
+    userFriendlyDescription:
+      "Fast image generation. Cost-effective visual creation with locale-aware, culturally appropriate outputs.",
+    bestFor: "Fast, cost-effective slide image generation",
   },
 
   // xAI - Note: Vercel AI Gateway uses "xai/model-name" format

@@ -9,6 +9,7 @@ import {
   query,
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
+import { cascadeDeleteConversation } from "./lib/utils/cascade";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 
 /**
@@ -424,86 +425,7 @@ export const deleteConversation = mutation({
     const conv = await ctx.db.get(args.conversationId);
     if (!conv || conv.userId !== user._id) throw new Error("Not found");
 
-    // 1. Delete bookmarks
-    const bookmarks = await ctx.db
-      .query("bookmarks")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .collect();
-    for (const bookmark of bookmarks) {
-      await ctx.db.delete(bookmark._id);
-    }
-
-    // 2. Delete shares
-    const shares = await ctx.db
-      .query("shares")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .collect();
-    for (const share of shares) {
-      await ctx.db.delete(share._id);
-    }
-
-    // 3. Nullify files conversationId (files can exist independently)
-    const files = await ctx.db
-      .query("files")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .collect();
-    for (const file of files) {
-      await ctx.db.patch(file._id, { conversationId: undefined });
-    }
-
-    // 4. Nullify memories conversationId (memories can exist independently)
-    const memories = await ctx.db
-      .query("memories")
-      .filter((q) => q.eq(q.field("conversationId"), args.conversationId))
-      .collect();
-    for (const memory of memories) {
-      await ctx.db.patch(memory._id, { conversationId: undefined });
-    }
-
-    // 5. Remove from projects - O(1) index lookup (Phase 3 migration)
-    const junctions = await ctx.db
-      .query("projectConversations")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .collect();
-
-    for (const junction of junctions) {
-      await ctx.db.delete(junction._id);
-    }
-
-    // 6. Delete participants (for collaborative conversations)
-    if (conv.isCollaborative) {
-      const participants = await ctx.db
-        .query("conversationParticipants")
-        .withIndex("by_conversation", (q) =>
-          q.eq("conversationId", args.conversationId),
-        )
-        .collect();
-      for (const p of participants) {
-        await ctx.db.delete(p._id);
-      }
-    }
-
-    // 7. Delete messages
-    const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId),
-      )
-      .collect();
-    for (const msg of messages) {
-      await ctx.db.delete(msg._id);
-    }
-
-    // 8. Delete conversation
-    await ctx.db.delete(args.conversationId);
+    await cascadeDeleteConversation(ctx, args.conversationId);
   },
 });
 
@@ -669,62 +591,7 @@ export const cleanupEmptyConversations = mutation({
     // Cascade delete empty conversations
     let deletedCount = 0;
     for (const conv of toDelete) {
-      // 1. Delete bookmarks
-      const bookmarks = await ctx.db
-        .query("bookmarks")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .collect();
-      for (const bookmark of bookmarks) {
-        await ctx.db.delete(bookmark._id);
-      }
-
-      // 2. Delete shares
-      const shares = await ctx.db
-        .query("shares")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .collect();
-      for (const share of shares) {
-        await ctx.db.delete(share._id);
-      }
-
-      // 3. Nullify files conversationId
-      const files = await ctx.db
-        .query("files")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .collect();
-      for (const file of files) {
-        await ctx.db.patch(file._id, { conversationId: undefined });
-      }
-
-      // 4. Nullify memories conversationId
-      const memories = await ctx.db
-        .query("memories")
-        .filter((q) => q.eq(q.field("conversationId"), conv._id))
-        .collect();
-      for (const memory of memories) {
-        await ctx.db.patch(memory._id, { conversationId: undefined });
-      }
-
-      // 5. Remove from project relationships via junction table
-      const junctions = await ctx.db
-        .query("projectConversations")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .collect();
-      for (const junction of junctions) {
-        await ctx.db.delete(junction._id);
-      }
-
-      // 6. Delete any messages (shouldn't be any, but just in case)
-      const messages = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .collect();
-      for (const msg of messages) {
-        await ctx.db.delete(msg._id);
-      }
-
-      // 7. Delete conversation
-      await ctx.db.delete(conv._id);
+      await cascadeDeleteConversation(ctx, conv._id);
       deletedCount++;
     }
 
@@ -954,63 +821,13 @@ export const bulkDelete = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
 
-    // Verify ownership + cascade delete
     for (const convId of args.conversationIds) {
       const conv = await ctx.db.get(convId);
       if (!conv || conv.userId !== user._id) {
         throw new Error("Unauthorized or not found");
       }
 
-      // 1. Delete bookmarks
-      const bookmarks = ctx.db
-        .query("bookmarks")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
-      for await (const bookmark of bookmarks) {
-        await ctx.db.delete(bookmark._id);
-      }
-
-      // 2. Delete shares
-      const shares = ctx.db
-        .query("shares")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
-      for await (const share of shares) {
-        await ctx.db.delete(share._id);
-      }
-
-      // 3. Nullify files conversationId (files can exist independently)
-      const files = ctx.db
-        .query("files")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
-      for await (const file of files) {
-        await ctx.db.patch(file._id, { conversationId: undefined });
-      }
-
-      // 4. Nullify memories conversationId (memories can exist independently)
-      const memories = ctx.db
-        .query("memories")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
-      for await (const memory of memories) {
-        await ctx.db.patch(memory._id, { conversationId: undefined });
-      }
-
-      // 5. Remove from project relationships via junction table
-      const junctions = ctx.db
-        .query("projectConversations")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
-      for await (const junction of junctions) {
-        await ctx.db.delete(junction._id);
-      }
-
-      // 6. Delete messages
-      const messages = ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", convId));
-      for await (const msg of messages) {
-        await ctx.db.delete(msg._id);
-      }
-
-      // 7. Delete conversation
-      await ctx.db.delete(convId);
+      await cascadeDeleteConversation(ctx, convId);
     }
 
     return { deletedCount: args.conversationIds.length };

@@ -37,6 +37,8 @@ import type * as ai_tools_urlReader from "../ai/tools/urlReader.js";
 import type * as ai_tools_weather from "../ai/tools/weather.js";
 import type * as ai_tools_webSearch from "../ai/tools/webSearch.js";
 import type * as bookmarks from "../bookmarks.js";
+import type * as canvas_documents from "../canvas/documents.js";
+import type * as canvas_history from "../canvas/history.js";
 import type * as chat from "../chat.js";
 import type * as conversations from "../conversations.js";
 import type * as conversations_actions from "../conversations/actions.js";
@@ -95,6 +97,9 @@ import type * as lib_prompts_operational_visualFormatting from "../lib/prompts/o
 import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/builtIn.js";
 import type * as lib_slides_parseOutline from "../lib/slides/parseOutline.js";
 import type * as lib_userSync from "../lib/userSync.js";
+import type * as lib_utils_cascade from "../lib/utils/cascade.js";
+import type * as lib_utils_memory from "../lib/utils/memory.js";
+import type * as lib_utils_search from "../lib/utils/search.js";
 import type * as memories from "../memories.js";
 import type * as memories_delete from "../memories/delete.js";
 import type * as memories_expiration from "../memories/expiration.js";
@@ -228,6 +233,8 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/weather": typeof ai_tools_weather;
   "ai/tools/webSearch": typeof ai_tools_webSearch;
   bookmarks: typeof bookmarks;
+  "canvas/documents": typeof canvas_documents;
+  "canvas/history": typeof canvas_history;
   chat: typeof chat;
   conversations: typeof conversations;
   "conversations/actions": typeof conversations_actions;
@@ -286,6 +293,9 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/templates/builtIn": typeof lib_prompts_templates_builtIn;
   "lib/slides/parseOutline": typeof lib_slides_parseOutline;
   "lib/userSync": typeof lib_userSync;
+  "lib/utils/cascade": typeof lib_utils_cascade;
+  "lib/utils/memory": typeof lib_utils_memory;
+  "lib/utils/search": typeof lib_utils_search;
   memories: typeof memories;
   "memories/delete": typeof memories_delete;
   "memories/expiration": typeof memories_expiration;

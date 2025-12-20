@@ -21,6 +21,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Turbopack is default in Next.js 16
+  turbopack: {},
+  // Monaco editor web workers support (webpack fallback)
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default withBundleAnalyzer(nextConfig);

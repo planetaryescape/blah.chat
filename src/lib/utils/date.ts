@@ -1,11 +1,11 @@
 import {
-    endOfDay,
-    format,
-    formatDistanceToNow,
-    isPast,
-    isToday,
-    startOfMonth,
-    subDays,
+  endOfDay,
+  format,
+  formatDistanceToNow,
+  isPast,
+  isToday,
+  startOfMonth,
+  subDays,
 } from "date-fns";
 
 /**

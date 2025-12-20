@@ -19,6 +19,7 @@ export interface UISettingsState {
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
+  showSlideStats: boolean;
   showByDefault: boolean;
   autoExpand: boolean;
   showDuringStreaming: boolean;
@@ -35,6 +36,7 @@ export interface UISettingsHandlers {
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
+  handleSlideStatsChange: (checked: boolean) => Promise<void>;
   handleShowByDefaultChange: (checked: boolean) => Promise<void>;
   handleAutoExpandChange: (checked: boolean) => Promise<void>;
   handleShowDuringStreamingChange: (checked: boolean) => Promise<void>;
@@ -63,6 +65,7 @@ export function useUISettingsState() {
   );
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
   const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
+  const prefShowSlideStats = useUserPreference("showSlideStatistics");
   const prefReasoning = useUserPreference("reasoning");
   const prefChatWidth = useUserPreference("chatWidth");
   const prefShowNotes = useUserPreference("showNotes");
@@ -81,6 +84,8 @@ export function useUISettingsState() {
   const [showComparisonStats, setShowComparisonStats] = useState<boolean>(
     prefShowComparisonStats,
   );
+  const [showSlideStats, setShowSlideStats] =
+    useState<boolean>(prefShowSlideStats);
   const [showByDefault, setShowByDefault] = useState<boolean>(
     prefReasoning.showByDefault,
   );
@@ -117,6 +122,10 @@ export function useUISettingsState() {
   useEffect(
     () => setShowComparisonStats(prefShowComparisonStats),
     [prefShowComparisonStats],
+  );
+  useEffect(
+    () => setShowSlideStats(prefShowSlideStats),
+    [prefShowSlideStats],
   );
   useEffect(
     () => setShowByDefault(prefReasoning.showByDefault),
@@ -232,6 +241,11 @@ export function useUISettingsState() {
       setShowComparisonStats,
       "show_comparison_statistics",
     ),
+    handleSlideStatsChange: createBooleanHandler(
+      "showSlideStatistics",
+      setShowSlideStats,
+      "show_slide_statistics",
+    ),
     handleShowByDefaultChange: createReasoningHandler(
       "showByDefault",
       setShowByDefault,
@@ -274,6 +288,7 @@ export function useUISettingsState() {
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,
+    showSlideStats,
     showByDefault,
     autoExpand,
     showDuringStreaming,

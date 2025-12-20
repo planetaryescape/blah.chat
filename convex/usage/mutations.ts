@@ -46,6 +46,30 @@ export const recordImageGeneration = internalMutation({
   },
 });
 
+export const recordSlideImageGeneration = internalMutation({
+  args: {
+    userId: v.id("users"),
+    presentationId: v.id("presentations"),
+    model: v.string(),
+    cost: v.number(),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const date = new Date().toISOString().split("T")[0];
+
+    await ctx.db.insert("usageRecords", {
+      userId: args.userId,
+      date,
+      model: args.model,
+      inputTokens: args.inputTokens ?? 0,
+      outputTokens: args.outputTokens ?? 0,
+      cost: args.cost,
+      messageCount: 1,
+    });
+  },
+});
+
 export const recordTextGeneration = internalMutation({
   args: {
     userId: v.id("users"),

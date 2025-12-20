@@ -131,8 +131,10 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           <StatisticsSection
             showMessageStats={state.showMessageStats}
             showComparisonStats={state.showComparisonStats}
+            showSlideStats={state.showSlideStats}
             onMessageStatsChange={handlers.handleMessageStatsChange}
             onComparisonStatsChange={handlers.handleComparisonStatsChange}
+            onSlideStatsChange={handlers.handleSlideStatsChange}
           />
 
           <MessageBehaviorSection

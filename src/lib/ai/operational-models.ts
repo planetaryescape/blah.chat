@@ -7,8 +7,8 @@
  * Change models here - no need to hunt through the codebase!
  */
 
-import { openai } from "@ai-sdk/openai";
 import { MODEL_CONFIG, type ModelConfig } from "./models";
+import { gateway } from "./providers/gateway";
 
 // ============================================================================
 // DEFAULT MODEL (used for new conversations when no model is specified)
@@ -123,7 +123,9 @@ export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
  * Embedding model for vector search (memories, messages, conversations).
  * Used to generate embeddings for semantic search across the application.
  */
-export const EMBEDDING_MODEL = openai.embedding("text-embedding-3-small");
+export const EMBEDDING_MODEL = gateway.textEmbeddingModel(
+  "openai/text-embedding-3-small",
+);
 
 // ============================================================================
 // HELPER EXPORTS

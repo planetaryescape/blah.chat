@@ -16,6 +16,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { action, type ActionCtx, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
+import { createDocumentTool } from "./ai/tools/createDocument";
 import { createDateTimeTool } from "./ai/tools/datetime";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import {
@@ -23,6 +24,7 @@ import {
   createMemorySaveTool,
   createMemorySearchTool,
 } from "./ai/tools/memories";
+import { createReadDocumentTool } from "./ai/tools/readDocument";
 import {
   createQueryHistoryTool,
   createSearchAllTool,
@@ -31,6 +33,7 @@ import {
   createSearchTasksTool,
 } from "./ai/tools/search";
 import { createTaskManagerTool } from "./ai/tools/taskManager";
+import { createUpdateDocumentTool } from "./ai/tools/updateDocument";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
@@ -868,7 +871,7 @@ export const generateResponse = internalAction({
           weather: weatherTool,
         };
 
-        // Write tools: DISABLED for incognito (saveMemory, deleteMemory, manageTasks)
+        // Write tools: DISABLED for incognito (saveMemory, deleteMemory, manageTasks, canvas)
         if (!isIncognito) {
           const memorySaveTool = createMemorySaveTool(ctx, args.userId);
           const memoryDeleteTool = createMemoryDeleteTool(ctx, args.userId);
@@ -880,6 +883,26 @@ export const generateResponse = internalAction({
           tools.saveMemory = memorySaveTool;
           tools.deleteMemory = memoryDeleteTool;
           tools.manageTasks = taskManagerTool;
+
+          // Canvas document tools
+          const createDocTool = createDocumentTool(
+            ctx,
+            args.userId,
+            args.conversationId,
+          );
+          const updateDocTool = createUpdateDocumentTool(
+            ctx,
+            args.userId,
+            args.conversationId,
+          );
+          const readDocTool = createReadDocumentTool(
+            ctx,
+            args.userId,
+            args.conversationId,
+          );
+          tools.createDocument = createDocTool;
+          tools.updateDocument = updateDocTool;
+          tools.readDocument = readDocTool;
         }
 
         // Read tools: Configurable for incognito (search user data)

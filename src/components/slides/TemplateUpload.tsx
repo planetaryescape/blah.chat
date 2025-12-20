@@ -186,7 +186,9 @@ export function TemplateUpload({
   const completedTemplates =
     templates?.filter((t) => t.status === "complete") ?? [];
   const processingTemplates =
-    templates?.filter((t) => t.status === "processing" || t.status === "pending") ?? [];
+    templates?.filter(
+      (t) => t.status === "processing" || t.status === "pending",
+    ) ?? [];
 
   return (
     <div className="space-y-4">

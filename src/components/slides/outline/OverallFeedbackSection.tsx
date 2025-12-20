@@ -32,7 +32,8 @@ export function OverallFeedbackSection({
           disabled={disabled}
         />
         <p className="text-xs text-muted-foreground mt-2">
-          This feedback will be applied to the entire presentation, not specific slides.
+          This feedback will be applied to the entire presentation, not specific
+          slides.
         </p>
       </CardContent>
     </Card>

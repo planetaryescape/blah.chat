@@ -51,7 +51,9 @@ export const generateSlideImage = internalAction({
       ),
     ),
     customPrompt: v.optional(v.string()),
-    slideStyle: v.optional(v.union(v.literal("wordy"), v.literal("illustrative"))),
+    slideStyle: v.optional(
+      v.union(v.literal("wordy"), v.literal("illustrative")),
+    ),
     isTemplateBased: v.optional(v.boolean()),
     referenceImageStorageId: v.optional(v.id("_storage")),
   },
@@ -79,7 +81,8 @@ export const generateSlideImage = internalAction({
       const isTemplateBased = args.isTemplateBased ?? false;
 
       // Check if we have a reference image to use
-      const referenceStorageId = args.referenceImageStorageId || slide.imageStorageId;
+      const referenceStorageId =
+        args.referenceImageStorageId || slide.imageStorageId;
       let referenceImageBase64: string | null = null;
 
       if (referenceStorageId && args.customPrompt) {

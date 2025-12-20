@@ -35,8 +35,9 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
     if (!trimmed) continue;
 
     // Check for slide header - supports # or ## or ### or **bold**
-    const headerMatch = trimmed.match(/^(#{1,3})\s+(.+)$/) ||
-                       trimmed.match(/^\*\*(.+?)\*\*:?\s*$/);
+    const headerMatch =
+      trimmed.match(/^(#{1,3})\s+(.+)$/) ||
+      trimmed.match(/^\*\*(.+?)\*\*:?\s*$/);
 
     if (headerMatch) {
       // Save previous slide if exists
@@ -60,9 +61,15 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
 
       // Determine type from header
       const lowerTitle = titleText.toLowerCase();
-      if (lowerTitle.includes("title slide") || lowerTitle.includes("cover slide")) {
+      if (
+        lowerTitle.includes("title slide") ||
+        lowerTitle.includes("cover slide")
+      ) {
         currentSlide.slideType = "title";
-      } else if (lowerTitle.startsWith("section:") || lowerTitle.startsWith("section -")) {
+      } else if (
+        lowerTitle.startsWith("section:") ||
+        lowerTitle.startsWith("section -")
+      ) {
         currentSlide.slideType = "section";
         // Extract section name as title
         currentSlide.title = titleText.replace(/^section[:\-]\s*/i, "").trim();

@@ -41,7 +41,9 @@ export const generatePPTX = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      console.log(`[PPTX Export] Starting generation for ${args.presentationId}`);
+      console.log(
+        `[PPTX Export] Starting generation for ${args.presentationId}`,
+      );
 
       // Fetch presentation
       const presentation = (await (ctx.runQuery as any)(
@@ -70,7 +72,9 @@ export const generatePPTX = internalAction({
       }
 
       console.log(`[PPTX Export] Found ${slides.length} slides`);
-      console.log(`[PPTX Export] Slides with images: ${slides.filter(s => s.imageStorageId).length}`);
+      console.log(
+        `[PPTX Export] Slides with images: ${slides.filter((s) => s.imageStorageId).length}`,
+      );
 
       // Initialize PptxGenJS
       const pptx = new PptxGenJS();
@@ -125,13 +129,16 @@ export const generatePPTX = internalAction({
               // Fetch image data
               const imageResponse = await fetch(imageUrl);
               const imageArrayBuffer = await imageResponse.arrayBuffer();
-              const imageBase64 = Buffer.from(imageArrayBuffer).toString("base64");
+              const imageBase64 =
+                Buffer.from(imageArrayBuffer).toString("base64");
 
               // Add as background
               slide.background = {
                 data: `data:image/png;base64,${imageBase64}`,
               };
-              console.log(`[PPTX Export] Added background image for slide ${slideData.position}`);
+              console.log(
+                `[PPTX Export] Added background image for slide ${slideData.position}`,
+              );
             }
           } catch (error) {
             console.error(
@@ -141,7 +148,9 @@ export const generatePPTX = internalAction({
             // Continue without background
           }
         } else {
-          console.log(`[PPTX Export] No imageStorageId for slide ${slideData.position}`);
+          console.log(
+            `[PPTX Export] No imageStorageId for slide ${slideData.position}`,
+          );
         }
 
         // ===== SPEAKER NOTES =====
@@ -152,7 +161,9 @@ export const generatePPTX = internalAction({
 
       // ===== GENERATE PPTX BUFFER =====
       console.log("[PPTX Export] Generating PPTX buffer...");
-      const pptxBuffer = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
+      const pptxBuffer = (await pptx.write({
+        outputType: "nodebuffer",
+      })) as Buffer;
 
       // ===== STORE IN CONVEX STORAGE =====
       console.log("[PPTX Export] Storing PPTX in Convex storage...");

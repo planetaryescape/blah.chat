@@ -6,7 +6,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ presentationId: string }> }
+  { params }: { params: Promise<{ presentationId: string }> },
 ) {
   const { userId, getToken } = await auth();
   if (!userId) {
@@ -26,10 +26,15 @@ export async function GET(
     }
 
     // Get presentation (includes ownership check via Convex query)
+    // @ts-ignore - Type depth exceeded with complex Convex API (85+ modules)
     const presentation = await (convex.query as any)(api.presentations.get, {
       presentationId: presentationId as Id<"presentations">,
     });
-    console.log("[PPTX Download] Presentation found:", !!presentation, presentation?.title);
+    console.log(
+      "[PPTX Download] Presentation found:",
+      !!presentation,
+      presentation?.title,
+    );
 
     if (!presentation) {
       return new NextResponse("Presentation not found", { status: 404 });
@@ -60,7 +65,8 @@ export async function GET(
     return new Response(pptxBuffer, {
       status: 200,
       headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Length": String(pptxBuffer.byteLength),
       },

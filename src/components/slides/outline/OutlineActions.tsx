@@ -37,7 +37,13 @@ export function OutlineActions({
       <Button
         variant="outline"
         onClick={onSubmitFeedback}
-        disabled={!hasFeedback || isSubmitting || isApproving || isGenerating || isRegenerating}
+        disabled={
+          !hasFeedback ||
+          isSubmitting ||
+          isApproving ||
+          isGenerating ||
+          isRegenerating
+        }
       >
         {isSubmitting ? (
           <>
@@ -56,7 +62,9 @@ export function OutlineActions({
       {isPostGeneration ? (
         <Button
           onClick={onRegenerateSlides}
-          disabled={!canRegenerate || isSubmitting || isRegenerating || isGenerating}
+          disabled={
+            !canRegenerate || isSubmitting || isRegenerating || isGenerating
+          }
           variant="default"
         >
           {isRegenerating ? (

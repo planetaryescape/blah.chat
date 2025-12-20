@@ -5,7 +5,10 @@ import { getGatewayOptions } from "../../src/lib/ai/gateway";
 import { DESIGN_SYSTEM_GENERATION_MODEL } from "../../src/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
-import { buildDesignSystemPrompt } from "../lib/prompts/operational/designSystem";
+import {
+  buildDesignSystemPrompt,
+  type TemplateConstraints,
+} from "../lib/prompts/operational/designSystem";
 
 interface SlideData {
   title: string;
@@ -130,8 +133,28 @@ export const generateDesignSystem = internalAction({
         throw new Error("No slides found for presentation");
       }
 
+      // Check if presentation has a template
+      const presentation = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.getPresentationInternal,
+        { presentationId: args.presentationId },
+      )) as { templateId?: string } | null;
+
+      let templateConstraints: TemplateConstraints | undefined;
+      if (presentation?.templateId) {
+        const template = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.designTemplates.getInternal,
+          { templateId: presentation.templateId },
+        )) as { extractedDesign?: TemplateConstraints } | null;
+
+        if (template?.extractedDesign) {
+          templateConstraints = template.extractedDesign;
+        }
+      }
+
       const outlineContent = buildOutlineContent(slides);
-      const prompt = buildDesignSystemPrompt(outlineContent);
+      const prompt = buildDesignSystemPrompt(outlineContent, templateConstraints);
 
       const result = streamText({
         model: getModel(DESIGN_SYSTEM_GENERATION_MODEL.id),
@@ -152,7 +175,10 @@ export const generateDesignSystem = internalAction({
       try {
         designSystem = parseDesignSystemResponse(responseText);
       } catch {
-        console.error("Failed to parse design system JSON:", responseText.substring(0, 500));
+        console.error(
+          "Failed to parse design system JSON:",
+          responseText.substring(0, 500),
+        );
         throw new Error("Invalid design system format from AI");
       }
 
@@ -176,7 +202,12 @@ export const generateDesignSystem = internalAction({
         },
       );
 
-      // TODO: Phase 4 - trigger slide image generation here
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      await (ctx.scheduler.runAfter as any)(
+        0,
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
 
       return { success: true, theme: designSystem.theme };
     } catch (error) {

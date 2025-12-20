@@ -1,3 +1,31 @@
+/**
+ * Template constraints extracted from organization templates
+ */
+export interface TemplateConstraints {
+  colors: {
+    primary: string;
+    secondary: string;
+    accent?: string;
+    background: string;
+    text: string;
+  };
+  fonts: {
+    heading: string;
+    body: string;
+    fallbackHeading?: string;
+    fallbackBody?: string;
+  };
+  logoGuidelines?: {
+    position: string;
+    size: string;
+    description?: string;
+  };
+  layoutPatterns: string[];
+  visualStyle: string;
+  iconStyle?: string;
+  analysisNotes: string;
+}
+
 export const DESIGN_SYSTEM_PROMPT = `You are a professional design system architect. Analyze this presentation outline and create a comprehensive visual design system.
 
 OUTLINE:
@@ -51,6 +79,112 @@ CRITICAL REQUIREMENTS:
 
 Think deeply about what makes this presentation unique. What visual language will make it memorable and effective?`;
 
-export function buildDesignSystemPrompt(outlineContent: string): string {
+/**
+ * Prompt for when a template is provided - AI must follow brand constraints
+ */
+export const DESIGN_SYSTEM_WITH_TEMPLATE_PROMPT = `You are a professional design system architect. Create a design system for this presentation that STRICTLY follows the organization's brand guidelines.
+
+OUTLINE:
+{OUTLINE_CONTENT}
+
+ORGANIZATION BRAND GUIDELINES (MUST FOLLOW):
+{TEMPLATE_CONSTRAINTS}
+
+YOUR TASK:
+1. Create a design system that STRICTLY adheres to the brand colors, fonts, and visual style above
+2. Use the EXACT hex colors provided - do not modify them
+3. Use the EXACT font names provided
+4. Follow the layout patterns and visual style from the brand
+5. Adapt the theme to match the content while staying within brand constraints
+
+OUTPUT FORMAT (JSON):
+{
+  "theme": "Theme that fits content while respecting brand (e.g., 'acme-corp-quarterly-review')",
+  "themeRationale": "How this theme connects the content to the brand identity",
+  "primaryColor": "{USE BRAND PRIMARY COLOR EXACTLY}",
+  "secondaryColor": "{USE BRAND SECONDARY COLOR EXACTLY}",
+  "accentColor": "{USE BRAND ACCENT COLOR OR DERIVE FROM BRAND}",
+  "backgroundColor": "{USE BRAND BACKGROUND COLOR EXACTLY}",
+  "fontPairings": {
+    "heading": "{USE BRAND HEADING FONT EXACTLY}",
+    "body": "{USE BRAND BODY FONT EXACTLY}"
+  },
+  "visualStyle": "{USE BRAND VISUAL STYLE}",
+  "layoutPrinciples": ["Principles from brand guidelines"],
+  "iconStyle": "{USE BRAND ICON STYLE}",
+  "imageGuidelines": "Visual direction that matches both the content AND the brand aesthetic. Reference brand notes.",
+  "designInspiration": "How this design extends the brand identity for this specific content"
+}
+
+CRITICAL: You MUST use the exact brand colors and fonts provided. This is a corporate presentation that must be on-brand.`;
+
+/**
+ * Build template constraints string for prompt injection
+ */
+function formatTemplateConstraints(template: TemplateConstraints): string {
+  const lines: string[] = [];
+
+  lines.push("BRAND COLORS:");
+  lines.push(`- Primary: ${template.colors.primary}`);
+  lines.push(`- Secondary: ${template.colors.secondary}`);
+  if (template.colors.accent) {
+    lines.push(`- Accent: ${template.colors.accent}`);
+  }
+  lines.push(`- Background: ${template.colors.background}`);
+  lines.push(`- Text: ${template.colors.text}`);
+  lines.push("");
+
+  lines.push("BRAND FONTS:");
+  lines.push(`- Headings: ${template.fonts.heading}`);
+  lines.push(`- Body: ${template.fonts.body}`);
+  if (template.fonts.fallbackHeading) {
+    lines.push(`- Fallback Heading: ${template.fonts.fallbackHeading}`);
+  }
+  if (template.fonts.fallbackBody) {
+    lines.push(`- Fallback Body: ${template.fonts.fallbackBody}`);
+  }
+  lines.push("");
+
+  if (template.logoGuidelines) {
+    lines.push("LOGO GUIDELINES:");
+    lines.push(`- Position: ${template.logoGuidelines.position}`);
+    lines.push(`- Size: ${template.logoGuidelines.size}`);
+    if (template.logoGuidelines.description) {
+      lines.push(`- Notes: ${template.logoGuidelines.description}`);
+    }
+    lines.push("");
+  }
+
+  lines.push(`VISUAL STYLE: ${template.visualStyle}`);
+  if (template.iconStyle) {
+    lines.push(`ICON STYLE: ${template.iconStyle}`);
+  }
+  lines.push("");
+
+  if (template.layoutPatterns.length > 0) {
+    lines.push("LAYOUT PATTERNS:");
+    template.layoutPatterns.forEach((p) => lines.push(`- ${p}`));
+    lines.push("");
+  }
+
+  lines.push("ADDITIONAL BRAND NOTES:");
+  lines.push(template.analysisNotes);
+
+  return lines.join("\n");
+}
+
+/**
+ * Build design system prompt, optionally with template constraints
+ */
+export function buildDesignSystemPrompt(
+  outlineContent: string,
+  template?: TemplateConstraints,
+): string {
+  if (template) {
+    return DESIGN_SYSTEM_WITH_TEMPLATE_PROMPT.replace(
+      "{OUTLINE_CONTENT}",
+      outlineContent,
+    ).replace("{TEMPLATE_CONSTRAINTS}", formatTemplateConstraints(template));
+  }
   return DESIGN_SYSTEM_PROMPT.replace("{OUTLINE_CONTENT}", outlineContent);
 }

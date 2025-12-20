@@ -123,10 +123,7 @@ export function useUISettingsState() {
     () => setShowComparisonStats(prefShowComparisonStats),
     [prefShowComparisonStats],
   );
-  useEffect(
-    () => setShowSlideStats(prefShowSlideStats),
-    [prefShowSlideStats],
-  );
+  useEffect(() => setShowSlideStats(prefShowSlideStats), [prefShowSlideStats]);
   useEffect(
     () => setShowByDefault(prefReasoning.showByDefault),
     [prefReasoning.showByDefault],

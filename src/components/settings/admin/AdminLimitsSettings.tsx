@@ -175,7 +175,10 @@ export function AdminLimitsSettings() {
           </div>
 
           <div className="space-y-2 pt-4 border-t">
-            <Label htmlFor="presentation-limit" className="flex items-center gap-2">
+            <Label
+              htmlFor="presentation-limit"
+              className="flex items-center gap-2"
+            >
               <Presentation className="h-4 w-4" />
               Daily Presentation Limit
             </Label>
@@ -185,7 +188,9 @@ export function AdminLimitsSettings() {
                 id="presentation-limit"
                 type="number"
                 value={dailyPresentationLimit}
-                onChange={(e) => setDailyPresentationLimit(Number(e.target.value))}
+                onChange={(e) =>
+                  setDailyPresentationLimit(Number(e.target.value))
+                }
                 min={0}
                 max={100}
                 step={1}
@@ -193,7 +198,8 @@ export function AdminLimitsSettings() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              Maximum presentations per day. Set to 0 for unlimited. Admins are always exempt.
+              Maximum presentations per day. Set to 0 for unlimited. Admins are
+              always exempt.
             </p>
           </div>
         </CardContent>

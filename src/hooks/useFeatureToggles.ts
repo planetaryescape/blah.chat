@@ -24,4 +24,3 @@ export function useFeatureToggles() {
     showSlides: prefs?.showSlides ?? PREFERENCE_DEFAULTS.showSlides,
   };
 }
-

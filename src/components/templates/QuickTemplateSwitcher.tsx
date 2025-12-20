@@ -67,7 +67,6 @@ export function QuickTemplateSwitcher({
     }
   }, [open, mode]);
 
-  // Filter templates by category
   const filteredTemplates = useMemo(() => {
     if (!templates) return { builtIn: [], user: [] };
 
@@ -87,14 +86,12 @@ export function QuickTemplateSwitcher({
     prompt: string;
     name: string;
   }) => {
-    // Increment usage
     try {
       await incrementUsage({ id: template._id });
     } catch (error) {
       console.error("Failed to increment usage:", error);
     }
 
-    // Track selection
     analytics.track("template_selected", {
       templateId: template._id,
       templateName: template.name,
@@ -102,16 +99,12 @@ export function QuickTemplateSwitcher({
     });
 
     if (mode === "insert" && onSelectTemplate) {
-      // Insert template into current input
       onSelectTemplate(template.prompt);
       onOpenChange(false);
-
-      // Focus chat input after inserting
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("focus-chat-input"));
       }, 50);
     } else {
-      // Navigate to new chat with template (using Zustand store)
       onOpenChange(false);
       setTemplateText(template.prompt, template.name);
       router.push("/chat?from=template");

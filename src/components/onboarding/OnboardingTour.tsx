@@ -101,29 +101,23 @@ export function OnboardingTour() {
   const initializeOnboarding = useMutation(api.onboarding.initializeOnboarding);
   const completeTour = useMutation(api.onboarding.completeTour);
 
-  // Initialize onboarding state if needed
   useEffect(() => {
-    if (onboarding === undefined) return; // Still loading
+    if (onboarding === undefined) return;
     if (onboarding === null) {
-      // Not initialized - create it
       initializeOnboarding();
     }
   }, [onboarding, initializeOnboarding]);
 
-  // Start tour after delay if not completed/skipped
   useEffect(() => {
     if (!onboarding) return;
 
-    // Check if tour should run
     const shouldRun = !onboarding.tourCompleted && !onboarding.tourSkipped;
 
-    // Disable on mobile (optional)
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       return;
     }
 
     if (shouldRun) {
-      // Delay to ensure DOM is ready
       const timer = setTimeout(() => {
         setRun(true);
       }, 1500);
@@ -135,12 +129,10 @@ export function OnboardingTour() {
   const handleJoyrideCallback = async (data: CallBackProps) => {
     const { status, action, index, type } = data;
 
-    // Update step index
     if (type === "step:after") {
       setStepIndex(index + (action === "prev" ? -1 : 1));
     }
 
-    // Handle tour completion
     if (status === "finished") {
       await completeTour({ skipped: false });
       setRun(false);
@@ -150,7 +142,6 @@ export function OnboardingTour() {
     }
   };
 
-  // Don't render if onboarding state not loaded
   if (!onboarding) return null;
 
   // Dynamic styling based on theme - only apply styles after theme is detected

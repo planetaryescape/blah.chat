@@ -71,7 +71,10 @@ export function ConversationItem({
       e.preventDefault();
       onToggleSelection?.(conversation._id);
     } else {
-      const projectFilterParam = projectFilter && projectFilter !== "none" ? `?project=${projectFilter}` : "";
+      const projectFilterParam =
+        projectFilter && projectFilter !== "none"
+          ? `?project=${projectFilter}`
+          : "";
       router.push(`/chat/${conversation._id}${projectFilterParam}`);
     }
   };

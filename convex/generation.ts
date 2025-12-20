@@ -310,10 +310,7 @@ ${sections.join("\n\n")}
   return { messages: systemMessages, memoryContent: memoryContentForTracking };
 }
 
-// Helper function to extract sources/citations from AI SDK response
-// Perplexity models (via OpenRouter) return search results in metadata
-// Helper function to extract sources/citations from AI SDK response
-// Perplexity models (via OpenRouter) return search results in metadata
+// Extract sources/citations from AI SDK response (Perplexity via OpenRouter)
 // biome-ignore lint/suspicious/noExplicitAny: Complex provider metadata types from AI SDK
 function extractSources(providerMetadata: any):
   | Array<{
@@ -1125,13 +1122,16 @@ export const generateResponse = internalAction({
       // Extract all tool calls from result.steps
       const steps = (await result.steps) || [];
       // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
+      const toolResultsMap = new Map<string, any>();
+      for (const step of steps as any[]) {
+        for (const tr of step.toolResults || []) {
+          toolResultsMap.set(tr.toolCallId, tr);
+        }
+      }
       const allToolCalls = steps
         .flatMap((step: any) => step.toolCalls || [])
         .map((tc: any) => {
-          const stepResult = steps
-            .flatMap((s: any) => s.toolResults || [])
-            .find((tr: any) => tr.toolCallId === tc.toolCallId);
-
+          const stepResult = toolResultsMap.get(tc.toolCallId);
           return {
             id: tc.toolCallId,
             name: tc.toolName,

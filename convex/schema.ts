@@ -1249,7 +1249,9 @@ export default defineSchema({
     imageModel: v.string(),
 
     // Slide style - affects text density and visual approach
-    slideStyle: v.optional(v.union(v.literal("wordy"), v.literal("illustrative"))),
+    slideStyle: v.optional(
+      v.union(v.literal("wordy"), v.literal("illustrative")),
+    ),
 
     // Organization template (reusable brand constraints)
     templateId: v.optional(v.id("designTemplates")),
@@ -1487,4 +1489,69 @@ export default defineSchema({
   })
     .index("by_document", ["documentId"])
     .index("by_document_version", ["documentId", "version"]),
+
+  // ===== BYOD (Bring Your Own Database) =====
+
+  // User database configuration (encrypted credentials for user's Convex instance)
+  userDatabaseConfig: defineTable({
+    userId: v.id("users"),
+
+    // Encrypted Convex credentials (AES-256-GCM)
+    encryptedDeploymentUrl: v.string(),
+    encryptedDeployKey: v.string(),
+    encryptionIV: v.string(), // Format: "urlIV:keyIV"
+    authTags: v.string(), // Format: "urlAuthTag:keyAuthTag"
+
+    // Connection status
+    connectionStatus: v.union(
+      v.literal("pending"), // Credentials saved, not verified
+      v.literal("connected"), // Successfully connected
+      v.literal("error"), // Connection failed
+      v.literal("disconnected"), // User disconnected
+    ),
+    lastConnectionTest: v.optional(v.number()),
+    connectionError: v.optional(v.string()),
+
+    // Schema version tracking
+    schemaVersion: v.number(), // Track which version deployed
+    lastSchemaDeploy: v.optional(v.number()),
+
+    // Deployment status (for initial deployment + migrations)
+    deploymentStatus: v.optional(
+      v.union(
+        v.literal("not_started"),
+        v.literal("deploying"),
+        v.literal("deployed"),
+        v.literal("failed"),
+      ),
+    ),
+    deploymentProgress: v.optional(v.string()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_status", ["connectionStatus"]),
+
+  // BYOD migration tracking (per-user migration status)
+  byodMigrations: defineTable({
+    userId: v.id("users"),
+    migrationId: v.string(), // e.g., "001_initial", "002_add_tags"
+    version: v.number(), // Schema version after migration
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("skipped"),
+    ),
+    error: v.optional(v.string()),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_migration", ["migrationId"])
+    .index("by_user_migration", ["userId", "migrationId"])
+    .index("by_status", ["status"]),
 });

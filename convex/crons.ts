@@ -51,4 +51,12 @@ crons.hourly(
   internal.incognito.cleanupStale as any,
 );
 
+// BYOD health check - every 6 hours
+crons.interval(
+  "byod-health-check",
+  { hours: 6 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.byod.healthCheck.checkAllHealth as any,
+);
+
 export default crons;

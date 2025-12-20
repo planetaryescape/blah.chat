@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "../_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "../lib/userSync";
 
 // Get active document for a conversation
@@ -171,5 +176,118 @@ export const archive = mutation({
       status: "archived",
       updatedAt: Date.now(),
     });
+  },
+});
+
+// ============================================================================
+// Internal queries/mutations for LLM tools (accept userId directly)
+// ============================================================================
+
+// Internal query for tools (no auth check - called from trusted actions)
+export const getByConversationInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, { userId, conversationId }) => {
+    return await ctx.db
+      .query("canvasDocuments")
+      .withIndex("by_user_conversation", (q) =>
+        q.eq("userId", userId).eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+  },
+});
+
+// Internal mutation for tools to create documents
+export const createInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    conversationId: v.id("conversations"),
+    title: v.string(),
+    content: v.string(),
+    language: v.optional(v.string()),
+    documentType: v.union(v.literal("code"), v.literal("prose")),
+  },
+  handler: async (ctx, args) => {
+    // Archive any existing active document
+    const existing = await ctx.db
+      .query("canvasDocuments")
+      .withIndex("by_user_conversation", (q) =>
+        q.eq("userId", args.userId).eq("conversationId", args.conversationId),
+      )
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: "archived",
+        updatedAt: Date.now(),
+      });
+    }
+
+    const now = Date.now();
+    const documentId = await ctx.db.insert("canvasDocuments", {
+      userId: args.userId,
+      conversationId: args.conversationId,
+      title: args.title,
+      content: args.content,
+      language: args.language,
+      documentType: args.documentType,
+      version: 1,
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("canvasHistory", {
+      documentId,
+      userId: args.userId,
+      content: args.content,
+      version: 1,
+      source: "created",
+      createdAt: now,
+    });
+
+    return documentId;
+  },
+});
+
+// Internal mutation for tools to update document content
+export const updateContentInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    documentId: v.id("canvasDocuments"),
+    content: v.string(),
+    source: v.union(v.literal("user_edit"), v.literal("llm_diff")),
+    diff: v.optional(v.string()),
+  },
+  handler: async (ctx, { userId, documentId, content, source, diff }) => {
+    const doc = await ctx.db.get(documentId);
+    if (!doc || doc.userId !== userId) {
+      throw new Error("Document not found");
+    }
+
+    const newVersion = doc.version + 1;
+    const now = Date.now();
+
+    await ctx.db.patch(documentId, {
+      content,
+      version: newVersion,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("canvasHistory", {
+      documentId,
+      userId,
+      content,
+      version: newVersion,
+      source,
+      diff,
+      createdAt: now,
+    });
+
+    return { version: newVersion };
   },
 });

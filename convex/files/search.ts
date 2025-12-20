@@ -8,7 +8,7 @@
 
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
+import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";

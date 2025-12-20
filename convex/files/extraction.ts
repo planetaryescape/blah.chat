@@ -17,9 +17,9 @@
 
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { getModel } from "../../src/lib/ai/registry";
-import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { DOCUMENT_EXTRACTION_MODEL } from "../../src/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { DOCUMENT_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";

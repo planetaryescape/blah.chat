@@ -8,9 +8,9 @@
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getModel } from "../../src/lib/ai/registry";
-import { getGatewayOptions } from "../../src/lib/ai/gateway";
-import { DEADLINE_PARSING_MODEL } from "../../src/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { DEADLINE_PARSING_MODEL } from "@/lib/ai/operational-models";
 import { DEADLINE_PARSING_PROMPT } from "../../src/lib/prompts/taskExtraction";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";

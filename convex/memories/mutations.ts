@@ -1,6 +1,6 @@
 import { embedMany } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
+import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { mutation } from "../_generated/server";
 
 export const updateMemory = mutation({

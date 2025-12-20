@@ -65,6 +65,7 @@ import type * as emails_components_index from "../emails/components/index.js";
 import type * as emails_index from "../emails/index.js";
 import type * as emails_templates_apiCreditsExhausted from "../emails/templates/apiCreditsExhausted.js";
 import type * as emails_templates_budgetWarning from "../emails/templates/budgetWarning.js";
+import type * as emails_templates_byodUpdateRequired from "../emails/templates/byodUpdateRequired.js";
 import type * as emails_templates_feedbackNotification from "../emails/templates/feedbackNotification.js";
 import type * as emails_templates_index from "../emails/templates/index.js";
 import type * as emails_test_testEmails from "../emails/test/testEmails.js";
@@ -274,6 +275,7 @@ declare const fullApi: ApiFromModules<{
   "emails/index": typeof emails_index;
   "emails/templates/apiCreditsExhausted": typeof emails_templates_apiCreditsExhausted;
   "emails/templates/budgetWarning": typeof emails_templates_budgetWarning;
+  "emails/templates/byodUpdateRequired": typeof emails_templates_byodUpdateRequired;
   "emails/templates/feedbackNotification": typeof emails_templates_feedbackNotification;
   "emails/templates/index": typeof emails_templates_index;
   "emails/test/testEmails": typeof emails_test_testEmails;

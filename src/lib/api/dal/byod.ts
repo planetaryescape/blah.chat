@@ -66,26 +66,6 @@ export async function testBYODConnection(
 }
 
 /**
- * Deploy schema to user's BYOD instance
- */
-export async function deployBYODSchema(
-	token: string,
-): Promise<{ success: boolean; message: string }> {
-	const client = getAuthenticatedConvexClient(token);
-	return await client.action(api.byod.deploy.deployToUserInstance, {});
-}
-
-/**
- * Retry a failed deployment
- */
-export async function retryBYODDeployment(
-	token: string,
-): Promise<{ success: boolean; message: string }> {
-	const client = getAuthenticatedConvexClient(token);
-	return await client.action(api.byod.deploy.retryDeployment, {});
-}
-
-/**
  * Get deployment status
  */
 export async function getBYODDeploymentStatus(token: string): Promise<{
@@ -128,7 +108,7 @@ export async function isBYODEnabled(token: string): Promise<boolean> {
  * Full BYOD setup flow:
  * 1. Save credentials
  * 2. Test connection
- * 3. Deploy schema (if connection successful)
+ * (Deployment is manual - user downloads zip and deploys themselves)
  */
 export async function setupBYOD(
 	token: string,
@@ -136,7 +116,7 @@ export async function setupBYOD(
 	deployKey: string,
 ): Promise<{
 	success: boolean;
-	step: "credentials" | "connection" | "deployment";
+	step: "credentials" | "connection";
 	error?: string;
 }> {
 	// Step 1: Save credentials
@@ -168,23 +148,5 @@ export async function setupBYOD(
 		};
 	}
 
-	// Step 3: Deploy schema
-	try {
-		const deployResult = await deployBYODSchema(token);
-		if (!deployResult.success) {
-			return {
-				success: false,
-				step: "deployment",
-				error: deployResult.message || "Schema deployment failed",
-			};
-		}
-	} catch (error) {
-		return {
-			success: false,
-			step: "deployment",
-			error: error instanceof Error ? error.message : "Schema deployment failed",
-		};
-	}
-
-	return { success: true, step: "deployment" };
+	return { success: true, step: "connection" };
 }

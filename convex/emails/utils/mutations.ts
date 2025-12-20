@@ -1,11 +1,11 @@
 import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 
-// Check if we can send (rate limit: 1 per hour)
+// Check if we can send (rate limit: 1 per hour for global alerts)
 async function canSendEmail(
   // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
-  type: "budget_80_percent" | "budget_exceeded" | "api_credits_exhausted",
+  type: string,
 ): Promise<boolean> {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
@@ -20,11 +20,31 @@ async function canSendEmail(
   return recentEmail === null;
 }
 
+// Check if we can send to a specific user (rate limit: 1 per type per user, ever)
+async function canSendEmailToUser(
+  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
+  ctx: any,
+  type: string,
+  userId: string,
+): Promise<boolean> {
+  // Check if we've ever sent this type to this user
+  const existingEmail = await ctx.db
+    .query("emailAlerts")
+    // biome-ignore lint/suspicious/noExplicitAny: Convex query types
+    .withIndex("by_type_sent", (q: any) => q.eq("type", type))
+    .filter((q: any) =>
+      q.eq(q.field("metadata.userId"), userId),
+    )
+    .first();
+
+  return existingEmail === null;
+}
+
 // Record sent email
 async function recordSentEmail(
   // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
-  type: "budget_80_percent" | "budget_exceeded" | "api_credits_exhausted",
+  type: string,
   recipientEmail: string,
   // biome-ignore lint/suspicious/noExplicitAny: Email metadata types
   metadata: any,
@@ -40,24 +60,27 @@ async function recordSentEmail(
 // Internal mutations for rate limiting
 export const checkCanSend = internalMutation({
   args: {
-    type: v.union(
-      v.literal("budget_80_percent"),
-      v.literal("budget_exceeded"),
-      v.literal("api_credits_exhausted"),
-    ),
+    type: v.string(),
   },
   handler: async (ctx, args) => {
     return await canSendEmail(ctx, args.type);
   },
 });
 
+// Check if we can send to a specific user (one-time per type per user)
+export const checkCanSendToUser = internalMutation({
+  args: {
+    type: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    return await canSendEmailToUser(ctx, args.type, args.userId);
+  },
+});
+
 export const recordSent = internalMutation({
   args: {
-    type: v.union(
-      v.literal("budget_80_percent"),
-      v.literal("budget_exceeded"),
-      v.literal("api_credits_exhausted"),
-    ),
+    type: v.string(),
     recipientEmail: v.string(),
     metadata: v.any(),
   },

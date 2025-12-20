@@ -20,12 +20,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Loader2, Play, RefreshCw } from "lucide-react";
+import { Loader2, Mail, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function BYODAdminPage() {
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [isRunningMigrations, setIsRunningMigrations] = useState(false);
+	const [isSendingNotifications, setIsSendingNotifications] = useState(false);
 
 	// @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
 	const stats = useQuery(api.admin.byod.getStats);
@@ -36,13 +37,15 @@ export default function BYODAdminPage() {
 	const checkAllHealth = useAction(api.byod.healthCheck.checkAllHealth);
 	// @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
 	const runMigrations = useAction(api.byod.migrationRunner.runMigrationsForAll);
+	// @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
+	const sendNotifications = useAction(api.admin.byod.sendUpdateNotifications);
 
 	const handleRefresh = async () => {
 		setIsRefreshing(true);
 		try {
 			const result = await checkAllHealth({});
 			toast.success(
-				`Health check complete: ${result.healthy} healthy, ${result.unhealthy} unhealthy`,
+				`Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
 			);
 		} catch (error) {
 			toast.error("Health check failed");
@@ -56,12 +59,26 @@ export default function BYODAdminPage() {
 		try {
 			const result = await runMigrations({});
 			toast.success(
-				`Migrations complete: ${result.succeeded} succeeded, ${result.failed} failed`,
+				`Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
 			);
 		} catch (error) {
 			toast.error("Migrations failed");
 		} finally {
 			setIsRunningMigrations(false);
+		}
+	};
+
+	const handleSendNotifications = async () => {
+		setIsSendingNotifications(true);
+		try {
+			const result = await sendNotifications({});
+			toast.success(
+				`Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
+			);
+		} catch (error) {
+			toast.error("Failed to send notifications");
+		} finally {
+			setIsSendingNotifications(false);
 		}
 	};
 
@@ -79,7 +96,8 @@ export default function BYODAdminPage() {
 				<div>
 					<h1 className="text-2xl font-bold">BYOD Management</h1>
 					<p className="text-muted-foreground">
-						Manage user database instances and migrations
+						Manage user database instances and migrations (Latest: v
+						{stats.latestVersion})
 					</p>
 				</div>
 				<div className="flex gap-2">
@@ -95,6 +113,18 @@ export default function BYODAdminPage() {
 						)}
 						Check Health
 					</Button>
+					<Button
+						variant="outline"
+						onClick={handleSendNotifications}
+						disabled={isSendingNotifications || stats.pendingMigrations === 0}
+					>
+						{isSendingNotifications ? (
+							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+						) : (
+							<Mail className="h-4 w-4 mr-2" />
+						)}
+						Email Outdated Users
+					</Button>
 					<Button onClick={handleRunMigrations} disabled={isRunningMigrations}>
 						{isRunningMigrations ? (
 							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -107,7 +137,7 @@ export default function BYODAdminPage() {
 			</div>
 
 			{/* Stats Cards */}
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+			<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium">
@@ -142,12 +172,39 @@ export default function BYODAdminPage() {
 				</Card>
 				<Card>
 					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium">
-							Pending Migrations
+						<CardTitle className="text-sm font-medium text-amber-500">
+							Outdated
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p className="text-2xl font-bold">{stats.pendingMigrations}</p>
+						<p className="text-2xl font-bold text-amber-500">
+							{stats.pendingMigrations}
+						</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm font-medium">
+							Version Distribution
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="flex flex-wrap gap-1">
+							{Object.entries(stats.versionDistribution || {})
+								.sort(([a], [b]) => b.localeCompare(a))
+								.map(([version, count]) => (
+									<Badge
+										key={version}
+										variant={
+											version === `v${stats.latestVersion}`
+												? "default"
+												: "secondary"
+										}
+									>
+										{version}: {count}
+									</Badge>
+								))}
+						</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -177,25 +234,43 @@ export default function BYODAdminPage() {
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{instances.map((instance) => (
-									<TableRow key={instance._id}>
-										<TableCell className="font-medium">
-											{instance.userEmail || instance.userId}
-										</TableCell>
-										<TableCell>
-											<StatusBadge status={instance.connectionStatus} />
-										</TableCell>
-										<TableCell>v{instance.schemaVersion}</TableCell>
-										<TableCell>
-											{instance.lastConnectionTest
-												? new Date(instance.lastConnectionTest).toLocaleString()
-												: "Never"}
-										</TableCell>
-										<TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-											{instance.connectionError || "-"}
-										</TableCell>
-									</TableRow>
-								))}
+								{instances.map((instance) => {
+									const isOutdated =
+										instance.schemaVersion < stats.latestVersion;
+									return (
+										<TableRow key={instance._id}>
+											<TableCell className="font-medium">
+												{instance.userEmail || instance.userId}
+											</TableCell>
+											<TableCell>
+												<StatusBadge status={instance.connectionStatus} />
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1">
+													<span>v{instance.schemaVersion}</span>
+													{isOutdated && (
+														<Badge
+															variant="outline"
+															className="text-amber-600 border-amber-500/50 text-xs"
+														>
+															outdated
+														</Badge>
+													)}
+												</div>
+											</TableCell>
+											<TableCell>
+												{instance.lastConnectionTest
+													? new Date(
+															instance.lastConnectionTest,
+														).toLocaleString()
+													: "Never"}
+											</TableCell>
+											<TableCell className="text-sm text-muted-foreground max-w-xs truncate">
+												{instance.connectionError || "-"}
+											</TableCell>
+										</TableRow>
+									);
+								})}
 							</TableBody>
 						</Table>
 					)}

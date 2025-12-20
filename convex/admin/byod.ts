@@ -1,6 +1,8 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { action, query } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { BYOD_SCHEMA_VERSION } from "../../src/lib/byod/version";
+import type { Doc } from "../_generated/dataModel";
 
 /**
  * Get BYOD statistics for admin dashboard
@@ -15,7 +17,7 @@ export const getStats = query({
 		// Get all configs
 		const configs = await ctx.db.query("userDatabaseConfig").collect();
 
-		// Count by status
+		// Count by status and version
 		const stats = {
 			total: configs.length,
 			connected: 0,
@@ -23,14 +25,22 @@ export const getStats = query({
 			error: 0,
 			disconnected: 0,
 			pendingMigrations: 0,
+			latestVersion: BYOD_SCHEMA_VERSION,
+			versionDistribution: {} as Record<string, number>,
 		};
 
 		for (const config of configs) {
+			// Track version distribution
+			const version = config.schemaVersion || 0;
+			const versionKey = `v${version}`;
+			stats.versionDistribution[versionKey] =
+				(stats.versionDistribution[versionKey] || 0) + 1;
+
 			switch (config.connectionStatus) {
 				case "connected":
 					stats.connected++;
 					// Check if needs migration
-					if ((config.schemaVersion || 0) < BYOD_SCHEMA_VERSION) {
+					if (version < BYOD_SCHEMA_VERSION) {
 						stats.pendingMigrations++;
 					}
 					break;
@@ -47,6 +57,60 @@ export const getStats = query({
 		}
 
 		return stats;
+	},
+});
+
+/**
+ * Send update notifications to all outdated BYOD users
+ */
+export const sendUpdateNotifications = action({
+	args: {},
+	handler: async (ctx) => {
+		// Get all connected configs with outdated versions
+		const configs = (await (ctx.runQuery as any)(
+			// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
+			internal.byod.credentials.getOutdatedConfigs,
+			{ targetVersion: BYOD_SCHEMA_VERSION },
+		)) as Doc<"userDatabaseConfig">[];
+
+		const results = {
+			total: configs.length,
+			sent: 0,
+			skipped: 0,
+			failed: 0,
+		};
+
+		for (const config of configs) {
+			try {
+				// Get user email
+				const user = (await (ctx.runQuery as any)(
+					// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
+					internal.users.getById,
+					{ userId: config.userId },
+				)) as Doc<"users"> | null;
+
+				if (!user?.email) {
+					results.skipped++;
+					continue;
+				}
+
+				await (ctx.runAction as any)(
+					// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
+					internal.emails.utils.send.sendBYODUpdateNotification,
+					{
+						userId: config.userId,
+						userEmail: user.email,
+						currentVersion: config.schemaVersion || 0,
+						latestVersion: BYOD_SCHEMA_VERSION,
+					},
+				);
+				results.sent++;
+			} catch {
+				results.failed++;
+			}
+		}
+
+		return results;
 	},
 });
 

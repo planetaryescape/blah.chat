@@ -278,6 +278,7 @@ export const getUserSpendByModel = query({
       )
       .collect();
 
+
     // Group by model
     const modelTotals = records.reduce(
       (acc, record) => {
@@ -377,27 +378,15 @@ export const getUserUsageSummary = query({
     );
     const totalRequests = records.length;
 
-    // Count messages in date range
-    const messages = await ctx.db
-      .query("messages")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("userId"), args.userId),
-          q.gte(q.field("createdAt"), new Date(args.startDate).getTime()),
-          q.lte(
-            q.field("createdAt"),
-            new Date(`${args.endDate}T23:59:59`).getTime(),
-          ),
-        ),
-      )
-      .collect();
+    // Sum up message counts from usage records instead of scanning all messages
+    const messageCount = records.reduce((sum, r) => sum + (r.messageCount || 0), 0);
 
     return {
       totalCost,
       totalTokens,
       totalRequests,
       avgCostPerRequest: totalRequests > 0 ? totalCost / totalRequests : 0,
-      messageCount: messages.length,
+      messageCount,
     };
   },
 });
@@ -473,13 +462,15 @@ export const getUserCostByType = query({
       .collect();
 
     // Categorize by type based on model name patterns
-    // Text generation: most models
+    // Text generation: most LLM models
     // STT: whisper models
     // TTS: tts models
-    // Images: dall-e models
+    // Images: dall-e models, chat image generation
+    // Slides: gemini image models for slide generation
     const textGeneration = { cost: 0, tokens: 0 };
     const tts = { cost: 0, characters: 0 };
     const images = { cost: 0, count: 0 };
+    const slides = { cost: 0, count: 0 };
     const transcription = { cost: 0 };
 
     for (const record of records) {
@@ -496,6 +487,13 @@ export const getUserCostByType = query({
       ) {
         images.cost += record.cost;
         images.count += 1;
+      } else if (
+        modelLower.includes("image") &&
+        (modelLower.includes("gemini") || modelLower.includes("google"))
+      ) {
+        // Gemini image generation models (used for slides and chat images)
+        slides.cost += record.cost;
+        slides.count += 1;
       } else {
         // Default to text generation
         textGeneration.cost += record.cost;
@@ -507,6 +505,7 @@ export const getUserCostByType = query({
       textGeneration,
       tts,
       images,
+      slides,
       transcription,
     };
   },
@@ -539,11 +538,23 @@ export const getUserActivityStats = query({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
 
+    const presentations = await ctx.db
+      .query("presentations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
     return {
       notesCount: notes.length,
       projectsCount: projects.length,
       bookmarksCount: bookmarks.length,
       templatesCount: templates.length,
+      slidesCount: presentations.length,
+      tasksCount: tasks.length,
     };
   },
 });

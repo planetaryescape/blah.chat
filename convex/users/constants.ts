@@ -22,6 +22,7 @@ export const PREFERENCE_DEFAULTS = {
   alwaysShowMessageActions: true,
   showMessageStatistics: true,
   showComparisonStatistics: true,
+  showSlideStatistics: true,
   enableHybridSearch: false,
   showModelNamesDuringComparison: false,
 
@@ -78,6 +79,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   alwaysShowMessageActions: "chat",
   showMessageStatistics: "chat",
   showComparisonStatistics: "chat",
+  showSlideStatistics: "chat",
   enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
 

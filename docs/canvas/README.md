@@ -55,7 +55,7 @@ Canvas is a split-screen document editor that appears alongside chat for collabo
 |-------|------|-------------|--------------|--------|
 | 1 | [Foundation](./phase-1-foundation.md) | Schema, context, split layout | None | ✅ Done |
 | 2 | [Monaco Editor](./phase-2-monaco-editor.md) | Editor integration | Phase 1 | ✅ Done |
-| 3 | [Document Tools](./phase-3-document-tools.md) | LLM tools for CRUD | Phase 1, 2 | |
+| 3 | [Document Tools](./phase-3-document-tools.md) | LLM tools for CRUD | Phase 1, 2 | ✅ Done |
 | 4 | [Diff System](./phase-4-diff-system.md) | Diff grabber + applier | Phase 1-3 | |
 | 5 | [Mode System](./phase-5-mode-system.md) | Dynamic tool injection | Phase 1-4 | |
 | 6 | [Polish](./phase-6-polish-conflict-resolution.md) | Conflicts, undo/redo, UX | Phase 1-5 | |

@@ -1,6 +1,7 @@
 "use client";
 
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { BulkConversationAssigner } from "@/components/projects/BulkConversationAssigner";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
@@ -8,21 +9,21 @@ import { ProjectsEmptyState } from "@/components/projects/ProjectsEmptyState";
 import { ProjectTable } from "@/components/projects/ProjectTable";
 import { TemplateManager } from "@/components/projects/TemplateManager";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,10 +38,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ProjectsPage() {
-  const features = useFeatureToggles();
+  const { showProjects, isLoading } = useFeatureToggles();
+
+  // Show loading while preferences are being fetched
+  if (isLoading) {
+    return <FeatureLoadingScreen />;
+  }
 
   // Route guard
-  if (!features.showProjects) {
+  if (!showProjects) {
     return (
       <DisabledFeaturePage featureName="Projects" settingKey="showProjects" />
     );

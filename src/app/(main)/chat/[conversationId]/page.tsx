@@ -4,14 +4,7 @@ import { useMutation } from "convex/react";
 import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import {
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
@@ -99,12 +92,21 @@ function ChatPageContent({
     }
 
     // Filter out optimistic messages that have been confirmed by server
-    // Match by role + timestamp within 2s window (handles network delays)
+    // Match by role + timestamp within 5s window (handles slow networks)
+    // For assistant messages, also match by model (prevents comparison mode collisions)
     const pendingOptimistic = optimisticMessages.filter((opt) => {
-      const hasServerVersion = server.some(
-        (m) =>
-          m.role === opt.role && Math.abs(m.createdAt - opt.createdAt) < 2000,
-      );
+      const hasServerVersion = server.some((m) => {
+        // Basic check: role and timestamp within 5s
+        if (m.role !== opt.role) return false;
+        if (Math.abs(m.createdAt - opt.createdAt) >= 5000) return false;
+
+        // For assistant messages, also check model (comparison mode dedup)
+        if (opt.role === "assistant" && opt.model && m.model !== opt.model) {
+          return false;
+        }
+
+        return true;
+      });
       return !hasServerVersion;
     });
 

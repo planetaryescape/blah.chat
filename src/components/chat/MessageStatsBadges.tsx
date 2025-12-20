@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap } from "lucide-react";
+import { Square, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -45,6 +45,31 @@ export function MessageStatsBadges({
       >
         {modelName}
       </Badge>
+
+      {/* Stopped indicator */}
+      {status === "stopped" && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="text-[10px] h-5 bg-amber-500/10 backdrop-blur border-amber-500/30 text-amber-600 dark:text-amber-400"
+              >
+                <Square className="w-2.5 h-2.5 mr-1 fill-current" />
+                Stopped
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs">
+                <div className="font-semibold">Generation Stopped</div>
+                <div className="text-muted-foreground">
+                  You stopped this response
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
       {/* Statistics - conditional based on user preference */}
       {showStats && (

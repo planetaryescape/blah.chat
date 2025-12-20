@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -33,79 +33,6 @@ import { MessageStatsBadges } from "./MessageStatsBadges";
 import { ModelRecommendationBanner } from "./ModelRecommendationBanner";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
-
-// Status indicator for optimistic messages
-function _MessageStatusIndicator({
-  message,
-}: {
-  message: Doc<"messages"> | OptimisticMessage;
-}) {
-  const isOptimistic = "_optimistic" in message && message._optimistic;
-
-  // Optimistic (sending)
-  if (isOptimistic && message.status === "optimistic") {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="inline-flex items-center gap-1.5 text-muted-foreground"
-            data-testid="message-optimistic"
-          >
-            <Loader2 className="w-3 h-3 animate-spin" />
-            <span className="text-xs">Sending...</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>Message is being sent</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  // Pending/Generating (server confirmed, waiting for or actively generating)
-  if (message.status === "pending" || message.status === "generating") {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="inline-flex items-center gap-1.5 text-muted-foreground"
-            data-testid="message-generating"
-          >
-            <Loader2 className="w-3 h-3 animate-spin" />
-            <span className="text-xs">
-              {message.status === "pending" ? "Pending..." : "Generating..."}
-            </span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          {message.status === "pending"
-            ? "Waiting for generation"
-            : "Generating response"}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  // Complete (with checkmark)
-  if (message.status === "complete") {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="inline-flex items-center gap-1.5 text-green-500"
-            data-testid="message-complete"
-          >
-            <Check className="w-3 h-3" />
-            {message.role === "user" && <span className="text-xs">Sent</span>}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          {message.role === "user" ? "Sent" : "Complete"}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return null;
-}
 
 // Error display component with feedback modal integration
 function ErrorDisplay({ error }: { error?: string }) {
@@ -162,6 +89,7 @@ export const ChatMessage = memo(
     const isUser = message.role === "user";
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
+    const isStopped = message.status === "stopped";
 
     // Check if this is a temporary optimistic message (not yet persisted)
     const isTempMessage =
@@ -485,6 +413,13 @@ export const ChatMessage = memo(
                         Error generating response: {message.error}
                       </div>
                     )}
+
+                    {/* Stopped */}
+                    {message.status === "stopped" && (
+                      <div role="status" aria-live="polite" className="sr-only">
+                        Generation was stopped by user
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -505,7 +440,8 @@ export const ChatMessage = memo(
                 {/* Model and statistics badges - INSIDE bubble */}
                 {!isUser &&
                   (message.status === "complete" ||
-                    message.status === "generating") &&
+                    message.status === "generating" ||
+                    message.status === "stopped") &&
                   modelName && (
                     <MessageStatsBadges
                       modelName={modelName}

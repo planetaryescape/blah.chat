@@ -429,7 +429,7 @@ export const stopGeneration = mutation({
       await ctx.db.patch(generatingMsg._id, {
         content: generatingMsg.partialContent || "",
         partialContent: undefined,
-        status: "complete",
+        status: "stopped",
         generationCompletedAt: Date.now(),
       });
     }

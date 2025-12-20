@@ -19,15 +19,20 @@ type MessageWithUser = Doc<"messages"> & {
 /**
  * Generate a stable React key for messages that persists across optimistic→server transition.
  *
- * Uses timestamp+role for ALL messages to ensure the key is identical between
- * the optimistic version and the server-confirmed version. This prevents React
- * from treating them as different elements and avoids flash during transition.
+ * Uses timestamp+role+model for messages to ensure keys are unique but still match
+ * between optimistic and server-confirmed versions. This prevents React from treating
+ * them as different elements and avoids flash during transition.
+ *
+ * For comparison mode, model is included to prevent collisions between multiple
+ * assistant messages created at nearly the same time.
  */
 function getStableMessageKey(message: Doc<"messages">): string {
-  // Always use timestamp + role key - this ensures optimistic and server
-  // versions of the same message share the same key
-  const timestampKey = Math.floor(message.createdAt / 1000);
-  return `msg-${message.role}-${timestampKey}`;
+  // Use 100ms granularity instead of 1s to reduce collisions
+  const timestampKey = Math.floor(message.createdAt / 100);
+  // Include model for assistant messages to handle comparison mode
+  const modelSuffix =
+    message.role === "assistant" && message.model ? `-${message.model}` : "";
+  return `msg-${message.role}-${timestampKey}${modelSuffix}`;
 }
 
 interface VirtualizedMessageListProps {

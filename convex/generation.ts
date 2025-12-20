@@ -1058,6 +1058,16 @@ export const generateResponse = internalAction({
           accumulated += chunk.text;
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
+            // Check if message was stopped by user
+            const currentMsg = (await (ctx.runQuery as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.messages.get,
+              { messageId: args.assistantMessageId },
+            )) as { status?: string } | null;
+            if (currentMsg?.status === "stopped") {
+              break; // Exit streaming loop - user cancelled
+            }
+
             await ctx.runMutation(internal.messages.updatePartialContent, {
               messageId: args.assistantMessageId,
               partialContent: accumulated,
@@ -1296,20 +1306,28 @@ export const generateResponse = internalAction({
         );
       }
 
-      // 10. Final completion
-      // Store reasoning if present - models may return it natively even without config
-      await ctx.runMutation(internal.messages.completeMessage, {
-        messageId: args.assistantMessageId,
-        content: accumulated,
-        reasoning: finalReasoning,
-        inputTokens,
-        outputTokens,
-        reasoningTokens,
-        cost,
-        tokensPerSecond,
-        // sources: removed - now using normalized tables only (Phase 2 complete)
-        providerMetadata,
-      });
+      // 10. Final completion - skip if user already stopped
+      const finalCheck = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.messages.get,
+        { messageId: args.assistantMessageId },
+      )) as { status?: string } | null;
+
+      if (finalCheck?.status !== "stopped") {
+        // Store reasoning if present - models may return it natively even without config
+        await ctx.runMutation(internal.messages.completeMessage, {
+          messageId: args.assistantMessageId,
+          content: accumulated,
+          reasoning: finalReasoning,
+          inputTokens,
+          outputTokens,
+          reasoningTokens,
+          cost,
+          tokensPerSecond,
+          // sources: removed - now using normalized tables only (Phase 2 complete)
+          providerMetadata,
+        });
+      }
 
       // Track streaming completed with performance metrics
       const generationTimeMs = Date.now() - generationStartTime;

@@ -31,6 +31,7 @@ export const create = internalMutation({
         v.literal("pending"),
         v.literal("generating"),
         v.literal("complete"),
+        v.literal("stopped"),
         v.literal("error"),
       ),
     ),
@@ -338,6 +339,7 @@ export const updateStatus = internalMutation({
       v.literal("pending"),
       v.literal("generating"),
       v.literal("complete"),
+      v.literal("stopped"),
       v.literal("error"),
     ),
     generationStartedAt: v.optional(v.number()),
@@ -530,6 +532,10 @@ export const markError = internalMutation({
     error: v.string(),
   },
   handler: async (ctx, args) => {
+    // Don't override "stopped" status - user intentionally cancelled
+    const message = await ctx.db.get(args.messageId);
+    if (message?.status === "stopped") return;
+
     await ctx.db.patch(args.messageId, {
       status: "error",
       error: args.error,

@@ -16,6 +16,10 @@ export {
   DESIGN_SYSTEM_PROMPT,
 } from "./operational/designSystem";
 export {
+  buildSlideImagePrompt,
+  type SlideImageContext,
+} from "./operational/slideImage";
+export {
   buildImageGenerationPrompt,
   IMAGE_GENERATION_SYSTEM_PROMPT,
 } from "./operational/imageGeneration";

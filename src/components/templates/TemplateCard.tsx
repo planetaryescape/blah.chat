@@ -77,13 +77,8 @@ export function TemplateCard({ template }: TemplateCardProps) {
 
   const handleUse = async () => {
     try {
-      // Increment usage
       await incrementUsage({ id: template._id });
-
-      // Store template text in Zustand (avoids URL length limits)
       setTemplateText(template.prompt, template.name);
-
-      // Navigate to new chat with simple flag
       router.push("/chat?from=template");
     } catch (error) {
       toast.error("Failed to use template");

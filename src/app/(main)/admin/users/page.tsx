@@ -1,28 +1,5 @@
 "use client";
 
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  type SortingState,
-  useReactTable,
-} from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useMutation, useQuery } from "convex/react";
-import { formatDistanceToNow } from "date-fns";
-import { ArrowUpDown, Shield, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { toast } from "sonner";
 import { DateRangePicker } from "@/components/admin/DateRangePicker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -30,20 +7,42 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
-  formatCompactNumber,
-  formatCurrency,
-  getLastNDays,
+    formatCompactNumber,
+    formatCurrency,
+    getLastNDays,
 } from "@/lib/utils/date";
+import {
+    type ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    type SortingState,
+    useReactTable,
+} from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMutation, useQuery } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
+import { ArrowUpDown, Shield, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+    Suspense,
+    useCallback,
+    useMemo,
+    useRef,
+    useState
+} from "react";
+import { toast } from "sonner";
 
 type UsageSummary = {
   userId: Id<"users">;
@@ -84,19 +83,13 @@ function UsersPageContent() {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateRole = useMutation(api.admin.updateUserRole);
 
-  // Date range state with localStorage persistence (must be before early return)
-  const [dateRange, setDateRange] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("admin-users-date-range");
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    }
-    return getLastNDays(30);
-  });
+  // Date range state - fresh last 30 days on each page load
+  const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
   // Sorting and pagination state (must be before early return)
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "totalSpent", desc: true },
+  ]);
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 50,
@@ -105,10 +98,6 @@ function UsersPageContent() {
   // Virtualization ref (must be before early return)
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
-  // Persist date range to localStorage
-  useEffect(() => {
-    localStorage.setItem("admin-users-date-range", JSON.stringify(dateRange));
-  }, [dateRange]);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const users = useQuery(api.admin.listUsers);

@@ -1,61 +1,63 @@
 "use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { useQuery } from "convex/react";
-import {
-  ArrowLeft,
-  Bookmark,
-  Clock,
-  DollarSign,
-  FileText,
-  Folder,
-  Loader2,
-  MessageSquare,
-  TrendingUp,
-  Zap,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { use, useEffect, useRef, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { DateRangePicker } from "@/components/admin/DateRangePicker";
 import { ExportButton } from "@/components/admin/ExportButton";
 import { UsageKPICard } from "@/components/admin/UsageKPICard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
-  formatCompactNumber,
-  formatCurrency,
-  getLastNDays,
+    formatCompactNumber,
+    formatCurrency,
+    getLastNDays,
 } from "@/lib/utils/date";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useQuery } from "convex/react";
+import {
+    ArrowLeft,
+    Bookmark,
+    CheckSquare,
+    Clock,
+    DollarSign,
+    FileText,
+    Folder,
+    Loader2,
+    MessageSquare,
+    Presentation,
+    TrendingUp,
+    Zap
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { use, useRef, useState } from "react";
+import {
+    Area,
+    AreaChart,
+    CartesianGrid,
+    Cell,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 
 type ModelBreakdown = {
   model: string;
@@ -78,6 +80,7 @@ const COST_TYPE_COLORS = {
   text: "#3b82f6",
   voice: "#10b981",
   images: "#a855f7",
+  slides: "#f59e0b",
 };
 
 export default function UserDetailPage({
@@ -89,24 +92,8 @@ export default function UserDetailPage({
   const userId = unwrappedParams.userId;
   const router = useRouter();
 
-  // Date range state with localStorage persistence
-  const [dateRange, setDateRange] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("admin-user-detail-date-range");
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    }
-    return getLastNDays(30);
-  });
-
-  // Persist date range to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      "admin-user-detail-date-range",
-      JSON.stringify(dateRange),
-    );
-  }, [dateRange]);
+  // Date range state - fresh last 30 days on each page load
+  const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
   // Fetch all data
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -198,6 +185,11 @@ export default function UserDetailPage({
       value: costByType.images.cost,
       color: COST_TYPE_COLORS.images,
     },
+    {
+      name: "Slides",
+      value: costByType.slides?.cost || 0,
+      color: COST_TYPE_COLORS.slides,
+    },
   ].filter((item) => item.value > 0);
 
   return (
@@ -272,7 +264,7 @@ export default function UserDetailPage({
           {/* Activity Stats KPI Cards (Global counts) */}
           <div>
             <h2 className="text-lg font-semibold mb-4">Activity Overview</h2>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-6">
               <UsageKPICard
                 label="Notes"
                 value={activityStats.notesCount}
@@ -292,6 +284,16 @@ export default function UserDetailPage({
                 label="Templates"
                 value={activityStats.templatesCount}
                 icon={Clock}
+              />
+              <UsageKPICard
+                label="Slides"
+                value={activityStats.slidesCount}
+                icon={Presentation}
+              />
+              <UsageKPICard
+                label="Tasks"
+                value={activityStats.tasksCount}
+                icon={CheckSquare}
               />
             </div>
           </div>

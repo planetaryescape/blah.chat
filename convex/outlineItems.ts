@@ -41,7 +41,9 @@ export const listByPresentation = query({
     const items = await ctx.db
       .query("outlineItems")
       .withIndex("by_presentation_version", (q) =>
-        q.eq("presentationId", args.presentationId).eq("version", currentVersion),
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("version", currentVersion),
       )
       .collect();
 
@@ -71,7 +73,9 @@ export const getCount = query({
     const items = await ctx.db
       .query("outlineItems")
       .withIndex("by_presentation_version", (q) =>
-        q.eq("presentationId", args.presentationId).eq("version", currentVersion),
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("version", currentVersion),
       )
       .collect();
 
@@ -259,7 +263,9 @@ export const clearFeedback = internalMutation({
     const items = await ctx.db
       .query("outlineItems")
       .withIndex("by_presentation_version", (q) =>
-        q.eq("presentationId", args.presentationId).eq("version", currentVersion),
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("version", currentVersion),
       )
       .collect();
 

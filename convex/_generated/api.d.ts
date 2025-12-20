@@ -9,12 +9,14 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as admin_byod from "../admin/byod.js";
 import type * as adminSettings from "../adminSettings.js";
 import type * as ai_generateTitle from "../ai/generateTitle.js";
 import type * as ai_modelTriage from "../ai/modelTriage.js";
 import type * as ai_taskExtraction from "../ai/taskExtraction.js";
 import type * as ai_tools_calculator from "../ai/tools/calculator.js";
 import type * as ai_tools_codeExecution from "../ai/tools/codeExecution.js";
+import type * as ai_tools_createDocument from "../ai/tools/createDocument.js";
 import type * as ai_tools_datetime from "../ai/tools/datetime.js";
 import type * as ai_tools_fileDocument from "../ai/tools/fileDocument.js";
 import type * as ai_tools_memories_index from "../ai/tools/memories/index.js";
@@ -26,6 +28,7 @@ import type * as ai_tools_projectContext_queryProjectHistory from "../ai/tools/p
 import type * as ai_tools_projectContext_searchProjectFiles from "../ai/tools/projectContext/searchProjectFiles.js";
 import type * as ai_tools_projectContext_searchProjectNotes from "../ai/tools/projectContext/searchProjectNotes.js";
 import type * as ai_tools_projectContext_searchProjectTasks from "../ai/tools/projectContext/searchProjectTasks.js";
+import type * as ai_tools_readDocument from "../ai/tools/readDocument.js";
 import type * as ai_tools_search_index from "../ai/tools/search/index.js";
 import type * as ai_tools_search_queryHistory from "../ai/tools/search/queryHistory.js";
 import type * as ai_tools_search_searchAll from "../ai/tools/search/searchAll.js";
@@ -33,10 +36,19 @@ import type * as ai_tools_search_searchFiles from "../ai/tools/search/searchFile
 import type * as ai_tools_search_searchNotes from "../ai/tools/search/searchNotes.js";
 import type * as ai_tools_search_searchTasks from "../ai/tools/search/searchTasks.js";
 import type * as ai_tools_taskManager from "../ai/tools/taskManager.js";
+import type * as ai_tools_updateDocument from "../ai/tools/updateDocument.js";
 import type * as ai_tools_urlReader from "../ai/tools/urlReader.js";
 import type * as ai_tools_weather from "../ai/tools/weather.js";
 import type * as ai_tools_webSearch from "../ai/tools/webSearch.js";
 import type * as bookmarks from "../bookmarks.js";
+import type * as byod_credentials from "../byod/credentials.js";
+import type * as byod_deploy from "../byod/deploy.js";
+import type * as byod_healthCheck from "../byod/healthCheck.js";
+import type * as byod_migrationRunner from "../byod/migrationRunner.js";
+import type * as byod_migrations_001_initial from "../byod/migrations/001_initial.js";
+import type * as byod_migrations_index from "../byod/migrations/index.js";
+import type * as byod_saveCredentials from "../byod/saveCredentials.js";
+import type * as byod_testConnection from "../byod/testConnection.js";
 import type * as canvas_documents from "../canvas/documents.js";
 import type * as canvas_history from "../canvas/history.js";
 import type * as chat from "../chat.js";
@@ -75,6 +87,7 @@ import type * as incognito from "../incognito.js";
 import type * as jobs_actions from "../jobs/actions.js";
 import type * as jobs_crud from "../jobs/crud.js";
 import type * as lib_analytics from "../lib/analytics.js";
+import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_helpers from "../lib/helpers.js";
 import type * as lib_prompts_base from "../lib/prompts/base.js";
@@ -205,12 +218,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  "admin/byod": typeof admin_byod;
   adminSettings: typeof adminSettings;
   "ai/generateTitle": typeof ai_generateTitle;
   "ai/modelTriage": typeof ai_modelTriage;
   "ai/taskExtraction": typeof ai_taskExtraction;
   "ai/tools/calculator": typeof ai_tools_calculator;
   "ai/tools/codeExecution": typeof ai_tools_codeExecution;
+  "ai/tools/createDocument": typeof ai_tools_createDocument;
   "ai/tools/datetime": typeof ai_tools_datetime;
   "ai/tools/fileDocument": typeof ai_tools_fileDocument;
   "ai/tools/memories/index": typeof ai_tools_memories_index;
@@ -222,6 +237,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/projectContext/searchProjectFiles": typeof ai_tools_projectContext_searchProjectFiles;
   "ai/tools/projectContext/searchProjectNotes": typeof ai_tools_projectContext_searchProjectNotes;
   "ai/tools/projectContext/searchProjectTasks": typeof ai_tools_projectContext_searchProjectTasks;
+  "ai/tools/readDocument": typeof ai_tools_readDocument;
   "ai/tools/search/index": typeof ai_tools_search_index;
   "ai/tools/search/queryHistory": typeof ai_tools_search_queryHistory;
   "ai/tools/search/searchAll": typeof ai_tools_search_searchAll;
@@ -229,10 +245,19 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/search/searchNotes": typeof ai_tools_search_searchNotes;
   "ai/tools/search/searchTasks": typeof ai_tools_search_searchTasks;
   "ai/tools/taskManager": typeof ai_tools_taskManager;
+  "ai/tools/updateDocument": typeof ai_tools_updateDocument;
   "ai/tools/urlReader": typeof ai_tools_urlReader;
   "ai/tools/weather": typeof ai_tools_weather;
   "ai/tools/webSearch": typeof ai_tools_webSearch;
   bookmarks: typeof bookmarks;
+  "byod/credentials": typeof byod_credentials;
+  "byod/deploy": typeof byod_deploy;
+  "byod/healthCheck": typeof byod_healthCheck;
+  "byod/migrationRunner": typeof byod_migrationRunner;
+  "byod/migrations/001_initial": typeof byod_migrations_001_initial;
+  "byod/migrations/index": typeof byod_migrations_index;
+  "byod/saveCredentials": typeof byod_saveCredentials;
+  "byod/testConnection": typeof byod_testConnection;
   "canvas/documents": typeof canvas_documents;
   "canvas/history": typeof canvas_history;
   chat: typeof chat;
@@ -271,6 +296,7 @@ declare const fullApi: ApiFromModules<{
   "jobs/actions": typeof jobs_actions;
   "jobs/crud": typeof jobs_crud;
   "lib/analytics": typeof lib_analytics;
+  "lib/encryption": typeof lib_encryption;
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/helpers": typeof lib_helpers;
   "lib/prompts/base": typeof lib_prompts_base;

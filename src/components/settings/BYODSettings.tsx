@@ -30,16 +30,20 @@ import {
 	CheckCircle,
 	Clock,
 	Database,
+	Download,
 	ExternalLink,
 	Eye,
 	EyeOff,
 	HelpCircle,
 	Loader2,
 	Plus,
+	RefreshCw,
 	Settings2,
 	XCircle,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { downloadBYODProject } from "@/lib/byod/downloadProject";
+import { BYOD_SCHEMA_VERSION } from "@/lib/byod/version";
 
 // ===== Main Component =====
 
@@ -70,12 +74,13 @@ export function BYODSettings() {
 					</p>
 				</div>
 				<Button
-					variant="ghost"
-					size="icon"
+					variant="outline"
+					size="sm"
 					onClick={() => setShowInfo(true)}
-					className="flex-shrink-0"
+					className="flex-shrink-0 gap-1.5"
 				>
-					<HelpCircle className="h-5 w-5" />
+					<HelpCircle className="h-4 w-4" />
+					Learn more
 				</Button>
 			</div>
 
@@ -207,25 +212,20 @@ interface BYODConfigFormProps {
 	onCancel: () => void;
 }
 
+type SetupStep = "credentials" | "download" | "deploy" | "verify";
+
 function BYODConfigForm({ isUpdate, onSuccess, onCancel }: BYODConfigFormProps) {
 	const [deploymentUrl, setDeploymentUrl] = useState("");
 	const [deployKey, setDeployKey] = useState("");
 	const [showKey, setShowKey] = useState(false);
-	const [testStatus, setTestStatus] = useState<
-		"idle" | "testing" | "success" | "error"
-	>("idle");
-	const [testError, setTestError] = useState<string | null>(null);
-	const [saveStatus, setSaveStatus] = useState<
-		"idle" | "saving" | "deploying" | "success" | "error"
-	>("idle");
-	const [saveError, setSaveError] = useState<string | null>(null);
+	const [currentStep, setCurrentStep] = useState<SetupStep>("credentials");
+	const [error, setError] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
 
 	// @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
 	const saveCredentials = useAction(api.byod.saveCredentials.saveCredentials);
 	// @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
-	const testConnection = useAction(api.byod.testConnection.testConnection);
-	// @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
-	const deploy = useAction(api.byod.deploy.deployToUserInstance);
+	const verifyDeployment = useAction(api.byod.testConnection.testConnection);
 
 	const validateUrl = (url: string): boolean => {
 		try {
@@ -236,128 +236,234 @@ function BYODConfigForm({ isUpdate, onSuccess, onCancel }: BYODConfigFormProps) 
 		}
 	};
 
-	const handleTest = async () => {
-		if (!deploymentUrl || !deployKey) return;
-
-		setTestStatus("testing");
-		setTestError(null);
-
-		try {
-			// First save credentials
-			await saveCredentials({ deploymentUrl, deployKey });
-
-			// Then test connection
-			const result = await testConnection({});
-
-			if (result.success) {
-				setTestStatus("success");
-			} else {
-				setTestStatus("error");
-				setTestError(result.message || "Connection test failed");
-			}
-		} catch (error) {
-			setTestStatus("error");
-			setTestError(error instanceof Error ? error.message : "Test failed");
-		}
-	};
-
-	const handleSaveAndDeploy = async () => {
-		if (!deploymentUrl || !deployKey) return;
-
-		setSaveStatus("saving");
-		setSaveError(null);
-
-		try {
-			// Save credentials
-			await saveCredentials({ deploymentUrl, deployKey });
-
-			setSaveStatus("deploying");
-
-			// Deploy schema
-			await deploy({});
-
-			setSaveStatus("success");
-			setTimeout(onSuccess, 1000);
-		} catch (error) {
-			setSaveStatus("error");
-			setSaveError(error instanceof Error ? error.message : "Deployment failed");
-		}
-	};
-
 	const isUrlValid = deploymentUrl ? validateUrl(deploymentUrl) : true;
-	const canTest = deploymentUrl && deployKey && isUrlValid;
-	const canSave = testStatus === "success";
+	const canProceed = deploymentUrl && deployKey && isUrlValid;
+
+	const handleSaveCredentials = async () => {
+		if (!canProceed) return;
+
+		setIsLoading(true);
+		setError(null);
+
+		try {
+			await saveCredentials({ deploymentUrl, deployKey });
+			setCurrentStep("download");
+			toast.success("Credentials saved!");
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to save credentials");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleDownload = async () => {
+		try {
+			await downloadBYODProject();
+			setCurrentStep("deploy");
+			toast.success("Schema package downloaded!");
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to download package");
+		}
+	};
+
+	const handleVerify = async () => {
+		setIsLoading(true);
+		setError(null);
+
+		try {
+			const result = await verifyDeployment({});
+			if (!result.success) {
+				setError(result.message || "Verification failed. Make sure you deployed the schema.");
+				return;
+			}
+
+			// Check if schema was actually deployed (has version)
+			if (result.schemaVersion !== undefined) {
+				toast.success(`Deployment verified (v${result.schemaVersion})! You're all set.`);
+				onSuccess();
+			} else {
+				// Connection works but schema not deployed
+				setError(
+					"Connection successful, but the schema isn't deployed yet. " +
+						"Make sure you ran 'bunx convex deploy' in the extracted folder.",
+				);
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Verification failed");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const steps = [
+		{ id: "credentials" as const, label: "1. Save Credentials" },
+		{ id: "download" as const, label: "2. Download Package" },
+		{ id: "deploy" as const, label: "3. Deploy Locally" },
+		{ id: "verify" as const, label: "4. Verify" },
+	];
+
+	const stepIndex = steps.findIndex((s) => s.id === currentStep);
 
 	return (
-		<div className="space-y-4">
-			{/* Deployment URL */}
-			<div className="space-y-2">
-				<Label htmlFor="deploymentUrl">Convex Deployment URL</Label>
-				<Input
-					id="deploymentUrl"
-					type="url"
-					placeholder="https://your-project.convex.cloud"
-					value={deploymentUrl}
-					onChange={(e) => setDeploymentUrl(e.target.value)}
-					className={deploymentUrl && !isUrlValid ? "border-destructive" : ""}
-				/>
-				{deploymentUrl && !isUrlValid && (
-					<p className="text-sm text-destructive">Must be a valid HTTPS URL</p>
-				)}
-			</div>
+		<div className="space-y-6">
+			{/* Progress Steps */}
+			{!isUpdate && (
+				<div className="flex items-center gap-2 text-xs">
+					{steps.map((step, i) => (
+						<div key={step.id} className="flex items-center gap-2">
+							<span
+								className={`px-2 py-1 rounded ${
+									i < stepIndex
+										? "bg-green-500/20 text-green-500"
+										: i === stepIndex
+											? "bg-primary/20 text-primary font-medium"
+											: "bg-muted text-muted-foreground"
+								}`}
+							>
+								{step.label}
+							</span>
+							{i < steps.length - 1 && (
+								<span className="text-muted-foreground">→</span>
+							)}
+						</div>
+					))}
+				</div>
+			)}
 
-			{/* Deploy Key */}
-			<div className="space-y-2">
-				<Label htmlFor="deployKey">Deploy Key</Label>
-				<div className="relative">
-					<Input
-						id="deployKey"
-						type={showKey ? "text" : "password"}
-						placeholder="prod:your-deploy-key"
-						value={deployKey}
-						onChange={(e) => setDeployKey(e.target.value)}
-						className="pr-10"
-					/>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						className="absolute right-0 top-0 h-full"
-						onClick={() => setShowKey(!showKey)}
-					>
-						{showKey ? (
-							<EyeOff className="h-4 w-4" />
-						) : (
-							<Eye className="h-4 w-4" />
+			{/* Step 1: Credentials */}
+			{currentStep === "credentials" && (
+				<div className="space-y-4">
+					<div className="space-y-2">
+						<Label htmlFor="deploymentUrl">Convex Deployment URL</Label>
+						<Input
+							id="deploymentUrl"
+							type="url"
+							placeholder="https://your-project.convex.cloud"
+							value={deploymentUrl}
+							onChange={(e) => setDeploymentUrl(e.target.value)}
+							className={deploymentUrl && !isUrlValid ? "border-destructive" : ""}
+						/>
+						{deploymentUrl && !isUrlValid && (
+							<p className="text-sm text-destructive">Must be a valid HTTPS URL</p>
 						)}
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="deployKey">Deploy Key</Label>
+						<div className="relative">
+							<Input
+								id="deployKey"
+								type={showKey ? "text" : "password"}
+								placeholder="prod:your-deploy-key"
+								value={deployKey}
+								onChange={(e) => setDeployKey(e.target.value)}
+								className="pr-10"
+							/>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="absolute right-0 top-0 h-full"
+								onClick={() => setShowKey(!showKey)}
+							>
+								{showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+							</Button>
+						</div>
+						<p className="text-xs text-muted-foreground">
+							Find this in Convex Dashboard → Settings → Deploy Key
+						</p>
+					</div>
+				</div>
+			)}
+
+			{/* Step 2: Download */}
+			{currentStep === "download" && (
+				<div className="space-y-4">
+					<Alert className="border-blue-500/50 bg-blue-500/10">
+						<CheckCircle className="h-4 w-4 text-blue-500" />
+						<AlertDescription className="text-blue-500">
+							Credentials saved! Now download the schema package.
+						</AlertDescription>
+					</Alert>
+
+					<div className="rounded-lg bg-muted/50 p-4 space-y-3">
+						<p className="text-sm font-medium">Download the blah.chat schema package</p>
+						<p className="text-sm text-muted-foreground">
+							This ZIP file contains everything needed to set up your Convex instance:
+							schema, functions, and configuration files.
+						</p>
+						<Button onClick={handleDownload} className="gap-2">
+							<Download className="h-4 w-4" />
+							Download Schema Package
+						</Button>
+					</div>
+				</div>
+			)}
+
+			{/* Step 3: Deploy Instructions */}
+			{currentStep === "deploy" && (
+				<div className="space-y-4">
+					<Alert className="border-green-500/50 bg-green-500/10">
+						<CheckCircle className="h-4 w-4 text-green-500" />
+						<AlertDescription className="text-green-500">
+							Package downloaded! Now deploy it to your Convex instance.
+						</AlertDescription>
+					</Alert>
+
+					<div className="rounded-lg bg-muted/50 p-4 space-y-3">
+						<p className="text-sm font-medium">Deploy to your Convex instance</p>
+						<ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+							<li>Unzip the downloaded file</li>
+							<li>Open terminal in the extracted folder</li>
+							<li>Run: <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">bun install</code></li>
+							<li>Run: <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">bunx convex deploy</code></li>
+							<li>When prompted, select your project or paste the URL</li>
+						</ol>
+						<p className="text-xs text-muted-foreground mt-2">
+							Don't have bun? Use <code className="px-1 py-0.5 rounded bg-muted font-mono">npm install</code> and <code className="px-1 py-0.5 rounded bg-muted font-mono">npx convex deploy</code> instead.
+						</p>
+					</div>
+
+					<Button onClick={() => setCurrentStep("verify")} variant="secondary">
+						I've deployed, verify my setup
 					</Button>
 				</div>
-				<p className="text-xs text-muted-foreground">
-					Find this in Convex Dashboard → Settings → Deploy Key
-				</p>
-			</div>
-
-			{/* Test Result */}
-			{testStatus === "success" && (
-				<Alert className="border-green-500/50 bg-green-500/10">
-					<CheckCircle className="h-4 w-4 text-green-500" />
-					<AlertDescription className="text-green-500">
-						Connection successful! Ready to deploy.
-					</AlertDescription>
-				</Alert>
 			)}
 
-			{testStatus === "error" && testError && (
-				<Alert variant="destructive">
-					<XCircle className="h-4 w-4" />
-					<AlertDescription>{testError}</AlertDescription>
-				</Alert>
+			{/* Step 4: Verify */}
+			{currentStep === "verify" && (
+				<div className="space-y-4">
+					<div className="rounded-lg bg-muted/50 p-4 space-y-3">
+						<p className="text-sm font-medium">Verify your deployment</p>
+						<p className="text-sm text-muted-foreground">
+							We'll ping your Convex instance to confirm the schema was deployed correctly.
+						</p>
+						<Button onClick={handleVerify} disabled={isLoading} className="gap-2">
+							{isLoading ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								<RefreshCw className="h-4 w-4" />
+							)}
+							Verify Deployment
+						</Button>
+					</div>
+
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => setCurrentStep("deploy")}
+						className="text-muted-foreground"
+					>
+						← Back to instructions
+					</Button>
+				</div>
 			)}
 
-			{saveStatus === "error" && saveError && (
+			{/* Error Display */}
+			{error && (
 				<Alert variant="destructive">
 					<XCircle className="h-4 w-4" />
-					<AlertDescription>{saveError}</AlertDescription>
+					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 
@@ -367,28 +473,12 @@ function BYODConfigForm({ isUpdate, onSuccess, onCancel }: BYODConfigFormProps) 
 					Cancel
 				</Button>
 
-				<Button
-					variant="secondary"
-					onClick={handleTest}
-					disabled={!canTest || testStatus === "testing"}
-				>
-					{testStatus === "testing" && (
-						<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-					)}
-					Test Connection
-				</Button>
-
-				<Button
-					onClick={handleSaveAndDeploy}
-					disabled={
-						!canSave || saveStatus === "saving" || saveStatus === "deploying"
-					}
-				>
-					{(saveStatus === "saving" || saveStatus === "deploying") && (
-						<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-					)}
-					{saveStatus === "deploying" ? "Deploying..." : "Save & Deploy"}
-				</Button>
+				{currentStep === "credentials" && (
+					<Button onClick={handleSaveCredentials} disabled={!canProceed || isLoading}>
+						{isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+						Save & Continue
+					</Button>
+				)}
 			</div>
 		</div>
 	);
@@ -474,6 +564,8 @@ function ConnectionStatusCard({ config }: { config: BYODConfig }) {
 // ===== Instance Info Card =====
 
 function InstanceInfoCard({ config }: { config: BYODConfig }) {
+	const isOutdated = config.schemaVersion < BYOD_SCHEMA_VERSION;
+
 	return (
 		<Card>
 			<CardHeader>
@@ -483,9 +575,35 @@ function InstanceInfoCard({ config }: { config: BYODConfig }) {
 				</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-3">
+				{/* Update Required Banner */}
+				{isOutdated && (
+					<Alert className="border-amber-500/50 bg-amber-500/10">
+						<AlertTriangle className="h-4 w-4 text-amber-500" />
+						<AlertDescription className="text-amber-700 dark:text-amber-400">
+							<span className="font-medium">Update available!</span> Your database is on v{config.schemaVersion},
+							latest is v{BYOD_SCHEMA_VERSION}.{" "}
+							<a href="#update-instructions" className="underline">
+								See update instructions
+							</a>
+						</AlertDescription>
+					</Alert>
+				)}
+
 				<div className="flex justify-between text-sm">
 					<span className="text-muted-foreground">Schema Version</span>
-					<span className="font-medium">v{config.schemaVersion}</span>
+					<div className="flex items-center gap-2">
+						<span className="font-medium">v{config.schemaVersion}</span>
+						{isOutdated && (
+							<Badge variant="outline" className="text-amber-600 border-amber-500/50">
+								→ v{BYOD_SCHEMA_VERSION}
+							</Badge>
+						)}
+						{!isOutdated && config.schemaVersion > 0 && (
+							<Badge variant="outline" className="text-green-600 border-green-500/50">
+								Latest
+							</Badge>
+						)}
+					</div>
 				</div>
 				{config.lastSchemaDeploy && (
 					<div className="flex justify-between text-sm">
@@ -505,6 +623,27 @@ function InstanceInfoCard({ config }: { config: BYODConfig }) {
 						>
 							{config.deploymentStatus}
 						</Badge>
+					</div>
+				)}
+
+				{/* Update Instructions (shown when outdated) */}
+				{isOutdated && (
+					<div id="update-instructions" className="pt-3 border-t">
+						<p className="text-sm font-medium mb-2">How to update:</p>
+						<ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+							<li>Download the new schema package below</li>
+							<li>Unzip and run <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">bunx convex deploy</code></li>
+							<li>Refresh this page to verify</li>
+						</ol>
+						<Button
+							variant="outline"
+							size="sm"
+							className="mt-3 gap-2"
+							onClick={() => downloadBYODProject()}
+						>
+							<Download className="h-4 w-4" />
+							Download v{BYOD_SCHEMA_VERSION} Package
+						</Button>
 					</div>
 				)}
 			</CardContent>
@@ -770,8 +909,10 @@ function BYODInfoDialog({ open, onOpenChange }: BYODInfoDialogProps) {
 								<li>Create a new project at dashboard.convex.dev</li>
 								<li>Go to Settings → Deploy Key and copy it</li>
 								<li>Copy your deployment URL (e.g., https://your-project.convex.cloud)</li>
-								<li>Enter both in the form below and click "Test Connection"</li>
-								<li>If successful, click "Save & Deploy" to deploy the schema</li>
+								<li>Enter both in the form and click "Save & Continue"</li>
+								<li>Download the schema package (ZIP file)</li>
+								<li>Unzip and run <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">bunx convex deploy</code> in the folder</li>
+								<li>Click "Verify Deployment" to confirm setup</li>
 								<li>Done! Your data will now be stored on your instance</li>
 							</ol>
 						</section>
@@ -835,11 +976,28 @@ function BYODInfoDialog({ open, onOpenChange }: BYODInfoDialogProps) {
 							</p>
 						</section>
 
+						{/* Schema Updates */}
+						<section className="space-y-2">
+							<h3 className="font-semibold">Schema updates</h3>
+							<p className="text-sm text-muted-foreground">
+								When blah.chat releases schema updates, you'll see a notification banner.
+								To update:
+							</p>
+							<ol className="text-sm text-muted-foreground space-y-1 mt-2 list-decimal list-inside">
+								<li>Download the new schema package from Settings</li>
+								<li>Run <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">bunx convex deploy</code> again</li>
+								<li>Click "Verify" to confirm the update</li>
+							</ol>
+							<p className="text-sm text-muted-foreground mt-2">
+								We'll also send you an email when updates are available.
+							</p>
+						</section>
+
 						{/* Limitations */}
 						<section className="space-y-2">
 							<h3 className="font-semibold">Current limitations</h3>
 							<ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-								<li>Schema updates are deployed automatically by blah.chat</li>
+								<li>Schema updates require manual re-deployment (CLI command)</li>
 								<li>File storage currently stays on blah.chat (migration planned)</li>
 								<li>You must maintain an active connection for the app to work</li>
 							</ul>

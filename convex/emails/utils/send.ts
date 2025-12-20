@@ -7,6 +7,7 @@ import { internalAction } from "../../_generated/server";
 import {
   ApiCreditsExhaustedEmail,
   BudgetWarningEmail,
+  BYODUpdateRequiredEmail,
   FeedbackNotificationEmail,
 } from "../templates";
 
@@ -225,6 +226,69 @@ export const sendFeedbackNotification = internalAction({
         error,
       );
       // Don't throw - feedback is already saved, email is best-effort
+    }
+  },
+});
+
+// Send BYOD update required email
+export const sendBYODUpdateNotification = internalAction({
+  args: {
+    userId: v.id("users"),
+    userEmail: v.string(),
+    currentVersion: v.number(),
+    latestVersion: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const type = `byod_update_${args.latestVersion}`;
+
+    // Check rate limit - one email per version update per user
+    const canSend = await ctx.runMutation(
+      internal.emails.utils.mutations.checkCanSendToUser,
+      { type, userId: args.userId },
+    );
+    if (!canSend) {
+      console.log(
+        `[Email] Skipping ${type} for user ${args.userId} - already sent`,
+      );
+      return;
+    }
+
+    // Render email
+    const html = await render(
+      BYODUpdateRequiredEmail({
+        currentVersion: args.currentVersion,
+        latestVersion: args.latestVersion,
+      }),
+    );
+
+    try {
+      // Send via Resend
+      await resend.sendEmail(ctx, {
+        from: "blah.chat <updates@blah.chat>",
+        to: args.userEmail,
+        subject: `🔄 Database Update Available (v${args.latestVersion})`,
+        html,
+      });
+
+      // Record sent
+      await ctx.runMutation(internal.emails.utils.mutations.recordSent, {
+        type,
+        recipientEmail: args.userEmail,
+        metadata: {
+          userId: args.userId,
+          currentVersion: args.currentVersion,
+          latestVersion: args.latestVersion,
+        },
+      });
+
+      console.log(
+        `[Email] Sent BYOD update notification to ${args.userEmail} (v${args.currentVersion} → v${args.latestVersion})`,
+      );
+    } catch (error) {
+      console.error(
+        `[Email] BYOD update notification failed for ${args.userId}:`,
+        error,
+      );
     }
   },
 });

@@ -5,13 +5,27 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { decryptCredential } from "../lib/encryption";
+import { BYOD_SCHEMA_VERSION } from "../../src/lib/byod/version";
+
+interface PingResponse {
+	status: string;
+	version: number;
+	timestamp: number;
+}
+
+interface HealthCheckResult {
+	healthy: boolean;
+	reason: string;
+	remoteVersion?: number;
+	needsUpdate?: boolean;
+}
 
 /**
  * Check health of a single user's BYOD instance
  */
 export const checkUserHealth = internalAction({
 	args: { userId: v.id("users") },
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<HealthCheckResult> => {
 		const config = (await (ctx.runQuery as any)(
 			// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
 			internal.byod.credentials.getConfigInternal,
@@ -57,7 +71,19 @@ export const checkUserHealth = internalAction({
 				throw new Error(`Connection failed: ${response.status}`);
 			}
 
-			// Update last connection test
+			// Parse response to get remote version
+			let remoteVersion: number | undefined;
+			try {
+				const data = (await response.json()) as PingResponse;
+				remoteVersion = data.version;
+			} catch {
+				// Couldn't parse version, but connection still works
+			}
+
+			const needsUpdate =
+				remoteVersion !== undefined && remoteVersion < BYOD_SCHEMA_VERSION;
+
+			// Update last connection test and schema version
 			await (ctx.runMutation as any)(
 				// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
 				internal.byod.credentials.updateConfig,
@@ -65,11 +91,17 @@ export const checkUserHealth = internalAction({
 					configId: config._id,
 					lastConnectionTest: Date.now(),
 					connectionError: undefined,
+					...(remoteVersion !== undefined && { schemaVersion: remoteVersion }),
 					updatedAt: Date.now(),
 				},
 			);
 
-			return { healthy: true, reason: "connected" };
+			return {
+				healthy: true,
+				reason: needsUpdate ? "outdated" : "connected",
+				remoteVersion,
+				needsUpdate,
+			};
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
@@ -109,7 +141,11 @@ export const checkAllHealth = internalAction({
 			total: configs.length,
 			healthy: 0,
 			unhealthy: 0,
+			outdated: 0,
+			emailsSent: 0,
+			latestVersion: BYOD_SCHEMA_VERSION,
 			errors: [] as { userId: Id<"users">; error: string }[],
+			outdatedUsers: [] as { userId: Id<"users">; version: number }[],
 		};
 
 		for (const config of configs) {
@@ -117,10 +153,45 @@ export const checkAllHealth = internalAction({
 				// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
 				internal.byod.healthCheck.checkUserHealth,
 				{ userId: config.userId },
-			)) as { healthy: boolean; reason: string };
+			)) as HealthCheckResult;
 
 			if (result.healthy) {
 				results.healthy++;
+				if (result.needsUpdate && result.remoteVersion !== undefined) {
+					results.outdated++;
+					results.outdatedUsers.push({
+						userId: config.userId,
+						version: result.remoteVersion,
+					});
+
+					// Get user email and send notification
+					try {
+						const user = (await (ctx.runQuery as any)(
+							// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
+							internal.users.getById,
+							{ userId: config.userId },
+						)) as Doc<"users"> | null;
+
+						if (user?.email) {
+							await (ctx.runAction as any)(
+								// @ts-ignore - TypeScript recursion limit with 85+ Convex modules
+								internal.emails.utils.send.sendBYODUpdateNotification,
+								{
+									userId: config.userId,
+									userEmail: user.email,
+									currentVersion: result.remoteVersion,
+									latestVersion: BYOD_SCHEMA_VERSION,
+								},
+							);
+							results.emailsSent++;
+						}
+					} catch (error) {
+						console.error(
+							`[BYOD] Failed to send update email to user ${config.userId}:`,
+							error,
+						);
+					}
+				}
 			} else {
 				results.unhealthy++;
 				results.errors.push({

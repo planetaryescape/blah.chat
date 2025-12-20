@@ -4,10 +4,10 @@ import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Plus } from "lucide-react";

@@ -6,57 +6,57 @@ import { UsageKPICard } from "@/components/admin/UsageKPICard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
-    formatCompactNumber,
-    formatCurrency,
-    getLastNDays,
+  formatCompactNumber,
+  formatCurrency,
+  getLastNDays,
 } from "@/lib/utils/date";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useQuery } from "convex/react";
 import {
-    ArrowLeft,
-    Bookmark,
-    CheckSquare,
-    Clock,
-    DollarSign,
-    FileText,
-    Folder,
-    Loader2,
-    MessageSquare,
-    Presentation,
-    TrendingUp,
-    Zap
+  ArrowLeft,
+  Bookmark,
+  CheckSquare,
+  Clock,
+  DollarSign,
+  FileText,
+  Folder,
+  Loader2,
+  MessageSquare,
+  Presentation,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useRef, useState } from "react";
 import {
-    Area,
-    AreaChart,
-    CartesianGrid,
-    Cell,
-    Pie,
-    PieChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
 type ModelBreakdown = {

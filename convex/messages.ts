@@ -367,12 +367,6 @@ export const updatePartialContent = internalMutation({
   },
 });
 
-/**
- * DEPRECATED: Update source metadata after OpenGraph enrichment
- * Now using normalized sourceMetadata table (Phase 2 migration complete)
- * See: convex/sources/enrichment.ts - updateSourceMetadataBatch
- */
-
 export const markThinkingStarted = internalMutation({
   args: { messageId: v.id("messages") },
   handler: async (ctx, args) => {

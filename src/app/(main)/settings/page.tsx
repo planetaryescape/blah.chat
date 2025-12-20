@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense } from "react";
+import { BYODSettings } from "@/components/settings/BYODSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
@@ -43,6 +44,11 @@ const SETTINGS_SECTIONS = [
     id: "maintenance",
     label: "Maintenance",
     component: MaintenanceSettings,
+  },
+  {
+    id: "database",
+    label: "Database",
+    component: BYODSettings,
   },
 ];
 

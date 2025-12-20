@@ -119,6 +119,7 @@
     "react-joyride": "^2.9.3",
     "react-markdown": "^10.1.0",
     "react-qr-code": "^2.0.18",
+    "react-resizable-panels": "^4.0.12",
     "react-textarea-autosize": "^8.5.9",
     "recharts": "^3.5.1",
     "rehype-highlight": "^7.0.2",

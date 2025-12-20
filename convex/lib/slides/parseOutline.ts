@@ -15,21 +15,11 @@ export interface ParsedSlide {
 /**
  * Parse markdown outline into structured slide data
  *
- * Expected format:
- * # TITLE SLIDE
- * Title: [title]
- * Subtitle: [subtitle]
- * Type: title
- *
- * # SECTION: [name]
- * Title: [title]
- * Type: section
- *
- * # Slide N: [title]
- * - bullet 1
- * - bullet 2
- * Type: content
- * Speaker Notes: [notes]
+ * Supports multiple formats:
+ * - # TITLE SLIDE / ## TITLE SLIDE
+ * - # SECTION: [name] / ## SECTION: [name]
+ * - # Slide N: [title] / ## Slide N: [title]
+ * - **Slide N: [title]** (bold format)
  */
 export function parseOutlineMarkdown(content: string): ParsedSlide[] {
   const slides: ParsedSlide[] = [];
@@ -44,8 +34,11 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
     // Skip empty lines
     if (!trimmed) continue;
 
-    // Slide header (starts with #)
-    if (trimmed.startsWith("# ")) {
+    // Check for slide header - supports # or ## or ### or **bold**
+    const headerMatch = trimmed.match(/^(#{1,3})\s+(.+)$/) ||
+                       trimmed.match(/^\*\*(.+?)\*\*:?\s*$/);
+
+    if (headerMatch) {
       // Save previous slide if exists
       if (currentSlide && currentSlide.title) {
         slides.push({
@@ -57,8 +50,8 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
         });
       }
 
-      // Start new slide
-      const titleText = trimmed.substring(2).trim();
+      // Extract title text (group 2 for # headers, group 1 for **bold**)
+      const titleText = (headerMatch[2] || headerMatch[1]).trim();
       currentSlide = {
         title: cleanSlideTitle(titleText),
         content: "",
@@ -66,12 +59,13 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
       };
 
       // Determine type from header
-      if (trimmed.toLowerCase().includes("title slide")) {
+      const lowerTitle = titleText.toLowerCase();
+      if (lowerTitle.includes("title slide") || lowerTitle.includes("cover slide")) {
         currentSlide.slideType = "title";
-      } else if (trimmed.toLowerCase().startsWith("# section:")) {
+      } else if (lowerTitle.startsWith("section:") || lowerTitle.startsWith("section -")) {
         currentSlide.slideType = "section";
         // Extract section name as title
-        currentSlide.title = titleText.replace(/^section:\s*/i, "").trim();
+        currentSlide.title = titleText.replace(/^section[:\-]\s*/i, "").trim();
       }
     }
     // Title field

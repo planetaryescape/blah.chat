@@ -25,7 +25,7 @@ Canvas is a split-screen document editor that appears alongside chat for collabo
 
 ## Architecture
 
-**NOTE:** Canvas uses fixed 400px width (matching TaskDetailPanel pattern), not percentage.
+**NOTE:** Canvas uses fixed 360px width (matching TaskDetailPanel pattern), not percentage.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -33,7 +33,7 @@ Canvas is a split-screen document editor that appears alongside chat for collabo
 ├──────────────────────────────────────┬───────────────────────────┤
 │                                      │                           │
 │         Chat Messages                │    Canvas Editor          │
-│         (flex-1)                     │    (400px fixed)          │
+│         (flex-1)                     │    (360px fixed)          │
 │                                      │                           │
 │  ┌────────────────────────────────┐  │  ┌─────────────────────┐  │
 │  │ User: Write a Python script...│  │  │ CSV Processor       │  │
@@ -51,14 +51,14 @@ Canvas is a split-screen document editor that appears alongside chat for collabo
 
 ## Implementation Phases
 
-| Phase | Name | Description | Dependencies |
-|-------|------|-------------|--------------|
-| 1 | [Foundation](./phase-1-foundation.md) | Schema, context, split layout | None |
-| 2 | [Monaco Editor](./phase-2-monaco-editor.md) | Editor integration | Phase 1 |
-| 3 | [Document Tools](./phase-3-document-tools.md) | LLM tools for CRUD | Phase 1, 2 |
-| 4 | [Diff System](./phase-4-diff-system.md) | Diff grabber + applier | Phase 1-3 |
-| 5 | [Mode System](./phase-5-mode-system.md) | Dynamic tool injection | Phase 1-4 |
-| 6 | [Polish](./phase-6-polish-conflict-resolution.md) | Conflicts, undo/redo, UX | Phase 1-5 |
+| Phase | Name | Description | Dependencies | Status |
+|-------|------|-------------|--------------|--------|
+| 1 | [Foundation](./phase-1-foundation.md) | Schema, context, split layout | None | ✅ Done |
+| 2 | [Monaco Editor](./phase-2-monaco-editor.md) | Editor integration | Phase 1 | ✅ Done |
+| 3 | [Document Tools](./phase-3-document-tools.md) | LLM tools for CRUD | Phase 1, 2 | |
+| 4 | [Diff System](./phase-4-diff-system.md) | Diff grabber + applier | Phase 1-3 | |
+| 5 | [Mode System](./phase-5-mode-system.md) | Dynamic tool injection | Phase 1-4 | |
+| 6 | [Polish](./phase-6-polish-conflict-resolution.md) | Conflicts, undo/redo, UX | Phase 1-5 | |
 
 Each phase document is **self-contained** with:
 - Full context and motivation
@@ -270,7 +270,7 @@ src/
     │       ├── ExitDocumentModeRenderer.tsx
     │       └── index.ts                  # Add new renderers
     └── canvas/
-        ├── CanvasPanel.tsx               # 400px fixed width panel
+        ├── CanvasPanel.tsx               # 360px fixed width panel
         ├── CanvasEditor.tsx
         ├── CanvasToolbar.tsx
         ├── ModeIndicator.tsx
@@ -301,7 +301,7 @@ src/
 - [ ] `src/contexts/ConversationContext.tsx` - Model for simple context pattern
 
 ### Patterns to Follow
-- [ ] **Fixed width panel**: 400px (like `TaskDetailPanel.tsx`), NOT percentage
+- [ ] **Fixed width panel**: 360px (like `TaskDetailPanel.tsx`), NOT percentage
 - [ ] **Simple context**: Just useState wrapper, no complex logic
 - [ ] **Tool registration**: Add to existing `toolRenderers` object in `index.ts`
 - [ ] **Schema indexes**: Use `by_field` naming convention

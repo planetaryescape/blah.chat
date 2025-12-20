@@ -11,6 +11,9 @@ export default defineSchema({
     // Daily message tracking (stored per user, limit from admin settings)
     dailyMessageCount: v.optional(v.number()),
     lastMessageDate: v.optional(v.string()),
+    // Daily presentation tracking (stored per user, limit from admin settings)
+    dailyPresentationCount: v.optional(v.number()),
+    lastPresentationDate: v.optional(v.string()),
     // Preferences
     disabledBuiltInTemplateIds: v.optional(v.array(v.id("templates"))),
     createdAt: v.number(),
@@ -152,6 +155,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("generating"),
       v.literal("complete"),
+      v.literal("stopped"),
       v.literal("error"),
     ),
     model: v.optional(v.string()), // Required for assistant messages, validated in mutation
@@ -1055,6 +1059,9 @@ export default defineSchema({
     // Message limits
     defaultDailyMessageLimit: v.number(),
 
+    // Presentation limits
+    defaultDailyPresentationLimit: v.optional(v.number()), // Default: 1
+
     // Email alerts
     alertEmail: v.string(),
 
@@ -1241,6 +1248,12 @@ export default defineSchema({
     // Model selection
     imageModel: v.string(),
 
+    // Slide style - affects text density and visual approach
+    slideStyle: v.optional(v.union(v.literal("wordy"), v.literal("illustrative"))),
+
+    // Organization template (reusable brand constraints)
+    templateId: v.optional(v.id("designTemplates")),
+
     // Progress tracking
     totalSlides: v.number(),
     generatedSlideCount: v.number(),
@@ -1248,6 +1261,18 @@ export default defineSchema({
     // PPTX export caching
     pptxStorageId: v.optional(v.id("_storage")),
     pptxGeneratedAt: v.optional(v.number()),
+
+    // Card-based outline editor fields
+    overallFeedback: v.optional(v.string()), // General feedback not tied to specific slide
+    currentOutlineVersion: v.optional(v.number()), // Track latest version for queries
+    outlineStatus: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("feedback_pending"),
+        v.literal("regenerating"),
+        v.literal("ready"),
+      ),
+    ),
 
     // Timestamps
     createdAt: v.number(),
@@ -1284,6 +1309,7 @@ export default defineSchema({
     imageStorageId: v.optional(v.id("_storage")),
     imagePrompt: v.optional(v.string()),
     imageError: v.optional(v.string()),
+    hasEmbeddedText: v.optional(v.boolean()), // True if text baked into image (illustrative style)
 
     // Cost tracking (per slide)
     generationCost: v.optional(v.number()),
@@ -1299,4 +1325,132 @@ export default defineSchema({
     .index("by_presentation_type", ["presentationId", "slideType"])
     .index("by_user", ["userId"])
     .index("by_image_status", ["imageStatus"]),
+
+  // Outline items (draft slides before approval, supports per-slide feedback)
+  outlineItems: defineTable({
+    presentationId: v.id("presentations"),
+    userId: v.id("users"),
+
+    position: v.number(), // Slide order (1, 2, 3...)
+    slideType: v.union(
+      v.literal("title"),
+      v.literal("section"),
+      v.literal("content"),
+    ),
+
+    // Content (from parsed outline)
+    title: v.string(),
+    content: v.string(), // Markdown bullets
+    speakerNotes: v.optional(v.string()),
+
+    // Per-slide feedback from user
+    feedback: v.optional(v.string()),
+
+    // Version tracking (for future history feature)
+    // Current impl: always query latest version, delete old on regeneration
+    version: v.number(), // 1, 2, 3... increments on regeneration
+
+    // Timestamps
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_presentation", ["presentationId"])
+    .index("by_presentation_position", ["presentationId", "position"])
+    .index("by_presentation_version", ["presentationId", "version"]),
+
+  // Reusable design templates (organization brand constraints)
+  designTemplates: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+
+    // Source files (stored in Convex storage)
+    sourceFiles: v.array(
+      v.object({
+        storageId: v.id("_storage"),
+        name: v.string(),
+        mimeType: v.string(),
+        type: v.union(v.literal("pdf"), v.literal("pptx"), v.literal("image")),
+      }),
+    ),
+
+    // Extracted design constraints (from multimodal analysis)
+    extractedDesign: v.optional(
+      v.object({
+        colors: v.object({
+          primary: v.string(),
+          secondary: v.string(),
+          accent: v.optional(v.string()),
+          background: v.string(),
+          text: v.string(),
+        }),
+        fonts: v.object({
+          heading: v.string(),
+          body: v.string(),
+          fallbackHeading: v.optional(v.string()),
+          fallbackBody: v.optional(v.string()),
+        }),
+        logoGuidelines: v.optional(
+          v.object({
+            position: v.string(),
+            size: v.string(),
+            description: v.optional(v.string()),
+          }),
+        ),
+        layoutPatterns: v.array(v.string()),
+        visualStyle: v.string(),
+        iconStyle: v.optional(v.string()),
+        analysisNotes: v.string(),
+      }),
+    ),
+
+    // Processing state
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("complete"),
+      v.literal("error"),
+    ),
+    error: v.optional(v.string()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"]),
+
+  // Presentation sessions (for remote control & multi-device sync)
+  presentationSessions: defineTable({
+    presentationId: v.id("presentations"),
+    userId: v.id("users"),
+
+    // Session identification
+    sessionCode: v.string(), // 6-digit code for remote pairing
+    sessionCodeExpiresAt: v.number(), // Code expires after 10 minutes
+
+    // Session state
+    isActive: v.boolean(),
+    currentSlide: v.number(), // Current slide index (0-based)
+    totalSlides: v.number(),
+
+    // Timer state (synced to all connected devices)
+    timerStartedAt: v.optional(v.number()),
+    timerPausedAt: v.optional(v.number()),
+    timerElapsed: v.optional(v.number()), // Accumulated elapsed time in ms
+
+    // Presenter tools state
+    laserEnabled: v.optional(v.boolean()),
+    drawingEnabled: v.optional(v.boolean()),
+
+    // Connected devices tracking
+    lastPresenterPingAt: v.optional(v.number()),
+    lastRemotePingAt: v.optional(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_session_code", ["sessionCode", "isActive"])
+    .index("by_presentation", ["presentationId", "isActive"])
+    .index("by_user", ["userId"])
+    .index("by_user_active", ["userId", "isActive"]),
 });

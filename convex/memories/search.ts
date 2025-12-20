@@ -1,51 +1,18 @@
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
-import { getGatewayOptions } from "../../src/lib/ai/gateway";
+import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
   EMBEDDING_MODEL,
   MEMORY_RERANK_MODEL,
-} from "../../src/lib/ai/operational-models";
-import { getModel } from "../../src/lib/ai/registry";
+} from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+import { applyRRF } from "../lib/utils/search";
 import { buildMemoryRerankPrompt } from "../lib/prompts/operational/memoryRerank";
 
-// Constants for memory retrieval
-const MIN_CONFIDENCE = 0.7; // Filter memories below 70% confidence
-
-// Helper: RRF (Reciprocal Rank Fusion) merging
-function applyRRF(
-  // biome-ignore lint/suspicious/noExplicitAny: Complex memory search result types
-  textResults: any[],
-  vectorResults: any[],
-  k: number = 60,
-): any[] {
-  const scores = new Map();
-
-  // Score text results
-  textResults.forEach((item, idx) => {
-    scores.set(item._id, {
-      score: 1 / (k + idx + 1),
-      item,
-    });
-  });
-
-  // Add vector results (boost if item appears in both)
-  vectorResults.forEach((item, idx) => {
-    const score = 1 / (k + idx + 1);
-    const existing = scores.get(item._id);
-    if (existing) {
-      existing.score += score; // Boost overlapping results
-    } else {
-      scores.set(item._id, { score, item });
-    }
-  });
-
-  return Array.from(scores.values())
-    .sort((a, b) => b.score - a.score)
-    .map(({ item, score }) => ({ ...item, score }));
-}
+const MIN_CONFIDENCE = 0.7;
 
 // Helper: Rerank memories with LLM
 async function rerankMemories(

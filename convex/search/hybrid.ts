@@ -1,9 +1,10 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "../../src/lib/ai/operational-models";
+import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { api, internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";
+import { mergeMessagesWithRRF } from "../lib/utils/search";
 
 /**
  * Hybrid search using RRF (Reciprocal Rank Fusion)
@@ -95,7 +96,7 @@ export const hybridSearch = action({
       }
 
       // 3. RRF merge
-      return mergeWithRRF(
+      return mergeMessagesWithRRF(
         textResults,
         filteredVectorResults.slice(0, 40),
         limit,
@@ -145,40 +146,3 @@ export const fullTextSearch = query({
     return results;
   },
 });
-
-/**
- * RRF (Reciprocal Rank Fusion) merge
- * Combines rankings from multiple sources
- */
-function mergeWithRRF<T extends Doc<"messages">>(
-  textResults: T[],
-  vectorResults: T[],
-  limit: number,
-  k = 60,
-): T[] {
-  const scores = new Map<string, { score: number; item: T }>();
-
-  // Add text results with RRF scoring
-  textResults.forEach((item, idx) => {
-    const id = item._id.toString();
-    scores.set(id, { score: 1 / (k + idx + 1), item });
-  });
-
-  // Add vector results with RRF scoring
-  vectorResults.forEach((item, idx) => {
-    const id = item._id.toString();
-    const score = 1 / (k + idx + 1);
-    const existing = scores.get(id);
-    if (existing) {
-      existing.score += score; // Boost items in both results
-    } else {
-      scores.set(id, { score, item });
-    }
-  });
-
-  // Sort by combined score and return top N
-  return Array.from(scores.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((x) => x.item);
-}

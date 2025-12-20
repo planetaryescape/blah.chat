@@ -4,10 +4,10 @@ import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Plus } from "lucide-react";
@@ -16,6 +16,7 @@ import { useState } from "react";
 const CATEGORIES = ["all", "coding", "writing", "analysis", "creative"];
 
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
@@ -27,10 +28,15 @@ import { toast } from "sonner";
 // ... imports
 
 export default function TemplatesPage() {
-  const features = useFeatureToggles();
+  const { showTemplates, isLoading } = useFeatureToggles();
+
+  // Show loading while preferences are being fetched
+  if (isLoading) {
+    return <FeatureLoadingScreen />;
+  }
 
   // Route guard: show disabled page if templates feature is off
-  if (!features.showTemplates) {
+  if (!showTemplates) {
     return (
       <DisabledFeaturePage featureName="Templates" settingKey="showTemplates" />
     );

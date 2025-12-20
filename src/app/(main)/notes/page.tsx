@@ -1,17 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft } from "lucide-react";
-import {
-  parseAsArrayOf,
-  parseAsBoolean,
-  parseAsString,
-  parseAsStringEnum,
-  useQueryState,
-} from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { EmptyState } from "@/components/notes/EmptyState";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { NoteListSkeleton } from "@/components/notes/NoteListSkeleton";
@@ -22,9 +12,20 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft } from "lucide-react";
+import {
+    parseAsArrayOf,
+    parseAsBoolean,
+    parseAsString,
+    parseAsStringEnum,
+    useQueryState,
+} from "nuqs";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 function NotesPageContent() {
-  const features = useFeatureToggles();
+  const { showNotes, isLoading: prefsLoading } = useFeatureToggles();
 
   // URL-persisted state
   const [filterPinned, setFilterPinned] = useQueryState(
@@ -86,7 +87,7 @@ function NotesPageContent() {
 
   const { isMobile } = useMobileDetect();
 
-  // @ts-expect-error - Type depth exceeded with complex Convex query
+  // @ts-ignore - Type depth exceeded with complex Convex query
   const notes = useQuery(api.notes.searchNotes, {
     searchQuery,
     filterPinned: filterPinned || undefined,
@@ -145,8 +146,13 @@ function NotesPageContent() {
     };
   }, [isMobile, setSelectedNoteId, createNewNote]);
 
+  // Show loading while preferences are being fetched
+  if (prefsLoading) {
+    return <FeatureLoadingScreen />;
+  }
+
   // Route guard: show disabled page if notes feature is off
-  if (!features.showNotes) {
+  if (!showNotes) {
     return <DisabledFeaturePage featureName="Notes" settingKey="showNotes" />;
   }
 

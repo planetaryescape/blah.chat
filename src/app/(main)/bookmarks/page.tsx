@@ -1,25 +1,31 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
-import { Suspense, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { BookmarkCard } from "@/components/bookmarks/BookmarkCard";
 import { BookmarksTable } from "@/components/bookmarks/BookmarksTable";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
+import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMutation, useQuery } from "convex/react";
+import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
+import { Suspense, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 
 export const dynamic = "force-dynamic";
 
 function BookmarksPageContent() {
-  const features = useFeatureToggles();
+  const { showBookmarks, isLoading } = useFeatureToggles();
+
+  // Show loading while preferences are being fetched
+  if (isLoading) {
+    return <FeatureLoadingScreen />;
+  }
 
   // Route guard: show disabled page if bookmarks feature is off
-  if (!features.showBookmarks) {
+  if (!showBookmarks) {
     return (
       <DisabledFeaturePage featureName="Bookmarks" settingKey="showBookmarks" />
     );

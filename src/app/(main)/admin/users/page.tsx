@@ -7,41 +7,35 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
-    formatCompactNumber,
-    formatCurrency,
-    getLastNDays,
+  formatCompactNumber,
+  formatCurrency,
+  getLastNDays,
 } from "@/lib/utils/date";
 import {
-    type ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    type SortingState,
-    useReactTable,
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpDown, Shield, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-    Suspense,
-    useCallback,
-    useMemo,
-    useRef,
-    useState
-} from "react";
+import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type UsageSummary = {
@@ -97,7 +91,6 @@ function UsersPageContent() {
 
   // Virtualization ref (must be before early return)
   const tableContainerRef = useRef<HTMLDivElement>(null);
-
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const users = useQuery(api.admin.listUsers);

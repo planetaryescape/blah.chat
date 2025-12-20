@@ -25,6 +25,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { CanvasProvider } from "@/contexts/CanvasContext";
 import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { useNewChat } from "@/hooks/useNewChat";
@@ -123,48 +124,50 @@ export default function MainLayout({
   return (
     <SelectionProvider>
       <ConversationProvider>
-        <KeyboardShortcutsManager />
+        <CanvasProvider>
+          <KeyboardShortcutsManager />
 
-        {/* Skip to main content - WCAG 2.1 */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:shadow-lg"
-        >
-          Skip to main content
-        </a>
+          {/* Skip to main content - WCAG 2.1 */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:shadow-lg"
+          >
+            Skip to main content
+          </a>
 
-        {/* Don't show sidebar when not authenticated */}
-        {!isLoading && !isAuthenticated ? (
-          children
-        ) : (
-          <SidebarProvider>
-            {isAdminRoute ? (
-              // Admin routes: let admin layout control structure
-              <div className="flex w-full h-[100dvh] overflow-hidden">
-                {children}
-              </div>
-            ) : (
-              // Regular routes: sidebar + main
-              <div className="flex w-full h-[100dvh] overflow-hidden">
-                <Suspense fallback={null}>
-                  <AppSidebar />
-                </Suspense>
-                <main
-                  id="main-content"
-                  className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-                  aria-label="Chat interface"
-                >
-                  <Header />
+          {/* Don't show sidebar when not authenticated */}
+          {!isLoading && !isAuthenticated ? (
+            children
+          ) : (
+            <SidebarProvider>
+              {isAdminRoute ? (
+                // Admin routes: let admin layout control structure
+                <div className="flex w-full h-[100dvh] overflow-hidden">
                   {children}
-                </main>
-              </div>
-            )}
-            <CommandPalette />
-            <OnboardingTour />
-            <SelectionContextMenu />
-            <OfflineQueueIndicator />
-          </SidebarProvider>
-        )}
+                </div>
+              ) : (
+                // Regular routes: sidebar + main
+                <div className="flex w-full h-[100dvh] overflow-hidden">
+                  <Suspense fallback={null}>
+                    <AppSidebar />
+                  </Suspense>
+                  <main
+                    id="main-content"
+                    className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
+                    aria-label="Chat interface"
+                  >
+                    <Header />
+                    {children}
+                  </main>
+                </div>
+              )}
+              <CommandPalette />
+              <OnboardingTour />
+              <SelectionContextMenu />
+              <OfflineQueueIndicator />
+            </SidebarProvider>
+          )}
+        </CanvasProvider>
       </ConversationProvider>
     </SelectionProvider>
   );

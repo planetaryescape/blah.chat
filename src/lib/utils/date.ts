@@ -1,11 +1,11 @@
 import {
-  endOfDay,
-  format,
-  formatDistanceToNow,
-  isPast,
-  isToday,
-  startOfMonth,
-  subDays,
+    endOfDay,
+    format,
+    formatDistanceToNow,
+    isPast,
+    isToday,
+    startOfMonth,
+    subDays,
 } from "date-fns";
 
 /**
@@ -32,6 +32,45 @@ export function getLastNDays(days = 30): {
     startDate: formatDateToISO(start),
     endDate: formatDateToISO(end),
   };
+}
+
+/**
+ * Gets a validated date range from localStorage, resetting to fresh values if stale
+ * This prevents issues where cached date ranges don't include today's data
+ * @param storageKey localStorage key to read from
+ * @param defaultDays Number of days for default range (default: 30)
+ * @returns Object with startDate and endDate in YYYY-MM-DD format
+ */
+export function getValidatedDateRange(
+  storageKey: string,
+  defaultDays = 30,
+): { startDate: string; endDate: string } {
+  const freshRange = getLastNDays(defaultDays);
+
+  if (typeof window === "undefined") {
+    return freshRange;
+  }
+
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) {
+      return freshRange;
+    }
+
+    const parsed = JSON.parse(stored) as { startDate: string; endDate: string };
+    const today = formatDateToISO(new Date());
+
+    // If endDate is before today, the range is stale - reset to fresh
+    if (parsed.endDate < today) {
+      // Clear the stale data
+      localStorage.removeItem(storageKey);
+      return freshRange;
+    }
+
+    return parsed;
+  } catch {
+    return freshRange;
+  }
 }
 
 /**

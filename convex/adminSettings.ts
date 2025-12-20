@@ -164,9 +164,10 @@ export const getWithEnvOverrides = internalQuery({
       defaultDailyMessageLimit: process.env.DEFAULT_DAILY_MESSAGE_LIMIT
         ? Number.parseInt(process.env.DEFAULT_DAILY_MESSAGE_LIMIT, 10)
         : settings.defaultDailyMessageLimit,
-      defaultDailyPresentationLimit: process.env.DEFAULT_DAILY_PRESENTATION_LIMIT
+      defaultDailyPresentationLimit: process.env
+        .DEFAULT_DAILY_PRESENTATION_LIMIT
         ? Number.parseInt(process.env.DEFAULT_DAILY_PRESENTATION_LIMIT, 10)
-        : settings.defaultDailyPresentationLimit ?? 1,
+        : (settings.defaultDailyPresentationLimit ?? 1),
       defaultMonthlyBudget: process.env.DEFAULT_MONTHLY_BUDGET
         ? Number.parseFloat(process.env.DEFAULT_MONTHLY_BUDGET)
         : settings.defaultMonthlyBudget,

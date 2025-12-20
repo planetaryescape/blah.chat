@@ -278,7 +278,6 @@ export const getUserSpendByModel = query({
       )
       .collect();
 
-
     // Group by model
     const modelTotals = records.reduce(
       (acc, record) => {
@@ -379,7 +378,10 @@ export const getUserUsageSummary = query({
     const totalRequests = records.length;
 
     // Sum up message counts from usage records instead of scanning all messages
-    const messageCount = records.reduce((sum, r) => sum + (r.messageCount || 0), 0);
+    const messageCount = records.reduce(
+      (sum, r) => sum + (r.messageCount || 0),
+      0,
+    );
 
     return {
       totalCost,

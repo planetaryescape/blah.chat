@@ -42,5 +42,7 @@ export function mergeMessagesWithRRF(
   k = 60,
 ): Doc<"messages">[] {
   const merged = applyRRF(textResults, vectorResults, k);
-  return merged.slice(0, limit).map(({ score, ...item }) => item as Doc<"messages">);
+  return merged
+    .slice(0, limit)
+    .map(({ score, ...item }) => item as Doc<"messages">);
 }

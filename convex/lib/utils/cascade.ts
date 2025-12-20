@@ -72,7 +72,9 @@ export async function cascadeDeleteConversation(
   if (deleteMessages) {
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
       .collect();
     for (const msg of messages) {
       await ctx.db.delete(msg._id);

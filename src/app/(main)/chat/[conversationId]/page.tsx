@@ -19,6 +19,11 @@ import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList
 import { QuickTemplateSwitcher } from "@/components/templates/QuickTemplateSwitcher";
 import { Button } from "@/components/ui/button";
 import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import { useCanvasContext } from "@/contexts/CanvasContext";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
@@ -527,9 +532,18 @@ function ChatPageContent({
 
   return (
     <TTSProvider defaultSpeed={ttsSpeed}>
-      <div className="flex h-[100dvh]">
-        <div className="relative flex flex-1 flex-col overflow-hidden min-w-0">
-          <ChatHeader
+      <ResizablePanelGroup
+        orientation="horizontal"
+        className="h-[100dvh]"
+        id="chat-canvas-layout"
+      >
+        {/* Chat Panel - always renders, takes full width when canvas closed */}
+        <ResizablePanel
+          defaultSize={documentId ? 45 : 100}
+          minSize={30}
+        >
+          <div className="relative flex h-full flex-col overflow-hidden">
+            <ChatHeader
             conversation={conversation}
             conversationId={conversationId}
             selectedModel={displayModel}
@@ -684,16 +698,22 @@ function ChatPageContent({
               );
             }}
           />
-        </div>
+          </div>
+        </ResizablePanel>
 
         {/* Canvas Panel - conditionally rendered */}
         {documentId && (
-          <CanvasPanel
-            documentId={documentId}
-            onClose={() => setDocumentId(null)}
-          />
+          <>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={55} minSize={25}>
+              <CanvasPanel
+                documentId={documentId}
+                onClose={() => setDocumentId(null)}
+              />
+            </ResizablePanel>
+          </>
         )}
-      </div>
+      </ResizablePanelGroup>
     </TTSProvider>
   );
 }

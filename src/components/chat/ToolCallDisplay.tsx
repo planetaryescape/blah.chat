@@ -13,10 +13,12 @@ import {
   Cloud,
   Code,
   ExternalLink,
+  Eye,
   FileText,
   FolderTree,
   Globe,
   Loader2,
+  RefreshCw,
   Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -59,6 +61,13 @@ function getToolIcon(toolName: string) {
       return FolderTree;
     case "manageTasks":
       return CheckSquare;
+    // Canvas tools
+    case "createDocument":
+      return FileText;
+    case "updateDocument":
+      return RefreshCw;
+    case "readDocument":
+      return Eye;
     default:
       return Search;
   }
@@ -146,6 +155,19 @@ function getToolLabel(
         return `${result?.totalCount || 0} task${result?.totalCount !== 1 ? "s" : ""}`;
       return "Task manager";
     }
+    // Canvas tools
+    case "createDocument":
+      if (isExecuting) return "Creating document...";
+      if (result?.success === false) return "Failed to create";
+      return `Created "${result?.title || "document"}"`;
+    case "updateDocument":
+      if (isExecuting) return "Updating document...";
+      if (result?.success === false) return "Update failed";
+      return `Updated to v${result?.newVersion}`;
+    case "readDocument":
+      if (isExecuting) return "Reading document...";
+      if (!result?.hasDocument) return "No document";
+      return `Read (${result?.lineCount} lines)`;
     default:
       if (isExecuting) return "Processing...";
       return "Done";

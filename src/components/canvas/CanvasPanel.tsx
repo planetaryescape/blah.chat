@@ -21,14 +21,14 @@ export function CanvasPanel({ documentId, onClose }: CanvasPanelProps) {
 
   if (!document) {
     return (
-      <div className="w-[360px] border-l bg-card flex items-center justify-center">
+      <div className="h-full border-l bg-card flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-[360px] border-l bg-card flex flex-col h-full">
+    <div className="h-full border-l bg-card flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2 min-w-0">

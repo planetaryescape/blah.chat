@@ -5,14 +5,12 @@
  * Embeddings are generated lazily on-demand during first match check.
  */
 
-import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { v } from "convex/values";
+import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
-
-const EMBEDDING_MODEL = openai.embedding("text-embedding-3-small");
 
 /**
  * Generate and store embedding for a tag (lazy generation)

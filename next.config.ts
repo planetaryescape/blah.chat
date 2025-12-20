@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.convex.cloud",
+      },
+    ],
+  },
 };
 
 export default withBundleAnalyzer(nextConfig);

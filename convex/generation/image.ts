@@ -1,8 +1,8 @@
+import { buildReasoningOptions } from "@/lib/ai/reasoning";
+import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { v } from "convex/values";
-import { buildReasoningOptions } from "@/lib/ai/reasoning";
-import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
@@ -25,7 +25,7 @@ export const generateImage = internalAction({
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
-    const model = args.model || "gemini-3-pro-image";
+    const model = args.model || "gemini-3-pro-image-preview";
 
     // Get model config
     const modelConfig = getModelConfig(model);
@@ -45,6 +45,7 @@ export const generateImage = internalAction({
 
     // Mark thinking started when user wants reasoning
     if (wantsReasoning) {
+      // @ts-ignore - Type depth exceeded with 94+ Convex modules
       await ctx.runMutation(internal.messages.markThinkingStarted, {
         messageId: args.messageId,
       });

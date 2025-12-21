@@ -1,5 +1,10 @@
 import { v } from "convex/values";
 import {
+  applyDiffOperations,
+  type DiffOperation,
+  validateDiffOperations,
+} from "@/lib/canvas/diff";
+import {
   internalMutation,
   internalQuery,
   mutation,
@@ -289,5 +294,80 @@ export const updateContentInternal = internalMutation({
     });
 
     return { version: newVersion };
+  },
+});
+
+// Diff operation validator
+const diffOperationValidator = v.object({
+  type: v.union(v.literal("replace"), v.literal("insert"), v.literal("delete")),
+  startLine: v.optional(v.number()),
+  endLine: v.optional(v.number()),
+  afterLine: v.optional(v.number()),
+  content: v.optional(v.string()),
+  newContent: v.optional(v.string()),
+});
+
+// Internal mutation for tools to apply diff operations
+export const applyDiff = internalMutation({
+  args: {
+    userId: v.id("users"),
+    documentId: v.id("canvasDocuments"),
+    operations: v.array(diffOperationValidator),
+    changeDescription: v.string(),
+  },
+  handler: async (
+    ctx,
+    { userId, documentId, operations, changeDescription },
+  ) => {
+    const doc = await ctx.db.get(documentId);
+    if (!doc) throw new Error("Document not found");
+    if (doc.userId !== userId) throw new Error("Unauthorized");
+
+    // Validate operations
+    const validation = validateDiffOperations(
+      doc.content,
+      operations as DiffOperation[],
+    );
+    if (!validation.valid) {
+      throw new Error(`Invalid diff: ${validation.errors.join(", ")}`);
+    }
+
+    // Apply operations
+    const { result, applied, failed, conflicts } = applyDiffOperations(
+      doc.content,
+      operations as DiffOperation[],
+    );
+
+    if (failed.length > 0 && applied === 0) {
+      throw new Error(`All operations failed: ${failed.join(", ")}`);
+    }
+
+    const newVersion = doc.version + 1;
+    const now = Date.now();
+
+    // Update document
+    await ctx.db.patch(documentId, {
+      content: result,
+      version: newVersion,
+      updatedAt: now,
+    });
+
+    // Store diff in history
+    await ctx.db.insert("canvasHistory", {
+      documentId,
+      userId,
+      content: result,
+      version: newVersion,
+      source: "llm_diff",
+      diff: JSON.stringify({ operations, changeDescription }),
+      createdAt: now,
+    });
+
+    return {
+      version: newVersion,
+      applied,
+      failed,
+      conflicts,
+    };
   },
 });

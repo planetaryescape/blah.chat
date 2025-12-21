@@ -12,10 +12,13 @@ import { CreateDocumentRenderer } from "./CreateDocumentRenderer";
 import { DateTimeRenderer } from "./DateTimeRenderer";
 import { DefaultToolRenderer } from "./DefaultToolRenderer";
 import { DeleteMemoryRenderer } from "./DeleteMemoryRenderer";
+import { EnterDocumentModeRenderer } from "./EnterDocumentModeRenderer";
+import { ExitDocumentModeRenderer } from "./ExitDocumentModeRenderer";
 import { FileDocumentRenderer } from "./FileDocumentRenderer";
 import { ProjectContextRenderer } from "./ProjectContextRenderer";
 import { QueryHistoryRenderer } from "./QueryHistoryRenderer";
 import { ReadDocumentRenderer } from "./ReadDocumentRenderer";
+import { ResolveConflictRenderer } from "./ResolveConflictRenderer";
 import { SaveMemoryRenderer } from "./SaveMemoryRenderer";
 import { SearchAllRenderer } from "./SearchAllRenderer";
 import { SearchFilesRenderer } from "./SearchFilesRenderer";
@@ -56,6 +59,11 @@ export const toolRenderers: Record<string, ComponentType<ToolRendererProps>> = {
   createDocument: CreateDocumentRenderer,
   updateDocument: UpdateDocumentRenderer,
   readDocument: ReadDocumentRenderer,
+  // Document mode tools
+  enterDocumentMode: EnterDocumentModeRenderer,
+  exitDocumentMode: ExitDocumentModeRenderer,
+  // Conflict resolution
+  resolveConflict: ResolveConflictRenderer,
 };
 
 // Export the default as a named export for explicit usage

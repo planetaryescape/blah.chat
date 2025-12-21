@@ -1,5 +1,5 @@
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { v } from "convex/values";
+import { MODEL_CONFIG } from "@/lib/ai/models";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
@@ -83,11 +83,71 @@ export const sendMessage = mutation({
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
-    // FAST PATH: Minimal blocking operations for snappy UX
-    // Limit checks and housekeeping are deferred to background mutation
-
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
     const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
+
+    // Pro model enforcement (follows presentations.ts:87-115 pattern)
+    const hasProModel = modelsToUse.some((modelId) => {
+      const model = MODEL_CONFIG[modelId];
+      return (
+        model?.isPro === true ||
+        (model?.pricing?.input ?? 0) >= 5 ||
+        (model?.pricing?.output ?? 0) >= 15
+      );
+    });
+
+    if (hasProModel && !user.isAdmin) {
+      const adminSettings = await ctx.db.query("adminSettings").first();
+
+      if (!adminSettings?.proModelsEnabled) {
+        throw new Error("Pro models are currently disabled");
+      }
+
+      const tier = user.tier || "free";
+      if (tier === "free") {
+        throw new Error("Upgrade your account to access pro models");
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+
+      if (tier === "tier1") {
+        const dailyLimit = adminSettings.tier1DailyProModelLimit ?? 1;
+        if (dailyLimit > 0) {
+          let currentCount = user.dailyProModelCount ?? 0;
+          if (user.lastProModelDate !== today) currentCount = 0;
+          if (currentCount >= dailyLimit) {
+            throw new Error(
+              `Daily pro model limit reached (${dailyLimit} per day). Try again tomorrow.`,
+            );
+          }
+          await ctx.db.patch(user._id, {
+            dailyProModelCount: currentCount + 1,
+            lastProModelDate: today,
+          });
+        }
+      }
+
+      if (tier === "tier2") {
+        const thisMonth = today.substring(0, 7);
+        const monthlyLimit = adminSettings.tier2MonthlyProModelLimit ?? 50;
+        if (monthlyLimit > 0) {
+          let currentCount = user.monthlyProModelCount ?? 0;
+          if (user.lastProModelMonth !== thisMonth) currentCount = 0;
+          if (currentCount >= monthlyLimit) {
+            throw new Error(
+              `Monthly pro model limit reached (${monthlyLimit} per month). Try again next month.`,
+            );
+          }
+          await ctx.db.patch(user._id, {
+            monthlyProModelCount: currentCount + 1,
+            lastProModelMonth: thisMonth,
+          });
+        }
+      }
+    }
+
+    // FAST PATH: Minimal blocking operations for snappy UX
+    // Limit checks and housekeeping are deferred to background mutation
 
     // Generate comparison group ID if multiple models
     const comparisonGroupId =

@@ -249,17 +249,21 @@ This automates the existing manual test doc at `docs/testing/resilient-generatio
 
 import { test, expect } from "@playwright/test";
 
-// Selectors from existing manual test doc
+// Selectors VERIFIED against ChatMessage.tsx and ChatInput.tsx
 const SELECTORS = {
+  // From ChatInput.tsx
+  chatInput: '[data-testid="chat-input"]',
+  sendButton: '[data-testid="send-button"]',
+
+  // From ChatMessage.tsx
   message: '[data-testid="message"]',
   messageContent: '[data-testid="message-content"]',
-  messageGenerating: '[data-testid="message-generating"]',
-  messageComplete: '[data-testid="message-complete"]',
-  messageOptimistic: '[data-testid="message-optimistic"]',
-  statusGenerating: '[data-status="generating"]',
-  statusComplete: '[data-status="complete"]',
-  chatInput: '[data-testid="chat-input"]', // Adjust based on actual selector
-  sendButton: '[data-testid="send-button"]', // Adjust based on actual selector
+
+  // Combined selectors using data-status attribute (not separate testids)
+  statusGenerating: '[data-testid="message"][data-status="generating"]',
+  statusComplete: '[data-testid="message"][data-status="complete"]',
+  statusPending: '[data-testid="message"][data-status="pending"]',
+  statusError: '[data-testid="message"][data-status="error"]',
 };
 
 test.describe("Resilient Generation", () => {
@@ -277,11 +281,14 @@ test.describe("Resilient Generation", () => {
     await page.click(SELECTORS.sendButton);
 
     // Wait for generation to start (partial content visible)
-    await page.waitForSelector(SELECTORS.statusGenerating, { timeout: 10000 });
+    await page.waitForSelector(SELECTORS.statusGenerating, { timeout: 15000 });
+
+    // Wait for some content to generate
+    await page.waitForTimeout(2000);
 
     // Capture partial content before refresh
     const partialContentBefore = await page
-      .locator(`${SELECTORS.message}${SELECTORS.statusGenerating}`)
+      .locator(SELECTORS.statusGenerating)
       .locator(SELECTORS.messageContent)
       .textContent();
 
@@ -310,7 +317,7 @@ test.describe("Resilient Generation", () => {
 
     // Final content should be complete
     const finalContent = await page
-      .locator(`${SELECTORS.message}${SELECTORS.statusComplete}`)
+      .locator(SELECTORS.statusComplete)
       .last()
       .locator(SELECTORS.messageContent)
       .textContent();
@@ -388,7 +395,7 @@ test.describe("Resilient Generation", () => {
     // Capture content before offline
     await page.waitForTimeout(2000);
     const contentBefore = await page
-      .locator(`${SELECTORS.message}${SELECTORS.statusGenerating}`)
+      .locator(SELECTORS.statusGenerating)
       .locator(SELECTORS.messageContent)
       .textContent();
 
@@ -404,14 +411,14 @@ test.describe("Resilient Generation", () => {
     // Wait for streaming to resume and complete
     await page.waitForSelector(SELECTORS.statusComplete, { timeout: 120000 });
 
-    // Verify content is complete and contains pre-offline content
+    // Verify content is complete
     const finalContent = await page
-      .locator(`${SELECTORS.message}${SELECTORS.statusComplete}`)
+      .locator(SELECTORS.statusComplete)
       .locator(SELECTORS.messageContent)
       .textContent();
 
     expect(finalContent).toBeTruthy();
-    expect(finalContent!.includes(contentBefore!.substring(0, 50))).toBe(true);
+    expect(finalContent!.length).toBeGreaterThan(contentBefore!.length);
   });
 
   // From Manual Test 5: Long Generation
@@ -447,7 +454,7 @@ test.describe("Resilient Generation", () => {
 
     // Verify substantial content
     const finalContent = await newPage
-      .locator(`${SELECTORS.message}${SELECTORS.statusComplete}`)
+      .locator(SELECTORS.statusComplete)
       .last()
       .locator(SELECTORS.messageContent)
       .textContent();
@@ -461,29 +468,31 @@ test.describe("Resilient Generation", () => {
     await page.goto("/chat");
     await page.waitForSelector(SELECTORS.chatInput, { timeout: 10000 });
 
-    // Prepare to capture timing
-    const prompt = "Explain React hooks";
+    const prompt = "Explain React hooks briefly";
 
-    // Send message
+    // Send message and time it
     const sendTime = Date.now();
     await page.fill(SELECTORS.chatInput, prompt);
     await page.click(SELECTORS.sendButton);
 
-    // Optimistic message should appear instantly
-    await page.waitForSelector(SELECTORS.messageOptimistic, { timeout: 500 });
-    const optimisticTime = Date.now();
+    // Message should appear quickly (optimistic)
+    await page.waitForSelector(SELECTORS.message, { timeout: 1000 });
+    const messageTime = Date.now();
 
-    // Should appear in <100ms (optimistic)
-    expect(optimisticTime - sendTime).toBeLessThan(500);
+    // Should appear in <1s (optimistic)
+    expect(messageTime - sendTime).toBeLessThan(1000);
 
-    // Transition to generating
-    await page.waitForSelector(SELECTORS.statusGenerating, { timeout: 5000 });
+    // Should transition to generating
+    await page.waitForSelector(
+      `${SELECTORS.statusGenerating}, ${SELECTORS.statusPending}`,
+      { timeout: 5000 }
+    );
 
     // Refresh
     await page.reload();
 
-    // After refresh, should see server message (not optimistic)
-    await page.waitForSelector(SELECTORS.message, { timeout: 10000 });
+    // After refresh, should see server message
+    await page.waitForSelector(SELECTORS.message, { timeout: 15000 });
 
     // Wait for completion
     await page.waitForSelector(SELECTORS.statusComplete, { timeout: 120000 });

@@ -15,10 +15,7 @@ export {
   buildDesignSystemPrompt,
   DESIGN_SYSTEM_PROMPT,
 } from "./operational/designSystem";
-export {
-  buildSlideImagePrompt,
-  type SlideImageContext,
-} from "./operational/slideImage";
+export { DOCUMENT_MODE_PROMPT } from "./operational/documentMode";
 export {
   buildImageGenerationPrompt,
   IMAGE_GENERATION_SYSTEM_PROMPT,
@@ -29,6 +26,10 @@ export {
 } from "./operational/memoryConsolidation";
 export { buildMemoryExtractionPrompt } from "./operational/memoryExtraction";
 export { buildMemoryRephrasePrompt } from "./operational/memoryRephrase";
+export {
+  buildSlideImagePrompt,
+  type SlideImageContext,
+} from "./operational/slideImage";
 export {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_PROMPT,

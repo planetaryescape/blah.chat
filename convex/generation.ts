@@ -1,5 +1,7 @@
 "use node";
 
+import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
@@ -9,15 +11,17 @@ import {
   getModelConfig,
   type ModelConfig,
 } from "@/lib/ai/utils";
-import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { action, type ActionCtx, internalAction } from "./_generated/server";
+import { type ActionCtx, action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDocumentTool } from "./ai/tools/createDocument";
 import { createDateTimeTool } from "./ai/tools/datetime";
+import {
+  createEnterDocumentModeTool,
+  createExitDocumentModeTool,
+} from "./ai/tools/documentMode";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import {
   createMemoryDeleteTool,
@@ -25,6 +29,7 @@ import {
   createMemorySearchTool,
 } from "./ai/tools/memories";
 import { createReadDocumentTool } from "./ai/tools/readDocument";
+import { createResolveConflictTool } from "./ai/tools/resolveConflict";
 import {
   createQueryHistoryTool,
   createSearchAllTool,
@@ -221,6 +226,15 @@ async function buildSystemPrompts(
         content: `## Project Context\n${project.systemPrompt}`,
       });
     }
+  }
+
+  // === 4.5. DOCUMENT MODE PROMPT (Canvas) ===
+  if (conversation?.mode === "document") {
+    const { DOCUMENT_MODE_PROMPT } = await import("./lib/prompts");
+    systemMessages.push({
+      role: "system",
+      content: DOCUMENT_MODE_PROMPT,
+    });
   }
 
   // === 5. CONVERSATION-LEVEL SYSTEM PROMPT ===
@@ -884,25 +898,42 @@ export const generateResponse = internalAction({
           tools.deleteMemory = memoryDeleteTool;
           tools.manageTasks = taskManagerTool;
 
-          // Canvas document tools
-          const createDocTool = createDocumentTool(
+          // Canvas/Document mode tools
+          const isDocumentMode = conversation?.mode === "document";
+
+          // enterDocumentMode: Always available as entry point
+          tools.enterDocumentMode = createEnterDocumentModeTool(
             ctx,
-            args.userId,
             args.conversationId,
           );
-          const updateDocTool = createUpdateDocumentTool(
-            ctx,
-            args.userId,
-            args.conversationId,
-          );
-          const readDocTool = createReadDocumentTool(
-            ctx,
-            args.userId,
-            args.conversationId,
-          );
-          tools.createDocument = createDocTool;
-          tools.updateDocument = updateDocTool;
-          tools.readDocument = readDocTool;
+
+          // Document tools: Only in document mode
+          if (isDocumentMode) {
+            tools.exitDocumentMode = createExitDocumentModeTool(
+              ctx,
+              args.conversationId,
+            );
+            tools.createDocument = createDocumentTool(
+              ctx,
+              args.userId,
+              args.conversationId,
+            );
+            tools.updateDocument = createUpdateDocumentTool(
+              ctx,
+              args.userId,
+              args.conversationId,
+            );
+            tools.readDocument = createReadDocumentTool(
+              ctx,
+              args.userId,
+              args.conversationId,
+            );
+            tools.resolveConflict = createResolveConflictTool(
+              ctx,
+              args.userId,
+              args.conversationId,
+            );
+          }
         }
 
         // Read tools: Configurable for incognito (search user data)

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { useMutation } from "convex/react";
+import { useCallback, useEffect, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useDebouncedCallback } from "use-debounce";
 
 interface FeedbackInputProps {
   outlineItemId: Id<"outlineItems">;

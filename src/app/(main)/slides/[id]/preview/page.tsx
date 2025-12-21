@@ -1,5 +1,22 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FileEdit,
+  Loader2,
+  Palette,
+  Play,
+  Presentation,
+  RefreshCw,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { use, useCallback, useEffect, useState } from "react";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { DownloadButton } from "@/components/slides/DownloadButton";
@@ -22,22 +39,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { useQuery } from "convex/react";
-import {
-  AlertCircle,
-  ArrowLeft,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  FileEdit,
-  Loader2,
-  Palette,
-  Play,
-  Presentation,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useState } from "react";
 
 export default function PreviewPage({
   params,
@@ -55,12 +56,17 @@ export default function PreviewPage({
   const [zoomOpen, setZoomOpen] = useState(false);
   const [direction, setDirection] = useState(0);
   const [presentMode, setPresentMode] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Queries
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const presentation = useQuery(api.presentations.get, { presentationId });
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const slides = useQuery(api.presentations.getSlides, { presentationId });
+
+  // Mutations
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const retryGeneration = useMutation(api.presentations.retryGeneration);
 
   // Navigation functions
   const nextSlide = useCallback(() => {
@@ -102,6 +108,18 @@ export default function PreviewPage({
       });
   }, []);
 
+  // Handle retry generation for stuck presentations
+  const handleRetry = useCallback(async () => {
+    setIsRetrying(true);
+    try {
+      await retryGeneration({ presentationId });
+    } catch (e) {
+      console.error("Retry failed:", e);
+    } finally {
+      setIsRetrying(false);
+    }
+  }, [retryGeneration, presentationId]);
+
   // Keyboard navigation
   useEffect(() => {
     if (!slides || zoomOpen) return;
@@ -125,7 +143,7 @@ export default function PreviewPage({
         default:
           // Number keys 1-9
           if (e.key >= "1" && e.key <= "9") {
-            const idx = Number.parseInt(e.key) - 1;
+            const idx = Number.parseInt(e.key, 10) - 1;
             jumpToSlide(idx);
           }
       }
@@ -161,6 +179,16 @@ export default function PreviewPage({
       : 0;
   const isGenerating = presentation.status === "slides_generating";
   const isComplete = presentation.status === "slides_complete";
+  // Stuck states: design_generating, design_complete, or slides_generating with no progress
+  const isStuck =
+    presentation.status === "design_generating" ||
+    presentation.status === "design_complete" ||
+    presentation.status === "outline_complete" ||
+    presentation.status === "error" ||
+    (presentation.status === "slides_generating" &&
+      slides.every(
+        (s) => s.imageStatus === "pending" || s.imageStatus === "error",
+      ));
 
   // Status text and icon
   const getStatusText = () => {
@@ -244,6 +272,19 @@ export default function PreviewPage({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {isStuck && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="shrink-0"
+              onClick={handleRetry}
+              disabled={isRetrying}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
+              />
+            </Button>
+          )}
           {isComplete && (
             <Button size="icon" className="shrink-0" onClick={handlePresent}>
               <Play className="h-4 w-4" />
@@ -341,6 +382,19 @@ export default function PreviewPage({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          {isStuck && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              disabled={isRetrying}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isRetrying ? "animate-spin" : ""}`}
+              />
+              Retry
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

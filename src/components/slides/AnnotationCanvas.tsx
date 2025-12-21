@@ -2,11 +2,11 @@
 
 import { getStroke } from "perfect-freehand";
 import {
+  forwardRef,
   useCallback,
   useImperativeHandle,
   useRef,
   useState,
-  forwardRef,
 } from "react";
 import type { ToolType } from "./ToolPalette";
 

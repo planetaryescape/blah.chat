@@ -1,5 +1,10 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { AlertTriangle, ArrowLeft, Loader2, Presentation } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { OutlineActions } from "@/components/slides/outline/OutlineActions";
@@ -18,11 +23,6 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
-import { useMutation } from "convex/react";
-import { AlertTriangle, ArrowLeft, Loader2, Presentation } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export default function OutlineEditorPage({
   params,
@@ -89,7 +89,7 @@ export default function OutlineEditorPage({
   const [isParsing, setIsParsing] = useState(false);
   const [isRecreatingOutline, setIsRecreatingOutline] = useState(false);
   const [selectedImageModel, setSelectedImageModel] = useState(
-    "google:gemini-2.5-flash-image",
+    "google:gemini-3-pro-image-preview",
   );
   const hasAttemptedParse = useRef(false);
   const hasAttemptedRecreate = useRef(false);
@@ -485,10 +485,10 @@ export default function OutlineEditorPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="google:gemini-2.5-flash-image">
-                    Gemini 2.5 Flash (Recommended)
+                    Gemini 2.5 Flash (Budget)
                   </SelectItem>
                   <SelectItem value="google:gemini-3-pro-image-preview">
-                    Gemini 3 Pro (Premium)
+                    Gemini 3 Pro (Recommended)
                   </SelectItem>
                 </SelectContent>
               </Select>

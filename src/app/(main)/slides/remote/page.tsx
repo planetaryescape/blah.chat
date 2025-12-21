@@ -1,9 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import {
   ChevronLeft,
@@ -16,6 +12,10 @@ import {
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 function RemoteControlContent() {
   const searchParams = useSearchParams();
@@ -25,7 +25,7 @@ function RemoteControlContent() {
   const [sessionId, setSessionId] = useState<Id<"presentationSessions"> | null>(
     null,
   );
-  const [isJoining, setIsJoining] = useState(false);
+  const [isJoining, _setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // @ts-ignore - Type depth exceeded with 94+ Convex modules

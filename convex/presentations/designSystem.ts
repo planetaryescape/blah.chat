@@ -1,8 +1,8 @@
 import { streamText } from "ai";
 import { v } from "convex/values";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { DESIGN_SYSTEM_GENERATION_MODEL } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import {
@@ -169,10 +169,28 @@ export const generateDesignSystem = internalAction({
         ),
       });
 
+      // 5-minute timeout to prevent hanging forever (Convex action limit is 10 min)
+      const TIMEOUT_MS = 5 * 60 * 1000;
       let responseText = "";
-      for await (const chunk of result.textStream) {
-        responseText += chunk;
-      }
+
+      const streamPromise = (async () => {
+        for await (const chunk of result.textStream) {
+          responseText += chunk;
+        }
+        return responseText;
+      })();
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () =>
+            reject(
+              new Error("Design system generation timeout after 5 minutes"),
+            ),
+          TIMEOUT_MS,
+        );
+      });
+
+      await Promise.race([streamPromise, timeoutPromise]);
 
       let designSystem: DesignSystem;
       try {

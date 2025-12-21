@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation } from "convex/react";
+import { Check, Loader2, Pencil, RefreshCw, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -7,10 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { useMutation } from "convex/react";
-import { Check, Loader2, Pencil, RefreshCw, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { RegenerateSlideModal } from "./RegenerateSlideModal";
 
 interface Props {
@@ -33,7 +33,7 @@ export function SlideDetails({ slide, slideNumber, totalSlides }: Props) {
   useEffect(() => {
     setSpeakerNotes(slide.speakerNotes || "");
     setIsEditingNotes(false);
-  }, [slide._id, slide.speakerNotes]);
+  }, [slide.speakerNotes]);
 
   const handleSaveNotes = async () => {
     setIsSaving(true);
@@ -96,63 +96,62 @@ export function SlideDetails({ slide, slideNumber, totalSlides }: Props) {
       )}
 
       {/* Speaker Notes - Editable */}
-      <>
-        <Separator />
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium">Speaker Notes</h3>
-            {!isEditingNotes && (
+
+      <Separator />
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium">Speaker Notes</h3>
+          {!isEditingNotes && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => setIsEditingNotes(true)}
+            >
+              <Pencil className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+          )}
+        </div>
+        {isEditingNotes ? (
+          <div className="space-y-2">
+            <Textarea
+              value={speakerNotes}
+              onChange={(e) => setSpeakerNotes(e.target.value)}
+              placeholder="Add speaker notes..."
+              className="min-h-[100px] max-h-[200px] overflow-auto text-sm resize-none"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2"
-                onClick={() => setIsEditingNotes(true)}
+                onClick={handleCancelEdit}
+                disabled={isSaving}
               >
-                <Pencil className="h-3 w-3 mr-1" />
-                Edit
+                <X className="h-3 w-3 mr-1" />
+                Cancel
               </Button>
-            )}
-          </div>
-          {isEditingNotes ? (
-            <div className="space-y-2">
-              <Textarea
-                value={speakerNotes}
-                onChange={(e) => setSpeakerNotes(e.target.value)}
-                placeholder="Add speaker notes..."
-                className="min-h-[100px] max-h-[200px] overflow-auto text-sm resize-none"
-                autoFocus
-              />
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleSaveNotes} disabled={isSaving}>
-                  {isSaving ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <Check className="h-3 w-3 mr-1" />
-                  )}
-                  Save
-                </Button>
-              </div>
+              <Button size="sm" onClick={handleSaveNotes} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Check className="h-3 w-3 mr-1" />
+                )}
+                Save
+              </Button>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {slide.speakerNotes || (
-                <span className="italic text-muted-foreground/60">
-                  No speaker notes yet. Click Edit to add some.
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-      </>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {slide.speakerNotes || (
+              <span className="italic text-muted-foreground/60">
+                No speaker notes yet. Click Edit to add some.
+              </span>
+            )}
+          </p>
+        )}
+      </div>
 
       <Separator />
 

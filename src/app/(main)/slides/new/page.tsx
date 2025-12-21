@@ -1,5 +1,22 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CheckCircle2,
+  ChevronDown,
+  FileIcon,
+  Loader2,
+  Mic,
+  Palette,
+  PenTool,
+  Sparkles,
+  Upload,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { TemplateUpload } from "@/components/slides/TemplateUpload";
@@ -18,32 +35,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
+  buildEnhanceOutlinePrompt,
+  buildParseOutlinePrompt,
   SLIDES_OUTLINE_ENHANCE_SYSTEM_PROMPT,
   SLIDES_OUTLINE_PARSE_SYSTEM_PROMPT,
   SLIDES_OUTLINE_SYSTEM_PROMPT,
-  buildEnhanceOutlinePrompt,
-  buildParseOutlinePrompt,
 } from "@/convex/lib/prompts/operational/slidesOutline";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { cn } from "@/lib/utils";
-import { useMutation } from "convex/react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  CheckCircle2,
-  ChevronDown,
-  FileIcon,
-  Loader2,
-  Mic,
-  Palette,
-  PenTool,
-  Sparkles,
-  Upload,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
 
 export default function NewSlidesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <NewSlidesContent />
+    </Suspense>
+  );
+}
+
+function NewSlidesContent() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
@@ -60,6 +75,51 @@ export default function NewSlidesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { showSlides, isLoading } = useFeatureToggles();
+
+  // Source content from chat (for "Create Presentation from..." flow)
+  const [sourceMessageId] = useQueryState("messageId", parseAsString);
+  const [sourceConversationId] = useQueryState("conversationId", parseAsString);
+
+  // Fetch conversation messages if source provided
+  // @ts-ignore - Type depth exceeded
+  const sourceMessages = useQuery(
+    api.messages.list,
+    sourceConversationId
+      ? { conversationId: sourceConversationId as Id<"conversations"> }
+      : "skip",
+  );
+
+  // Auto-populate from chat source
+  useEffect(() => {
+    if (!sourceMessages || input) return;
+
+    // If messageId specified, use just that message
+    if (sourceMessageId) {
+      const message = sourceMessages.find(
+        (m: { _id: string }) => m._id === sourceMessageId,
+      );
+      if (message?.content) {
+        setInput(message.content);
+      }
+      return;
+    }
+
+    // Otherwise format full conversation
+    const formatted = sourceMessages
+      .filter(
+        (m: { status: string; content?: string }) =>
+          m.status === "complete" && m.content,
+      )
+      .map(
+        (m: { role: string; content: string }) =>
+          `**${m.role === "user" ? "User" : "Assistant"}:**\n${m.content}`,
+      )
+      .join("\n\n---\n\n");
+
+    if (formatted) {
+      setInput(formatted);
+    }
+  }, [sourceMessages, sourceMessageId, input]);
 
   // Handle document upload
   const handleFileUpload = useCallback(
@@ -156,8 +216,9 @@ export default function NewSlidesPage() {
 
       const conversationId = await createConversation({
         model: "google:gemini-3-flash",
-        title: `Slides: ${presentationTitle}`,
+        title: "New Chat", // Triggers auto-title after first AI response
         systemPrompt,
+        isPresentation: true,
       });
 
       await linkConversation({

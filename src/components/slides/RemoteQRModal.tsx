@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { Copy, RefreshCw, Smartphone } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,10 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
-import { Copy, QrCode, RefreshCw, Smartphone } from "lucide-react";
-import QRCode from "react-qr-code";
-import { useCallback, useEffect, useState } from "react";
 
 interface RemoteQRModalProps {
   open: boolean;

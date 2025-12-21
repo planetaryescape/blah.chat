@@ -1,9 +1,5 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { usePresentationSync } from "@/hooks/usePresentationSync";
-import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -17,6 +13,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { usePresentationSync } from "@/hooks/usePresentationSync";
+import { cn } from "@/lib/utils";
 import { AnnotationCanvas, type AnnotationCanvasRef } from "./AnnotationCanvas";
 import { LaserPointer } from "./LaserPointer";
 import { RemoteQRModal } from "./RemoteQRModal";
@@ -109,7 +109,7 @@ export function PresentationMode({
   }, []);
 
   // Update canUndo when strokes change
-  const updateCanUndo = useCallback(() => {
+  const _updateCanUndo = useCallback(() => {
     setCanUndo(canvasRef.current?.canUndo() ?? false);
   }, []);
 
@@ -142,7 +142,7 @@ export function PresentationMode({
       setDirection(session.currentSlide > currentIndex ? 1 : -1);
       setCurrentIndex(session.currentSlide);
     }
-  }, [session?.currentSlide, currentIndex]);
+  }, [session?.currentSlide, currentIndex, session]);
 
   // Navigation functions
   const nextSlide = useCallback(() => {
@@ -305,7 +305,7 @@ export function PresentationMode({
           // Number keys 1-9, 0
           if (e.key >= "1" && e.key <= "9") {
             e.preventDefault();
-            jumpToSlide(Number.parseInt(e.key) - 1);
+            jumpToSlide(Number.parseInt(e.key, 10) - 1);
           } else if (e.key === "0") {
             e.preventDefault();
             jumpToSlide(9);

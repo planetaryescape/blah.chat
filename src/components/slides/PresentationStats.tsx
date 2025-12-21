@@ -1,5 +1,6 @@
 "use client";
 
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -8,7 +9,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { Info } from "lucide-react";
 
 interface PresentationStatsProps {
   slides: Array<{

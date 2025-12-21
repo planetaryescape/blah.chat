@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Eraser, Highlighter, Pen, Trash2, Undo2 } from "lucide-react";
 import { useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export type ToolType = "pen" | "highlighter" | "eraser";
 

@@ -1,6 +1,6 @@
-import { getModel } from "@/lib/ai/registry";
 import { streamText } from "ai";
 import { v } from "convex/values";
+import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "../src/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "../src/lib/ai/operational-models";
 import { internal } from "./_generated/api";
@@ -1020,6 +1020,36 @@ export const updateSlideCostInternal = internalMutation({
   },
 });
 
+// Check if all slides are complete and update presentation status
+export const checkAndCompletePresentation = internalMutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.status === "slides_complete") return;
+
+    const slides = await ctx.db
+      .query("slides")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .collect();
+
+    if (slides.length === 0) return;
+
+    const allComplete = slides.every((s) => s.imageStatus === "complete");
+    if (allComplete) {
+      await ctx.db.patch(args.presentationId, {
+        status: "slides_complete",
+        generatedSlideCount: slides.length,
+        updatedAt: Date.now(),
+      });
+      console.log(
+        `Presentation ${args.presentationId} auto-completed: all ${slides.length} slides done`,
+      );
+    }
+  },
+});
+
 // Update image model selection
 export const updateImageModel = mutation({
   args: {
@@ -1730,5 +1760,107 @@ export const downloadPPTX = mutation({
 
     // Return generating status - client will poll
     return { success: true, generating: true, cached: false };
+  },
+});
+
+/**
+ * Retry generation for stuck presentations
+ * Handles presentations stuck in intermediate states (design_generating, design_complete, slides_generating)
+ */
+export const retryGeneration = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    const status = presentation.status;
+
+    // Handle design_generating - reset and retry design system
+    if (status === "design_generating") {
+      await ctx.db.patch(args.presentationId, {
+        status: "outline_complete",
+        updatedAt: Date.now(),
+      });
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.designSystem.generateDesignSystem,
+        { presentationId: args.presentationId },
+      );
+      return { success: true, retried: "design_system" };
+    }
+
+    // Handle design_complete - retry slide generation
+    if (status === "design_complete") {
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
+      return { success: true, retried: "slides" };
+    }
+
+    // Handle slides_generating - reset pending slides and retry
+    if (status === "slides_generating") {
+      // Reset all pending/error slides back to pending
+      const slides = await ctx.db
+        .query("slides")
+        .withIndex("by_presentation", (q) =>
+          q.eq("presentationId", args.presentationId),
+        )
+        .collect();
+
+      const pendingSlides = slides.filter(
+        (s) => s.imageStatus === "pending" || s.imageStatus === "error",
+      );
+
+      if (pendingSlides.length === 0) {
+        // All slides complete, update presentation status
+        await ctx.db.patch(args.presentationId, {
+          status: "slides_complete",
+          updatedAt: Date.now(),
+        });
+        return { success: true, retried: "status_fixed" };
+      }
+
+      // Reset to design_complete and retry slide generation
+      await ctx.db.patch(args.presentationId, {
+        status: "design_complete",
+        generatedSlideCount: slides.length - pendingSlides.length,
+        updatedAt: Date.now(),
+      });
+
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
+      return {
+        success: true,
+        retried: "slides",
+        pendingCount: pendingSlides.length,
+      };
+    }
+
+    // Handle outline_complete - start design system
+    if (status === "outline_complete") {
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.designSystem.generateDesignSystem,
+        { presentationId: args.presentationId },
+      );
+      return { success: true, retried: "design_system" };
+    }
+
+    return { success: false, reason: `Cannot retry from status: ${status}` };
   },
 });

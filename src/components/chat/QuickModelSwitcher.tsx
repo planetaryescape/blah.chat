@@ -52,8 +52,24 @@ export function QuickModelSwitcher({
   const { recents, addRecent } = useRecentModels();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const _user = useQuery(api.users.getCurrentUser);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const proAccess = useQuery(api.adminSettings.getProModelAccess);
 
   const prefDefaultModel = useUserPreference("defaultModel");
+
+  // Pro model detection (explicit flag OR price threshold)
+  const isProModel = (model: ModelConfig) =>
+    model.isPro === true ||
+    (model.pricing?.input ?? 0) >= 5 ||
+    (model.pricing?.output ?? 0) >= 15;
+
+  // Filter models by pro access
+  const filterAccessibleModels = (models: ModelConfig[]) =>
+    models.filter((model) => {
+      if (!isProModel(model)) return true;
+      if (!proAccess) return false; // Hide while loading
+      return proAccess.canUse;
+    });
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -83,28 +99,42 @@ export function QuickModelSwitcher({
     rest,
   } = sortModels(allModels, prefDefaultModel, favorites, recents);
 
-  // Filter models by active category
+  // Filter models by active category and pro access
   const filteredModels = useMemo(() => {
     const category = MODEL_CATEGORIES.find((c) => c.id === activeCategory);
-    if (!category || category.id === "all") {
-      return {
-        defaultModel,
-        favorites: favModels,
-        recents: recentModels,
-        rest,
+
+    // Apply category filter first
+    let filtered = {
+      defaultModel: defaultModel,
+      favorites: favModels,
+      recents: recentModels,
+      rest: rest,
+    };
+
+    if (category && category.id !== "all") {
+      filtered = {
+        defaultModel:
+          defaultModel && category.filter(defaultModel)
+            ? defaultModel
+            : undefined,
+        favorites: favModels.filter(category.filter),
+        recents: recentModels.filter(category.filter),
+        rest: rest.filter(category.filter),
       };
     }
 
+    // Apply pro access filter
     return {
       defaultModel:
-        defaultModel && category.filter(defaultModel)
-          ? defaultModel
+        filtered.defaultModel &&
+        (!isProModel(filtered.defaultModel) || proAccess?.canUse)
+          ? filtered.defaultModel
           : undefined,
-      favorites: favModels.filter(category.filter),
-      recents: recentModels.filter(category.filter),
-      rest: rest.filter(category.filter),
+      favorites: filterAccessibleModels(filtered.favorites),
+      recents: filterAccessibleModels(filtered.recents),
+      rest: filterAccessibleModels(filtered.rest),
     };
-  }, [activeCategory, defaultModel, favModels, recentModels, rest]);
+  }, [activeCategory, defaultModel, favModels, recentModels, rest, proAccess]);
 
   const restByProvider = filteredModels.rest.reduce(
     (acc, model) => {
@@ -179,6 +209,12 @@ export function QuickModelSwitcher({
       activeCategory={activeCategory}
       onSelect={handleSelect}
       onToggleFavorite={toggleFavorite}
+      isPro={isProModel(model)}
+      proAccessRemaining={
+        isProModel(model) && proAccess
+          ? (proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null)
+          : null
+      }
     />
   );
 

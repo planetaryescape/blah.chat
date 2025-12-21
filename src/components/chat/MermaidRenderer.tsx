@@ -1,10 +1,10 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Copy, Download, Maximize2, Minimize2 } from "lucide-react";
 import mermaid from "mermaid";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface MermaidRendererProps {
   code: string;

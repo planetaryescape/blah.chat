@@ -4,11 +4,6 @@ import { useMutation, useQuery } from "convex/react";
 import { AlertCircle } from "lucide-react";
 import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -89,7 +84,7 @@ export const ChatMessage = memo(
     const isUser = message.role === "user";
     const isGenerating = ["pending", "generating"].includes(message.status);
     const isError = message.status === "error";
-    const isStopped = message.status === "stopped";
+    const _isStopped = message.status === "stopped";
 
     // Check if this is a temporary optimistic message (not yet persisted)
     const isTempMessage =

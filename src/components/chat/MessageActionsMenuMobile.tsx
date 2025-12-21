@@ -7,6 +7,7 @@ import {
   FileText,
   GitBranch,
   MoreHorizontal,
+  Presentation,
   RotateCcw,
   Trash2,
 } from "lucide-react";
@@ -35,6 +36,7 @@ interface MessageActionsMenuMobileProps {
   onCopy: () => void;
   onSaveAsNote?: () => void;
   onBookmark?: () => void;
+  onCreatePresentation?: () => void;
 }
 
 export function MessageActionsMenuMobile({
@@ -44,6 +46,7 @@ export function MessageActionsMenuMobile({
   onCopy,
   onSaveAsNote,
   onBookmark,
+  onCreatePresentation,
 }: MessageActionsMenuMobileProps) {
   const router = useRouter();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
@@ -123,8 +126,18 @@ export function MessageActionsMenuMobile({
           </DropdownMenuItem>
         )}
 
+        {/* Create Presentation */}
+        {onCreatePresentation && (
+          <DropdownMenuItem onClick={onCreatePresentation}>
+            <Presentation className="mr-2 h-4 w-4" />
+            <span>Create Presentation</span>
+          </DropdownMenuItem>
+        )}
+
         {/* Separator after optional actions */}
-        {(onBookmark || onSaveAsNote) && <DropdownMenuSeparator />}
+        {(onBookmark || onSaveAsNote || onCreatePresentation) && (
+          <DropdownMenuSeparator />
+        )}
 
         {/* Regenerate - only for assistant messages when not generating */}
         {!isUser && !isGenerating && (

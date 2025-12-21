@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useChatInputEvents } from "@/hooks/useChatInputEvents";
 import useBrowserFeature from "@/hooks/useBrowserFeature";
+import { useChatInputEvents } from "@/hooks/useChatInputEvents";
 import { useChatInputKeyboard } from "@/hooks/useChatInputKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";

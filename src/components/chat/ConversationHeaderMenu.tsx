@@ -8,10 +8,12 @@ import {
   Maximize2,
   MoreHorizontal,
   Pin,
+  Presentation,
   Sparkles,
   Star,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,7 @@ import {
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useConversationActions } from "@/hooks/useConversationActions";
+import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
@@ -50,9 +53,15 @@ interface ConversationHeaderMenuProps {
 export function ConversationHeaderMenu({
   conversation,
 }: ConversationHeaderMenuProps) {
+  const router = useRouter();
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
+  const { showSlides } = useFeatureToggles();
+
+  const handleCreatePresentation = () => {
+    router.push(`/slides/new?conversationId=${conversation._id}`);
+  };
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const _user = useQuery(api.users.getCurrentUser);
@@ -192,6 +201,18 @@ export function ConversationHeaderMenu({
             <Archive className="mr-2 h-4 w-4" />
             Archive
           </DropdownMenuItem>
+
+          {showSlides && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreatePresentation();
+              }}
+            >
+              <Presentation className="mr-2 h-4 w-4" />
+              Create Presentation
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
             onClick={(e) => {

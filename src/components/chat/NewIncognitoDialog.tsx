@@ -1,12 +1,10 @@
 "use client";
 
+import { useMutation } from "convex/react";
 import { Ghost, Search, Sparkles, Timer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { api } from "@/convex/_generated/api";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { api } from "@/convex/_generated/api";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 
 interface NewIncognitoDialogProps {
   open: boolean;

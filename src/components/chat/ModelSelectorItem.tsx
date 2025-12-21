@@ -24,6 +24,7 @@ interface ModelSelectorItemProps {
   onToggleFavorite: (modelId: string) => void;
   isPro?: boolean;
   proAccessRemaining?: number | null;
+  isDisabled?: boolean;
 }
 
 /**
@@ -50,6 +51,7 @@ export function ModelSelectorItem({
   onToggleFavorite,
   isPro = false,
   proAccessRemaining = null,
+  isDisabled = false,
 }: ModelSelectorItemProps) {
   // Get model categories (only for "All" view)
   const _categories = activeCategory === "all" ? getModelCategories(model) : [];
@@ -63,6 +65,7 @@ export function ModelSelectorItem({
       className={cn(
         "group flex items-center justify-between px-3 py-3 rounded-lg cursor-pointer aria-selected:bg-muted/50 data-[selected=true]:bg-muted/50 transition-colors",
         isSelected ? "bg-primary/5" : "",
+        isDisabled && "opacity-50 cursor-not-allowed",
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -106,7 +109,13 @@ export function ModelSelectorItem({
                 Pro
               </span>
             )}
+            {isPro && isDisabled && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                Upgrade
+              </span>
+            )}
             {isPro &&
+              !isDisabled &&
               proAccessRemaining !== null &&
               proAccessRemaining !== undefined &&
               proAccessRemaining !== Number.POSITIVE_INFINITY && (

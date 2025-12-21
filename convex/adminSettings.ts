@@ -207,23 +207,24 @@ export const getProModelAccess = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return { canUse: false, reason: "Not authenticated" };
+    if (!user) return { canUse: false, reason: "Not authenticated", tier: "free" };
     if (user.isAdmin)
       return {
         canUse: true,
         remainingDaily: Number.POSITIVE_INFINITY,
         remainingMonthly: Number.POSITIVE_INFINITY,
+        tier: "admin",
       };
 
     const settings = await ctx.db.query("adminSettings").first();
     if (!settings?.proModelsEnabled)
-      return { canUse: false, reason: "Pro models disabled" };
+      return { canUse: false, reason: "Pro models disabled", tier: user.tier || "free" };
 
     const tier = user.tier || "free";
     const today = new Date().toISOString().split("T")[0];
 
     if (tier === "free")
-      return { canUse: false, reason: "Upgrade to access pro models" };
+      return { canUse: false, reason: "Upgrade to access pro models", tier };
 
     if (tier === "tier1") {
       const limit = settings.tier1DailyProModelLimit ?? 1;
@@ -234,6 +235,7 @@ export const getProModelAccess = query({
         canUse: remaining > 0,
         reason: remaining === 0 ? "Daily limit reached" : undefined,
         remainingDaily: remaining,
+        tier,
       };
     }
 
@@ -249,9 +251,10 @@ export const getProModelAccess = query({
         canUse: remaining > 0,
         reason: remaining === 0 ? "Monthly limit reached" : undefined,
         remainingMonthly: remaining,
+        tier,
       };
     }
 
-    return { canUse: false, reason: "Unknown tier" };
+    return { canUse: false, reason: "Unknown tier", tier };
   },
 });

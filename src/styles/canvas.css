@@ -1,0 +1,67 @@
+/* Canvas Editor Diff Styles */
+
+/* Line changed by user (pending sync) */
+.canvas-line-changed {
+  background-color: oklch(0.85 0.15 85 / 0.15);
+}
+
+.dark .canvas-line-changed {
+  background-color: oklch(0.65 0.15 85 / 0.2);
+}
+
+/* Gutter indicator for changed lines */
+.canvas-glyph-changed::before {
+  content: "";
+  display: block;
+  width: 3px;
+  height: 100%;
+  background-color: oklch(0.7 0.15 85);
+  border-radius: 1px;
+}
+
+/* Line added by LLM diff */
+.canvas-line-added {
+  background-color: oklch(0.85 0.15 145 / 0.15);
+}
+
+.dark .canvas-line-added {
+  background-color: oklch(0.45 0.15 145 / 0.2);
+}
+
+.canvas-glyph-added::before {
+  content: "";
+  display: block;
+  width: 3px;
+  height: 100%;
+  background-color: oklch(0.6 0.2 145);
+  border-radius: 1px;
+}
+
+/* Line removed indicator (shown in gutter only) */
+.canvas-glyph-removed::before {
+  content: "";
+  display: block;
+  width: 3px;
+  height: 100%;
+  background-color: oklch(0.6 0.2 25);
+  border-radius: 1px;
+}
+
+/* Inline diff highlight for replaced content */
+.canvas-inline-old {
+  background-color: oklch(0.85 0.15 25 / 0.3);
+  text-decoration: line-through;
+  text-decoration-color: oklch(0.5 0.2 25);
+}
+
+.canvas-inline-new {
+  background-color: oklch(0.85 0.15 145 / 0.3);
+}
+
+.dark .canvas-inline-old {
+  background-color: oklch(0.4 0.15 25 / 0.4);
+}
+
+.dark .canvas-inline-new {
+  background-color: oklch(0.4 0.15 145 / 0.4);
+}

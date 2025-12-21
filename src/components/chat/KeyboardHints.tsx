@@ -1,5 +1,5 @@
-import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import { HydrationSafeShortcutBadge } from "@/components/chat/HydrationSafeShortcutBadge";
+import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 
 interface KeyboardHintsProps {

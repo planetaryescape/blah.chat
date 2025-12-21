@@ -6,7 +6,6 @@ import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import { useTheme } from "next-themes";
 import { Component, memo, type ReactNode, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { CodeBlock } from "./CodeBlock";

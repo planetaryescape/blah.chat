@@ -81,6 +81,27 @@ function ChatPageContent({
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
+  // Auto-close Canvas when exiting document mode
+  const isDocumentMode = conversation?.mode === "document";
+  useEffect(() => {
+    if (!isDocumentMode && documentId) {
+      setDocumentId(null);
+    }
+  }, [isDocumentMode, documentId, setDocumentId]);
+
+  // Clear Canvas when switching conversations
+  // Only run when conversationId changes (URL navigation), not on every render
+  const prevConversationIdRef = useRef(conversationId);
+  useEffect(() => {
+    if (prevConversationIdRef.current !== conversationId) {
+      prevConversationIdRef.current = conversationId;
+      // New conversation - clear any stale documentId
+      if (documentId) {
+        setDocumentId(null);
+      }
+    }
+  }, [conversationId, documentId, setDocumentId]);
+
   // Optimistic UI: Overlay local optimistic messages on top of server state
   // Using useState instead of useOptimistic for instant rendering with TanStack Query
   type ServerMessage = NonNullable<typeof serverMessages>[number];
@@ -365,12 +386,12 @@ function ChatPageContent({
     }
   }, [messages, switchedModelId, switchedModelAt, conversation?.model]);
 
-  // Auto-open canvas panel when conversation has an active document
+  // Auto-open canvas panel when conversation has an active document AND is in document mode
   useEffect(() => {
-    if (activeCanvasDocument && !documentId) {
+    if (activeCanvasDocument && !documentId && isDocumentMode) {
       setDocumentId(activeCanvasDocument._id);
     }
-  }, [activeCanvasDocument, documentId, setDocumentId]);
+  }, [activeCanvasDocument, documentId, setDocumentId, isDocumentMode]);
 
   // Quick model switcher keyboard shortcut (⌘J)
   useEffect(() => {
@@ -538,166 +559,165 @@ function ChatPageContent({
         id="chat-canvas-layout"
       >
         {/* Chat Panel - always renders, takes full width when canvas closed */}
-        <ResizablePanel
-          defaultSize={documentId ? 45 : 100}
-          minSize={30}
-        >
+        <ResizablePanel defaultSize={documentId ? 45 : 100} minSize={30}>
           <div className="relative flex h-full flex-col overflow-hidden">
             <ChatHeader
-            conversation={conversation}
-            conversationId={conversationId}
-            selectedModel={displayModel}
-            modelLoading={modelLoading}
-            hasMessages={hasMessages}
-            messageCount={messageCount}
-            isFirst={isFirst}
-            isLast={isLast}
-            isComparisonActive={isActive}
-            comparisonModelCount={selectedModels.length}
-            showProjects={features.showProjects}
-            onNavigatePrevious={navigateToPrevious}
-            onNavigateNext={navigateToNext}
-            onModelBadgeClick={() => setModelSelectorOpen(true)}
-            onComparisonBadgeClick={() => setComparisonDialogOpen(true)}
-          />
-
-          <TTSPlayerBar />
-
-          {serverMessages === undefined ||
-          paginationStatus === "LoadingFirstPage" ? (
-            <MessageListSkeleton chatWidth={chatWidth} />
-          ) : (
-            <>
-              {/* Load More Button (fallback for top of list) */}
-              {paginationStatus === "CanLoadMore" && (
-                <div className="flex justify-center p-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => loadMore(50)}
-                    className="text-sm"
-                  >
-                    Load older messages
-                  </Button>
-                </div>
-              )}
-              {paginationStatus === "LoadingMore" && (
-                <div className="flex justify-center p-4">
-                  <div className="text-sm text-muted-foreground">
-                    Loading more messages...
-                  </div>
-                </div>
-              )}
-
-              {/* Invisible div for intersection observer */}
-              <div ref={messageListTopRef} className="h-px" />
-
-              <VirtualizedMessageList
-                messages={messages as Doc<"messages">[]}
-                selectedModel={displayModel}
-                chatWidth={chatWidth}
-                onVote={handleVote}
-                onConsolidate={handleConsolidate}
-                onToggleModelNames={() => setShowModelNames(!showModelNames)}
-                showModelNames={showModelNames ?? false}
-                syncScroll={syncScroll ?? true}
-                highlightMessageId={highlightMessageId}
-                isCollaborative={conversation?.isCollaborative}
-              />
-            </>
-          )}
-
-          <div className="relative px-4 pb-4">
-            <ProgressiveHints
-              messageCount={messages?.length ?? 0}
-              conversationCount={filteredConversations?.length ?? 0}
+              conversation={conversation}
+              conversationId={conversationId}
+              selectedModel={displayModel}
+              modelLoading={modelLoading}
+              hasMessages={hasMessages}
+              messageCount={messageCount}
+              isFirst={isFirst}
+              isLast={isLast}
+              isComparisonActive={isActive}
+              comparisonModelCount={selectedModels.length}
+              showProjects={features.showProjects}
+              onNavigatePrevious={navigateToPrevious}
+              onNavigateNext={navigateToNext}
+              onModelBadgeClick={() => setModelSelectorOpen(true)}
+              onComparisonBadgeClick={() => setComparisonDialogOpen(true)}
             />
 
-            {/* Model Recommendation Banner */}
-            {conversation?.modelRecommendation &&
-              !conversation.modelRecommendation.dismissed && (
-                <ModelRecommendationBanner
-                  recommendation={conversation.modelRecommendation}
+            <TTSPlayerBar />
+
+            {serverMessages === undefined ||
+            paginationStatus === "LoadingFirstPage" ? (
+              <MessageListSkeleton chatWidth={chatWidth} />
+            ) : (
+              <>
+                {/* Load More Button (fallback for top of list) */}
+                {paginationStatus === "CanLoadMore" && (
+                  <div className="flex justify-center p-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => loadMore(50)}
+                      className="text-sm"
+                    >
+                      Load older messages
+                    </Button>
+                  </div>
+                )}
+                {paginationStatus === "LoadingMore" && (
+                  <div className="flex justify-center p-4">
+                    <div className="text-sm text-muted-foreground">
+                      Loading more messages...
+                    </div>
+                  </div>
+                )}
+
+                {/* Invisible div for intersection observer */}
+                <div ref={messageListTopRef} className="h-px" />
+
+                <VirtualizedMessageList
+                  messages={messages as Doc<"messages">[]}
+                  selectedModel={displayModel}
+                  chatWidth={chatWidth}
+                  onVote={handleVote}
+                  onConsolidate={handleConsolidate}
+                  onToggleModelNames={() => setShowModelNames(!showModelNames)}
+                  showModelNames={showModelNames ?? false}
+                  syncScroll={syncScroll ?? true}
+                  highlightMessageId={highlightMessageId}
+                  isCollaborative={conversation?.isCollaborative}
+                />
+              </>
+            )}
+
+            <div className="relative px-4 pb-4">
+              <ProgressiveHints
+                messageCount={messages?.length ?? 0}
+                conversationCount={filteredConversations?.length ?? 0}
+              />
+
+              {/* Model Recommendation Banner */}
+              {conversation?.modelRecommendation &&
+                !conversation.modelRecommendation.dismissed && (
+                  <ModelRecommendationBanner
+                    recommendation={conversation.modelRecommendation}
+                    conversationId={conversationId}
+                    onSwitch={handleSwitchModel}
+                    onPreview={handlePreviewModel}
+                  />
+                )}
+
+              {/* Set Default Model Prompt (shows after successful generation) */}
+              {showSetDefaultPrompt && switchedModelId && (
+                <SetDefaultModelPrompt
+                  modelId={switchedModelId}
+                  modelName={
+                    MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
+                  }
                   conversationId={conversationId}
-                  onSwitch={handleSwitchModel}
-                  onPreview={handlePreviewModel}
+                  onSetDefault={handleSetAsDefault}
+                  onDismiss={() => setShowSetDefaultPrompt(false)}
                 />
               )}
 
-            {/* Set Default Model Prompt (shows after successful generation) */}
-            {showSetDefaultPrompt && switchedModelId && (
-              <SetDefaultModelPrompt
-                modelId={switchedModelId}
-                modelName={
-                  MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
-                }
+              <ChatInput
                 conversationId={conversationId}
-                onSetDefault={handleSetAsDefault}
-                onDismiss={() => setShowSetDefaultPrompt(false)}
+                chatWidth={chatWidth}
+                isGenerating={isGenerating}
+                selectedModel={displayModel}
+                onModelChange={handleModelChange}
+                thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
+                onThinkingEffortChange={setThinkingEffort}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                isComparisonMode={isActive}
+                selectedModels={selectedModels}
+                onStartComparison={startComparison}
+                onExitComparison={exitComparison}
+                isEmpty={messages?.length === 0}
+                modelSelectorOpen={modelSelectorOpen}
+                onModelSelectorOpenChange={setModelSelectorOpen}
+                comparisonDialogOpen={comparisonDialogOpen}
+                onComparisonDialogOpenChange={setComparisonDialogOpen}
+                onOptimisticUpdate={addOptimisticMessages}
               />
-            )}
+            </div>
 
-            <ChatInput
-              conversationId={conversationId}
-              chatWidth={chatWidth}
-              isGenerating={isGenerating}
-              selectedModel={displayModel}
-              onModelChange={handleModelChange}
-              thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
-              onThinkingEffortChange={setThinkingEffort}
-              attachments={attachments}
-              onAttachmentsChange={setAttachments}
-              isComparisonMode={isActive}
-              selectedModels={selectedModels}
-              onStartComparison={startComparison}
-              onExitComparison={exitComparison}
-              isEmpty={messages?.length === 0}
-              modelSelectorOpen={modelSelectorOpen}
-              onModelSelectorOpenChange={setModelSelectorOpen}
-              comparisonDialogOpen={comparisonDialogOpen}
-              onComparisonDialogOpenChange={setComparisonDialogOpen}
-              onOptimisticUpdate={addOptimisticMessages}
+            {/* Preview Modal */}
+            {previewModalOpen &&
+              previewModelId &&
+              conversation?.modelRecommendation && (
+                <ModelPreviewModal
+                  open={previewModalOpen}
+                  onOpenChange={setPreviewModalOpen}
+                  currentModelId={
+                    conversation.modelRecommendation.currentModelId
+                  }
+                  suggestedModelId={previewModelId}
+                  currentResponse={
+                    messages?.find((m) => m.role === "assistant")?.content ?? ""
+                  }
+                  onSwitch={handleSwitchModel}
+                  conversationId={conversationId}
+                  userMessage={
+                    messages?.find((m) => m.role === "user")?.content ?? ""
+                  }
+                />
+              )}
+
+            <QuickModelSwitcher
+              open={quickSwitcherOpen}
+              onOpenChange={setQuickSwitcherOpen}
+              currentModel={selectedModel}
+              onSelectModel={handleModelChange}
             />
-          </div>
 
-          {/* Preview Modal */}
-          {previewModalOpen &&
-            previewModelId &&
-            conversation?.modelRecommendation && (
-              <ModelPreviewModal
-                open={previewModalOpen}
-                onOpenChange={setPreviewModalOpen}
-                currentModelId={conversation.modelRecommendation.currentModelId}
-                suggestedModelId={previewModelId}
-                currentResponse={
-                  messages?.find((m) => m.role === "assistant")?.content ?? ""
-                }
-                onSwitch={handleSwitchModel}
-                conversationId={conversationId}
-                userMessage={
-                  messages?.find((m) => m.role === "user")?.content ?? ""
-                }
-              />
-            )}
-
-          <QuickModelSwitcher
-            open={quickSwitcherOpen}
-            onOpenChange={setQuickSwitcherOpen}
-            currentModel={selectedModel}
-            onSelectModel={handleModelChange}
-          />
-
-          <QuickTemplateSwitcher
-            open={templateSelectorOpen}
-            onOpenChange={setTemplateSelectorOpen}
-            mode="insert"
-            onSelectTemplate={(prompt) => {
-              // Dispatch event to insert template into chat input
-              window.dispatchEvent(
-                new CustomEvent("insert-prompt", { detail: prompt }),
-              );
-            }}
-          />
+            <QuickTemplateSwitcher
+              open={templateSelectorOpen}
+              onOpenChange={setTemplateSelectorOpen}
+              mode="insert"
+              onSelectTemplate={(prompt) => {
+                // Dispatch event to insert template into chat input
+                window.dispatchEvent(
+                  new CustomEvent("insert-prompt", { detail: prompt }),
+                );
+              }}
+            />
           </div>
         </ResizablePanel>
 

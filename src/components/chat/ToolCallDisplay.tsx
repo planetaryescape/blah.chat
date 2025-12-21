@@ -14,10 +14,12 @@ import {
   Code,
   ExternalLink,
   Eye,
+  FileEdit,
   FileText,
   FolderTree,
   Globe,
   Loader2,
+  MessageSquare,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -68,6 +70,11 @@ function getToolIcon(toolName: string) {
       return RefreshCw;
     case "readDocument":
       return Eye;
+    // Document mode tools
+    case "enterDocumentMode":
+      return FileEdit;
+    case "exitDocumentMode":
+      return MessageSquare;
     default:
       return Search;
   }
@@ -168,6 +175,14 @@ function getToolLabel(
       if (isExecuting) return "Reading document...";
       if (!result?.hasDocument) return "No document";
       return `Read (${result?.lineCount} lines)`;
+    case "enterDocumentMode":
+      if (isExecuting) return "Entering document mode...";
+      if (result?.success === false) return "Mode switch failed";
+      return "Document mode";
+    case "exitDocumentMode":
+      if (isExecuting) return "Exiting...";
+      if (result?.success === false) return "Exit failed";
+      return "Back to chat";
     default:
       if (isExecuting) return "Processing...";
       return "Done";

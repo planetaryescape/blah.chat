@@ -45,6 +45,37 @@ bun run format            # Biome format --write
 
 ---
 
+## Testing
+
+**Philosophy:** Test like a user, not like a developer. See `docs/testing/testing-philosophy.md` for full guide.
+
+### Commands
+
+```bash
+bun run test              # Vitest watch mode
+bun run test:run          # Single run
+bun run test:e2e          # Playwright E2E
+```
+
+### Test Categories
+
+| Type | Framework | Location |
+|------|-----------|----------|
+| Unit/Integration | Vitest | `**/*.test.ts` |
+| Convex | convex-test | `convex/__tests__/` |
+| E2E | Playwright | `e2e/` |
+
+### Key Principles
+
+1. **Accessibility queries** - `getByRole`, `getByLabelText` over `getByTestId`
+2. **Mock boundaries only** - Network/Convex, not components
+3. **Test behavior** - User interactions → visible outcomes
+4. **Use existing factories** - `src/lib/test/factories.ts`
+
+See `docs/testing/` for implementation phases.
+
+---
+
 ## Key Architecture Patterns
 
 ### Resilient Generation (Critical Feature)
@@ -506,6 +537,7 @@ Current status: Phase 0 setup complete, ready for implementation.
 6. **Convex schema**: Follow schema in `docs/spec.md` exactly
 7. **Cost tracking**: Log tokens/cost on every LLM call
 8. **Pino logging**: Structured JSON logs in API routes
+9. **Testing**: Follow user-centric philosophy in `docs/testing/testing-philosophy.md`
 
 ---
 

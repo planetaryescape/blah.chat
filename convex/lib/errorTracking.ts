@@ -80,6 +80,32 @@ export async function captureException(
 }
 
 /**
+ * Detect "out of credits" errors from API providers
+ * Checks both status codes and error message keywords
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Error handling with unknown API error types
+export function detectCreditsError(error: any): boolean {
+  const errorStr = String(error.message || error).toLowerCase();
+
+  // Check status codes
+  const hasPaymentStatusCode =
+    error.status === 402 || // Payment Required
+    error.status === 429; // Too Many Requests (rate limit)
+
+  // Check error message keywords
+  const hasCreditKeywords =
+    errorStr.includes("credit") ||
+    errorStr.includes("quota") ||
+    errorStr.includes("limit exceeded") ||
+    errorStr.includes("insufficient") ||
+    errorStr.includes("balance") ||
+    errorStr.includes("exceeded your");
+
+  // Combine both signals
+  return hasPaymentStatusCode || hasCreditKeywords;
+}
+
+/**
  * Classify AI streaming errors
  */
 export function classifyStreamingError(error: Error): string {

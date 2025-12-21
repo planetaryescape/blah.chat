@@ -1,19 +1,15 @@
 "use node";
 
-import { type CoreMessage, generateText, stepCountIs, streamText } from "ai";
+import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
-import {
-  calculateCost,
-  getModelConfig,
-  type ModelConfig,
-} from "@/lib/ai/utils";
+import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { type ActionCtx, action, internalAction } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDocumentTool } from "./ai/tools/createDocument";
@@ -42,464 +38,24 @@ import { createUpdateDocumentTool } from "./ai/tools/updateDocument";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
 import { createWebSearchTool } from "./ai/tools/webSearch";
+import { downloadAttachment } from "./generation/attachments";
+import { extractSources, extractWebSearchSources } from "./generation/sources";
 import { trackServerEvent } from "./lib/analytics";
 import {
   captureException,
   classifyStreamingError,
+  detectCreditsError,
   estimateWastedCost,
 } from "./lib/errorTracking";
-import { getBasePrompt } from "./lib/prompts/base";
-import {
-  formatMemoriesByCategory,
-  truncateMemories,
-} from "./lib/prompts/formatting";
+import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
 import {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
+// Re-export generation submodules
 export * as image from "./generation/image";
-
-// Helper to download attachment and convert to base64
-async function downloadAttachment(
-  ctx: ActionCtx,
-  storageId: string,
-): Promise<string> {
-  const url = await ctx.storage.getUrl(storageId);
-  if (!url) throw new Error("Failed to get storage URL");
-
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
-
-  // Convert ArrayBuffer to base64 (Convex-compatible)
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  const base64 = btoa(binary);
-
-  return base64;
-}
-
-// Helper to detect "out of credits" errors from API providers
-// biome-ignore lint/suspicious/noExplicitAny: Error handling with unknown API error types
-function detectCreditsError(error: any): boolean {
-  const errorStr = String(error.message || error).toLowerCase();
-
-  // Check status codes
-  const hasPaymentStatusCode =
-    error.status === 402 || // Payment Required
-    error.status === 429; // Too Many Requests (rate limit)
-
-  // Check error message keywords
-  const hasCreditKeywords =
-    errorStr.includes("credit") ||
-    errorStr.includes("quota") ||
-    errorStr.includes("limit exceeded") ||
-    errorStr.includes("insufficient") ||
-    errorStr.includes("balance") ||
-    errorStr.includes("exceeded your");
-
-  // Combine both signals
-  return hasPaymentStatusCode || hasCreditKeywords;
-}
-
-// Helper function to build system prompts from multiple sources
-// ORDER MATTERS: Later messages have higher effective priority (recency bias in LLMs)
-// Structure: Base (foundation) → Context → User Preferences (highest priority, last)
-async function buildSystemPrompts(
-  ctx: ActionCtx,
-  args: {
-    userId: Id<"users">;
-    conversationId: Id<"conversations">;
-    userMessage: string;
-    modelConfig: ModelConfig;
-    hasFunctionCalling: boolean;
-    prefetchedMemories: string | null;
-  },
-): Promise<{ messages: CoreMessage[]; memoryContent: string | null }> {
-  const systemMessages: CoreMessage[] = [];
-  let memoryContentForTracking: string | null = null;
-
-  // Parallelize context queries (user, project, conversation)
-  const [user, conversation] = (await Promise.all([
-    // @ts-ignore - TypeScript recursion limit with helper queries
-    ctx.runQuery(internal.lib.helpers.getCurrentUser, {}),
-    // @ts-ignore - TypeScript recursion limit with helper queries
-    ctx.runQuery(internal.lib.helpers.getConversation, {
-      id: args.conversationId,
-    }),
-  ])) as [Doc<"users"> | null, Doc<"conversations"> | null];
-
-  // Incognito blank slate: skip custom instructions and memories when configured
-  const isBlankSlate =
-    conversation?.isIncognito &&
-    conversation?.incognitoSettings?.applyCustomInstructions === false;
-
-  // Load custom instructions early (needed for base prompt conditional tone)
-  // Phase 4: Load from new preference system
-  const customInstructions = user
-    ? await ctx.runQuery(
-        // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-        api.users.getUserPreference,
-        {
-          key: "customInstructions",
-        },
-      )
-    : null;
-
-  // === 1. BASE IDENTITY (foundation) ===
-  // Comes first to establish baseline behavior, which user preferences can override
-  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-  const basePromptOptions = {
-    modelConfig: args.modelConfig,
-    hasFunctionCalling: args.hasFunctionCalling,
-    prefetchedMemories: args.prefetchedMemories,
-    currentDate,
-    customInstructions: customInstructions, // Pass to conditionally modify tone section
-  };
-  const basePrompt = getBasePrompt(basePromptOptions);
-
-  systemMessages.push({
-    role: "system",
-    content: basePrompt,
-  });
-
-  // === 2. IDENTITY MEMORIES ===
-  // Skip for incognito blank slate mode
-  if (!isBlankSlate) {
-    try {
-      const identityMemories: Doc<"memories">[] = await ctx.runQuery(
-        internal.memories.search.getIdentityMemories,
-        {
-          userId: args.userId,
-          limit: 20,
-        },
-      );
-
-      if (identityMemories.length > 0) {
-        // Calculate 10% budget for identity memories (conservative)
-        const maxMemoryTokens = Math.floor(
-          args.modelConfig.contextWindow * 0.1,
-        );
-
-        // Truncate by priority
-        const truncated = truncateMemories(identityMemories, maxMemoryTokens);
-
-        memoryContentForTracking = formatMemoriesByCategory(truncated);
-
-        if (memoryContentForTracking) {
-          systemMessages.push({
-            role: "system",
-            content: `## Identity & Preferences\n\n${memoryContentForTracking}`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("[Identity] Failed to load identity memories:", error);
-      // Continue without memories (graceful degradation)
-    }
-  }
-
-  // === 3. CONTEXTUAL MEMORIES (for non-tool models only) ===
-  // Skip for incognito blank slate mode
-  if (args.prefetchedMemories && !isBlankSlate) {
-    systemMessages.push({
-      role: "system",
-      content: `## Contextual Memories\n\n${args.prefetchedMemories}`,
-    });
-  }
-
-  // === 4. PROJECT CONTEXT ===
-  if (conversation?.projectId) {
-    const project: Doc<"projects"> | null = await ctx.runQuery(
-      internal.lib.helpers.getProject,
-      {
-        id: conversation.projectId,
-      },
-    );
-    if (project?.systemPrompt) {
-      systemMessages.push({
-        role: "system",
-        content: `## Project Context\n${project.systemPrompt}`,
-      });
-    }
-  }
-
-  // === 4.5. DOCUMENT MODE PROMPT (Canvas) ===
-  if (conversation?.mode === "document") {
-    const { DOCUMENT_MODE_PROMPT } = await import("./lib/prompts");
-    systemMessages.push({
-      role: "system",
-      content: DOCUMENT_MODE_PROMPT,
-    });
-  }
-
-  // === 5. CONVERSATION-LEVEL SYSTEM PROMPT ===
-  if (conversation?.systemPrompt) {
-    systemMessages.push({
-      role: "system",
-      content: `## Conversation Instructions\n${conversation.systemPrompt}`,
-    });
-  }
-
-  // === 6. USER CUSTOM INSTRUCTIONS (HIGHEST PRIORITY - LAST) ===
-  // Placed last to leverage recency bias in LLMs
-  // Wrapped with explicit override directive
-  // Skip for incognito blank slate mode
-  if (customInstructions?.enabled && !isBlankSlate) {
-    const {
-      aboutUser,
-      responseStyle,
-      baseStyleAndTone,
-      nickname,
-      occupation,
-      moreAboutYou,
-    } = customInstructions;
-
-    // Build personalization sections
-    const sections: string[] = [];
-
-    // User identity section
-    const identityParts: string[] = [];
-    if (nickname) identityParts.push(`Name: ${nickname}`);
-    if (occupation) identityParts.push(`Role: ${occupation}`);
-    if (identityParts.length > 0) {
-      sections.push(`### User Identity\n${identityParts.join("\n")}`);
-    }
-
-    // About the user
-    if (aboutUser || moreAboutYou) {
-      const aboutSections: string[] = [];
-      if (aboutUser) aboutSections.push(aboutUser);
-      if (moreAboutYou) aboutSections.push(moreAboutYou);
-      sections.push(`### About the User\n${aboutSections.join("\n\n")}`);
-    }
-
-    // Response style (custom instructions from user)
-    if (responseStyle) {
-      sections.push(`### Response Style Instructions\n${responseStyle}`);
-    }
-
-    // Base style and tone directive
-    if (baseStyleAndTone && baseStyleAndTone !== "default") {
-      const toneDescriptions: Record<string, string> = {
-        professional:
-          "Be polished and precise. Use formal language and structured responses.",
-        friendly:
-          "Be warm and chatty. Use casual language and show enthusiasm.",
-        candid:
-          "Be direct and encouraging. Get straight to the point while being supportive.",
-        quirky:
-          "Be playful and imaginative. Use creative language and unexpected analogies.",
-        efficient: "Be concise and plain. Minimize words, maximize clarity.",
-        nerdy:
-          "Be exploratory and enthusiastic. Dive deep into technical details.",
-        cynical:
-          "Be critical and sarcastic. Question assumptions, use dry humor.",
-      };
-      const toneDirective = toneDescriptions[baseStyleAndTone];
-      if (toneDirective) {
-        sections.push(`### Tone Directive\n${toneDirective}`);
-      }
-    }
-
-    if (sections.length > 0) {
-      // Wrap with explicit override directive for maximum priority
-      const userPreferencesContent = `<user_preferences priority="highest">
-## User Personalization Settings
-**IMPORTANT**: These are the user's explicitly configured preferences. They take absolute priority over any default behavior or tone guidelines defined earlier.
-
-${sections.join("\n\n")}
-
-**Reminder**: Always honor these preferences. The user has specifically configured these settings.
-</user_preferences>`;
-
-      systemMessages.push({
-        role: "system",
-        content: userPreferencesContent,
-      });
-    }
-  }
-
-  return { messages: systemMessages, memoryContent: memoryContentForTracking };
-}
-
-// Extract sources/citations from AI SDK response (Perplexity via OpenRouter)
-// biome-ignore lint/suspicious/noExplicitAny: Complex provider metadata types from AI SDK
-function extractSources(providerMetadata: any):
-  | Array<{
-      position: number;
-      title: string;
-      url: string;
-      publishedDate?: string;
-      snippet?: string;
-    }>
-  | undefined {
-  if (!providerMetadata) return undefined;
-
-  try {
-    const allSources: Array<{
-      title: string;
-      url: string;
-      snippet?: string;
-      publishedDate?: string;
-    }> = [];
-
-    const openRouterMeta = providerMetadata.openrouter || providerMetadata;
-    const perplexityMeta = providerMetadata.perplexity || providerMetadata;
-
-    // 1. OpenRouter / Perplexity search_results format
-    if (
-      Array.isArray(openRouterMeta?.search_results) &&
-      openRouterMeta.search_results.length > 0
-    ) {
-      allSources.push(
-        ...openRouterMeta.search_results.map((r: any) => ({
-          title: r.title || r.name || "Untitled Source",
-          url: r.url,
-          publishedDate: r.date || r.published_date,
-          snippet: r.snippet || r.description,
-        })),
-      );
-    }
-
-    // 2. Perplexity Native citations
-    const perplexitySources = perplexityMeta?.citations;
-    if (Array.isArray(perplexitySources) && perplexitySources.length > 0) {
-      const mapped = perplexitySources
-        .map((r: any) => {
-          if (typeof r === "string") {
-            return {
-              title: r,
-              url: r,
-              snippet: undefined,
-              publishedDate: undefined,
-            };
-          }
-          return {
-            title: r.title || "Untitled Source",
-            url: r.url,
-            snippet: r.snippet,
-            publishedDate: undefined,
-          };
-        })
-        .filter((s) => s.url);
-      allSources.push(...mapped);
-    }
-
-    // 3. Generic citations/sources - FIXED: explicit array checks, no OR-chain
-    const potentialSources = [
-      openRouterMeta?.citations,
-      openRouterMeta?.sources,
-      providerMetadata?.citations,
-      providerMetadata?.sources,
-      (providerMetadata as any)?.extra?.citations,
-    ].filter((arr) => Array.isArray(arr) && arr.length > 0);
-
-    for (const sourceArray of potentialSources) {
-      const mapped = sourceArray
-        .map((r: any) => {
-          if (typeof r === "string") {
-            return {
-              title: r,
-              url: r,
-              snippet: undefined,
-              publishedDate: undefined,
-            };
-          }
-          return {
-            title: r.title || r.name || "Untitled Source",
-            url: r.url || r.uri || "",
-            publishedDate: r.date || r.published_date,
-            snippet: r.snippet || r.description,
-          };
-        })
-        .filter((s: any) => s.url && s.url.length > 0);
-      allSources.push(...mapped);
-    }
-
-    if (allSources.length === 0) return undefined;
-
-    // Deduplicate by URL (case-insensitive, trimmed)
-    const seenUrls = new Set<string>();
-    const deduped = allSources.filter((s) => {
-      const normalizedUrl = s.url.toLowerCase().trim();
-      if (seenUrls.has(normalizedUrl)) return false;
-      seenUrls.add(normalizedUrl);
-      return true;
-    });
-
-    // Assign sequential positions for citation markers AFTER deduplication
-    return deduped.map((s, i) => ({
-      position: i + 1,
-      title: s.title,
-      url: s.url,
-      publishedDate: s.publishedDate,
-      snippet: s.snippet,
-    }));
-  } catch (error) {
-    console.warn("[Sources] Failed to extract sources:", error);
-    return undefined;
-  }
-}
-
-/**
- * Extract sources from webSearch tool calls
- * @param allToolCalls - Array of finalized tool calls from buffer
- * @param startPosition - Offset for unified numbering (Perplexity source count)
- * @returns Array of sources with pre-computed positions for unified numbering
- */
-function extractWebSearchSources(
-  allToolCalls: Array<{ id: string; name: string; result?: string }>,
-  startPosition: number,
-): Array<{
-  position: number;
-  title: string;
-  url: string;
-  snippet?: string;
-}> {
-  const webSearchSources: Array<{
-    position: number;
-    title: string;
-    url: string;
-    snippet?: string;
-  }> = [];
-
-  for (const tc of allToolCalls) {
-    // Only process webSearch tool calls with results
-    if (tc.name !== "webSearch" || !tc.result) continue;
-
-    try {
-      const result = JSON.parse(tc.result);
-
-      // Validate webSearch result structure
-      if (!result.success || !Array.isArray(result.results)) continue;
-
-      // Extract each result as a source
-      for (const item of result.results) {
-        if (!item.url) continue; // Skip results without URLs
-
-        webSearchSources.push({
-          position: startPosition + webSearchSources.length + 1,
-          title: item.title || item.url, // Fallback to URL if no title
-          url: item.url,
-          snippet: item.content?.substring(0, 500), // Truncate long snippets
-        });
-      }
-    } catch (e) {
-      console.warn(
-        `[WebSearch] Failed to parse result for tool call ${tc.id}:`,
-        e,
-      );
-      // Continue processing other tool calls
-    }
-  }
-
-  return webSearchSources;
-}
 
 export const generateResponse = internalAction({
   args: {
@@ -524,9 +80,13 @@ export const generateResponse = internalAction({
 
     try {
       // Check message status to detect resilient generation (resumed after refresh)
-      const message = await ctx.runQuery(internal.messages.get, {
-        messageId: args.assistantMessageId,
-      });
+      const message = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.messages.get,
+        {
+          messageId: args.assistantMessageId,
+        },
+      )) as Doc<"messages"> | null;
       const wasAlreadyGenerating = message?.status === "generating";
       const isResumedAfterRefresh =
         wasAlreadyGenerating && message?.partialContent;

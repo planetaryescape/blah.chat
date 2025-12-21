@@ -1,8 +1,5 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import {
   AlertCircle,
@@ -14,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { FileChunkCard } from "./FileChunkCard";
 
 interface FileDetailPanelProps {

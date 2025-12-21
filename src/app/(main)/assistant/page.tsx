@@ -7,7 +7,6 @@ import {
   FileText,
   Loader2,
   Upload,
-  Video,
   Wand2,
 } from "lucide-react";
 import { useState } from "react";
@@ -19,7 +18,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { VideoUploadTab } from "./_components/VideoUploadTab";
 
 type ProcessingState =
   | "idle"
@@ -255,20 +253,13 @@ export default function SmartAssistantPage() {
             {state === "idle" && (
               <div className="space-y-6">
                 <Tabs defaultValue="audio" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/30 border border-border/40 rounded-xl mb-6">
+                  <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/30 border border-border/40 rounded-xl mb-6">
                     <TabsTrigger
                       value="audio"
                       className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
                     >
                       <FileAudio className="mr-2 h-4 w-4" />
                       Audio
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="video"
-                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                    >
-                      <Video className="mr-2 h-4 w-4" />
-                      Video
                     </TabsTrigger>
                     <TabsTrigger
                       value="text"
@@ -340,25 +331,6 @@ export default function SmartAssistantPage() {
                         </Button>
                       </div>
                     </Card>
-                  </TabsContent>
-
-                  <TabsContent value="video" className="mt-0">
-                    <VideoUploadTab
-                      onAnalysisComplete={(result) => {
-                        setTranscript(result.transcript);
-                        setState("extracting");
-                        extractTasks({ transcript: result.transcript }).then(
-                          (tasks) => {
-                            setExtractedTasks(tasks);
-                            setState("reviewing");
-                          },
-                        );
-                      }}
-                      onError={(error) => {
-                        setError(error);
-                        setState("error");
-                      }}
-                    />
                   </TabsContent>
 
                   <TabsContent value="text" className="mt-0">

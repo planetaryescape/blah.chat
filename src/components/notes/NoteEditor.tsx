@@ -47,7 +47,6 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { createExtensions } from "@/lib/tiptap/extensions";
 import { cn } from "@/lib/utils";
 

@@ -14,7 +14,7 @@ import { clearUserDataOnLogout } from "@/lib/logout";
  * This prevents data leakage between user sessions on the same device.
  */
 export function AuthStateListener({ children }: { children: React.ReactNode }) {
-  const { isSignedIn, userId } = useAuth();
+  const { userId } = useAuth();
   const prevUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {

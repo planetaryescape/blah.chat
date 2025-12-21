@@ -1,8 +1,8 @@
 "use client";
 
+import { Suspense, use } from "react";
 import { TasksDashboard } from "@/app/(main)/tasks/_components/TasksDashboard";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Suspense, use } from "react";
 
 function TasksDashboardFallback() {
   return (

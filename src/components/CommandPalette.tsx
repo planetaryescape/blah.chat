@@ -34,7 +34,12 @@ export function CommandPalette() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const _listRef = useRef<HTMLDivElement>(null);
-  const conversations = useQuery(api.conversations.list, {});
+  const rawConversations = useQuery(api.conversations.list, {});
+  // Filter out presentation conversations (they have their own UI in /slides)
+  const conversations = useMemo(
+    () => rawConversations?.filter((c) => c.isPresentation !== true),
+    [rawConversations],
+  );
   const hybridSearchAction = useAction(
     api.conversations.hybridSearch.hybridSearch,
   );
@@ -91,7 +96,8 @@ export function CommandPalette() {
           limit: 20,
           includeArchived: false,
         });
-        setSearchResults(results);
+        // Filter out presentation conversations
+        setSearchResults(results.filter((c) => c.isPresentation !== true));
       } catch (error) {
         console.error("Search failed:", error);
         setSearchResults([]);

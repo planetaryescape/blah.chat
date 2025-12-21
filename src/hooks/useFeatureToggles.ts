@@ -1,6 +1,6 @@
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PREFERENCE_DEFAULTS } from "@/convex/users/constants";
-import { useQuery } from "convex/react";
 
 /**
  * Custom hook for accessing feature visibility preferences.

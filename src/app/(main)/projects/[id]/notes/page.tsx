@@ -2,9 +2,9 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
+import { useQueryState } from "nuqs";
 import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useQueryState } from "nuqs";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { NoteList } from "@/components/notes/NoteList";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,5 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
-import type { Id } from "@/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import {
@@ -13,6 +11,8 @@ import {
   NotebookPen,
 } from "lucide-react";
 import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export function ProjectOverview({
   projectId,
@@ -33,7 +33,7 @@ export function ProjectOverview({
     },
   };
 
-  const item = {
+  const _item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };

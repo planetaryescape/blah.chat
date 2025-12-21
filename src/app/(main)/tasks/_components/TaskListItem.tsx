@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { format } from "date-fns";
+import { Calendar, Star, Sun, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -8,10 +12,6 @@ import {
 } from "@/components/ui/context-menu";
 import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { format } from "date-fns";
-import { Calendar, Star, Sun, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 
 interface TaskListItemProps {
   task: any; // Using explicit any as in original file to match schema flexibility

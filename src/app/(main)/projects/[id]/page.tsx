@@ -1,10 +1,10 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { use } from "react";
 import { ProjectOverview } from "@/components/projects/ProjectOverview";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import { use } from "react";
 
 export default function ProjectPage({
   params,

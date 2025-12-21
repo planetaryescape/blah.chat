@@ -1,16 +1,16 @@
 "use client";
 
 import { useConvexAuth } from "convex/react";
-import { Ghost, MoreHorizontal, Plus, Search } from "lucide-react";
+import { Ghost, Keyboard, MoreHorizontal, Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
 import { NewIncognitoDialog } from "@/components/chat/NewIncognitoDialog";
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
-import { NotificationBell } from "@/components/notifications";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
+import { NotificationBell } from "@/components/notifications";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -80,27 +80,31 @@ function Header() {
         <div className="ml-auto flex items-center gap-1">
           <NotificationBell />
           <FeedbackButton />
-          {/* Mobile: three-dots menu with incognito option */}
-          <div className="sm:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  aria-label="More options"
-                >
-                  <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowIncognitoDialog(true)}>
-                  <Ghost className="h-4 w-4 mr-2 text-violet-400" />
-                  New Incognito Chat
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                aria-label="More options"
+              >
+                <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push("/shortcuts")}>
+                <Keyboard className="h-4 w-4 mr-2" />
+                Keyboard Shortcuts
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowIncognitoDialog(true)}
+                className="sm:hidden"
+              >
+                <Ghost className="h-4 w-4 mr-2 text-violet-400" />
+                New Incognito Chat
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

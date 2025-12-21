@@ -1,5 +1,9 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { LayoutGrid, List, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { BulkConversationAssigner } from "@/components/projects/BulkConversationAssigner";
@@ -32,10 +36,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { analytics } from "@/lib/analytics";
-import { useMutation, useQuery } from "convex/react";
-import { LayoutGrid, List, Plus, Search } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export default function ProjectsPage() {
   const { showProjects, isLoading } = useFeatureToggles();

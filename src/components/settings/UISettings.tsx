@@ -94,7 +94,7 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [focusSettingKey, isLoading]);
+  }, [focusSettingKey, isLoading, expandedSections.includes]);
 
   if (isLoading) {
     return (

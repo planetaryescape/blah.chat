@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalAction, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { internalAction, mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./lib/userSync";
 
 // ============================================================================
@@ -37,6 +37,7 @@ export const listUsers = query({
       email: u.email,
       imageUrl: u.imageUrl,
       isAdmin: u.isAdmin ?? false,
+      tier: u.tier,
       createdAt: u.createdAt,
     }));
   },
@@ -101,6 +102,25 @@ export const updateUserRole = mutation({
       );
     }
 
+    return { success: true };
+  },
+});
+
+/**
+ * Update a user's tier (admin only)
+ */
+export const updateUserTier = mutation({
+  args: {
+    userId: v.id("users"),
+    tier: v.union(v.literal("free"), v.literal("tier1"), v.literal("tier2")),
+  },
+  handler: async (ctx, { userId, tier }) => {
+    const currentUser = await getCurrentUser(ctx);
+    if (!currentUser || currentUser.isAdmin !== true) {
+      throw new Error("Unauthorized: Admin access required");
+    }
+
+    await ctx.db.patch(userId, { tier, updatedAt: Date.now() });
     return { success: true };
   },
 });

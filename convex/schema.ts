@@ -14,6 +14,14 @@ export default defineSchema({
     // Daily presentation tracking (stored per user, limit from admin settings)
     dailyPresentationCount: v.optional(v.number()),
     lastPresentationDate: v.optional(v.string()),
+    // Pro Model Tier System
+    tier: v.optional(
+      v.union(v.literal("free"), v.literal("tier1"), v.literal("tier2")),
+    ),
+    dailyProModelCount: v.optional(v.number()),
+    lastProModelDate: v.optional(v.string()),
+    monthlyProModelCount: v.optional(v.number()),
+    lastProModelMonth: v.optional(v.string()),
     // Preferences
     disabledBuiltInTemplateIds: v.optional(v.array(v.id("templates"))),
     createdAt: v.number(),
@@ -88,6 +96,8 @@ export default defineSchema({
         lastActivityAt: v.number(), // For inactivity timer
       }),
     ),
+    // Presentation mode (slides feature conversations)
+    isPresentation: v.optional(v.boolean()),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -102,6 +112,9 @@ export default defineSchema({
         dismissed: v.boolean(),
       }),
     ),
+    // Document mode (Canvas)
+    mode: v.optional(v.union(v.literal("document"), v.literal("normal"))),
+    modeActivatedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1062,6 +1075,11 @@ export default defineSchema({
     // Presentation limits
     defaultDailyPresentationLimit: v.optional(v.number()), // Default: 1
 
+    // Pro Model Settings
+    proModelsEnabled: v.optional(v.boolean()), // Global toggle, default: false
+    tier1DailyProModelLimit: v.optional(v.number()), // Default: 1
+    tier2MonthlyProModelLimit: v.optional(v.number()), // Default: 50
+
     // Email alerts
     alertEmail: v.string(),
 
@@ -1150,7 +1168,6 @@ export default defineSchema({
       v.literal("extractMemories"),
       v.literal("transcribe"),
       v.literal("embedFile"),
-      v.literal("analyzeVideo"),
     ),
 
     // Status tracking

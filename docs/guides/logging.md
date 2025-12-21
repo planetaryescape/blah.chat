@@ -2,7 +2,7 @@
 
 ## Overview
 
-Linganisa uses [Pino](https://getpino.io/) for structured, high-performance logging throughout the backend.
+blah.chat uses [Pino](https://getpino.io/) for structured, high-performance logging throughout the backend.
 
 ## Features
 

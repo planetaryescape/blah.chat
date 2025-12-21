@@ -25,6 +25,7 @@ import { analytics } from "@/lib/analytics";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
+import { UpgradeRequestDialog } from "./UpgradeRequestDialog";
 
 interface QuickModelSwitcherProps {
   open: boolean;
@@ -63,17 +64,14 @@ export function QuickModelSwitcher({
     (model.pricing?.input ?? 0) >= 5 ||
     (model.pricing?.output ?? 0) >= 15;
 
-  // Filter models by pro access
-  const filterAccessibleModels = (models: ModelConfig[]) =>
-    models.filter((model) => {
-      if (!isProModel(model)) return true;
-      if (!proAccess) return false; // Hide while loading
-      return proAccess.canUse;
-    });
+  // Check if a pro model is disabled (user can't use it)
+  const isModelDisabled = (model: ModelConfig) =>
+    isProModel(model) && proAccess && !proAccess.canUse;
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
 
   // Track previous open state
   const prevOpenRef = useRef(open);
@@ -99,20 +97,13 @@ export function QuickModelSwitcher({
     rest,
   } = sortModels(allModels, prefDefaultModel, favorites, recents);
 
-  // Filter models by active category and pro access
+  // Filter models by active category (pro models shown but may be disabled)
   const filteredModels = useMemo(() => {
     const category = MODEL_CATEGORIES.find((c) => c.id === activeCategory);
 
-    // Apply category filter first
-    let filtered = {
-      defaultModel: defaultModel,
-      favorites: favModels,
-      recents: recentModels,
-      rest: rest,
-    };
-
+    // Apply category filter only
     if (category && category.id !== "all") {
-      filtered = {
+      return {
         defaultModel:
           defaultModel && category.filter(defaultModel)
             ? defaultModel
@@ -123,18 +114,13 @@ export function QuickModelSwitcher({
       };
     }
 
-    // Apply pro access filter
     return {
-      defaultModel:
-        filtered.defaultModel &&
-        (!isProModel(filtered.defaultModel) || proAccess?.canUse)
-          ? filtered.defaultModel
-          : undefined,
-      favorites: filterAccessibleModels(filtered.favorites),
-      recents: filterAccessibleModels(filtered.recents),
-      rest: filterAccessibleModels(filtered.rest),
+      defaultModel,
+      favorites: favModels,
+      recents: recentModels,
+      rest,
     };
-  }, [activeCategory, defaultModel, favModels, recentModels, rest, proAccess]);
+  }, [activeCategory, defaultModel, favModels, recentModels, rest]);
 
   const restByProvider = filteredModels.rest.reduce(
     (acc, model) => {
@@ -194,29 +180,33 @@ export function QuickModelSwitcher({
     analytics.track("category_filter_changed", { category, mode });
   };
 
-  const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => (
-    <ModelSelectorItem
-      key={model.id}
-      model={model}
-      isSelected={
-        mode === "single"
-          ? currentModel === model.id
-          : internalSelected.includes(model.id)
-      }
-      isFavorite={isFavorite(model.id)}
-      mode={mode}
-      showDefaultBadge={showDefaultBadge}
-      activeCategory={activeCategory}
-      onSelect={handleSelect}
-      onToggleFavorite={toggleFavorite}
-      isPro={isProModel(model)}
-      proAccessRemaining={
-        isProModel(model) && proAccess
-          ? (proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null)
-          : null
-      }
-    />
-  );
+  const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
+    const disabled = isModelDisabled(model);
+    return (
+      <ModelSelectorItem
+        key={model.id}
+        model={model}
+        isSelected={
+          mode === "single"
+            ? currentModel === model.id
+            : internalSelected.includes(model.id)
+        }
+        isFavorite={isFavorite(model.id)}
+        mode={mode}
+        showDefaultBadge={showDefaultBadge}
+        activeCategory={activeCategory}
+        onSelect={disabled ? () => setUpgradeDialogOpen(true) : handleSelect}
+        onToggleFavorite={toggleFavorite}
+        isPro={isProModel(model)}
+        proAccessRemaining={
+          isProModel(model) && proAccess
+            ? (proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null)
+            : null
+        }
+        isDisabled={disabled}
+      />
+    );
+  };
 
   return (
     <>
@@ -313,6 +303,18 @@ export function QuickModelSwitcher({
                 </CommandGroup>
               ))}
             </CommandList>
+
+            {proAccess && !proAccess.canUse && (
+              <div className="p-3 border-t text-center">
+                <button
+                  type="button"
+                  onClick={() => setUpgradeDialogOpen(true)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Request pro model access →
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -340,6 +342,12 @@ export function QuickModelSwitcher({
           </div>
         )}
       </CommandDialog>
+
+      <UpgradeRequestDialog
+        open={upgradeDialogOpen}
+        onOpenChange={setUpgradeDialogOpen}
+        currentTier={proAccess?.tier || "free"}
+      />
     </>
   );
 }

@@ -58,7 +58,12 @@ vi.mock("framer-motion", () => ({
 import { MessageList } from "../MessageList";
 import type { Id } from "@/convex/_generated/dataModel";
 
-type MessageStatus = "pending" | "generating" | "complete" | "stopped" | "error";
+type MessageStatus =
+  | "pending"
+  | "generating"
+  | "complete"
+  | "stopped"
+  | "error";
 
 const createMessage = (
   overrides: Partial<{
@@ -126,7 +131,9 @@ describe("MessageList", () => {
     expect(screen.queryByRole("log")).not.toBeInTheDocument();
 
     // EmptyScreen renders - check for category buttons (Thinking, Vision, Code, etc.)
-    expect(screen.getByRole("button", { name: /thinking/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /thinking/i }),
+    ).toBeInTheDocument();
   });
 
   it("groups comparison messages together", () => {

@@ -52,9 +52,7 @@ describe("RenameDialog", () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
 
-    render(
-      <RenameDialog {...defaultProps} onOpenChange={onOpenChange} />,
-    );
+    render(<RenameDialog {...defaultProps} onOpenChange={onOpenChange} />);
 
     const input = screen.getByPlaceholderText(/enter title/i);
     await user.clear(input);
@@ -73,9 +71,7 @@ describe("RenameDialog", () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
 
-    render(
-      <RenameDialog {...defaultProps} onOpenChange={onOpenChange} />,
-    );
+    render(<RenameDialog {...defaultProps} onOpenChange={onOpenChange} />);
 
     const input = screen.getByPlaceholderText(/enter title/i);
     await user.clear(input);
@@ -92,9 +88,7 @@ describe("RenameDialog", () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();
 
-    render(
-      <RenameDialog {...defaultProps} onOpenChange={onOpenChange} />,
-    );
+    render(<RenameDialog {...defaultProps} onOpenChange={onOpenChange} />);
 
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 

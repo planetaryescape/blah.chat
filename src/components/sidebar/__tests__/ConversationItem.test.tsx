@@ -143,7 +143,9 @@ describe("ConversationItem", () => {
     await user.click(optionsButton);
 
     // Dropdown menu items should be visible - use exact text to avoid "Auto-rename"
-    expect(screen.getByRole("menuitem", { name: /^Rename$/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /^Rename$/ }),
+    ).toBeInTheDocument();
   });
 
   it("calls mutation when pin button clicked", async () => {

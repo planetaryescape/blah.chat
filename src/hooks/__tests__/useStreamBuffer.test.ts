@@ -26,9 +26,7 @@ describe("useStreamBuffer", () => {
   });
 
   it("flushes immediately when not streaming", () => {
-    const { result } = renderHook(() =>
-      useStreamBuffer("Hello world", false),
-    );
+    const { result } = renderHook(() => useStreamBuffer("Hello world", false));
 
     expect(result.current.displayContent).toBe("Hello world");
   });
@@ -48,9 +46,7 @@ describe("useStreamBuffer", () => {
   });
 
   it("returns hasBufferedContent false when nothing buffered", () => {
-    const { result } = renderHook(() =>
-      useStreamBuffer("Test content", false),
-    );
+    const { result } = renderHook(() => useStreamBuffer("Test content", false));
 
     expect(result.current.hasBufferedContent).toBe(false);
   });

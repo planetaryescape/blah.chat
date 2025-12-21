@@ -54,8 +54,9 @@ describe("useAutoScroll", () => {
 
     // Manually set ref (simulating component mount)
     const mockContainer = createMockContainer();
-    (result.current.containerRef as { current: HTMLDivElement | null }).current =
-      mockContainer;
+    (
+      result.current.containerRef as { current: HTMLDivElement | null }
+    ).current = mockContainer;
 
     const success = result.current.scrollToBottom();
 

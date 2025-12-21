@@ -14,382 +14,382 @@ export * as pptxExport from "./presentations/export";
 // ===== Validators =====
 
 const presentationStatusValidator = v.union(
-	v.literal("outline_pending"),
-	v.literal("outline_generating"),
-	v.literal("outline_complete"),
-	v.literal("design_generating"),
-	v.literal("design_complete"),
-	v.literal("slides_generating"),
-	v.literal("slides_complete"),
-	v.literal("error"),
+  v.literal("outline_pending"),
+  v.literal("outline_generating"),
+  v.literal("outline_complete"),
+  v.literal("design_generating"),
+  v.literal("design_complete"),
+  v.literal("slides_generating"),
+  v.literal("slides_complete"),
+  v.literal("error"),
 );
 
 const designSystemValidator = v.object({
-	theme: v.string(),
-	themeRationale: v.string(),
-	primaryColor: v.string(),
-	secondaryColor: v.string(),
-	accentColor: v.string(),
-	backgroundColor: v.string(),
-	fontPairings: v.object({
-		heading: v.string(),
-		body: v.string(),
-	}),
-	visualStyle: v.string(),
-	layoutPrinciples: v.array(v.string()),
-	iconStyle: v.string(),
-	imageGuidelines: v.string(),
-	designInspiration: v.string(),
+  theme: v.string(),
+  themeRationale: v.string(),
+  primaryColor: v.string(),
+  secondaryColor: v.string(),
+  accentColor: v.string(),
+  backgroundColor: v.string(),
+  fontPairings: v.object({
+    heading: v.string(),
+    body: v.string(),
+  }),
+  visualStyle: v.string(),
+  layoutPrinciples: v.array(v.string()),
+  iconStyle: v.string(),
+  imageGuidelines: v.string(),
+  designInspiration: v.string(),
 });
 
 const slideStyleValidator = v.union(
-	v.literal("wordy"),
-	v.literal("illustrative"),
+  v.literal("wordy"),
+  v.literal("illustrative"),
 );
 
 // ===== Core CRUD =====
 
 export const create = mutation({
-	args: {
-		title: v.string(),
-		conversationId: v.optional(v.id("conversations")),
-		imageModel: v.optional(v.string()),
-		slideStyle: v.optional(slideStyleValidator),
-		templateId: v.optional(v.id("designTemplates")),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
+  args: {
+    title: v.string(),
+    conversationId: v.optional(v.id("conversations")),
+    imageModel: v.optional(v.string()),
+    slideStyle: v.optional(slideStyleValidator),
+    templateId: v.optional(v.id("designTemplates")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
 
-		// Check daily presentation limit (admins exempt)
-		if (!user.isAdmin) {
-			const adminSettings = await ctx.db.query("adminSettings").first();
-			const dailyLimit = adminSettings?.defaultDailyPresentationLimit ?? 1;
+    // Check daily presentation limit (admins exempt)
+    if (!user.isAdmin) {
+      const adminSettings = await ctx.db.query("adminSettings").first();
+      const dailyLimit = adminSettings?.defaultDailyPresentationLimit ?? 1;
 
-			// Only enforce if limit > 0 (0 = unlimited)
-			if (dailyLimit > 0) {
-				const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      // Only enforce if limit > 0 (0 = unlimited)
+      if (dailyLimit > 0) {
+        const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-				// Reset count if new day
-				let currentCount = user.dailyPresentationCount ?? 0;
-				if (user.lastPresentationDate !== today) {
-					currentCount = 0;
-				}
+        // Reset count if new day
+        let currentCount = user.dailyPresentationCount ?? 0;
+        if (user.lastPresentationDate !== today) {
+          currentCount = 0;
+        }
 
-				// Check limit
-				if (currentCount >= dailyLimit) {
-					throw new Error(
-						`Daily presentation limit reached (${dailyLimit} per day). Try again tomorrow.`,
-					);
-				}
+        // Check limit
+        if (currentCount >= dailyLimit) {
+          throw new Error(
+            `Daily presentation limit reached (${dailyLimit} per day). Try again tomorrow.`,
+          );
+        }
 
-				// Increment count
-				await ctx.db.patch(user._id, {
-					dailyPresentationCount: currentCount + 1,
-					lastPresentationDate: today,
-				});
-			}
-		}
+        // Increment count
+        await ctx.db.patch(user._id, {
+          dailyPresentationCount: currentCount + 1,
+          lastPresentationDate: today,
+        });
+      }
+    }
 
-		const presentationId = await ctx.db.insert("presentations", {
-			userId: user._id,
-			conversationId: args.conversationId,
-			title: args.title,
-			status: "outline_pending",
-			imageModel: args.imageModel ?? "google:gemini-3-pro-image-preview",
-			slideStyle: args.slideStyle ?? "illustrative",
-			templateId: args.templateId,
-			totalSlides: 0,
-			generatedSlideCount: 0,
-			createdAt: Date.now(),
-			updatedAt: Date.now(),
-		});
+    const presentationId = await ctx.db.insert("presentations", {
+      userId: user._id,
+      conversationId: args.conversationId,
+      title: args.title,
+      status: "outline_pending",
+      imageModel: args.imageModel ?? "google:gemini-3-pro-image-preview",
+      slideStyle: args.slideStyle ?? "illustrative",
+      templateId: args.templateId,
+      totalSlides: 0,
+      generatedSlideCount: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
 
-		return presentationId;
-	},
+    return presentationId;
+  },
 });
 
 export const get = query({
-	args: { presentationId: v.id("presentations") },
-	handler: async (ctx, args) => {
-		const user = await getCurrentUser(ctx);
-		if (!user) return null;
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
 
-		const presentation = await ctx.db.get(args.presentationId);
-		if (!presentation || presentation.userId !== user._id) return null;
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.userId !== user._id) return null;
 
-		// Get PPTX URL if available
-		let pptxUrl: string | null = null;
-		if (presentation.pptxStorageId) {
-			pptxUrl = await ctx.storage.getUrl(presentation.pptxStorageId);
-		}
+    // Get PPTX URL if available
+    let pptxUrl: string | null = null;
+    if (presentation.pptxStorageId) {
+      pptxUrl = await ctx.storage.getUrl(presentation.pptxStorageId);
+    }
 
-		return { ...presentation, pptxUrl };
-	},
+    return { ...presentation, pptxUrl };
+  },
 });
 
 export const listByUser = query({
-	args: {
-		limit: v.optional(v.number()),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUser(ctx);
-		if (!user) return [];
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
-		const limit = args.limit ?? 50;
+    const limit = args.limit ?? 50;
 
-		const presentations = await ctx.db
-			.query("presentations")
-			.withIndex("by_user", (q) => q.eq("userId", user._id))
-			.order("desc")
-			.take(limit);
+    const presentations = await ctx.db
+      .query("presentations")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(limit);
 
-		return presentations;
-	},
+    return presentations;
+  },
 });
 
 export const listByUserWithStats = query({
-	args: {
-		limit: v.optional(v.number()),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUser(ctx);
-		if (!user) return [];
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
-		const limit = args.limit ?? 50;
+    const limit = args.limit ?? 50;
 
-		const presentations = await ctx.db
-			.query("presentations")
-			.withIndex("by_user", (q) => q.eq("userId", user._id))
-			.order("desc")
-			.take(limit);
+    const presentations = await ctx.db
+      .query("presentations")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(limit);
 
-		// Fetch aggregated stats for each presentation
-		const presentationsWithStats = await Promise.all(
-			presentations.map(async (p) => {
-				const slides = await ctx.db
-					.query("slides")
-					.withIndex("by_presentation", (q) => q.eq("presentationId", p._id))
-					.collect();
+    // Fetch aggregated stats for each presentation
+    const presentationsWithStats = await Promise.all(
+      presentations.map(async (p) => {
+        const slides = await ctx.db
+          .query("slides")
+          .withIndex("by_presentation", (q) => q.eq("presentationId", p._id))
+          .collect();
 
-				const totalCost = slides.reduce(
-					(sum, s) => sum + (s.generationCost || 0),
-					0,
-				);
-				const totalInputTokens = slides.reduce(
-					(sum, s) => sum + (s.inputTokens || 0),
-					0,
-				);
-				const totalOutputTokens = slides.reduce(
-					(sum, s) => sum + (s.outputTokens || 0),
-					0,
-				);
+        const totalCost = slides.reduce(
+          (sum, s) => sum + (s.generationCost || 0),
+          0,
+        );
+        const totalInputTokens = slides.reduce(
+          (sum, s) => sum + (s.inputTokens || 0),
+          0,
+        );
+        const totalOutputTokens = slides.reduce(
+          (sum, s) => sum + (s.outputTokens || 0),
+          0,
+        );
 
-				return {
-					...p,
-					stats: {
-						totalCost,
-						totalInputTokens,
-						totalOutputTokens,
-					},
-				};
-			}),
-		);
+        return {
+          ...p,
+          stats: {
+            totalCost,
+            totalInputTokens,
+            totalOutputTokens,
+          },
+        };
+      }),
+    );
 
-		return presentationsWithStats;
-	},
+    return presentationsWithStats;
+  },
 });
 
 export const listByStatus = query({
-	args: {
-		status: presentationStatusValidator,
-		limit: v.optional(v.number()),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUser(ctx);
-		if (!user) return [];
+  args: {
+    status: presentationStatusValidator,
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
-		const limit = args.limit ?? 50;
+    const limit = args.limit ?? 50;
 
-		const presentations = await ctx.db
-			.query("presentations")
-			.withIndex("by_user_status", (q) =>
-				q.eq("userId", user._id).eq("status", args.status),
-			)
-			.order("desc")
-			.take(limit);
+    const presentations = await ctx.db
+      .query("presentations")
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", user._id).eq("status", args.status),
+      )
+      .order("desc")
+      .take(limit);
 
-		return presentations;
-	},
+    return presentations;
+  },
 });
 
 export const getByConversation = query({
-	args: { conversationId: v.id("conversations") },
-	handler: async (ctx, args) => {
-		const user = await getCurrentUser(ctx);
-		if (!user) return null;
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
 
-		const presentation = await ctx.db
-			.query("presentations")
-			.withIndex("by_conversation", (q) =>
-				q.eq("conversationId", args.conversationId),
-			)
-			.first();
+    const presentation = await ctx.db
+      .query("presentations")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .first();
 
-		if (!presentation || presentation.userId !== user._id) return null;
+    if (!presentation || presentation.userId !== user._id) return null;
 
-		return presentation;
-	},
+    return presentation;
+  },
 });
 
 // ===== Status Updates =====
 
 export const updateStatus = mutation({
-	args: {
-		presentationId: v.id("presentations"),
-		status: presentationStatusValidator,
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
-		const presentation = await ctx.db.get(args.presentationId);
+  args: {
+    presentationId: v.id("presentations"),
+    status: presentationStatusValidator,
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
 
-		if (!presentation || presentation.userId !== user._id) {
-			throw new Error("Presentation not found");
-		}
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
 
-		await ctx.db.patch(args.presentationId, {
-			status: args.status,
-			updatedAt: Date.now(),
-		});
-	},
+    await ctx.db.patch(args.presentationId, {
+      status: args.status,
+      updatedAt: Date.now(),
+    });
+  },
 });
 
 export const updateTitle = mutation({
-	args: {
-		presentationId: v.id("presentations"),
-		title: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
-		const presentation = await ctx.db.get(args.presentationId);
+  args: {
+    presentationId: v.id("presentations"),
+    title: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
 
-		if (!presentation || presentation.userId !== user._id) {
-			throw new Error("Presentation not found");
-		}
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
 
-		await ctx.db.patch(args.presentationId, {
-			title: args.title,
-			updatedAt: Date.now(),
-		});
-	},
+    await ctx.db.patch(args.presentationId, {
+      title: args.title,
+      updatedAt: Date.now(),
+    });
+  },
 });
 
 export const updateDesignSystem = mutation({
-	args: {
-		presentationId: v.id("presentations"),
-		designSystem: designSystemValidator,
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
-		const presentation = await ctx.db.get(args.presentationId);
+  args: {
+    presentationId: v.id("presentations"),
+    designSystem: designSystemValidator,
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
 
-		if (!presentation || presentation.userId !== user._id) {
-			throw new Error("Presentation not found");
-		}
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
 
-		await ctx.db.patch(args.presentationId, {
-			designSystem: args.designSystem,
-			updatedAt: Date.now(),
-		});
-	},
+    await ctx.db.patch(args.presentationId, {
+      designSystem: args.designSystem,
+      updatedAt: Date.now(),
+    });
+  },
 });
 
 export const updateProgress = mutation({
-	args: {
-		presentationId: v.id("presentations"),
-		totalSlides: v.optional(v.number()),
-		generatedSlideCount: v.optional(v.number()),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
-		const presentation = await ctx.db.get(args.presentationId);
+  args: {
+    presentationId: v.id("presentations"),
+    totalSlides: v.optional(v.number()),
+    generatedSlideCount: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
 
-		if (!presentation || presentation.userId !== user._id) {
-			throw new Error("Presentation not found");
-		}
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
 
-		const updates: {
-			totalSlides?: number;
-			generatedSlideCount?: number;
-			updatedAt: number;
-		} = { updatedAt: Date.now() };
+    const updates: {
+      totalSlides?: number;
+      generatedSlideCount?: number;
+      updatedAt: number;
+    } = { updatedAt: Date.now() };
 
-		if (args.totalSlides !== undefined) {
-			updates.totalSlides = args.totalSlides;
-		}
-		if (args.generatedSlideCount !== undefined) {
-			updates.generatedSlideCount = args.generatedSlideCount;
-		}
+    if (args.totalSlides !== undefined) {
+      updates.totalSlides = args.totalSlides;
+    }
+    if (args.generatedSlideCount !== undefined) {
+      updates.generatedSlideCount = args.generatedSlideCount;
+    }
 
-		await ctx.db.patch(args.presentationId, updates);
-	},
+    await ctx.db.patch(args.presentationId, updates);
+  },
 });
 
 // ===== Other Operations =====
 
 export const linkConversation = mutation({
-	args: {
-		presentationId: v.id("presentations"),
-		conversationId: v.id("conversations"),
-	},
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
-		const presentation = await ctx.db.get(args.presentationId);
+  args: {
+    presentationId: v.id("presentations"),
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
 
-		if (!presentation || presentation.userId !== user._id) {
-			throw new Error("Presentation not found");
-		}
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
 
-		await ctx.db.patch(args.presentationId, {
-			conversationId: args.conversationId,
-			updatedAt: Date.now(),
-		});
-	},
+    await ctx.db.patch(args.presentationId, {
+      conversationId: args.conversationId,
+      updatedAt: Date.now(),
+    });
+  },
 });
 
 export const deletePresentation = mutation({
-	args: { presentationId: v.id("presentations") },
-	handler: async (ctx, args) => {
-		const user = await getCurrentUserOrCreate(ctx);
-		const presentation = await ctx.db.get(args.presentationId);
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
 
-		if (!presentation || presentation.userId !== user._id) {
-			throw new Error("Presentation not found");
-		}
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
 
-		// 1. Delete all slides (cascade)
-		const slides = await ctx.db
-			.query("slides")
-			.withIndex("by_presentation", (q) =>
-				q.eq("presentationId", args.presentationId),
-			)
-			.collect();
+    // 1. Delete all slides (cascade)
+    const slides = await ctx.db
+      .query("slides")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .collect();
 
-		for (const slide of slides) {
-			// Delete slide image from storage
-			if (slide.imageStorageId) {
-				await ctx.storage.delete(slide.imageStorageId);
-			}
-			await ctx.db.delete(slide._id);
-		}
+    for (const slide of slides) {
+      // Delete slide image from storage
+      if (slide.imageStorageId) {
+        await ctx.storage.delete(slide.imageStorageId);
+      }
+      await ctx.db.delete(slide._id);
+    }
 
-		// 2. Delete PPTX from storage
-		if (presentation.pptxStorageId) {
-			await ctx.storage.delete(presentation.pptxStorageId);
-		}
+    // 2. Delete PPTX from storage
+    if (presentation.pptxStorageId) {
+      await ctx.storage.delete(presentation.pptxStorageId);
+    }
 
-		// 3. Delete presentation
-		await ctx.db.delete(args.presentationId);
-	},
+    // 3. Delete presentation
+    await ctx.db.delete(args.presentationId);
+  },
 });
 
 // ===== Backward Compatibility Re-exports =====
@@ -398,52 +398,52 @@ export const deletePresentation = mutation({
 
 // From slides.ts
 export {
-	createSlide,
-	getSlide,
-	getSlides,
-	getSlidesByType,
-	getPendingSlides,
-	updateSlideContent,
-	updateSlideImageStatus,
-	updateSlideCost,
-	deleteSlide,
-	reorderSlides,
-	getSlidesInternal,
-	getSlideInternal,
-	getSlidesWithIdsInternal,
-	updateSlideImageInternal,
-	updateSlideCostInternal,
+  createSlide,
+  getSlide,
+  getSlides,
+  getSlidesByType,
+  getPendingSlides,
+  updateSlideContent,
+  updateSlideImageStatus,
+  updateSlideCost,
+  deleteSlide,
+  reorderSlides,
+  getSlidesInternal,
+  getSlideInternal,
+  getSlidesWithIdsInternal,
+  updateSlideImageInternal,
+  updateSlideCostInternal,
 } from "./presentations/slides";
 
 // From outline.ts
 export {
-	approveOutline,
-	submitOutlineFeedback,
-	approveOutlineFromItems,
-	regenerateSlidesFromOutline,
-	recreateOutlineFromSlides,
-	parseOutlineMessage,
-	regenerateOutlineAction,
-	updateOutlineStatusInternal,
+  approveOutline,
+  submitOutlineFeedback,
+  approveOutlineFromItems,
+  regenerateSlidesFromOutline,
+  recreateOutlineFromSlides,
+  parseOutlineMessage,
+  regenerateOutlineAction,
+  updateOutlineStatusInternal,
 } from "./presentations/outline";
 
 // From internal.ts
 export {
-	getPresentationInternal,
-	updateTitleInternal,
-	updateStatusInternal,
-	updateDesignSystemInternal,
-	incrementProgressInternal,
-	checkAndCompletePresentation,
-	generatePresentationTitle,
+  getPresentationInternal,
+  updateTitleInternal,
+  updateStatusInternal,
+  updateDesignSystemInternal,
+  incrementProgressInternal,
+  checkAndCompletePresentation,
+  generatePresentationTitle,
 } from "./presentations/internal";
 
 // From retry.ts
 export {
-	regenerateSlideImage,
-	updateImageModel,
-	updatePptxCache,
-	downloadPPTX,
-	retryGeneration,
-	updatePptxInternal,
+  regenerateSlideImage,
+  updateImageModel,
+  updatePptxCache,
+  downloadPPTX,
+  retryGeneration,
+  updatePptxInternal,
 } from "./presentations/retry";

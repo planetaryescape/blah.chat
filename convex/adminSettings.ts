@@ -207,7 +207,8 @@ export const getProModelAccess = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return { canUse: false, reason: "Not authenticated", tier: "free" };
+    if (!user)
+      return { canUse: false, reason: "Not authenticated", tier: "free" };
     if (user.isAdmin)
       return {
         canUse: true,
@@ -218,7 +219,11 @@ export const getProModelAccess = query({
 
     const settings = await ctx.db.query("adminSettings").first();
     if (!settings?.proModelsEnabled)
-      return { canUse: false, reason: "Pro models disabled", tier: user.tier || "free" };
+      return {
+        canUse: false,
+        reason: "Pro models disabled",
+        tier: user.tier || "free",
+      };
 
     const tier = user.tier || "free";
     const today = new Date().toISOString().split("T")[0];

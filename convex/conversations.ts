@@ -2,6 +2,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import {
   internalMutation,
   internalQuery,
@@ -10,7 +11,6 @@ import {
 } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 import { cascadeDeleteConversation } from "./lib/utils/cascade";
-import type { QueryCtx, MutationCtx } from "./_generated/server";
 
 /**
  * Check if user can access a conversation
@@ -56,6 +56,8 @@ export const create = mutation({
         inactivityTimeoutMinutes: v.optional(v.number()),
       }),
     ),
+    // Presentation mode (slides feature)
+    isPresentation: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -85,6 +87,8 @@ export const create = mutation({
           lastActivityAt: now,
         },
       }),
+      // Presentation flag
+      ...(args.isPresentation && { isPresentation: true }),
     });
 
     // Update user stats for progressive hints
@@ -1193,6 +1197,24 @@ export const setModelRecommendation = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.conversationId, {
       modelRecommendation: args.recommendation,
+    });
+  },
+});
+
+/**
+ * Set document mode for a conversation (Canvas)
+ * Internal mutation - called by enterDocumentMode/exitDocumentMode tools
+ */
+export const setModeInternal = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    mode: v.union(v.literal("document"), v.literal("normal")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.conversationId, {
+      mode: args.mode,
+      modeActivatedAt: args.mode === "document" ? Date.now() : undefined,
+      updatedAt: Date.now(),
     });
   },
 });

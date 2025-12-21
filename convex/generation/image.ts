@@ -1,8 +1,9 @@
-import { buildReasoningOptions } from "@/lib/ai/reasoning";
-import { calculateCost, getModelConfig } from "@/lib/ai/utils";
-import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { v } from "convex/values";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { buildReasoningOptions } from "@/lib/ai/reasoning";
+import { getModel } from "@/lib/ai/registry";
+import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
@@ -25,12 +26,12 @@ export const generateImage = internalAction({
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
-    const model = args.model || "gemini-3-pro-image-preview";
+    const modelId = args.model || "google:gemini-3-pro-image-preview";
 
     // Get model config
-    const modelConfig = getModelConfig(model);
+    const modelConfig = getModelConfig(modelId);
     if (!modelConfig) {
-      throw new Error(`Model ${model} not found in config`);
+      throw new Error(`Model ${modelId} not found in config`);
     }
 
     // Build reasoning options if thinking effort specified
@@ -80,11 +81,8 @@ export const generateImage = internalAction({
 
       const generationStart = Date.now();
 
-      // Strip provider prefix for Google SDK
-      const geminiModel = model.replace(/^google:/, "");
-
       const result = streamText({
-        model: google(geminiModel),
+        model: getModel(modelId),
         system: IMAGE_GENERATION_SYSTEM_PROMPT,
         messages: [
           {
@@ -93,7 +91,10 @@ export const generateImage = internalAction({
             content: messagesContent as any,
           },
         ],
-        ...(reasoningResult?.providerOptions || {}), // Apply thinking config
+        providerOptions: {
+          ...getGatewayOptions(modelId, undefined, ["image-generation"]),
+          ...(reasoningResult?.providerOptions || {}),
+        },
       });
 
       // Stream processing
@@ -214,7 +215,7 @@ export const generateImage = internalAction({
       const outputTokens = usage.outputTokens ?? 0;
       const reasoningTokens = usage.reasoningTokens ?? 0;
 
-      const cost = calculateCost(model, {
+      const cost = calculateCost(modelId, {
         inputTokens,
         outputTokens,
         cachedTokens: undefined,
@@ -232,7 +233,7 @@ export const generateImage = internalAction({
           mimeType: "image/png",
           metadata: {
             prompt: args.prompt,
-            model: args.model,
+            model: modelId,
             generationTime,
             totalTime,
             cost,
@@ -265,7 +266,7 @@ export const generateImage = internalAction({
         await ctx.runMutation(internal.usage.mutations.recordImageGeneration, {
           userId: conversation.userId,
           conversationId: args.conversationId,
-          model,
+          model: modelId,
           cost,
         });
       }

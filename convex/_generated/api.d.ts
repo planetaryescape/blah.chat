@@ -18,6 +18,7 @@ import type * as ai_tools_calculator from "../ai/tools/calculator.js";
 import type * as ai_tools_codeExecution from "../ai/tools/codeExecution.js";
 import type * as ai_tools_createDocument from "../ai/tools/createDocument.js";
 import type * as ai_tools_datetime from "../ai/tools/datetime.js";
+import type * as ai_tools_documentMode from "../ai/tools/documentMode.js";
 import type * as ai_tools_fileDocument from "../ai/tools/fileDocument.js";
 import type * as ai_tools_memories_index from "../ai/tools/memories/index.js";
 import type * as ai_tools_memories_memoryDelete from "../ai/tools/memories/memoryDelete.js";
@@ -29,6 +30,7 @@ import type * as ai_tools_projectContext_searchProjectFiles from "../ai/tools/pr
 import type * as ai_tools_projectContext_searchProjectNotes from "../ai/tools/projectContext/searchProjectNotes.js";
 import type * as ai_tools_projectContext_searchProjectTasks from "../ai/tools/projectContext/searchProjectTasks.js";
 import type * as ai_tools_readDocument from "../ai/tools/readDocument.js";
+import type * as ai_tools_resolveConflict from "../ai/tools/resolveConflict.js";
 import type * as ai_tools_search_index from "../ai/tools/search/index.js";
 import type * as ai_tools_search_queryHistory from "../ai/tools/search/queryHistory.js";
 import type * as ai_tools_search_searchAll from "../ai/tools/search/searchAll.js";
@@ -95,6 +97,7 @@ import type * as lib_prompts_base from "../lib/prompts/base.js";
 import type * as lib_prompts_formatting from "../lib/prompts/formatting.js";
 import type * as lib_prompts_index from "../lib/prompts/index.js";
 import type * as lib_prompts_operational_designSystem from "../lib/prompts/operational/designSystem.js";
+import type * as lib_prompts_operational_documentMode from "../lib/prompts/operational/documentMode.js";
 import type * as lib_prompts_operational_imageGeneration from "../lib/prompts/operational/imageGeneration.js";
 import type * as lib_prompts_operational_memoryConsolidation from "../lib/prompts/operational/memoryConsolidation.js";
 import type * as lib_prompts_operational_memoryExtraction from "../lib/prompts/operational/memoryExtraction.js";
@@ -136,6 +139,7 @@ import type * as migrations_006_user_preferences_backfill_actions from "../migra
 import type * as migrations_007_normalize_conversation_metadata from "../migrations/007_normalize_conversation_metadata.js";
 import type * as migrations_007_normalize_conversation_metadata_helpers from "../migrations/007_normalize_conversation_metadata_helpers.js";
 import type * as migrations_007_verify_token_usage from "../migrations/007_verify_token_usage.js";
+import type * as migrations_008_backfill_presentation_conversations from "../migrations/008_backfill_presentation_conversations.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
 import type * as notes from "../notes.js";
@@ -208,7 +212,6 @@ import type * as usage_queries from "../usage/queries.js";
 import type * as users from "../users.js";
 import type * as users_constants from "../users/constants.js";
 import type * as users_preferences from "../users/preferences.js";
-import type * as videoAnalysis from "../videoAnalysis.js";
 import type * as votes from "../votes.js";
 
 import type {
@@ -228,6 +231,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/codeExecution": typeof ai_tools_codeExecution;
   "ai/tools/createDocument": typeof ai_tools_createDocument;
   "ai/tools/datetime": typeof ai_tools_datetime;
+  "ai/tools/documentMode": typeof ai_tools_documentMode;
   "ai/tools/fileDocument": typeof ai_tools_fileDocument;
   "ai/tools/memories/index": typeof ai_tools_memories_index;
   "ai/tools/memories/memoryDelete": typeof ai_tools_memories_memoryDelete;
@@ -239,6 +243,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/projectContext/searchProjectNotes": typeof ai_tools_projectContext_searchProjectNotes;
   "ai/tools/projectContext/searchProjectTasks": typeof ai_tools_projectContext_searchProjectTasks;
   "ai/tools/readDocument": typeof ai_tools_readDocument;
+  "ai/tools/resolveConflict": typeof ai_tools_resolveConflict;
   "ai/tools/search/index": typeof ai_tools_search_index;
   "ai/tools/search/queryHistory": typeof ai_tools_search_queryHistory;
   "ai/tools/search/searchAll": typeof ai_tools_search_searchAll;
@@ -305,6 +310,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/formatting": typeof lib_prompts_formatting;
   "lib/prompts/index": typeof lib_prompts_index;
   "lib/prompts/operational/designSystem": typeof lib_prompts_operational_designSystem;
+  "lib/prompts/operational/documentMode": typeof lib_prompts_operational_documentMode;
   "lib/prompts/operational/imageGeneration": typeof lib_prompts_operational_imageGeneration;
   "lib/prompts/operational/memoryConsolidation": typeof lib_prompts_operational_memoryConsolidation;
   "lib/prompts/operational/memoryExtraction": typeof lib_prompts_operational_memoryExtraction;
@@ -346,6 +352,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/007_normalize_conversation_metadata": typeof migrations_007_normalize_conversation_metadata;
   "migrations/007_normalize_conversation_metadata_helpers": typeof migrations_007_normalize_conversation_metadata_helpers;
   "migrations/007_verify_token_usage": typeof migrations_007_verify_token_usage;
+  "migrations/008_backfill_presentation_conversations": typeof migrations_008_backfill_presentation_conversations;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
   notes: typeof notes;
@@ -418,7 +425,6 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   "users/constants": typeof users_constants;
   "users/preferences": typeof users_preferences;
-  videoAnalysis: typeof videoAnalysis;
   votes: typeof votes;
 }>;
 

@@ -181,8 +181,8 @@ export const internalList = internalQuery({
   },
 });
 
-import { getModel } from "@/lib/ai/registry";
 import { paginationOptsValidator } from "convex/server";
+import { getModel } from "@/lib/ai/registry";
 
 export const list = query({
   args: {

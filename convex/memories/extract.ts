@@ -1,17 +1,17 @@
 import { embedMany, generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
   EMBEDDING_MODEL,
   MEMORY_EXTRACTION_MODEL,
 } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
-import { isMemoryDuplicate } from "../lib/utils/memory";
 import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
+import { isMemoryDuplicate } from "../lib/utils/memory";
 
 // Constants for memory extraction quality control
 const IMPORTANCE_THRESHOLD = 7;

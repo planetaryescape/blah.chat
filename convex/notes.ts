@@ -818,7 +818,7 @@ export const searchNotes = query({
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
-    let notes;
+    let notes: Doc<"notes">[];
 
     if (!searchQuery || searchQuery.trim() === "") {
       // No search query: return recent notes

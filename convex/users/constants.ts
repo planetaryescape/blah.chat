@@ -40,7 +40,7 @@ export const PREFERENCE_DEFAULTS = {
   showTemplates: true,
   showProjects: true,
   showBookmarks: true,
-  showSlides: false,
+  showSlides: true,
 
   // Custom Instructions (single object)
   customInstructions: {

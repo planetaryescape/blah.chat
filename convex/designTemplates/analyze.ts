@@ -2,14 +2,14 @@
 
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TEMPLATE_ANALYSIS_MODEL } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import {
-  TEMPLATE_ANALYSIS_SYSTEM_PROMPT,
   buildTemplateAnalysisPrompt,
+  TEMPLATE_ANALYSIS_SYSTEM_PROMPT,
 } from "../lib/prompts/operational/templateAnalysis";
 
 interface SourceFile {
@@ -157,7 +157,7 @@ export const analyzeTemplate = internalAction({
         const jsonMatch = responseText.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
         const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText;
         extractedDesign = JSON.parse(jsonText);
-      } catch (parseError) {
+      } catch (_parseError) {
         console.error("Failed to parse template analysis:", result.text);
         throw new Error("Invalid JSON response from template analysis");
       }

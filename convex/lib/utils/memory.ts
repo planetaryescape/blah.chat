@@ -1,5 +1,5 @@
-import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 
 export const SIMILARITY_THRESHOLD = 0.85;
 

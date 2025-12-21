@@ -8,7 +8,7 @@ import {
 } from "./users/preferences";
 
 // NOTE: This must match the DEFAULT_MODEL_ID in src/lib/ai/operational-models.ts
-const DEFAULT_MODEL_FOR_NEW_USERS = "openai:gpt-oss-120b";
+const _DEFAULT_MODEL_FOR_NEW_USERS = "openai:gpt-oss-120b";
 
 export const createUser = mutation({
   args: {

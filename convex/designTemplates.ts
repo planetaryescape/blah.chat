@@ -1,11 +1,11 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import {
-  mutation,
-  query,
   internalMutation,
   internalQuery,
+  mutation,
+  query,
 } from "./_generated/server";
-import { internal } from "./_generated/api";
 
 const sourceFileValidator = v.object({
   storageId: v.id("_storage"),
@@ -147,7 +147,7 @@ export const listByUser = query({
       return [];
     }
 
-    let query = ctx.db
+    const query = ctx.db
       .query("designTemplates")
       .withIndex("by_user", (q) => q.eq("userId", user._id));
 

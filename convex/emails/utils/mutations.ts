@@ -32,9 +32,7 @@ async function canSendEmailToUser(
     .query("emailAlerts")
     // biome-ignore lint/suspicious/noExplicitAny: Convex query types
     .withIndex("by_type_sent", (q: any) => q.eq("type", type))
-    .filter((q: any) =>
-      q.eq(q.field("metadata.userId"), userId),
-    )
+    .filter((q: any) => q.eq(q.field("metadata.userId"), userId))
     .first();
 
   return existingEmail === null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronRight, Star, Zap } from "lucide-react";
+import { Check, ChevronRight, Crown, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
 import {
@@ -22,6 +22,8 @@ interface ModelSelectorItemProps {
   activeCategory: string;
   onSelect: (modelId: string) => void;
   onToggleFavorite: (modelId: string) => void;
+  isPro?: boolean;
+  proAccessRemaining?: number | null;
 }
 
 /**
@@ -46,6 +48,8 @@ export function ModelSelectorItem({
   activeCategory,
   onSelect,
   onToggleFavorite,
+  isPro = false,
+  proAccessRemaining = null,
 }: ModelSelectorItemProps) {
   // Get model categories (only for "All" view)
   const _categories = activeCategory === "all" ? getModelCategories(model) : [];
@@ -96,6 +100,22 @@ export function ModelSelectorItem({
                 Reasoning
               </span>
             )}
+            {isPro && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium flex items-center gap-0.5">
+                <Crown className="w-2.5 h-2.5" />
+                Pro
+              </span>
+            )}
+            {isPro &&
+              proAccessRemaining !== null &&
+              proAccessRemaining !== undefined &&
+              proAccessRemaining !== Number.POSITIVE_INFINITY && (
+                <span className="text-[10px] text-muted-foreground">
+                  {proAccessRemaining === 0
+                    ? "Limit reached"
+                    : `${proAccessRemaining} left`}
+                </span>
+              )}
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

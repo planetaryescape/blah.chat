@@ -1,11 +1,11 @@
 import { embed, generateText } from "ai";
 import { v } from "convex/values";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
   EMBEDDING_MODEL,
   EMBEDDING_SUMMARIZATION_MODEL,
 } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import {
   internalAction,

@@ -523,21 +523,21 @@ export const forkPrivate = action({
     for (const att of allAttachments) {
       const key = att.messageId;
       if (!attachmentsByMessage.has(key)) attachmentsByMessage.set(key, []);
-      attachmentsByMessage.get(key)!.push(att);
+      attachmentsByMessage.get(key)?.push(att);
     }
 
     const toolCallsByMessage = new Map<string, Doc<"toolCalls">[]>();
     for (const tc of allToolCalls) {
       const key = tc.messageId;
       if (!toolCallsByMessage.has(key)) toolCallsByMessage.set(key, []);
-      toolCallsByMessage.get(key)!.push(tc);
+      toolCallsByMessage.get(key)?.push(tc);
     }
 
     const sourcesByMessage = new Map<string, Doc<"sources">[]>();
     for (const src of allSources) {
       const key = src.messageId;
       if (!sourcesByMessage.has(key)) sourcesByMessage.set(key, []);
-      sourcesByMessage.get(key)!.push(src);
+      sourcesByMessage.get(key)?.push(src);
     }
 
     // Copy messages + attachments + toolCalls + sources
@@ -644,7 +644,7 @@ export const forkCollaborative = action({
     }
 
     // Get original owner
-    const originalOwner = (await (ctx.runQuery as any)(
+    const _originalOwner = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit
       internal.shares.getUserByIdInternal,
       { userId: original.userId },
@@ -722,21 +722,21 @@ export const forkCollaborative = action({
     for (const att of allAttachments) {
       const key = att.messageId;
       if (!attachmentsByMessage.has(key)) attachmentsByMessage.set(key, []);
-      attachmentsByMessage.get(key)!.push(att);
+      attachmentsByMessage.get(key)?.push(att);
     }
 
     const toolCallsByMessage = new Map<string, Doc<"toolCalls">[]>();
     for (const tc of allToolCalls) {
       const key = tc.messageId;
       if (!toolCallsByMessage.has(key)) toolCallsByMessage.set(key, []);
-      toolCallsByMessage.get(key)!.push(tc);
+      toolCallsByMessage.get(key)?.push(tc);
     }
 
     const sourcesByMessage = new Map<string, Doc<"sources">[]>();
     for (const src of allSources) {
       const key = src.messageId;
       if (!sourcesByMessage.has(key)) sourcesByMessage.set(key, []);
-      sourcesByMessage.get(key)!.push(src);
+      sourcesByMessage.get(key)?.push(src);
     }
 
     // Copy messages + attachments + toolCalls + sources (preserve original userIds)

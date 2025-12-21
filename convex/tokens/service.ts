@@ -49,12 +49,12 @@ class OpenAITokenCounter implements TokenCountService {
     }
 
     try {
-      const baseModel = this.model.includes(":")
+      const _baseModel = this.model.includes(":")
         ? this.model.split(":")[1]
         : this.model;
 
       // Map to tiktoken model
-      let tiktokenModel: TiktokenModel = "gpt-5-mini";
+      const tiktokenModel: TiktokenModel = "gpt-5-mini";
 
       const encoderFn = await getTiktokenEncoder();
       if (!encoderFn) throw new Error("Tiktoken unavailable");

@@ -4,8 +4,8 @@
  * Re-exports all search tool backend implementations.
  */
 
+export { getConversationIds, queryHistory } from "./queryHistory";
+export { searchAll } from "./searchAll";
 export { searchFiles } from "./searchFiles";
 export { searchNotes } from "./searchNotes";
-export { searchTasks, filterTasks } from "./searchTasks";
-export { queryHistory, getConversationIds } from "./queryHistory";
-export { searchAll } from "./searchAll";
+export { filterTasks, searchTasks } from "./searchTasks";

@@ -73,7 +73,9 @@ export function createDocumentTool(
         return {
           success: false,
           error:
-            error instanceof Error ? error.message : "Failed to create document",
+            error instanceof Error
+              ? error.message
+              : "Failed to create document",
         };
       }
     },

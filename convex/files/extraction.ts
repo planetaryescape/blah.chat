@@ -17,9 +17,9 @@
 
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { DOCUMENT_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
@@ -76,7 +76,7 @@ Rules:
 Output the extracted text directly, no preamble.
 `;
 
-const CSV_BATCH_EXTRACTION_PROMPT = (startRow: number, endRow: number) => `
+const _CSV_BATCH_EXTRACTION_PROMPT = (startRow: number, endRow: number) => `
 Extract rows ${startRow} to ${endRow} from this CSV file.
 
 Rules:

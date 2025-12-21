@@ -138,6 +138,7 @@ export const recordTextGeneration = internalMutation({
         // Budget exceeded (100%)
         await ctx.scheduler.runAfter(
           0,
+          // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
           internal.emails.utils.send.sendBudgetAlert,
           {
             percentUsed: percentUsed * 100,
@@ -150,6 +151,7 @@ export const recordTextGeneration = internalMutation({
         // Warning threshold (80%)
         await ctx.scheduler.runAfter(
           0,
+          // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
           internal.emails.utils.send.sendBudgetAlert,
           {
             percentUsed: percentUsed * 100,
@@ -179,28 +181,6 @@ export const recordTTS = internalMutation({
       model: args.model,
       inputTokens: 0,
       outputTokens: args.characterCount, // Track chars as "output tokens"
-      cost: args.cost,
-      messageCount: 1,
-    });
-  },
-});
-
-export const recordVideoAnalysis = internalMutation({
-  args: {
-    userId: v.id("users"),
-    model: v.string(), // e.g., "google:gemini-2.0-flash-exp"
-    durationMinutes: v.number(),
-    cost: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const date = new Date().toISOString().split("T")[0];
-
-    await ctx.db.insert("usageRecords", {
-      userId: args.userId,
-      date,
-      model: args.model,
-      inputTokens: 0,
-      outputTokens: 0,
       cost: args.cost,
       messageCount: 1,
     });

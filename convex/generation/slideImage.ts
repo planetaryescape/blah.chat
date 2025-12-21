@@ -1,9 +1,10 @@
 "use node";
 
-import { calculateCost } from "@/lib/ai/utils";
-import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { v } from "convex/values";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
@@ -35,6 +36,27 @@ interface DesignSystem {
   iconStyle: string;
   imageGuidelines: string;
   designInspiration: string;
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelayMs = 1000,
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      const delay = baseDelayMs * 2 ** attempt;
+      console.warn(
+        `Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+        error,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("Unreachable");
 }
 
 export const generateSlideImage = internalAction({
@@ -135,14 +157,12 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
         },
       );
 
-      const geminiModel = args.modelId.replace(/^google:/, "");
-
       // Build messages - use multimodal if we have a reference image
-      let result;
+      let result: Awaited<ReturnType<typeof generateText>>;
       if (referenceImageBase64) {
         console.log("Using multimodal generation with reference image");
         result = await generateText({
-          model: google(geminiModel),
+          model: getModel(args.modelId),
           messages: [
             {
               role: "user",
@@ -156,6 +176,7 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
             },
           ],
           providerOptions: {
+            ...getGatewayOptions(args.modelId, slide.userId, ["slide-image"]),
             google: {
               imageConfig: {
                 aspectRatio: "16:9",
@@ -165,9 +186,10 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
         });
       } else {
         result = await generateText({
-          model: google(geminiModel),
+          model: getModel(args.modelId),
           prompt,
           providerOptions: {
+            ...getGatewayOptions(args.modelId, slide.userId, ["slide-image"]),
             google: {
               imageConfig: {
                 aspectRatio: "16:9",
@@ -218,8 +240,13 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
         }
       }
 
-      const storageId = await ctx.storage.store(
-        new Blob([new Uint8Array(imageBuffer)], { type: "image/png" }),
+      const storageId = await withRetry(
+        () =>
+          ctx.storage.store(
+            new Blob([new Uint8Array(imageBuffer)], { type: "image/png" }),
+          ),
+        3,
+        1000,
       );
 
       const inputTokens = usage.inputTokens ?? 0;
@@ -264,6 +291,13 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
           inputTokens,
           outputTokens,
         },
+      );
+
+      // Check if all slides are now complete → update presentation status
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.checkAndCompletePresentation,
+        { presentationId: slide.presentationId as Id<"presentations"> },
       );
 
       return {

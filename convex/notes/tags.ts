@@ -1,9 +1,9 @@
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TAG_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";

@@ -9,8 +9,8 @@ import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
-import { applyRRF } from "../lib/utils/search";
 import { buildMemoryRerankPrompt } from "../lib/prompts/operational/memoryRerank";
+import { applyRRF } from "../lib/utils/search";
 
 const MIN_CONFIDENCE = 0.7;
 

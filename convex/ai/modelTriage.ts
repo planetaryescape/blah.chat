@@ -1,12 +1,12 @@
 "use node";
 
-import { getModel } from "@/lib/ai/registry";
 import { generateObject, generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import type { ModelConfig } from "@/lib/ai/models";
 import { MODEL_CONFIG } from "@/lib/ai/models";
+import { getModel } from "@/lib/ai/registry";
 import { MODEL_TRIAGE_PROMPT } from "../../src/lib/prompts/modelTriage";
 import { internal } from "../_generated/api";
 import { action, internalAction } from "../_generated/server";

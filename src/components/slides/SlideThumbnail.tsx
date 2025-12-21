@@ -1,11 +1,11 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import { AlertCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { cn } from "@/lib/utils";
 
 interface Props {
   slide: Doc<"slides">;

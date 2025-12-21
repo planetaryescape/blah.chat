@@ -41,7 +41,7 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
 
     if (headerMatch) {
       // Save previous slide if exists
-      if (currentSlide && currentSlide.title) {
+      if (currentSlide?.title) {
         slides.push({
           position: ++position,
           slideType: currentSlide.slideType || "content",
@@ -72,7 +72,7 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
       ) {
         currentSlide.slideType = "section";
         // Extract section name as title
-        currentSlide.title = titleText.replace(/^section[:\-]\s*/i, "").trim();
+        currentSlide.title = titleText.replace(/^section[:-]\s*/i, "").trim();
       }
     }
     // Title field
@@ -122,7 +122,7 @@ export function parseOutlineMarkdown(content: string): ParsedSlide[] {
   }
 
   // Add final slide
-  if (currentSlide && currentSlide.title) {
+  if (currentSlide?.title) {
     slides.push({
       position: ++position,
       slideType: currentSlide.slideType || "content",

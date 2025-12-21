@@ -1,10 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { usePresentationSync } from "@/hooks/usePresentationSync";
 import { useQuery } from "convex/react";
 import {
   ChevronLeft,
@@ -17,6 +12,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { use, useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { usePresentationSync } from "@/hooks/usePresentationSync";
 
 export default function PresenterPage({
   params,

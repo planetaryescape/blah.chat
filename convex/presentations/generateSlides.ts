@@ -72,26 +72,29 @@ export const generateSlides = internalAction({
         console.log("Batch 1: Generating title slide...");
         const titleSlide = titleSlides[0];
 
-        await (ctx.runAction as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.generation.slideImage.generateSlideImage,
-          {
-            slideId: titleSlide._id,
-            modelId: presentation.imageModel,
-            designSystem: presentation.designSystem,
-            contextSlides: [],
-            slideStyle,
-            isTemplateBased,
-          },
-        );
+        try {
+          await (ctx.runAction as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.generation.slideImage.generateSlideImage,
+            {
+              slideId: titleSlide._id,
+              modelId: presentation.imageModel,
+              designSystem: presentation.designSystem,
+              contextSlides: [],
+              slideStyle,
+              isTemplateBased,
+            },
+          );
+          console.log("Title slide complete");
+        } catch (error) {
+          console.warn("Title slide failed, continuing...", error);
+        }
 
         await (ctx.runMutation as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.presentations.incrementProgressInternal,
           { presentationId: args.presentationId },
         );
-
-        console.log("Title slide complete");
       }
 
       // BATCH 2: Section slides (parallel, context: title)
@@ -120,8 +123,17 @@ export const generateSlides = internalAction({
           ),
         );
 
-        await Promise.all(sectionPromises);
+        const sectionResults = await Promise.allSettled(sectionPromises);
+        const sectionFailures = sectionResults.filter(
+          (r) => r.status === "rejected",
+        );
+        if (sectionFailures.length > 0) {
+          console.warn(
+            `${sectionFailures.length}/${sectionSlides.length} section slides failed, continuing...`,
+          );
+        }
 
+        // Increment progress for all attempted slides (not just successful ones)
         for (let i = 0; i < sectionSlides.length; i++) {
           await (ctx.runMutation as any)(
             // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -176,8 +188,17 @@ export const generateSlides = internalAction({
             ),
           );
 
-          await Promise.all(batchPromises);
+          const batchResults = await Promise.allSettled(batchPromises);
+          const batchFailures = batchResults.filter(
+            (r) => r.status === "rejected",
+          );
+          if (batchFailures.length > 0) {
+            console.warn(
+              `${batchFailures.length}/${batch.length} content slides failed in batch ${batchIndex + 1}, continuing...`,
+            );
+          }
 
+          // Increment progress for all attempted slides
           for (let i = 0; i < batch.length; i++) {
             await (ctx.runMutation as any)(
               // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -190,13 +211,14 @@ export const generateSlides = internalAction({
         console.log("Content slides complete");
       }
 
+      // Check if all slides completed successfully and update status accordingly
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.presentations.updateStatusInternal,
-        { presentationId: args.presentationId, status: "slides_complete" },
+        internal.presentations.checkAndCompletePresentation,
+        { presentationId: args.presentationId },
       );
 
-      console.log(`Presentation ${args.presentationId} generation complete!`);
+      console.log(`Presentation ${args.presentationId} generation attempted!`);
 
       return { success: true };
     } catch (error) {

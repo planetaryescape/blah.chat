@@ -1,15 +1,13 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
 import {
   closestCenter,
   DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -20,6 +18,8 @@ import {
 import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
+import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { OutlineCard } from "./OutlineCard";
 
 interface OutlineCardListProps {

@@ -257,7 +257,7 @@ export default function SlidesPage() {
         },
       },
     ],
-    [],
+    [showStats],
   );
 
   const tableData = useMemo(() => {

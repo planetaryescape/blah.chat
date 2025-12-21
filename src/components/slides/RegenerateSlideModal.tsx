@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import type { Doc } from "@/convex/_generated/dataModel";
+import { Loader2, RefreshCw } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,11 +13,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, RefreshCw } from "lucide-react";
-import Image from "next/image";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 
 interface Props {
   slide: Doc<"slides">;

@@ -43,3 +43,10 @@ export {
 
 // Built-in templates
 export { BUILT_IN_TEMPLATES } from "./templates/builtIn";
+
+// System prompt builder
+export { buildSystemPrompts } from "./systemBuilder";
+export type {
+  BuildSystemPromptsArgs,
+  BuildSystemPromptsResult,
+} from "./systemBuilder";

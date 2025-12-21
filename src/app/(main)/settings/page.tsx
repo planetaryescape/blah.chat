@@ -8,6 +8,7 @@ import { CustomInstructionsForm } from "@/components/settings/CustomInstructions
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
 import { MemorySettings } from "@/components/settings/MemorySettings";
+import { ShortcutsSettings } from "@/components/settings/ShortcutsSettings";
 import { STTSettings } from "@/components/settings/STTSettings";
 import { UISettings } from "@/components/settings/UISettings";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,6 +46,11 @@ const SETTINGS_SECTIONS = [
     id: "maintenance",
     label: "Maintenance",
     component: MaintenanceSettings,
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    component: ShortcutsSettings,
   },
   {
     id: "database",

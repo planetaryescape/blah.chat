@@ -254,7 +254,7 @@ defineTable("projectConversations", {
 - Vector indexes for embeddings (1536 dimensions)
 - Search indexes for full-text search
 
-**Reference**: See `docs/SCHEMA_NORMALIZATION_GUIDE.md` for complete migration history and patterns.
+**Reference**: See `docs/architecture/schema-normalization.md` for complete migration history and patterns.
 
 ### TypeScript Type Handling in Convex
 
@@ -385,7 +385,7 @@ const myMutation = useMutation(api.path.to.mutation);
 - Frontend: Ensure `Id` type imported: `import type { Doc, Id } from "@/convex/_generated/dataModel"`
 - Use `@ts-ignore` (not `@ts-expect-error`) for frontend hooks
 
-See `docs/technical-reports/typescript-type-depth-solution.md` for full details.
+See `docs/architecture/typescript-workarounds.md` for full details.
 
 ### Dependency Management
 

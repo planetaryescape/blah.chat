@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Button } from "@/components/ui/button";
+import { Loader2, Mail, Play, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -21,8 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Mail, Play, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
 
 export default function BYODAdminPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -71,7 +71,7 @@ export default function BYODAdminPage() {
       toast.success(
         `Health check: ${result.healthy} healthy, ${result.unhealthy} unhealthy, ${result.outdated} outdated`,
       );
-    } catch (error) {
+    } catch (_error) {
       toast.error("Health check failed");
     } finally {
       setIsRefreshing(false);
@@ -85,7 +85,7 @@ export default function BYODAdminPage() {
       toast.success(
         `Migrations: ${result.succeeded} succeeded, ${result.failed} failed`,
       );
-    } catch (error) {
+    } catch (_error) {
       toast.error("Migrations failed");
     } finally {
       setIsRunningMigrations(false);
@@ -99,7 +99,7 @@ export default function BYODAdminPage() {
       toast.success(
         `Emails: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed`,
       );
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to send notifications");
     } finally {
       setIsSendingNotifications(false);

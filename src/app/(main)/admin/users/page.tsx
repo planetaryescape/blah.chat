@@ -1,26 +1,5 @@
 "use client";
 
-import { DateRangePicker } from "@/components/admin/DateRangePicker";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import {
-  formatCompactNumber,
-  formatCurrency,
-  getLastNDays,
-} from "@/lib/utils/date";
 import {
   type ColumnDef,
   flexRender,
@@ -37,13 +16,34 @@ import { ArrowUpDown, Shield, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-
-type UsageSummary = {
-  userId: Id<"users">;
-  totalCost: number;
-  totalTokens: number;
-  totalRequests: number;
-};
+import { DateRangePicker } from "@/components/admin/DateRangePicker";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import {
+  formatCompactNumber,
+  formatCurrency,
+  getLastNDays,
+} from "@/lib/utils/date";
 
 type UserWithUsage = {
   _id: Id<"users">;
@@ -51,6 +51,7 @@ type UserWithUsage = {
   email: string;
   imageUrl: string | undefined;
   isAdmin: boolean;
+  tier?: "free" | "tier1" | "tier2";
   createdAt: number;
   usage: {
     totalCost: number;
@@ -76,6 +77,8 @@ function UsersPageContent() {
   const router = useRouter();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateRole = useMutation(api.admin.updateUserRole);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateTier = useMutation(api.admin.updateUserTier);
 
   // Date range state - fresh last 30 days on each page load
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
@@ -113,6 +116,18 @@ function UsersPageContent() {
     [updateRole],
   );
 
+  const handleUpdateTier = useCallback(
+    async (userId: Id<"users">, tier: "free" | "tier1" | "tier2") => {
+      try {
+        await updateTier({ userId, tier });
+        toast.success(`User tier updated to ${tier}`);
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update tier");
+      }
+    },
+    [updateTier],
+  );
+
   // Merge users with usage data - MUST be memoized to prevent infinite re-renders
   const usersWithUsage = useMemo<UserWithUsage[]>(() => {
     if (!users || !usageSummary) return [];
@@ -123,6 +138,7 @@ function UsersPageContent() {
 
     return users.map((user: any) => ({
       ...user,
+      tier: user.tier,
       usage: usageByUserId.get(user._id) || {
         totalCost: 0,
         totalTokens: 0,
@@ -227,9 +243,35 @@ function UsersPageContent() {
           </div>
         ),
       },
+      {
+        id: "tier",
+        header: () => <div className="text-right">Tier</div>,
+        cell: ({ row }) => (
+          <div
+            className="flex items-center justify-end"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Select
+              value={row.original.tier || "free"}
+              onValueChange={(value: "free" | "tier1" | "tier2") =>
+                handleUpdateTier(row.original._id, value)
+              }
+            >
+              <SelectTrigger className="w-24 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="tier1">Tier 1</SelectItem>
+                <SelectItem value="tier2">Tier 2</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ),
+      },
     ],
-    [handleToggleAdmin],
-  ); // dependency: only recreate if handleToggleAdmin changes
+    [handleToggleAdmin, handleUpdateTier],
+  ); // dependency: only recreate if callbacks change
 
   // Initialize TanStack Table (must be before conditional return)
   const table = useReactTable({

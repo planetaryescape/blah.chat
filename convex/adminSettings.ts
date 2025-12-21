@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery, mutation, query } from "./_generated/server";
+import { getCurrentUser } from "./lib/userSync";
 
 /**
  * Get global admin settings
@@ -37,6 +38,10 @@ export const get = query({
         alertEmail: "blah.chat@bhekani.com",
         transcriptProvider: "groq",
         transcriptCostPerMinute: 0.0067,
+        // Pro Model Settings
+        proModelsEnabled: false,
+        tier1DailyProModelLimit: 1,
+        tier2MonthlyProModelLimit: 50,
       }
     );
   },
@@ -58,6 +63,10 @@ export const update = mutation({
     alertEmail: v.optional(v.string()),
     transcriptProvider: v.optional(v.string()),
     transcriptCostPerMinute: v.optional(v.number()),
+    // Pro Model Settings
+    proModelsEnabled: v.optional(v.boolean()),
+    tier1DailyProModelLimit: v.optional(v.number()),
+    tier2MonthlyProModelLimit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -111,6 +120,10 @@ export const update = mutation({
         alertEmail: args.alertEmail ?? "blah.chat@bhekani.com",
         transcriptProvider: args.transcriptProvider ?? "groq",
         transcriptCostPerMinute: args.transcriptCostPerMinute ?? 0.0067,
+        // Pro Model Settings
+        proModelsEnabled: args.proModelsEnabled ?? false,
+        tier1DailyProModelLimit: args.tier1DailyProModelLimit ?? 1,
+        tier2MonthlyProModelLimit: args.tier2MonthlyProModelLimit ?? 50,
         updatedBy: userId,
         updatedAt: Date.now(),
       });
@@ -153,6 +166,10 @@ export const getWithEnvOverrides = internalQuery({
       alertEmail: "blah.chat@bhekani.com",
       transcriptProvider: "groq",
       transcriptCostPerMinute: 0.0067,
+      // Pro Model Settings
+      proModelsEnabled: false,
+      tier1DailyProModelLimit: 1,
+      tier2MonthlyProModelLimit: 50,
     };
 
     // Merge: env vars > database > defaults
@@ -179,5 +196,62 @@ export const getWithEnvOverrides = internalQuery({
         : settings.budgetHardLimitEnabled,
       alertEmail: process.env.ALERT_EMAIL || settings.alertEmail,
     };
+  },
+});
+
+/**
+ * Check if current user can use pro models
+ * Used by frontend to filter/disable pro models
+ */
+export const getProModelAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return { canUse: false, reason: "Not authenticated" };
+    if (user.isAdmin)
+      return {
+        canUse: true,
+        remainingDaily: Number.POSITIVE_INFINITY,
+        remainingMonthly: Number.POSITIVE_INFINITY,
+      };
+
+    const settings = await ctx.db.query("adminSettings").first();
+    if (!settings?.proModelsEnabled)
+      return { canUse: false, reason: "Pro models disabled" };
+
+    const tier = user.tier || "free";
+    const today = new Date().toISOString().split("T")[0];
+
+    if (tier === "free")
+      return { canUse: false, reason: "Upgrade to access pro models" };
+
+    if (tier === "tier1") {
+      const limit = settings.tier1DailyProModelLimit ?? 1;
+      const currentCount =
+        user.lastProModelDate === today ? (user.dailyProModelCount ?? 0) : 0;
+      const remaining = Math.max(0, limit - currentCount);
+      return {
+        canUse: remaining > 0,
+        reason: remaining === 0 ? "Daily limit reached" : undefined,
+        remainingDaily: remaining,
+      };
+    }
+
+    if (tier === "tier2") {
+      const thisMonth = today.substring(0, 7);
+      const limit = settings.tier2MonthlyProModelLimit ?? 50;
+      const currentCount =
+        user.lastProModelMonth === thisMonth
+          ? (user.monthlyProModelCount ?? 0)
+          : 0;
+      const remaining = Math.max(0, limit - currentCount);
+      return {
+        canUse: remaining > 0,
+        reason: remaining === 0 ? "Monthly limit reached" : undefined,
+        remainingMonthly: remaining,
+      };
+    }
+
+    return { canUse: false, reason: "Unknown tier" };
   },
 });

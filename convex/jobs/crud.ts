@@ -8,7 +8,6 @@ export const jobTypes = v.union(
   v.literal("extractMemories"),
   v.literal("transcribe"),
   v.literal("embedFile"),
-  v.literal("analyzeVideo"),
 );
 
 export const jobStatus = v.union(

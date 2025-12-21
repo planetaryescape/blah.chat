@@ -13,29 +13,29 @@ import { tasksTable } from "./tasks";
 import { usageTable } from "./usage";
 
 export const byodSchema = defineSchema({
-	// Core content
-	...conversationsTable,
-	...messagesTable,
-	...memoriesTable,
+  // Core content
+  ...conversationsTable,
+  ...messagesTable,
+  ...memoriesTable,
 
-	// Files
-	...filesTable,
+  // Files
+  ...filesTable,
 
-	// Organization
-	...projectsTable,
-	...notesTable,
-	...tasksTable,
-	...bookmarksTable,
-	...tagsTable,
+  // Organization
+  ...projectsTable,
+  ...notesTable,
+  ...tasksTable,
+  ...bookmarksTable,
+  ...tagsTable,
 
-	// Usage tracking
-	...usageTable,
+  // Usage tracking
+  ...usageTable,
 
-	// Presentations
-	...presentationsTable,
+  // Presentations
+  ...presentationsTable,
 
-	// Activity
-	...activityTable,
+  // Activity
+  ...activityTable,
 });
 
 // Re-export all table definitions for individual access

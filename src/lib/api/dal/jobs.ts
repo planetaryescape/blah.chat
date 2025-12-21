@@ -31,10 +31,6 @@ export const embedFileInputSchema = z.object({
   fileId: z.string(),
 });
 
-export const analyzeVideoInputSchema = z.object({
-  storageId: z.string(),
-});
-
 /**
  * Create search job and schedule execution
  */
@@ -148,30 +144,6 @@ export async function createEmbedFileJob(
   await convexMutation(internal.jobs.actions.executeEmbedFile as any, {
     jobId,
     fileId: validated.fileId as Id<"files">,
-  });
-
-  return jobId;
-}
-
-/**
- * Create video analysis job and schedule execution (Tier 2)
- */
-export async function createAnalyzeVideoJob(
-  convexMutation: FetchMutation,
-  userId: Id<"users">,
-  input: z.infer<typeof analyzeVideoInputSchema>,
-) {
-  const validated = analyzeVideoInputSchema.parse(input);
-
-  const jobId = (await convexMutation(internal.jobs.crud.create as any, {
-    userId,
-    type: "analyzeVideo" as const,
-    input: validated,
-  })) as Id<"jobs">;
-
-  await convexMutation(internal.jobs.actions.executeAnalyzeVideo as any, {
-    jobId,
-    storageId: validated.storageId as Id<"_storage">,
   });
 
   return jobId;

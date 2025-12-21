@@ -7,14 +7,14 @@ let _convex: ConvexHttpClient | null = null;
  * Get unauthenticated Convex HTTP client (for queries that don't need auth)
  */
 export function getConvexClient(): ConvexHttpClient {
-	if (!_convex) {
-		const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-		if (!url) {
-			throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
-		}
-		_convex = new ConvexHttpClient(url);
-	}
-	return _convex;
+  if (!_convex) {
+    const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!url) {
+      throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
+    }
+    _convex = new ConvexHttpClient(url);
+  }
+  return _convex;
 }
 
 /**
@@ -22,13 +22,13 @@ export function getConvexClient(): ConvexHttpClient {
  * Use this for mutations that require ctx.auth.getUserIdentity()
  */
 export function getAuthenticatedConvexClient(token: string): ConvexHttpClient {
-	const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-	if (!url) {
-		throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
-	}
-	const client = new ConvexHttpClient(url);
-	client.setAuth(token);
-	return client;
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
+  }
+  const client = new ConvexHttpClient(url);
+  client.setAuth(token);
+  return client;
 }
 
 // ===== BYOD Client Management =====
@@ -43,7 +43,7 @@ const userClientCache = new Map<string, ConvexHttpClient>();
  * Get the main Convex client (singleton) - alias for getConvexClient
  */
 export function getMainClient(): ConvexHttpClient {
-	return getConvexClient();
+  return getConvexClient();
 }
 
 /**
@@ -51,58 +51,58 @@ export function getMainClient(): ConvexHttpClient {
  * Uses Convex HTTP API with deploy key for authentication
  */
 export function createBYODClient(
-	deploymentUrl: string,
-	_deployKey?: string,
+  deploymentUrl: string,
+  _deployKey?: string,
 ): ConvexHttpClient {
-	// Note: ConvexHttpClient doesn't support admin auth directly
-	// For BYOD, we use HTTP API calls with Authorization header
-	// This client is for unauthenticated queries only
-	return new ConvexHttpClient(deploymentUrl);
+  // Note: ConvexHttpClient doesn't support admin auth directly
+  // For BYOD, we use HTTP API calls with Authorization header
+  // This client is for unauthenticated queries only
+  return new ConvexHttpClient(deploymentUrl);
 }
 
 /**
  * Get or create a cached client for user's BYOD instance
  */
 export function getUserClient(
-	userId: string,
-	deploymentUrl: string,
+  userId: string,
+  deploymentUrl: string,
 ): ConvexHttpClient {
-	const cacheKey = `${userId}:${deploymentUrl}`;
+  const cacheKey = `${userId}:${deploymentUrl}`;
 
-	if (userClientCache.has(cacheKey)) {
-		return userClientCache.get(cacheKey)!;
-	}
+  if (userClientCache.has(cacheKey)) {
+    return userClientCache.get(cacheKey)!;
+  }
 
-	const client = new ConvexHttpClient(deploymentUrl);
-	userClientCache.set(cacheKey, client);
-	return client;
+  const client = new ConvexHttpClient(deploymentUrl);
+  userClientCache.set(cacheKey, client);
+  return client;
 }
 
 /**
  * Clear cached client for user (call on disconnect)
  */
 export function clearUserClient(userId: string): void {
-	for (const [key] of userClientCache) {
-		if (key.startsWith(`${userId}:`)) {
-			userClientCache.delete(key);
-		}
-	}
+  for (const [key] of userClientCache) {
+    if (key.startsWith(`${userId}:`)) {
+      userClientCache.delete(key);
+    }
+  }
 }
 
 /**
  * Clear all cached BYOD clients
  */
 export function clearAllUserClients(): void {
-	userClientCache.clear();
+  userClientCache.clear();
 }
 
 /**
  * BYOD configuration for routing
  */
 export interface BYODConfig {
-	deploymentUrl: string;
-	deployKey?: string;
-	connectionStatus: "pending" | "connected" | "error" | "disconnected";
+  deploymentUrl: string;
+  deployKey?: string;
+  connectionStatus: "pending" | "connected" | "error" | "disconnected";
 }
 
 /**
@@ -114,24 +114,24 @@ export interface BYODConfig {
  * @returns Object with client and whether it's the user's DB
  */
 export function getClientForTable(
-	table: string,
-	userId: string,
-	byodConfig?: BYODConfig | null,
+  table: string,
+  userId: string,
+  byodConfig?: BYODConfig | null,
 ): { client: ConvexHttpClient; isUserDb: boolean } {
-	const location = getTableLocation(table);
+  const location = getTableLocation(table);
 
-	// Main tables always use main client
-	if (location === "main") {
-		return { client: getMainClient(), isUserDb: false };
-	}
+  // Main tables always use main client
+  if (location === "main") {
+    return { client: getMainClient(), isUserDb: false };
+  }
 
-	// User table - check if BYOD enabled and connected
-	if (!byodConfig || byodConfig.connectionStatus !== "connected") {
-		// No BYOD or not connected - use main DB
-		return { client: getMainClient(), isUserDb: false };
-	}
+  // User table - check if BYOD enabled and connected
+  if (!byodConfig || byodConfig.connectionStatus !== "connected") {
+    // No BYOD or not connected - use main DB
+    return { client: getMainClient(), isUserDb: false };
+  }
 
-	// BYOD enabled - use user's client
-	const client = getUserClient(userId, byodConfig.deploymentUrl);
-	return { client, isUserDb: true };
+  // BYOD enabled - use user's client
+  const client = getUserClient(userId, byodConfig.deploymentUrl);
+  return { client, isUserDb: true };
 }

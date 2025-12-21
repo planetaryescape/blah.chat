@@ -6,7 +6,6 @@ import {
   FileText,
   FolderKanban,
   Ghost,
-  Keyboard,
   Mic,
   MoreHorizontal,
   NotebookPen,
@@ -92,7 +91,6 @@ const MENU_ITEMS = [
     href: "/bookmarks",
     featureKey: "showBookmarks" as const,
   },
-  { icon: Keyboard, label: "Shortcuts", href: "/shortcuts", featureKey: null }, // Hidden on mobile via featureKey filtering logic update below
   { icon: Settings, label: "Settings", href: "/settings", featureKey: null },
 ];
 
@@ -100,10 +98,16 @@ export function AppSidebar() {
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversations = useQuery(api.conversations.list, {
+  const rawConversations = useQuery(api.conversations.list, {
     projectId:
       (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
   });
+
+  // Filter out presentation conversations (they have their own UI in /slides)
+  const conversations = useMemo(
+    () => rawConversations?.filter((c) => c.isPresentation !== true),
+    [rawConversations],
+  );
 
   // Bulk actions mutations
   const bulkDelete = useMutation(api.conversations.bulkDelete);

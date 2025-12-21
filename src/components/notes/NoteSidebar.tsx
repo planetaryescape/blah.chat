@@ -12,7 +12,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "./EmptyState";
 import { NoteFilters } from "./NoteFilters";

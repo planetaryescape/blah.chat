@@ -1,11 +1,11 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { File, MessageSquare, NotebookPen } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { File, MessageSquare, NotebookPen } from "lucide-react";
 
 interface ProjectStatsProps {
   projectId: Id<"projects">;

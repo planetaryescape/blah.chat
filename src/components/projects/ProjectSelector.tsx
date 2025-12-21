@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { FolderOpen } from "lucide-react";
+import { useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -23,8 +24,13 @@ export function ProjectSelector({
 }: ProjectSelectorProps) {
   const projects = useQuery(api.projects.list);
   const assignConversations = useMutation(api.projects.assignConversations);
+  const lastValueRef = useRef(currentProjectId || "none");
 
   const handleChange = async (value: string) => {
+    // Prevent re-firing when prop updates trigger onValueChange
+    if (value === lastValueRef.current) return;
+    lastValueRef.current = value;
+
     await assignConversations({
       projectId: value === "none" ? null : (value as Id<"projects">),
       conversationIds: [conversationId],

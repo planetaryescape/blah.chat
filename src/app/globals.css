@@ -4,6 +4,7 @@
 @import "../styles/code-theme.css";
 @import "../styles/micro-interactions.css";
 @import "../styles/tiptap.css";
+@import "../styles/canvas.css";
 @source "../node_modules/streamdown/dist/index.js";
 
 @custom-variant dark (&:is(.dark *));

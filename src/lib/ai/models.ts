@@ -56,6 +56,8 @@ export interface ModelConfig {
   benchmarks?: BenchmarkScores;
   /** Speed tier - optional override (computed if not provided) */
   speedTier?: SpeedTier;
+  /** Mark as pro/premium model requiring tier access */
+  isPro?: boolean;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
@@ -559,7 +561,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     provider: "perplexity",
     name: "Sonar Pro",
     description: "Advanced search with grounding",
-    contextWindow: 127000,
+    contextWindow: 200000,
     pricing: { input: 3.0, output: 15.0 },
     capabilities: [],
     knowledgeCutoff: "Real-time search",

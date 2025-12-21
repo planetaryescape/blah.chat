@@ -17,7 +17,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-
+import { FileDetailPanel } from "@/components/files/FileDetailPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,9 +49,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { FileDetailPanel } from "@/components/files/FileDetailPanel";
 import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
+import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
 // Embedding status badge component

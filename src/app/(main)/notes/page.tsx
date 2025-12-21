@@ -1,5 +1,16 @@
 "use client";
 
+import { useMutation, useQuery } from "convex/react";
+import { ChevronLeft } from "lucide-react";
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryState,
+} from "nuqs";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { EmptyState } from "@/components/notes/EmptyState";
@@ -12,17 +23,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { useMutation, useQuery } from "convex/react";
-import { ChevronLeft } from "lucide-react";
-import {
-  parseAsArrayOf,
-  parseAsBoolean,
-  parseAsString,
-  parseAsStringEnum,
-  useQueryState,
-} from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 
 function NotesPageContent() {
   const { showNotes, isLoading: prefsLoading } = useFeatureToggles();

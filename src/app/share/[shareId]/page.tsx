@@ -5,12 +5,12 @@ import { useAction, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
+  Copy,
   ExternalLink,
   Loader2,
   Lock,
   Share2,
   Users,
-  Copy,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

@@ -21,7 +21,7 @@ interface NoteShareViewProps {
 }
 
 export function NoteShareView({ noteId }: NoteShareViewProps) {
-  const { isSignedIn, isLoaded: authLoaded } = useAuth();
+  const { isLoaded: authLoaded } = useAuth();
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const note = useQuery(api.notes.getPublicNote, { noteId });

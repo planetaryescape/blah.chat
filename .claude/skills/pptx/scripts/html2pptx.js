@@ -26,8 +26,8 @@
  */
 
 const { chromium } = require("playwright");
-const path = require("path");
-const sharp = require("sharp");
+const path = require("node:path");
+const _sharp = require("sharp");
 
 const PT_PER_PX = 0.75;
 const PX_PER_IN = 96;
@@ -137,9 +137,9 @@ function validateTextBoxPosition(slideData, bodyDimensions) {
 }
 
 // Helper: Add background to slide
-async function addBackground(slideData, targetSlide, tmpDir) {
+async function addBackground(slideData, targetSlide, _tmpDir) {
   if (slideData.background.type === "image" && slideData.background.path) {
-    let imagePath = slideData.background.path.startsWith("file://")
+    const imagePath = slideData.background.path.startsWith("file://")
       ? slideData.background.path.replace("file://", "")
       : slideData.background.path;
     targetSlide.background = { path: imagePath };
@@ -155,7 +155,7 @@ async function addBackground(slideData, targetSlide, tmpDir) {
 function addElements(slideData, targetSlide, pres) {
   for (const el of slideData.elements) {
     if (el.type === "image") {
-      let imagePath = el.src.startsWith("file://")
+      const imagePath = el.src.startsWith("file://")
         ? el.src.replace("file://", "")
         : el.src;
       targetSlide.addImage({
@@ -303,7 +303,7 @@ async function extractSlideData(page) {
       if (!match) return "FFFFFF";
       return match
         .slice(1)
-        .map((n) => parseInt(n).toString(16).padStart(2, "0"))
+        .map((n) => parseInt(n, 10).toString(16).padStart(2, "0"))
         .join("");
     };
 
@@ -498,14 +498,11 @@ async function extractSlideData(page) {
           ) {
             const isBold =
               computed.fontWeight === "bold" ||
-              parseInt(computed.fontWeight) >= 600;
+              parseInt(computed.fontWeight, 10) >= 600;
             if (isBold && !shouldSkipBold(computed.fontFamily))
               options.bold = true;
             if (computed.fontStyle === "italic") options.italic = true;
-            if (
-              computed.textDecoration &&
-              computed.textDecoration.includes("underline")
-            )
+            if (computed.textDecoration?.includes("underline"))
               options.underline = true;
             if (computed.color && computed.color !== "rgb(0, 0, 0)") {
               options.color = rgbToHex(computed.color);
@@ -657,7 +654,7 @@ async function extractSlideData(page) {
       }
 
       // Extract placeholder elements (for charts, etc.)
-      if (el.className && el.className.includes("placeholder")) {
+      if (el.className?.includes("placeholder")) {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) {
           errors.push(
@@ -882,7 +879,7 @@ async function extractSlideData(page) {
           const runs = parseInlineFormatting(li, { breakLine: false });
           // Clean manual bullets from first run
           if (runs.length > 0) {
-            runs[0].text = runs[0].text.replace(/^[•\-\*▪▸]\s*/, "");
+            runs[0].text = runs[0].text.replace(/^[•\-*▪▸]\s*/, "");
             runs[0].options.bullet = { indent: textIndent };
           }
           // Set breakLine on last run
@@ -936,7 +933,7 @@ async function extractSlideData(page) {
       if (rect.width === 0 || rect.height === 0 || !text) return;
 
       // Validate: Check for manual bullet symbols in text elements (not in lists)
-      if (el.tagName !== "LI" && /^[•\-\*▪▸○●◆◇■□]\s/.test(text.trimStart())) {
+      if (el.tagName !== "LI" && /^[•\-*▪▸○●◆◇■□]\s/.test(text.trimStart())) {
         errors.push(
           `Text element <${el.tagName.toLowerCase()}> starts with bullet symbol "${text.substring(0, 20)}...". ` +
             "Use <ul> or <ol> lists instead of manual bullet symbols.",
@@ -1011,7 +1008,7 @@ async function extractSlideData(page) {
 
         const isBold =
           computed.fontWeight === "bold" ||
-          parseInt(computed.fontWeight) >= 600;
+          parseInt(computed.fontWeight, 10) >= 600;
 
         elements.push({
           type: el.tagName.toLowerCase(),

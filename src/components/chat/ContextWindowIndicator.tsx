@@ -76,7 +76,7 @@ export function ContextWindowIndicator({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 min-w-[200px]">
+          <div className="flex items-center gap-2 min-w-[120px]">
             {getIcon()}
             <div className="flex-1">
               <Progress

@@ -25,7 +25,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Convex dry run (typecheck + schema validation)
-        run: bunx convex dev --once --typecheck=enable
+        run: bunx convex deploy --dry-run --typecheck enable
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 

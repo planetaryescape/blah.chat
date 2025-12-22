@@ -715,9 +715,7 @@ function ChatPageContent({
                 isGenerating={isGenerating}
                 selectedModel={displayModel}
                 onModelChange={handleModelChange}
-                thinkingEffort={
-                  showThinkingEffort ? thinkingEffort : undefined
-                }
+                thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
                 onThinkingEffortChange={setThinkingEffort}
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}

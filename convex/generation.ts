@@ -432,16 +432,53 @@ export const generateResponse = internalAction({
         const codeExecutionTool = createCodeExecutionTool(ctx);
         const weatherTool = createWeatherTool(ctx);
 
+        // Create Tavily search tools with custom descriptions
+        const tavilySearchTool = {
+          ...tavilySearch({
+            searchDepth: "basic",
+            includeAnswer: true,
+            maxResults: 3,
+          }),
+          description: `Quick web search for simple factual queries.
+
+✅ USE FOR:
+- Quick factual lookups (dates, names, simple facts)
+- Current events and news headlines
+- Single-topic queries with clear answers
+
+❌ DO NOT USE FOR:
+- Complex research or multi-faceted questions
+- Technical deep dives
+
+Faster and cheaper. Use this first for simple queries.`,
+        };
+
+        const tavilyAdvancedSearchTool = {
+          ...tavilySearch({
+            searchDepth: "advanced",
+            includeAnswer: true,
+            maxResults: 5,
+          }),
+          description: `Deep web search for comprehensive research.
+
+✅ USE FOR:
+- Complex or multi-faceted questions
+- In-depth research requiring comprehensive results
+- When basic search didn't provide enough detail
+
+❌ DO NOT USE FOR:
+- Simple factual lookups (use tavilySearch instead)
+
+More thorough but slower. Use only when depth is needed.`,
+        };
+
         // Start with capability tools
         // biome-ignore lint/suspicious/noExplicitAny: Tool types are complex
         const tools: Record<string, any> = {
           calculator: calculatorTool,
           datetime: dateTimeTool,
-          tavilySearch: tavilySearch({
-            searchDepth: "advanced",
-            includeAnswer: true,
-            maxResults: 5,
-          }),
+          tavilySearch: tavilySearchTool,
+          tavilyAdvancedSearch: tavilyAdvancedSearchTool,
           urlReader: urlReaderTool,
           fileDocument: fileDocumentTool,
           codeExecution: codeExecutionTool,

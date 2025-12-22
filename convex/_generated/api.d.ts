@@ -100,6 +100,7 @@ import type * as lib_analytics from "../lib/analytics.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_helpers from "../lib/helpers.js";
+import type * as lib_pdf_convertToPdf from "../lib/pdf/convertToPdf.js";
 import type * as lib_prompts_base from "../lib/prompts/base.js";
 import type * as lib_prompts_formatting from "../lib/prompts/formatting.js";
 import type * as lib_prompts_index from "../lib/prompts/index.js";
@@ -336,6 +337,7 @@ declare const fullApi: ApiFromModules<{
   "lib/encryption": typeof lib_encryption;
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/helpers": typeof lib_helpers;
+  "lib/pdf/convertToPdf": typeof lib_pdf_convertToPdf;
   "lib/prompts/base": typeof lib_prompts_base;
   "lib/prompts/formatting": typeof lib_prompts_formatting;
   "lib/prompts/index": typeof lib_prompts_index;

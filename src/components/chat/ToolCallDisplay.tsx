@@ -51,6 +51,7 @@ function getToolIcon(toolName: string) {
       return Calendar;
     case "webSearch":
     case "tavilySearch":
+    case "tavilyAdvancedSearch":
       return Globe;
     case "urlReader":
       return ExternalLink;
@@ -110,6 +111,7 @@ function getToolLabel(
       return "Date/time";
     case "webSearch":
     case "tavilySearch":
+    case "tavilyAdvancedSearch":
       if (isExecuting) return "Searching the web...";
       if (result?.success === false) return "Search failed";
       return `Web search (${result?.results?.length || 0} result${result?.results?.length !== 1 ? "s" : ""})`;

@@ -117,7 +117,7 @@ describe("convex/admin", () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
-      let targetUserId: Id<"users">;
+      let targetUserId!: Id<"users">;
       await t.run(async (ctx) => {
         await ctx.db.insert(
           "users",
@@ -138,7 +138,7 @@ describe("convex/admin", () => {
       await expect(
         // @ts-ignore - Type depth exceeded
         asUser.mutation(api.admin.updateUserRole, {
-          userId: targetUserId as Id<"users">,
+          userId: targetUserId,
           isAdmin: true,
         }),
       ).rejects.toThrow("Unauthorized");
@@ -148,7 +148,7 @@ describe("convex/admin", () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
-      let adminUserId: Id<"users">;
+      let adminUserId!: Id<"users">;
       await t.run(async (ctx) => {
         const id = await ctx.db.insert(
           "users",
@@ -162,7 +162,7 @@ describe("convex/admin", () => {
       await expect(
         // @ts-ignore - Type depth exceeded
         asUser.mutation(api.admin.updateUserRole, {
-          userId: adminUserId as Id<"users">,
+          userId: adminUserId,
           isAdmin: false,
         }),
       ).rejects.toThrow("Cannot remove your own admin status");
@@ -178,7 +178,7 @@ describe("convex/admin", () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
-      let targetUserId: Id<"users">;
+      let targetUserId!: Id<"users">;
       await t.run(async (ctx) => {
         await ctx.db.insert(
           "users",
@@ -199,7 +199,7 @@ describe("convex/admin", () => {
       await expect(
         // @ts-ignore - Type depth exceeded
         asUser.mutation(api.admin.updateUserTier, {
-          userId: targetUserId as Id<"users">,
+          userId: targetUserId,
           tier: "tier1",
         }),
       ).rejects.toThrow("Unauthorized");
@@ -209,7 +209,7 @@ describe("convex/admin", () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
-      let targetUserId: Id<"users">;
+      let targetUserId!: Id<"users">;
       await t.run(async (ctx) => {
         await ctx.db.insert(
           "users",
@@ -229,7 +229,7 @@ describe("convex/admin", () => {
       const asUser = t.withIdentity(identity);
       // @ts-ignore - Type depth exceeded
       const result = await asUser.mutation(api.admin.updateUserTier, {
-        userId: targetUserId as Id<"users">,
+        userId: targetUserId,
         tier: "tier2",
       });
 

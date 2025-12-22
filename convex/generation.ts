@@ -1,57 +1,57 @@
 "use node";
 
-import { generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
-import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import { tavilySearch } from "@tavily/ai-sdk";
+import { generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { createCalculatorTool } from "./ai/tools/calculator";
 import { createCodeExecutionTool } from "./ai/tools/codeExecution";
 import { createDocumentTool } from "./ai/tools/createDocument";
 import { createDateTimeTool } from "./ai/tools/datetime";
 import {
-  createEnterDocumentModeTool,
-  createExitDocumentModeTool,
+    createEnterDocumentModeTool,
+    createExitDocumentModeTool,
 } from "./ai/tools/documentMode";
 import { createFileDocumentTool } from "./ai/tools/fileDocument";
 import {
-  createMemoryDeleteTool,
-  createMemorySaveTool,
-  createMemorySearchTool,
+    createMemoryDeleteTool,
+    createMemorySaveTool,
+    createMemorySearchTool,
 } from "./ai/tools/memories";
 import { createReadDocumentTool } from "./ai/tools/readDocument";
 import { createResolveConflictTool } from "./ai/tools/resolveConflict";
 import {
-  createQueryHistoryTool,
-  createSearchAllTool,
-  createSearchFilesTool,
-  createSearchNotesTool,
-  createSearchTasksTool,
+    createQueryHistoryTool,
+    createSearchAllTool,
+    createSearchFilesTool,
+    createSearchNotesTool,
+    createSearchTasksTool,
 } from "./ai/tools/search";
 import { createTaskManagerTool } from "./ai/tools/taskManager";
 import { createUpdateDocumentTool } from "./ai/tools/updateDocument";
 import { createUrlReaderTool } from "./ai/tools/urlReader";
 import { createWeatherTool } from "./ai/tools/weather";
-import { createWebSearchTool } from "./ai/tools/webSearch";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
 import { trackServerEvent } from "./lib/analytics";
 import {
-  captureException,
-  classifyStreamingError,
-  detectCreditsError,
-  estimateWastedCost,
+    captureException,
+    classifyStreamingError,
+    detectCreditsError,
+    estimateWastedCost,
 } from "./lib/errorTracking";
-import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
 import {
-  buildSummarizationPrompt,
-  SUMMARIZATION_SYSTEM_PROMPT,
+    buildSummarizationPrompt,
+    SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
+import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
 import { calculateConversationTokensAsync } from "./tokens/counting";
 
 // Re-export generation submodules
@@ -423,7 +423,6 @@ export const generateResponse = internalAction({
         // Capability tools: ALWAYS available (stateless, no persistent writes)
         const calculatorTool = createCalculatorTool();
         const dateTimeTool = createDateTimeTool();
-        const webSearchTool = createWebSearchTool(ctx);
         const urlReaderTool = createUrlReaderTool(ctx);
         const fileDocumentTool = createFileDocumentTool(
           ctx,
@@ -438,7 +437,11 @@ export const generateResponse = internalAction({
         const tools: Record<string, any> = {
           calculator: calculatorTool,
           datetime: dateTimeTool,
-          webSearch: webSearchTool,
+          tavilySearch: tavilySearch({
+            searchDepth: "advanced",
+            includeAnswer: true,
+            maxResults: 5,
+          }),
           urlReader: urlReaderTool,
           fileDocument: fileDocumentTool,
           codeExecution: codeExecutionTool,

@@ -39,6 +39,7 @@ export const toolRenderers: Record<string, ComponentType<ToolRendererProps>> = {
   saveMemory: SaveMemoryRenderer,
   searchMemories: SearchMemoriesRenderer,
   webSearch: WebSearchRenderer,
+  tavilySearch: WebSearchRenderer,
   calculator: CalculatorRenderer,
   datetime: DateTimeRenderer,
   urlReader: UrlReaderRenderer,

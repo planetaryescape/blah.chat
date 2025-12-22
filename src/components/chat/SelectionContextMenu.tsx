@@ -42,14 +42,17 @@ export function SelectionContextMenu() {
   const [showSummarizePopover, setShowSummarizePopover] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
   const [summaryText, setSummaryText] = useState("");
+  const [selectedTextForSummary, setSelectedTextForSummary] = useState("");
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
   const [currentMessageId, setCurrentMessageId] =
     useState<Id<"messages"> | null>(null);
 
   // Convex mutations and actions
+  // @ts-ignore
   const createSnippet = useMutation(api.snippets.createSnippet);
+  // @ts-ignore
   const createMemoryFromSelection = useAction(
-    api.memories.createMemoryFromSelection,
+    api.memories.createMemoryFromSelection
   );
 
   useEffect(() => {
@@ -61,34 +64,79 @@ export function SelectionContextMenu() {
     if (!selection.isActive || !selection.rect) return;
 
     const rect = selection.rect;
+    const mousePos = selection.mousePosition;
     const menuWidth = 240; // Approximate menu width
     const menuHeight = 280; // Approximate menu height
-    const gap = 8;
+    const gap = 8; // Small gap from cursor
+    const padding = 10; // Viewport padding
 
-    // Try to position above selection
-    let top = rect.top + window.scrollY - menuHeight - gap;
-    let left = rect.left + window.scrollX + rect.width / 2 - menuWidth / 2;
+    let top: number;
+    let left: number;
 
-    // If menu would be clipped at top, position below
-    if (top < window.scrollY) {
+    if (mousePos) {
+      // Strategy: Position menu near mouse cursor (like a context menu)
+      // Default: slightly below and to the right of cursor
+      top = mousePos.y + window.scrollY + gap;
+      left = mousePos.x + window.scrollX + gap;
+
+      // Check if menu would overflow viewport on the right
+      if (left + menuWidth > window.innerWidth - padding) {
+        // Flip to left of cursor
+        left = mousePos.x + window.scrollX - menuWidth - gap;
+      }
+
+      // Check if menu would overflow viewport on the bottom
+      if (top + menuHeight > window.scrollY + window.innerHeight - padding) {
+        // Flip above cursor
+        top = mousePos.y + window.scrollY - menuHeight - gap;
+      }
+
+      // Final safety checks: ensure menu stays in viewport
+      if (left < padding) {
+        left = padding;
+      }
+      if (top < window.scrollY + padding) {
+        top = window.scrollY + padding;
+      }
+    } else {
+      // Fallback: use selection rect if mouse position not available
+      // Position at the end of selection
       top = rect.bottom + window.scrollY + gap;
-    }
+      left = rect.right + window.scrollX - menuWidth;
 
-    // Keep menu within viewport horizontally
-    if (left < 10) left = 10;
-    if (left + menuWidth > window.innerWidth - 10) {
-      left = window.innerWidth - menuWidth - 10;
+      // If menu would be clipped at bottom, position above
+      if (top + menuHeight > window.scrollY + window.innerHeight - padding) {
+        top = rect.top + window.scrollY - menuHeight - gap;
+      }
+
+      // Keep menu within viewport horizontally
+      if (left < padding) {
+        left = rect.left + window.scrollX;
+      }
+      if (left + menuWidth > window.innerWidth - padding) {
+        left = window.innerWidth - menuWidth - padding;
+      }
     }
 
     setPosition({ top, left });
     setSelectedIndex(0); // Reset selection when menu repositions
-  }, [selection.isActive, selection.rect]);
+  }, [selection.isActive, selection.rect, selection.mousePosition]);
+
+  // Auto-close popover when new text is selected
+  useEffect(() => {
+    if (selection.isActive && showSummarizePopover) {
+      setShowSummarizePopover(false);
+      setCurrentMessageId(null);
+      setSummaryText("");
+      setSelectedTextForSummary("");
+    }
+  }, [selection.isActive, showSummarizePopover]);
 
   const handleQuote = () => {
     window.dispatchEvent(
       new CustomEvent("quote-selection", {
         detail: selection.text,
-      }),
+      })
     );
     clearSelection();
   };
@@ -116,41 +164,62 @@ export function SelectionContextMenu() {
   const handleSummarize = () => {
     if (!selection.rect) return;
 
-    // Reset state first to prevent showing stale popover
-    setCurrentMessageId(null);
-    setSummaryText("");
-    setShowSummarizePopover(false);
-
-    // Calculate popover position from selection rect
+    const mousePos = selection.mousePosition;
     const rect = selection.rect;
-    setPopoverPosition({
-      top: rect.bottom + window.scrollY,
-      left: rect.left + window.scrollX,
-    });
 
-    // Store current message ID for note creation
+    // Use mouse position if available, otherwise fall back to rect
+    if (mousePos) {
+      setPopoverPosition({
+        top: mousePos.y,
+        left: mousePos.x,
+      });
+    } else {
+      // Fallback to selection rect
+      setPopoverPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+    }
+
+    // Store selected text BEFORE clearing selection
+    setSelectedTextForSummary(selection.text);
+
+    // Store current message ID and open popover
     setCurrentMessageId(selection.messageId as Id<"messages">);
+    setSummaryText("");
+    setShowSummarizePopover(true);
 
-    // Open popover after state cleanup (on next tick)
-    setTimeout(() => {
-      setShowSummarizePopover(true);
-    }, 0);
-
+    // Clear selection - component stays mounted because popover is open
     clearSelection();
   };
 
   const handleSaveAsNoteFromSummary = (summary: string) => {
+    // Update summary text and open dialog FIRST
     setSummaryText(summary);
-    setShowSummarizePopover(false);
     setShowCreateNote(true);
+    // Then close popover (next tick to ensure state is updated)
+    setTimeout(() => {
+      setShowSummarizePopover(false);
+    }, 0);
   };
 
   const handlePopoverOpenChange = (open: boolean) => {
     setShowSummarizePopover(open);
-    if (!open) {
-      // Reset state when popover closes to prevent it from showing on next selection
+    if (!open && !showCreateNote) {
+      // Only reset state when popover closes AND note dialog is not open
       setCurrentMessageId(null);
       setSummaryText("");
+      setSelectedTextForSummary("");
+    }
+  };
+
+  const handleNoteDialogOpenChange = (open: boolean) => {
+    setShowCreateNote(open);
+    if (!open) {
+      // Reset state when note dialog closes
+      setCurrentMessageId(null);
+      setSummaryText("");
+      setSelectedTextForSummary("");
     }
   };
 
@@ -184,14 +253,15 @@ export function SelectionContextMenu() {
       shortcut: "S",
       action: handleSearch,
     },
-    {
-      id: "bookmark",
-      label: "Bookmark Snippet",
-      icon: Tag,
-      shortcut: "B",
-      action: handleBookmarkSnippet,
-      disabled: selection.messageRole === "user", // Can't bookmark own messages
-    },
+    // TODO: https://github.com/planetaryescape/blah.chat/issues/21
+    // {
+    //   id: "bookmark",
+    //   label: "Bookmark Snippet",
+    //   icon: Tag,
+    //   shortcut: "B",
+    //   action: handleBookmarkSnippet,
+    //   disabled: selection.messageRole === "user", // Can't bookmark own messages
+    // },
     {
       id: "summarize",
       label: "Summarize",
@@ -225,7 +295,7 @@ export function SelectionContextMenu() {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < enabledActions.length - 1 ? prev + 1 : 0,
+          prev < enabledActions.length - 1 ? prev + 1 : 0
         );
         return;
       }
@@ -233,7 +303,7 @@ export function SelectionContextMenu() {
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : enabledActions.length - 1,
+          prev > 0 ? prev - 1 : enabledActions.length - 1
         );
         return;
       }
@@ -247,7 +317,7 @@ export function SelectionContextMenu() {
       // Shortcut keys
       const pressedKey = e.key.toUpperCase();
       const action = enabledActions.find(
-        (a) => a.shortcut?.toUpperCase() === pressedKey,
+        (a) => a.shortcut?.toUpperCase() === pressedKey
       );
       if (action) {
         e.preventDefault();
@@ -259,7 +329,11 @@ export function SelectionContextMenu() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selection.isActive, selectedIndex, enabledActions, clearSelection]);
 
-  if (!mounted || !selection.isActive) return null;
+  if (!mounted) return null;
+
+  // Don't unmount if popover is showing - keep component alive for popover
+  if (!selection.isActive && !showSummarizePopover && !showCreateNote)
+    return null;
 
   const menu = (
     <AnimatePresence>
@@ -290,13 +364,13 @@ export function SelectionContextMenu() {
                     type="button"
                     onClick={action.action}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 cursor-pointer ${
                       isSelected
                         ? "bg-white/10 ring-1 ring-white/20"
                         : "hover:bg-white/5"
                     }`}
                     role="menuitem"
-                    aria-selected={isSelected}
+                    aria-current={isSelected ? "true" : undefined}
                   >
                     <Icon
                       className={`w-4 h-4 ${
@@ -343,12 +417,11 @@ export function SelectionContextMenu() {
       {createPortal(menu, document.body)}
 
       {/* Summarize Popover */}
-      {mounted && showSummarizePopover && currentMessageId && (
+      {mounted && showSummarizePopover && (
         <SummarizePopover
           open={showSummarizePopover}
           onOpenChange={handlePopoverOpenChange}
-          selectedText={selection.text}
-          sourceMessageId={currentMessageId}
+          selectedText={selectedTextForSummary}
           position={popoverPosition}
           onSaveAsNote={handleSaveAsNoteFromSummary}
         />
@@ -358,11 +431,11 @@ export function SelectionContextMenu() {
       {mounted && currentMessageId && (
         <CreateNoteDialog
           open={showCreateNote}
-          onOpenChange={setShowCreateNote}
+          onOpenChange={handleNoteDialogOpenChange}
           initialContent={summaryText}
           sourceMessageId={currentMessageId}
           sourceConversationId={undefined}
-          sourceSelectionText={selection.text}
+          sourceSelectionText={selectedTextForSummary}
         />
       )}
     </>

@@ -5,39 +5,12 @@ import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
-import { tavilySearch } from "@tavily/ai-sdk";
 import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
-import { createCalculatorTool } from "./ai/tools/calculator";
-import { createCodeExecutionTool } from "./ai/tools/codeExecution";
-import { createDocumentTool } from "./ai/tools/createDocument";
-import { createDateTimeTool } from "./ai/tools/datetime";
-import {
-    createEnterDocumentModeTool,
-    createExitDocumentModeTool,
-} from "./ai/tools/documentMode";
-import { createFileDocumentTool } from "./ai/tools/fileDocument";
-import {
-    createMemoryDeleteTool,
-    createMemorySaveTool,
-    createMemorySearchTool,
-} from "./ai/tools/memories";
-import { createReadDocumentTool } from "./ai/tools/readDocument";
-import { createResolveConflictTool } from "./ai/tools/resolveConflict";
-import {
-    createQueryHistoryTool,
-    createSearchAllTool,
-    createSearchFilesTool,
-    createSearchNotesTool,
-    createSearchTasksTool,
-} from "./ai/tools/search";
-import { createTaskManagerTool } from "./ai/tools/taskManager";
-import { createUpdateDocumentTool } from "./ai/tools/updateDocument";
-import { createUrlReaderTool } from "./ai/tools/urlReader";
-import { createWeatherTool } from "./ai/tools/weather";
+import { buildTools, createOnStepFinish } from "./generation/tools";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
 import { trackServerEvent } from "./lib/analytics";
@@ -413,173 +386,15 @@ export const generateResponse = internalAction({
       const isGeminiFlashLite = args.modelId === "google:gemini-2.0-flash-lite";
       const shouldEnableTools = hasFunctionCalling && !isGeminiFlashLite;
 
-      // Incognito mode settings
-      const isIncognito = conversation?.isIncognito ?? false;
-      const incognitoSettings = conversation?.incognitoSettings;
-      const enableReadTools =
-        !isIncognito || incognitoSettings?.enableReadTools !== false;
-
       if (shouldEnableTools) {
-        // Capability tools: ALWAYS available (stateless, no persistent writes)
-        const calculatorTool = createCalculatorTool();
-        const dateTimeTool = createDateTimeTool();
-        const urlReaderTool = createUrlReaderTool(ctx);
-        const fileDocumentTool = createFileDocumentTool(
+        options.tools = buildTools({
           ctx,
-          args.conversationId,
+          userId: args.userId,
+          conversationId: args.conversationId,
           messageAttachments,
-        );
-        const codeExecutionTool = createCodeExecutionTool(ctx);
-        const weatherTool = createWeatherTool(ctx);
-
-        // Create Tavily search tools with custom descriptions
-        const tavilySearchTool = {
-          ...tavilySearch({
-            searchDepth: "basic",
-            includeAnswer: true,
-            maxResults: 3,
-          }),
-          description: `Quick web search for simple factual queries.
-
-✅ USE FOR:
-- Quick factual lookups (dates, names, simple facts)
-- Current events and news headlines
-- Single-topic queries with clear answers
-
-❌ DO NOT USE FOR:
-- Complex research or multi-faceted questions
-- Technical deep dives
-
-Faster and cheaper. Use this first for simple queries.`,
-        };
-
-        const tavilyAdvancedSearchTool = {
-          ...tavilySearch({
-            searchDepth: "advanced",
-            includeAnswer: true,
-            maxResults: 5,
-          }),
-          description: `Deep web search for comprehensive research.
-
-✅ USE FOR:
-- Complex or multi-faceted questions
-- In-depth research requiring comprehensive results
-- When basic search didn't provide enough detail
-
-❌ DO NOT USE FOR:
-- Simple factual lookups (use tavilySearch instead)
-
-More thorough but slower. Use only when depth is needed.`,
-        };
-
-        // Start with capability tools
-        // biome-ignore lint/suspicious/noExplicitAny: Tool types are complex
-        const tools: Record<string, any> = {
-          calculator: calculatorTool,
-          datetime: dateTimeTool,
-          tavilySearch: tavilySearchTool,
-          tavilyAdvancedSearch: tavilyAdvancedSearchTool,
-          urlReader: urlReaderTool,
-          fileDocument: fileDocumentTool,
-          codeExecution: codeExecutionTool,
-          weather: weatherTool,
-        };
-
-        // Write tools: DISABLED for incognito (saveMemory, deleteMemory, manageTasks, canvas)
-        if (!isIncognito) {
-          const memorySaveTool = createMemorySaveTool(ctx, args.userId);
-          const memoryDeleteTool = createMemoryDeleteTool(ctx, args.userId);
-          const taskManagerTool = createTaskManagerTool(
-            ctx,
-            args.userId,
-            conversation?.projectId,
-          );
-          tools.saveMemory = memorySaveTool;
-          tools.deleteMemory = memoryDeleteTool;
-          tools.manageTasks = taskManagerTool;
-
-          // Canvas/Document mode tools
-          const isDocumentMode = conversation?.mode === "document";
-
-          // enterDocumentMode: Always available as entry point
-          tools.enterDocumentMode = createEnterDocumentModeTool(
-            ctx,
-            args.conversationId,
-          );
-
-          // Document tools: Only in document mode
-          if (isDocumentMode) {
-            tools.exitDocumentMode = createExitDocumentModeTool(
-              ctx,
-              args.conversationId,
-            );
-            tools.createDocument = createDocumentTool(
-              ctx,
-              args.userId,
-              args.conversationId,
-            );
-            tools.updateDocument = createUpdateDocumentTool(
-              ctx,
-              args.userId,
-              args.conversationId,
-            );
-            tools.readDocument = createReadDocumentTool(
-              ctx,
-              args.userId,
-              args.conversationId,
-            );
-            tools.resolveConflict = createResolveConflictTool(
-              ctx,
-              args.userId,
-              args.conversationId,
-            );
-          }
-        }
-
-        // Read tools: Configurable for incognito (search user data)
-        if (enableReadTools) {
-          const memorySearchTool = createMemorySearchTool(ctx, args.userId);
-          const searchFilesTool = createSearchFilesTool(ctx, args.userId);
-          const searchNotesTool = createSearchNotesTool(ctx, args.userId);
-          const searchTasksTool = createSearchTasksTool(ctx, args.userId);
-          const queryHistoryTool = createQueryHistoryTool(
-            ctx,
-            args.userId,
-            args.conversationId,
-          );
-          const searchAllTool = createSearchAllTool(
-            ctx,
-            args.userId,
-            args.conversationId,
-          );
-          tools.searchMemories = memorySearchTool;
-          tools.searchFiles = searchFilesTool;
-          tools.searchNotes = searchNotesTool;
-          tools.searchTasks = searchTasksTool;
-          tools.queryHistory = queryHistoryTool;
-          tools.searchAll = searchAllTool;
-        }
-
-        options.tools = tools;
-
-        // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
-        options.onStepFinish = async (step: any) => {
-          if (step.toolCalls && step.toolCalls.length > 0) {
-            const _completedCalls = step.toolCalls.map((tc: any) => ({
-              id: tc.toolCallId,
-              name: tc.toolName,
-              arguments: JSON.stringify(tc.input || tc.args),
-              result: JSON.stringify(
-                step.toolResults?.find(
-                  (tr: any) => tr.toolCallId === tc.toolCallId,
-                )?.result,
-              ),
-              timestamp: Date.now(),
-            }));
-
-            // Phase 2 will add immediate persistence here
-          }
-        };
+          conversation,
+        });
+        options.onStepFinish = createOnStepFinish();
       }
 
       // 13. Apply provider options (merge with gateway options)

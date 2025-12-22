@@ -265,14 +265,14 @@ export function VirtualizedMessageList({
   if (!useVirtualization) {
     // Render normally for short conversations
     return (
-      <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
+      <div className="flex-1 max-h-full min-h-0 min-w-0 relative flex flex-col overflow-hidden">
         <div
           ref={containerRef}
           role="log"
           aria-live="polite"
           aria-label="Chat message history"
           aria-atomic="false"
-          className="flex-1 w-full min-w-0 overflow-y-auto relative"
+          className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",

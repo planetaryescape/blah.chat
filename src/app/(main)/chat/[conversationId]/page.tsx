@@ -158,7 +158,6 @@ function ChatPageContent({
   // They'll be cleared naturally on next message send or page navigation.
 
   // Extract chat width preference with loading detection
-  // @ts-expect-error - Type depth exceeded with Convex modules
   const rawChatWidth = useQuery(api.users.getUserPreference, {
     key: "chatWidth",
   });

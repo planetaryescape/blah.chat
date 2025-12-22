@@ -11,7 +11,7 @@ import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { NotificationBell } from "@/components/notifications";
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { OnboardingWrapper } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,31 +144,32 @@ export default function MainLayout({
             children
           ) : (
             <SidebarProvider>
-              {isAdminRoute ? (
-                // Admin routes: let admin layout control structure
-                <div className="flex w-full h-[100dvh] overflow-hidden">
-                  {children}
-                </div>
-              ) : (
-                // Regular routes: sidebar + main
-                <div className="flex w-full h-[100dvh] overflow-hidden">
-                  <Suspense fallback={null}>
-                    <AppSidebar />
-                  </Suspense>
-                  <main
-                    id="main-content"
-                    className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
-                    aria-label="Chat interface"
-                  >
-                    <Header />
+              <OnboardingWrapper>
+                {isAdminRoute ? (
+                  // Admin routes: let admin layout control structure
+                  <div className="flex w-full h-[100dvh] overflow-hidden">
                     {children}
-                  </main>
-                </div>
-              )}
-              <CommandPalette />
-              <OnboardingTour />
-              <SelectionContextMenu />
-              <OfflineQueueIndicator />
+                  </div>
+                ) : (
+                  // Regular routes: sidebar + main
+                  <div className="flex w-full h-[100dvh] overflow-hidden">
+                    <Suspense fallback={null}>
+                      <AppSidebar />
+                    </Suspense>
+                    <main
+                      id="main-content"
+                      className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden"
+                      aria-label="Chat interface"
+                    >
+                      <Header />
+                      {children}
+                    </main>
+                  </div>
+                )}
+                <CommandPalette />
+                <SelectionContextMenu />
+                <OfflineQueueIndicator />
+              </OnboardingWrapper>
             </SidebarProvider>
           )}
         </CanvasProvider>

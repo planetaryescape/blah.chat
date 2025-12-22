@@ -26,11 +26,15 @@ export function createUrlReaderTool(ctx: ActionCtx) {
         ),
     }),
     execute: async ({ url, maxLength, format }) => {
-      const result = await ctx.runAction(internal.tools.urlReader.readUrl, {
-        url,
-        maxLength,
-        format,
-      });
+      const result = (await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.tools.urlReader.readUrl,
+        {
+          url,
+          maxLength,
+          format,
+        },
+      )) as { content: string; title?: string; error?: string };
 
       return result;
     },

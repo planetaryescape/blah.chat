@@ -214,8 +214,8 @@ export default function UsagePage() {
                     />
                     <YAxis tickFormatter={(val) => `$${val.toFixed(2)}`} />
                     <Tooltip
-                      formatter={(value: number) => [
-                        `$${value.toFixed(4)}`,
+                      formatter={(value) => [
+                        `$${(value as number)?.toFixed(4) ?? "0"}`,
                         "Cost",
                       ]}
                       labelFormatter={(label) =>
@@ -265,7 +265,7 @@ export default function UsagePage() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => `$${value.toFixed(4)}`}
+                      formatter={(value) => `$${(value as number)?.toFixed(4) ?? "0"}`}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -295,8 +295,8 @@ export default function UsagePage() {
                   />
                   <YAxis tickFormatter={(val) => `$${val.toFixed(2)}`} />
                   <Tooltip
-                    formatter={(value: number) => [
-                      `$${value.toFixed(4)}`,
+                    formatter={(value) => [
+                      `$${(value as number)?.toFixed(4) ?? "0"}`,
                       "Cost",
                     ]}
                     labelFormatter={(label) => `Conversation: ${label}`}

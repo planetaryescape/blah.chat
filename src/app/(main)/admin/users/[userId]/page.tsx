@@ -319,8 +319,8 @@ export default function UserDetailPage({
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip
-                    formatter={(value: number) => [
-                      formatCurrency(value),
+                    formatter={(value) => [
+                      formatCurrency((value as number) ?? 0),
                       "Cost",
                     ]}
                   />
@@ -368,7 +368,7 @@ export default function UserDetailPage({
                       )}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency((value as number) ?? 0)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -404,7 +404,7 @@ export default function UserDetailPage({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value) => formatCurrency((value as number) ?? 0)}
                       />
                     </PieChart>
                   </ResponsiveContainer>

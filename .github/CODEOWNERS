@@ -1,0 +1,12 @@
+# CODEOWNERS - defines code review requirements
+# Last matching pattern wins
+
+# Global owners - all files default to these maintainers
+* @bhekanik @darul75
+
+# Convex backend
+/convex/ @bhekanik
+
+# Documentation
+/docs/ @bhekanik @darul75
+*.md @bhekanik @darul75

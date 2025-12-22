@@ -10,6 +10,7 @@ export default defineConfig({
     setupFiles: ["./src/lib/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "convex/**/*.test.ts"],
     exclude: ["node_modules", "e2e", ".next"],
+    css: false, // Don't process CSS imports
     server: {
       deps: {
         inline: ["convex-test"],

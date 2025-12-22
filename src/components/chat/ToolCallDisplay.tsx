@@ -2,33 +2,33 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  BookmarkPlus,
-  Calculator,
-  Calendar,
-  CheckCircle2,
-  CheckSquare,
-  ChevronDown,
-  ChevronRight,
-  Cloud,
-  Code,
-  ExternalLink,
-  Eye,
-  FileEdit,
-  FileText,
-  FolderTree,
-  Globe,
-  Loader2,
-  MessageSquare,
-  RefreshCw,
-  Search,
+    AlertCircle,
+    BookmarkPlus,
+    Calculator,
+    Calendar,
+    CheckCircle2,
+    CheckSquare,
+    ChevronDown,
+    ChevronRight,
+    Cloud,
+    Code,
+    ExternalLink,
+    Eye,
+    FileEdit,
+    FileText,
+    FolderTree,
+    Globe,
+    Loader2,
+    MessageSquare,
+    RefreshCw,
+    Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
-  DefaultToolRenderer,
-  getCallState,
-  type ToolCall,
-  toolRenderers,
+    DefaultToolRenderer,
+    getCallState,
+    type ToolCall,
+    toolRenderers,
 } from "./toolRenderers";
 
 interface ToolCallDisplayProps {
@@ -50,6 +50,8 @@ function getToolIcon(toolName: string) {
     case "datetime":
       return Calendar;
     case "webSearch":
+    case "tavilySearch":
+    case "tavilyAdvancedSearch":
       return Globe;
     case "urlReader":
       return ExternalLink;
@@ -108,6 +110,8 @@ function getToolLabel(
       if (result?.readable) return result.readable;
       return "Date/time";
     case "webSearch":
+    case "tavilySearch":
+    case "tavilyAdvancedSearch":
       if (isExecuting) return "Searching the web...";
       if (result?.success === false) return "Search failed";
       return `Web search (${result?.results?.length || 0} result${result?.results?.length !== 1 ? "s" : ""})`;

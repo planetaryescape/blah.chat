@@ -37,6 +37,7 @@ export function CreateNoteDialog({
   sourceSelectionText,
 }: CreateNoteDialogProps) {
   const router = useRouter();
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const createNote = useMutation(api.notes.createNote);
   const generateTitle = useAction(api.notes.generateTitle.generateTitle);
 

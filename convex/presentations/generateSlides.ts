@@ -20,6 +20,16 @@ interface Presentation {
   templateId?: string;
 }
 
+interface DesignTemplate {
+  logoStorageId?: string;
+  extractedDesign?: {
+    logoGuidelines?: {
+      position: string;
+      size: string;
+    };
+  };
+}
+
 const BATCH_SIZE = 10;
 
 export const generateSlides = internalAction({
@@ -42,6 +52,28 @@ export const generateSlides = internalAction({
 
       const slideStyle = presentation.slideStyle ?? "illustrative";
       const isTemplateBased = !!presentation.templateId;
+
+      // Fetch logo data from template if available
+      let logoStorageId: string | undefined;
+      let logoGuidelines: { position: string; size: string } | undefined;
+
+      if (presentation.templateId) {
+        const template = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.designTemplates.getInternal,
+          { templateId: presentation.templateId },
+        )) as DesignTemplate | null;
+
+        if (template) {
+          logoStorageId = template.logoStorageId;
+          logoGuidelines = template.extractedDesign?.logoGuidelines;
+          if (logoStorageId) {
+            console.log(
+              `Logo found in template, position: ${logoGuidelines?.position ?? "default"}`,
+            );
+          }
+        }
+      }
 
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -83,6 +115,8 @@ export const generateSlides = internalAction({
               contextSlides: [],
               slideStyle,
               isTemplateBased,
+              logoStorageId,
+              logoGuidelines,
             },
           );
           console.log("Title slide complete");
@@ -119,6 +153,8 @@ export const generateSlides = internalAction({
               contextSlides: titleContext,
               slideStyle,
               isTemplateBased,
+              logoStorageId,
+              logoGuidelines,
             },
           ),
         );
@@ -184,6 +220,8 @@ export const generateSlides = internalAction({
                 contextSlides: contentContext,
                 slideStyle,
                 isTemplateBased,
+                logoStorageId,
+                logoGuidelines,
               },
             ),
           );

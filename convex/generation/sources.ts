@@ -138,7 +138,7 @@ export function extractSources(providerMetadata: any): Source[] | undefined {
 }
 
 /**
- * Extract sources from webSearch tool calls
+ * Extract sources from webSearch/tavilySearch tool calls
  * @param allToolCalls - Array of finalized tool calls from buffer
  * @param startPosition - Offset for unified numbering (Perplexity source count)
  * @returns Array of sources with pre-computed positions for unified numbering
@@ -150,17 +150,24 @@ export function extractWebSearchSources(
   const webSearchSources: Source[] = [];
 
   for (const tc of allToolCalls) {
-    // Only process webSearch tool calls with results
-    if (tc.name !== "webSearch" || !tc.result) continue;
+    // Support both old "webSearch" and new "tavilySearch"/"tavilyAdvancedSearch" tool names
+    if (tc.name !== "webSearch" && tc.name !== "tavilySearch" && tc.name !== "tavilyAdvancedSearch") continue;
+    if (!tc.result) continue;
 
     try {
       const result = JSON.parse(tc.result);
 
-      // Validate webSearch result structure
-      if (!result.success || !Array.isArray(result.results)) continue;
+      // Handle both formats:
+      // Old format: { success: true, results: [...] }
+      // New tavilySearch format: { results: [...], answer: "...", query: "..." }
+      const results = result.results;
+      if (!Array.isArray(results)) continue;
+
+      // For old format, also check success flag
+      if (tc.name === "webSearch" && result.success === false) continue;
 
       // Extract each result as a source
-      for (const item of result.results) {
+      for (const item of results) {
         if (!item.url) continue; // Skip results without URLs
 
         webSearchSources.push({
@@ -168,6 +175,7 @@ export function extractWebSearchSources(
           title: item.title || item.url, // Fallback to URL if no title
           url: item.url,
           snippet: item.content?.substring(0, 500), // Truncate long snippets
+          publishedDate: item.publishedDate, // tavilySearch includes publishedDate
         });
       }
     } catch (e) {

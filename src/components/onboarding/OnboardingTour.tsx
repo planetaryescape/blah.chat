@@ -1,106 +1,113 @@
 "use client";
 
+import { TourProvider, useTour } from "@reactour/tour";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import Joyride, { type CallBackProps, type Step } from "react-joyride";
 import { api } from "@/convex/_generated/api";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
-const TOUR_STEPS: Step[] = [
+/**
+ * Tour steps configuration
+ * Using @reactour/tour which supports React 19 (unlike react-joyride)
+ */
+const TOUR_STEPS = [
   {
-    target: '[data-tour="input"]',
+    selector: '[data-tour="input"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold text-foreground">Type Your Message</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="font-semibold">Type Your Message</p>
+        <p className="text-sm opacity-80">
           This is where you chat with AI. Press{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-muted border text-foreground">
+          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
             Enter
           </kbd>{" "}
           to send, or{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-muted border text-foreground">
+          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
             Cmd+K
           </kbd>{" "}
           to open quick commands.
         </p>
       </div>
     ),
-    placement: "top",
-    disableBeacon: true,
+    position: "top" as const,
   },
   {
-    target: '[data-tour="model-selector"]',
+    selector: '[data-tour="model-selector"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold text-foreground">Choose Your AI Model</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="font-semibold">Choose Your AI Model</p>
+        <p className="text-sm opacity-80">
           Switch between different AI models anytime. Press{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-muted border text-foreground">
+          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
             Cmd+M
           </kbd>{" "}
           for quick access.
         </p>
       </div>
     ),
-    placement: "bottom",
+    position: "bottom" as const,
   },
   {
-    target: '[data-tour="comparison"]',
+    selector: '[data-tour="comparison"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold text-foreground">Compare Responses</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="font-semibold">Compare Responses</p>
+        <p className="text-sm opacity-80">
           Get answers from multiple models at once and see which performs best
           for your question.
         </p>
       </div>
     ),
-    placement: "bottom",
+    position: "bottom" as const,
   },
   {
-    target: '[data-tour="sidebar"]',
+    selector: '[data-tour="sidebar"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold text-foreground">Your Conversations</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="font-semibold">Your Conversations</p>
+        <p className="text-sm opacity-80">
           All your chat history is here. Use{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-muted border text-foreground">
+          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
             Cmd+1-9
           </kbd>{" "}
           to jump to recent conversations.
         </p>
       </div>
     ),
-    placement: "right",
+    position: "right" as const,
   },
   {
-    target: '[data-tour="new-chat"]',
+    selector: '[data-tour="new-chat"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold text-foreground">Start Fresh</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="font-semibold">Start Fresh</p>
+        <p className="text-sm opacity-80">
           Click here or press{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-muted border text-foreground">
+          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
             Cmd+Shift+N
           </kbd>{" "}
           to start a new conversation anytime.
         </p>
       </div>
     ),
-    placement: "bottom",
+    position: "bottom" as const,
   },
 ];
 
-export function OnboardingTour() {
-  const [run, setRun] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
-  const { isDarkMode, isLoaded: themeLoaded } = useDarkMode();
+/**
+ * Inner tour controller that manages tour state based on onboarding data
+ */
+function TourController() {
+  const { setIsOpen, setCurrentStep } = useTour();
 
   // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
   const onboarding = useQuery(api.onboarding.getOnboardingState);
   const initializeOnboarding = useMutation(api.onboarding.initializeOnboarding);
   const completeTour = useMutation(api.onboarding.completeTour);
 
+  const [hasStarted, setHasStarted] = useState(false);
+
+  // Initialize onboarding if needed
   useEffect(() => {
     if (onboarding === undefined) return;
     if (onboarding === null) {
@@ -108,121 +115,114 @@ export function OnboardingTour() {
     }
   }, [onboarding, initializeOnboarding]);
 
+  // Start tour if conditions are met
   useEffect(() => {
-    if (!onboarding) return;
+    if (!onboarding || hasStarted) return;
 
     const shouldRun = !onboarding.tourCompleted && !onboarding.tourSkipped;
 
+    // Skip on mobile
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       return;
     }
 
     if (shouldRun) {
       const timer = setTimeout(() => {
-        setRun(true);
+        setCurrentStep(0);
+        setIsOpen(true);
+        setHasStarted(true);
       }, 1500);
 
       return () => clearTimeout(timer);
     }
-  }, [onboarding]);
+  }, [onboarding, hasStarted, setIsOpen, setCurrentStep]);
 
-  const handleJoyrideCallback = async (data: CallBackProps) => {
-    const { status, action, index, type } = data;
+  // Handle tour completion - listen for tour close
+  useEffect(() => {
+    const handleTourEnd = async () => {
+      if (hasStarted) {
+        await completeTour({ skipped: false });
+      }
+    };
 
-    if (type === "step:after") {
-      setStepIndex(index + (action === "prev" ? -1 : 1));
-    }
+    // This will be called when the tour closes
+    return () => {
+      if (hasStarted) {
+        handleTourEnd();
+      }
+    };
+  }, [hasStarted, completeTour]);
 
-    if (status === "finished") {
-      await completeTour({ skipped: false });
-      setRun(false);
-    } else if (status === "skipped") {
-      await completeTour({ skipped: true });
-      setRun(false);
-    }
-  };
+  return null;
+}
 
-  if (!onboarding) return null;
+/**
+ * Onboarding tour component using @reactour/tour
+ * React 19 compatible replacement for react-joyride
+ */
+export function OnboardingTour({ children }: { children: React.ReactNode }) {
+  const { isDarkMode, isLoaded: themeLoaded } = useDarkMode();
 
-  // Dynamic styling based on theme - only apply styles after theme is detected
-  const tourStyles = themeLoaded
+  // Only apply styles after theme is loaded
+  const styles = themeLoaded
     ? {
-        options: {
-          primaryColor: "#e4a853",
-          backgroundColor: isDarkMode ? "oklch(var(--card))" : "#ffffff",
-          textColor: isDarkMode ? "oklch(var(--card-foreground))" : "#000000",
-          overlayColor: isDarkMode
-            ? "rgba(0, 0, 0, 0.85)"
-            : "rgba(0, 0, 0, 0.7)",
-          arrowColor: isDarkMode ? "oklch(var(--card))" : "#ffffff",
-          zIndex: 10000,
-        },
-        tooltip: {
+        popover: (base: any) => ({
+          ...base,
+          backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+          color: isDarkMode ? "#e5e5e5" : "#1f1f1f",
           borderRadius: "0.5rem",
           padding: "1rem",
           fontSize: "0.875rem",
-          border: isDarkMode
-            ? "1px solid oklch(var(--border))"
-            : "1px solid #e5e7eb",
-          backdropFilter: "blur(4px)",
+          border: isDarkMode ? "1px solid #333" : "1px solid #e5e7eb",
           boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.4)",
-        },
-        tooltipContainer: {
-          textAlign: "left" as const,
-        },
-        buttonNext: {
+        }),
+        maskArea: (base: any) => ({
+          ...base,
+          rx: 8,
+        }),
+        badge: (base: any) => ({
+          ...base,
           backgroundColor: "#e4a853",
           color: "#ffffff",
-          borderRadius: "0.375rem",
-          padding: "0.5rem 1rem",
-          fontSize: "0.875rem",
-          border: "1px solid #e4a853",
-          fontWeight: "600",
-          textTransform: "none",
-          boxShadow: "0 1px 3px rgba(228, 168, 83, 0.3)",
-        },
-        buttonBack: {
-          color: isDarkMode ? "oklch(var(--muted-foreground))" : "#000000",
-          backgroundColor: isDarkMode ? "oklch(var(--muted))" : "#f3f4f6",
-          borderRadius: "0.375rem",
-          padding: "0.5rem 1rem",
-          marginRight: "0.5rem",
-          border: isDarkMode
-            ? "1px solid oklch(var(--border))"
-            : "1px solid #d1d5db",
-        },
-        buttonSkip: {
-          color: isDarkMode ? "oklch(var(--muted-foreground))" : "#000000",
-          backgroundColor: isDarkMode ? "oklch(var(--muted))" : "#f3f4f6",
-          borderRadius: "0.375rem",
-          padding: "0.5rem 1rem",
-          border: isDarkMode
-            ? "1px solid oklch(var(--border))"
-            : "1px solid #d1d5db",
-        },
-        spotlight: {
-          borderRadius: "0.5rem",
-        },
+        }),
+        controls: (base: any) => ({
+          ...base,
+          marginTop: "1rem",
+        }),
+        close: (base: any) => ({
+          ...base,
+          color: isDarkMode ? "#a1a1aa" : "#71717a",
+          "&:hover": {
+            color: isDarkMode ? "#e5e5e5" : "#1f1f1f",
+          },
+        }),
       }
     : {};
 
   return (
-    <Joyride
+    <TourProvider
       steps={TOUR_STEPS}
-      run={run}
-      stepIndex={stepIndex}
-      continuous
-      showProgress
-      showSkipButton
-      callback={handleJoyrideCallback}
-      styles={tourStyles}
-      locale={{
-        back: "Back",
-        close: "Close",
-        last: "Finish",
-        next: "Next",
-        skip: "Skip tour",
-      }}
-    />
+      styles={styles}
+      padding={{ mask: 8, popover: [8, 12] }}
+      showBadge
+      showCloseButton
+      showDots
+      showNavigation
+      disableDotsNavigation={false}
+      scrollSmooth
+      inViewThreshold={100}
+      onClickMask={() => {}}
+    >
+      <TourController />
+      {children}
+    </TourProvider>
   );
+}
+
+/**
+ * Wrapper component for pages that need onboarding
+ * Use this at the layout level to provide tour context
+ */
+export function OnboardingWrapper({ children }: { children: React.ReactNode }) {
+  return <OnboardingTour>{children}</OnboardingTour>;
 }

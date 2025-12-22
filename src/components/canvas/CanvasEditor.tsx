@@ -1,14 +1,30 @@
 "use client";
 
-import Editor, { type OnMount } from "@monaco-editor/react";
 import { useMutation } from "convex/react";
 import type { editor } from "monaco-editor";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { CanvasErrorBoundary } from "./CanvasErrorBoundary";
 import { CanvasToolbar } from "./CanvasToolbar";
+
+// Dynamic import Monaco to reduce initial bundle size (~75MB -> 0 on initial load)
+const Editor = dynamic(
+  () => import("@monaco-editor/react").then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex items-center justify-center text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          Loading editor...
+        </div>
+      </div>
+    ),
+  },
+);
 
 interface CanvasEditorProps {
   document: Doc<"canvasDocuments">;
@@ -51,10 +67,10 @@ export function CanvasEditor({
     }
   }, [debouncedContent, document._id, document.content, updateContent]);
 
-  const handleMount: OnMount = useCallback(
-    (editor) => {
-      editorRef.current = editor;
-      onEditorReady?.(editor);
+  const handleMount = useCallback(
+    (editorInstance: editor.IStandaloneCodeEditor) => {
+      editorRef.current = editorInstance;
+      onEditorReady?.(editorInstance);
     },
     [onEditorReady],
   );

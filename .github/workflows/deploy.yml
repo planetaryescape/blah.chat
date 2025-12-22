@@ -11,6 +11,7 @@ jobs:
     name: Convex Dry Run
     if: github.event_name == 'pull_request'
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -24,8 +25,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Convex codegen & typecheck
-        run: bunx convex codegen --typecheck enable
+      - name: Convex dry run (typecheck + schema validation)
+        run: bunx convex deploy --dry-run --typecheck enable
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
   deploy-staging:
     name: Deploy to Staging

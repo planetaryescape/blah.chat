@@ -10,6 +10,7 @@ jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -26,8 +27,10 @@ jobs:
       - name: Run Biome check (lint + format)
         run: bun run lint
 
-      - name: Convex codegen & typecheck
-        run: bunx convex codegen --typecheck enable
+      - name: Convex typecheck
+        run: bunx convex deploy --dry-run --typecheck enable
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
   test:
     name: Unit & Integration Tests

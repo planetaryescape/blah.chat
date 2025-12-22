@@ -150,8 +150,8 @@ export function extractWebSearchSources(
   const webSearchSources: Source[] = [];
 
   for (const tc of allToolCalls) {
-    // Support both old "webSearch" and new "tavilySearch" tool names
-    if (tc.name !== "webSearch" && tc.name !== "tavilySearch") continue;
+    // Support both old "webSearch" and new "tavilySearch"/"tavilyAdvancedSearch" tool names
+    if (tc.name !== "webSearch" && tc.name !== "tavilySearch" && tc.name !== "tavilyAdvancedSearch") continue;
     if (!tc.result) continue;
 
     try {

@@ -63,6 +63,7 @@
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@react-email/components": "^1.0.2",
     "@react-email/render": "^2.0.0",
+    "@reactour/tour": "^3.8.0",
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.13",
@@ -124,7 +125,6 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-dropzone": "^14.3.8",
-    "react-joyride": "^2.9.3",
     "react-markdown": "^10.1.0",
     "react-qr-code": "^2.0.18",
     "react-resizable-panels": "^4.0.15",
@@ -175,21 +175,11 @@
     "vitest": "^4.0.16"
   },
   "resolutions": {
-    "react-joyride": "2.9.3",
-    "react-floater": "0.7.9",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "chalk": "4.1.2"
   },
   "overrides": {
-    "react-joyride": {
-      "react": "$react",
-      "react-dom": "$react-dom"
-    },
-    "react-floater": {
-      "react": "$react",
-      "react-dom": "$react-dom"
-    },
     "e2b": {
       "chalk": "4.1.2"
     }

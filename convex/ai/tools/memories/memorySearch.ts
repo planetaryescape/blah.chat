@@ -40,7 +40,8 @@ Preference/identity/relationship memories are pre-loaded.`,
     execute: async (input) => {
       const { query, category, limit = 5 } = input;
       try {
-        const memories = await ctx.runAction(
+        const memories = (await (ctx.runAction as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.memories.search.hybridSearch,
           {
             userId,
@@ -48,7 +49,7 @@ Preference/identity/relationship memories are pre-loaded.`,
             limit,
             category,
           },
-        );
+        )) as any[];
 
         if (memories.length === 0) {
           return { found: 0, memories: [] };

@@ -1,12 +1,12 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import { api } from "../_generated/api";
-import schema from "../schema";
 import {
   createMockIdentity,
   createTestConversationData,
   createTestUserData,
 } from "@/lib/test/factories";
+import { api } from "../_generated/api";
+import schema from "../schema";
 
 describe("convex/conversations", () => {
   describe("list query", () => {

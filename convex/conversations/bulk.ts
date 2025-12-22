@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { cascadeDeleteConversation } from "../lib/utils/cascade";
 import { getCurrentUserOrCreate } from "../lib/userSync";
+import { cascadeDeleteConversation } from "../lib/utils/cascade";
 
 export const bulkDelete = mutation({
   args: { conversationIds: v.array(v.id("conversations")) },

@@ -66,7 +66,6 @@ export const hybridSearch = action({
       const vectorResults = await ctx.vectorSearch("messages", "by_embedding", {
         vector: embedding,
         limit: 40,
-        // biome-ignore lint/suspicious/noExplicitAny: Convex filter builder type depth
         filter: (q: any) =>
           args.conversationId
             ? q.eq("userId", user._id).eq("conversationId", args.conversationId)
@@ -75,7 +74,6 @@ export const hybridSearch = action({
 
       // Extract Doc<"messages"> format (vectorSearch returns { _score, ...fields })
       const vectorResultMessages = vectorResults.map((r) => {
-        // biome-ignore lint/performance/noDelete: Need to remove _score from result
         const { _score, ...messageDoc } = r;
         return messageDoc as Doc<"messages">;
       });

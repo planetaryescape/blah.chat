@@ -19,8 +19,16 @@ function formatTime(seconds: number) {
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function TTSPlayerBar({ className }: { className?: string }) {
-  const { state, pause, resume, stop, seekBy, seekTo, setSpeed, close } =
-    useTTSPlayer();
+  const {
+    state,
+    pause,
+    resume,
+    stop: _stop,
+    seekBy,
+    seekTo,
+    setSpeed,
+    close,
+  } = useTTSPlayer();
   const { isVisible, isLoading, isPlaying, duration, currentTime, speed } =
     state;
 

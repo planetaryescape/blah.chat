@@ -13,7 +13,6 @@ export const bulkAutoRename = action({
     conversationIds: v.array(v.id("conversations")),
   },
   handler: async (ctx, args) => {
-    // biome-ignore lint/suspicious/noExplicitAny: Complex Convex type inference issues
     const results: any[] = [];
 
     // Process in batches of 5 to avoid rate limits
@@ -21,7 +20,6 @@ export const bulkAutoRename = action({
     for (let i = 0; i < args.conversationIds.length; i += BATCH_SIZE) {
       const batch = args.conversationIds.slice(i, i + BATCH_SIZE);
 
-      // biome-ignore lint/suspicious/noExplicitAny: Complex Convex type inference issues
       const batchPromises = batch.map(async (conversationId: any) => {
         try {
           // 1. Get messages to find context

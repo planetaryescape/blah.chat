@@ -16,7 +16,11 @@ describe("detectFormat", () => {
     const content = JSON.stringify({
       title: "Test",
       mapping: {
-        node1: { id: "node1", author: { role: "user" }, content: { parts: ["Hello"] } },
+        node1: {
+          id: "node1",
+          author: { role: "user" },
+          content: { parts: ["Hello"] },
+        },
       },
     });
     expect(detectFormat(content)).toBe("chatgpt");
@@ -27,7 +31,11 @@ describe("detectFormat", () => {
       {
         title: "Test",
         mapping: {
-          node1: { id: "node1", author: { role: "user" }, content: { parts: ["Hello"] } },
+          node1: {
+            id: "node1",
+            author: { role: "user" },
+            content: { parts: ["Hello"] },
+          },
         },
       },
     ]);
@@ -91,14 +99,18 @@ describe("validateImportFile", () => {
   it("rejects file over 10MB", () => {
     // Create a large string (11MB)
     const largeContent = "x".repeat(11 * 1024 * 1024);
-    const file = new File([largeContent], "large.json", { type: "application/json" });
+    const file = new File([largeContent], "large.json", {
+      type: "application/json",
+    });
     const result = validateImportFile(file);
     expect(result.valid).toBe(false);
     expect(result.error).toContain("too large");
   });
 
   it("rejects invalid file extension", () => {
-    const file = new File(["content"], "export.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "export.pdf", {
+      type: "application/pdf",
+    });
     const result = validateImportFile(file);
     expect(result.valid).toBe(false);
     expect(result.error).toContain("Invalid file type");

@@ -35,9 +35,9 @@ vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));
 
+import type { Id } from "@/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatInput } from "../ChatInput";
-import type { Id } from "@/convex/_generated/dataModel";
 
 const defaultProps = {
   conversationId: "test-conversation-id" as Id<"conversations">,

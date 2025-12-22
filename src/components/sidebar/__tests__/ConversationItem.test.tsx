@@ -42,9 +42,9 @@ vi.mock("../DeleteConversationDialog", () => ({
     ) : null,
 }));
 
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 // Import AFTER mocks
 import { ConversationItem } from "../ConversationItem";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 // Access mocked router
 const mockRouterPush = vi.fn();

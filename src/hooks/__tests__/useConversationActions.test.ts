@@ -36,9 +36,9 @@ vi.mock("@/lib/analytics", () => ({
   analytics: { track: vi.fn() },
 }));
 
+import type { Id } from "@/convex/_generated/dataModel";
 // Import AFTER mocks
 import { useConversationActions } from "../useConversationActions";
-import type { Id } from "@/convex/_generated/dataModel";
 
 describe("useConversationActions", () => {
   const conversationId = "conv-123" as Id<"conversations">;

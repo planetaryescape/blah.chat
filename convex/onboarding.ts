@@ -278,11 +278,9 @@ export const updateUserStats = mutation({
     }
 
     // Build update object
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic update object for onboarding stats
     const update: any = { lastUpdated: now };
 
     if (args.increment !== undefined) {
-      // biome-ignore lint/suspicious/noExplicitAny: Dynamic property access on stats object
       const currentValue = (stats as any)[args.field] || 0;
       update[args.field] = currentValue + args.increment;
     } else if (args.set !== undefined) {

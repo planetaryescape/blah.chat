@@ -99,7 +99,7 @@ test.describe("Conversation CRUD", () => {
       await sendMessage(page, "Persistent message test");
       await waitForResponse(page, 60000);
 
-      const url = page.url();
+      const _url = page.url();
 
       // Refresh
       await page.reload();
@@ -121,7 +121,7 @@ test.describe("Conversation CRUD", () => {
       await firstConv.click({ button: "right" });
 
       // Look for rename option
-      const renameOption = page.locator('text=Rename');
+      const renameOption = page.locator("text=Rename");
       if (await renameOption.isVisible({ timeout: 2000 })) {
         await renameOption.click();
 
@@ -144,7 +144,7 @@ test.describe("Conversation CRUD", () => {
       const firstConv = page.locator(SELECTORS.conversationItem).first();
       await firstConv.click({ button: "right" });
 
-      const pinOption = page.locator('text=Pin');
+      const pinOption = page.locator("text=Pin");
       if (await pinOption.isVisible({ timeout: 2000 })) {
         await pinOption.click();
 
@@ -162,7 +162,7 @@ test.describe("Conversation CRUD", () => {
       const firstConv = page.locator(SELECTORS.conversationItem).first();
       await firstConv.click({ button: "right" });
 
-      const starOption = page.locator('text=Star');
+      const starOption = page.locator("text=Star");
       if (await starOption.isVisible({ timeout: 2000 })) {
         await starOption.click();
 
@@ -183,12 +183,14 @@ test.describe("Conversation CRUD", () => {
       const firstConv = page.locator(SELECTORS.conversationItem).first();
       await firstConv.click({ button: "right" });
 
-      const deleteOption = page.locator('text=Delete');
+      const deleteOption = page.locator("text=Delete");
       if (await deleteOption.isVisible({ timeout: 2000 })) {
         await deleteOption.click();
 
         // Confirm delete in dialog
-        const confirmButton = page.locator('button:has-text("Delete"), button:has-text("Confirm")');
+        const confirmButton = page.locator(
+          'button:has-text("Delete"), button:has-text("Confirm")',
+        );
         if (await confirmButton.isVisible({ timeout: 2000 })) {
           await confirmButton.click();
         }
@@ -209,11 +211,13 @@ test.describe("Conversation CRUD", () => {
 
       await firstConv.click({ button: "right" });
 
-      const deleteOption = page.locator('text=Delete');
+      const deleteOption = page.locator("text=Delete");
       if (await deleteOption.isVisible({ timeout: 2000 })) {
         await deleteOption.click();
 
-        const confirmButton = page.locator('button:has-text("Delete"), button:has-text("Confirm")');
+        const confirmButton = page.locator(
+          'button:has-text("Delete"), button:has-text("Confirm")',
+        );
         if (await confirmButton.isVisible({ timeout: 2000 })) {
           await confirmButton.click();
         }
@@ -221,12 +225,10 @@ test.describe("Conversation CRUD", () => {
         await page.waitForTimeout(1000);
 
         // Sidebar should not contain the deleted title
-        const sidebarText = await page
-          .locator(SELECTORS.sidebar)
-          .textContent();
+        const sidebarText = await page.locator(SELECTORS.sidebar).textContent();
 
         // Title might be truncated, check for unique part
-        if (titleBefore && titleBefore.includes("Unique deletion")) {
+        if (titleBefore?.includes("Unique deletion")) {
           expect(sidebarText).not.toContain("Unique deletion");
         }
       }
@@ -241,7 +243,7 @@ test.describe("Conversation CRUD", () => {
       const firstConv = page.locator(SELECTORS.conversationItem).first();
       await firstConv.click({ button: "right" });
 
-      const archiveOption = page.locator('text=Archive');
+      const archiveOption = page.locator("text=Archive");
       if (await archiveOption.isVisible({ timeout: 2000 })) {
         await archiveOption.click();
 

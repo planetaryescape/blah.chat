@@ -1,6 +1,4 @@
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
 import {
   internalMutation,
   internalQuery,

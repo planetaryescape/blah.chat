@@ -39,7 +39,7 @@ export function UpgradeRequestDialog({
       });
       toast.success("Request sent! Admins will review your upgrade request.");
       onOpenChange(false);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to send request");
     } finally {
       setIsSubmitting(false);

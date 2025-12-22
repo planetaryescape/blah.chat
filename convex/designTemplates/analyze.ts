@@ -1,6 +1,7 @@
 "use node";
 
 import { generateText } from "ai";
+import JSZip from "jszip";
 import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TEMPLATE_ANALYSIS_MODEL } from "@/lib/ai/operational-models";
@@ -11,6 +12,53 @@ import {
   buildTemplateAnalysisPrompt,
   TEMPLATE_ANALYSIS_SYSTEM_PROMPT,
 } from "../lib/prompts/operational/templateAnalysis";
+
+/**
+ * Extract images from a PPTX file (which is a ZIP archive).
+ * Images are stored in ppt/media/ directory.
+ */
+async function extractPptxImages(
+  pptxBuffer: ArrayBuffer,
+): Promise<Array<{ data: string; mimeType: string; name: string }>> {
+  const zip = await JSZip.loadAsync(pptxBuffer);
+  const images: Array<{ data: string; mimeType: string; name: string }> = [];
+
+  // PPTX stores images in ppt/media/
+  const mediaFolder = zip.folder("ppt/media");
+  if (!mediaFolder) {
+    return images;
+  }
+
+  // Process each file in media folder
+  const imageExtensions: Record<string, string> = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+    ".tiff": "image/tiff",
+    ".svg": "image/svg+xml",
+  };
+
+  for (const [relativePath, file] of Object.entries(zip.files)) {
+    if (!relativePath.startsWith("ppt/media/") || file.dir) continue;
+
+    const ext = relativePath.substring(relativePath.lastIndexOf(".")).toLowerCase();
+    const mimeType = imageExtensions[ext];
+
+    if (mimeType) {
+      const data = await file.async("base64");
+      images.push({
+        data,
+        mimeType,
+        name: relativePath.split("/").pop() || relativePath,
+      });
+    }
+  }
+
+  return images;
+}
 
 interface SourceFile {
   storageId: string;
@@ -116,19 +164,33 @@ export const analyzeTemplate = internalAction({
             filename: file.name,
           });
         } else if (file.type === "pptx") {
-          // For PPTX, we need to extract images
-          // TODO: Implement PPTX extraction using jszip
-          // For now, we'll try sending as-is and see if Claude can handle it
-          // If not, we'll need to add image extraction
-          console.log(
-            `PPTX file detected: ${file.name}. Sending as binary for analysis.`,
-          );
-          contentParts.push({
-            type: "file",
-            data: base64,
-            mediaType: file.mimeType,
-            filename: file.name,
-          });
+          // Extract images from PPTX using jszip
+          console.log(`Extracting images from PPTX: ${file.name}`);
+          const pptxImages = await extractPptxImages(arrayBuffer);
+
+          if (pptxImages.length > 0) {
+            console.log(`Extracted ${pptxImages.length} images from ${file.name}`);
+            contentParts.push({
+              type: "text",
+              text: `\n[Images extracted from PowerPoint: ${file.name}]`,
+            });
+
+            for (const img of pptxImages) {
+              contentParts.push({
+                type: "image",
+                image: `data:${img.mimeType};base64,${img.data}`,
+              });
+            }
+          } else {
+            // No images found, send as binary fallback
+            console.log(`No images in PPTX ${file.name}, sending as binary`);
+            contentParts.push({
+              type: "file",
+              data: base64,
+              mediaType: file.mimeType,
+              filename: file.name,
+            });
+          }
         }
       }
 

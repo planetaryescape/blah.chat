@@ -35,7 +35,19 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
+  // Handle protected routes
   if (!isPublicRoute(req)) {
+    // For /app route, check if user is authenticated before calling protect
+    // This prevents redirect loop when Clerk session exists but isn't fully ready
+    if (req.nextUrl.pathname === "/app") {
+      if (!userId) {
+        // Not authenticated, redirect to sign-in
+        return NextResponse.redirect(new URL("/sign-in", req.url));
+      }
+      // Authenticated user on /app, allow access (don't call protect to avoid redirect loop)
+      return NextResponse.next();
+    }
+    // For other protected routes, use protect
     await auth.protect();
   }
 });

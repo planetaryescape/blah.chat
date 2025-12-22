@@ -155,6 +155,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Preconnect to Clerk for faster auth - improves LCP */}
+        <link rel="preconnect" href="https://clerk.accounts.dev" />
+        <link rel="dns-prefetch" href="https://clerk.accounts.dev" />
+        {/* Preconnect to Convex for faster data */}
+        <link rel="preconnect" href="https://convex.cloud" />
+        <link rel="dns-prefetch" href="https://convex.cloud" />
         <script
           type="application/ld+json"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: Static SEO data only, no user input

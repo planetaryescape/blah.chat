@@ -25,6 +25,13 @@ export interface SlideImageContext {
   slideStyle?: "wordy" | "illustrative";
   /** If true, extra emphasis on following brand colors exactly (template-based) */
   isTemplateBased?: boolean;
+  /** If true, a logo image is being provided as input */
+  hasLogo?: boolean;
+  /** Logo placement guidelines from template */
+  logoGuidelines?: {
+    position: string;
+    size: string;
+  };
 }
 
 const SLIDE_TYPE_REQUIREMENTS: Record<string, string> = {
@@ -60,6 +67,8 @@ export function buildSlideImagePrompt(context: SlideImageContext): string {
     contextSlides = [],
     slideStyle = "illustrative",
     isTemplateBased = false,
+    hasLogo = false,
+    logoGuidelines,
   } = context;
 
   const typeRequirements = SLIDE_TYPE_REQUIREMENTS[slideType];
@@ -86,8 +95,23 @@ The slide MUST look like it belongs to this organization's official materials.
 `
     : "";
 
+  // Logo integration instructions (when logo image is provided)
+  const logoInstructions =
+    hasLogo && logoGuidelines
+      ? `
+LOGO INTEGRATION (MANDATORY):
+A logo image is provided as input. You MUST integrate this logo into the slide:
+- Position: ${logoGuidelines.position} corner of the slide
+- Size: ${logoGuidelines.size} (relative to slide dimensions)
+- The logo should be rendered DIRECTLY on the slide image
+- Do NOT leave empty space "for" the logo - actually draw it into the image
+- Ensure the logo is clearly visible and not obscured by other elements
+- Match the logo's visual style to the overall slide design
+`
+      : "";
+
   return `Generate a professional presentation slide image (16:9 aspect ratio, 1920x1080).
-${templateBrandingEmphasis}
+${templateBrandingEmphasis}${logoInstructions}
 DESIGN SYSTEM:
 Theme: ${designSystem.theme}
 Theme Rationale: ${designSystem.themeRationale}

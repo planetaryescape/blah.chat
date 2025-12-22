@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { internalMutation, mutation } from "../_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "../lib/userSync";
 
@@ -70,9 +71,24 @@ export const regenerateSlideImage = mutation({
       });
     }
 
+    // Fetch logo data from template if available
+    let logoStorageId: Id<"_storage"> | undefined;
+    let logoGuidelines: { position: string; size: string } | undefined;
+
+    if (presentation.templateId) {
+      const template = await ctx.db.get(presentation.templateId);
+      if (template) {
+        logoStorageId = template.logoStorageId;
+        logoGuidelines = template.extractedDesign?.logoGuidelines as
+          | { position: string; size: string }
+          | undefined;
+      }
+    }
+
     // Schedule the regeneration action with custom prompt and context
     await ctx.scheduler.runAfter(
       0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.generation.slideImage.generateSlideImage,
       {
         slideId: args.slideId,
@@ -82,6 +98,8 @@ export const regenerateSlideImage = mutation({
         customPrompt: args.customPrompt,
         slideStyle: presentation.slideStyle ?? "illustrative",
         isTemplateBased: !!presentation.templateId,
+        logoStorageId,
+        logoGuidelines,
       },
     );
 

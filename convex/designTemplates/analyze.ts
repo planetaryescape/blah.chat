@@ -7,7 +7,9 @@ import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TEMPLATE_ANALYSIS_MODEL } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { convertPptxToPdf } from "../lib/pdf/convertToPdf";
 import {
   buildTemplateAnalysisPrompt,
   TEMPLATE_ANALYSIS_SYSTEM_PROMPT,
@@ -94,7 +96,8 @@ interface ExtractedDesign {
 
 /**
  * Analyze uploaded template files to extract design constraints.
- * Uses Claude 4.5 Sonnet with vision to analyze PDFs, images, and extracted PPTX images.
+ * Uses Gemini 3 Flash with vision to analyze PDFs, images, and extracted PPTX content.
+ * For PPTX files: converts to PDF for layout analysis + extracts assets for logo detection.
  */
 export const analyzeTemplate = internalAction({
   args: { templateId: v.id("designTemplates") },
@@ -130,6 +133,9 @@ export const analyzeTemplate = internalAction({
         | { type: "file"; data: string; mediaType: string; filename?: string }
       > = [];
 
+      // Track logo for storage
+      let logoStorageId: Id<"_storage"> | undefined;
+
       // Add the analysis prompt
       contentParts.push({
         type: "text",
@@ -164,32 +170,66 @@ export const analyzeTemplate = internalAction({
             filename: file.name,
           });
         } else if (file.type === "pptx") {
-          // Extract images from PPTX using jszip
-          console.log(`Extracting images from PPTX: ${file.name}`);
-          const pptxImages = await extractPptxImages(arrayBuffer);
-
-          if (pptxImages.length > 0) {
-            console.log(`Extracted ${pptxImages.length} images from ${file.name}`);
+          // 1. Convert PPTX to PDF for visual layout analysis
+          console.log(`Converting PPTX to PDF: ${file.name}`);
+          try {
+            const pdfBase64 = await convertPptxToPdf(base64);
             contentParts.push({
-              type: "text",
-              text: `\n[Images extracted from PowerPoint: ${file.name}]`,
+              type: "file",
+              data: pdfBase64,
+              mediaType: "application/pdf",
+              filename: file.name.replace(/\.pptx$/i, ".pdf"),
             });
-
-            for (const img of pptxImages) {
-              contentParts.push({
-                type: "image",
-                image: `data:${img.mimeType};base64,${img.data}`,
-              });
-            }
-          } else {
-            // No images found, send as binary fallback
-            console.log(`No images in PPTX ${file.name}, sending as binary`);
+            console.log(`PPTX converted to PDF successfully: ${file.name}`);
+          } catch (conversionError) {
+            console.warn(`PPTX to PDF conversion failed: ${conversionError}`);
+            // Fall back to sending PPTX as binary
             contentParts.push({
               type: "file",
               data: base64,
               mediaType: file.mimeType,
               filename: file.name,
             });
+          }
+
+          // 2. Extract assets from PPTX for logo detection
+          console.log(`Extracting assets from PPTX: ${file.name}`);
+          const pptxImages = await extractPptxImages(arrayBuffer);
+
+          if (pptxImages.length > 0) {
+            console.log(`Extracted ${pptxImages.length} assets from ${file.name}`);
+
+            // 3. Find logo candidate (filename contains "logo", or first SVG, or largest image)
+            const logoCandidate =
+              pptxImages.find((img) =>
+                img.name.toLowerCase().includes("logo"),
+              ) ||
+              pptxImages.find((img) => img.mimeType === "image/svg+xml") ||
+              pptxImages.sort((a, b) => b.data.length - a.data.length)[0];
+
+            if (logoCandidate && !logoStorageId) {
+              // Store logo in Convex storage
+              console.log(`Storing logo: ${logoCandidate.name}`);
+              const logoBlob = new Blob(
+                [Buffer.from(logoCandidate.data, "base64")],
+                { type: logoCandidate.mimeType },
+              );
+              logoStorageId = await ctx.storage.store(logoBlob);
+              console.log(`Logo stored with ID: ${logoStorageId}`);
+            }
+
+            // Also send extracted images to help with analysis
+            contentParts.push({
+              type: "text",
+              text: `\n[Assets extracted from PowerPoint: ${file.name}]`,
+            });
+            for (const img of pptxImages.slice(0, 5)) {
+              // Limit to 5 images
+              contentParts.push({
+                type: "image",
+                image: `data:${img.mimeType};base64,${img.data}`,
+              });
+            }
           }
         }
       }
@@ -229,13 +269,14 @@ export const analyzeTemplate = internalAction({
         throw new Error("Missing required fields in extracted design");
       }
 
-      // Save extracted design
+      // Save extracted design and logo
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.designTemplates.saveExtractedDesignInternal,
         {
           templateId: args.templateId,
           extractedDesign,
+          logoStorageId,
         },
       );
 

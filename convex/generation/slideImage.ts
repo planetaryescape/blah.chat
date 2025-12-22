@@ -78,6 +78,14 @@ export const generateSlideImage = internalAction({
     ),
     isTemplateBased: v.optional(v.boolean()),
     referenceImageStorageId: v.optional(v.id("_storage")),
+    // Logo integration
+    logoStorageId: v.optional(v.id("_storage")),
+    logoGuidelines: v.optional(
+      v.object({
+        position: v.string(),
+        size: v.string(),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
@@ -121,6 +129,21 @@ export const generateSlideImage = internalAction({
         }
       }
 
+      // Fetch logo if provided
+      let logoImageBase64: string | null = null;
+      if (args.logoStorageId) {
+        try {
+          const logoBlob = await ctx.storage.get(args.logoStorageId);
+          if (logoBlob) {
+            const arrayBuffer = await logoBlob.arrayBuffer();
+            logoImageBase64 = Buffer.from(arrayBuffer).toString("base64");
+            console.log("Loaded logo image for slide generation");
+          }
+        } catch (e) {
+          console.warn("Failed to load logo image:", e);
+        }
+      }
+
       let prompt = buildSlideImagePrompt({
         slideType: slide.slideType,
         title: slide.title,
@@ -129,6 +152,8 @@ export const generateSlideImage = internalAction({
         contextSlides: args.contextSlides,
         slideStyle,
         isTemplateBased,
+        hasLogo: !!logoImageBase64,
+        logoGuidelines: args.logoGuidelines,
       });
 
       // Merge custom prompt if provided
@@ -157,22 +182,44 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
         },
       );
 
-      // Build messages - use multimodal if we have a reference image
+      // Build messages - use multimodal if we have images (reference or logo)
       let result: Awaited<ReturnType<typeof generateText>>;
-      if (referenceImageBase64) {
-        console.log("Using multimodal generation with reference image");
+      const hasMultimodalContent = referenceImageBase64 || logoImageBase64;
+
+      if (hasMultimodalContent) {
+        // Build content parts array
+        const contentParts: Array<
+          { type: "text"; text: string } | { type: "image"; image: string }
+        > = [{ type: "text", text: prompt }];
+
+        // Add logo image first (so model sees it before reference)
+        if (logoImageBase64) {
+          console.log("Including logo image in generation");
+          contentParts.push({
+            type: "image",
+            image: `data:image/png;base64,${logoImageBase64}`,
+          });
+          contentParts.push({
+            type: "text",
+            text: "The above image is the LOGO that must be integrated into the slide.",
+          });
+        }
+
+        // Add reference image if present
+        if (referenceImageBase64) {
+          console.log("Including reference image for regeneration");
+          contentParts.push({
+            type: "image",
+            image: `data:image/png;base64,${referenceImageBase64}`,
+          });
+        }
+
         result = await generateText({
           model: getModel(args.modelId),
           messages: [
             {
               role: "user",
-              content: [
-                { type: "text", text: prompt },
-                {
-                  type: "image",
-                  image: `data:image/png;base64,${referenceImageBase64}`,
-                },
-              ],
+              content: contentParts,
             },
           ],
           providerOptions: {

@@ -109,11 +109,11 @@ export const DESIGN_SYSTEM_GENERATION_MODEL: ModelConfig =
 
 /**
  * Template analysis for brand extraction.
- * Uses Gemini 2.0 Flash for multimodal analysis of templates (PDF, PPTX, images).
+ * Uses Gemini 3 Flash for multimodal analysis of templates (PDF, PPTX, images).
  * Extracts colors, fonts, layout patterns from organization templates.
  */
 export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
-  MODEL_CONFIG["google:gemini-2.0-flash"];
+  MODEL_CONFIG["google:gemini-3-flash"];
 
 // ============================================================================
 // EMBEDDING MODEL

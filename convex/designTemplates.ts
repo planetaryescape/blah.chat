@@ -243,16 +243,18 @@ export const updateStatusInternal = internalMutation({
 });
 
 /**
- * Internal mutation to save extracted design
+ * Internal mutation to save extracted design and logo
  */
 export const saveExtractedDesignInternal = internalMutation({
   args: {
     templateId: v.id("designTemplates"),
     extractedDesign: extractedDesignValidator,
+    logoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.templateId, {
       extractedDesign: args.extractedDesign,
+      logoStorageId: args.logoStorageId,
       status: "complete",
       updatedAt: Date.now(),
     });

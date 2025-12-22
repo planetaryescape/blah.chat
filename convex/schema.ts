@@ -1423,6 +1423,9 @@ export default defineSchema({
       }),
     ),
 
+    // Logo asset (extracted from template for slide generation)
+    logoStorageId: v.optional(v.id("_storage")),
+
     // Processing state
     status: v.union(
       v.literal("pending"),

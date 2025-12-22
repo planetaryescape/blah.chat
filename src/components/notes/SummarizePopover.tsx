@@ -31,7 +31,6 @@ export function SummarizePopover({
   selectedText,
   onSaveAsNote,
 }: SummarizePopoverProps) {
-  // @ts-expect-error - Type depth exceeded with complex Convex action (94+ modules)
   const summarizeSelectionAction = useAction(api.generation.summarizeSelection);
 
   const [summary, setSummary] = useState("");

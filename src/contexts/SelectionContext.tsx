@@ -14,6 +14,7 @@ import { useMobileDetect } from "@/hooks/useMobileDetect";
 interface SelectionState {
   text: string;
   rect: DOMRect | null;
+  mousePosition: { x: number; y: number } | null;
   messageId: string;
   messageRole: "user" | "assistant" | "system";
   isActive: boolean;
@@ -29,6 +30,7 @@ const SelectionContext = createContext<SelectionContextValue | null>(null);
 const EMPTY_SELECTION: SelectionState = {
   text: "",
   rect: null,
+  mousePosition: null,
   messageId: "",
   messageRole: "user",
   isActive: false,
@@ -38,84 +40,101 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<SelectionState>(EMPTY_SELECTION);
   const { isMobile } = useMobileDetect();
   const lastSelectionTimeRef = useRef<number>(0);
+  const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const clearSelection = useCallback(() => {
     setSelection(EMPTY_SELECTION);
+    // Clear browser's native text selection
+    window.getSelection()?.removeAllRanges();
   }, []);
 
-  const handleSelectionChange = useCallback(() => {
-    // Skip on mobile devices - use native selection
-    if (isMobile) {
-      clearSelection();
-      return;
-    }
-
-    // Debounce: wait for selection to stabilize
-    const timer = setTimeout(() => {
-      const windowSelection = window.getSelection();
-      const selectedText = windowSelection?.toString().trim();
-
-      // No text selected or selection cleared
-      if (
-        !selectedText ||
-        !windowSelection ||
-        windowSelection.rangeCount === 0
-      ) {
+  const handleSelectionChange = useCallback(
+    (mouseEvent: MouseEvent) => {
+      // Skip on mobile devices - use native selection
+      if (isMobile) {
         clearSelection();
         return;
       }
 
-      // Get the range and its bounding rect
-      const range = windowSelection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
+      // Store mouse position immediately
+      mousePositionRef.current = {
+        x: mouseEvent.clientX,
+        y: mouseEvent.clientY,
+      };
 
-      // Find the closest .chat-message element
-      let targetElement = range.commonAncestorContainer;
-      if (targetElement.nodeType === Node.TEXT_NODE) {
-        targetElement = targetElement.parentElement as Element;
-      }
+      // Small delay to ensure selection has stabilized after mouseup
+      setTimeout(() => {
+        const windowSelection = window.getSelection();
+        const selectedText = windowSelection?.toString().trim();
 
-      const messageElement = (targetElement as Element).closest(
-        ".chat-message",
-      );
+        // No text selected or selection cleared
+        if (
+          !selectedText ||
+          !windowSelection ||
+          windowSelection.rangeCount === 0
+        ) {
+          clearSelection();
+          return;
+        }
 
-      if (!messageElement) {
-        // Selection is not within a chat message
-        clearSelection();
-        return;
-      }
+        // Require minimum 10 characters to show menu (including spaces)
+        if (selectedText.length < 10) {
+          clearSelection();
+          return;
+        }
 
-      // Extract message metadata from data attributes
-      const messageId = messageElement.getAttribute("data-message-id");
-      const messageRole = messageElement.getAttribute("data-message-role") as
-        | "user"
-        | "assistant"
-        | "system";
+        // Get the range and its bounding rect
+        const range = windowSelection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
 
-      if (!messageId || !messageRole) {
-        clearSelection();
-        return;
-      }
+        // Find the closest .chat-message element
+        let targetElement = range.commonAncestorContainer;
+        if (targetElement.nodeType === Node.TEXT_NODE) {
+          targetElement = targetElement.parentElement as Element;
+        }
 
-      // Track selection time
-      lastSelectionTimeRef.current = Date.now();
+        const messageElement = (targetElement as Element).closest(
+          ".chat-message",
+        );
 
-      // Update selection state
-      setSelection({
-        text: selectedText,
-        rect,
-        messageId,
-        messageRole,
-        isActive: true,
-      });
-    }, 150);
+        if (!messageElement) {
+          // Selection is not within a chat message
+          clearSelection();
+          return;
+        }
 
-    return () => clearTimeout(timer);
-  }, [isMobile, clearSelection]);
+        // Extract message metadata from data attributes
+        const messageId = messageElement.getAttribute("data-message-id");
+        const messageRole = messageElement.getAttribute("data-message-role") as
+          | "user"
+          | "assistant"
+          | "system";
+
+        if (!messageId || !messageRole) {
+          clearSelection();
+          return;
+        }
+
+        // Track selection time
+        lastSelectionTimeRef.current = Date.now();
+
+        // Update selection state with mouse position
+        setSelection({
+          text: selectedText,
+          rect,
+          mousePosition: mousePositionRef.current,
+          messageId,
+          messageRole,
+          isActive: true,
+        });
+      }, 150); // 150ms delay to stabilize selection after mouseup
+    },
+    [isMobile, clearSelection],
+  );
 
   useEffect(() => {
-    // Listen to selection changes
-    document.addEventListener("selectionchange", handleSelectionChange);
+    // Listen to mouseup events (only trigger when selection is complete)
+    document.addEventListener("mouseup", handleSelectionChange);
 
     // Clear selection on mousedown outside (prevents race with mouseup after selection)
     const handleMouseDown = (e: MouseEvent) => {
@@ -125,10 +144,11 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       const target = e.target as Element;
 
       // Ignore if:
-      // 1. Click within menu
+      // 1. Click within menu or popover
       // 2. Just completed selection (<100ms ago)
       if (
         target.closest(".selection-context-menu") ||
+        target.closest(".summarize-popover") ||
         timeSinceSelection < 100
       ) {
         return;
@@ -148,7 +168,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     window.addEventListener("scroll", handleScroll, true); // Capture phase for nested scrolling
 
     return () => {
-      document.removeEventListener("selectionchange", handleSelectionChange);
+      document.removeEventListener("mouseup", handleSelectionChange);
       document.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("scroll", handleScroll, true);
     };

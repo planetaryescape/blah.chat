@@ -34,7 +34,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -52,7 +52,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     expect(result).toMatchObject({
@@ -68,7 +68,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -83,7 +83,7 @@ describe("convex/usage/checkBudget", () => {
       // Add some usage
       const today = new Date().toISOString().split("T")[0];
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 1000,
@@ -96,7 +96,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     expect(result.allowed).toBe(true);
@@ -110,7 +110,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -125,7 +125,7 @@ describe("convex/usage/checkBudget", () => {
       // Add usage that exceeds budget
       const today = new Date().toISOString().split("T")[0];
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 10000,
@@ -138,7 +138,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     expect(result.allowed).toBe(false);
@@ -151,7 +151,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -171,7 +171,7 @@ describe("convex/usage/checkBudget", () => {
       const lastMonthDate = lastMonth.toISOString().split("T")[0];
 
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: lastMonthDate,
         model: "openai:gpt-5",
         inputTokens: 10000,
@@ -182,7 +182,7 @@ describe("convex/usage/checkBudget", () => {
 
       // Current month usage
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 1000,
@@ -195,7 +195,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     // Should only count this month's $3, not last month's $50
@@ -207,7 +207,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -223,7 +223,7 @@ describe("convex/usage/checkBudget", () => {
       const today = new Date().toISOString().split("T")[0];
       // Multiple records this month
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 1000,
@@ -232,7 +232,7 @@ describe("convex/usage/checkBudget", () => {
         messageCount: 1,
       });
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "anthropic:claude-3-opus",
         inputTokens: 2000,
@@ -241,7 +241,7 @@ describe("convex/usage/checkBudget", () => {
         messageCount: 2,
       });
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "google:gemini-pro",
         inputTokens: 500,
@@ -254,7 +254,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     expect(result.totalSpend).toBe(8); // 2 + 5 + 1
@@ -266,7 +266,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -281,7 +281,7 @@ describe("convex/usage/checkBudget", () => {
 
       const today = new Date().toISOString().split("T")[0];
       await ctx.db.insert("usageRecords", {
-        userId: userId as Id<"users">,
+        userId: userId,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 5000,
@@ -294,7 +294,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     // At exactly budget (totalSpend === budget), allowed is false (totalSpend < monthlyBudget)
@@ -307,7 +307,7 @@ describe("convex/usage/checkBudget", () => {
     const t = convexTest(schema);
     const identity = createMockIdentity();
 
-    let userId: Id<"users">;
+    let userId!: Id<"users">;
     await t.run(async (ctx) => {
       userId = await ctx.db.insert(
         "users",
@@ -324,7 +324,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId as Id<"users">,
+      userId: userId,
     });
 
     expect(result.totalSpend).toBe(0);

@@ -215,7 +215,6 @@ export const acceptTriageSuggestion = internalMutation({
       throw new Error("No AI triage available");
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic update object for feedback triage
     const updates: Record<string, any> = { updatedAt: Date.now() };
 
     if (acceptPriority && feedback.aiTriage.suggestedPriority) {

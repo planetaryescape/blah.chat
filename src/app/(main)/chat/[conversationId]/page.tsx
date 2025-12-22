@@ -725,7 +725,7 @@ function ChatPageContent({
                   onSelectTemplate={(prompt) => {
                     // Dispatch event to insert template into chat input
                     window.dispatchEvent(
-                      new CustomEvent("insert-prompt", { detail: prompt })
+                      new CustomEvent("insert-prompt", { detail: prompt }),
                     );
                   }}
                 />

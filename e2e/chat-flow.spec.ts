@@ -129,10 +129,7 @@ test.describe("Chat Message Flow", () => {
   });
 
   test("code blocks in responses render correctly", async ({ page }) => {
-    await sendMessage(
-      page,
-      'Write a JavaScript function that returns "hello"',
-    );
+    await sendMessage(page, 'Write a JavaScript function that returns "hello"');
     await waitForResponse(page, 60000);
 
     const assistantMessage = page.locator(SELECTORS.statusComplete).last();

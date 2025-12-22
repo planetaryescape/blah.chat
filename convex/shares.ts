@@ -7,36 +7,36 @@ import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 // ===== Re-exports from submodules =====
 
-export * as password from "./shares/password";
-export * as internal from "./shares/internal";
 export * as fork from "./shares/fork";
+export {
+  addParticipant,
+  copyAttachment,
+  copyMessage,
+  copySource,
+  copyToolCall,
+  createForkedConversation,
+  createJoinNotification,
+  forkCollaborative,
+  forkPrivate,
+} from "./shares/fork";
+export * as internal from "./shares/internal";
 
 // Backward compatibility re-exports
 export {
+  getAttachmentsByConversationInternal,
+  getAttachmentsByMessageInternal,
   getByShareId,
-  incrementViewCount,
-  getUserInternal,
   getConversationInternal,
   getMessagesInternal,
-  getAttachmentsByMessageInternal,
-  getToolCallsByMessageInternal,
-  getSourcesByMessageInternal,
-  getAttachmentsByConversationInternal,
-  getToolCallsByConversationInternal,
   getSourcesByConversationInternal,
+  getSourcesByMessageInternal,
+  getToolCallsByConversationInternal,
+  getToolCallsByMessageInternal,
   getUserByIdInternal,
+  getUserInternal,
+  incrementViewCount,
 } from "./shares/internal";
-export {
-  forkPrivate,
-  forkCollaborative,
-  createForkedConversation,
-  copyMessage,
-  copyAttachment,
-  copyToolCall,
-  copySource,
-  addParticipant,
-  createJoinNotification,
-} from "./shares/fork";
+export * as password from "./shares/password";
 
 // ===== Core CRUD =====
 

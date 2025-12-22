@@ -1,7 +1,5 @@
 "use client";
 
-import { Logo } from "@/components/brand/Logo";
-import { Button } from "@/components/ui/button";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
@@ -16,6 +14,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
+import { Logo } from "@/components/brand/Logo";
+import { Button } from "@/components/ui/button";
 
 // Note: Auth redirect is handled server-side in middleware.ts for better LCP
 export default function LandingPage() {

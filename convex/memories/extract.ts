@@ -136,7 +136,6 @@ export const extractMemories = internalAction({
     );
 
     const existingMemoriesText = existingMemories
-      // biome-ignore lint/suspicious/noExplicitAny: Memory object types
       .map((m: any) => `- ${m.content} (${m.metadata?.category || "general"})`)
       .join("\n");
 

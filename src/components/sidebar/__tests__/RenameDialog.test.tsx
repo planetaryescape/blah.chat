@@ -9,9 +9,9 @@ vi.mock("convex/react", () => ({
   useMutation: vi.fn(() => mockMutation),
 }));
 
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 // Import AFTER mocks
 import { RenameDialog } from "../RenameDialog";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 const createConversation = (
   overrides: Partial<Doc<"conversations">> = {},

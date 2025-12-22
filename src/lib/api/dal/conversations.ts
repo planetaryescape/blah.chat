@@ -180,7 +180,7 @@ export const conversationsDAL = {
     conversationId: string,
     sessionToken: string,
   ) => {
-    const convex = getConvexClient();
+    const _convex = getConvexClient();
 
     // Verify ownership first
     await conversationsDAL.getById(userId, conversationId);

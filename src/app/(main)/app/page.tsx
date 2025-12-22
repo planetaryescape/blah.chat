@@ -1,12 +1,12 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import {
   Authenticated,
   Unauthenticated,
   useConvexAuth,
   useQuery,
 } from "convex/react";
-import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { UserSyncError } from "@/components/auth/UserSyncError";
@@ -45,7 +45,14 @@ export default function AppPage() {
 
     navigationStarted.current = true;
     startNewChat();
-  }, [clerkLoaded, isSignedIn, isAuthenticated, authLoading, convexUser, startNewChat]);
+  }, [
+    clerkLoaded,
+    isSignedIn,
+    isAuthenticated,
+    authLoading,
+    convexUser,
+    startNewChat,
+  ]);
 
   // Show error if authenticated but no Convex user (webhook failure)
   if (isSignedIn && isAuthenticated && convexUser === null) {

@@ -1,13 +1,13 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import schema from "../schema";
 import {
   createMockIdentity,
   createTestConversationData,
   createTestUserData,
 } from "@/lib/test/factories";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import schema from "../schema";
 
 describe("convex/usage", () => {
   describe("recordTranscription", () => {
@@ -26,7 +26,7 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTranscription, {
-          userId: userId!,
+          userId: userId as Id<"users">,
           model: "openai:whisper-1",
           durationMinutes: 2.5,
           cost: 0.015,
@@ -35,7 +35,7 @@ describe("convex/usage", () => {
         const records = await ctx.db.query("usageRecords").collect();
         expect(records).toHaveLength(1);
         expect(records[0]).toMatchObject({
-          userId: userId!,
+          userId: userId as Id<"users">,
           model: "openai:whisper-1",
           cost: 0.015,
           inputTokens: 0,
@@ -67,8 +67,8 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordImageGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:dall-e-3",
           cost: 0.04,
         });
@@ -105,8 +105,8 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:gpt-5",
           inputTokens: 1000,
           outputTokens: 500,
@@ -145,8 +145,8 @@ describe("convex/usage", () => {
         // First generation
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:gpt-5",
           inputTokens: 1000,
           outputTokens: 500,
@@ -156,12 +156,12 @@ describe("convex/usage", () => {
         // Second generation same model
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:gpt-5",
           inputTokens: 2000,
           outputTokens: 1000,
-          cost: 0.10,
+          cost: 0.1,
         });
 
         const records = await ctx.db.query("usageRecords").collect();
@@ -194,8 +194,8 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:gpt-5",
           inputTokens: 1000,
           outputTokens: 500,
@@ -204,8 +204,8 @@ describe("convex/usage", () => {
 
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "anthropic:claude-3-opus",
           inputTokens: 1000,
           outputTokens: 500,
@@ -237,8 +237,8 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:o1",
           inputTokens: 1000,
           outputTokens: 500,
@@ -271,8 +271,8 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:o1",
           inputTokens: 1000,
           outputTokens: 500,
@@ -282,13 +282,13 @@ describe("convex/usage", () => {
 
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
-          userId: userId!,
-          conversationId: conversationId!,
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
           model: "openai:o1",
           inputTokens: 500,
           outputTokens: 250,
           reasoningTokens: 1500,
-          cost: 0.10,
+          cost: 0.1,
         });
 
         const records = await ctx.db.query("usageRecords").collect();
@@ -313,7 +313,7 @@ describe("convex/usage", () => {
       await t.run(async (ctx) => {
         // @ts-ignore - internal mutation
         await ctx.runMutation(internal.usage.mutations.recordTTS, {
-          userId: userId!,
+          userId: userId as Id<"users">,
           model: "deepgram:tts",
           characterCount: 500,
           cost: 0.005,

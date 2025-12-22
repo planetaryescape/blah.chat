@@ -1,21 +1,20 @@
 // @ts-nocheck
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { cascadeDeleteConversation } from "./lib/utils/cascade";
-import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 import { canAccessConversation } from "./conversations/branching";
+import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
+import { cascadeDeleteConversation } from "./lib/utils/cascade";
 
-// ===== Re-exports from submodules =====
-export * as tokens from "./conversations/tokens";
-export * as bulk from "./conversations/bulk";
-export * as branching from "./conversations/branching";
-export * as consolidation from "./conversations/consolidation";
-export * as internal from "./conversations/internal";
 export * as actions from "./conversations/actions";
-export * as hybridSearch from "./conversations/hybridSearch";
-
+export * as branching from "./conversations/branching";
 // Re-export canAccessConversation helper for use in other modules
 export { canAccessConversation } from "./conversations/branching";
+export * as bulk from "./conversations/bulk";
+export * as consolidation from "./conversations/consolidation";
+export * as hybridSearch from "./conversations/hybridSearch";
+export * as internal from "./conversations/internal";
+// ===== Re-exports from submodules =====
+export * as tokens from "./conversations/tokens";
 
 // ===== Core CRUD =====
 
@@ -155,7 +154,6 @@ export const list = query({
         .query("conversations")
         .withSearchIndex("search_title", (q) =>
           q
-            // biome-ignore lint/style/noNonNullAssertion: searchQuery is validated as required
             .search("title", args.searchQuery!)
             .eq("userId", user._id)
             .eq("archived", false),
@@ -435,49 +433,46 @@ export const dismissModelRecommendation = mutation({
 
 // ===== Backward Compatibility Re-exports =====
 
-// From tokens.ts
+// From branching.ts
 export {
-  getTokenUsage,
-  getConversationTokensByModel,
-  getTotalConversationTokens,
-  updateTokenUsage,
-  updateConversationTokenUsage,
-} from "./conversations/tokens";
+  getChildBranches,
+  getChildBranchesFromMessage,
+  getParticipants,
+} from "./conversations/branching";
 
 // From bulk.ts
 export {
-  bulkDelete,
   bulkArchive,
+  bulkDelete,
   bulkPin,
-  bulkUnpin,
   bulkStar,
+  bulkUnpin,
   bulkUnstar,
 } from "./conversations/bulk";
-
-// From branching.ts
-export {
-  getParticipants,
-  getChildBranches,
-  getChildBranchesFromMessage,
-} from "./conversations/branching";
-
 // From consolidation.ts
 export {
-  createConsolidationConversation,
   consolidateInSameChat,
+  createConsolidationConversation,
 } from "./conversations/consolidation";
-
 // From internal.ts
 export {
-  getInternal,
-  createInternal,
-  updateLastMessageAt,
-  updateTitle,
-  updateMemoryTracking,
-  updateMemoryCache,
-  clearMemoryCache,
-  updateExtractionCursor,
   backfillMessageCounts,
-  setModelRecommendation,
+  clearMemoryCache,
+  createInternal,
+  getInternal,
   setModeInternal,
+  setModelRecommendation,
+  updateExtractionCursor,
+  updateLastMessageAt,
+  updateMemoryCache,
+  updateMemoryTracking,
+  updateTitle,
 } from "./conversations/internal";
+// From tokens.ts
+export {
+  getConversationTokensByModel,
+  getTokenUsage,
+  getTotalConversationTokens,
+  updateConversationTokenUsage,
+  updateTokenUsage,
+} from "./conversations/tokens";

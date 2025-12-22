@@ -109,9 +109,7 @@ test.describe("First Chat Experience", () => {
     await page.click(SELECTORS.sendButton);
 
     // Input should be cleared
-    const inputValue = await page
-      .locator(SELECTORS.chatInput)
-      .inputValue();
+    const inputValue = await page.locator(SELECTORS.chatInput).inputValue();
     expect(inputValue).toBe("");
   });
 

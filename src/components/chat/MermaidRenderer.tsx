@@ -284,7 +284,6 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
             Loading diagram...
           </div>
         ) : (
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid generates safe SVG
           <div dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </div>

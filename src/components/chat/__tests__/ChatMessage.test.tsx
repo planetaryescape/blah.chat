@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Convex hooks BEFORE importing component
@@ -29,9 +28,9 @@ vi.mock("../MarkdownContent", () => ({
   ),
 }));
 
+import type { Id } from "@/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatMessage } from "../ChatMessage";
-import type { Id } from "@/convex/_generated/dataModel";
 
 const baseMessage = {
   _id: "msg-123" as Id<"messages">,

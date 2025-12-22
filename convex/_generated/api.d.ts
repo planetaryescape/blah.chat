@@ -91,6 +91,7 @@ import type * as generation_image from "../generation/image.js";
 import type * as generation_index from "../generation/index.js";
 import type * as generation_slideImage from "../generation/slideImage.js";
 import type * as generation_sources from "../generation/sources.js";
+import type * as generation_tools from "../generation/tools.js";
 import type * as http from "../http.js";
 import type * as import_ from "../import.js";
 import type * as incognito from "../incognito.js";
@@ -328,6 +329,7 @@ declare const fullApi: ApiFromModules<{
   "generation/index": typeof generation_index;
   "generation/slideImage": typeof generation_slideImage;
   "generation/sources": typeof generation_sources;
+  "generation/tools": typeof generation_tools;
   http: typeof http;
   import: typeof import_;
   incognito: typeof incognito;

@@ -8,6 +8,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## 💰 Money Feature
+
+**CRITICAL**: AI chat generation with resilient streaming - what users pay for
+
+**Core functionality**: Multi-model AI chat with real-time streaming responses
+**Critical path**: User sends message → server-side generation → DB persistence → reactive client updates
+**If broken**: No business - users can't get AI responses
+
+### Key Files (Mission-Critical)
+
+| File | Purpose | Lines |
+|------|---------|-------|
+| `convex/generation.ts` | Main generation action - streaming, tools, error handling | 1294 |
+| `convex/messages.ts` | Message mutations, status updates, partial content | 17k |
+| `convex/chat.ts` | Send message mutation, triggers generation | 21k |
+| `src/lib/ai/models.ts` | 46 model configs with pricing/capabilities | 865 |
+| `src/lib/ai/registry.ts` | Model instantiation via Gateway | - |
+
+### Dependencies
+- Vercel AI Gateway (all models)
+- Convex (real-time DB + 10min actions)
+- Clerk (auth)
+
+### What MUST Work
+1. Message sends without error
+2. Response streams in real-time
+3. Page refresh preserves partial response
+4. Cost tracked per message
+5. Tools execute (web search, code execution)
+
+---
+
 ## Tech Stack
 
 - **Framework**: Next.js 15 (App Router), React 19, TypeScript
@@ -616,3 +648,28 @@ const result = streamText({
 
 Full spec: `docs/spec.md`
 Implementation phases: `docs/implementation/*.md`
+
+---
+
+## Codebase Health (Last analyzed: 2025-12-22)
+
+### Stats
+- **TypeScript files**: ~16k
+- **Tests**: 361 passing (37 test files)
+- **Models**: 46 AI models configured
+- **Schema tables**: ~30 (1574 lines)
+
+### Health Indicators
+- Build: Clean (minor Turbopack warning)
+- Tests: All passing
+- TODOs: 5 (low tech debt)
+- Deps: 2 minor updates available (biome, lucide-react)
+
+### Known Workarounds
+- **390 @ts-ignore in Convex**: TypeScript recursion limits with 94+ modules. Documented pattern, not fixable without restructuring.
+- **61 biome-ignore**: Acceptable lint exceptions for complex types
+
+### Outstanding TODOs
+- `convex/transcription.ts:225` - Deepgram Nova-3 implementation
+- `convex/transcription.ts:229` - AssemblyAI implementation
+- `convex/designTemplates/analyze.ts:120` - PPTX extraction via jszip

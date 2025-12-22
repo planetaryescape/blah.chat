@@ -389,3 +389,112 @@ To optimize:
 - E2E only on code changes (already configured)
 - Cache Playwright browsers
 - Run unit tests locally before push
+
+---
+
+## Convex Deployment Workflow
+
+A separate workflow (`.github/workflows/deploy.yml`) handles Convex deployments using GitHub Environments for environment-specific secrets.
+
+### Workflow Triggers
+
+| Event | Branch | Action |
+|-------|--------|--------|
+| Pull Request | `main` or `prod` | Dry run (typecheck + schema validation) |
+| Push/Merge | `main` | Deploy to staging |
+| Push/Merge | `prod` | Deploy to production |
+
+### GitHub Environments Setup
+
+Create two environments in GitHub (**Settings → Environments**):
+
+#### 1. `staging` Environment
+- **Deployment branch:** `main`
+- **Secret:** `CONVEX_DEPLOY_KEY` = Your staging Convex deploy key
+- **Protection rules:** None (auto-deploy on merge)
+
+#### 2. `production` Environment
+- **Deployment branch:** `prod`
+- **Secret:** `CONVEX_DEPLOY_KEY` = Your production Convex deploy key
+- **Protection rules (recommended):**
+  - Required reviewers: 1-2 team members
+  - Wait timer: 5 minutes (optional)
+
+### How to Get Convex Deploy Keys
+
+1. Go to [Convex Dashboard](https://dashboard.convex.dev)
+2. Select your project (staging or production)
+3. Navigate to **Settings → Deploy Keys**
+4. Create a new deploy key
+5. Copy and add to the corresponding GitHub environment
+
+### Workflow File
+
+Located at `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy Convex
+
+on:
+  pull_request:
+    branches: [main, prod]
+  push:
+    branches: [main, prod]
+
+jobs:
+  dry-run:
+    if: github.event_name == 'pull_request'
+    environment: staging  # Uses staging key for validation
+    steps:
+      - run: bunx convex dev --once --typecheck=enable
+
+  deploy-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: staging
+    steps:
+      - run: bunx convex deploy
+
+  deploy-prod:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
+    environment: production
+    steps:
+      - run: bunx convex deploy
+```
+
+### Benefits of GitHub Environments
+
+- **Same secret name** (`CONVEX_DEPLOY_KEY`) across environments
+- **Deployment history** visible in GitHub UI
+- **Protection rules** for production (manual approval, wait timers)
+- **Environment URLs** displayed in PRs and deployments
+
+### Deployment Flow
+
+```
+PR to main/prod
+    ↓
+[dry-run] - Validates schema compiles
+    ↓
+Merge to main
+    ↓
+[deploy-staging] - Auto-deploys to staging
+    ↓
+Merge main → prod
+    ↓
+[deploy-prod] - Deploys to production (with optional approval)
+```
+
+### Troubleshooting Deployments
+
+#### Deploy Key Not Found
+- Verify `CONVEX_DEPLOY_KEY` exists in the environment secrets (not repo secrets)
+- Check the environment name matches exactly (`staging` vs `Staging`)
+
+#### Schema Validation Fails
+- The dry-run catches breaking schema changes
+- Fix schema issues before merging
+- Run `bunx convex dev --once` locally to debug
+
+#### Production Deploy Stuck
+- Check if protection rules require approval
+- Verify the user has permission to approve deployments

@@ -171,3 +171,25 @@ export function createMockIdentity(
     name: overrides.name ?? "Test User",
   };
 }
+
+/**
+ * Factory for test usage record (Convex document)
+ * Uses existing Doc<"usageRecords"> type
+ */
+export function createTestUsageRecordData(
+  userId: Id<"users">,
+  overrides: Partial<
+    Omit<Doc<"usageRecords">, "_id" | "_creationTime" | "userId">
+  > = {},
+): Omit<Doc<"usageRecords">, "_id" | "_creationTime"> {
+  return {
+    userId,
+    date: new Date().toISOString().split("T")[0],
+    model: "openai:gpt-4o",
+    inputTokens: 1000,
+    outputTokens: 500,
+    cost: 0.05,
+    messageCount: 1,
+    ...overrides,
+  };
+}

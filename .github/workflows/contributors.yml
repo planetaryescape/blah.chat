@@ -1,0 +1,21 @@
+name: Update Contributors
+
+on:
+  schedule:
+    - cron: "0 0 1 * *" # Monthly, 1st of month
+  workflow_dispatch:
+
+jobs:
+  contributors:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: akhilmhdh/contributors-readme-action@v2.3
+        with:
+          image_size: 50
+          columns_per_row: 8
+          readme_path: MAINTAINERS.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

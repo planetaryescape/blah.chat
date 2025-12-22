@@ -157,9 +157,13 @@ function ChatPageContent({
   // Keeping them in state avoids the re-render that causes flash.
   // They'll be cleared naturally on next message send or page navigation.
 
-  // Extract chat width preference (Phase 4: use flat preference hook)
-  const prefChatWidth = useUserPreference("chatWidth");
-  const chatWidth = (prefChatWidth as ChatWidth | undefined) || "standard";
+  // Extract chat width preference with loading detection
+  // @ts-expect-error - Type depth exceeded with Convex modules
+  const rawChatWidth = useQuery(api.users.getUserPreference, {
+    key: "chatWidth",
+  });
+  const isChatWidthLoading = rawChatWidth === undefined;
+  const chatWidth = (rawChatWidth as ChatWidth | undefined) || "standard";
   const defaultModel = useUserPreference("defaultModel");
   const showModelNamesDuringComparison = useUserPreference(
     "showModelNamesDuringComparison",
@@ -551,16 +555,21 @@ function ChatPageContent({
     router.push(`/chat/${sorted[nextIdx]._id}`);
   }, [isLast, filteredConversations, currentIndex, router]);
 
+  const isLoading =
+    serverMessages === undefined ||
+    paginationStatus === "LoadingFirstPage" ||
+    isChatWidthLoading;
+
   return (
     <TTSProvider defaultSpeed={ttsSpeed}>
       <ResizablePanelGroup
         orientation="horizontal"
-        className="h-[100dvh]"
+        className="flex-1 min-h-0"
         id="chat-canvas-layout"
       >
         {/* Chat Panel - always renders, takes full width when canvas closed */}
         <ResizablePanel defaultSize={documentId ? 45 : 100} minSize={30}>
-          <div className="relative flex h-full flex-col overflow-hidden">
+          <div className="flex flex-col h-full">
             <ChatHeader
               conversation={conversation}
               conversationId={conversationId}
@@ -581,143 +590,148 @@ function ChatPageContent({
 
             <TTSPlayerBar />
 
-            {serverMessages === undefined ||
-            paginationStatus === "LoadingFirstPage" ? (
-              <MessageListSkeleton chatWidth={chatWidth} />
-            ) : (
+            {isLoading && <MessageListSkeleton chatWidth={chatWidth} />}
+
+            {!isLoading && (
               <>
-                {/* Load More Button (fallback for top of list) */}
-                {paginationStatus === "CanLoadMore" && (
-                  <div className="flex justify-center p-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => loadMore(50)}
-                      className="text-sm"
-                    >
-                      Load older messages
-                    </Button>
-                  </div>
-                )}
-                {paginationStatus === "LoadingMore" && (
-                  <div className="flex justify-center p-4">
-                    <div className="text-sm text-muted-foreground">
-                      Loading more messages...
+                <div className="flex-1 flex flex-col min-h-0">
+                  {/* Load More Button (fallback for top of list) */}
+                  {paginationStatus === "CanLoadMore" && (
+                    <div className="flex justify-center p-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => loadMore(50)}
+                        className="text-sm"
+                      >
+                        Load older messages
+                      </Button>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {paginationStatus === "LoadingMore" && (
+                    <div className="flex justify-center p-4">
+                      <div className="text-sm text-muted-foreground">
+                        Loading more messages...
+                      </div>
+                    </div>
+                  )}
 
-                {/* Invisible div for intersection observer */}
-                <div ref={messageListTopRef} className="h-px" />
+                  {/* Invisible div for intersection observer */}
+                  <div ref={messageListTopRef} className="h-px" />
 
-                <VirtualizedMessageList
-                  messages={messages as Doc<"messages">[]}
-                  selectedModel={displayModel}
-                  chatWidth={chatWidth}
-                  onVote={handleVote}
-                  onConsolidate={handleConsolidate}
-                  onToggleModelNames={() => setShowModelNames(!showModelNames)}
-                  showModelNames={showModelNames ?? false}
-                  syncScroll={syncScroll ?? true}
-                  highlightMessageId={highlightMessageId}
-                  isCollaborative={conversation?.isCollaborative}
+                  <VirtualizedMessageList
+                    messages={messages as Doc<"messages">[]}
+                    selectedModel={displayModel}
+                    chatWidth={chatWidth}
+                    onVote={handleVote}
+                    onConsolidate={handleConsolidate}
+                    onToggleModelNames={() =>
+                      setShowModelNames(!showModelNames)
+                    }
+                    showModelNames={showModelNames ?? false}
+                    syncScroll={syncScroll ?? true}
+                    highlightMessageId={highlightMessageId}
+                    isCollaborative={conversation?.isCollaborative}
+                  />
+                </div>
+
+                <ProgressiveHints
+                  messageCount={messages?.length ?? 0}
+                  conversationCount={filteredConversations?.length ?? 0}
                 />
-              </>
-            )}
 
-            <div className="relative px-4 pb-4">
-              <ProgressiveHints
-                messageCount={messages?.length ?? 0}
-                conversationCount={filteredConversations?.length ?? 0}
-              />
+                {/* Model Recommendation Banner */}
+                {conversation?.modelRecommendation &&
+                  !conversation.modelRecommendation.dismissed && (
+                    <ModelRecommendationBanner
+                      recommendation={conversation.modelRecommendation}
+                      conversationId={conversationId}
+                      onSwitch={handleSwitchModel}
+                      onPreview={handlePreviewModel}
+                    />
+                  )}
 
-              {/* Model Recommendation Banner */}
-              {conversation?.modelRecommendation &&
-                !conversation.modelRecommendation.dismissed && (
-                  <ModelRecommendationBanner
-                    recommendation={conversation.modelRecommendation}
+                {/* Set Default Model Prompt (shows after successful generation) */}
+                {showSetDefaultPrompt && switchedModelId && (
+                  <SetDefaultModelPrompt
+                    modelId={switchedModelId}
+                    modelName={
+                      MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
+                    }
                     conversationId={conversationId}
-                    onSwitch={handleSwitchModel}
-                    onPreview={handlePreviewModel}
+                    onSetDefault={handleSetAsDefault}
+                    onDismiss={() => setShowSetDefaultPrompt(false)}
                   />
                 )}
 
-              {/* Set Default Model Prompt (shows after successful generation) */}
-              {showSetDefaultPrompt && switchedModelId && (
-                <SetDefaultModelPrompt
-                  modelId={switchedModelId}
-                  modelName={
-                    MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
-                  }
-                  conversationId={conversationId}
-                  onSetDefault={handleSetAsDefault}
-                  onDismiss={() => setShowSetDefaultPrompt(false)}
+                <div className="flex shrink-0">
+                  <ChatInput
+                    conversationId={conversationId}
+                    chatWidth={chatWidth}
+                    isGenerating={isGenerating}
+                    selectedModel={displayModel}
+                    onModelChange={handleModelChange}
+                    thinkingEffort={
+                      showThinkingEffort ? thinkingEffort : undefined
+                    }
+                    onThinkingEffortChange={setThinkingEffort}
+                    attachments={attachments}
+                    onAttachmentsChange={setAttachments}
+                    isComparisonMode={isActive}
+                    selectedModels={selectedModels}
+                    onStartComparison={startComparison}
+                    onExitComparison={exitComparison}
+                    isEmpty={messages?.length === 0}
+                    modelSelectorOpen={modelSelectorOpen}
+                    onModelSelectorOpenChange={setModelSelectorOpen}
+                    comparisonDialogOpen={comparisonDialogOpen}
+                    onComparisonDialogOpenChange={setComparisonDialogOpen}
+                    onOptimisticUpdate={addOptimisticMessages}
+                  />
+                </div>
+                {/* Preview Modal */}
+                {previewModalOpen &&
+                  previewModelId &&
+                  conversation?.modelRecommendation && (
+                    <ModelPreviewModal
+                      open={previewModalOpen}
+                      onOpenChange={setPreviewModalOpen}
+                      currentModelId={
+                        conversation.modelRecommendation.currentModelId
+                      }
+                      suggestedModelId={previewModelId}
+                      currentResponse={
+                        messages?.find((m) => m.role === "assistant")
+                          ?.content ?? ""
+                      }
+                      onSwitch={handleSwitchModel}
+                      conversationId={conversationId}
+                      userMessage={
+                        messages?.find((m) => m.role === "user")?.content ?? ""
+                      }
+                    />
+                  )}
+
+                <QuickModelSwitcher
+                  open={quickSwitcherOpen}
+                  onOpenChange={setQuickSwitcherOpen}
+                  currentModel={selectedModel}
+                  onSelectModel={handleModelChange}
                 />
-              )}
 
-              <ChatInput
-                conversationId={conversationId}
-                chatWidth={chatWidth}
-                isGenerating={isGenerating}
-                selectedModel={displayModel}
-                onModelChange={handleModelChange}
-                thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
-                onThinkingEffortChange={setThinkingEffort}
-                attachments={attachments}
-                onAttachmentsChange={setAttachments}
-                isComparisonMode={isActive}
-                selectedModels={selectedModels}
-                onStartComparison={startComparison}
-                onExitComparison={exitComparison}
-                isEmpty={messages?.length === 0}
-                modelSelectorOpen={modelSelectorOpen}
-                onModelSelectorOpenChange={setModelSelectorOpen}
-                comparisonDialogOpen={comparisonDialogOpen}
-                onComparisonDialogOpenChange={setComparisonDialogOpen}
-                onOptimisticUpdate={addOptimisticMessages}
-              />
-            </div>
-
-            {/* Preview Modal */}
-            {previewModalOpen &&
-              previewModelId &&
-              conversation?.modelRecommendation && (
-                <ModelPreviewModal
-                  open={previewModalOpen}
-                  onOpenChange={setPreviewModalOpen}
-                  currentModelId={
-                    conversation.modelRecommendation.currentModelId
-                  }
-                  suggestedModelId={previewModelId}
-                  currentResponse={
-                    messages?.find((m) => m.role === "assistant")?.content ?? ""
-                  }
-                  onSwitch={handleSwitchModel}
-                  conversationId={conversationId}
-                  userMessage={
-                    messages?.find((m) => m.role === "user")?.content ?? ""
-                  }
+                <QuickTemplateSwitcher
+                  open={templateSelectorOpen}
+                  onOpenChange={setTemplateSelectorOpen}
+                  mode="insert"
+                  onSelectTemplate={(prompt) => {
+                    // Dispatch event to insert template into chat input
+                    window.dispatchEvent(
+                      new CustomEvent("insert-prompt", { detail: prompt })
+                    );
+                  }}
                 />
-              )}
-
-            <QuickModelSwitcher
-              open={quickSwitcherOpen}
-              onOpenChange={setQuickSwitcherOpen}
-              currentModel={selectedModel}
-              onSelectModel={handleModelChange}
-            />
-
-            <QuickTemplateSwitcher
-              open={templateSelectorOpen}
-              onOpenChange={setTemplateSelectorOpen}
-              mode="insert"
-              onSelectTemplate={(prompt) => {
-                // Dispatch event to insert template into chat input
-                window.dispatchEvent(
-                  new CustomEvent("insert-prompt", { detail: prompt }),
-                );
-              }}
-            />
+              </>
+            )}
           </div>
         </ResizablePanel>
 

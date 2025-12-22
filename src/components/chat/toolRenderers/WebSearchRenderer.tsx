@@ -1,8 +1,9 @@
 import type { ToolRendererProps } from "./types";
 
 /**
- * Renderer for the webSearch tool.
+ * Renderer for webSearch and tavilySearch tools.
  * Displays search results with links and snippets.
+ * Shows AI-generated answer from Tavily when available.
  */
 export function WebSearchRenderer({
   parsedArgs,
@@ -11,6 +12,7 @@ export function WebSearchRenderer({
   ToolIcon,
 }: ToolRendererProps) {
   const results = parsedResult?.results || [];
+  const answer = parsedResult?.answer; // Tavily's AI-generated answer
 
   return (
     <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
@@ -23,6 +25,15 @@ export function WebSearchRenderer({
 
       {parsedResult && state !== "executing" && (
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          {/* Show AI answer if available (from Tavily's includeAnswer option) */}
+          {answer && (
+            <div className="py-1.5 px-2 bg-muted/50 rounded-md border border-border/50">
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                {answer}
+              </p>
+            </div>
+          )}
+
           {results.slice(0, 5).map((r: any, i: number) => (
             <div key={i} className="py-1">
               <a
@@ -39,7 +50,7 @@ export function WebSearchRenderer({
               </p>
             </div>
           ))}
-          {results.length === 0 && (
+          {results.length === 0 && !answer && (
             <div className="text-muted-foreground">No results found</div>
           )}
         </div>

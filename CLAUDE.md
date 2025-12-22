@@ -8,6 +8,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## 💰 Money Feature
+
+**CRITICAL**: AI chat generation with resilient streaming - what users pay for
+
+**Core functionality**: Multi-model AI chat with real-time streaming responses
+**Critical path**: User sends message → server-side generation → DB persistence → reactive client updates
+**If broken**: No business - users can't get AI responses
+
+### Key Files (Mission-Critical)
+
+| File | Purpose | Lines |
+|------|---------|-------|
+| `convex/generation.ts` | Main generation action - streaming, tools, error handling | 1294 |
+| `convex/messages.ts` | Message mutations, status updates, partial content | 17k |
+| `convex/chat.ts` | Send message mutation, triggers generation | 21k |
+| `src/lib/ai/models.ts` | 46 model configs with pricing/capabilities | 865 |
+| `src/lib/ai/registry.ts` | Model instantiation via Gateway | - |
+
+### Dependencies
+- Vercel AI Gateway (all models)
+- Convex (real-time DB + 10min actions)
+- Clerk (auth)
+
+### What MUST Work
+1. Message sends without error
+2. Response streams in real-time
+3. Page refresh preserves partial response
+4. Cost tracked per message
+5. Tools execute (web search, code execution)
+
+---
+
 ## Tech Stack
 
 - **Framework**: Next.js 15 (App Router), React 19, TypeScript
@@ -42,6 +74,37 @@ bun start                 # Run production build
 bun run lint              # Biome lint check
 bun run format            # Biome format --write
 ```
+
+---
+
+## Testing
+
+**Philosophy:** Test like a user, not like a developer. See `docs/testing/testing-philosophy.md` for full guide.
+
+### Commands
+
+```bash
+bun run test              # Vitest watch mode
+bun run test:run          # Single run
+bun run test:e2e          # Playwright E2E
+```
+
+### Test Categories
+
+| Type | Framework | Location |
+|------|-----------|----------|
+| Unit/Integration | Vitest | `**/*.test.ts` |
+| Convex | convex-test | `convex/__tests__/` |
+| E2E | Playwright | `e2e/` |
+
+### Key Principles
+
+1. **Accessibility queries** - `getByRole`, `getByLabelText` over `getByTestId`
+2. **Mock boundaries only** - Network/Convex, not components
+3. **Test behavior** - User interactions → visible outcomes
+4. **Use existing factories** - `src/lib/test/factories.ts`
+
+See `docs/testing/` for implementation phases.
 
 ---
 
@@ -506,6 +569,7 @@ Current status: Phase 0 setup complete, ready for implementation.
 6. **Convex schema**: Follow schema in `docs/spec.md` exactly
 7. **Cost tracking**: Log tokens/cost on every LLM call
 8. **Pino logging**: Structured JSON logs in API routes
+9. **Testing**: Follow user-centric philosophy in `docs/testing/testing-philosophy.md`
 
 ---
 
@@ -584,3 +648,28 @@ const result = streamText({
 
 Full spec: `docs/spec.md`
 Implementation phases: `docs/implementation/*.md`
+
+---
+
+## Codebase Health (Last analyzed: 2025-12-22)
+
+### Stats
+- **TypeScript files**: ~16k
+- **Tests**: 361 passing (37 test files)
+- **Models**: 46 AI models configured
+- **Schema tables**: ~30 (1574 lines)
+
+### Health Indicators
+- Build: Clean (minor Turbopack warning)
+- Tests: All passing
+- TODOs: 5 (low tech debt)
+- Deps: 2 minor updates available (biome, lucide-react)
+
+### Known Workarounds
+- **390 @ts-ignore in Convex**: TypeScript recursion limits with 94+ modules. Documented pattern, not fixable without restructuring.
+- **61 biome-ignore**: Acceptable lint exceptions for complex types
+
+### Outstanding TODOs
+- `convex/transcription.ts:225` - Deepgram Nova-3 implementation
+- `convex/transcription.ts:229` - AssemblyAI implementation
+- `convex/designTemplates/analyze.ts:120` - PPTX extraction via jszip

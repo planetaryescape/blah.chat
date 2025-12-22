@@ -1,6 +1,6 @@
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
-import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";

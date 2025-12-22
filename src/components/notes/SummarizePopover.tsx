@@ -45,7 +45,7 @@ export function SummarizePopover({
       // Validate text length
       if (selectedText.length > MAX_TEXT_LENGTH) {
         setError(
-          `Selection too long. Please select less than ${MAX_TEXT_LENGTH.toLocaleString()} characters.`
+          `Selection too long. Please select less than ${MAX_TEXT_LENGTH.toLocaleString()} characters.`,
         );
         return;
       }

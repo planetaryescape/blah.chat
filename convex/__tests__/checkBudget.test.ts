@@ -1,9 +1,9 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
+import { createMockIdentity, createTestUserData } from "@/lib/test/factories";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
-import { createMockIdentity, createTestUserData } from "@/lib/test/factories";
 
 // Helper to create admin settings with all required fields
 function createAdminSettings(
@@ -41,15 +41,18 @@ describe("convex/usage/checkBudget", () => {
         createTestUserData({ clerkId: identity.subject }),
       );
       // Set budget to 0 (unlimited)
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 0,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 0,
+        }),
+      );
     });
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     expect(result).toMatchObject({
@@ -71,13 +74,16 @@ describe("convex/usage/checkBudget", () => {
         "users",
         createTestUserData({ clerkId: identity.subject }),
       );
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 10,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 10,
+        }),
+      );
       // Add some usage
       const today = new Date().toISOString().split("T")[0];
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 1000,
@@ -90,7 +96,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     expect(result.allowed).toBe(true);
@@ -110,13 +116,16 @@ describe("convex/usage/checkBudget", () => {
         "users",
         createTestUserData({ clerkId: identity.subject }),
       );
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 10,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 10,
+        }),
+      );
       // Add usage that exceeds budget
       const today = new Date().toISOString().split("T")[0];
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 10000,
@@ -129,7 +138,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     expect(result.allowed).toBe(false);
@@ -148,9 +157,12 @@ describe("convex/usage/checkBudget", () => {
         "users",
         createTestUserData({ clerkId: identity.subject }),
       );
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 10,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 10,
+        }),
+      );
 
       const today = new Date().toISOString().split("T")[0];
       // Last month's usage (should not count)
@@ -159,7 +171,7 @@ describe("convex/usage/checkBudget", () => {
       const lastMonthDate = lastMonth.toISOString().split("T")[0];
 
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: lastMonthDate,
         model: "openai:gpt-5",
         inputTokens: 10000,
@@ -170,7 +182,7 @@ describe("convex/usage/checkBudget", () => {
 
       // Current month usage
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 1000,
@@ -183,7 +195,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     // Should only count this month's $3, not last month's $50
@@ -201,14 +213,17 @@ describe("convex/usage/checkBudget", () => {
         "users",
         createTestUserData({ clerkId: identity.subject }),
       );
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 20,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 20,
+        }),
+      );
 
       const today = new Date().toISOString().split("T")[0];
       // Multiple records this month
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 1000,
@@ -217,7 +232,7 @@ describe("convex/usage/checkBudget", () => {
         messageCount: 1,
       });
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "anthropic:claude-3-opus",
         inputTokens: 2000,
@@ -226,7 +241,7 @@ describe("convex/usage/checkBudget", () => {
         messageCount: 2,
       });
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "google:gemini-pro",
         inputTokens: 500,
@@ -239,7 +254,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     expect(result.totalSpend).toBe(8); // 2 + 5 + 1
@@ -257,13 +272,16 @@ describe("convex/usage/checkBudget", () => {
         "users",
         createTestUserData({ clerkId: identity.subject }),
       );
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 10,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 10,
+        }),
+      );
 
       const today = new Date().toISOString().split("T")[0];
       await ctx.db.insert("usageRecords", {
-        userId: userId!,
+        userId: userId as Id<"users">,
         date: today,
         model: "openai:gpt-5",
         inputTokens: 5000,
@@ -276,7 +294,7 @@ describe("convex/usage/checkBudget", () => {
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     // At exactly budget (totalSpend === budget), allowed is false (totalSpend < monthlyBudget)
@@ -295,15 +313,18 @@ describe("convex/usage/checkBudget", () => {
         "users",
         createTestUserData({ clerkId: identity.subject }),
       );
-      await ctx.db.insert("adminSettings", createAdminSettings(userId, {
-        defaultMonthlyBudget: 10,
-      }));
+      await ctx.db.insert(
+        "adminSettings",
+        createAdminSettings(userId, {
+          defaultMonthlyBudget: 10,
+        }),
+      );
     });
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded
     const result = await asUser.query(api.usage.checkBudget.checkBudget, {
-      userId: userId!,
+      userId: userId as Id<"users">,
     });
 
     expect(result.totalSpend).toBe(0);

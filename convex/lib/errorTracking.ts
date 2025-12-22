@@ -83,7 +83,6 @@ export async function captureException(
  * Detect "out of credits" errors from API providers
  * Checks both status codes and error message keywords
  */
-// biome-ignore lint/suspicious/noExplicitAny: Error handling with unknown API error types
 export function detectCreditsError(error: any): boolean {
   const errorStr = String(error.message || error).toLowerCase();
 

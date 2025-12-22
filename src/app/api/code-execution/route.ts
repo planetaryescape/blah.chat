@@ -7,7 +7,6 @@ interface E2BResult {
   jpeg?: string;
   svg?: string;
   text?: string;
-  // biome-ignore lint/suspicious/noExplicitAny: E2B result types
   [key: string]: any;
 }
 

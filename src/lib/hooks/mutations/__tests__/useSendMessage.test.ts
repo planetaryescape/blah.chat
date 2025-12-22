@@ -76,9 +76,9 @@ vi.mock("@/lib/query/keys", () => ({
   },
 }));
 
+import { toast } from "sonner";
 // Import AFTER mocks
 import type { Id } from "@/convex/_generated/dataModel";
-import { toast } from "sonner";
 import { messageQueue } from "@/lib/offline/messageQueue";
 import { useSendMessage } from "../useSendMessage";
 

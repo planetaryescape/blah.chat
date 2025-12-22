@@ -265,7 +265,9 @@ export default function UsagePage() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value) => `$${(value as number)?.toFixed(4) ?? "0"}`}
+                      formatter={(value) =>
+                        `$${(value as number)?.toFixed(4) ?? "0"}`
+                      }
                     />
                   </PieChart>
                 </ResponsiveContainer>

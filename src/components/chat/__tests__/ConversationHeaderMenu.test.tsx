@@ -95,34 +95,48 @@ describe("ConversationHeaderMenu", () => {
     const user = userEvent.setup();
     render(<ConversationHeaderMenu conversation={createConversation()} />);
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
 
-    expect(screen.getByRole("menuitem", { name: /^rename$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /^rename$/i }),
+    ).toBeInTheDocument();
   });
 
   it("rename menu item is present", async () => {
     const user = userEvent.setup();
     render(<ConversationHeaderMenu conversation={createConversation()} />);
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
 
-    expect(screen.getByRole("menuitem", { name: /^rename$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /^rename$/i }),
+    ).toBeInTheDocument();
   });
 
   it("delete menu item is present", async () => {
     const user = userEvent.setup();
     render(<ConversationHeaderMenu conversation={createConversation()} />);
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
 
-    expect(screen.getByRole("menuitem", { name: /delete/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /delete/i }),
+    ).toBeInTheDocument();
   });
 
   it("pin menu item calls handleTogglePin", async () => {
     const user = userEvent.setup();
     render(<ConversationHeaderMenu conversation={createConversation()} />);
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
     await user.click(screen.getByRole("menuitem", { name: /^pin$/i }));
 
     expect(mockHandleTogglePin).toHaveBeenCalledWith(false);
@@ -132,7 +146,9 @@ describe("ConversationHeaderMenu", () => {
     const user = userEvent.setup();
     render(<ConversationHeaderMenu conversation={createConversation()} />);
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
     await user.click(screen.getByRole("menuitem", { name: /star/i }));
 
     expect(mockHandleToggleStar).toHaveBeenCalledWith(false);
@@ -142,7 +158,9 @@ describe("ConversationHeaderMenu", () => {
     const user = userEvent.setup();
     render(<ConversationHeaderMenu conversation={createConversation()} />);
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
     await user.click(screen.getByRole("menuitem", { name: /archive/i }));
 
     expect(mockHandleArchive).toHaveBeenCalled();
@@ -151,22 +169,34 @@ describe("ConversationHeaderMenu", () => {
   it("shows unpin when conversation is pinned", async () => {
     const user = userEvent.setup();
     render(
-      <ConversationHeaderMenu conversation={createConversation({ pinned: true })} />,
+      <ConversationHeaderMenu
+        conversation={createConversation({ pinned: true })}
+      />,
     );
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
 
-    expect(screen.getByRole("menuitem", { name: /unpin/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /unpin/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows unstar when conversation is starred", async () => {
     const user = userEvent.setup();
     render(
-      <ConversationHeaderMenu conversation={createConversation({ starred: true })} />,
+      <ConversationHeaderMenu
+        conversation={createConversation({ starred: true })}
+      />,
     );
 
-    await user.click(screen.getByRole("button", { name: /conversation options/i }));
+    await user.click(
+      screen.getByRole("button", { name: /conversation options/i }),
+    );
 
-    expect(screen.getByRole("menuitem", { name: /unstar/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /unstar/i }),
+    ).toBeInTheDocument();
   });
 });

@@ -87,7 +87,6 @@ export const generateImage = internalAction({
         messages: [
           {
             role: "user",
-            // biome-ignore lint/suspicious/noExplicitAny: Complex message content types
             content: messagesContent as any,
           },
         ],
@@ -167,15 +166,11 @@ export const generateImage = internalAction({
         const file = files[0];
 
         // Handle Uint8Array format
-        // biome-ignore lint/suspicious/noExplicitAny: File object type variations
         if ((file as any).uint8Array) {
-          // biome-ignore lint/suspicious/noExplicitAny: File object type variations
           imageBuffer = Buffer.from((file as any).uint8Array);
         }
         // Handle base64Data format
-        // biome-ignore lint/suspicious/noExplicitAny: File object type variations
         else if ((file as any).base64Data) {
-          // biome-ignore lint/suspicious/noExplicitAny: File object type variations
           imageBuffer = Buffer.from((file as any).base64Data, "base64");
         } else {
           throw new Error("No image data in file response");

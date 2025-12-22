@@ -3,10 +3,11 @@
  *
  * Tests file upload and attachment functionality
  */
-import { expect, test } from "@playwright/test";
-import path from "node:path";
 
-import { SELECTORS, waitForChatReady, waitForResponse } from "./fixtures/shared";
+import path from "node:path";
+import { expect, test } from "@playwright/test";
+
+import { waitForChatReady } from "./fixtures/shared";
 
 test.describe("File Attachments", () => {
   test.beforeEach(async ({ page }) => {
@@ -23,7 +24,10 @@ test.describe("File Attachments", () => {
       'button[aria-label*="Attach"], button[aria-label*="Upload"], input[type="file"], [data-testid="file-upload"]',
     );
 
-    const isVisible = await uploadButton.first().isVisible({ timeout: 5000 }).catch(() => false);
+    const isVisible = await uploadButton
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     // File upload should be available
     expect(typeof isVisible).toBe("boolean");
@@ -38,7 +42,9 @@ test.describe("File Attachments", () => {
     } else {
       // Look for upload button that triggers file input
       const uploadButton = page.locator('button[aria-label*="Attach"]');
-      const buttonExists = await uploadButton.isVisible({ timeout: 3000 }).catch(() => false);
+      const buttonExists = await uploadButton
+        .isVisible({ timeout: 3000 })
+        .catch(() => false);
 
       expect(typeof buttonExists).toBe("boolean");
     }
@@ -49,7 +55,12 @@ test.describe("File Attachments", () => {
 
     if (await fileInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       // Create a test image buffer
-      const testImagePath = path.join(process.cwd(), "e2e", "fixtures", "test-image.png");
+      const testImagePath = path.join(
+        process.cwd(),
+        "e2e",
+        "fixtures",
+        "test-image.png",
+      );
 
       // Try to upload (may fail if file doesn't exist, which is expected in test)
       try {
@@ -60,7 +71,9 @@ test.describe("File Attachments", () => {
         const preview = page.locator(
           '[data-testid="attachment-preview"], .attachment-preview, img[alt*="attachment"]',
         );
-        const hasPreview = await preview.isVisible({ timeout: 3000 }).catch(() => false);
+        const hasPreview = await preview
+          .isVisible({ timeout: 3000 })
+          .catch(() => false);
 
         expect(typeof hasPreview).toBe("boolean");
       } catch {
@@ -73,7 +86,7 @@ test.describe("File Attachments", () => {
   test("attachment appears in message after send", async ({ page }) => {
     const fileInput = page.locator('input[type="file"]');
 
-    if (await fileInput.count() > 0) {
+    if ((await fileInput.count()) > 0) {
       // Check for attachment-related UI elements
       const attachmentUI = page.locator(
         '[data-testid*="attachment"], .attachment, [class*="attachment"]',
@@ -91,7 +104,9 @@ test.describe("File Attachments", () => {
     );
 
     // This would only be visible if there's an attachment
-    const isVisible = await removeButton.isVisible({ timeout: 2000 }).catch(() => false);
+    const isVisible = await removeButton
+      .isVisible({ timeout: 2000 })
+      .catch(() => false);
 
     expect(typeof isVisible).toBe("boolean");
   });
@@ -102,7 +117,9 @@ test.describe("File Attachments", () => {
       '[data-testid="image-gallery"], .image-gallery, [class*="gallery"]',
     );
 
-    const hasGallery = await imageGallery.isVisible({ timeout: 3000 }).catch(() => false);
+    const hasGallery = await imageGallery
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
 
     expect(typeof hasGallery).toBe("boolean");
   });
@@ -120,7 +137,9 @@ test.describe("File Attachments", () => {
         '[data-testid="lightbox"], .lightbox, [role="dialog"] img',
       );
 
-      const isOpen = await lightbox.isVisible({ timeout: 2000 }).catch(() => false);
+      const isOpen = await lightbox
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
       expect(typeof isOpen).toBe("boolean");
     }
   });

@@ -4,31 +4,30 @@ import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 // ===== Re-exports from submodules =====
 
-export * as notes from "./projects/notes";
-export * as files from "./projects/files";
-export * as resources from "./projects/resources";
 export * as activity from "./projects/activity";
+export { getProjectActivity, getUserActivity } from "./projects/activity";
+export * as files from "./projects/files";
+export {
+  addFileToProject,
+  bulkAddFilesToProject,
+  removeFileFromProject,
+} from "./projects/files";
 export * as internal from "./projects/internal";
-
+export { getConversationCount, getInternal } from "./projects/internal";
+export * as notes from "./projects/notes";
 // Backward compatibility re-exports
 export {
   addNoteToProject,
-  removeNoteFromProject,
   bulkAddNotesToProject,
+  removeNoteFromProject,
 } from "./projects/notes";
+export * as resources from "./projects/resources";
 export {
-  addFileToProject,
-  removeFileFromProject,
-  bulkAddFilesToProject,
-} from "./projects/files";
-export {
+  getProjectAttachments,
+  getProjectConversationIds,
   getProjectResources,
   getProjectStats,
-  getProjectConversationIds,
-  getProjectAttachments,
 } from "./projects/resources";
-export { getProjectActivity, getUserActivity } from "./projects/activity";
-export { getInternal, getConversationCount } from "./projects/internal";
 
 // ===== Core CRUD =====
 

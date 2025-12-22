@@ -5,12 +5,7 @@
  */
 import { expect, test } from "@playwright/test";
 
-import {
-  SELECTORS,
-  sendMessage,
-  waitForChatReady,
-  waitForToast,
-} from "./fixtures/shared";
+import { SELECTORS, sendMessage, waitForChatReady } from "./fixtures/shared";
 
 test.describe("Error Handling", () => {
   test.beforeEach(async ({ page }) => {
@@ -73,9 +68,9 @@ test.describe("Error Handling", () => {
       await page.waitForTimeout(2000);
 
       const hasRateLimit =
-        (await page.locator('text=/rate.*limit/i').count()) > 0 ||
-        (await page.locator('text=/too.*many/i').count()) > 0 ||
-        (await page.locator('text=/slow.*down/i').count()) > 0;
+        (await page.locator("text=/rate.*limit/i").count()) > 0 ||
+        (await page.locator("text=/too.*many/i").count()) > 0 ||
+        (await page.locator("text=/slow.*down/i").count()) > 0;
 
       expect(typeof hasRateLimit).toBe("boolean");
     });
@@ -113,9 +108,7 @@ test.describe("Error Handling", () => {
 
       if (onUsage) {
         // Look for usage/cost displays
-        const usageInfo = page.locator(
-          'text=/\\$|cost|spent|usage|tokens/i',
-        );
+        const usageInfo = page.locator("text=/\\$|cost|spent|usage|tokens/i");
         const hasUsageInfo = await usageInfo.count();
         expect(hasUsageInfo).toBeGreaterThanOrEqual(0);
       }
@@ -148,7 +141,9 @@ test.describe("Error Handling", () => {
   test.describe("Toast Notifications", () => {
     test("toast appears for errors", async ({ page }) => {
       // Toasts should be present for error feedback
-      const toastContainer = page.locator('[data-sonner-toaster], [class*="toast"]');
+      const toastContainer = page.locator(
+        '[data-sonner-toaster], [class*="toast"]',
+      );
 
       const exists = await toastContainer.count();
       expect(typeof exists).toBe("number");
@@ -160,8 +155,8 @@ test.describe("Error Handling", () => {
 
       if (await toast.isVisible({ timeout: 2000 }).catch(() => false)) {
         // Try clicking dismiss or waiting for auto-dismiss
-        const dismissButton = toast.locator('button');
-        if (await dismissButton.count() > 0) {
+        const dismissButton = toast.locator("button");
+        if ((await dismissButton.count()) > 0) {
           await dismissButton.click();
         }
       }

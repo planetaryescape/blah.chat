@@ -5,11 +5,11 @@ import type { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { getCurrentUser } from "./lib/userSync";
 
+export * as attachments from "./messages/attachments";
 // ===== Re-exports from submodules =====
 export * as embeddings from "./messages/embeddings";
-export * as toolCalls from "./messages/toolCalls";
-export * as attachments from "./messages/attachments";
 export * as thinking from "./messages/thinking";
+export * as toolCalls from "./messages/toolCalls";
 
 // ===== Core CRUD =====
 
@@ -608,21 +608,19 @@ export const markExtracted = internalMutation({
 
 // ===== Backward Compatibility Re-exports =====
 
+// From attachments.ts
+export { addAttachment, getAttachments } from "./messages/attachments";
+// From thinking.ts
+export {
+  completeThinking,
+  markThinkingStarted,
+  updatePartialReasoning,
+} from "./messages/thinking";
 // From toolCalls.ts
 export {
   addToolCalls,
-  upsertToolCall,
   finalizeToolCalls,
-  updatePartialToolCalls,
   getToolCalls,
+  updatePartialToolCalls,
+  upsertToolCall,
 } from "./messages/toolCalls";
-
-// From attachments.ts
-export { addAttachment, getAttachments } from "./messages/attachments";
-
-// From thinking.ts
-export {
-  markThinkingStarted,
-  updatePartialReasoning,
-  completeThinking,
-} from "./messages/thinking";

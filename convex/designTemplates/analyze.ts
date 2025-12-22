@@ -1,8 +1,8 @@
 "use node";
 
 import { generateText } from "ai";
-import JSZip from "jszip";
 import { v } from "convex/values";
+import JSZip from "jszip";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TEMPLATE_ANALYSIS_MODEL } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
@@ -46,7 +46,9 @@ async function extractPptxImages(
   for (const [relativePath, file] of Object.entries(zip.files)) {
     if (!relativePath.startsWith("ppt/media/") || file.dir) continue;
 
-    const ext = relativePath.substring(relativePath.lastIndexOf(".")).toLowerCase();
+    const ext = relativePath
+      .substring(relativePath.lastIndexOf("."))
+      .toLowerCase();
     const mimeType = imageExtensions[ext];
 
     if (mimeType) {
@@ -197,7 +199,9 @@ export const analyzeTemplate = internalAction({
           const pptxImages = await extractPptxImages(arrayBuffer);
 
           if (pptxImages.length > 0) {
-            console.log(`Extracted ${pptxImages.length} assets from ${file.name}`);
+            console.log(
+              `Extracted ${pptxImages.length} assets from ${file.name}`,
+            );
 
             // 3. Find logo candidate (filename contains "logo", or first SVG, or largest image)
             const logoCandidate =

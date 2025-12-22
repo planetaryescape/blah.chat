@@ -368,7 +368,9 @@ export default function UserDetailPage({
                       )}
                     </Pie>
                     <Tooltip
-                      formatter={(value) => formatCurrency((value as number) ?? 0)}
+                      formatter={(value) =>
+                        formatCurrency((value as number) ?? 0)
+                      }
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -404,7 +406,9 @@ export default function UserDetailPage({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value) => formatCurrency((value as number) ?? 0)}
+                        formatter={(value) =>
+                          formatCurrency((value as number) ?? 0)
+                        }
                       />
                     </PieChart>
                   </ResponsiveContainer>

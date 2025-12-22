@@ -2,14 +2,14 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
+export * as designSystem from "./presentations/designSystem";
+export * as pptxExport from "./presentations/export";
+export * as generateSlides from "./presentations/generateSlides";
+export * as internal from "./presentations/internal";
+export * as outline from "./presentations/outline";
+export * as retry from "./presentations/retry";
 // ===== Re-exports from submodules =====
 export * as slides from "./presentations/slides";
-export * as outline from "./presentations/outline";
-export * as internal from "./presentations/internal";
-export * as retry from "./presentations/retry";
-export * as designSystem from "./presentations/designSystem";
-export * as generateSlides from "./presentations/generateSlides";
-export * as pptxExport from "./presentations/export";
 
 // ===== Validators =====
 
@@ -396,54 +396,52 @@ export const deletePresentation = mutation({
 // These re-export functions from submodules for backward compatibility
 // TODO: Update consumers to use submodule imports directly
 
-// From slides.ts
+// From internal.ts
 export {
-  createSlide,
-  getSlide,
-  getSlides,
-  getSlidesByType,
-  getPendingSlides,
-  updateSlideContent,
-  updateSlideImageStatus,
-  updateSlideCost,
-  deleteSlide,
-  reorderSlides,
-  getSlidesInternal,
-  getSlideInternal,
-  getSlidesWithIdsInternal,
-  updateSlideImageInternal,
-  updateSlideCostInternal,
-} from "./presentations/slides";
+  checkAndCompletePresentation,
+  generatePresentationTitle,
+  getPresentationInternal,
+  incrementProgressInternal,
+  updateDesignSystemInternal,
+  updateStatusInternal,
+  updateTitleInternal,
+} from "./presentations/internal";
 
 // From outline.ts
 export {
   approveOutline,
-  submitOutlineFeedback,
   approveOutlineFromItems,
-  regenerateSlidesFromOutline,
-  recreateOutlineFromSlides,
   parseOutlineMessage,
+  recreateOutlineFromSlides,
   regenerateOutlineAction,
+  regenerateSlidesFromOutline,
+  submitOutlineFeedback,
   updateOutlineStatusInternal,
 } from "./presentations/outline";
-
-// From internal.ts
-export {
-  getPresentationInternal,
-  updateTitleInternal,
-  updateStatusInternal,
-  updateDesignSystemInternal,
-  incrementProgressInternal,
-  checkAndCompletePresentation,
-  generatePresentationTitle,
-} from "./presentations/internal";
-
 // From retry.ts
 export {
+  downloadPPTX,
   regenerateSlideImage,
+  retryGeneration,
   updateImageModel,
   updatePptxCache,
-  downloadPPTX,
-  retryGeneration,
   updatePptxInternal,
 } from "./presentations/retry";
+// From slides.ts
+export {
+  createSlide,
+  deleteSlide,
+  getPendingSlides,
+  getSlide,
+  getSlideInternal,
+  getSlides,
+  getSlidesByType,
+  getSlidesInternal,
+  getSlidesWithIdsInternal,
+  reorderSlides,
+  updateSlideContent,
+  updateSlideCost,
+  updateSlideCostInternal,
+  updateSlideImageInternal,
+  updateSlideImageStatus,
+} from "./presentations/slides";

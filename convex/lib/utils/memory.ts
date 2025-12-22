@@ -8,7 +8,6 @@ export const SIMILARITY_THRESHOLD = 0.85;
  * Uses native vector search with similarity scores.
  */
 export async function isMemoryDuplicate(
-  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   userId: string,
   newEmbedding: number[],
@@ -16,7 +15,6 @@ export async function isMemoryDuplicate(
   try {
     const similarMemories = await ctx.vectorSearch("memories", "by_embedding", {
       vector: newEmbedding,
-      // biome-ignore lint/suspicious/noExplicitAny: Convex query filter types
       filter: (q: any) => q.eq("userId", userId),
       limit: 5,
     });

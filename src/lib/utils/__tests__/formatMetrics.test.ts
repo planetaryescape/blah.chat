@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatDuration,
-  formatTTFT,
-  isCachedResponse,
-} from "../formatMetrics";
+import { formatDuration, formatTTFT, isCachedResponse } from "../formatMetrics";
 
 describe("formatTTFT", () => {
   it("formats <100ms as whole milliseconds", () => {

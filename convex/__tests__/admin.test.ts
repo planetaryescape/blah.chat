@@ -1,9 +1,9 @@
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
+import { createMockIdentity, createTestUserData } from "@/lib/test/factories";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
-import { createMockIdentity, createTestUserData } from "@/lib/test/factories";
 
 describe("convex/admin", () => {
   describe("isCurrentUserAdmin", () => {
@@ -103,8 +103,12 @@ describe("convex/admin", () => {
       const result = await asUser.query(api.admin.listUsers, {});
 
       expect(result).toHaveLength(2);
-      expect(result.map((u: { name: string }) => u.name)).toContain("Admin User");
-      expect(result.map((u: { name: string }) => u.name)).toContain("Other User");
+      expect(result.map((u: { name: string }) => u.name)).toContain(
+        "Admin User",
+      );
+      expect(result.map((u: { name: string }) => u.name)).toContain(
+        "Other User",
+      );
     });
   });
 
@@ -121,7 +125,10 @@ describe("convex/admin", () => {
         );
         const targetId = await ctx.db.insert(
           "users",
-          createTestUserData({ clerkId: "target", email: "target@example.com" }),
+          createTestUserData({
+            clerkId: "target",
+            email: "target@example.com",
+          }),
         );
         targetUserId = targetId;
       });
@@ -131,7 +138,7 @@ describe("convex/admin", () => {
       await expect(
         // @ts-ignore - Type depth exceeded
         asUser.mutation(api.admin.updateUserRole, {
-          userId: targetUserId!,
+          userId: targetUserId as Id<"users">,
           isAdmin: true,
         }),
       ).rejects.toThrow("Unauthorized");
@@ -155,7 +162,7 @@ describe("convex/admin", () => {
       await expect(
         // @ts-ignore - Type depth exceeded
         asUser.mutation(api.admin.updateUserRole, {
-          userId: adminUserId!,
+          userId: adminUserId as Id<"users">,
           isAdmin: false,
         }),
       ).rejects.toThrow("Cannot remove your own admin status");
@@ -179,7 +186,10 @@ describe("convex/admin", () => {
         );
         const targetId = await ctx.db.insert(
           "users",
-          createTestUserData({ clerkId: "target", email: "target@example.com" }),
+          createTestUserData({
+            clerkId: "target",
+            email: "target@example.com",
+          }),
         );
         targetUserId = targetId;
       });
@@ -189,7 +199,7 @@ describe("convex/admin", () => {
       await expect(
         // @ts-ignore - Type depth exceeded
         asUser.mutation(api.admin.updateUserTier, {
-          userId: targetUserId!,
+          userId: targetUserId as Id<"users">,
           tier: "tier1",
         }),
       ).rejects.toThrow("Unauthorized");
@@ -219,7 +229,7 @@ describe("convex/admin", () => {
       const asUser = t.withIdentity(identity);
       // @ts-ignore - Type depth exceeded
       const result = await asUser.mutation(api.admin.updateUserTier, {
-        userId: targetUserId!,
+        userId: targetUserId as Id<"users">,
         tier: "tier2",
       });
 

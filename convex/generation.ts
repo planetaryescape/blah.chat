@@ -1,28 +1,28 @@
 "use node";
 
+import { generateText, stepCountIs, streamText } from "ai";
+import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
-import { generateText, stepCountIs, streamText } from "ai";
-import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
-import { buildTools, createOnStepFinish } from "./generation/tools";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
+import { buildTools, createOnStepFinish } from "./generation/tools";
 import { trackServerEvent } from "./lib/analytics";
 import {
-    captureException,
-    classifyStreamingError,
-    detectCreditsError,
-    estimateWastedCost,
+  captureException,
+  classifyStreamingError,
+  detectCreditsError,
+  estimateWastedCost,
 } from "./lib/errorTracking";
 import {
-    buildSummarizationPrompt,
-    SUMMARIZATION_SYSTEM_PROMPT,
+  buildSummarizationPrompt,
+  SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
 import { calculateConversationTokensAsync } from "./tokens/counting";
@@ -279,7 +279,6 @@ export const generateResponse = internalAction({
             }
 
             // Vision models: build content array with text + metadata + actual file data
-            // biome-ignore lint/suspicious/noExplicitAny: Complex content parts for vision models
             const contentParts: any[] = [
               { type: "text", text: `${m.content || ""}\n\n${attachmentInfo}` },
             ];
@@ -364,7 +363,6 @@ export const generateResponse = internalAction({
         : model;
 
       // 11. Build streamText options
-      // biome-ignore lint/suspicious/noExplicitAny: Complex streamText options with dynamic properties
       const options: any = {
         model: finalModel,
         messages: allMessages,
@@ -430,7 +428,6 @@ export const generateResponse = internalAction({
       // 6. Accumulate chunks, throttle DB updates
       let accumulated = "";
       let reasoningBuffer = "";
-      // biome-ignore lint/suspicious/noExplicitAny: Complex tool call result types
       const toolCallsBuffer = new Map<string, any>();
 
       // Stream from LLM
@@ -590,7 +587,6 @@ export const generateResponse = internalAction({
 
       // Extract all tool calls from result.steps
       const steps = (await result.steps) || [];
-      // biome-ignore lint/suspicious/noExplicitAny: Complex AI SDK step types
       const toolResultsMap = new Map<string, any>();
       for (const step of steps as any[]) {
         for (const tr of step.toolResults || []) {

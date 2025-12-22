@@ -1,0 +1,21 @@
+# Lefthook configuration for git hooks
+# Docs: https://github.com/evilmartians/lefthook
+
+# Pre-commit: Run lint and typecheck on staged files
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: "*.{js,ts,cjs,mjs,jsx,tsx,json,jsonc}"
+      run: bun run biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: bun run tsc --noEmit
+      # TypeScript checks the whole project, not individual files
+
+# Pre-push: Run full build to ensure it doesn't break
+pre-push:
+  commands:
+    build:
+      run: bun run build

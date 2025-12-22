@@ -6,7 +6,6 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  SELECTORS,
   sendMessage,
   waitForChatReady,
   waitForResponse,
@@ -35,14 +34,18 @@ test.describe("Projects", () => {
       'button:has-text("Create"), button:has-text("New"), button:has-text("Add")',
     );
 
-    const hasCreate = await createButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasCreate = await createButton
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     if (hasCreate) {
       await createButton.click();
 
       // Look for create dialog/form
       const dialog = page.locator('[role="dialog"], form');
-      const isOpen = await dialog.isVisible({ timeout: 3000 }).catch(() => false);
+      const isOpen = await dialog
+        .isVisible({ timeout: 3000 })
+        .catch(() => false);
 
       expect(typeof isOpen).toBe("boolean");
     }
@@ -53,7 +56,9 @@ test.describe("Projects", () => {
       '[data-testid="project-list"], [role="list"], .project-list',
     );
 
-    const exists = await projectList.isVisible({ timeout: 5000 }).catch(() => false);
+    const exists = await projectList
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof exists).toBe("boolean");
   });
 
@@ -87,14 +92,14 @@ test.describe("Projects", () => {
       'button:has-text("Add to project"), [aria-label*="project"], [data-testid="add-to-project"]',
     );
 
-    const hasOption = await addToProject.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasOption = await addToProject
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof hasOption).toBe("boolean");
   });
 
   test("project shows associated conversations", async ({ page }) => {
-    const projectItem = page.locator(
-      '[data-testid*="project"], .project-item',
-    );
+    const projectItem = page.locator('[data-testid*="project"], .project-item');
 
     if ((await projectItem.count()) > 0) {
       await projectItem.first().click();
@@ -117,8 +122,10 @@ test.describe("Projects", () => {
       // Right-click for context menu
       await projectItem.first().click({ button: "right" });
 
-      const renameOption = page.locator('text=Rename');
-      const hasRename = await renameOption.isVisible({ timeout: 2000 }).catch(() => false);
+      const renameOption = page.locator("text=Rename");
+      const hasRename = await renameOption
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
 
       expect(typeof hasRename).toBe("boolean");
     }
@@ -130,8 +137,10 @@ test.describe("Projects", () => {
     if ((await projectItem.count()) > 0) {
       await projectItem.first().click({ button: "right" });
 
-      const deleteOption = page.locator('text=Delete');
-      const hasDelete = await deleteOption.isVisible({ timeout: 2000 }).catch(() => false);
+      const deleteOption = page.locator("text=Delete");
+      const hasDelete = await deleteOption
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
 
       expect(typeof hasDelete).toBe("boolean");
     }
@@ -159,7 +168,9 @@ test.describe("Projects", () => {
       'input[placeholder*="Search"], input[placeholder*="Filter"]',
     );
 
-    const hasSearch = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasSearch = await searchInput
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof hasSearch).toBe("boolean");
   });
 });
@@ -173,7 +184,9 @@ test.describe("Project Navigation", () => {
       'a[href*="projects"], [data-testid="projects-nav"]',
     );
 
-    const hasNav = await projectsNav.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasNav = await projectsNav
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof hasNav).toBe("boolean");
   });
 

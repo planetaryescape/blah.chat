@@ -17,7 +17,12 @@ describe("parseJSON", () => {
           createdAt: 1704067200000,
           messages: [
             { role: "user", content: "Hello", createdAt: 1704067200000 },
-            { role: "assistant", content: "Hi!", createdAt: 1704067201000, model: "openai:gpt-5" },
+            {
+              role: "assistant",
+              content: "Hi!",
+              createdAt: 1704067201000,
+              model: "openai:gpt-5",
+            },
           ],
         },
       ],
@@ -84,7 +89,9 @@ describe("parseJSON", () => {
     const result = parseJSON(content);
     expect(result.success).toBe(true);
     expect(result.data?.conversations[0].model).toBe("anthropic:claude-3-opus");
-    expect(result.data?.conversations[0].systemPrompt).toBe("Custom system prompt");
+    expect(result.data?.conversations[0].systemPrompt).toBe(
+      "Custom system prompt",
+    );
   });
 
   it("counts messages across multiple conversations", () => {
@@ -92,9 +99,22 @@ describe("parseJSON", () => {
       version: "1.0",
       exportedAt: "2024-01-01",
       conversations: [
-        { title: "Conv1", messages: [{ role: "user", content: "1" }, { role: "assistant", content: "2" }] },
+        {
+          title: "Conv1",
+          messages: [
+            { role: "user", content: "1" },
+            { role: "assistant", content: "2" },
+          ],
+        },
         { title: "Conv2", messages: [{ role: "user", content: "3" }] },
-        { title: "Conv3", messages: [{ role: "user", content: "4" }, { role: "assistant", content: "5" }, { role: "user", content: "6" }] },
+        {
+          title: "Conv3",
+          messages: [
+            { role: "user", content: "4" },
+            { role: "assistant", content: "5" },
+            { role: "user", content: "6" },
+          ],
+        },
       ],
     });
     const result = parseJSON(content);
@@ -137,13 +157,21 @@ describe("parseChatGPT", () => {
       {
         title: "Chat 1",
         mapping: {
-          n1: { id: "n1", author: { role: "user" }, content: { parts: ["Hi"] } },
+          n1: {
+            id: "n1",
+            author: { role: "user" },
+            content: { parts: ["Hi"] },
+          },
         },
       },
       {
         title: "Chat 2",
         mapping: {
-          n2: { id: "n2", author: { role: "user" }, content: { parts: ["Hello"] } },
+          n2: {
+            id: "n2",
+            author: { role: "user" },
+            content: { parts: ["Hello"] },
+          },
         },
       },
     ]);
@@ -171,7 +199,9 @@ describe("parseChatGPT", () => {
     const result = parseChatGPT(content);
     expect(result.success).toBe(true);
     expect(result.data?.conversations[0].createdAt).toBe(unixSeconds * 1000);
-    expect(result.data?.conversations[0].messages[0].createdAt).toBe(unixSeconds * 1000);
+    expect(result.data?.conversations[0].messages[0].createdAt).toBe(
+      unixSeconds * 1000,
+    );
   });
 
   it("joins multiple parts into content", () => {
@@ -188,17 +218,31 @@ describe("parseChatGPT", () => {
 
     const result = parseChatGPT(content);
     expect(result.success).toBe(true);
-    expect(result.data?.conversations[0].messages[0].content).toBe("Part 1\nPart 2\nPart 3");
+    expect(result.data?.conversations[0].messages[0].content).toBe(
+      "Part 1\nPart 2\nPart 3",
+    );
   });
 
   it("filters out empty messages", () => {
     const content = JSON.stringify({
       title: "Test",
       mapping: {
-        n1: { id: "n1", author: { role: "user" }, content: { parts: ["Hello"] } },
-        n2: { id: "n2", author: { role: "assistant" }, content: { parts: ["  "] } }, // Empty after trim
+        n1: {
+          id: "n1",
+          author: { role: "user" },
+          content: { parts: ["Hello"] },
+        },
+        n2: {
+          id: "n2",
+          author: { role: "assistant" },
+          content: { parts: ["  "] },
+        }, // Empty after trim
         n3: { id: "n3", author: { role: "user" }, content: { parts: [] } }, // No parts
-        n4: { id: "n4", author: { role: "assistant" }, content: { parts: ["Response"] } },
+        n4: {
+          id: "n4",
+          author: { role: "assistant" },
+          content: { parts: ["Response"] },
+        },
       },
     });
 
@@ -209,9 +253,26 @@ describe("parseChatGPT", () => {
 
   it("skips conversations without mapping", () => {
     const content = JSON.stringify([
-      { title: "Valid", mapping: { n1: { id: "n1", author: { role: "user" }, content: { parts: ["Hi"] } } } },
+      {
+        title: "Valid",
+        mapping: {
+          n1: {
+            id: "n1",
+            author: { role: "user" },
+            content: { parts: ["Hi"] },
+          },
+        },
+      },
       { title: "Invalid - no mapping" },
-      { mapping: { n1: { id: "n1", author: { role: "user" }, content: { parts: ["Hi"] } } } }, // No title
+      {
+        mapping: {
+          n1: {
+            id: "n1",
+            author: { role: "user" },
+            content: { parts: ["Hi"] },
+          },
+        },
+      }, // No title
     ]);
 
     const result = parseChatGPT(content);
@@ -247,14 +308,24 @@ describe("parseChatGPT", () => {
     const content = JSON.stringify({
       title: "Test",
       mapping: {
-        n1: { id: "n1", author: { role: "system" }, content: { parts: ["System prompt"] } },
-        n2: { id: "n2", author: { role: "user" }, content: { parts: ["Hello"] } },
+        n1: {
+          id: "n1",
+          author: { role: "system" },
+          content: { parts: ["System prompt"] },
+        },
+        n2: {
+          id: "n2",
+          author: { role: "user" },
+          content: { parts: ["Hello"] },
+        },
       },
     });
 
     const result = parseChatGPT(content);
     expect(result.success).toBe(true);
-    expect(result.data?.conversations[0].messages.some((m) => m.role === "system")).toBe(true);
+    expect(
+      result.data?.conversations[0].messages.some((m) => m.role === "system"),
+    ).toBe(true);
   });
 });
 
@@ -348,8 +419,12 @@ Response here
 
     const result = parseMarkdown(content);
     expect(result.success).toBe(true);
-    expect(result.data?.conversations[0].messages[1].content).toBe("Response here");
-    expect(result.data?.conversations[0].messages[1].content).not.toContain("Cost");
+    expect(result.data?.conversations[0].messages[1].content).toBe(
+      "Response here",
+    );
+    expect(result.data?.conversations[0].messages[1].content).not.toContain(
+      "Cost",
+    );
   });
 
   it("handles System role", () => {
@@ -418,9 +493,15 @@ Response`;
 
     const result = parseMarkdown(content);
     expect(result.success).toBe(true);
-    expect(result.data?.conversations[0].messages[0].content).toContain("Line 1");
-    expect(result.data?.conversations[0].messages[0].content).toContain("Line 2");
-    expect(result.data?.conversations[0].messages[0].content).toContain("Line 3");
+    expect(result.data?.conversations[0].messages[0].content).toContain(
+      "Line 1",
+    );
+    expect(result.data?.conversations[0].messages[0].content).toContain(
+      "Line 2",
+    );
+    expect(result.data?.conversations[0].messages[0].content).toContain(
+      "Line 3",
+    );
   });
 
   it("skips conversations without title", () => {

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Convex hooks BEFORE importing component
@@ -54,9 +54,9 @@ vi.mock("framer-motion", () => ({
   },
 }));
 
+import type { Id } from "@/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { MessageList } from "../MessageList";
-import type { Id } from "@/convex/_generated/dataModel";
 
 type MessageStatus =
   | "pending"

@@ -22,7 +22,6 @@ export interface ToolCallResult {
 /**
  * Extract sources/citations from AI SDK response (Perplexity via OpenRouter)
  */
-// biome-ignore lint/suspicious/noExplicitAny: Complex provider metadata types from AI SDK
 export function extractSources(providerMetadata: any): Source[] | undefined {
   if (!providerMetadata) return undefined;
 
@@ -43,7 +42,6 @@ export function extractSources(providerMetadata: any): Source[] | undefined {
       openRouterMeta.search_results.length > 0
     ) {
       allSources.push(
-        // biome-ignore lint/suspicious/noExplicitAny: Dynamic provider response structure
         ...openRouterMeta.search_results.map((r: any) => ({
           title: r.title || r.name || "Untitled Source",
           url: r.url,
@@ -57,7 +55,6 @@ export function extractSources(providerMetadata: any): Source[] | undefined {
     const perplexitySources = perplexityMeta?.citations;
     if (Array.isArray(perplexitySources) && perplexitySources.length > 0) {
       const mapped = perplexitySources
-        // biome-ignore lint/suspicious/noExplicitAny: Dynamic citation format
         .map((r: any) => {
           if (typeof r === "string") {
             return {
@@ -84,13 +81,11 @@ export function extractSources(providerMetadata: any): Source[] | undefined {
       openRouterMeta?.sources,
       providerMetadata?.citations,
       providerMetadata?.sources,
-      // biome-ignore lint/suspicious/noExplicitAny: Nested provider metadata
       (providerMetadata as any)?.extra?.citations,
     ].filter((arr) => Array.isArray(arr) && arr.length > 0);
 
     for (const sourceArray of potentialSources) {
       const mapped = sourceArray
-        // biome-ignore lint/suspicious/noExplicitAny: Dynamic source format
         .map((r: any) => {
           if (typeof r === "string") {
             return {
@@ -107,7 +102,6 @@ export function extractSources(providerMetadata: any): Source[] | undefined {
             snippet: r.snippet || r.description,
           };
         })
-        // biome-ignore lint/suspicious/noExplicitAny: Filter for valid URLs
         .filter((s: any) => s.url && s.url.length > 0);
       allSources.push(...mapped);
     }
@@ -151,7 +145,12 @@ export function extractWebSearchSources(
 
   for (const tc of allToolCalls) {
     // Support both old "webSearch" and new "tavilySearch"/"tavilyAdvancedSearch" tool names
-    if (tc.name !== "webSearch" && tc.name !== "tavilySearch" && tc.name !== "tavilyAdvancedSearch") continue;
+    if (
+      tc.name !== "webSearch" &&
+      tc.name !== "tavilySearch" &&
+      tc.name !== "tavilyAdvancedSearch"
+    )
+      continue;
     if (!tc.result) continue;
 
     try {

@@ -1,6 +1,6 @@
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
-import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -163,7 +163,6 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://convex.cloud" />
         <script
           type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Static SEO data only, no user input
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>

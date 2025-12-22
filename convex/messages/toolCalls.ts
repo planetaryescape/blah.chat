@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, query } from "../_generated/server";
-import { getCurrentUser } from "../lib/userSync";
 
 // ===== Internal Mutations =====
 

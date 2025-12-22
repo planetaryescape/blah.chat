@@ -63,7 +63,6 @@ export const enrichSourceMetadata = internalAction({
             enriched: true,
             error: undefined,
           };
-          // biome-ignore lint/suspicious/noExplicitAny: Error object types
         } catch (error: any) {
           // Graceful degradation on fetch failure
           const urlHash = generateUrlHash(url);

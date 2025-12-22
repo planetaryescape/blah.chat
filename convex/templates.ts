@@ -101,7 +101,6 @@ export const update = mutation({
       throw new Error("Template not found or cannot be modified");
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic update object for templates
     const updates: any = { updatedAt: Date.now() };
     if (args.name !== undefined) updates.name = args.name;
     if (args.prompt !== undefined) updates.prompt = args.prompt;

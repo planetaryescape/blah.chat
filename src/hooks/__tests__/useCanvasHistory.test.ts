@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { mockUpdateContent, mockDocument, mockHistory } = vi.hoisted(() => ({
   mockUpdateContent: vi.fn(),
   mockDocument: { current: null as { version: number } | null },
-  mockHistory: { current: null as { version: number; content: string }[] | null },
+  mockHistory: {
+    current: null as { version: number; content: string }[] | null,
+  },
 }));
 
 vi.mock("convex/react", () => ({
-  useQuery: vi.fn((queryFn, args) => {
+  useQuery: vi.fn((_queryFn, args) => {
     if (args === "skip") return undefined;
     // Determine which query based on args
     if ("limit" in args) return mockHistory.current;

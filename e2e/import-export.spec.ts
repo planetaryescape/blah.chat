@@ -3,11 +3,10 @@
  *
  * Tests conversation import and export functionality
  */
+
 import { expect, test } from "@playwright/test";
-import path from "node:path";
 
 import {
-  SELECTORS,
   sendMessage,
   waitForChatReady,
   waitForResponse,
@@ -29,7 +28,9 @@ test.describe("Export Functionality", () => {
       'button:has-text("Export"), a:has-text("Export"), [data-testid="export"]',
     );
 
-    const hasExport = await exportButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasExport = await exportButton
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof hasExport).toBe("boolean");
   });
 
@@ -46,12 +47,14 @@ test.describe("Export Functionality", () => {
 
     if (await exportButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       // Set up download listener
-      const downloadPromise = page.waitForEvent("download", { timeout: 10000 }).catch(() => null);
+      const downloadPromise = page
+        .waitForEvent("download", { timeout: 10000 })
+        .catch(() => null);
 
       await exportButton.click();
 
       // May need to select JSON format
-      const jsonOption = page.locator('text=JSON');
+      const jsonOption = page.locator("text=JSON");
       if (await jsonOption.isVisible({ timeout: 2000 }).catch(() => false)) {
         await jsonOption.click();
       }
@@ -74,9 +77,11 @@ test.describe("Export Functionality", () => {
     if (await exportButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       await exportButton.click();
 
-      const mdOption = page.locator('text=Markdown, text=.md');
+      const mdOption = page.locator("text=Markdown, text=.md");
       if (await mdOption.isVisible({ timeout: 2000 }).catch(() => false)) {
-        const downloadPromise = page.waitForEvent("download", { timeout: 10000 }).catch(() => null);
+        const downloadPromise = page
+          .waitForEvent("download", { timeout: 10000 })
+          .catch(() => null);
         await mdOption.click();
 
         const download = await downloadPromise;
@@ -92,9 +97,7 @@ test.describe("Export Functionality", () => {
     // This is verified by the export content - structure test
     await page.goto("/settings");
 
-    const exportSection = page.locator(
-      'text=/export.*all|all.*conversation/i',
-    );
+    const exportSection = page.locator("text=/export.*all|all.*conversation/i");
 
     const hasExportAll = await exportSection.count();
     expect(typeof hasExportAll).toBe("number");
@@ -106,7 +109,7 @@ test.describe("Import Functionality", () => {
     await page.goto("/settings");
 
     const ready = await page
-      .waitForSelector('h1, h2', { timeout: 10000 })
+      .waitForSelector("h1, h2", { timeout: 10000 })
       .catch(() => null);
 
     if (!ready) {
@@ -119,7 +122,9 @@ test.describe("Import Functionality", () => {
       'button:has-text("Import"), a:has-text("Import"), [data-testid="import"]',
     );
 
-    const hasImport = await importButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasImport = await importButton
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof hasImport).toBe("boolean");
   });
 
@@ -132,7 +137,7 @@ test.describe("Import Functionality", () => {
       await importButton.click();
 
       const fileInput = page.locator('input[type="file"]');
-      if (await fileInput.count() > 0) {
+      if ((await fileInput.count()) > 0) {
         const accept = await fileInput.getAttribute("accept");
         expect(accept === null || accept?.includes("json")).toBe(true);
       }
@@ -148,7 +153,7 @@ test.describe("Import Functionality", () => {
       await importButton.click();
 
       const fileInput = page.locator('input[type="file"]');
-      if (await fileInput.count() > 0) {
+      if ((await fileInput.count()) > 0) {
         const accept = await fileInput.getAttribute("accept");
         expect(accept === null || accept?.includes("md")).toBe(true);
       }
@@ -164,9 +169,7 @@ test.describe("Import Functionality", () => {
       await importButton.click();
 
       // Check for preview/confirm UI elements
-      const previewUI = page.locator(
-        'text=/preview|confirm|review/i',
-      );
+      const previewUI = page.locator("text=/preview|confirm|review/i");
 
       const hasPreview = await previewUI.count();
       expect(typeof hasPreview).toBe("number");
@@ -191,9 +194,7 @@ test.describe("Import Functionality", () => {
 
   test("ChatGPT format is supported", async ({ page }) => {
     // Check for ChatGPT import support indication
-    const chatgptSupport = page.locator(
-      'text=/chatgpt|openai.*format/i',
-    );
+    const chatgptSupport = page.locator("text=/chatgpt|openai.*format/i");
 
     const hasSupport = await chatgptSupport.count();
     expect(typeof hasSupport).toBe("number");
@@ -221,8 +222,8 @@ test.describe("Data Integrity", () => {
     // Structure test - verify round-trip capability exists
     await page.goto("/settings");
 
-    const hasImport = await page.locator('text=/import/i').count();
-    const hasExport = await page.locator('text=/export/i').count();
+    const hasImport = await page.locator("text=/import/i").count();
+    const hasExport = await page.locator("text=/export/i").count();
 
     expect(hasImport + hasExport).toBeGreaterThanOrEqual(0);
   });

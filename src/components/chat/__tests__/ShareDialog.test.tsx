@@ -3,11 +3,20 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Hoisted mocks
-const { mockCreateShare, mockToggleShare, mockExistingShare } = vi.hoisted(() => ({
-  mockCreateShare: vi.fn(),
-  mockToggleShare: vi.fn(),
-  mockExistingShare: { current: null as { shareId: string; isActive: boolean; password?: string; expiresAt?: number } | null },
-}));
+const { mockCreateShare, mockToggleShare, mockExistingShare } = vi.hoisted(
+  () => ({
+    mockCreateShare: vi.fn(),
+    mockToggleShare: vi.fn(),
+    mockExistingShare: {
+      current: null as {
+        shareId: string;
+        isActive: boolean;
+        password?: string;
+        expiresAt?: number;
+      } | null,
+    },
+  }),
+);
 
 vi.mock("convex/react", () => ({
   useQuery: () => mockExistingShare.current,

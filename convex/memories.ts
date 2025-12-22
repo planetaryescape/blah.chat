@@ -10,15 +10,15 @@ import {
   mutation,
 } from "./_generated/server";
 
+export * as consolidation from "./memories/consolidation";
+export * as deleteModule from "./memories/delete";
+export * as expiration from "./memories/expiration";
+export * as extract from "./memories/extract";
+export * as mutations from "./memories/mutations";
 // ===== Re-exports from submodules =====
 export * as queries from "./memories/queries";
-export * as consolidation from "./memories/consolidation";
-export * as hybridSearch from "./memories/search";
-export * as extract from "./memories/extract";
 export * as save from "./memories/save";
-export * as expiration from "./memories/expiration";
-export * as deleteModule from "./memories/delete";
-export * as mutations from "./memories/mutations";
+export * as hybridSearch from "./memories/search";
 
 // ===== Core Internal Mutations =====
 
@@ -366,20 +366,19 @@ export const createMemoryFromSelection = action({
 
 // ===== Backward Compatibility Re-exports =====
 
-// From queries.ts
-export {
-  list,
-  listAll,
-  listFiltered,
-  internalList,
-  listAllInternal,
-  search,
-  getMemoriesByIds,
-  getMemoryById,
-} from "./memories/queries";
-
 // From consolidation.ts
 export {
-  migrateUserMemories,
   consolidateUserMemories,
+  migrateUserMemories,
 } from "./memories/consolidation";
+// From queries.ts
+export {
+  getMemoriesByIds,
+  getMemoryById,
+  internalList,
+  list,
+  listAll,
+  listAllInternal,
+  listFiltered,
+  search,
+} from "./memories/queries";

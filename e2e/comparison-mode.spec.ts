@@ -22,7 +22,9 @@ test.describe("Comparison Mode", () => {
       'button[aria-label*="Compare"], button:has-text("Compare"), [data-testid="compare-mode"]',
     );
 
-    const isVisible = await compareButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const isVisible = await compareButton
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     if (isVisible) {
       await compareButton.click();
@@ -43,7 +45,9 @@ test.describe("Comparison Mode", () => {
       await page.waitForTimeout(500);
 
       // Should show multiple model selection options
-      const modelSelectors = page.locator('[data-testid*="model"], [aria-label*="model"]');
+      const modelSelectors = page.locator(
+        '[data-testid*="model"], [aria-label*="model"]',
+      );
       const count = await modelSelectors.count();
 
       // Comparison mode should have 2+ model selectors
@@ -119,7 +123,9 @@ test.describe("Comparison Mode", () => {
       '[data-testid="mode-toggle"], button[aria-label*="mode"]',
     );
 
-    const isVisible = await modeToggle.isVisible({ timeout: 3000 }).catch(() => false);
+    const isVisible = await modeToggle
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
 
     if (isVisible) {
       // Toggle mode

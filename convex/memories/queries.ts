@@ -76,10 +76,7 @@ export const listFiltered = query({
       const searchResults = await ctx.db
         .query("memories")
         .withSearchIndex("search_content", (q) =>
-          // biome-ignore lint/style/noNonNullAssertion: validated above
-          q
-            .search("content", args.searchQuery!)
-            .eq("userId", user._id),
+          q.search("content", args.searchQuery!).eq("userId", user._id),
         )
         .take(100);
 

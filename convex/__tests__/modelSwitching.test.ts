@@ -1,12 +1,12 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../_generated/api";
-import schema from "../schema";
 import {
   createMockIdentity,
   createTestConversationData,
   createTestUserData,
 } from "@/lib/test/factories";
+import { api } from "../_generated/api";
+import schema from "../schema";
 
 describe("model switching", () => {
   // Use fake timers to prevent scheduled functions from running
@@ -111,7 +111,7 @@ describe("model switching", () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
-      const { convId, userId } = await t.run(async (ctx) => {
+      const { convId } = await t.run(async (ctx) => {
         const uid = await ctx.db.insert(
           "users",
           createTestUserData({ clerkId: identity.subject }),

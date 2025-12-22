@@ -40,13 +40,12 @@ export {
   CONVERSATION_TITLE_PROMPT,
   NOTE_TITLE_PROMPT,
 } from "./operational/titleGeneration";
-
-// Built-in templates
-export { BUILT_IN_TEMPLATES } from "./templates/builtIn";
-
-// System prompt builder
-export { buildSystemPrompts } from "./systemBuilder";
 export type {
   BuildSystemPromptsArgs,
   BuildSystemPromptsResult,
 } from "./systemBuilder";
+
+// System prompt builder
+export { buildSystemPrompts } from "./systemBuilder";
+// Built-in templates
+export { BUILT_IN_TEMPLATES } from "./templates/builtIn";

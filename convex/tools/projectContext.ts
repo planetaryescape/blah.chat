@@ -10,14 +10,11 @@ export const get = internalAction({
     conversationId: v.optional(v.id("conversations")),
     section: v.string(),
   },
-  // biome-ignore lint/suspicious/noExplicitAny: Complex project context return types
   handler: async (ctx, { userId, conversationId, section }): Promise<any> => {
     try {
       // 1. Get conversation's project
-      // biome-ignore lint/suspicious/noExplicitAny: Project ID types
       let projectId: any = null;
       if (conversationId) {
-        // biome-ignore lint/suspicious/noExplicitAny: Conversation object types
         const conversation: any = await (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.conversations.getInternal,
@@ -34,7 +31,6 @@ export const get = internalAction({
       }
 
       // 2. Get project details
-      // biome-ignore lint/suspicious/noExplicitAny: Project object types
       const project: any = await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.projects.getInternal,
@@ -46,7 +42,6 @@ export const get = internalAction({
       }
 
       // 3. Get conversation count from junction table
-      // biome-ignore lint/suspicious/noExplicitAny: Conversation count types
       const conversationCount: any = await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.projects.getConversationCount,

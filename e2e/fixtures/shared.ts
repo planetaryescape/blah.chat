@@ -2,7 +2,7 @@
  * Shared E2E Test Fixtures and Helpers
  */
 import type { Page } from "@playwright/test";
-import { expect, test as base } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
 
 // Verified selectors from actual components
 export const SELECTORS = {
@@ -21,7 +21,8 @@ export const SELECTORS = {
   statusError: '[data-testid="message"][data-status="error"]',
 
   // Sidebar
-  sidebar: '[role="navigation"][aria-label="Main navigation and conversations"]',
+  sidebar:
+    '[role="navigation"][aria-label="Main navigation and conversations"]',
   conversationList: '[role="listbox"][aria-label="Conversations"]',
   conversationItem: '[role="option"]',
   newChatButton: 'button:has-text("New chat"), a:has-text("New chat")',
@@ -50,7 +51,8 @@ export const SELECTORS = {
   attachmentIndicator: '[data-testid="attachment-indicator"]',
 
   // Templates
-  templateButton: 'button[aria-label*="template"], button:has-text("Templates")',
+  templateButton:
+    'button[aria-label*="template"], button:has-text("Templates")',
   templateList: '[role="listbox"]',
 
   // Import/Export
@@ -63,7 +65,7 @@ export const SELECTORS = {
 
   // Error states
   errorMessage: '[role="alert"]',
-  toast: '[data-sonner-toast]',
+  toast: "[data-sonner-toast]",
 };
 
 // Helper functions

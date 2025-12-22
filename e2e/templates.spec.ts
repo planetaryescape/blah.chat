@@ -32,7 +32,9 @@ test.describe("Templates", () => {
       'button[aria-label*="Template"], button:has-text("Template"), [data-testid="templates-button"]',
     );
 
-    const isVisible = await templateButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const isVisible = await templateButton
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     expect(typeof isVisible).toBe("boolean");
   });
@@ -50,7 +52,9 @@ test.describe("Templates", () => {
         '[data-testid="template-list"], [role="listbox"], [role="dialog"]',
       );
 
-      const isOpen = await templateList.isVisible({ timeout: 3000 }).catch(() => false);
+      const isOpen = await templateList
+        .isVisible({ timeout: 3000 })
+        .catch(() => false);
       expect(typeof isOpen).toBe("boolean");
     }
   });
@@ -66,7 +70,9 @@ test.describe("Templates", () => {
 
       // Try to click first template option
       const templateOption = page.locator('[role="option"]').first();
-      if (await templateOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (
+        await templateOption.isVisible({ timeout: 2000 }).catch(() => false)
+      ) {
         await templateOption.click();
 
         // Input should have content
@@ -92,7 +98,9 @@ test.describe("Templates", () => {
         '[role="dialog"] input, [data-testid="template-search"]',
       );
 
-      const hasSearch = await searchInput.isVisible({ timeout: 2000 }).catch(() => false);
+      const hasSearch = await searchInput
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
       expect(typeof hasSearch).toBe("boolean");
     }
   });
@@ -105,7 +113,9 @@ test.describe("Templates", () => {
       'button:has-text("Create"), button:has-text("Add"), button:has-text("New")',
     );
 
-    const canCreate = await createButton.isVisible({ timeout: 5000 }).catch(() => false);
+    const canCreate = await createButton
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     expect(typeof canCreate).toBe("boolean");
   });
 

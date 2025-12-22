@@ -1,8 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-
-import { useBulkSelection } from "../useBulkSelection";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useBulkSelection } from "../useBulkSelection";
 
 describe("useBulkSelection", () => {
   it("returns expected interface", () => {

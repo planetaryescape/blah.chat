@@ -2,14 +2,7 @@
 
 import { useAction, useMutation } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Brain,
-  type LucideIcon,
-  Quote,
-  Search,
-  Sparkles,
-  Tag,
-} from "lucide-react";
+import { Brain, type LucideIcon, Quote, Search, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -52,7 +45,7 @@ export function SelectionContextMenu() {
   const createSnippet = useMutation(api.snippets.createSnippet);
   // @ts-ignore
   const createMemoryFromSelection = useAction(
-    api.memories.createMemoryFromSelection
+    api.memories.createMemoryFromSelection,
   );
 
   useEffect(() => {
@@ -136,7 +129,7 @@ export function SelectionContextMenu() {
     window.dispatchEvent(
       new CustomEvent("quote-selection", {
         detail: selection.text,
-      })
+      }),
     );
     clearSelection();
   };
@@ -147,7 +140,7 @@ export function SelectionContextMenu() {
     clearSelection();
   };
 
-  const handleBookmarkSnippet = async () => {
+  const _handleBookmarkSnippet = async () => {
     try {
       await createSnippet({
         text: selection.text,
@@ -295,7 +288,7 @@ export function SelectionContextMenu() {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < enabledActions.length - 1 ? prev + 1 : 0
+          prev < enabledActions.length - 1 ? prev + 1 : 0,
         );
         return;
       }
@@ -303,7 +296,7 @@ export function SelectionContextMenu() {
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : enabledActions.length - 1
+          prev > 0 ? prev - 1 : enabledActions.length - 1,
         );
         return;
       }
@@ -317,7 +310,7 @@ export function SelectionContextMenu() {
       // Shortcut keys
       const pressedKey = e.key.toUpperCase();
       const action = enabledActions.find(
-        (a) => a.shortcut?.toUpperCase() === pressedKey
+        (a) => a.shortcut?.toUpperCase() === pressedKey,
       );
       if (action) {
         e.preventDefault();

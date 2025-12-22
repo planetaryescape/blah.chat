@@ -53,7 +53,9 @@ test.describe("Model Switching", () => {
     await page.waitForSelector(SELECTORS.dialog, { timeout: 5000 });
 
     // Click first model option (not current)
-    const modelOptions = page.locator(SELECTORS.dialog).locator('[role="option"]');
+    const modelOptions = page
+      .locator(SELECTORS.dialog)
+      .locator('[role="option"]');
     const count = await modelOptions.count();
 
     if (count > 0) {
@@ -75,7 +77,9 @@ test.describe("Model Switching", () => {
     await page.waitForSelector(SELECTORS.dialog, { timeout: 5000 });
 
     // Find and click a different model
-    const modelOptions = page.locator(SELECTORS.dialog).locator('[role="option"]');
+    const modelOptions = page
+      .locator(SELECTORS.dialog)
+      .locator('[role="option"]');
     if ((await modelOptions.count()) > 1) {
       await modelOptions.nth(1).click();
     }

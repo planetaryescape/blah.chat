@@ -198,7 +198,6 @@ export const sendMessage = mutation({
         assistantMessageId: msgId,
         modelId: model,
         userId: user._id,
-        // biome-ignore lint/suspicious/noExplicitAny: Thinking effort type casting
         thinkingEffort: args.thinkingEffort as any,
       });
     }
@@ -226,7 +225,6 @@ export const sendMessage = mutation({
 
     // 11. Return immediately
     return {
-      // biome-ignore lint/style/noNonNullAssertion: conversationId is guaranteed to exist at this point
       conversationId: conversationId!,
       messageId: modelsToUse.length === 1 ? assistantMessageIds[0] : undefined,
       assistantMessageIds:

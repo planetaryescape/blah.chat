@@ -72,7 +72,7 @@ test.describe("Conversation Search", () => {
     await sendMessage(page, "Search test conversation");
     await waitForResponse(page, 60000);
 
-    const currentUrl = page.url();
+    const _currentUrl = page.url();
 
     await page.keyboard.press("Meta+j");
     await page.waitForSelector('input[placeholder*="Search"]', {
@@ -136,7 +136,7 @@ test.describe("Conversation Search", () => {
 
     // Should find the conversation
     const dialogContent = await page.locator('[role="dialog"]').textContent();
-    const hasMatch =
+    const _hasMatch =
       dialogContent?.toLowerCase().includes("casesensitivetest") ||
       dialogContent?.toLowerCase().includes("no result") === false;
 
@@ -149,11 +149,15 @@ test.describe("Global Search Page", () => {
     await page.goto("/search");
 
     // Should have search input
-    const searchInput = page.locator('input[type="search"], input[placeholder*="Search"]');
+    const searchInput = page.locator(
+      'input[type="search"], input[placeholder*="Search"]',
+    );
 
     // Either shows search input or redirects to auth
     const onSearch = page.url().includes("/search");
-    const hasInput = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasInput = await searchInput
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     expect(onSearch || !hasInput).toBe(true);
   });

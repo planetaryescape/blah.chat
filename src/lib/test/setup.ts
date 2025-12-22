@@ -60,8 +60,6 @@ if (typeof window !== "undefined") {
     readonly root: Element | null = null;
     readonly rootMargin: string = "";
     readonly thresholds: ReadonlyArray<number> = [];
-
-    constructor(_callback: IntersectionObserverCallback) {}
     observe() {}
     unobserve() {}
     disconnect() {}

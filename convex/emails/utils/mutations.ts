@@ -2,16 +2,11 @@ import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 
 // Check if we can send (rate limit: 1 per hour for global alerts)
-async function canSendEmail(
-  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
-  ctx: any,
-  type: string,
-): Promise<boolean> {
+async function canSendEmail(ctx: any, type: string): Promise<boolean> {
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
   const recentEmail = await ctx.db
     .query("emailAlerts")
-    // biome-ignore lint/suspicious/noExplicitAny: Convex query types
     .withIndex("by_type_sent", (q: any) =>
       q.eq("type", type).gt("sentAt", oneHourAgo),
     )
@@ -22,7 +17,6 @@ async function canSendEmail(
 
 // Check if we can send to a specific user (rate limit: 1 per type per user, ever)
 async function canSendEmailToUser(
-  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   type: string,
   userId: string,
@@ -30,7 +24,6 @@ async function canSendEmailToUser(
   // Check if we've ever sent this type to this user
   const existingEmail = await ctx.db
     .query("emailAlerts")
-    // biome-ignore lint/suspicious/noExplicitAny: Convex query types
     .withIndex("by_type_sent", (q: any) => q.eq("type", type))
     .filter((q: any) => q.eq(q.field("metadata.userId"), userId))
     .first();
@@ -40,11 +33,9 @@ async function canSendEmailToUser(
 
 // Record sent email
 async function recordSentEmail(
-  // biome-ignore lint/suspicious/noExplicitAny: Convex context types
   ctx: any,
   type: string,
   recipientEmail: string,
-  // biome-ignore lint/suspicious/noExplicitAny: Email metadata types
   metadata: any,
 ) {
   await ctx.db.insert("emailAlerts", {

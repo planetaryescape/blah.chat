@@ -2,6 +2,23 @@
 
 export const dynamic = "force-dynamic";
 
+import { useMutation, useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  CheckCircle2,
+  ChevronDown,
+  FileIcon,
+  Loader2,
+  Mic,
+  Palette,
+  PenTool,
+  Sparkles,
+  Upload,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { parseAsString, useQueryState } from "nuqs";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { TemplateUpload } from "@/components/slides/TemplateUpload";
@@ -20,31 +37,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
+  buildEnhanceOutlinePrompt,
+  buildParseOutlinePrompt,
   SLIDES_OUTLINE_ENHANCE_SYSTEM_PROMPT,
   SLIDES_OUTLINE_PARSE_SYSTEM_PROMPT,
   SLIDES_OUTLINE_SYSTEM_PROMPT,
-  buildEnhanceOutlinePrompt,
-  buildParseOutlinePrompt,
 } from "@/convex/lib/prompts/operational/slidesOutline";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery } from "convex/react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  CheckCircle2,
-  ChevronDown,
-  FileIcon,
-  Loader2,
-  Mic,
-  Palette,
-  PenTool,
-  Sparkles,
-  Upload,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 
 export default function NewSlidesPage() {
   return (
@@ -66,7 +66,7 @@ function NewSlidesContent() {
   const [title, setTitle] = useState("");
   const [input, setInput] = useState("");
   const [slideStyle, setSlideStyle] = useState<"wordy" | "illustrative">(
-    "illustrative"
+    "illustrative",
   );
   const [inputMode, setInputMode] = useState<"prompt" | "outline">("prompt");
   const [enhanceOutline, setEnhanceOutline] = useState(true);
@@ -88,7 +88,7 @@ function NewSlidesContent() {
     api.messages.list,
     sourceConversationId
       ? { conversationId: sourceConversationId as Id<"conversations"> }
-      : "skip"
+      : "skip",
   );
 
   // Auto-populate from chat source
@@ -98,7 +98,7 @@ function NewSlidesContent() {
     // If messageId specified, use just that message
     if (sourceMessageId) {
       const message = sourceMessages.find(
-        (m: { _id: string }) => m._id === sourceMessageId
+        (m: { _id: string }) => m._id === sourceMessageId,
       );
       if (message?.content) {
         setInput(message.content);
@@ -110,11 +110,11 @@ function NewSlidesContent() {
     const formatted = sourceMessages
       .filter(
         (m: { status: string; content?: string }) =>
-          m.status === "complete" && m.content
+          m.status === "complete" && m.content,
       )
       .map(
         (m: { role: string; content: string }) =>
-          `**${m.role === "user" ? "User" : "Assistant"}:**\n${m.content}`
+          `**${m.role === "user" ? "User" : "Assistant"}:**\n${m.content}`,
       )
       .join("\n\n---\n\n");
 
@@ -151,19 +151,19 @@ function NewSlidesContent() {
 
       if (file.type === "application/pdf") {
         toast.info(
-          "PDF upload coming soon. Please copy-paste the text content for now."
+          "PDF upload coming soon. Please copy-paste the text content for now.",
         );
         return;
       }
 
       if (file.type.includes("wordprocessingml")) {
         toast.info(
-          "DOCX upload coming soon. Please copy-paste the text content for now."
+          "DOCX upload coming soon. Please copy-paste the text content for now.",
         );
         return;
       }
     },
-    []
+    [],
   );
 
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
@@ -340,7 +340,7 @@ function NewSlidesContent() {
                     disabled={loading}
                     className={cn(
                       "min-h-[200px] max-h-[500px] resize-none overflow-y-auto text-base leading-relaxed p-4 border-muted-foreground/20 focus-visible:border-primary/50 transition-all font-normal",
-                      "bg-muted/10 group-hover:bg-muted/20 focus:bg-background"
+                      "bg-muted/10 group-hover:bg-muted/20 focus:bg-background",
                     )}
                     style={{ fieldSizing: "fixed" } as any}
                   />
@@ -348,7 +348,7 @@ function NewSlidesContent() {
                     <span
                       className={cn(
                         "text-xs px-2 py-1 rounded bg-background/80 backdrop-blur border shadow-sm transition-opacity duration-200",
-                        input.length > 0 ? "opacity-100" : "opacity-0"
+                        input.length > 0 ? "opacity-100" : "opacity-0",
                       )}
                     >
                       {input.length} chars
@@ -432,7 +432,7 @@ function NewSlidesContent() {
                       "flex items-center justify-between p-3 rounded-lg border text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
                       slideStyle === "illustrative"
                         ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-border hover:bg-muted/30"
+                        : "border-muted hover:border-border hover:bg-muted/30",
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -441,7 +441,7 @@ function NewSlidesContent() {
                           "p-1.5 rounded-md",
                           slideStyle === "illustrative"
                             ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         <Mic className="h-4 w-4" />
@@ -466,7 +466,7 @@ function NewSlidesContent() {
                       "flex items-center justify-between p-3 rounded-lg border text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
                       slideStyle === "wordy"
                         ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-border hover:bg-muted/30"
+                        : "border-muted hover:border-border hover:bg-muted/30",
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -475,7 +475,7 @@ function NewSlidesContent() {
                           "p-1.5 rounded-md",
                           slideStyle === "wordy"
                             ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
+                            : "bg-muted text-muted-foreground",
                         )}
                       >
                         <FileIcon className="h-4 w-4" />
@@ -509,7 +509,7 @@ function NewSlidesContent() {
                   className={cn(
                     "flex items-center justify-between w-full p-4 text-left transition-colors",
                     templateSectionOpen ? "bg-muted/30" : "hover:bg-muted/20",
-                    selectedTemplateId && "border-l-2 border-l-primary"
+                    selectedTemplateId && "border-l-2 border-l-primary",
                   )}
                   disabled={loading}
                 >
@@ -519,7 +519,7 @@ function NewSlidesContent() {
                         "p-2 rounded-lg",
                         selectedTemplateId
                           ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       <Palette className="h-4 w-4" />
@@ -538,7 +538,7 @@ function NewSlidesContent() {
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 text-muted-foreground transition-transform",
-                      templateSectionOpen && "rotate-180"
+                      templateSectionOpen && "rotate-180",
                     )}
                   />
                 </button>

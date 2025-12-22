@@ -26,10 +26,8 @@ jobs:
       - name: Run Biome check (lint + format)
         run: bun run lint
 
-      - name: Convex typecheck
-        run: bunx convex deploy --dry-run --typecheck enable
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      - name: Convex codegen & typecheck
+        run: bunx convex codegen --typecheck enable
 
   test:
     name: Unit & Integration Tests

@@ -1,6 +1,9 @@
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { getConvexClient } from "@/lib/api/convex";
+import {
+  getAuthenticatedConvexClient,
+  getConvexClient,
+} from "@/lib/api/convex";
 import { formatEntity } from "@/lib/utils/formatEntity";
 import "server-only";
 import { z } from "zod";
@@ -172,13 +175,20 @@ export const conversationsDAL = {
   /**
    * Delete conversation (soft delete)
    */
-  delete: async (userId: string, conversationId: string) => {
+  delete: async (
+    userId: string,
+    conversationId: string,
+    sessionToken: string,
+  ) => {
     const convex = getConvexClient();
 
     // Verify ownership first
     await conversationsDAL.getById(userId, conversationId);
 
-    await convex.mutation(api.conversations.deleteConversation, {
+    // Use authenticated client for mutation that requires ctx.auth
+    const authConvex = getAuthenticatedConvexClient(sessionToken);
+
+    await authConvex.mutation(api.conversations.deleteConversation, {
       conversationId: conversationId as Id<"conversations">,
     });
 

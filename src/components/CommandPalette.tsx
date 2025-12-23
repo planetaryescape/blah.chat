@@ -34,6 +34,7 @@ export function CommandPalette() {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const _listRef = useRef<HTMLDivElement>(null);
+  // @ts-ignore - Type depth exceeded with Convex modules
   const rawConversations = useQuery(api.conversations.list, {});
   // Filter out presentation conversations (they have their own UI in /slides)
   const conversations = useMemo(

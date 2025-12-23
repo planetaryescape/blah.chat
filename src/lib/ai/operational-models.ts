@@ -8,7 +8,7 @@
  */
 
 import { MODEL_CONFIG, type ModelConfig } from "./models";
-import { gateway } from "./providers/gateway";
+import { vercel } from "./providers/gateway";
 
 // ============================================================================
 // DEFAULT MODEL (used for new conversations when no model is specified)
@@ -123,7 +123,7 @@ export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
  * Embedding model for vector search (memories, messages, conversations).
  * Used to generate embeddings for semantic search across the application.
  */
-export const EMBEDDING_MODEL = gateway.textEmbeddingModel(
+export const EMBEDDING_MODEL = vercel.textEmbeddingModel(
   "openai/text-embedding-3-small",
 );
 

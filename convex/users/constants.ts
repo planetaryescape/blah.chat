@@ -25,6 +25,7 @@ export const PREFERENCE_DEFAULTS = {
   showSlideStatistics: true,
   enableHybridSearch: false,
   showModelNamesDuringComparison: false,
+  showModelProvider: false,
 
   // Audio
   sttEnabled: true,
@@ -82,6 +83,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showSlideStatistics: "chat",
   enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
+  showModelProvider: "chat",
 
   // Audio
   sttEnabled: "audio",

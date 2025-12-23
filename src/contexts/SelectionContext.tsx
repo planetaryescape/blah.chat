@@ -56,6 +56,16 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Skip if mouseup was on an input element (preserve focus)
+      const target = mouseEvent.target as Element;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.closest("[contenteditable]")
+      ) {
+        return;
+      }
+
       // Store mouse position immediately
       mousePositionRef.current = {
         x: mouseEvent.clientX,

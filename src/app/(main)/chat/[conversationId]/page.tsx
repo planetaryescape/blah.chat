@@ -622,6 +622,7 @@ function ChatPageContent({
                     messages={messages as Doc<"messages">[]}
                     selectedModel={displayModel}
                     chatWidth={chatWidth}
+                    isGenerating={isGenerating}
                     onVote={handleVote}
                     onConsolidate={handleConsolidate}
                     onToggleModelNames={() =>

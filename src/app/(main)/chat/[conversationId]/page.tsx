@@ -513,8 +513,6 @@ function ChatPageContent({
   const showThinkingEffort =
     !!modelConfig?.reasoning || modelConfig?.capabilities?.includes("thinking");
   const hasMessages = (messages?.length ?? 0) > 0;
-  // If conversation is loading, default to 0 count
-  const messageCount = conversation?.messageCount || 0;
 
   // Navigation helpers
   const { currentIndex, isFirst, isLast } = useMemo(() => {
@@ -575,7 +573,6 @@ function ChatPageContent({
               selectedModel={displayModel}
               modelLoading={modelLoading}
               hasMessages={hasMessages}
-              messageCount={messageCount}
               isFirst={isFirst}
               isLast={isLast}
               isComparisonActive={isActive}

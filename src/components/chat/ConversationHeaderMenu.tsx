@@ -4,7 +4,9 @@ import { useMutation, useQuery } from "convex/react";
 import {
   Archive,
   BarChart3,
+  Brain,
   Edit,
+  Loader2,
   Maximize2,
   MoreHorizontal,
   Pin,
@@ -56,11 +58,31 @@ export function ConversationHeaderMenu({
   const router = useRouter();
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
   const { showSlides } = useFeatureToggles();
 
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const triggerExtraction = useMutation(api.memories.triggerExtraction);
+
   const handleCreatePresentation = () => {
     router.push(`/slides/new?conversationId=${conversation._id}`);
+  };
+
+  const handleExtractMemories = async () => {
+    setIsExtracting(true);
+    try {
+      await triggerExtraction({ conversationId: conversation._id });
+      toast.success("Memory extraction started! This may take a few moments.");
+      analytics.track("memory_extraction_triggered", {
+        source: "manual",
+        conversationId: conversation._id,
+      });
+    } catch (_error) {
+      toast.error("Failed to start extraction");
+    } finally {
+      setTimeout(() => setIsExtracting(false), 3000);
+    }
   };
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -223,6 +245,25 @@ export function ConversationHeaderMenu({
             <Sparkles className="mr-2 h-4 w-4" />
             Auto-rename
           </DropdownMenuItem>
+
+          {/* Only show for non-incognito conversations with enough messages */}
+          {!conversation.isIncognito &&
+            (conversation.messageCount ?? 0) >= 3 && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExtractMemories();
+                }}
+                disabled={isExtracting}
+              >
+                {isExtracting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Brain className="mr-2 h-4 w-4" />
+                )}
+                {isExtracting ? "Extracting..." : "Extract Memories"}
+              </DropdownMenuItem>
+            )}
 
           <DropdownMenuSeparator />
 

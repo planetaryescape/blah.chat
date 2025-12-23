@@ -459,6 +459,9 @@ export function AppSidebar() {
                   tooltip={item.label}
                   isActive={isActive}
                   className="p-2.5"
+                  {...(item.href === "/projects" && {
+                    "data-tour": "projects",
+                  })}
                 >
                   <Link href={item.href}>
                     <item.icon className="w-4 h-4" />

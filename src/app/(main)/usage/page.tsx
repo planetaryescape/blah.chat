@@ -1,7 +1,16 @@
 "use client";
 
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
 import { useQuery } from "convex/react";
 import {
+  ArrowUpDown,
   Bookmark,
   Calendar,
   CheckSquare,
@@ -20,7 +29,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -41,6 +50,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -575,49 +585,7 @@ function UsagePageContent() {
 
                 {/* Model Details Table */}
                 {spendByModel && spendByModel.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Model Details</h4>
-                    <ScrollArea className="h-[400px] border rounded-lg">
-                      <Table>
-                        <TableHeader className="sticky top-0 bg-background z-10">
-                          <TableRow>
-                            <TableHead>Model</TableHead>
-                            <TableHead className="text-right">
-                              Requests
-                            </TableHead>
-                            <TableHead className="text-right">
-                              Input Tokens
-                            </TableHead>
-                            <TableHead className="text-right">
-                              Output Tokens
-                            </TableHead>
-                            <TableHead className="text-right">Cost</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {spendByModel.map((model) => (
-                            <TableRow key={model.model}>
-                              <TableCell className="font-mono text-xs truncate max-w-[200px]">
-                                {model.model}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {model.requestCount}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatCompactNumber(model.totalInputTokens)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatCompactNumber(model.totalOutputTokens)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatCurrency(model.totalCost)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </ScrollArea>
-                  </div>
+                  <ModelDetailsTable data={spendByModel} />
                 )}
               </AccordionContent>
             </AccordionItem>
@@ -711,6 +679,159 @@ function ActivityHeatmap({
         ))}
         <span>More</span>
       </div>
+    </div>
+  );
+}
+
+// Model Details Table Component (sortable)
+interface ModelData {
+  model: string;
+  totalCost: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  requestCount: number;
+}
+
+function ModelDetailsTable({ data }: { data: ModelData[] }) {
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "totalCost", desc: true },
+  ]);
+
+  const columns: ColumnDef<ModelData>[] = useMemo(
+    () => [
+      {
+        accessorKey: "model",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-4 hover:bg-transparent"
+          >
+            Model
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{row.original.model}</span>
+        ),
+      },
+      {
+        accessorKey: "requestCount",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:bg-transparent w-full justify-end"
+          >
+            Requests
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">{row.original.requestCount}</div>
+        ),
+      },
+      {
+        accessorKey: "totalInputTokens",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:bg-transparent w-full justify-end"
+          >
+            Input Tokens
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            {formatCompactNumber(row.original.totalInputTokens)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "totalOutputTokens",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:bg-transparent w-full justify-end"
+          >
+            Output Tokens
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            {formatCompactNumber(row.original.totalOutputTokens)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "totalCost",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:bg-transparent w-full justify-end"
+          >
+            Cost
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            {formatCurrency(row.original.totalCost)}
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const table = useReactTable({
+    data,
+    columns,
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    state: { sorting },
+  });
+
+  return (
+    <div>
+      <h4 className="text-sm font-medium mb-3">Model Details</h4>
+      <ScrollArea className="h-[400px] border rounded-lg">
+        <Table>
+          <TableHeader className="sticky top-0 bg-background z-10">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id} className="hover:bg-muted/30">
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScrollArea>
     </div>
   );
 }

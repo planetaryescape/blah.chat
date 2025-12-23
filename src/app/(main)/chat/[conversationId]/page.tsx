@@ -663,31 +663,6 @@ function ChatPageContent({
                   />
                 )}
 
-                <div className="flex shrink-0">
-                  <ChatInput
-                    conversationId={conversationId}
-                    chatWidth={chatWidth}
-                    isGenerating={isGenerating}
-                    selectedModel={displayModel}
-                    onModelChange={handleModelChange}
-                    thinkingEffort={
-                      showThinkingEffort ? thinkingEffort : undefined
-                    }
-                    onThinkingEffortChange={setThinkingEffort}
-                    attachments={attachments}
-                    onAttachmentsChange={setAttachments}
-                    isComparisonMode={isActive}
-                    selectedModels={selectedModels}
-                    onStartComparison={startComparison}
-                    onExitComparison={exitComparison}
-                    isEmpty={messages?.length === 0}
-                    modelSelectorOpen={modelSelectorOpen}
-                    onModelSelectorOpenChange={setModelSelectorOpen}
-                    comparisonDialogOpen={comparisonDialogOpen}
-                    onComparisonDialogOpenChange={setComparisonDialogOpen}
-                    onOptimisticUpdate={addOptimisticMessages}
-                  />
-                </div>
                 {/* Preview Modal */}
                 {previewModalOpen &&
                   previewModelId &&
@@ -731,6 +706,31 @@ function ChatPageContent({
                 />
               </>
             )}
+
+            {/* ChatInput always rendered - prevents focus loss during loading state transitions */}
+            <div className="flex shrink-0">
+              <ChatInput
+                conversationId={conversationId}
+                chatWidth={chatWidth}
+                isGenerating={isGenerating}
+                selectedModel={displayModel}
+                onModelChange={handleModelChange}
+                thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
+                onThinkingEffortChange={setThinkingEffort}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                isComparisonMode={isActive}
+                selectedModels={selectedModels}
+                onStartComparison={startComparison}
+                onExitComparison={exitComparison}
+                isEmpty={messages?.length === 0}
+                modelSelectorOpen={modelSelectorOpen}
+                onModelSelectorOpenChange={setModelSelectorOpen}
+                comparisonDialogOpen={comparisonDialogOpen}
+                onComparisonDialogOpenChange={setComparisonDialogOpen}
+                onOptimisticUpdate={addOptimisticMessages}
+              />
+            </div>
           </div>
         </ResizablePanel>
 

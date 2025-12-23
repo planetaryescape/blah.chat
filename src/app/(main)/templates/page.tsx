@@ -1,7 +1,8 @@
 "use client";
 
 import { FileText, Plus } from "lucide-react";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const CATEGORIES = ["all", "coding", "writing", "analysis", "creative"];
 
 import { useMutation, useQuery } from "convex/react";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
@@ -24,8 +24,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-
-// ... imports
 
 export default function TemplatesPage() {
   const { showTemplates, isLoading } = useFeatureToggles();
@@ -42,9 +40,19 @@ export default function TemplatesPage() {
     );
   }
 
+  const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasSeeded, setHasSeeded] = useState(false);
+
+  // Handle ?action=new query param from command palette
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setIsCreateOpen(true);
+      // Clean URL to avoid reopening on refresh
+      window.history.replaceState({}, "", "/templates");
+    }
+  }, [searchParams]);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const templates: Doc<"templates">[] | undefined = useQuery(

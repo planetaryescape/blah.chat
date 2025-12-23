@@ -38,6 +38,7 @@ const SETTING_TO_SECTION: Record<string, string> = {
   // Stats
   showMessageStats: "stats",
   showComparisonStats: "stats",
+  showModelProvider: "stats",
   // Messages
   alwaysShowMessageActions: "messages",
   // Reasoning
@@ -132,9 +133,11 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             showMessageStats={state.showMessageStats}
             showComparisonStats={state.showComparisonStats}
             showSlideStats={state.showSlideStats}
+            showModelProvider={state.showModelProvider}
             onMessageStatsChange={handlers.handleMessageStatsChange}
             onComparisonStatsChange={handlers.handleComparisonStatsChange}
             onSlideStatsChange={handlers.handleSlideStatsChange}
+            onShowModelProviderChange={handlers.handleShowModelProviderChange}
           />
 
           <MessageBehaviorSection

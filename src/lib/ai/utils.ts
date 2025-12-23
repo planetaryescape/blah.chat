@@ -57,6 +57,7 @@ export function getModelsByProvider() {
   const grouped: Record<string, ModelConfig[]> = {};
 
   for (const model of Object.values(MODEL_CONFIG)) {
+    if (model.isInternalOnly) continue;
     if (!grouped[model.provider]) {
       grouped[model.provider] = [];
     }

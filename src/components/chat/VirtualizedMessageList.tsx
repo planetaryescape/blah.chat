@@ -240,11 +240,17 @@ export function VirtualizedMessageList({
       const newMessage = messages[messages.length - 1];
 
       if (newMessage.role === "user") {
-        // User message: scroll to TOP of viewport (not bottom)
+        // User message: scroll to near-top with 50px hint of previous content
         requestAnimationFrame(() => {
           const element = document.getElementById(`message-${newMessage._id}`);
-          if (element) {
-            element.scrollIntoView({ behavior: "smooth", block: "start" });
+          const container = containerRef.current;
+          if (element && container) {
+            const elementTop = element.offsetTop;
+            const hintOffset = 50; // Show small hint of previous content
+            container.scrollTo({
+              top: Math.max(0, elementTop - hintOffset),
+              behavior: "smooth",
+            });
           }
         });
       }
@@ -285,7 +291,6 @@ export function VirtualizedMessageList({
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
-            scrollPaddingTop: "80px",
           }}
         >
           <div
@@ -378,7 +383,6 @@ export function VirtualizedMessageList({
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
-          scrollPaddingTop: "80px",
         }}
       >
         <div

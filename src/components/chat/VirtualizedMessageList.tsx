@@ -235,17 +235,26 @@ export function VirtualizedMessageList({
     const currentCount = messages.length;
     const prevCount = prevMessageCount.current;
 
-    // New message was added
-    if (currentCount > prevCount && autoScroll && wasAtBottomRef.current) {
-      const newMessage = messages[messages.length - 1];
+    // New messages were added
+    if (currentCount > prevCount && autoScroll) {
+      // Get only the new messages (since both user + assistant are added together)
+      const newMessages = messages.slice(prevCount);
+      const newUserMessage = newMessages.find((m) => m.role === "user");
 
-      if (newMessage.role === "user") {
-        // User message: scroll to near-top with 50px hint of previous content
+      // Scroll to new user message if one was added
+      if (newUserMessage) {
         requestAnimationFrame(() => {
-          const element = document.getElementById(`message-${newMessage._id}`);
+          const element = document.getElementById(
+            `message-${newUserMessage._id}`,
+          );
           const container = containerRef.current;
           if (element && container) {
-            const elementTop = element.offsetTop;
+            // Use getBoundingClientRect for accurate position (works with virtualized transforms)
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            // Calculate element's position within container + current scroll
+            const elementTop =
+              elementRect.top - containerRect.top + container.scrollTop;
             const hintOffset = 50; // Show small hint of previous content
             container.scrollTo({
               top: Math.max(0, elementTop - hintOffset),

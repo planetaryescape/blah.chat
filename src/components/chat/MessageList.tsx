@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
-import { Fragment, useEffect, useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
@@ -17,6 +17,7 @@ type MessageWithUser = Doc<"messages"> & {
 interface MessageListProps {
   messages: MessageWithUser[];
   selectedModel?: string;
+  isGenerating?: boolean;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -27,17 +28,18 @@ interface MessageListProps {
 export function MessageList({
   messages,
   selectedModel,
+  isGenerating = false,
   onVote,
   onConsolidate,
   onToggleModelNames,
   showModelNames,
   isCollaborative,
 }: MessageListProps) {
-  const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
-    useAutoScroll({
-      threshold: 100,
-      animationDuration: 400,
-    });
+  const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
+    threshold: 100,
+    animationDuration: 400,
+    disableAutoScroll: isGenerating,
+  });
 
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
@@ -103,13 +105,8 @@ export function MessageList({
     return items;
   }, [messages]);
 
-  // Scroll on new content (new messages or streaming updates)
-  useEffect(() => {
-    // Only auto-scroll if user is at bottom (hasn't scrolled up)
-    if (isAtBottom) {
-      scrollToBottom("smooth");
-    }
-  }, [isAtBottom, scrollToBottom]);
+  // Note: Auto-scroll during streaming is handled by MutationObserver in useAutoScroll
+  // No effect here - we don't want to scroll when isAtBottom changes (e.g., when generation completes)
 
   if (messages.length === 0) {
     return (

@@ -832,6 +832,23 @@ export default defineSchema({
     lastUpdated: v.number(),
   }).index("by_user", ["userId"]),
 
+  // User percentile rankings (calculated daily)
+  userRankings: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // YYYY-MM-DD
+    overallPercentile: v.number(), // 0-100, higher = more active
+    modelRankings: v.array(
+      v.object({
+        model: v.string(),
+        percentile: v.number(),
+        totalUsers: v.number(),
+      }),
+    ),
+    totalActiveUsers: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "date"]),
+
   ttsCache: defineTable({
     hash: v.string(), // sha256 of text+voice+speed
     storageId: v.id("_storage"),

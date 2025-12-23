@@ -38,7 +38,7 @@ export function MessageList({
   const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
     threshold: 100,
     animationDuration: 400,
-    disableAutoScroll: isGenerating,
+    disableAutoScroll: true, // Never auto-scroll during streaming - user reads at own pace
   });
 
   // Group messages by comparison and preserve chronological order

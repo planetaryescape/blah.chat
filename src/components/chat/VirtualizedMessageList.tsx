@@ -38,8 +38,6 @@ function getStableMessageKey(message: Doc<"messages">): string {
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   selectedModel?: string;
-  autoScroll?: boolean;
-  isGenerating?: boolean;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -53,8 +51,6 @@ interface VirtualizedMessageListProps {
 export function VirtualizedMessageList({
   messages,
   selectedModel,
-  autoScroll = true,
-  isGenerating = false,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -64,26 +60,17 @@ export function VirtualizedMessageList({
   syncScroll = true,
   isCollaborative,
 }: VirtualizedMessageListProps) {
-  const { containerRef, scrollToBottom, showScrollButton, isAtBottom } =
-    useAutoScroll({
-      threshold: 100,
-      animationDuration: 400,
-      disableAutoScroll: isGenerating,
-    });
+  const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
+    threshold: 100,
+    animationDuration: 400,
+    disableAutoScroll: true, // Never auto-scroll during streaming - user reads at own pace
+  });
 
   // Track if we've scrolled to highlighted message
   const scrolledToHighlight = useRef(false);
 
-  // Track previous message count to detect new messages
-  const prevMessageCount = useRef(messages.length);
-
-  // Track if user was at bottom before new message (avoids stale isAtBottom)
-  const wasAtBottomRef = useRef(true);
-
-  // Update wasAtBottomRef whenever isAtBottom changes
-  useEffect(() => {
-    wasAtBottomRef.current = isAtBottom;
-  }, [isAtBottom]);
+  // Track last scrolled conversation to avoid re-scrolling on re-renders
+  const lastScrolledConversationRef = useRef<string | null>(null);
 
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
@@ -169,14 +156,26 @@ export function VirtualizedMessageList({
 
     const scrollToMessage = () => {
       const element = document.getElementById(`message-${highlightMessageId}`);
-      if (!element) {
+      const container = containerRef.current;
+      if (!element || !container) {
         setTimeout(scrollToMessage, 100); // Retry
         return;
       }
 
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Use manual calculation for reliable positioning (same as user message scroll)
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      const elementTop =
+        elementRect.top - containerRect.top + container.scrollTop;
+      const hintOffset = 80; // Show 80px of previous content
+
+      container.scrollTo({
+        top: Math.max(0, elementTop - hintOffset),
+        behavior: "smooth",
+      });
+
       element.classList.add("message-highlight");
-      setTimeout(() => element.classList.remove("message-highlight"), 2000);
+      setTimeout(() => element.classList.remove("message-highlight"), 1200);
 
       scrolledToHighlight.current = true;
     };
@@ -206,18 +205,33 @@ export function VirtualizedMessageList({
 
     if (targetIndex === -1) return;
 
+    // First scroll to approximate position via virtualizer
     virtualizer.scrollToIndex(targetIndex, {
       align: "start",
       behavior: "smooth",
     });
 
+    // After virtualizer scroll, adjust position with 80px offset and add highlight
     setTimeout(() => {
       const element = document.getElementById(`message-${highlightMessageId}`);
-      if (element) {
+      const container = containerRef.current;
+      if (element && container) {
+        // Use manual calculation for precise positioning
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const elementTop =
+          elementRect.top - containerRect.top + container.scrollTop;
+        const hintOffset = 80;
+
+        container.scrollTo({
+          top: Math.max(0, elementTop - hintOffset),
+          behavior: "smooth",
+        });
+
         element.classList.add("message-highlight");
-        setTimeout(() => element.classList.remove("message-highlight"), 2000);
+        setTimeout(() => element.classList.remove("message-highlight"), 1200);
       }
-    }, 500);
+    }, 300); // Wait for virtualizer scroll to complete
 
     scrolledToHighlight.current = true;
   }, [highlightMessageId, grouped, virtualizer]);
@@ -225,49 +239,75 @@ export function VirtualizedMessageList({
   // Reset scroll tracking when highlightMessageId changes
   useEffect(() => {
     scrolledToHighlight.current = false;
-  }, []);
+  }, [highlightMessageId]);
 
-  // Scroll when new messages are added
+  // One-time scroll to bottom on conversation load
+  // Uses requestIdleCallback to wait for virtualizer to finish measuring
   useEffect(() => {
-    // Skip auto-scroll if highlighting a specific message from URL
-    if (highlightMessageId) return;
+    console.log("[InitialScroll] Effect running", {
+      highlightMessageId,
+      messagesLength: messages.length,
+      conversationId: messages[0]?.conversationId,
+      lastScrolled: lastScrolledConversationRef.current,
+    });
 
-    const currentCount = messages.length;
-    const prevCount = prevMessageCount.current;
-
-    // New messages were added
-    if (currentCount > prevCount && autoScroll) {
-      // Get only the new messages (since both user + assistant are added together)
-      const newMessages = messages.slice(prevCount);
-      const newUserMessage = newMessages.find((m) => m.role === "user");
-
-      // Scroll to new user message if one was added
-      if (newUserMessage) {
-        requestAnimationFrame(() => {
-          const element = document.getElementById(
-            `message-${newUserMessage._id}`,
-          );
-          const container = containerRef.current;
-          if (element && container) {
-            // Use getBoundingClientRect for accurate position (works with virtualized transforms)
-            const containerRect = container.getBoundingClientRect();
-            const elementRect = element.getBoundingClientRect();
-            // Calculate element's position within container + current scroll
-            const elementTop =
-              elementRect.top - containerRect.top + container.scrollTop;
-            const hintOffset = 50; // Show small hint of previous content
-            container.scrollTo({
-              top: Math.max(0, elementTop - hintOffset),
-              behavior: "smooth",
-            });
-          }
-        });
-      }
-      // Assistant messages: NO auto-scroll (user reads at own pace)
+    // Skip if highlighting specific message (that effect handles scroll)
+    if (highlightMessageId) {
+      console.log("[InitialScroll] Skipping - has highlightMessageId");
+      return;
+    }
+    if (messages.length === 0) {
+      console.log("[InitialScroll] Skipping - no messages");
+      return;
     }
 
-    prevMessageCount.current = currentCount;
-  }, [messages, autoScroll, highlightMessageId]);
+    const conversationId = messages[0]?.conversationId;
+    if (!conversationId) {
+      console.log("[InitialScroll] Skipping - no conversationId");
+      return;
+    }
+
+    // Only scroll once per conversation
+    if (lastScrolledConversationRef.current === conversationId) {
+      console.log(
+        "[InitialScroll] Skipping - already scrolled this conversation",
+      );
+      return;
+    }
+    console.log(
+      "[InitialScroll] Will scroll for conversation:",
+      conversationId,
+    );
+
+    const doScroll = () => {
+      const container = containerRef.current;
+      console.log("[InitialScroll] doScroll called", {
+        container: !!container,
+        scrollHeight: container?.scrollHeight,
+        clientHeight: container?.clientHeight,
+      });
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+        // Only mark as scrolled AFTER the scroll actually happens
+        lastScrolledConversationRef.current = conversationId;
+        console.log("[InitialScroll] Scrolled to:", container.scrollTop);
+      }
+    };
+
+    // Wait for browser to be truly idle (virtualizer done, layout stable)
+    if ("requestIdleCallback" in window) {
+      console.log("[InitialScroll] Using requestIdleCallback");
+      const id = requestIdleCallback(doScroll);
+      return () => {
+        console.log("[InitialScroll] Cleanup - canceling requestIdleCallback");
+        cancelIdleCallback(id);
+      };
+    } else {
+      console.log("[InitialScroll] Using setTimeout fallback");
+      const timer = setTimeout(doScroll, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightMessageId, messages]);
 
   if (messages.length === 0) {
     return (
@@ -368,12 +408,14 @@ export function VirtualizedMessageList({
 
         {showScrollButton && (
           <Button
-            className="absolute bottom-4 right-8 rounded-full shadow-lg transition-all duration-200 z-10"
-            size="icon"
+            variant="outline"
+            size="sm"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg transition-all duration-200 z-10 gap-1"
             onClick={() => scrollToBottom("smooth")}
             aria-label="Scroll to bottom"
           >
-            <ArrowDown className="w-4 h-4" aria-hidden="true" />
+            Scroll to bottom
+            <ArrowDown className="w-3 h-3" aria-hidden="true" />
           </Button>
         )}
       </div>
@@ -476,12 +518,14 @@ export function VirtualizedMessageList({
       </div>
       {showScrollButton && (
         <Button
-          className="absolute bottom-4 right-8 rounded-full shadow-lg transition-all duration-200 z-10"
-          size="icon"
+          variant="outline"
+          size="sm"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg transition-all duration-200 z-10 gap-1"
           onClick={() => scrollToBottom("smooth")}
           aria-label="Scroll to bottom"
         >
-          <ArrowDown className="w-4 h-4" aria-hidden="true" />
+          Scroll to bottom
+          <ArrowDown className="w-3 h-3" aria-hidden="true" />
         </Button>
       )}
     </div>

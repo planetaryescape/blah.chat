@@ -59,4 +59,12 @@ crons.interval(
   internal.byod.healthCheck.checkAllHealth as any,
 );
 
+// Calculate user percentile rankings daily at 1 AM UTC
+crons.daily(
+  "calculate-user-rankings",
+  { hourUTC: 1, minuteUTC: 0 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.usage.rankings.calculateAllUserRankings as any,
+);
+
 export default crons;

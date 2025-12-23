@@ -474,7 +474,7 @@ export const ChatMessage = memo(
             <div
               className={cn(
                 "absolute z-10",
-                isUser ? "right-0" : "left-0",
+                isUser ? "right-5 sm:right-6" : "left-5 sm:left-6",
                 "-bottom-8",
                 "flex justify-end",
                 "transition-opacity duration-200 ease-out",

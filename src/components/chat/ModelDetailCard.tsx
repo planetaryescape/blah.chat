@@ -2,6 +2,7 @@
 
 import { Eye, FunctionSquare, Image, Sparkles, Zap } from "lucide-react";
 import { useMemo } from "react";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { getProviderIcon } from "@/lib/ai/icons";
 import { getModelMetrics } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
@@ -17,6 +18,7 @@ export function ModelDetailCard({
   variant = "popover",
 }: ModelDetailCardProps) {
   const config = getModelConfig(modelId);
+  const showModelProvider = useUserPreference("showModelProvider");
   if (!config) return null;
 
   const ProviderIcon = getProviderIcon(config.provider);
@@ -39,6 +41,14 @@ export function ModelDetailCard({
           <p className="text-xs text-muted-foreground capitalize">
             {config.provider} • {config.isLocal ? "Local" : "Cloud"}
           </p>
+          {showModelProvider && !config.isLocal && (
+            <span className="text-[10px] text-muted-foreground/60 block">
+              via{" "}
+              {config.gateway === "openrouter"
+                ? "OpenRouter"
+                : "Vercel AI Gateway"}
+            </span>
+          )}
         </div>
       </div>
 

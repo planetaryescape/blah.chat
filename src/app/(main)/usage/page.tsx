@@ -1,6 +1,5 @@
 "use client";
 
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useQuery } from "convex/react";
 import {
   Bookmark,
@@ -21,7 +20,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -114,15 +113,6 @@ function UsagePageContent() {
     usageSummary === undefined ||
     activityStats === undefined ||
     totalCounts === undefined;
-
-  // Virtualization for model table
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: spendByModel?.length ?? 0,
-    getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 48,
-    overscan: 5,
-  });
 
   if (isLoading) {
     return (
@@ -587,10 +577,7 @@ function UsagePageContent() {
                 {spendByModel && spendByModel.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-3">Model Details</h4>
-                    <ScrollArea
-                      ref={tableContainerRef}
-                      className="h-[400px] border rounded-lg"
-                    >
+                    <ScrollArea className="h-[400px] border rounded-lg">
                       <Table>
                         <TableHeader className="sticky top-0 bg-background z-10">
                           <TableRow>
@@ -608,76 +595,25 @@ function UsagePageContent() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {spendByModel.length > 20 ? (
-                            <tr>
-                              <td colSpan={5}>
-                                <div
-                                  style={{
-                                    height: `${rowVirtualizer.getTotalSize()}px`,
-                                    position: "relative",
-                                  }}
-                                >
-                                  {rowVirtualizer
-                                    .getVirtualItems()
-                                    .map((row) => {
-                                      const model = spendByModel[row.index];
-                                      return (
-                                        <TableRow
-                                          key={model.model}
-                                          style={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            width: "100%",
-                                            transform: `translateY(${row.start}px)`,
-                                          }}
-                                        >
-                                          <TableCell className="font-mono text-xs truncate max-w-[200px]">
-                                            {model.model}
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                            {model.requestCount}
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                            {formatCompactNumber(
-                                              model.totalInputTokens,
-                                            )}
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                            {formatCompactNumber(
-                                              model.totalOutputTokens,
-                                            )}
-                                          </TableCell>
-                                          <TableCell className="text-right">
-                                            {formatCurrency(model.totalCost)}
-                                          </TableCell>
-                                        </TableRow>
-                                      );
-                                    })}
-                                </div>
-                              </td>
-                            </tr>
-                          ) : (
-                            spendByModel.map((model) => (
-                              <TableRow key={model.model}>
-                                <TableCell className="font-mono text-xs truncate max-w-[200px]">
-                                  {model.model}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {model.requestCount}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCompactNumber(model.totalInputTokens)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCompactNumber(model.totalOutputTokens)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {formatCurrency(model.totalCost)}
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
+                          {spendByModel.map((model) => (
+                            <TableRow key={model.model}>
+                              <TableCell className="font-mono text-xs truncate max-w-[200px]">
+                                {model.model}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {model.requestCount}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCompactNumber(model.totalInputTokens)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCompactNumber(model.totalOutputTokens)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {formatCurrency(model.totalCost)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
                         </TableBody>
                       </Table>
                     </ScrollArea>

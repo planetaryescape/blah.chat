@@ -2,30 +2,81 @@
 
 import { TourProvider, useTour } from "@reactour/tour";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { api } from "@/convex/_generated/api";
 import { useDarkMode } from "@/hooks/useDarkMode";
 
 /**
+ * Controller component that must be inside TourProvider to access useTour()
+ */
+function TourController({ onComplete }: { onComplete: () => void }) {
+  const { setIsOpen, setCurrentStep, isOpen } = useTour();
+  const hasStartedRef = useRef(false);
+
+  // Open tour after a delay
+  useEffect(() => {
+    if (hasStartedRef.current) return;
+
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (isMobile) return;
+
+    const timer = setTimeout(() => {
+      setCurrentStep(0);
+      setIsOpen(true);
+      hasStartedRef.current = true;
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [setIsOpen, setCurrentStep]);
+
+  // Track when tour closes to call onComplete
+  useEffect(() => {
+    if (hasStartedRef.current && !isOpen) {
+      onComplete();
+    }
+  }, [isOpen, onComplete]);
+
+  return null;
+}
+
+/**
+ * Reusable keyboard shortcut component
+ */
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
+      {children}
+    </kbd>
+  );
+}
+
+/**
  * Tour steps configuration
- * Using @reactour/tour which supports React 19 (unlike react-joyride)
+ * Focused on power-user features users won't discover on their own
  */
 const TOUR_STEPS = [
+  {
+    selector: '[data-tour="sidebar"]',
+    content: (
+      <div className="space-y-2">
+        <p className="font-semibold">Command Bar</p>
+        <p className="text-sm opacity-80">
+          Navigate anywhere with <Kbd>Ctrl+K</Kbd>. Search conversations
+          semantically, change themes, open settings, jump to templates —
+          everything&apos;s a keystroke away.
+        </p>
+      </div>
+    ),
+    position: "right" as const,
+  },
   {
     selector: '[data-tour="input"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold">Type Your Message</p>
+        <p className="font-semibold">Built for Speed</p>
         <p className="text-sm opacity-80">
-          This is where you chat with AI. Press{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
-            Enter
-          </kbd>{" "}
-          to send, or{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
-            Cmd+K
-          </kbd>{" "}
-          to open quick commands.
+          <Kbd>Alt+N</Kbd> starts a new chat, <Kbd>Cmd+J</Kbd> switches models
+          instantly, <Kbd>Cmd+;</Kbd> applies a template. No clicking required.
         </p>
       </div>
     ),
@@ -35,13 +86,11 @@ const TOUR_STEPS = [
     selector: '[data-tour="model-selector"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold">Choose Your AI Model</p>
+        <p className="font-semibold">blah Remembers</p>
         <p className="text-sm opacity-80">
-          Switch between different AI models anytime. Press{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
-            Cmd+M
-          </kbd>{" "}
-          for quick access.
+          Important details are remembered across all your chats. Ask blah to
+          recall something from a past conversation, or tell it to remember (or
+          forget) specific facts.
         </p>
       </div>
     ),
@@ -51,61 +100,70 @@ const TOUR_STEPS = [
     selector: '[data-tour="comparison"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold">Compare Responses</p>
+        <p className="font-semibold">Built-in Tools</p>
         <p className="text-sm opacity-80">
-          Get answers from multiple models at once and see which performs best
-          for your question.
+          Need to run code? Search the web? blah has built-in tools for Python,
+          JavaScript, web search, and more — just ask.
         </p>
       </div>
     ),
     position: "bottom" as const,
   },
   {
-    selector: '[data-tour="sidebar"]',
+    selector: '[data-tour="projects"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold">Your Conversations</p>
+        <p className="font-semibold">Projects</p>
         <p className="text-sm opacity-80">
-          All your chat history is here. Use{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
-            Cmd+1-9
-          </kbd>{" "}
-          to jump to recent conversations.
+          Group related conversations, notes, tasks, and files together. Perfect
+          for keeping context organized across longer efforts.
         </p>
       </div>
     ),
     position: "right" as const,
   },
   {
-    selector: '[data-tour="new-chat"]',
+    selector: '[data-tour="feedback"]',
     content: (
       <div className="space-y-2">
-        <p className="font-semibold">Start Fresh</p>
+        <p className="font-semibold">We&apos;re Listening</p>
         <p className="text-sm opacity-80">
-          Click here or press{" "}
-          <kbd className="px-1.5 py-0.5 text-xs font-semibold rounded bg-black/10 dark:bg-white/10 border border-current/20">
-            Cmd+Shift+N
-          </kbd>{" "}
-          to start a new conversation anytime.
+          Found a bug? Have an idea? The feedback button is always here. We read
+          every message.
         </p>
       </div>
     ),
     position: "bottom" as const,
   },
+  {
+    // Final step - no selector, appears centered
+    selector: "body",
+    content: (
+      <div className="space-y-2 text-center">
+        <p className="font-semibold">You&apos;re Ready</p>
+        <p className="text-sm opacity-80">
+          That&apos;s the highlights. Explore the sidebar, try the shortcuts,
+          and make blah work the way you think.
+        </p>
+      </div>
+    ),
+    position: "center" as const,
+  },
 ];
 
 /**
- * Inner tour controller that manages tour state based on onboarding data
+ * Onboarding tour component using @reactour/tour
+ * React 19 compatible replacement for react-joyride
  */
-function TourController() {
-  const { setIsOpen, setCurrentStep } = useTour();
+export function OnboardingTour({ children }: { children: React.ReactNode }) {
+  const { isDarkMode, isLoaded: themeLoaded } = useDarkMode();
 
   // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
   const onboarding = useQuery(api.onboarding.getOnboardingState);
   const initializeOnboarding = useMutation(api.onboarding.initializeOnboarding);
   const completeTour = useMutation(api.onboarding.completeTour);
 
-  const [hasStarted, setHasStarted] = useState(false);
+  const hasCompletedRef = useRef(false);
 
   // Initialize onboarding if needed
   useEffect(() => {
@@ -115,53 +173,12 @@ function TourController() {
     }
   }, [onboarding, initializeOnboarding]);
 
-  // Start tour if conditions are met
-  useEffect(() => {
-    if (!onboarding || hasStarted) return;
-
-    const shouldRun = !onboarding.tourCompleted && !onboarding.tourSkipped;
-
-    // Skip on mobile
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      return;
-    }
-
-    if (shouldRun) {
-      const timer = setTimeout(() => {
-        setCurrentStep(0);
-        setIsOpen(true);
-        setHasStarted(true);
-      }, 1500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [onboarding, hasStarted, setIsOpen, setCurrentStep]);
-
-  // Handle tour completion - listen for tour close
-  useEffect(() => {
-    const handleTourEnd = async () => {
-      if (hasStarted) {
-        await completeTour({ skipped: false });
-      }
-    };
-
-    // This will be called when the tour closes
-    return () => {
-      if (hasStarted) {
-        handleTourEnd();
-      }
-    };
-  }, [hasStarted, completeTour]);
-
-  return null;
-}
-
-/**
- * Onboarding tour component using @reactour/tour
- * React 19 compatible replacement for react-joyride
- */
-export function OnboardingTour({ children }: { children: React.ReactNode }) {
-  const { isDarkMode, isLoaded: themeLoaded } = useDarkMode();
+  // Handle tour completion - called when tour closes
+  const handleTourComplete = useCallback(() => {
+    if (hasCompletedRef.current) return;
+    hasCompletedRef.current = true;
+    completeTour({ skipped: false });
+  }, [completeTour]);
 
   // Only apply styles after theme is loaded
   const styles = themeLoaded
@@ -199,6 +216,17 @@ export function OnboardingTour({ children }: { children: React.ReactNode }) {
       }
     : {};
 
+  // Don't render TourProvider at all if onboarding is completed/skipped
+  // This completely removes any tour-related event listeners
+  if (onboarding && (onboarding.tourCompleted || onboarding.tourSkipped)) {
+    return <>{children}</>;
+  }
+
+  // If still loading onboarding state, render children without tour
+  if (onboarding === undefined) {
+    return <>{children}</>;
+  }
+
   return (
     <TourProvider
       steps={TOUR_STEPS}
@@ -211,9 +239,10 @@ export function OnboardingTour({ children }: { children: React.ReactNode }) {
       disableDotsNavigation={false}
       scrollSmooth
       inViewThreshold={100}
+      disableFocusLock
       onClickMask={() => {}}
     >
-      <TourController />
+      <TourController onComplete={handleTourComplete} />
       {children}
     </TourProvider>
   );

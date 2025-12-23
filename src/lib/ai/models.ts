@@ -1,10 +1,11 @@
 import { computeModelMetrics } from "./benchmarks";
-import type { ProviderName } from "./providers";
+import type { GatewayName } from "./providers";
 import type { ReasoningConfig } from "./reasoning/types";
 import type { BenchmarkScores, ComputedMetrics, SpeedTier } from "./types";
 
 export interface ModelConfig {
   id: string;
+  /** Model creator/vendor (OpenAI, Anthropic, etc.) - used for grouping and icons */
   provider:
     | "openai"
     | "anthropic"
@@ -40,14 +41,14 @@ export interface ModelConfig {
   isLocal?: boolean;
   actualModelId?: string;
   reasoning?: ReasoningConfig;
-  /** Fallback provider order for gateway routing (e.g., ["cerebras", "groq"]) */
-  providerOrder?: string[];
+  /** Fallback inference hosts within Vercel AI Gateway (e.g., ["cerebras", "groq"]) */
+  hostOrder?: string[];
   /** Mark preview/beta/experimental models */
   isExperimental?: boolean;
   /** Knowledge cutoff date for the model (e.g., "November 2025", "Real-time search") */
   knowledgeCutoff?: string;
-  /** Preferred provider SDK to use. Defaults to "gateway" (Vercel AI Gateway) */
-  preferredProvider?: ProviderName;
+  /** Gateway/SDK for routing requests. Defaults to "vercel" (Vercel AI Gateway) */
+  gateway?: GatewayName;
   /** User-friendly plain-language description for non-technical users */
   userFriendlyDescription?: string;
   /** Technical use case summary for power users */
@@ -58,6 +59,8 @@ export interface ModelConfig {
   speedTier?: SpeedTier;
   /** Mark as pro/premium model requiring tier access */
   isPro?: boolean;
+  /** Hide from model picker - for internal app ops only */
+  isInternalOnly?: boolean;
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
@@ -209,10 +212,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 131000,
     pricing: { input: 0.1, output: 0.5 },
     capabilities: ["function-calling", "thinking"],
-    providerOrder: ["cerebras", "groq"],
+    hostOrder: ["cerebras", "groq"],
     userFriendlyDescription:
       "Instant responses. Blazing-fast model for when you need answers right now.",
     bestFor: "Ultra-low latency, real-time applications, edge deployment",
+    isInternalOnly: true,
   },
   "openai:gpt-oss-120b": {
     id: "openai:gpt-oss-120b",
@@ -223,10 +227,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 131000,
     pricing: { input: 0.15, output: 0.6 },
     capabilities: ["function-calling", "thinking"],
-    providerOrder: ["cerebras", "groq", "fireworks"],
+    hostOrder: ["cerebras", "groq", "fireworks"],
     userFriendlyDescription:
       "Powerful and versatile. Handles complex tasks with strong reasoning at very fast speeds.",
     bestFor: "General purpose, fast reasoning, high-performance tasks",
+    isInternalOnly: true,
   },
 
   // Anthropic
@@ -605,10 +610,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.59, output: 0.79 },
     capabilities: ["function-calling"],
-    providerOrder: ["cerebras", "groq"],
+    hostOrder: ["cerebras", "groq"],
     userFriendlyDescription:
       "Powerful open-source model. Great for coding, speaks many languages, and you control where it runs.",
     bestFor: "Open-source, coding, multilingual tasks, local deployment",
+    isInternalOnly: true,
   },
   "meta:llama-4-maverick": {
     id: "meta:llama-4-maverick",
@@ -619,7 +625,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.2, output: 0.6 },
     capabilities: ["vision", "function-calling"],
-    providerOrder: ["cerebras", "groq"],
+    hostOrder: ["cerebras", "groq"],
     userFriendlyDescription:
       "Next-gen Llama. Largest open model with coding, reasoning, and image understanding.",
     bestFor: "Advanced coding, multimodal tasks, open-source",
@@ -632,7 +638,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.1, output: 0.3 },
     capabilities: ["function-calling"],
-    providerOrder: ["cerebras", "groq"],
+    hostOrder: ["cerebras", "groq"],
     userFriendlyDescription:
       "Fast and efficient. Compact Llama 4 model great for everyday tasks at low cost.",
     bestFor: "General purpose, cost efficiency, fast processing",
@@ -690,6 +696,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Massive coding model. 480 billion parameters specialized for sophisticated code generation.",
     bestFor: "Advanced coding, large-scale projects, agentic development",
+    isInternalOnly: true,
   },
 
   // Moonshot AI Kimi Models (via Vercel AI Gateway)
@@ -702,10 +709,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 131000,
     pricing: { input: 0.6, output: 2.5 },
     capabilities: ["function-calling"],
-    providerOrder: ["deepinfra", "fireworks"],
+    hostOrder: ["deepinfra", "fireworks"],
     userFriendlyDescription:
       "Agentic powerhouse. Excels at using tools and generating code with sophisticated reasoning.",
     bestFor: "Agentic workflows, tool use, code synthesis",
+    isInternalOnly: true,
   },
   "moonshotai:kimi-k2-thinking": {
     id: "moonshotai:kimi-k2-thinking",
@@ -716,10 +724,11 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 262000,
     pricing: { input: 0.6, output: 2.5, cached: 0.15 },
     capabilities: ["function-calling", "thinking"],
-    providerOrder: ["fireworks", "deepinfra"],
+    hostOrder: ["fireworks", "deepinfra"],
     userFriendlyDescription:
       "Advanced thinking agent. Can make hundreds of tool calls in sequence for complex multi-step tasks.",
     bestFor: "Complex agentic tasks, multi-step reasoning, advanced workflows",
+    isInternalOnly: true,
   },
 
   // MiniMax Models (via Vercel AI Gateway)
@@ -732,7 +741,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 205000,
     pricing: { input: 0.3, output: 1.2, cached: 0.03 },
     capabilities: ["function-calling"],
-    providerOrder: ["deepinfra"],
+    hostOrder: ["deepinfra"],
     userFriendlyDescription:
       "Efficient powerhouse. Compact model with elite coding and agentic performance.",
     bestFor: "Coding, agentic tasks, efficient performance",
@@ -748,7 +757,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 200000,
     pricing: { input: 0.45, output: 1.8, cached: 0.11 },
     capabilities: ["function-calling"],
-    providerOrder: ["deepinfra", "fireworks"],
+    hostOrder: ["deepinfra", "fireworks"],
     userFriendlyDescription:
       "Versatile Chinese model. Strong at coding, reasoning, and agentic tasks with large context.",
     bestFor: "Coding, agentic applications, long-context tasks",
@@ -778,6 +787,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Lightweight agent. Compact model optimized for agentic workflows and tool use.",
     bestFor: "Agentic tasks, cost-efficient, lightweight",
+    isInternalOnly: true,
   },
 
   // DeepSeek Models
@@ -789,7 +799,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 128000,
     pricing: { input: 0.55, output: 2.19 },
     capabilities: ["thinking", "function-calling"],
-    providerOrder: ["cerebras", "groq"],
+    hostOrder: ["cerebras", "groq"],
     reasoning: {
       type: "deepseek-tag-extraction",
       tagName: "think",
@@ -835,6 +845,152 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Pure reasoning mode. Focused on complex problem-solving without tool use distractions.",
     bestFor: "Pure reasoning, complex analysis, thought-intensive tasks",
+  },
+
+  // Free Models via OpenRouter
+  "openrouter:deepseek-r1-0528": {
+    id: "openrouter:deepseek-r1-0528",
+    provider: "deepseek",
+    name: "DeepSeek R1 0528",
+    description: "671B MoE reasoning model via OpenRouter (May 2025 release).",
+    contextWindow: 163840,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["thinking"],
+    actualModelId: "deepseek/deepseek-r1-0528:free",
+    gateway: "openrouter",
+    reasoning: {
+      type: "deepseek-tag-extraction",
+      tagName: "think",
+      applyMiddleware: true,
+    },
+    knowledgeCutoff: "May 2025",
+    userFriendlyDescription:
+      "Powerful reasoning at zero cost. 671B parameters with visible chain-of-thought.",
+    bestFor: "Complex reasoning, experimentation, cost-conscious users",
+  },
+  "openrouter:devstral-2512": {
+    id: "openrouter:devstral-2512",
+    provider: "mistral",
+    name: "Devstral 2512",
+    description: "123B agentic coding model by Mistral AI.",
+    contextWindow: 262144,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["function-calling"],
+    actualModelId: "mistralai/devstral-2512:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "State-of-the-art agentic coding. Explores codebases and orchestrates multi-file changes.",
+    bestFor: "Code generation, agentic coding tasks, large codebases",
+  },
+  "openrouter:gpt-oss-120b": {
+    id: "openrouter:gpt-oss-120b",
+    provider: "openai",
+    name: "GPT-OSS 120B",
+    description: "117B MoE model with configurable reasoning.",
+    contextWindow: 131072,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "openai/gpt-oss-120b:free",
+    gateway: "openrouter",
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: false,
+    },
+    userFriendlyDescription:
+      "Large open-source model with reasoning. 117B params, 5.1B active per pass.",
+    bestFor: "Reasoning tasks, complex analysis, cost-conscious users",
+  },
+  "openrouter:gpt-oss-20b": {
+    id: "openrouter:gpt-oss-20b",
+    provider: "openai",
+    name: "GPT-OSS 20B",
+    description: "21B MoE model optimized for low-latency inference.",
+    contextWindow: 131072,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "openai/gpt-oss-20b:free",
+    gateway: "openrouter",
+    reasoning: {
+      type: "openai-reasoning-effort",
+      effortMapping: { low: "low", medium: "medium", high: "high" },
+      summaryLevel: "detailed",
+      useResponsesAPI: false,
+    },
+    userFriendlyDescription:
+      "Fast open-source reasoning model. 21B params, 3.6B active per pass.",
+    bestFor: "Quick reasoning, low-latency tasks, cost-conscious users",
+  },
+  "openrouter:glm-4.5-air": {
+    id: "openrouter:glm-4.5-air",
+    provider: "zai",
+    name: "GLM-4.5 Air",
+    description: "Lightweight MoE for agent-centric applications.",
+    contextWindow: 131072,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["thinking", "function-calling"],
+    actualModelId: "z-ai/glm-4.5-air:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Agent-focused model with optional reasoning mode. Lightweight and fast.",
+    bestFor: "Agentic tasks, tool use, real-time interaction",
+  },
+  "openrouter:qwen3-coder": {
+    id: "openrouter:qwen3-coder",
+    provider: "alibaba",
+    name: "Qwen3 Coder",
+    description: "480B coding specialist with 35B active params.",
+    contextWindow: 262000,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["function-calling"],
+    actualModelId: "qwen/qwen3-coder:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Massive coding model at zero cost. 480B total params, optimized for code tasks.",
+    bestFor: "Code generation, agentic coding, long-context reasoning",
+  },
+  "openrouter:kimi-k2": {
+    id: "openrouter:kimi-k2",
+    provider: "kimi",
+    name: "Kimi K2",
+    description: "1T param MoE with 32B active, strong coding/reasoning.",
+    contextWindow: 32768,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["function-calling"],
+    actualModelId: "moonshotai/kimi-k2:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Trillion-parameter model excelling at coding and reasoning benchmarks.",
+    bestFor: "Code synthesis, reasoning, tool use tasks",
+  },
+  "openrouter:llama-3.3-70b": {
+    id: "openrouter:llama-3.3-70b",
+    provider: "meta",
+    name: "Llama 3.3 70B",
+    description: "Meta's multilingual dialogue model.",
+    contextWindow: 131072,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["function-calling"],
+    actualModelId: "meta-llama/llama-3.3-70b-instruct:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Strong multilingual model supporting 8 languages including English, German, French.",
+    bestFor: "Multilingual dialogue, general purpose, instruction following",
+  },
+  "openrouter:gemini-2.0-flash-exp": {
+    id: "openrouter:gemini-2.0-flash-exp",
+    provider: "google",
+    name: "Gemini 2.0 Flash Exp",
+    description: "Experimental Gemini with 1M context and fast TTFT.",
+    contextWindow: 1048576,
+    pricing: { input: 0, output: 0 },
+    capabilities: ["vision", "function-calling"],
+    actualModelId: "google/gemini-2.0-flash-exp:free",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Experimental Gemini with massive 1M context window and fast time-to-first-token.",
+    bestFor: "Long documents, multimodal tasks, fast responses",
   },
 };
 

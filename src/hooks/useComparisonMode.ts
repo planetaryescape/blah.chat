@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { analytics } from "@/lib/analytics";
 
 export function useComparisonMode() {
@@ -8,7 +8,7 @@ export function useComparisonMode() {
     null,
   );
 
-  const startComparison = (models: string[]) => {
+  const startComparison = useCallback((models: string[]) => {
     if (models.length < 2) {
       console.warn("Cannot start comparison: Select at least 2 models");
       return false;
@@ -27,18 +27,16 @@ export function useComparisonMode() {
     });
 
     return true;
-  };
+  }, []);
 
-  const exitComparison = () => {
+  const exitComparison = useCallback(() => {
     setIsActive(false);
     setSelectedModels([]);
     setActiveComparisonId(null);
 
-    // Track comparison exited
-    analytics.track("comparison_exited", {
-      hadActiveComparison: !!activeComparisonId,
-    });
-  };
+    // Track comparison exited (use ref pattern to avoid stale closure)
+    analytics.track("comparison_exited", {});
+  }, []);
 
   return {
     isActive,

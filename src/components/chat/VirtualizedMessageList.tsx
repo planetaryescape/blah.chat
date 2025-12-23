@@ -39,6 +39,7 @@ interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   selectedModel?: string;
   autoScroll?: boolean;
+  isGenerating?: boolean;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -53,6 +54,7 @@ export function VirtualizedMessageList({
   messages,
   selectedModel,
   autoScroll = true,
+  isGenerating = false,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -66,6 +68,7 @@ export function VirtualizedMessageList({
     useAutoScroll({
       threshold: 100,
       animationDuration: 400,
+      disableAutoScroll: isGenerating,
     });
 
   // Track if we've scrolled to highlighted message
@@ -233,17 +236,29 @@ export function VirtualizedMessageList({
     const prevCount = prevMessageCount.current;
 
     // New message was added
-    if (currentCount > prevCount) {
-      // Use wasAtBottomRef to check position BEFORE message was added
-      // (isAtBottom state will be stale/false because content just grew)
-      if (autoScroll && wasAtBottomRef.current) {
-        // Use "auto" (instant) scroll for immediate feedback
-        scrollToBottom("auto");
+    if (currentCount > prevCount && autoScroll && wasAtBottomRef.current) {
+      const newMessage = messages[messages.length - 1];
+
+      if (newMessage.role === "user") {
+        // User message: scroll to near-top with 50px hint of previous content
+        requestAnimationFrame(() => {
+          const element = document.getElementById(`message-${newMessage._id}`);
+          const container = containerRef.current;
+          if (element && container) {
+            const elementTop = element.offsetTop;
+            const hintOffset = 50; // Show small hint of previous content
+            container.scrollTo({
+              top: Math.max(0, elementTop - hintOffset),
+              behavior: "smooth",
+            });
+          }
+        });
       }
+      // Assistant messages: NO auto-scroll (user reads at own pace)
     }
 
     prevMessageCount.current = currentCount;
-  }, [messages.length, autoScroll, scrollToBottom, highlightMessageId]);
+  }, [messages, autoScroll, highlightMessageId]);
 
   if (messages.length === 0) {
     return (
@@ -276,7 +291,6 @@ export function VirtualizedMessageList({
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
-            scrollPaddingTop: "80px",
           }}
         >
           <div
@@ -369,7 +383,6 @@ export function VirtualizedMessageList({
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
-          scrollPaddingTop: "80px",
         }}
       >
         <div

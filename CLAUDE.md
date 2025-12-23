@@ -538,7 +538,7 @@ All AI model definitions and configuration must live in `src/lib/ai/models.ts`.
   - Single source of truth for model IDs, pricing, and capabilities.
   - Easier to swap models globally (e.g., deprecating a model).
   - Prevents typos and configuration drift.
-  - Simplifies integration with Vercel AI Gateway (provider order, parameters).
+  - Simplifies integration with Vercel AI Gateway (host order fallbacks, parameters).
 
 ---
 

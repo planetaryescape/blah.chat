@@ -51,7 +51,6 @@ export function MessageListSkeleton({
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
-          scrollPaddingTop: "80px",
         }}
       >
         {/* Grid structure matches VirtualizedMessageList exactly */}

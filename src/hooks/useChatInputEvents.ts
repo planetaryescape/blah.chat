@@ -1,4 +1,4 @@
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 interface UseChatInputEventsProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -77,8 +77,17 @@ export function useChatInputEvents({
   }, [textareaRef]);
 
   // Autofocus on empty state (skip mobile/touch)
+  // Only run once on mount when empty, not on every re-render
+  const hasAutoFocused = useRef(false);
   useEffect(() => {
-    if (isEmpty && !isMobile && !isTouchDevice && textareaRef.current) {
+    if (
+      isEmpty &&
+      !isMobile &&
+      !isTouchDevice &&
+      textareaRef.current &&
+      !hasAutoFocused.current
+    ) {
+      hasAutoFocused.current = true;
       const timer = setTimeout(() => {
         textareaRef.current?.focus();
       }, 300);

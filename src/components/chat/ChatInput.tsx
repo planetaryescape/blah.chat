@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { Loader2, Send, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -61,7 +61,7 @@ interface ChatInputProps {
   onOptimisticUpdate?: (messages: OptimisticMessage[]) => void;
 }
 
-export function ChatInput({
+export const ChatInput = memo(function ChatInput({
   conversationId,
   isGenerating,
   selectedModel,
@@ -142,6 +142,12 @@ export function ChatInput({
           setQuote(null);
           onAttachmentsChange([]);
           setIsSending(false);
+          // Refocus input after sending (unless on mobile)
+          if (!isMobile) {
+            requestAnimationFrame(() => {
+              textareaRef.current?.focus();
+            });
+          }
         },
         onError: (error) => {
           if (
@@ -434,4 +440,4 @@ export function ChatInput({
       />
     </div>
   );
-}
+});

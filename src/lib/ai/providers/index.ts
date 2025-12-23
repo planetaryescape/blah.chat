@@ -1,20 +1,21 @@
 /**
- * AI Provider exports
+ * AI Gateway/SDK exports
  *
- * Each provider is a configured client for a specific AI service.
- * The gateway provider is the default and routes through Vercel AI Gateway.
+ * Each export is a configured client for routing AI requests.
+ * "vercel" is the default and routes through Vercel AI Gateway.
  */
 
 export { anthropic } from "./anthropic";
 export { cerebras } from "./cerebras";
-export { gateway } from "./gateway";
+export { vercel } from "./gateway";
 export { google } from "./google";
 export { groq } from "./groq";
 export { openai } from "./openai";
 export { openrouter } from "./openrouter";
 
-export type ProviderName =
-  | "gateway"
+/** Gateway/SDK for routing requests (Vercel AI Gateway, OpenRouter, or direct SDK) */
+export type GatewayName =
+  | "vercel"
   | "openai"
   | "anthropic"
   | "google"

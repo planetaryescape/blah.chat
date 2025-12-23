@@ -122,9 +122,14 @@ export const ChatInput = memo(function ChatInput({
     if ((!input.trim() && !quote) || isSending || uploading) return;
 
     setIsSending(true);
-    const messageContent = quote
-      ? `> ${quote}\n\n${input.trim()}`
-      : input.trim();
+
+    // Capture values before clearing (for restore on error)
+    const originalInput = input.trim();
+    const originalQuote = quote;
+    const originalAttachments = [...attachments];
+    const messageContent = originalQuote
+      ? `> ${originalQuote}\n\n${originalInput}`
+      : originalInput;
 
     sendMessage(
       {
@@ -137,29 +142,35 @@ export const ChatInput = memo(function ChatInput({
         attachments: attachments.length > 0 ? attachments : undefined,
       },
       {
-        onSuccess: () => {
-          setInput("");
-          setQuote(null);
-          onAttachmentsChange([]);
-          setIsSending(false);
-          // Refocus input after sending (unless on mobile)
-          if (!isMobile) {
-            requestAnimationFrame(() => {
-              textareaRef.current?.focus();
-            });
-          }
-        },
         onError: (error) => {
+          // Only restore if user hasn't started typing something new
+          const currentInput = textareaRef.current?.value?.trim() || "";
+          if (!currentInput) {
+            setInput(originalInput);
+            setQuote(originalQuote);
+            onAttachmentsChange(originalAttachments);
+          }
+
           if (
             error instanceof Error &&
             error.message.includes("Daily message limit")
           ) {
             setShowRateLimitDialog(true);
           }
-          setIsSending(false);
         },
       },
     );
+
+    // Clear immediately for instant UX (message "flows" from input to chat)
+    setInput("");
+    setQuote(null);
+    onAttachmentsChange([]);
+    setIsSending(false);
+
+    // Refocus after React processes the state update (enables the textarea)
+    if (!isMobile) {
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
   };
 
   // Use extracted keyboard hook

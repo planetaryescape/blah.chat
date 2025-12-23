@@ -73,7 +73,7 @@ export function useSendMessage(
       );
     },
 
-    onMutate: async (variables) => {
+    onMutate: (variables) => {
       // Create optimistic user message
       const optimisticUserMsg: OptimisticMessage = {
         _id: `temp-user-${Date.now()}` as `temp-${string}`,

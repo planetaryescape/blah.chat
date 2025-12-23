@@ -234,6 +234,7 @@ import type * as usage from "../usage.js";
 import type * as usage_checkBudget from "../usage/checkBudget.js";
 import type * as usage_mutations from "../usage/mutations.js";
 import type * as usage_queries from "../usage/queries.js";
+import type * as usage_rankings from "../usage/rankings.js";
 import type * as users from "../users.js";
 import type * as users_constants from "../users/constants.js";
 import type * as users_preferences from "../users/preferences.js";
@@ -472,6 +473,7 @@ declare const fullApi: ApiFromModules<{
   "usage/checkBudget": typeof usage_checkBudget;
   "usage/mutations": typeof usage_mutations;
   "usage/queries": typeof usage_queries;
+  "usage/rankings": typeof usage_rankings;
   users: typeof users;
   "users/constants": typeof users_constants;
   "users/preferences": typeof users_preferences;

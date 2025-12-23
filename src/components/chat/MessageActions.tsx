@@ -54,6 +54,8 @@ export function MessageActions({
   const stop = useMutation(api.chat.stopGeneration);
   const regenerate = useMutation(api.chat.regenerate);
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const recordAction = useMutation(api.usage.mutations.recordAction);
   const { isMobile } = useMobileDetect();
   const features = useFeatureToggles();
 
@@ -89,6 +91,7 @@ export function MessageActions({
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    recordAction({ actionType: "copy_message", resourceId: message._id });
   };
 
   const handleBranch = async () => {
@@ -96,6 +99,7 @@ export function MessageActions({
       const newConversationId = await branchFromMessage({
         messageId: message._id as Id<"messages">,
       });
+      recordAction({ actionType: "branch_message", resourceId: message._id });
       router.push(`/chat/${newConversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);
@@ -105,12 +109,20 @@ export function MessageActions({
   const handleRegenerate = async () => {
     try {
       await regenerate({ messageId: message._id as Id<"messages"> });
+      recordAction({
+        actionType: "regenerate_message",
+        resourceId: message._id,
+      });
     } catch (error) {
       console.error("Failed to regenerate:", error);
     }
   };
 
   const handleCreatePresentation = () => {
+    recordAction({
+      actionType: "create_presentation",
+      resourceId: message._id,
+    });
     router.push(
       `/slides/new?conversationId=${message.conversationId}&messageId=${message._id}`,
     );
@@ -120,6 +132,11 @@ export function MessageActions({
 
   const handleBookmark = () => {
     setBookmarkDialogOpen(true);
+  };
+
+  const handleSaveAsNoteClick = () => {
+    recordAction({ actionType: "save_as_note", resourceId: message._id });
+    setShowCreateNote(true);
   };
 
   // Mobile: Single menu with all actions
@@ -133,7 +150,7 @@ export function MessageActions({
             isUser={isUser}
             onCopy={handleCopy}
             onSaveAsNote={
-              features.showNotes ? () => setShowCreateNote(true) : undefined
+              features.showNotes ? handleSaveAsNoteClick : undefined
             }
             onBookmark={features.showBookmarks ? handleBookmark : undefined}
             onCreatePresentation={
@@ -273,7 +290,7 @@ export function MessageActions({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={() => setShowCreateNote(true)}
+                    onClick={handleSaveAsNoteClick}
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span className="sr-only">Save as Note</span>

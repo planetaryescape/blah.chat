@@ -189,6 +189,417 @@ export const getConversationCosts = query({
 });
 
 // ============================================
+// USER QUERIES (Extended Analytics)
+// ============================================
+
+// Helper to get current user
+async function getCurrentUser(ctx: any) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Unauthorized");
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q: any) => q.eq("clerkId", identity.subject))
+    .first();
+
+  if (!user) throw new Error("User not found");
+  return user;
+}
+
+export const getUsageSummary = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
+    const totalInputTokens = records.reduce((sum, r) => sum + r.inputTokens, 0);
+    const totalOutputTokens = records.reduce(
+      (sum, r) => sum + r.outputTokens,
+      0,
+    );
+    const totalTokens = totalInputTokens + totalOutputTokens;
+    const totalRequests = records.length;
+    const messageCount = records.reduce(
+      (sum, r) => sum + (r.messageCount || 0),
+      0,
+    );
+
+    return {
+      totalCost,
+      totalTokens,
+      totalInputTokens,
+      totalOutputTokens,
+      totalRequests,
+      avgCostPerRequest: totalRequests > 0 ? totalCost / totalRequests : 0,
+      messageCount,
+    };
+  },
+});
+
+export const getCostByType = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const textGeneration = { cost: 0, tokens: 0 };
+    const tts = { cost: 0, characters: 0 };
+    const images = { cost: 0, count: 0 };
+    const slides = { cost: 0, count: 0 };
+    const transcription = { cost: 0 };
+
+    for (const record of records) {
+      const modelLower = record.model.toLowerCase();
+
+      if (modelLower.includes("whisper")) {
+        transcription.cost += record.cost;
+      } else if (modelLower.includes("tts")) {
+        tts.cost += record.cost;
+        tts.characters += record.outputTokens;
+      } else if (
+        modelLower.includes("dall-e") ||
+        modelLower.includes("dalle")
+      ) {
+        images.cost += record.cost;
+        images.count += 1;
+      } else if (
+        modelLower.includes("image") &&
+        (modelLower.includes("gemini") || modelLower.includes("google"))
+      ) {
+        slides.cost += record.cost;
+        slides.count += 1;
+      } else {
+        textGeneration.cost += record.cost;
+        textGeneration.tokens += record.inputTokens + record.outputTokens;
+      }
+    }
+
+    return { textGeneration, tts, images, slides, transcription };
+  },
+});
+
+export const getActivityStats = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+
+    const [notes, projects, bookmarks, templates, presentations, tasks] =
+      await Promise.all([
+        ctx.db
+          .query("notes")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect(),
+        ctx.db
+          .query("projects")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect(),
+        ctx.db
+          .query("bookmarks")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect(),
+        ctx.db
+          .query("scheduledPrompts")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect(),
+        ctx.db
+          .query("presentations")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect(),
+        ctx.db
+          .query("tasks")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect(),
+      ]);
+
+    return {
+      notesCount: notes.length,
+      projectsCount: projects.length,
+      bookmarksCount: bookmarks.length,
+      templatesCount: templates.length,
+      slidesCount: presentations.length,
+      tasksCount: tasks.length,
+    };
+  },
+});
+
+export const getTotalCounts = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+
+    const [conversations, files] = await Promise.all([
+      ctx.db
+        .query("conversations")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("files")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+    ]);
+
+    // Count images from usageRecords (dall-e usage)
+    const usageRecords = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const imagesGenerated = usageRecords.filter((r) => {
+      const modelLower = r.model.toLowerCase();
+      return modelLower.includes("dall-e") || modelLower.includes("dalle");
+    }).length;
+
+    return {
+      conversationsCount: conversations.length,
+      filesCount: files.length,
+      imagesGenerated,
+    };
+  },
+});
+
+export const getStreakStats = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+
+    // Get all usage dates for user
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // Extract unique dates and sort them
+    const uniqueDates = [...new Set(records.map((r) => r.date))].sort();
+
+    if (uniqueDates.length === 0) {
+      return { currentStreak: 0, longestStreak: 0 };
+    }
+
+    // Calculate streaks
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 1;
+
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000)
+      .toISOString()
+      .split("T")[0];
+
+    // Check if user has activity today or yesterday for current streak
+    const lastActivityDate = uniqueDates[uniqueDates.length - 1];
+    const isActive =
+      lastActivityDate === today || lastActivityDate === yesterday;
+
+    // Calculate longest streak and current streak
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const prevDate = new Date(uniqueDates[i - 1]);
+      const currDate = new Date(uniqueDates[i]);
+      const diffDays = Math.round(
+        (currDate.getTime() - prevDate.getTime()) / 86400000,
+      );
+
+      if (diffDays === 1) {
+        tempStreak++;
+      } else {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+
+    // Calculate current streak (counting backwards from last activity)
+    if (isActive) {
+      currentStreak = 1;
+      for (let i = uniqueDates.length - 2; i >= 0; i--) {
+        const currDate = new Date(uniqueDates[i + 1]);
+        const prevDate = new Date(uniqueDates[i]);
+        const diffDays = Math.round(
+          (currDate.getTime() - prevDate.getTime()) / 86400000,
+        );
+
+        if (diffDays === 1) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    return { currentStreak, longestStreak };
+  },
+});
+
+export const getActivityHeatmap = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+
+    // Get messages from last 365 days
+    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.gte(q.field("createdAt"), oneYearAgo))
+      .collect();
+
+    // Build heatmap: { date: count }
+    const heatmap: Record<string, number> = {};
+
+    for (const msg of messages) {
+      const date = new Date(msg.createdAt).toISOString().split("T")[0];
+      heatmap[date] = (heatmap[date] || 0) + 1;
+    }
+
+    // Convert to array format for 52 weeks
+    const result: { date: string; count: number }[] = [];
+    const today = new Date();
+
+    for (let i = 364; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split("T")[0];
+      result.push({
+        date: dateStr,
+        count: heatmap[dateStr] || 0,
+      });
+    }
+
+    return result;
+  },
+});
+
+export const getPercentileRanking = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+
+    // Get latest ranking for user
+    const ranking = await ctx.db
+      .query("userRankings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .first();
+
+    if (!ranking) {
+      return null;
+    }
+
+    return {
+      overallPercentile: ranking.overallPercentile,
+      modelRankings: ranking.modelRankings,
+      totalActiveUsers: ranking.totalActiveUsers,
+      calculatedAt: ranking.date,
+    };
+  },
+});
+
+export const getActionStats = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+
+    const events = await ctx.db
+      .query("activityEvents")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // Count by eventType
+    const actionCounts: Record<string, number> = {
+      copy_message: 0,
+      bookmark_message: 0,
+      save_as_note: 0,
+      create_presentation: 0,
+      branch_message: 0,
+      regenerate_message: 0,
+    };
+
+    for (const event of events) {
+      if (event.eventType in actionCounts) {
+        actionCounts[event.eventType]++;
+      }
+    }
+
+    return actionCounts;
+  },
+});
+
+export const getSpendByModelDetailed = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    // Group by model with detailed token breakdown
+    const modelTotals = records.reduce(
+      (acc, record) => {
+        const model = record.model;
+        if (!acc[model]) {
+          acc[model] = {
+            model,
+            totalCost: 0,
+            totalInputTokens: 0,
+            totalOutputTokens: 0,
+            requestCount: 0,
+          };
+        }
+        acc[model].totalCost += record.cost;
+        acc[model].totalInputTokens += record.inputTokens;
+        acc[model].totalOutputTokens += record.outputTokens;
+        acc[model].requestCount += 1;
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          model: string;
+          totalCost: number;
+          totalInputTokens: number;
+          totalOutputTokens: number;
+          requestCount: number;
+        }
+      >,
+    );
+
+    return Object.values(modelTotals).sort((a, b) => b.totalCost - a.totalCost);
+  },
+});
+
+// ============================================
 // ADMIN QUERIES (Per-User Analytics)
 // ============================================
 

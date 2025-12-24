@@ -39,6 +39,7 @@ interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   selectedModel?: string;
   autoScroll?: boolean;
+  isGenerating?: boolean;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -53,6 +54,7 @@ export function VirtualizedMessageList({
   messages,
   selectedModel,
   autoScroll = true,
+  isGenerating = false,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -66,6 +68,7 @@ export function VirtualizedMessageList({
     useAutoScroll({
       threshold: 100,
       animationDuration: 400,
+      disableAutoScroll: isGenerating,
     });
 
   // Track if we've scrolled to highlighted message
@@ -232,18 +235,39 @@ export function VirtualizedMessageList({
     const currentCount = messages.length;
     const prevCount = prevMessageCount.current;
 
-    // New message was added
-    if (currentCount > prevCount) {
-      // Use wasAtBottomRef to check position BEFORE message was added
-      // (isAtBottom state will be stale/false because content just grew)
-      if (autoScroll && wasAtBottomRef.current) {
-        // Use "auto" (instant) scroll for immediate feedback
-        scrollToBottom("auto");
+    // New messages were added
+    if (currentCount > prevCount && autoScroll) {
+      // Get only the new messages (since both user + assistant are added together)
+      const newMessages = messages.slice(prevCount);
+      const newUserMessage = newMessages.find((m) => m.role === "user");
+
+      // Scroll to new user message if one was added
+      if (newUserMessage) {
+        requestAnimationFrame(() => {
+          const element = document.getElementById(
+            `message-${newUserMessage._id}`,
+          );
+          const container = containerRef.current;
+          if (element && container) {
+            // Use getBoundingClientRect for accurate position (works with virtualized transforms)
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            // Calculate element's position within container + current scroll
+            const elementTop =
+              elementRect.top - containerRect.top + container.scrollTop;
+            const hintOffset = 50; // Show small hint of previous content
+            container.scrollTo({
+              top: Math.max(0, elementTop - hintOffset),
+              behavior: "smooth",
+            });
+          }
+        });
       }
+      // Assistant messages: NO auto-scroll (user reads at own pace)
     }
 
     prevMessageCount.current = currentCount;
-  }, [messages.length, autoScroll, scrollToBottom, highlightMessageId]);
+  }, [messages, autoScroll, highlightMessageId]);
 
   if (messages.length === 0) {
     return (
@@ -276,7 +300,6 @@ export function VirtualizedMessageList({
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
-            scrollPaddingTop: "80px",
           }}
         >
           <div
@@ -369,7 +392,6 @@ export function VirtualizedMessageList({
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
-          scrollPaddingTop: "80px",
         }}
       >
         <div

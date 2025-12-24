@@ -16,6 +16,7 @@ export function FeedbackButton() {
         onClick={() => setOpen(true)}
         className="text-muted-foreground hover:text-foreground gap-2"
         aria-label="Give feedback"
+        data-tour="feedback"
       >
         <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
         <span className="hidden sm:inline">Give Feedback</span>

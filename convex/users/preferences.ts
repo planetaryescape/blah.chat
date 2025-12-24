@@ -231,6 +231,7 @@ function validatePreference(key: string, value: any): void {
     case "showComparisonStatistics":
     case "enableHybridSearch":
     case "showModelNamesDuringComparison":
+    case "showModelProvider":
     case "sttEnabled":
     case "ttsEnabled":
     case "ttsAutoRead":

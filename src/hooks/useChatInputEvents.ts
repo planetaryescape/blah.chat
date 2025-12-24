@@ -1,4 +1,4 @@
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 interface UseChatInputEventsProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -77,8 +77,17 @@ export function useChatInputEvents({
   }, [textareaRef]);
 
   // Autofocus on empty state (skip mobile/touch)
+  // Only run once on mount when empty, not on every re-render
+  const hasAutoFocused = useRef(false);
   useEffect(() => {
-    if (isEmpty && !isMobile && !isTouchDevice && textareaRef.current) {
+    if (
+      isEmpty &&
+      !isMobile &&
+      !isTouchDevice &&
+      textareaRef.current &&
+      !hasAutoFocused.current
+    ) {
+      hasAutoFocused.current = true;
       const timer = setTimeout(() => {
         textareaRef.current?.focus();
       }, 300);
@@ -87,7 +96,18 @@ export function useChatInputEvents({
   }, [isEmpty, isMobile, isTouchDevice, textareaRef]);
 
   // Auto-focus input after AI message generation completes
+  // Track timeout for cleanup
+  const completionFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   useEffect(() => {
+    // Clear any pending focus timeout
+    if (completionFocusTimerRef.current) {
+      clearTimeout(completionFocusTimerRef.current);
+      completionFocusTimerRef.current = null;
+    }
+
     if (
       !isMobile &&
       lastAssistantMessageStatus === "complete" &&
@@ -96,8 +116,24 @@ export function useChatInputEvents({
       document.activeElement?.tagName !== "TEXTAREA"
     ) {
       setLastCompletedMessageId(lastAssistantMessageId!);
-      setTimeout(() => textareaRef.current?.focus(), 100);
+      completionFocusTimerRef.current = setTimeout(() => {
+        // Only focus if user still isn't in an input
+        if (
+          document.activeElement?.tagName !== "INPUT" &&
+          document.activeElement?.tagName !== "TEXTAREA"
+        ) {
+          textareaRef.current?.focus();
+        }
+        completionFocusTimerRef.current = null;
+      }, 100);
     }
+
+    return () => {
+      if (completionFocusTimerRef.current) {
+        clearTimeout(completionFocusTimerRef.current);
+        completionFocusTimerRef.current = null;
+      }
+    };
   }, [
     lastAssistantMessageStatus,
     lastAssistantMessageId,

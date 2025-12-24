@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 interface UseAutoScrollOptions {
   threshold?: number;
   animationDuration?: number;
+  disableAutoScroll?: boolean;
 }
 
 interface UseAutoScrollReturn {
@@ -15,7 +22,11 @@ interface UseAutoScrollReturn {
 export function useAutoScroll(
   options: UseAutoScrollOptions = {},
 ): UseAutoScrollReturn {
-  const { threshold = 100, animationDuration = 400 } = options;
+  const {
+    threshold = 100,
+    animationDuration = 400,
+    disableAutoScroll = false,
+  } = options;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isAutoScrolling = useRef(false);
@@ -29,15 +40,20 @@ export function useAutoScroll(
   // Refs to avoid stale closures in MutationObserver callback
   const userScrolledUpRef = useRef(userScrolledUp);
   const isAtBottomRef = useRef(isAtBottom);
+  const disableAutoScrollRef = useRef(disableAutoScroll);
 
-  // Keep refs in sync with state
-  useEffect(() => {
+  // Keep refs in sync with state - useLayoutEffect for synchronous update BEFORE MutationObserver
+  useLayoutEffect(() => {
     userScrolledUpRef.current = userScrolledUp;
   }, [userScrolledUp]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     isAtBottomRef.current = isAtBottom;
   }, [isAtBottom]);
+
+  useLayoutEffect(() => {
+    disableAutoScrollRef.current = disableAutoScroll;
+  }, [disableAutoScroll]);
 
   // Detect prefers-reduced-motion preference
   useEffect(() => {
@@ -136,8 +152,12 @@ export function useAutoScroll(
 
     const mutationObserver = new MutationObserver(() => {
       // Use refs for fresh values - avoids stale closure issue
-      // Only auto-scroll if user is at bottom and hasn't scrolled up
-      if (!userScrolledUpRef.current && isAtBottomRef.current) {
+      // Only auto-scroll if enabled, user is at bottom, and hasn't scrolled up
+      if (
+        !disableAutoScrollRef.current &&
+        !userScrolledUpRef.current &&
+        isAtBottomRef.current
+      ) {
         // Debounce - cancel pending RAF before scheduling new
         if (resizeRAF.current) cancelAnimationFrame(resizeRAF.current);
 

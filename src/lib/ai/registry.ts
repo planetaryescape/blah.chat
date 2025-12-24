@@ -1,20 +1,25 @@
 import {
   anthropic,
   cerebras,
-  gateway,
+  type GatewayName,
   google,
   groq,
   openai,
   openrouter,
-  type ProviderName,
+  vercel,
 } from "./providers";
 import { getModelConfig } from "./utils";
 
 /**
- * Provider registry mapping provider names to their SDK clients
+ * Gateway registry mapping gateway names to their SDK clients.
+ *
+ * Terminology:
+ * - Provider: Model creator (OpenAI, Anthropic, Meta)
+ * - Gateway: Routing layer (Vercel AI Gateway, OpenRouter, or direct SDK)
+ * - Host: Inference provider within Vercel gateway (Cerebras, Groq, etc.)
  */
-const providers: Record<ProviderName, any> = {
-  gateway,
+const gateways: Record<GatewayName, any> = {
+  vercel,
   openai,
   anthropic,
   google,
@@ -24,51 +29,47 @@ const providers: Record<ProviderName, any> = {
 };
 
 /**
- * Get a model instance using the appropriate provider.
+ * Get a model instance using the appropriate gateway.
  *
- * Priority for provider selection:
- * 1. Explicit providerOverride parameter
- * 2. Model config's preferredProvider
- * 3. Default: "gateway" (Vercel AI Gateway)
+ * Priority for gateway selection:
+ * 1. Explicit gatewayOverride parameter
+ * 2. Model config's gateway field
+ * 3. Default: "vercel" (Vercel AI Gateway)
  *
  * @param modelId - Model ID in format "provider:model" (e.g., "openai:gpt-5.1")
- * @param providerOverride - Optional provider to use instead of default
+ * @param gatewayOverride - Optional gateway to use instead of default
  */
-export function getModel(modelId: string, providerOverride?: ProviderName) {
+export function getModel(modelId: string, gatewayOverride?: GatewayName) {
   const [modelProvider, model] = modelId.split(":");
   const config = getModelConfig(modelId);
   const actualModel = config?.actualModelId || model;
 
-  // Determine which provider SDK to use
-  const selectedProvider =
-    providerOverride || config?.preferredProvider || "gateway";
+  // Determine which gateway/SDK to use
+  const selectedGateway = gatewayOverride || config?.gateway || "vercel";
 
-  // Get the provider client
-  const providerClient = providers[selectedProvider];
-  if (!providerClient) {
-    throw new Error(`Unknown provider: ${selectedProvider}`);
+  // Get the gateway client
+  const gatewayClient = gateways[selectedGateway];
+  if (!gatewayClient) {
+    throw new Error(`Unknown gateway: ${selectedGateway}`);
   }
 
-  // For gateway, use format: provider/model (e.g., "openai/gpt-5.1")
-  // For direct providers, just use the model name
-  if (selectedProvider === "gateway") {
+  // For Vercel gateway, use format: provider/model (e.g., "openai/gpt-5.1")
+  // For direct SDKs, just use the model name
+  if (selectedGateway === "vercel") {
     const gatewayModel = `${modelProvider}/${actualModel}`;
-    return providerClient(gatewayModel);
+    return gatewayClient(gatewayModel);
   }
 
-  // Direct provider access uses just the model name
-  return providerClient(actualModel);
+  // Direct SDK access uses just the model name
+  return gatewayClient(actualModel);
 }
 
 /**
- * Get a model instance, always using a specific provider.
- * Useful when you need guaranteed direct access to a provider.
+ * Get a model instance, always using a specific gateway.
+ * Useful when you need guaranteed direct access to a gateway/SDK.
  */
-export function getModelWithProvider(
-  modelId: string,
-  providerName: ProviderName,
-) {
-  return getModel(modelId, providerName);
+export function getModelWithGateway(modelId: string, gateway: GatewayName) {
+  return getModel(modelId, gateway);
 }
 
 export { DEFAULT_MODEL_ID as DEFAULT_MODEL } from "./operational-models";

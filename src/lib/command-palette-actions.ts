@@ -4,6 +4,7 @@ import {
   Brain,
   Download,
   Edit,
+  FilePlus,
   FileText,
   FolderKanban,
   Keyboard,
@@ -109,6 +110,14 @@ export const createActionItems = (params: {
           icon: FileText,
           onSelect: () => params.handleNavigate("/templates"),
           group: "navigation" as const,
+        },
+        {
+          id: "create-template",
+          label: "New Template",
+          keywords: ["create", "template", "new", "prompt"],
+          icon: FilePlus,
+          onSelect: () => params.handleNavigate("/templates?action=new"),
+          group: "actions" as const,
         },
       ]
     : []),

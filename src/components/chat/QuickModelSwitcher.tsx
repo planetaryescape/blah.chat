@@ -124,7 +124,8 @@ export function QuickModelSwitcher({
 
   const restByProvider = filteredModels.rest.reduce(
     (acc, model) => {
-      const provider = model.id.split(":")[0];
+      // Use model.provider (actual vendor) instead of gateway prefix
+      const provider = model.provider;
       if (!acc[provider]) acc[provider] = [];
       acc[provider].push(model);
       return acc;

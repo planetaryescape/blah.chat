@@ -196,3 +196,15 @@ Output only the title, no quotes or punctuation at the end.`,
     }
   },
 });
+
+export const getPresentationByConversation = internalQuery({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("presentations")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .first();
+  },
+});

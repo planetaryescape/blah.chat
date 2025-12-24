@@ -131,6 +131,39 @@ function SlideOutlineContent({
     return <FeatureLoadingScreen />;
   }
 
+  // Show generating state if outline is being created
+  if (
+    presentation.status === "outline_pending" ||
+    presentation.status === "outline_generating"
+  ) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-background">
+        <FeatureLoadingScreen />
+        <p className="mt-4 text-muted-foreground animate-pulse">
+          Generating your outline...
+        </p>
+      </div>
+    );
+  }
+
+  if (presentation.status === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-background">
+        <p className="text-destructive font-medium mb-2">Generation Failed</p>
+        <p className="text-muted-foreground">
+          Please try creating the presentation again.
+        </p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => router.push("/slides/new")}
+        >
+          Back to Create
+        </Button>
+      </div>
+    );
+  }
+
   const selectedItem = items.find((i) => i._id === selectedItemId);
 
   return (

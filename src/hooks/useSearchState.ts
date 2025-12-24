@@ -1,5 +1,5 @@
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { useDebounce } from "./useDebounce";
+import { useDebounceValue } from "usehooks-ts";
 
 export function useSearchState() {
   // Search query
@@ -7,7 +7,7 @@ export function useSearchState() {
     "q",
     parseAsString.withDefault(""),
   );
-  const debouncedQuery = useDebounce(queryParam, 350);
+  const [debouncedQuery] = useDebounceValue(queryParam, 350);
 
   // Pagination
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));

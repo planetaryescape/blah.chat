@@ -11,6 +11,7 @@ import {
 } from "nuqs";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useDebounceValue } from "usehooks-ts";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { EmptyState } from "@/components/notes/EmptyState";
@@ -20,7 +21,6 @@ import { NoteSidebar } from "@/components/notes/NoteSidebar";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 
@@ -62,7 +62,7 @@ function NotesPageContent() {
     "q",
     parseAsString.withDefault(""),
   );
-  const searchQuery = useDebounce(searchParam, 300);
+  const [searchQuery] = useDebounceValue(searchParam, 300);
 
   // Note ID with type casting for Convex
   const [noteIdParam, setNoteIdParam] = useQueryState(

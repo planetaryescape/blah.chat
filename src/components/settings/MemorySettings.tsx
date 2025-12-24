@@ -5,6 +5,7 @@ import { Brain, Eye, EyeOff, Loader2, MoreVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useDebounceValue } from "usehooks-ts";
 import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
 import { MemoryFilters } from "@/components/memories/MemoryFilters";
@@ -26,7 +27,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
 
 type Category =
   | "identity"
@@ -69,7 +69,7 @@ export function MemorySettings() {
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const [debouncedSearchQuery] = useDebounceValue(searchQuery, 300);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);

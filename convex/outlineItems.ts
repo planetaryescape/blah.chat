@@ -20,11 +20,15 @@ export const slideTypeValidator = v.union(
 /**
  * List outline items for a presentation (latest version)
  */
-export const listByPresentation = query({
+/**
+ * List outline items for a presentation (latest version)
+ */
+export const list = query({
   args: {
     presentationId: v.id("presentations"),
   },
   handler: async (ctx, args) => {
+    // Reuse implementation or just rename the function
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
@@ -50,6 +54,8 @@ export const listByPresentation = query({
     return items.sort((a, b) => a.position - b.position);
   },
 });
+
+export const listByPresentation = list; // Helper alias if needed elsewhere
 
 /**
  * Get outline items count for a presentation

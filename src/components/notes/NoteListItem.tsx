@@ -2,9 +2,11 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { Pin } from "lucide-react";
+import { useState } from "react";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { generateExcerpt } from "@/lib/tiptap/utils";
 import { cn } from "@/lib/utils";
+import { NotePrefetcher } from "./NotePrefetcher";
 
 interface NoteListItemProps {
   note: Doc<"notes">;
@@ -17,12 +19,16 @@ export function NoteListItem({ note, isSelected, onClick }: NoteListItemProps) {
   const timeAgo = formatDistanceToNow(new Date(note.updatedAt), {
     addSuffix: true,
   });
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div className="relative">
+      {isHovered && <NotePrefetcher noteId={note._id} />}
       <button
         type="button"
         onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onFocus={() => setIsHovered(true)}
         className={cn(
           "w-full text-left px-4 py-3.5 transition-colors duration-200 group relative z-0",
           // Selection state: Minimal, distinct background

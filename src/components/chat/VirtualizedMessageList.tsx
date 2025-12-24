@@ -2,9 +2,11 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { useUserPreference } from "@/hooks/useUserPreference";
+import { useConversations } from "@/lib/hooks/queries/useConversations";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { Doc } from "../../../convex/_generated/dataModel";
@@ -43,10 +45,10 @@ interface VirtualizedMessageListProps {
   onToggleModelNames?: () => void;
   showModelNames: boolean;
   highlightMessageId?: string;
-  syncScroll?: boolean;
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
   isGenerating?: boolean;
+  isInitialLoadComplete?: boolean;
 }
 
 export function VirtualizedMessageList({
@@ -58,15 +60,24 @@ export function VirtualizedMessageList({
   showModelNames,
   chatWidth,
   highlightMessageId,
-  syncScroll = true,
   isCollaborative,
   isGenerating,
+  isInitialLoadComplete = true,
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
     threshold: 100,
     animationDuration: 400,
     disableAutoScroll: true, // Never auto-scroll during streaming - user reads at own pace
   });
+
+  // Fetch conversation count and nickname for EmptyScreen
+  const { data: conversationsData } = useConversations();
+  const conversationCount =
+    (conversationsData as { items?: unknown[] } | undefined)?.items?.length ??
+    0;
+  const customInstructions = useUserPreference("customInstructions");
+  const nickname =
+    (customInstructions as { nickname?: string } | undefined)?.nickname || "";
 
   // Track if we've scrolled to highlighted message
   const scrolledToHighlight = useRef(false);
@@ -77,8 +88,8 @@ export function VirtualizedMessageList({
   // Track previous message count for user message scroll detection
   const prevMessageCountRef = useRef(messages.length);
 
-  // Track if initial scroll is done (to prevent flash)
-  const [initialScrollDone, setInitialScrollDone] = useState(false);
+  // Derive conversationId for stable dependency
+  const conversationId = messages[0]?.conversationId;
 
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
@@ -249,37 +260,50 @@ export function VirtualizedMessageList({
     scrolledToHighlight.current = false;
   }, [highlightMessageId]);
 
-  // One-time scroll to bottom on conversation load
-  // Uses requestIdleCallback to wait for virtualizer to finish measuring
+  // Scroll to bottom on conversation load/switch
+  // Retries until content is actually scrollable (virtualizer done measuring)
   useEffect(() => {
     // Skip if highlighting specific message (that effect handles scroll)
     if (highlightMessageId) return;
-    if (messages.length === 0) return;
-
-    const conversationId = messages[0]?.conversationId;
     if (!conversationId) return;
-
+    if (messages.length === 0) return;
+    // Wait until initial load is complete
+    if (!isInitialLoadComplete) return;
     // Only scroll once per conversation
     if (lastScrolledConversationRef.current === conversationId) return;
 
-    const doScroll = () => {
+    let attempts = 0;
+    const maxAttempts = 20; // ~1 second max (20 * 50ms)
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const tryScroll = () => {
       const container = containerRef.current;
-      if (container) {
+      if (container && container.scrollHeight > container.clientHeight) {
         container.scrollTop = container.scrollHeight;
         lastScrolledConversationRef.current = conversationId;
-        setInitialScrollDone(true);
+        return; // Success
+      }
+
+      // Retry if content not ready yet
+      attempts++;
+      if (attempts < maxAttempts) {
+        timeoutId = setTimeout(tryScroll, 50);
       }
     };
 
-    // Wait for browser to be truly idle (virtualizer done, layout stable)
-    if ("requestIdleCallback" in window) {
-      const id = requestIdleCallback(doScroll);
-      return () => cancelIdleCallback(id);
-    }
-    // Safari fallback
-    const timer = setTimeout(doScroll, 150);
-    return () => clearTimeout(timer);
-  }, [highlightMessageId, messages]);
+    // Start trying after first frame
+    const rafId = requestAnimationFrame(tryScroll);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timeoutId);
+    };
+  }, [
+    conversationId,
+    highlightMessageId,
+    messages.length,
+    isInitialLoadComplete,
+  ]);
 
   // Scroll to user message when sending a new message
   useEffect(() => {
@@ -323,6 +347,8 @@ export function VirtualizedMessageList({
       <div className="flex items-center justify-center h-full">
         <EmptyScreen
           selectedModel={selectedModel}
+          conversationCount={conversationCount}
+          nickname={nickname}
           onClick={(val: string) => {
             const event = new CustomEvent("insert-prompt", { detail: val });
             window.dispatchEvent(event);
@@ -345,11 +371,7 @@ export function VirtualizedMessageList({
           aria-live="polite"
           aria-label="Chat message history"
           aria-atomic="false"
-          className={cn(
-            "flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative",
-            // Hide until initial scroll completes to prevent flash
-            !initialScrollDone && !highlightMessageId && "invisible",
-          )}
+          className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
@@ -445,11 +467,7 @@ export function VirtualizedMessageList({
         aria-live="polite"
         aria-label="Chat message history"
         aria-atomic="false"
-        className={cn(
-          "flex-1 w-full min-w-0 overflow-y-auto relative",
-          // Hide until initial scroll completes to prevent flash
-          !initialScrollDone && !highlightMessageId && "invisible",
-        )}
+        className="flex-1 w-full min-w-0 overflow-y-auto relative"
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",

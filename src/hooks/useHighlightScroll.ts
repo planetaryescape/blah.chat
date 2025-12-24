@@ -40,9 +40,11 @@ export function useHighlightScroll({
 
     if (targetIndex === -1) return;
 
-    virtualizer.scrollToIndex(targetIndex, {
-      align: "start",
-      behavior: "smooth",
+    requestAnimationFrame(() => {
+      virtualizer.scrollToIndex(targetIndex, {
+        align: "start",
+        behavior: "smooth",
+      });
     });
 
     setTimeout(() => {

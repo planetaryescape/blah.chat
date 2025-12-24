@@ -37,10 +37,10 @@ function ErrorDisplay({ error }: { error?: string }) {
     <div className="flex flex-col gap-3 p-1">
       <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
         <AlertCircle className="w-4 h-4" />
-        <span className="font-medium text-sm">Unable to generate response</span>
+        <span className="text-sm font-medium">Unable to generate response</span>
       </div>
-      <div className="bg-muted/30 rounded-md p-3 border border-border/50">
-        <p className="text-sm leading-relaxed opacity-90 break-words">
+      <div className="p-3 border rounded-md bg-muted/30 border-border/50">
+        <p className="text-sm leading-relaxed break-words opacity-90">
           {error}
         </p>
       </div>
@@ -49,7 +49,7 @@ function ErrorDisplay({ error }: { error?: string }) {
         <button
           type="button"
           onClick={() => setFeedbackOpen(true)}
-          className="underline hover:text-foreground transition-colors cursor-pointer"
+          className="underline transition-colors cursor-pointer hover:text-foreground"
         >
           contact support
         </button>
@@ -115,7 +115,7 @@ export const ChatMessage = memo(
       api.messages.getOriginalResponses,
       message.isConsolidation && !isTempMessage
         ? { consolidatedMessageId: message._id as Id<"messages"> }
-        : "skip",
+        : "skip"
     );
 
     // conversation is now passed as prop from VirtualizedMessageList (reduces N→1 subscriptions)
@@ -142,7 +142,7 @@ export const ChatMessage = memo(
     // Read attachments from local cache (instant)
     // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
     const attachments = useCachedAttachments(
-      isTempMessage ? "" : (message._id as string),
+      isTempMessage ? "" : (message._id as string)
     );
 
     // Fetch URLs for attachments
@@ -152,20 +152,19 @@ export const ChatMessage = memo(
       api.files.getAttachmentUrls,
       attachmentStorageIds.length > 0
         ? { storageIds: attachmentStorageIds }
-        : "skip",
+        : "skip"
     );
 
     const urlMap = new Map<string, string>(
       attachmentUrls
         ?.map((a: any) => [a.storageId, a.url] as [string, string])
-        .filter((pair: any): pair is [string, string] => pair[1] !== null) ||
-        [],
+        .filter((pair: any): pair is [string, string] => pair[1] !== null) || []
     );
 
     // Read tool calls from local cache (instant)
     // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
     const rawToolCalls = useCachedToolCalls(
-      isTempMessage ? "" : (message._id as string),
+      isTempMessage ? "" : (message._id as string)
     );
 
     // Transform from DB format (toolName, args) to UI format (name, arguments)
@@ -180,7 +179,7 @@ export const ChatMessage = memo(
           textPosition: tc.textPosition,
           isPartial: tc.isPartial,
         })),
-      [rawToolCalls],
+      [rawToolCalls]
     );
 
     // Split into complete and partial for backward compatibility
@@ -188,7 +187,7 @@ export const ChatMessage = memo(
     const toolCalls = allToolCalls?.filter((tc) => !tc.isPartial) as any[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const partialToolCalls = allToolCalls?.filter(
-      (tc) => tc.isPartial,
+      (tc) => tc.isPartial
     ) as any[];
 
     // Edit handlers
@@ -237,7 +236,7 @@ export const ChatMessage = memo(
       "shadow-sm hover:shadow-md",
       "transition-all duration-300",
       "[&_.prose]:text-foreground",
-      "font-medium tracking-wide",
+      "font-medium tracking-wide"
     );
 
     // Assistant message styling: Glassmorphic, clean, distinct
@@ -247,7 +246,7 @@ export const ChatMessage = memo(
       "bg-surface-glass border border-surface-glass-border backdrop-blur-xl",
       "shadow-sm hover:shadow-md hover:border-primary/20",
       "transition-all duration-300",
-      "[&_.prose]:text-foreground",
+      "[&_.prose]:text-foreground"
     );
 
     // Wrapper classes handle alignment and max-width
@@ -255,7 +254,7 @@ export const ChatMessage = memo(
       "relative group",
       isUser
         ? "ml-auto mr-4 max-w-[90%] sm:max-w-[75%]"
-        : "mr-auto ml-4 max-w-[95%] sm:max-w-[85%]",
+        : "mr-auto ml-4 max-w-[95%] sm:max-w-[85%]"
     );
 
     return (
@@ -264,7 +263,7 @@ export const ChatMessage = memo(
           "flex w-full mb-10",
           isUser ? "justify-end" : "justify-start",
           // Reserve viewport space for generating assistant messages - pushes user message to top
-          !isUser && isGenerating && "min-h-[60vh]",
+          !isUser && isGenerating && "min-h-[60vh]"
         )}
       >
         <div className={wrapperClass}>
@@ -276,7 +275,7 @@ export const ChatMessage = memo(
             className={cn(
               "chat-message",
               isUser ? userMessageClass : assistantMessageClass,
-              isFocused && "ring-2 ring-primary/50",
+              isFocused && "ring-2 ring-primary/50"
             )}
             data-testid="message"
             data-message-id={message._id}
@@ -291,14 +290,14 @@ export const ChatMessage = memo(
               <>
                 {/* Sender attribution for collaborative conversations */}
                 {isCollaborative && senderUser && (
-                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/20">
-                    <Avatar className="h-5 w-5">
+                  <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border/20">
+                    <Avatar className="w-5 h-5">
                       <AvatarImage src={senderUser.imageUrl} />
                       <AvatarFallback className="text-[10px]">
                         {senderUser.name?.[0]?.toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-xs text-muted-foreground font-medium">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {isUser
                         ? senderUser.name || "User"
                         : `Triggered by ${senderUser.name || "User"}`}
@@ -362,7 +361,7 @@ export const ChatMessage = memo(
 
                 {/* Attachments - don't reserve space, most messages don't have attachments */}
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/10">
+                  <div className="pt-3 mt-3 border-t border-border/10">
                     <AttachmentRenderer
                       attachments={attachments}
                       urls={urlMap}
@@ -398,7 +397,9 @@ export const ChatMessage = memo(
                       <div role="status" aria-live="polite" className="sr-only">
                         {ttft && `Response generated in ${formatTTFT(ttft)}`}
                         {message.tokensPerSecond &&
-                          ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
+                          ` at ${Math.round(
+                            message.tokensPerSecond
+                          )} tokens per second`}
                       </div>
                     )}
 
@@ -473,7 +474,7 @@ export const ChatMessage = memo(
                   ? "opacity-100"
                   : "opacity-0 group-hover:opacity-100",
                 !alwaysShow &&
-                  "pointer-events-none group-hover:pointer-events-auto",
+                  "pointer-events-none group-hover:pointer-events-auto"
               )}
             >
               <MessageActions
@@ -508,5 +509,5 @@ export const ChatMessage = memo(
       prev.conversation?.modelRecommendation?.dismissed ===
         next.conversation?.modelRecommendation?.dismissed
     );
-  },
+  }
 );

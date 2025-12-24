@@ -6,6 +6,8 @@ import { Fragment, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { useUserPreference } from "@/hooks/useUserPreference";
+import { useConversations } from "@/lib/hooks/queries/useConversations";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { EmptyScreen } from "./EmptyScreen";
@@ -40,6 +42,15 @@ export function MessageList({
     animationDuration: 400,
     disableAutoScroll: true, // Never auto-scroll during streaming - user reads at own pace
   });
+
+  // Fetch conversation count and nickname for EmptyScreen
+  const { data: conversationsData } = useConversations();
+  const conversationCount =
+    (conversationsData as { items?: unknown[] } | undefined)?.items?.length ??
+    0;
+  const customInstructions = useUserPreference("customInstructions");
+  const nickname =
+    (customInstructions as { nickname?: string } | undefined)?.nickname || "";
 
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
@@ -113,15 +124,9 @@ export function MessageList({
       <div className="flex items-center justify-center h-full">
         <EmptyScreen
           selectedModel={selectedModel}
+          conversationCount={conversationCount}
+          nickname={nickname}
           onClick={(val) => {
-            // Ideally this would populate the input, but for now we essentially do nothing or could trigger a send via a prop if we refactor MessageList to support it.
-            // Since MessageList doesn't control the input, we might need to lift this up or just let the user copy.
-            // Wait, MessageList is used in ChatPage. Let's see how we can pass this up.
-            // Actually, we can just dispatch a custom event or use a simple hack if we don't want to refactor everything right now.
-            // Better yet, let's keep it robust. We should assume the parent handles it.
-            // But MessageList props don't have onSuggestionClick.
-            // For now, let's just make them copy-able or no-op until we update the interface?
-            // No, the prompt requested improvements. I should update the interface.
             const event = new CustomEvent("insert-prompt", { detail: val });
             window.dispatchEvent(event);
           }}

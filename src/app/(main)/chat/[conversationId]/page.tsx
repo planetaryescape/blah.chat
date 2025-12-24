@@ -628,6 +628,7 @@ function ChatPageContent({
                     syncScroll={syncScroll ?? true}
                     highlightMessageId={highlightMessageId}
                     isCollaborative={conversation?.isCollaborative}
+                    isGenerating={isGenerating}
                   />
                 </div>
 

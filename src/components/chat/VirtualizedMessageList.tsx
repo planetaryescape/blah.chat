@@ -2,7 +2,7 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ interface VirtualizedMessageListProps {
   syncScroll?: boolean;
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
+  isGenerating?: boolean;
 }
 
 export function VirtualizedMessageList({
@@ -59,6 +60,7 @@ export function VirtualizedMessageList({
   highlightMessageId,
   syncScroll = true,
   isCollaborative,
+  isGenerating,
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
     threshold: 100,
@@ -71,6 +73,12 @@ export function VirtualizedMessageList({
 
   // Track last scrolled conversation to avoid re-scrolling on re-renders
   const lastScrolledConversationRef = useRef<string | null>(null);
+
+  // Track previous message count for user message scroll detection
+  const prevMessageCountRef = useRef(messages.length);
+
+  // Track if initial scroll is done (to prevent flash)
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
 
   // Group messages by comparison and preserve chronological order
   const grouped = useMemo(() => {
@@ -244,70 +252,71 @@ export function VirtualizedMessageList({
   // One-time scroll to bottom on conversation load
   // Uses requestIdleCallback to wait for virtualizer to finish measuring
   useEffect(() => {
-    console.log("[InitialScroll] Effect running", {
-      highlightMessageId,
-      messagesLength: messages.length,
-      conversationId: messages[0]?.conversationId,
-      lastScrolled: lastScrolledConversationRef.current,
-    });
-
     // Skip if highlighting specific message (that effect handles scroll)
-    if (highlightMessageId) {
-      console.log("[InitialScroll] Skipping - has highlightMessageId");
-      return;
-    }
-    if (messages.length === 0) {
-      console.log("[InitialScroll] Skipping - no messages");
-      return;
-    }
+    if (highlightMessageId) return;
+    if (messages.length === 0) return;
 
     const conversationId = messages[0]?.conversationId;
-    if (!conversationId) {
-      console.log("[InitialScroll] Skipping - no conversationId");
-      return;
-    }
+    if (!conversationId) return;
 
     // Only scroll once per conversation
-    if (lastScrolledConversationRef.current === conversationId) {
-      console.log(
-        "[InitialScroll] Skipping - already scrolled this conversation",
-      );
-      return;
-    }
-    console.log(
-      "[InitialScroll] Will scroll for conversation:",
-      conversationId,
-    );
+    if (lastScrolledConversationRef.current === conversationId) return;
 
     const doScroll = () => {
       const container = containerRef.current;
-      console.log("[InitialScroll] doScroll called", {
-        container: !!container,
-        scrollHeight: container?.scrollHeight,
-        clientHeight: container?.clientHeight,
-      });
       if (container) {
         container.scrollTop = container.scrollHeight;
-        // Only mark as scrolled AFTER the scroll actually happens
         lastScrolledConversationRef.current = conversationId;
-        console.log("[InitialScroll] Scrolled to:", container.scrollTop);
+        setInitialScrollDone(true);
       }
     };
 
     // Wait for browser to be truly idle (virtualizer done, layout stable)
     if ("requestIdleCallback" in window) {
-      console.log("[InitialScroll] Using requestIdleCallback");
       const id = requestIdleCallback(doScroll);
-      return () => {
-        console.log("[InitialScroll] Cleanup - canceling requestIdleCallback");
-        cancelIdleCallback(id);
-      };
-    } else {
-      console.log("[InitialScroll] Using setTimeout fallback");
-      const timer = setTimeout(doScroll, 150);
-      return () => clearTimeout(timer);
+      return () => cancelIdleCallback(id);
     }
+    // Safari fallback
+    const timer = setTimeout(doScroll, 150);
+    return () => clearTimeout(timer);
   }, [highlightMessageId, messages]);
+
+  // Scroll to user message when sending a new message
+  useEffect(() => {
+    const prevCount = prevMessageCountRef.current;
+    const currentCount = messages.length;
+
+    // Detect new messages added
+    if (currentCount > prevCount) {
+      // Find new user message in the added messages
+      const newMessages = messages.slice(prevCount);
+      const newUserMessage = newMessages.find((m) => m.role === "user");
+
+      if (newUserMessage) {
+        // Scroll to show user message at top with offset
+        requestAnimationFrame(() => {
+          const element = document.getElementById(
+            `message-${newUserMessage._id}`,
+          );
+          const container = containerRef.current;
+          if (element && container) {
+            const containerRect = container.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            const elementTop =
+              elementRect.top - containerRect.top + container.scrollTop;
+            const hintOffset = 50; // Show 50px of previous content
+
+            container.scrollTo({
+              top: Math.max(0, elementTop - hintOffset),
+              behavior: "smooth",
+            });
+          }
+        });
+      }
+    }
+
+    prevMessageCountRef.current = currentCount;
+  }, [messages]);
 
   if (messages.length === 0) {
     return (
@@ -336,7 +345,11 @@ export function VirtualizedMessageList({
           aria-live="polite"
           aria-label="Chat message history"
           aria-atomic="false"
-          className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
+          className={cn(
+            "flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative",
+            // Hide until initial scroll completes to prevent flash
+            !initialScrollDone && !highlightMessageId && "invisible",
+          )}
           style={{
             contain: "layout style paint",
             contentVisibility: "auto",
@@ -345,6 +358,8 @@ export function VirtualizedMessageList({
           <div
             className={cn(
               "grid gap-4 p-4 transition-all duration-300 ease-out",
+              // Extra padding during generation to allow scrolling user message to top
+              isGenerating && "pb-[80vh]",
               // Grid columns based on width preference
               chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
               chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
@@ -430,13 +445,18 @@ export function VirtualizedMessageList({
         aria-live="polite"
         aria-label="Chat message history"
         aria-atomic="false"
-        className="flex-1 w-full min-w-0 overflow-y-auto relative"
+        className={cn(
+          "flex-1 w-full min-w-0 overflow-y-auto relative",
+          // Hide until initial scroll completes to prevent flash
+          !initialScrollDone && !highlightMessageId && "invisible",
+        )}
         style={{
           contain: "layout style paint",
           contentVisibility: "auto",
         }}
       >
         <div
+          className={cn(isGenerating && "pb-[80vh]")}
           style={{
             height: `${virtualizer.getTotalSize()}px`,
             width: "100%",

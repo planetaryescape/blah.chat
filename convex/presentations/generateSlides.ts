@@ -18,6 +18,8 @@ interface Presentation {
   designSystem: unknown;
   slideStyle?: "wordy" | "illustrative";
   templateId?: string;
+  aspectRatio?: "16:9" | "1:1" | "9:16";
+  imageStyle?: string;
 }
 
 interface DesignTemplate {
@@ -52,6 +54,8 @@ export const generateSlides = internalAction({
 
       const slideStyle = presentation.slideStyle ?? "illustrative";
       const isTemplateBased = !!presentation.templateId;
+      const aspectRatio = presentation.aspectRatio ?? "16:9";
+      const imageStyle = presentation.imageStyle;
 
       // Fetch logo data from template if available
       let logoStorageId: string | undefined;
@@ -117,6 +121,8 @@ export const generateSlides = internalAction({
               isTemplateBased,
               logoStorageId,
               logoGuidelines,
+              aspectRatio,
+              imageStyle,
             },
           );
           console.log("Title slide complete");
@@ -155,6 +161,8 @@ export const generateSlides = internalAction({
               isTemplateBased,
               logoStorageId,
               logoGuidelines,
+              aspectRatio,
+              imageStyle,
             },
           ),
         );
@@ -222,6 +230,8 @@ export const generateSlides = internalAction({
                 isTemplateBased,
                 logoStorageId,
                 logoGuidelines,
+                aspectRatio,
+                imageStyle,
               },
             ),
           );

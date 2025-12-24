@@ -24,8 +24,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocalStorage } from "usehooks-ts";
 
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
@@ -77,28 +78,19 @@ type ViewMode = "grid" | "list";
 export default function SlidesPage() {
   const router = useRouter();
   const { showSlides, isLoading } = useFeatureToggles();
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>(
+    "slides-view-mode",
+    "grid",
+  );
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [isClient, setIsClient] = useState(false);
   const [deleteId, setDeleteId] = useState<Id<"presentations"> | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const deletePresentation = useMutation(api.presentations.deletePresentation);
 
-  // Initialize view preference from localStorage on client mount
-  useEffect(() => {
-    setIsClient(true);
-    const savedMode = localStorage.getItem("slides-view-mode") as ViewMode;
-    if (savedMode) {
-      setViewMode(savedMode);
-    }
-  }, []);
-
   const handleViewModeChange = (mode: string) => {
-    const newMode = mode as ViewMode;
-    setViewMode(newMode);
-    localStorage.setItem("slides-view-mode", newMode);
+    setViewMode(mode as ViewMode);
   };
 
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
@@ -331,22 +323,20 @@ export default function SlidesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {isClient && (
-            <Tabs
-              value={viewMode}
-              onValueChange={handleViewModeChange}
-              className="mr-2"
-            >
-              <TabsList>
-                <TabsTrigger value="grid">
-                  <LayoutGrid className="h-4 w-4" />
-                </TabsTrigger>
-                <TabsTrigger value="list">
-                  <List className="h-4 w-4" />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
+          <Tabs
+            value={viewMode}
+            onValueChange={handleViewModeChange}
+            className="mr-2"
+          >
+            <TabsList>
+              <TabsTrigger value="grid">
+                <LayoutGrid className="h-4 w-4" />
+              </TabsTrigger>
+              <TabsTrigger value="list">
+                <List className="h-4 w-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           <Button onClick={() => router.push("/slides/new")}>
             <Plus className="mr-2 h-4 w-4" />

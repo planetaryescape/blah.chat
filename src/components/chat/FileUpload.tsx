@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { Loader2, Paperclip } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -148,7 +148,7 @@ export function FileUpload({
       {uploading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : (
-        <Paperclip className="w-5 h-5" />
+        <Plus className="w-5 h-5" />
       )}
       <span className="sr-only">Attach files</span>
     </Button>

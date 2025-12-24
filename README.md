@@ -38,21 +38,26 @@ Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xA
 blah.chat requires API keys for certain features:
 
 ### Core Features (Required)
+
 - **`AI_GATEWAY_API_KEY`** - Vercel AI Gateway for all AI model access
 
 ### Speech Features (Optional)
 
 #### Speech-to-Text (STT)
+
 Requires ONE of the following providers (configured by admin in Settings):
+
 - **`GROQ_API_KEY`** - Groq Whisper Turbo (default, $0.04/hour)
 - **`OPENAI_API_KEY`** - OpenAI Whisper ($0.006/min)
 - **`DEEPGRAM_API_KEY`** - Deepgram Nova-3 ($0.0077/min)
 - **`ASSEMBLYAI_API_KEY`** - AssemblyAI ($0.0025/min)
 
 #### Text-to-Speech (TTS)
+
 - **`DEEPGRAM_API_KEY`** - Deepgram Aura voices (required)
 
 **Note:** If STT/TTS API keys are not configured, these features will be automatically disabled. Users will see an error message when attempting to enable them:
+
 - **Development**: Specific missing key name shown
 - **Production**: "Please contact your administrator" message
 
@@ -89,6 +94,7 @@ For commercial licensing or questions, contact: blah.chat@bhekani.com
 ### Why AGPL?
 
 We chose AGPL to:
+
 - Protect the community from exploitation by cloud providers
 - Ensure improvements are shared back with the community
 - Allow free self-hosting while building a sustainable business
@@ -123,7 +129,17 @@ You will need to configure the following API keys in `.env.local`:
 - **Firecrawl** (`FIRECRAWL_API_KEY`): Optional alternative for advanced web scraping/crawling.
 - **OpenAI** (`OPENAI_API_KEY`): Needed for audio transcription (Whisper) if not using Groq.
 
-### 2. Clerk Webhook Setup
+### 2. Convex Environment Variables
+
+The backup backend (Convex) requires these variables to be configured in the [Convex Dashboard](https://dashboard.convex.dev):
+
+- **`AI_GATEWAY_API_KEY`**: Vercel AI Gateway key for model access within Convex actions.
+- **`CLERK_ISSUER_DOMAIN`**: Your Clerk Frontend API URL (e.g., `your-app.clerk.accounts.dev`).
+- **`POSTHOG_API_KEY`**: API key for server-side analytics tracking.
+
+> **Tip**: You can also set these via the CLI: `bunx convex env set AI_GATEWAY_API_KEY your_key_here`
+
+### 3. Clerk Webhook Setup
 
 Clerk webhooks sync user data to Convex. **Without this, users will hit an infinite redirect loop on their first sign-in.**
 
@@ -164,7 +180,7 @@ Since Clerk needs to reach your local server, set up a tunnel:
 >
 > Set this up once in the Clerk dashboard and you're done.
 
-### 3. Clerk JWT Template Setup
+### 4. Clerk JWT Template Setup
 
 **Required for Convex integration**: Configure Clerk to generate JWTs for Convex.
 
@@ -185,7 +201,7 @@ Since Clerk needs to reach your local server, set up a tunnel:
      providers: [
        {
          domain: process.env.CLERK_ISSUER_DOMAIN,
-         applicationID: 'convex',
+         applicationID: "convex",
        },
      ],
    };
@@ -197,7 +213,7 @@ Since Clerk needs to reach your local server, set up a tunnel:
 
 **Note**: The `applicationID: 'convex'` is correct - it's a constant identifier, not your deployment name.
 
-### 4. Admin Access Setup (Optional)
+### 5. Admin Access Setup (Optional)
 
 To access the admin dashboard (`/admin`):
 
@@ -210,7 +226,7 @@ To access the admin dashboard (`/admin`):
 
 Future admin changes via `/admin/users` auto-sync to Clerk.
 
-### 5. Run Locally
+### 6. Run Locally
 
 1. Install dependencies:
 

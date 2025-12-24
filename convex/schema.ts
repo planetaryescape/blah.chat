@@ -98,6 +98,15 @@ export default defineSchema({
     ),
     // Presentation mode (slides feature conversations)
     isPresentation: v.optional(v.boolean()),
+    // Presentation metadata
+    slideStyle: v.optional(
+      v.union(v.literal("wordy"), v.literal("illustrative")),
+    ),
+    imageStyle: v.optional(v.string()), // e.g. "minimalist line art", "photorealistic"
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ), // default 16:9
+    templateId: v.optional(v.id("templates")),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -1293,6 +1302,12 @@ export default defineSchema({
     // Progress tracking
     totalSlides: v.number(),
     generatedSlideCount: v.number(),
+
+    // New format fields
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ),
+    imageStyle: v.optional(v.string()),
 
     // PPTX export caching
     pptxStorageId: v.optional(v.id("_storage")),

@@ -8,10 +8,13 @@ import {
   CheckCircle2,
   ChevronDown,
   FileIcon,
+  Grid,
   Loader2,
   Mic,
+  Monitor,
   Palette,
   PenTool,
+  Smartphone,
   Sparkles,
   Upload,
 } from "lucide-react";
@@ -21,6 +24,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
+import { StyleSelector } from "@/components/slides/StyleSelector";
 import { TemplateUpload } from "@/components/slides/TemplateUpload";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +72,10 @@ function NewSlidesContent() {
   const [slideStyle, setSlideStyle] = useState<"wordy" | "illustrative">(
     "illustrative",
   );
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "1:1" | "9:16">(
+    "16:9",
+  );
+  const [imageStyle, setImageStyle] = useState<string>("minimalist-line");
   const [inputMode, setInputMode] = useState<"prompt" | "outline">("prompt");
   const [enhanceOutline, setEnhanceOutline] = useState(true);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -196,6 +204,8 @@ function NewSlidesContent() {
         title: presentationTitle,
         slideStyle,
         templateId: selectedTemplateId ?? undefined,
+        aspectRatio,
+        imageStyle,
       });
 
       let systemPrompt: string;
@@ -205,15 +215,22 @@ function NewSlidesContent() {
           ? "illustrative (Speaker Assist)"
           : "wordy (Self-Contained)";
 
+      const formatLabel =
+        aspectRatio === "16:9"
+          ? "Presentation (16:9)"
+          : aspectRatio === "1:1"
+            ? "Social (Square)"
+            : "Social (Vertical)";
+
       if (inputMode === "prompt") {
         systemPrompt = SLIDES_OUTLINE_SYSTEM_PROMPT;
-        userMessage = `Slide Style: ${styleLabel}\n\nCreate a presentation about:\n${input.trim()}`;
+        userMessage = `Slide Style: ${styleLabel}\nFormat: ${formatLabel}\n\nCreate a presentation about:\n${input.trim()}`;
       } else if (enhanceOutline) {
         systemPrompt = SLIDES_OUTLINE_ENHANCE_SYSTEM_PROMPT;
-        userMessage = `Slide Style: ${styleLabel}\n\n${buildEnhanceOutlinePrompt(input.trim())}`;
+        userMessage = buildEnhanceOutlinePrompt(input.trim());
       } else {
         systemPrompt = SLIDES_OUTLINE_PARSE_SYSTEM_PROMPT;
-        userMessage = `Slide Style: ${styleLabel}\n\n${buildParseOutlinePrompt(input.trim())}`;
+        userMessage = buildParseOutlinePrompt(input.trim());
       }
 
       const conversationId = await createConversation({
@@ -420,11 +437,55 @@ function NewSlidesContent() {
                 </div>
               </div>
 
-              {/* Slide Style */}
+              {/* Format Selection */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  Presentation Style
-                </Label>
+                <Label className="text-sm font-medium">Format</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    {
+                      id: "16:9",
+                      label: "Presentation",
+                      icon: Monitor,
+                      desc: "Standard 16:9",
+                    },
+                    {
+                      id: "1:1",
+                      label: "Social Post",
+                      icon: Grid,
+                      desc: "Square 1:1",
+                    },
+                    {
+                      id: "9:16",
+                      label: "Story",
+                      icon: Smartphone,
+                      desc: "Vertical 9:16",
+                    },
+                  ].map((format) => (
+                    <button
+                      key={format.id}
+                      onClick={() => setAspectRatio(format.id as any)}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all outline-none",
+                        aspectRatio === format.id
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-muted hover:border-primary/20 hover:bg-muted/30 text-muted-foreground",
+                      )}
+                    >
+                      <format.icon className="h-6 w-6 mb-2" />
+                      <span className="text-xs font-semibold">
+                        {format.label}
+                      </span>
+                      <span className="text-[10px] opacity-70">
+                        {format.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content Density (was Slide Style) */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Content Density</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setSlideStyle("illustrative")}
@@ -494,6 +555,15 @@ function NewSlidesContent() {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Visual Style Selector */}
+              <div className="space-y-3 md:col-span-2">
+                <Label className="text-sm font-medium">Visual Style</Label>
+                <StyleSelector
+                  selectedStyleId={imageStyle}
+                  onSelect={setImageStyle}
+                />
               </div>
             </div>
 

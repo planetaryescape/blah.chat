@@ -4,9 +4,9 @@ import { useMutation } from "convex/react";
 import type { editor } from "monaco-editor";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDebounceValue } from "usehooks-ts";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
 import { CanvasErrorBoundary } from "./CanvasErrorBoundary";
 import { CanvasToolbar } from "./CanvasToolbar";
 
@@ -43,7 +43,7 @@ export function CanvasEditor({
 
   // Local content for immediate UI
   const [localContent, setLocalContent] = useState(document.content);
-  const debouncedContent = useDebounce(localContent, 500);
+  const [debouncedContent] = useDebounceValue(localContent, 500);
 
   // Sync external changes (LLM diffs) to editor
   useEffect(() => {

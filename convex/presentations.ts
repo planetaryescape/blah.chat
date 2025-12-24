@@ -56,6 +56,10 @@ export const create = mutation({
     imageModel: v.optional(v.string()),
     slideStyle: v.optional(slideStyleValidator),
     templateId: v.optional(v.id("designTemplates")),
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ),
+    imageStyle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -98,6 +102,8 @@ export const create = mutation({
       imageModel: args.imageModel ?? "google:gemini-3-pro-image-preview",
       slideStyle: args.slideStyle ?? "illustrative",
       templateId: args.templateId,
+      aspectRatio: args.aspectRatio ?? "16:9",
+      imageStyle: args.imageStyle,
       totalSlides: 0,
       generatedSlideCount: 0,
       createdAt: Date.now(),

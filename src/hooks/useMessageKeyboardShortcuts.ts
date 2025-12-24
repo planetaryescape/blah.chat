@@ -37,8 +37,6 @@ export function useMessageKeyboardShortcuts({
   readOnly,
   messageRef,
 }: UseMessageKeyboardShortcutsOptions) {
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const regenerate = useMutation(api.chat.regenerate);
   const deleteMsg = useMutation(api.chat.deleteMessage);
   const createBookmark = useMutation(api.bookmarks.create);
 
@@ -60,15 +58,13 @@ export function useMessageKeyboardShortcuts({
 
       switch (e.key.toLowerCase()) {
         case "r":
-          // Regenerate (assistant messages only, no modifier)
+          // Regenerate (assistant messages only, no modifier) - opens model selector
           if (!isUser && !isGenerating && !isMod) {
             e.preventDefault();
-            try {
-              await regenerate({ messageId });
-              toast.success("Regenerating response...");
-            } catch (_error) {
-              toast.error("Failed to regenerate");
-            }
+            const event = new CustomEvent("open-regenerate-model-selector", {
+              detail: { messageId },
+            });
+            window.dispatchEvent(event);
           }
           break;
 
@@ -140,7 +136,6 @@ export function useMessageKeyboardShortcuts({
     messageId,
     conversationId,
     content,
-    regenerate,
     createBookmark,
     deleteMsg,
     messageRef,

@@ -214,17 +214,17 @@ export function QuickModelSwitcher({
       {/* Trigger Button (optional) */}
       {showTrigger && (
         <Button
-          variant="outline"
+          variant="ghost"
           onClick={() => onOpenChange(true)}
-          className="h-9 px-3 text-sm font-medium bg-background/50 backdrop-blur-sm border-border/50 hover:bg-accent/50 hover:border-accent transition-all group gap-2 min-w-0"
+          className="h-8 px-2.5 text-sm font-medium bg-transparent hover:bg-muted/50 border-0 transition-all group gap-1.5 min-w-0"
         >
-          <span className="truncate max-w-[140px] text-foreground/90 group-hover:text-foreground">
+          <span className="truncate max-w-[120px] text-muted-foreground group-hover:text-foreground transition-colors">
             {mode === "single"
               ? allModels.find((m) => m.id === currentModel)?.name ||
                 "Select model"
-              : `${internalSelected.length} models selected`}
+              : `${internalSelected.length} models`}
           </span>
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-muted-foreground rotate-90 transition-transform" />
+          <ChevronRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-muted-foreground rotate-90 transition-all" />
         </Button>
       )}
 

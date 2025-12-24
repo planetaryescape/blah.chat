@@ -30,6 +30,7 @@ import type { OptimisticMessage } from "@/types/optimistic";
 import { BookmarkButton } from "./BookmarkButton";
 import { MessageActionsMenu } from "./MessageActionsMenu";
 import { MessageActionsMenuMobile } from "./MessageActionsMenuMobile";
+import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import { TTSButton } from "./TTSButton";
 
 interface MessageActionsProps {
@@ -47,6 +48,7 @@ export function MessageActions({
 }: MessageActionsProps) {
   const [copied, setCopied] = useState(false);
   const [showCreateNote, setShowCreateNote] = useState(false);
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const _user = useQuery(api.users.getCurrentUser as any);
@@ -85,6 +87,31 @@ export function MessageActions({
     };
   }, [message._id]);
 
+  // Listen for keyboard shortcut to open regenerate model selector
+  useEffect(() => {
+    const handleOpenRegenerateSelector = (e: Event) => {
+      const customEvent = e as CustomEvent<{ messageId: string }>;
+      if (
+        customEvent.detail.messageId === message._id &&
+        !isUser &&
+        !isGenerating
+      ) {
+        setModelSelectorOpen(true);
+      }
+    };
+
+    window.addEventListener(
+      "open-regenerate-model-selector",
+      handleOpenRegenerateSelector,
+    );
+    return () => {
+      window.removeEventListener(
+        "open-regenerate-model-selector",
+        handleOpenRegenerateSelector,
+      );
+    };
+  }, [message._id, isUser, isGenerating]);
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
       message.content || message.partialContent || "",
@@ -106,9 +133,12 @@ export function MessageActions({
     }
   };
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = async (modelId?: string) => {
     try {
-      await regenerate({ messageId: message._id as Id<"messages"> });
+      await regenerate({
+        messageId: message._id as Id<"messages">,
+        modelId,
+      });
       recordAction({
         actionType: "regenerate_message",
         resourceId: message._id,
@@ -344,22 +374,34 @@ export function MessageActions({
 
             {/* Regenerate Button - only for assistant messages when not generating */}
             {!isUser && !isGenerating && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                    onClick={handleRegenerate}
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span className="sr-only">Regenerate</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Regenerate response (R)</p>
-                </TooltipContent>
-              </Tooltip>
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
+                      onClick={() => setModelSelectorOpen(true)}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="sr-only">Regenerate</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Regenerate response (R)</p>
+                  </TooltipContent>
+                </Tooltip>
+                <QuickModelSwitcher
+                  open={modelSelectorOpen}
+                  onOpenChange={setModelSelectorOpen}
+                  currentModel={message.model || ""}
+                  onSelectModel={(modelId) => {
+                    handleRegenerate(modelId);
+                  }}
+                  mode="single"
+                  showTrigger={false}
+                />
+              </>
             )}
 
             {/* TTS Button - only for complete assistant messages when TTS is enabled */}

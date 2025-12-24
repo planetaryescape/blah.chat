@@ -15,7 +15,6 @@ import {
   Settings,
   Shield,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -31,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PrefetchableLink } from "@/components/ui/prefetchable-link";
 import { Separator } from "@/components/ui/separator";
 import { ShortcutBadge } from "@/components/ui/shortcut-badge";
 import {
@@ -335,22 +335,25 @@ export function AppSidebar() {
     >
       <SidebarHeader className="pt-6 px-1.5 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-          <Link
+          <PrefetchableLink
             href="/app"
             className="hidden group-data-[collapsible=icon]:hidden sm:block hover:opacity-80 transition-opacity"
           >
             <Logo size="md" />
-          </Link>
-          <Link
+          </PrefetchableLink>
+          <PrefetchableLink
             href="/app"
             className="group-data-[collapsible=icon]:block hidden hover:opacity-80 transition-opacity"
           >
             <Logo size="sm" showText={false} />
-          </Link>
+          </PrefetchableLink>
           <div className="sm:hidden">
-            <Link href="/app" className="hover:opacity-80 transition-opacity">
+            <PrefetchableLink
+              href="/app"
+              className="hover:opacity-80 transition-opacity"
+            >
               <Logo size="sm" />
-            </Link>
+            </PrefetchableLink>
           </div>
         </div>
 
@@ -463,10 +466,10 @@ export function AppSidebar() {
                     "data-tour": "projects",
                   })}
                 >
-                  <Link href={item.href}>
+                  <PrefetchableLink href={item.href}>
                     <item.icon className="w-4 h-4" />
                     <span>{item.label}</span>
-                  </Link>
+                  </PrefetchableLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
@@ -492,7 +495,7 @@ export function AppSidebar() {
                       pathname.startsWith(`${item.href}/`);
                     return (
                       <DropdownMenuItem key={item.href} asChild>
-                        <Link
+                        <PrefetchableLink
                           href={item.href}
                           className={cn(
                             "flex items-center gap-2 cursor-pointer",
@@ -502,7 +505,7 @@ export function AppSidebar() {
                         >
                           <item.icon className="w-4 h-4 text-muted-foreground" />
                           <span>{item.label}</span>
-                        </Link>
+                        </PrefetchableLink>
                       </DropdownMenuItem>
                     );
                   })}
@@ -518,13 +521,13 @@ export function AppSidebar() {
                 tooltip="Admin Dashboard"
                 isActive={pathname.startsWith("/admin")}
               >
-                <Link
+                <PrefetchableLink
                   href="/admin/feedback"
                   className="text-amber-500 hover:text-amber-400"
                 >
                   <Shield className="w-4 h-4" />
                   <span>Admin Dashboard</span>
-                </Link>
+                </PrefetchableLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}

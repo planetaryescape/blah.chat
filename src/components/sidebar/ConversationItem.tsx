@@ -31,6 +31,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { cn } from "@/lib/utils";
 import { getConversationMenuItems } from "./ConversationMenuItems";
+import { ConversationPrefetcher } from "./ConversationPrefetcher";
 import { DeleteConversationDialog } from "./DeleteConversationDialog";
 import { RenameDialog } from "./RenameDialog";
 
@@ -53,6 +54,7 @@ export function ConversationItem({
   const pathname = usePathname();
   const [showRename, setShowRename] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [projectFilter, setProjectFilter] = useQueryState("project");
   const features = useFeatureToggles();
 
@@ -159,6 +161,9 @@ export function ConversationItem({
 
   return (
     <>
+      {isHovered && (
+        <ConversationPrefetcher conversationId={conversation._id} />
+      )}
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
@@ -175,7 +180,15 @@ export function ConversationItem({
             )}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
-            onMouseEnter={onClearSelection}
+            onMouseEnter={() => {
+              onClearSelection?.();
+              setIsHovered(true);
+              router.prefetch(`/chat/${conversation._id}`);
+            }}
+            onFocus={() => {
+              setIsHovered(true);
+              router.prefetch(`/chat/${conversation._id}`);
+            }}
             data-list-id={conversation._id}
             role="option"
             aria-selected={isSelected}

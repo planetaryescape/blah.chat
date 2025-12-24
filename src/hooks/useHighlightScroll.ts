@@ -8,7 +8,6 @@ interface UseHighlightScrollOptions {
   highlightMessageId?: string;
   grouped: GroupedItem[];
   containerRef: RefObject<HTMLElement | null>;
-  // biome-ignore lint/suspicious/noExplicitAny: Virtualizer generic types vary by usage
   virtualizer: Virtualizer<any, any>;
 }
 

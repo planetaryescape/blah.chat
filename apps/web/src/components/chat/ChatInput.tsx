@@ -89,7 +89,7 @@ export const ChatInput = memo(function ChatInput({
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
-    null,
+    null
   );
   const [_isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -192,7 +192,7 @@ export const ChatInput = memo(function ChatInput({
             setShowRateLimitDialog(true);
           }
         },
-      },
+      }
     );
 
     setInput("");
@@ -272,8 +272,8 @@ export const ChatInput = memo(function ChatInput({
   return (
     <div
       className={cn(
-        "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
-        getChatWidthClass(chatWidth, false),
+        "w-full mx-auto px-2 sm:px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
+        getChatWidthClass(chatWidth, false)
       )}
     >
       <form
@@ -297,7 +297,7 @@ export const ChatInput = memo(function ChatInput({
             "border-primary/20",
           ],
           !isFocused &&
-            "hover:border-white/[0.1] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.08),0_12px_24px_rgba(0,0,0,0.06)]",
+            "hover:border-white/[0.1] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.08),0_12px_24px_rgba(0,0,0,0.06)]"
         )}
       >
         {/* Drop zone overlay */}
@@ -308,17 +308,17 @@ export const ChatInput = memo(function ChatInput({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="absolute inset-0 z-10 rounded-3xl overflow-hidden pointer-events-none"
+              className="absolute inset-0 z-10 overflow-hidden pointer-events-none rounded-3xl"
             >
               <div className="absolute inset-0 border-2 border-dashed border-primary/50 rounded-3xl animate-pulse" />
-              <div className="absolute inset-0 bg-primary/5 backdrop-blur-sm flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/5 backdrop-blur-sm">
                 <motion.div
                   initial={{ y: 4, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.05 }}
                   className="flex flex-col items-center gap-2"
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
                     <Upload className="w-6 h-6 text-primary" />
                   </div>
                   <span className="text-sm font-medium text-primary">
@@ -348,7 +348,7 @@ export const ChatInput = memo(function ChatInput({
         )}
 
         {/* Main input row - ChatGPT style: [+] [textarea] [mic/send] */}
-        <div className="flex gap-2 items-end px-2">
+        <div className="flex items-end gap-2 px-2">
           {/* Plus button - LEFT, bottom-aligned */}
           <div className="pb-1.5 flex-shrink-0">
             <Tooltip>
@@ -371,7 +371,7 @@ export const ChatInput = memo(function ChatInput({
           </div>
 
           {/* Textarea container - grows upward, takes remaining space */}
-          <div className="flex-1 min-w-0 relative">
+          <div className="relative flex-1 min-w-0">
             {isRecording ? (
               <div className="relative min-h-[50px] flex items-center justify-center rounded-xl overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
@@ -410,7 +410,7 @@ export const ChatInput = memo(function ChatInput({
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowExpandedInput(true)}
-                        className="absolute top-2 right-1 h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
+                        className="absolute w-6 h-6 top-2 right-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
                         aria-label="Expand input"
                       >
                         <Expand className="w-3.5 h-3.5" />
@@ -470,7 +470,7 @@ export const ChatInput = memo(function ChatInput({
                           }
                         } else {
                           setInput((prev) =>
-                            prev.trim() ? `${prev} ${text}` : text,
+                            prev.trim() ? `${prev} ${text}` : text
                           );
                         }
                       }}
@@ -506,7 +506,7 @@ export const ChatInput = memo(function ChatInput({
                         voiceInputRef.current?.stopRecording("preview")
                       }
                       aria-label="Stop recording and edit"
-                      className="h-10 w-10 rounded-full"
+                      className="w-10 h-10 rounded-full"
                     >
                       <Square
                         className="w-4 h-4 fill-current"
@@ -537,16 +537,16 @@ export const ChatInput = memo(function ChatInput({
                     isGenerating
                       ? handleStop
                       : isRecording
-                        ? () => voiceInputRef.current?.stopRecording("send")
-                        : undefined
+                      ? () => voiceInputRef.current?.stopRecording("send")
+                      : undefined
                   }
                   data-testid="send-button"
                   aria-label={
                     isGenerating
                       ? "Stop generating response"
                       : isRecording
-                        ? "Stop recording and send"
-                        : "Send message"
+                      ? "Stop recording and send"
+                      : "Send message"
                   }
                   className={cn(
                     "h-10 w-10 rounded-full transition-all duration-200",
@@ -556,7 +556,7 @@ export const ChatInput = memo(function ChatInput({
                           "bg-primary text-primary-foreground",
                           "shadow-[0_2px_8px_rgba(var(--primary-rgb),0.25)]",
                           "hover:shadow-[0_4px_16px_rgba(var(--primary-rgb),0.35)]",
-                        ],
+                        ]
                   )}
                   disabled={!canSend}
                 >

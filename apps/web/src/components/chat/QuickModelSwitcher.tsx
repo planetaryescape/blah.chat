@@ -142,16 +142,13 @@ export function QuickModelSwitcher({
     };
   }, [activeCategory, defaultModel, favModels, recentModels, rest]);
 
-  const restByProvider = filteredModels.rest.reduce(
-    (acc, model) => {
-      // Use model.provider (actual vendor) instead of gateway prefix
-      const provider = model.provider;
-      if (!acc[provider]) acc[provider] = [];
-      acc[provider].push(model);
-      return acc;
-    },
-    {} as Record<string, ModelConfig[]>,
-  );
+  const restByProvider = filteredModels.rest.reduce((acc, model) => {
+    // Use model.provider (actual vendor) instead of gateway prefix
+    const provider = model.provider;
+    if (!acc[provider]) acc[provider] = [];
+    acc[provider].push(model);
+    return acc;
+  }, {} as Record<string, ModelConfig[]>);
 
   const handleSelect = (modelId: string) => {
     if (mode === "multiple") {
@@ -206,7 +203,11 @@ export function QuickModelSwitcher({
     (model: ModelConfig) => {
       if (isContextExceeded(model)) {
         toast.error(
-          `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${model.name}'s limit (${formatTokens(model.contextWindow ?? DEFAULT_CONTEXT_WINDOW)})`,
+          `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${
+            model.name
+          }'s limit (${formatTokens(
+            model.contextWindow ?? DEFAULT_CONTEXT_WINDOW
+          )})`
         );
       } else if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");
@@ -220,7 +221,7 @@ export function QuickModelSwitcher({
       currentTokenUsage,
       isDisabledDueToByok,
       getByokModelDisabledMessage,
-    ],
+    ]
   );
 
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
@@ -244,7 +245,7 @@ export function QuickModelSwitcher({
         isPro={isProModel(model)}
         proAccessRemaining={
           isProModel(model) && proAccess
-            ? (proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null)
+            ? proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null
             : null
         }
         isDisabled={disabled}
@@ -267,7 +268,7 @@ export function QuickModelSwitcher({
                 "Select model"
               : `${internalSelected.length} models`}
           </span>
-          <ChevronRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-muted-foreground rotate-90 transition-all" />
+          <ChevronRight className="w-3 h-3 transition-all rotate-90 text-muted-foreground/40 group-hover:text-muted-foreground" />
         </Button>
       )}
 
@@ -282,11 +283,12 @@ export function QuickModelSwitcher({
         }}
         className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl"
       >
-        <div className="flex items-center border-b px-4 py-3 shrink-0">
-          <Search className="w-4 h-4 mr-2 text-muted-foreground" />
+        <div className="flex items-center px-4 py-3 border-b shrink-0">
           <CommandInput
-            placeholder={`Search ${activeCategory === "all" ? "" : `${activeCategory} `}models...`}
-            className="flex-1 h-9 bg-transparent border-0 ring-0 focus:ring-0 text-sm"
+            placeholder={`Search ${
+              activeCategory === "all" ? "" : `${activeCategory} `
+            }models...`}
+            className="flex-1 text-sm bg-transparent border-0 h-9 ring-0 focus:ring-0"
           />
         </div>
 
@@ -297,7 +299,7 @@ export function QuickModelSwitcher({
             allModels={allModels}
           />
 
-          <div className="flex-1 flex flex-col min-w-0 bg-background/50">
+          <div className="flex flex-col flex-1 min-w-0 bg-background/50">
             {mode === "multiple" && (
               <SelectedModelsChips
                 selectedIds={internalSelected}
@@ -320,7 +322,7 @@ export function QuickModelSwitcher({
               {filteredModels.favorites.length > 0 && (
                 <CommandGroup heading="Favorites">
                   {filteredModels.favorites.map((model) =>
-                    renderModelItem(model),
+                    renderModelItem(model)
                   )}
                 </CommandGroup>
               )}
@@ -328,7 +330,7 @@ export function QuickModelSwitcher({
               {filteredModels.recents.length > 0 && (
                 <CommandGroup heading="Recent">
                   {filteredModels.recents.map((model) =>
-                    renderModelItem(model),
+                    renderModelItem(model)
                   )}
                 </CommandGroup>
               )}
@@ -349,7 +351,7 @@ export function QuickModelSwitcher({
             </CommandList>
 
             {proAccess && !proAccess.canUse && (
-              <div className="p-3 border-t text-center">
+              <div className="p-3 text-center border-t">
                 <button
                   type="button"
                   onClick={() => setUpgradeDialogOpen(true)}
@@ -363,7 +365,7 @@ export function QuickModelSwitcher({
         </div>
 
         {mode === "multiple" && (
-          <div className="border-t p-3 flex justify-between items-center">
+          <div className="flex items-center justify-between p-3 border-t">
             <span className="text-sm text-muted-foreground">
               {internalSelected.length}/4 selected
             </span>

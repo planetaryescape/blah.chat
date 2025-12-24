@@ -109,7 +109,7 @@ export function AppSidebar() {
   // Filter out presentation conversations (they have their own UI in /slides)
   const conversations = useMemo(
     () => rawConversations?.filter((c) => c.isPresentation !== true),
-    [rawConversations],
+    [rawConversations]
   );
 
   // Prefetch messages for recent conversations (< 7 days) for instant navigation
@@ -238,7 +238,7 @@ export function AppSidebar() {
   // Bulk action handlers - wrapped in useCallback to prevent infinite re-renders
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   }, []);
 
@@ -363,7 +363,7 @@ export function AppSidebar() {
           <div className="sm:hidden">
             <PrefetchableLink
               href="/app"
-              className="hover:opacity-80 transition-opacity"
+              className="transition-opacity hover:opacity-80"
             >
               <Logo size="sm" />
             </PrefetchableLink>
@@ -386,10 +386,10 @@ export function AppSidebar() {
           </Button>
           <Button
             onClick={() => setShowIncognitoDialog(true)}
-            className="h-9 w-9 p-0 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border border-sidebar-border shadow-sm transition-all duration-200 cursor-pointer "
+            className="p-0 transition-all duration-200 border shadow-sm cursor-pointer h-9 w-9 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border-sidebar-border "
             title="New Incognito Chat (Shift+Alt+N)"
           >
-            <Ghost className="h-4 w-4" />
+            <Ghost className="w-4 h-4" />
           </Button>
         </div>
       </SidebarHeader>
@@ -414,7 +414,7 @@ export function AppSidebar() {
                 <>
                   {/* Bulk Action Bar - Top Position */}
                   {selectedIds.length > 0 ? (
-                    <div className="px-2 pb-2 sticky top-0 bg-sidebar z-10">
+                    <div className="sticky top-0 z-10 px-2 pb-2 bg-sidebar">
                       <BulkActionBar
                         selectedCount={selectedIds.length}
                         onClearSelection={handleClearSelection}
@@ -511,7 +511,7 @@ export function AppSidebar() {
                           className={cn(
                             "flex items-center gap-2 cursor-pointer",
                             isActive &&
-                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                           )}
                         >
                           <item.icon className="w-4 h-4 text-muted-foreground" />

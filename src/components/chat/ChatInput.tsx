@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { Loader2, Send, Square } from "lucide-react";
+import Link from "next/link";
 import { memo, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -442,6 +443,20 @@ export const ChatInput = memo(function ChatInput({
           isEmpty={isEmpty}
           hasContent={input.length > 0}
         />
+
+        {/* AI Disclaimer */}
+        <div className="px-4 pb-2 text-center">
+          <p className="text-[11px] text-muted-foreground/50">
+            AI can make mistakes.{" "}
+            <Link
+              href="/ai-info"
+              className="underline hover:text-muted-foreground/70 transition-colors"
+            >
+              Please verify important info
+            </Link>
+            .
+          </p>
+        </div>
       </form>
 
       <RateLimitDialog

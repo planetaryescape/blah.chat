@@ -817,6 +817,34 @@ export const generateResponse = internalAction({
         conversationId: args.conversationId,
       });
 
+      // 10.5. Check if this was a presentation generation and trigger parsing
+      // We check if there's a presentation associated with this conversation
+      // that is in the "outline_generating" or "outline_pending" state
+      const presentation = await ctx.runQuery(
+        // @ts-ignore
+        internal.presentations.internal.getPresentationByConversation,
+        { conversationId: args.conversationId },
+      );
+
+      if (
+        presentation &&
+        (presentation.status === "outline_generating" ||
+          presentation.status === "outline_pending")
+      ) {
+        console.log(
+          "[Generation] Triggering outline parsing for presentation:",
+          presentation._id,
+        );
+        await ctx.runMutation(
+          // @ts-ignore
+          internal.presentations.outline.parseOutlineMessage,
+          {
+            presentationId: presentation._id,
+            messageId: args.assistantMessageId,
+          },
+        );
+      }
+
       // 11. Calculate and update token usage
       const allMessagesForCounting = await ctx.runQuery(
         internal.messages.listInternal,

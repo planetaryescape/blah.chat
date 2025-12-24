@@ -4,9 +4,9 @@ import { useMutation, useQuery } from "convex/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useDebounceValue } from "usehooks-ts";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import type { Priority } from "@/lib/constants/feedback";
 
@@ -39,7 +39,7 @@ export function useFeedbackAdmin() {
   );
 
   // Debounced search
-  const searchQuery = useDebounce(searchParam, 300);
+  const [searchQuery] = useDebounceValue(searchParam, 300);
 
   // Keyboard navigation index
   const [_keyboardIndex, setKeyboardIndex] = useState(-1);

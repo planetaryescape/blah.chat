@@ -344,7 +344,7 @@ export function VirtualizedMessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full w-full">
         <EmptyScreen
           selectedModel={selectedModel}
           conversationCount={conversationCount}

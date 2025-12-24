@@ -2,6 +2,7 @@
 
 import { useMutation } from "convex/react";
 import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -53,20 +54,17 @@ function ChatPageContent({
   const { filteredConversations } = useConversationContext();
   const { documentId, setDocumentId } = useCanvasContext();
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const activeCanvasDocument = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.canvas.documents.getByConversation,
     conversationId ? { conversationId } : "skip",
   );
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const {
     results: serverMessages,
     status: paginationStatus,
@@ -223,10 +221,6 @@ function ChatPageContent({
   const [showModelNames, setShowModelNames] = useQueryState(
     "showModelNames",
     parseAsBoolean.withDefault(showModelNamesDuringComparison),
-  );
-  const [syncScroll, _setSyncScroll] = useQueryState(
-    "syncScroll",
-    parseAsBoolean.withDefault(true),
   );
 
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -586,11 +580,25 @@ function ChatPageContent({
 
             <TTSPlayerBar />
 
-            {isLoading && <MessageListSkeleton chatWidth={chatWidth} />}
-
-            {!isLoading && (
-              <>
-                <div className="flex-1 flex flex-col min-h-0">
+            <AnimatePresence mode="popLayout">
+              {isLoading ? (
+                <motion.div
+                  key="skeleton"
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <MessageListSkeleton chatWidth={chatWidth} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={`messages-${conversationId}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 flex flex-col min-h-0"
+                >
                   {/* Load More Button (fallback for top of list) */}
                   {paginationStatus === "CanLoadMore" && (
                     <div className="flex justify-center p-4">
@@ -625,85 +633,86 @@ function ChatPageContent({
                       setShowModelNames(!showModelNames)
                     }
                     showModelNames={showModelNames ?? false}
-                    syncScroll={syncScroll ?? true}
                     highlightMessageId={highlightMessageId}
                     isCollaborative={conversation?.isCollaborative}
                     isGenerating={isGenerating}
+                    isInitialLoadComplete={true}
                   />
-                </div>
 
-                <ProgressiveHints
-                  messageCount={messages?.length ?? 0}
-                  conversationCount={filteredConversations?.length ?? 0}
-                />
+                  <ProgressiveHints
+                    messageCount={messages?.length ?? 0}
+                    conversationCount={filteredConversations?.length ?? 0}
+                  />
 
-                {/* Model Recommendation Banner */}
-                {conversation?.modelRecommendation &&
-                  !conversation.modelRecommendation.dismissed && (
-                    <ModelRecommendationBanner
-                      recommendation={conversation.modelRecommendation}
+                  {/* Model Recommendation Banner */}
+                  {conversation?.modelRecommendation &&
+                    !conversation.modelRecommendation.dismissed && (
+                      <ModelRecommendationBanner
+                        recommendation={conversation.modelRecommendation}
+                        conversationId={conversationId}
+                        onSwitch={handleSwitchModel}
+                        onPreview={handlePreviewModel}
+                      />
+                    )}
+
+                  {/* Set Default Model Prompt (shows after successful generation) */}
+                  {showSetDefaultPrompt && switchedModelId && (
+                    <SetDefaultModelPrompt
+                      modelId={switchedModelId}
+                      modelName={
+                        MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
+                      }
                       conversationId={conversationId}
-                      onSwitch={handleSwitchModel}
-                      onPreview={handlePreviewModel}
+                      onSetDefault={handleSetAsDefault}
+                      onDismiss={() => setShowSetDefaultPrompt(false)}
                     />
                   )}
 
-                {/* Set Default Model Prompt (shows after successful generation) */}
-                {showSetDefaultPrompt && switchedModelId && (
-                  <SetDefaultModelPrompt
-                    modelId={switchedModelId}
-                    modelName={
-                      MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
-                    }
-                    conversationId={conversationId}
-                    onSetDefault={handleSetAsDefault}
-                    onDismiss={() => setShowSetDefaultPrompt(false)}
+                  {/* Preview Modal */}
+                  {previewModalOpen &&
+                    previewModelId &&
+                    conversation?.modelRecommendation && (
+                      <ModelPreviewModal
+                        open={previewModalOpen}
+                        onOpenChange={setPreviewModalOpen}
+                        currentModelId={
+                          conversation.modelRecommendation.currentModelId
+                        }
+                        suggestedModelId={previewModelId}
+                        currentResponse={
+                          messages?.find((m) => m.role === "assistant")
+                            ?.content ?? ""
+                        }
+                        onSwitch={handleSwitchModel}
+                        conversationId={conversationId}
+                        userMessage={
+                          messages?.find((m) => m.role === "user")?.content ??
+                          ""
+                        }
+                      />
+                    )}
+
+                  <QuickModelSwitcher
+                    open={quickSwitcherOpen}
+                    onOpenChange={setQuickSwitcherOpen}
+                    currentModel={selectedModel}
+                    onSelectModel={handleModelChange}
                   />
-                )}
 
-                {/* Preview Modal */}
-                {previewModalOpen &&
-                  previewModelId &&
-                  conversation?.modelRecommendation && (
-                    <ModelPreviewModal
-                      open={previewModalOpen}
-                      onOpenChange={setPreviewModalOpen}
-                      currentModelId={
-                        conversation.modelRecommendation.currentModelId
-                      }
-                      suggestedModelId={previewModelId}
-                      currentResponse={
-                        messages?.find((m) => m.role === "assistant")
-                          ?.content ?? ""
-                      }
-                      onSwitch={handleSwitchModel}
-                      conversationId={conversationId}
-                      userMessage={
-                        messages?.find((m) => m.role === "user")?.content ?? ""
-                      }
-                    />
-                  )}
-
-                <QuickModelSwitcher
-                  open={quickSwitcherOpen}
-                  onOpenChange={setQuickSwitcherOpen}
-                  currentModel={selectedModel}
-                  onSelectModel={handleModelChange}
-                />
-
-                <QuickTemplateSwitcher
-                  open={templateSelectorOpen}
-                  onOpenChange={setTemplateSelectorOpen}
-                  mode="insert"
-                  onSelectTemplate={(prompt) => {
-                    // Dispatch event to insert template into chat input
-                    window.dispatchEvent(
-                      new CustomEvent("insert-prompt", { detail: prompt }),
-                    );
-                  }}
-                />
-              </>
-            )}
+                  <QuickTemplateSwitcher
+                    open={templateSelectorOpen}
+                    onOpenChange={setTemplateSelectorOpen}
+                    mode="insert"
+                    onSelectTemplate={(prompt) => {
+                      // Dispatch event to insert template into chat input
+                      window.dispatchEvent(
+                        new CustomEvent("insert-prompt", { detail: prompt }),
+                      );
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ChatInput always rendered - prevents focus loss during loading state transitions */}
             <div className="flex shrink-0">

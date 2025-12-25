@@ -11,6 +11,9 @@ export function ReadDocumentRenderer({
 }: ToolRendererProps) {
   return (
     <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
+      <div className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wide mb-0.5">
+        Read Document
+      </div>
       <div className="flex items-center gap-2">
         <Eye className="h-3 w-3 text-muted-foreground" />
         <span className="font-mono text-muted-foreground">

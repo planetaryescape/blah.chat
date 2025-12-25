@@ -85,7 +85,7 @@ function ChatPageContent({
 
   // Canvas auto-sync with conversation mode and navigation
   const isDocumentMode = conversation?.mode === "document";
-  useCanvasAutoSync({
+  const { handleClose: handleCanvasClose } = useCanvasAutoSync({
     conversationId,
     isDocumentMode,
     documentId,
@@ -446,7 +446,7 @@ function ChatPageContent({
             <ResizablePanel defaultSize={55} minSize={25}>
               <CanvasPanel
                 documentId={documentId}
-                onClose={() => setDocumentId(null)}
+                onClose={handleCanvasClose}
               />
             </ResizablePanel>
           </>

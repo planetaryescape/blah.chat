@@ -45,16 +45,20 @@ export function CanvasEditor({
   const [localContent, setLocalContent] = useState(document.content);
   const [debouncedContent] = useDebounceValue(localContent, 500);
 
-  // Sync external changes (LLM diffs) to editor
+  // Track previous server content to detect server-initiated changes only
+  const prevDocumentContentRef = useRef(document.content);
+
+  // Sync external changes (LLM diffs) to editor - only when SERVER value changes
   useEffect(() => {
-    if (document.content !== localContent && editorRef.current) {
-      const currentValue = editorRef.current.getValue();
-      if (currentValue !== document.content) {
+    if (document.content !== prevDocumentContentRef.current) {
+      // Server value changed (AI edit or external update)
+      if (editorRef.current) {
         editorRef.current.setValue(document.content);
-        setLocalContent(document.content);
       }
+      setLocalContent(document.content);
+      prevDocumentContentRef.current = document.content;
     }
-  }, [document.content, localContent]);
+  }, [document.content]);
 
   // Persist debounced changes
   useEffect(() => {

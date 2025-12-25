@@ -16,8 +16,8 @@ export function useCanvasHistory(
     documentId ? { documentId } : "skip",
   );
 
-  // @ts-ignore - Type depth exceeded
   const history = useQuery(
+    // @ts-ignore - Type depth exceeded with 94+ Convex modules
     api.canvas.history.getHistory,
     documentId ? { documentId, limit: 50 } : "skip",
   );
@@ -27,13 +27,14 @@ export function useCanvasHistory(
 
   const currentVersion = document?.version ?? 0;
 
-  const canUndo = currentVersion > 1;
-
-  const canRedo = useMemo(() => {
-    if (!history?.length) return false;
-    const maxVersion = Math.max(...history.map((v) => v.version));
-    return currentVersion < maxVersion;
+  const latestVersion = useMemo(() => {
+    if (!history?.length) return currentVersion;
+    return Math.max(...history.map((v) => v.version));
   }, [history, currentVersion]);
+
+  const canUndo = currentVersion > 1;
+  const canRedo = currentVersion < latestVersion;
+  const isViewingOldVersion = currentVersion < latestVersion;
 
   const undo = useCallback(async () => {
     if (!documentId || currentVersion <= 1 || !history) return;
@@ -86,6 +87,8 @@ export function useCanvasHistory(
   return {
     history,
     currentVersion,
+    latestVersion,
+    isViewingOldVersion,
     canUndo,
     canRedo,
     undo,

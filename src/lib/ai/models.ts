@@ -746,6 +746,32 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       "Efficient powerhouse. Compact model with elite coding and agentic performance.",
     bestFor: "Coding, agentic tasks, efficient performance",
   },
+  "minimax:minimax-m2.1": {
+    id: "minimax:minimax-m2.1",
+    provider: "minimax",
+    name: "MiniMax M2.1",
+    description:
+      "Optimized for coding, tool use, instruction following, and long-horizon planning.",
+    contextWindow: 205000,
+    pricing: { input: 0.3, output: 1.2, cached: 0.03 },
+    capabilities: ["function-calling"],
+    userFriendlyDescription:
+      "Robust coding model. Excels at tool use and long-horizon planning.",
+    bestFor: "Coding, tool use, instruction following, planning",
+  },
+  "minimax:minimax-m2.1-lightning": {
+    id: "minimax:minimax-m2.1-lightning",
+    provider: "minimax",
+    name: "MiniMax M2.1 Lightning",
+    description:
+      "Faster M2.1 variant (~100 TPS). Same performance, higher throughput.",
+    contextWindow: 205000,
+    pricing: { input: 0.3, output: 2.4, cached: 0.03 },
+    capabilities: ["function-calling"],
+    userFriendlyDescription:
+      "Speed-optimized M2.1. Same smarts, nearly 2x faster output.",
+    bestFor: "Low-latency coding, real-time applications, fast responses",
+  },
 
   // Z.ai GLM Models (via Vercel AI Gateway)
   "zai:glm-4.6": {
@@ -761,6 +787,20 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Versatile Chinese model. Strong at coding, reasoning, and agentic tasks with large context.",
     bestFor: "Coding, agentic applications, long-context tasks",
+  },
+  "zai:glm-4.7": {
+    id: "zai:glm-4.7",
+    provider: "zai",
+    name: "GLM 4.7",
+    description:
+      "Latest flagship with stronger coding and multi-step reasoning.",
+    contextWindow: 200000,
+    pricing: { input: 0.6, output: 2.2, cached: 0.11 },
+    capabilities: ["function-calling", "thinking"],
+    hostOrder: ["deepinfra", "fireworks"],
+    userFriendlyDescription:
+      "Powerful coding model. Strong at agentic tasks and multi-step reasoning.",
+    bestFor: "Coding, agentic workflows, multi-step reasoning",
   },
   "zai:glm-4.6v-flash": {
     id: "zai:glm-4.6v-flash",

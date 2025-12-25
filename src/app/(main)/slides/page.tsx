@@ -464,30 +464,30 @@ export default function SlidesPage() {
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <ScrollArea className="flex-1 w-full min-h-0">
-        <div className="container mx-auto max-w-6xl px-4 py-8">
-          {presentations === undefined ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : presentations.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Presentation className="mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-lg font-medium">
-                  No presentations yet
-                </h3>
-                <p className="mb-4 text-center text-sm text-muted-foreground">
-                  Create your first AI-powered presentation
-                </p>
-                <Button onClick={() => router.push("/slides/new")}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Presentation
-                </Button>
-              </CardContent>
-            </Card>
-          ) : viewMode === "grid" ? (
+      {/* Content Area */}
+      {presentations === undefined ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : presentations.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <Card className="border-dashed max-w-md w-full">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Presentation className="mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-medium">No presentations yet</h3>
+              <p className="mb-4 text-center text-sm text-muted-foreground">
+                Create your first AI-powered presentation
+              </p>
+              <Button onClick={() => router.push("/slides/new")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Presentation
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : viewMode === "grid" ? (
+        <ScrollArea className="flex-1 w-full min-h-0">
+          <div className="container mx-auto max-w-6xl px-4 py-8">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {presentations.map((presentation: any) => {
                 const status = statusLabels[presentation.status] || {
@@ -642,97 +642,102 @@ export default function SlidesPage() {
                 );
               })}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-md border border-border/40 overflow-hidden bg-background/50">
-                <div className="max-h-[calc(100vh-theme(spacing.64))] overflow-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-background z-10">
-                      {table.getHeaderGroups().map((headerGroup) => (
+          </div>
+        </ScrollArea>
+      ) : (
+        /* List View - flex layout with sticky bottom pagination */
+        <div className="flex-1 flex flex-col min-h-0 px-4 pb-4">
+          <div className="container mx-auto max-w-6xl flex-1 flex flex-col min-h-0 pt-8">
+            {/* Scrollable table */}
+            <div className="flex-1 min-h-0 rounded-md border border-border/40 overflow-hidden bg-background/50">
+              <div className="h-full overflow-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-background z-10">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow
+                        key={headerGroup.id}
+                        className="hover:bg-transparent"
+                      >
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
                         <TableRow
-                          key={headerGroup.id}
-                          className="hover:bg-transparent"
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                          className="cursor-pointer hover:bg-muted/30 transition-colors"
+                          onClick={() => handleRowClick(row.original)}
                         >
-                          {headerGroup.headers.map((header) => (
-                            <TableHead key={header.id}>
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext(),
-                                  )}
-                            </TableHead>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
                           ))}
                         </TableRow>
-                      ))}
-                    </TableHeader>
-                    <TableBody>
-                      {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                          <TableRow
-                            key={row.id}
-                            data-state={row.getIsSelected() && "selected"}
-                            className="cursor-pointer hover:bg-muted/30 transition-colors"
-                            onClick={() => handleRowClick(row.original)}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell
-                            colSpan={columns.length}
-                            className="h-24 text-center"
-                          >
-                            No presentations found.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length}
+                          className="h-24 text-center"
+                        >
+                          No presentations found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Fixed bottom pagination */}
+            {table.getPageCount() > 0 && (
+              <div className="flex-shrink-0 flex items-center justify-end space-x-2 pt-4">
+                <div className="flex-1 text-sm text-muted-foreground">
+                  {table.getFilteredRowModel().rows.length} presentation(s)
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Page {table.getState().pagination.pageIndex + 1} of{" "}
+                  {table.getPageCount()}
+                </div>
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    Next
+                  </Button>
                 </div>
               </div>
-
-              {table.getPageCount() > 0 && (
-                <div className="flex items-center justify-end space-x-2">
-                  <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredRowModel().rows.length} presentation(s)
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Page {table.getState().pagination.pageIndex + 1} of{" "}
-                    {table.getPageCount()}
-                  </div>
-                  <div className="space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </ScrollArea>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

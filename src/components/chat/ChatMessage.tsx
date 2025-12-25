@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
 import type { OptimisticMessage } from "@/types/optimistic";
 import { FeedbackModal } from "../feedback/FeedbackModal";
+import { ArtifactList } from "./ArtifactList";
 import { AttachmentRenderer } from "./AttachmentRenderer";
 import { InlineToolCallContent } from "./InlineToolCallContent";
 import { MessageActions } from "./MessageActions";
@@ -258,8 +259,8 @@ export const ChatMessage = memo(
     const wrapperClass = cn(
       "relative group",
       isUser
-        ? "ml-auto max-w-[90%] sm:max-w-[75%]"
-        : "mr-auto max-w-[95%] sm:max-w-[85%]",
+        ? "ml-auto mr-4 max-w-[90%] sm:max-w-[75%]"
+        : "mr-auto ml-4 max-w-[95%] sm:max-w-[85%]",
     );
 
     return (
@@ -355,6 +356,9 @@ export const ChatMessage = memo(
                     ) : null}
                   </>
                 )}
+
+                {/* Canvas document artifact cards (message body, not inside tool calls) */}
+                <ArtifactList messageId={message._id as Id<"messages">} />
 
                 {/* Source citations (Phase 2: from normalized tables) */}
                 <SourceList messageId={message._id as Id<"messages">} />

@@ -62,6 +62,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
@@ -158,9 +163,25 @@ export default function SlidesPage() {
             </Button>
           );
         },
-        cell: ({ row }) => (
-          <div className="font-medium text-base">{row.getValue("title")}</div>
-        ),
+        cell: ({ row }) => {
+          const description = row.original.description;
+          const title = row.getValue("title") as string;
+
+          if (!description) {
+            return <div className="font-medium text-base">{title}</div>;
+          }
+
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="font-medium text-base cursor-help">{title}</div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p className="text-sm">{description}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        },
       },
       {
         accessorKey: "status",
@@ -201,7 +222,24 @@ export default function SlidesPage() {
       },
       {
         accessorKey: "stats.totalCost",
-        header: () => <div className="text-right">Cost</div>,
+        header: ({ column }) => (
+          <div className="text-right">
+            <Button
+              variant="ghost"
+              className="-mr-4 h-8 data-[state=open]:bg-accent"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === "asc")
+              }
+            >
+              <span>Cost</span>
+              {column.getIsSorted() === "desc" ? (
+                <ArrowUpDown className="ml-2 h-4 w-4 rotate-180" />
+              ) : (
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        ),
         cell: ({ row }) => {
           const cost = row.original.stats?.totalCost;
           if (!cost || cost === 0 || !showStats)
@@ -249,6 +287,17 @@ export default function SlidesPage() {
         id: "actions",
         cell: ({ row }) => {
           const presentation = row.original;
+          const isGenerating = [
+            "slides_generating",
+            "design_generating",
+          ].includes(presentation.status);
+          const canRestart = [
+            "error",
+            "stopped",
+            "design_complete",
+            "outline_complete",
+          ].includes(presentation.status);
+
           return (
             <div className="flex justify-end">
               <DropdownMenu>
@@ -261,6 +310,42 @@ export default function SlidesPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {isGenerating && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        stopGeneration({ presentationId: presentation._id });
+                        toast.info("Stopping generation...");
+                      }}
+                    >
+                      <StopCircle className="mr-2 h-4 w-4" />
+                      Stop Generation
+                    </DropdownMenuItem>
+                  )}
+                  {canRestart && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        retryGeneration({ presentationId: presentation._id });
+                        toast.success("Restarting generation...");
+                      }}
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Restart Generation
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      regenerateDescription({
+                        presentationId: presentation._id,
+                      });
+                      toast.success("Regenerating description...");
+                    }}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Regenerate Description
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -558,58 +643,68 @@ export default function SlidesPage() {
               })}
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        className="cursor-pointer"
-                        onClick={() => handleRowClick(row.original)}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
+            <div className="flex flex-col h-[calc(100vh-theme(spacing.56))] rounded-md border">
+              {/* Fixed header */}
+              <div className="flex-none border-b">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                          </TableHead>
                         ))}
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
-                        No presentations found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableHeader>
+                </Table>
+              </div>
 
+              {/* Scrollable body */}
+              <ScrollArea className="flex-1">
+                <Table>
+                  <TableBody>
+                    {table.getRowModel().rows?.length ? (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow
+                          key={row.id}
+                          data-state={row.getIsSelected() && "selected"}
+                          className="cursor-pointer"
+                          onClick={() => handleRowClick(row.original)}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id}>
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length}
+                          className="h-24 text-center"
+                        >
+                          No presentations found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+
+              {/* Fixed pagination footer */}
               {(table.getCanPreviousPage() || table.getCanNextPage()) && (
-                <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
+                <div className="flex-none flex items-center justify-end space-x-2 py-4 px-4 border-t bg-background">
                   <div className="flex-1 text-sm text-muted-foreground">
                     {table.getFilteredRowModel().rows.length} presentation(s)
                   </div>

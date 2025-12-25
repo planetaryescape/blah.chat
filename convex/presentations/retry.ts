@@ -198,6 +198,33 @@ export const downloadPPTX = mutation({
   },
 });
 
+export const stopGeneration = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    // Only stop if actively generating
+    const generatingStatuses = ["slides_generating", "design_generating"];
+    if (!generatingStatuses.includes(presentation.status)) {
+      return { success: false, reason: "Not currently generating" };
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      status: "stopped",
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
 export const retryGeneration = mutation({
   args: {
     presentationId: v.id("presentations"),
@@ -290,6 +317,99 @@ export const retryGeneration = mutation({
         { presentationId: args.presentationId },
       );
       return { success: true, retried: "design_system" };
+    }
+
+    // Handle stopped - resume from where we left off
+    if (status === "stopped") {
+      const slides = await ctx.db
+        .query("slides")
+        .withIndex("by_presentation", (q) =>
+          q.eq("presentationId", args.presentationId),
+        )
+        .collect();
+
+      const pendingSlides = slides.filter(
+        (s) => s.imageStatus === "pending" || s.imageStatus === "error",
+      );
+
+      // If slides exist and some are pending, resume slide generation
+      if (slides.length > 0 && pendingSlides.length > 0) {
+        await ctx.db.patch(args.presentationId, {
+          status: "design_complete",
+          generatedSlideCount: slides.length - pendingSlides.length,
+          updatedAt: Date.now(),
+        });
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.presentations.generateSlides.generateSlides,
+          { presentationId: args.presentationId },
+        );
+        return {
+          success: true,
+          retried: "slides",
+          pendingCount: pendingSlides.length,
+        };
+      }
+
+      // If no slides yet or no design system, restart from design
+      if (!presentation.designSystem) {
+        await ctx.db.patch(args.presentationId, {
+          status: "outline_complete",
+          updatedAt: Date.now(),
+        });
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.presentations.designSystem.generateDesignSystem,
+          { presentationId: args.presentationId },
+        );
+        return { success: true, retried: "design_system" };
+      }
+
+      // Fallback: restart slide generation
+      await ctx.db.patch(args.presentationId, {
+        status: "design_complete",
+        updatedAt: Date.now(),
+      });
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
+      return { success: true, retried: "slides" };
+    }
+
+    // Handle error - similar to stopped
+    if (status === "error") {
+      // Check design system first
+      if (!presentation.designSystem) {
+        await ctx.db.patch(args.presentationId, {
+          status: "outline_complete",
+          updatedAt: Date.now(),
+        });
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.presentations.designSystem.generateDesignSystem,
+          { presentationId: args.presentationId },
+        );
+        return { success: true, retried: "design_system" };
+      }
+
+      // Otherwise retry slides
+      await ctx.db.patch(args.presentationId, {
+        status: "design_complete",
+        updatedAt: Date.now(),
+      });
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
+      return { success: true, retried: "slides" };
     }
 
     return { success: false, reason: `Cannot retry from status: ${status}` };

@@ -113,6 +113,7 @@ import type * as lib_prompts_operational_memoryExtraction from "../lib/prompts/o
 import type * as lib_prompts_operational_memoryRephrase from "../lib/prompts/operational/memoryRephrase.js";
 import type * as lib_prompts_operational_memoryRerank from "../lib/prompts/operational/memoryRerank.js";
 import type * as lib_prompts_operational_outlineFeedback from "../lib/prompts/operational/outlineFeedback.js";
+import type * as lib_prompts_operational_presentationDescription from "../lib/prompts/operational/presentationDescription.js";
 import type * as lib_prompts_operational_slideImage from "../lib/prompts/operational/slideImage.js";
 import type * as lib_prompts_operational_slidesOutline from "../lib/prompts/operational/slidesOutline.js";
 import type * as lib_prompts_operational_summarization from "../lib/prompts/operational/summarization.js";
@@ -166,6 +167,7 @@ import type * as onboarding from "../onboarding.js";
 import type * as outlineItems from "../outlineItems.js";
 import type * as presentationSessions from "../presentationSessions.js";
 import type * as presentations from "../presentations.js";
+import type * as presentations_description from "../presentations/description.js";
 import type * as presentations_designSystem from "../presentations/designSystem.js";
 import type * as presentations_export from "../presentations/export.js";
 import type * as presentations_generateSlides from "../presentations/generateSlides.js";
@@ -352,6 +354,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/operational/memoryRephrase": typeof lib_prompts_operational_memoryRephrase;
   "lib/prompts/operational/memoryRerank": typeof lib_prompts_operational_memoryRerank;
   "lib/prompts/operational/outlineFeedback": typeof lib_prompts_operational_outlineFeedback;
+  "lib/prompts/operational/presentationDescription": typeof lib_prompts_operational_presentationDescription;
   "lib/prompts/operational/slideImage": typeof lib_prompts_operational_slideImage;
   "lib/prompts/operational/slidesOutline": typeof lib_prompts_operational_slidesOutline;
   "lib/prompts/operational/summarization": typeof lib_prompts_operational_summarization;
@@ -405,6 +408,7 @@ declare const fullApi: ApiFromModules<{
   outlineItems: typeof outlineItems;
   presentationSessions: typeof presentationSessions;
   presentations: typeof presentations;
+  "presentations/description": typeof presentations_description;
   "presentations/designSystem": typeof presentations_designSystem;
   "presentations/export": typeof presentations_export;
   "presentations/generateSlides": typeof presentations_generateSlides;

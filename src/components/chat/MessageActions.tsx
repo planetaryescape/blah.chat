@@ -58,6 +58,13 @@ export function MessageActions({
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const recordAction = useMutation(api.usage.mutations.recordAction);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const sources = useQuery(
+    api.sources.operations.getSources,
+    message.role === "assistant" && !message._id.startsWith("temp_")
+      ? { messageId: message._id as Id<"messages"> }
+      : "skip",
+  );
   const { isMobile } = useMobileDetect();
   const features = useFeatureToggles();
 
@@ -113,9 +120,17 @@ export function MessageActions({
   }, [message._id, isUser, isGenerating]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(
-      message.content || message.partialContent || "",
-    );
+    let text = message.content || message.partialContent || "";
+
+    // Append sources for assistant messages
+    if (message.role === "assistant" && sources?.length) {
+      text += "\n\n**Sources:**\n";
+      for (const src of sources) {
+        text += `- [${src.position}] [${src.title || src.url}](${src.url})\n`;
+      }
+    }
+
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     recordAction({ actionType: "copy_message", resourceId: message._id });

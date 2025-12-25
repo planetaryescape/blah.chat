@@ -34,6 +34,20 @@ interface DesignTemplate {
 
 const BATCH_SIZE = 10;
 
+// Helper to check if generation was stopped
+async function checkIfStopped(
+  ctx: any,
+  presentationId: string,
+): Promise<boolean> {
+  const current = (await (ctx.runQuery as any)(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    internal.presentations.internal.getPresentationInternal,
+    { presentationId },
+  )) as { status: string } | null;
+
+  return current?.status === "stopped";
+}
+
 export const generateSlides = internalAction({
   args: { presentationId: v.id("presentations") },
   handler: async (ctx, args) => {
@@ -135,6 +149,12 @@ export const generateSlides = internalAction({
           internal.presentations.incrementProgressInternal,
           { presentationId: args.presentationId },
         );
+
+        // Check if stopped after title slide
+        if (await checkIfStopped(ctx, args.presentationId)) {
+          console.log("Generation stopped by user after title slide");
+          return { success: false, stopped: true };
+        }
       }
 
       // BATCH 2: Section slides (parallel, context: title)
@@ -187,6 +207,12 @@ export const generateSlides = internalAction({
         }
 
         console.log("Section slides complete");
+
+        // Check if stopped after section slides
+        if (await checkIfStopped(ctx, args.presentationId)) {
+          console.log("Generation stopped by user after section slides");
+          return { success: false, stopped: true };
+        }
       }
 
       // BATCH 3: Content slides (parallel with sub-batching)
@@ -253,6 +279,14 @@ export const generateSlides = internalAction({
               internal.presentations.incrementProgressInternal,
               { presentationId: args.presentationId },
             );
+          }
+
+          // Check if stopped after each sub-batch
+          if (await checkIfStopped(ctx, args.presentationId)) {
+            console.log(
+              `Generation stopped by user after content sub-batch ${batchIndex + 1}`,
+            );
+            return { success: false, stopped: true };
           }
         }
 

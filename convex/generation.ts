@@ -837,10 +837,11 @@ export const generateResponse = internalAction({
         );
         await ctx.runMutation(
           // @ts-ignore
-          internal.presentations.outline.parseOutlineMessage,
+          internal.presentations.outline.parseOutlineMessageInternal,
           {
             presentationId: presentation._id,
             messageId: args.assistantMessageId,
+            userId: args.userId,
           },
         );
       }

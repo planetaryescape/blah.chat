@@ -328,6 +328,10 @@ interface AnalyticsEvent {
   conversation_exported: {
     format: string;
   };
+  conversation_copied: {
+    conversationId: string;
+    messageCount: number;
+  };
   conversation_imported: {
     format: string;
     conversationsCount: number;

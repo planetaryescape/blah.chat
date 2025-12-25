@@ -643,70 +643,71 @@ export default function SlidesPage() {
               })}
             </div>
           ) : (
-            <div className="flex flex-col h-[calc(100vh-theme(spacing.56))] rounded-md border">
-              {/* Fixed header */}
-              <div className="flex-none border-b">
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                </Table>
-              </div>
-
-              {/* Scrollable body */}
-              <ScrollArea className="flex-1">
-                <Table>
-                  <TableBody>
-                    {table.getRowModel().rows?.length ? (
-                      table.getRowModel().rows.map((row) => (
+            <div className="space-y-4">
+              <div className="rounded-md border border-border/40 overflow-hidden bg-background/50">
+                <div className="max-h-[calc(100vh-theme(spacing.64))] overflow-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow
-                          key={row.id}
-                          data-state={row.getIsSelected() && "selected"}
-                          className="cursor-pointer"
-                          onClick={() => handleRowClick(row.original)}
+                          key={headerGroup.id}
+                          className="hover:bg-transparent"
                         >
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id}>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </TableCell>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead key={header.id}>
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
                           ))}
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={columns.length}
-                          className="h-24 text-center"
-                        >
-                          No presentations found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            data-state={row.getIsSelected() && "selected"}
+                            className="cursor-pointer hover:bg-muted/30 transition-colors"
+                            onClick={() => handleRowClick(row.original)}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext(),
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={columns.length}
+                            className="h-24 text-center"
+                          >
+                            No presentations found.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
 
-              {/* Fixed pagination footer */}
-              {(table.getCanPreviousPage() || table.getCanNextPage()) && (
-                <div className="flex-none flex items-center justify-end space-x-2 py-4 px-4 border-t bg-background">
+              {table.getPageCount() > 0 && (
+                <div className="flex items-center justify-end space-x-2">
                   <div className="flex-1 text-sm text-muted-foreground">
                     {table.getFilteredRowModel().rows.length} presentation(s)
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Page {table.getState().pagination.pageIndex + 1} of{" "}
+                    {table.getPageCount()}
                   </div>
                   <div className="space-x-2">
                     <Button

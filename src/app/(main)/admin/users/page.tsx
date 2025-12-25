@@ -29,14 +29,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
@@ -404,57 +396,60 @@ function UsersPageContent() {
               </div>
             </>
           ) : (
-            /* Standard table rendering for < 50 rows */
+            /* Standard table rendering for < 50 rows - raw table for sticky header */
             <div className="flex-1 overflow-auto">
-              <Table>
-                <TableHeader>
+              <table className="w-full caption-bottom text-sm">
+                <thead className="[&_tr]:border-b">
                   {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
+                    <tr key={headerGroup.id} className="border-b">
                       {headerGroup.headers.map((header) => (
-                        <TableHead key={header.id}>
+                        <th
+                          key={header.id}
+                          className="sticky top-0 bg-background z-10 h-10 px-4 text-left align-middle font-medium text-muted-foreground"
+                        >
                           {header.isPlaceholder
                             ? null
                             : flexRender(
                                 header.column.columnDef.header,
                                 header.getContext(),
                               )}
-                        </TableHead>
+                        </th>
                       ))}
-                    </TableRow>
+                    </tr>
                   ))}
-                </TableHeader>
-                <TableBody>
+                </thead>
+                <tbody className="[&_tr:last-child]:border-0">
                   {table.getRowModel().rows.length ? (
                     table.getRowModel().rows.map((row) => (
-                      <TableRow
+                      <tr
                         key={row.id}
-                        className="cursor-pointer hover:bg-muted/50"
+                        className="border-b cursor-pointer hover:bg-muted/50"
                         onClick={() =>
                           router.push(`/admin/users/${row.original._id}`)
                         }
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
+                          <td key={cell.id} className="p-4 align-middle">
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext(),
                             )}
-                          </TableCell>
+                          </td>
                         ))}
-                      </TableRow>
+                      </tr>
                     ))
                   ) : (
-                    <TableRow>
-                      <TableCell
+                    <tr className="border-b">
+                      <td
                         colSpan={columns.length}
-                        className="h-24 text-center"
+                        className="h-24 text-center p-4 align-middle"
                       >
                         No users found.
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   )}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
           )}
         </div>

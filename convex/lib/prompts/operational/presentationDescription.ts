@@ -8,7 +8,7 @@
  * System prompt for presentation description generation.
  * Used by: presentations/description.ts (generateDescriptionAction)
  */
-export const DESCRIPTION_SYSTEM_PROMPT = `You are a concise summary writer. Given a presentation title and slide outline, write a 2-3 sentence description capturing the key topic and purpose. Be specific, engaging, and avoid generic language.`;
+export const DESCRIPTION_SYSTEM_PROMPT = `You are a concise summary writer. Given a presentation title and slide outline, write a 1-2 sentence description capturing the key topic and purpose. Be specific, engaging, and avoid generic language.`;
 
 /**
  * Build user prompt for description generation.
@@ -31,5 +31,5 @@ export function buildDescriptionPrompt(
 Slides:
 ${slideList}
 
-Write a 2-3 sentence description:`;
+Write a 1-2 sentence description:`;
 }

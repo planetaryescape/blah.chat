@@ -9,7 +9,7 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import {
   ArrowUpDown,
@@ -19,16 +19,20 @@ import {
   List,
   Loader2,
   MoreHorizontal,
+  Pin,
   Plus,
   Presentation,
   RefreshCw,
   RotateCcw,
+  Search,
+  Star,
   StopCircle,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useDebouncedCallback } from "use-debounce";
 import { useLocalStorage } from "usehooks-ts";
 
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
@@ -52,6 +56,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -63,6 +68,7 @@ import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { cn } from "@/lib/utils";
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   outline_pending: { label: "Pending", color: "text-muted-foreground" },
@@ -88,9 +94,22 @@ export default function SlidesPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [deleteId, setDeleteId] = useState<Id<"presentations"> | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [filter, setFilter] = useState<"all" | "starred" | "pinned">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResultIds, setSearchResultIds] = useState<Set<string> | null>(
+    null,
+  );
+
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const hybridSearchAction = useAction(api.search.presentations.hybridSearch);
 
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const deletePresentation = useMutation(api.presentations.deletePresentation);
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const togglePin = useMutation(api.presentations.togglePin);
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const toggleStar = useMutation(api.presentations.toggleStar);
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const stopGeneration = useMutation(api.presentations.retry.stopGeneration);
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
@@ -107,6 +126,41 @@ export default function SlidesPage() {
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const presentations = useQuery(api.presentations.listByUserWithStats, {});
   const showStats = useUserPreference("showSlideStatistics");
+
+  // Debounced hybrid search function
+  const executeHybridSearch = useDebouncedCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        setSearchResultIds(null);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const results = await hybridSearchAction({
+          query: query.trim(),
+          filter: filter === "all" ? undefined : filter,
+          limit: 50,
+        });
+        // Store IDs as a Set for O(1) lookup, preserve order via array
+        const orderedIds = results.map((r: { _id: string }) => r._id);
+        setSearchResultIds(new Set(orderedIds));
+      } catch (error) {
+        console.error("Hybrid search failed:", error);
+        // Fallback to client-side filtering
+        setSearchResultIds(null);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    400, // 400ms debounce
+  );
+
+  // Trigger search when query or filter changes
+  useEffect(() => {
+    executeHybridSearch(searchQuery);
+  }, [searchQuery, filter, executeHybridSearch]);
 
   // Define type for presentation with stats
   type PresentationWithStats = Doc<"presentations"> & {
@@ -166,7 +220,7 @@ export default function SlidesPage() {
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="font-medium text-base cursor-help">{title}</div>
+                <div className="font-medium text-base">{title}</div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-xs">
                 <p className="text-sm">{description}</p>
@@ -326,17 +380,37 @@ export default function SlidesPage() {
                       Restart Generation
                     </DropdownMenuItem>
                   )}
+                  {!presentation.description && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        regenerateDescription({
+                          presentationId: presentation._id,
+                        });
+                        toast.success("Generating description...");
+                      }}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Generate Description
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      regenerateDescription({
-                        presentationId: presentation._id,
-                      });
-                      toast.success("Regenerating description...");
+                      togglePin({ presentationId: presentation._id });
                     }}
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Regenerate Description
+                    <Pin className="mr-2 h-4 w-4" />
+                    {presentation.pinned ? "Unpin" : "Pin"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleStar({ presentationId: presentation._id });
+                    }}
+                  >
+                    <Star className="mr-2 h-4 w-4" />
+                    {presentation.starred ? "Unstar" : "Star"}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -355,19 +429,50 @@ export default function SlidesPage() {
         },
       },
     ],
-    [showStats],
+    [showStats, togglePin, toggleStar],
   );
 
-  const tableData = useMemo(() => {
+  // Filter and search presentations
+  const filteredPresentations = useMemo(() => {
     if (!presentations) return [];
-    return presentations.map((p: any) => ({
+
+    let data = [...presentations];
+
+    // If searching and have hybrid search results, use those (preserves relevance order)
+    if (searchQuery.trim() && searchResultIds !== null) {
+      // Filter to only include search results, preserve order from search
+      const matchedPresentations = data.filter((p: any) =>
+        searchResultIds.has(p._id),
+      );
+      // No additional sorting when using search results - relevance order is preserved
+      return matchedPresentations;
+    }
+
+    // No search query - apply filters and sort normally
+    if (filter === "starred") {
+      data = data.filter((p: any) => p.starred === true);
+    } else if (filter === "pinned") {
+      data = data.filter((p: any) => p.pinned === true);
+    }
+
+    // Sort: pinned first, then by updatedAt
+    return data.sort((a: any, b: any) => {
+      const aPinned = a.pinned === true;
+      const bPinned = b.pinned === true;
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      return b.updatedAt - a.updatedAt;
+    });
+  }, [presentations, filter, searchQuery, searchResultIds]);
+
+  const tableData = useMemo(() => {
+    return filteredPresentations.map((p: any) => ({
       ...p,
       statusLabel: statusLabels[p.status] || {
         label: p.status,
         color: "text-muted-foreground",
       },
     }));
-  }, [presentations]);
+  }, [filteredPresentations]);
 
   const table = useReactTable({
     data: tableData,
@@ -453,6 +558,42 @@ export default function SlidesPage() {
               </Button>
             </div>
           </div>
+
+          {/* Search and Filter Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
+            <div className="relative flex-1 max-w-xs">
+              {isSearching ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+              ) : (
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              )}
+              <Input
+                placeholder="Search presentations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <Tabs
+              value={filter}
+              onValueChange={(v) =>
+                setFilter(v as "all" | "starred" | "pinned")
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="starred" className="gap-1">
+                  <Star className="h-3.5 w-3.5" />
+                  Starred
+                </TabsTrigger>
+                <TabsTrigger value="pinned" className="gap-1">
+                  <Pin className="h-3.5 w-3.5" />
+                  Pinned
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       </div>
 
@@ -477,11 +618,28 @@ export default function SlidesPage() {
             </CardContent>
           </Card>
         </div>
+      ) : filteredPresentations.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center">
+            <p className="text-muted-foreground">
+              No presentations match your search or filter.
+            </p>
+            <Button
+              variant="link"
+              onClick={() => {
+                setFilter("all");
+                setSearchQuery("");
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        </div>
       ) : viewMode === "grid" ? (
         <ScrollArea className="flex-1 w-full min-h-0">
           <div className="container mx-auto max-w-6xl px-4 py-8">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {presentations.map((presentation: any) => {
+              {filteredPresentations.map((presentation: any) => {
                 const status = statusLabels[presentation.status] || {
                   label: presentation.status,
                   color: "text-muted-foreground",
@@ -512,6 +670,25 @@ export default function SlidesPage() {
                         title={presentation.title}
                         size="card"
                       />
+
+                      {/* Star button - top-left */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 left-2 h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleStar({ presentationId: presentation._id });
+                        }}
+                      >
+                        <Star
+                          className={cn(
+                            "h-4 w-4",
+                            presentation.starred === true &&
+                              "fill-yellow-500 text-yellow-500",
+                          )}
+                        />
+                      </Button>
 
                       {/* Menu - top-right */}
                       <DropdownMenu>
@@ -556,17 +733,37 @@ export default function SlidesPage() {
                               Restart Generation
                             </DropdownMenuItem>
                           )}
+                          {!presentation.description && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                regenerateDescription({
+                                  presentationId: presentation._id,
+                                });
+                                toast.success("Generating description...");
+                              }}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Generate Description
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              regenerateDescription({
-                                presentationId: presentation._id,
-                              });
-                              toast.success("Regenerating description...");
+                              togglePin({ presentationId: presentation._id });
                             }}
                           >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Regenerate Description
+                            <Pin className="mr-2 h-4 w-4" />
+                            {presentation.pinned ? "Unpin" : "Pin"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStar({ presentationId: presentation._id });
+                            }}
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            {presentation.starred ? "Unstar" : "Star"}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={(e) => {
@@ -580,6 +777,14 @@ export default function SlidesPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+
+                      {/* Pinned indicator - bottom-left */}
+                      {presentation.pinned === true && (
+                        <span className="absolute bottom-2 left-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-orange-500 flex items-center gap-1">
+                          <Pin className="h-3 w-3 fill-current" />
+                          Pinned
+                        </span>
+                      )}
 
                       {/* Status badge - bottom-right */}
                       <span

@@ -1254,6 +1254,7 @@ export default defineSchema({
     userId: v.id("users"),
     conversationId: v.optional(v.id("conversations")), // Links to outline chat iteration
     title: v.string(),
+    description: v.optional(v.string()), // AI-generated summary
 
     // Generation state tracking
     status: v.union(
@@ -1264,6 +1265,7 @@ export default defineSchema({
       v.literal("design_complete"),
       v.literal("slides_generating"),
       v.literal("slides_complete"),
+      v.literal("stopped"),
       v.literal("error"),
     ),
 

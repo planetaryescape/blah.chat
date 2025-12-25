@@ -21,6 +21,9 @@ import {
   MoreHorizontal,
   Plus,
   Presentation,
+  RefreshCw,
+  RotateCcw,
+  StopCircle,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -30,6 +33,7 @@ import { useLocalStorage } from "usehooks-ts";
 
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
+import { PresentationThumbnail } from "@/components/slides/PresentationThumbnail";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -70,6 +75,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   design_complete: { label: "Design ready", color: "text-blue-500" },
   slides_generating: { label: "Generating slides", color: "text-amber-500" },
   slides_complete: { label: "Complete", color: "text-green-500" },
+  stopped: { label: "Stopped", color: "text-muted-foreground" },
   error: { label: "Error", color: "text-destructive" },
 };
 
@@ -88,6 +94,14 @@ export default function SlidesPage() {
 
   // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const deletePresentation = useMutation(api.presentations.deletePresentation);
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const stopGeneration = useMutation(api.presentations.retry.stopGeneration);
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const retryGeneration = useMutation(api.presentations.retry.retryGeneration);
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+  const regenerateDescription = useMutation(
+    api.presentations.description.regenerateDescription,
+  );
 
   const handleViewModeChange = (mode: string) => {
     setViewMode(mode as ViewMode);
@@ -99,6 +113,8 @@ export default function SlidesPage() {
 
   // Define type for presentation with stats
   type PresentationWithStats = Doc<"presentations"> & {
+    thumbnailStorageId?: Id<"_storage">;
+    thumbnailStatus?: string;
     stats: {
       totalCost: number;
       totalInputTokens: number;
@@ -109,6 +125,19 @@ export default function SlidesPage() {
 
   const columns = useMemo<ColumnDef<PresentationWithStats>[]>(
     () => [
+      {
+        id: "thumbnail",
+        header: () => null,
+        cell: ({ row }) => (
+          <PresentationThumbnail
+            storageId={row.original.thumbnailStorageId}
+            status={row.original.thumbnailStatus}
+            title={row.original.title}
+            size="table"
+          />
+        ),
+        size: 60,
+      },
       {
         accessorKey: "title",
         header: ({ column }) => {
@@ -313,77 +342,101 @@ export default function SlidesPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl py-8">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Slides</h1>
-          <p className="mt-1 text-muted-foreground">
-            Create AI-powered presentations
-          </p>
-        </div>
+    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+      {/* Fixed Header */}
+      <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
+        <div className="container mx-auto max-w-6xl px-4 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Slides</h1>
+              <p className="text-sm text-muted-foreground">
+                Create AI-powered presentations
+              </p>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <Tabs
-            value={viewMode}
-            onValueChange={handleViewModeChange}
-            className="mr-2"
-          >
-            <TabsList>
-              <TabsTrigger value="grid">
-                <LayoutGrid className="h-4 w-4" />
-              </TabsTrigger>
-              <TabsTrigger value="list">
-                <List className="h-4 w-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+            <div className="flex items-center gap-2">
+              <Tabs
+                value={viewMode}
+                onValueChange={handleViewModeChange}
+                className="mr-2"
+              >
+                <TabsList>
+                  <TabsTrigger value="grid">
+                    <LayoutGrid className="h-4 w-4" />
+                  </TabsTrigger>
+                  <TabsTrigger value="list">
+                    <List className="h-4 w-4" />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-          <Button onClick={() => router.push("/slides/new")}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Presentation
-          </Button>
+              <Button onClick={() => router.push("/slides/new")}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Presentation
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {presentations === undefined ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : presentations.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Presentation className="mb-4 h-12 w-12 text-muted-foreground" />
-            <h3 className="mb-2 text-lg font-medium">No presentations yet</h3>
-            <p className="mb-4 text-center text-sm text-muted-foreground">
-              Create your first AI-powered presentation
-            </p>
-            <Button onClick={() => router.push("/slides/new")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Presentation
-            </Button>
-          </CardContent>
-        </Card>
-      ) : viewMode === "grid" ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {presentations.map((presentation: any) => {
-            const status = statusLabels[presentation.status] || {
-              label: presentation.status,
-              color: "text-muted-foreground",
-            };
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1 w-full min-h-0">
+        <div className="container mx-auto max-w-6xl px-4 py-8">
+          {presentations === undefined ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : presentations.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Presentation className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-medium">
+                  No presentations yet
+                </h3>
+                <p className="mb-4 text-center text-sm text-muted-foreground">
+                  Create your first AI-powered presentation
+                </p>
+                <Button onClick={() => router.push("/slides/new")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Presentation
+                </Button>
+              </CardContent>
+            </Card>
+          ) : viewMode === "grid" ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {presentations.map((presentation: any) => {
+                const status = statusLabels[presentation.status] || {
+                  label: presentation.status,
+                  color: "text-muted-foreground",
+                };
 
-            return (
-              <Card
-                key={presentation._id}
-                className="cursor-pointer transition-shadow hover:shadow-md group"
-                onClick={() => handleRowClick(presentation)}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <Presentation className="h-5 w-5 text-primary" />
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium ${status.color}`}>
-                        {status.label}
-                      </span>
+                const isGenerating = [
+                  "slides_generating",
+                  "design_generating",
+                ].includes(presentation.status);
+                const canRestart = [
+                  "error",
+                  "stopped",
+                  "design_complete",
+                  "outline_complete",
+                ].includes(presentation.status);
+
+                return (
+                  <Card
+                    key={presentation._id}
+                    className="cursor-pointer transition-shadow hover:shadow-md overflow-hidden"
+                    onClick={() => handleRowClick(presentation)}
+                  >
+                    {/* Thumbnail with overlay badges */}
+                    <div className="relative">
+                      <PresentationThumbnail
+                        storageId={presentation.thumbnailStorageId}
+                        status={presentation.thumbnailStatus}
+                        title={presentation.title}
+                        size="card"
+                      />
+
+                      {/* Menu - top-right */}
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           asChild
@@ -392,12 +445,52 @@ export default function SlidesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-2 right-2 h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background/90"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {isGenerating && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                stopGeneration({
+                                  presentationId: presentation._id,
+                                });
+                                toast.info("Stopping generation...");
+                              }}
+                            >
+                              <StopCircle className="mr-2 h-4 w-4" />
+                              Stop Generation
+                            </DropdownMenuItem>
+                          )}
+                          {canRestart && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                retryGeneration({
+                                  presentationId: presentation._id,
+                                });
+                                toast.success("Restarting generation...");
+                              }}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                              Restart Generation
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              regenerateDescription({
+                                presentationId: presentation._id,
+                              });
+                              toast.success("Regenerating description...");
+                            }}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Regenerate Description
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
@@ -410,128 +503,140 @@ export default function SlidesPage() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>
-                  </div>
-                  <CardTitle className="line-clamp-1 text-lg">
-                    {presentation.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(presentation.createdAt, {
-                        addSuffix: true,
-                      })}
-                    </div>
-                    {presentation.totalSlides > 0 && (
-                      <div>{presentation.totalSlides} slides</div>
-                    )}
-                  </div>
-                  {/* Stats row - only show if preference enabled and has cost data */}
-                  {showStats && presentation.stats?.totalCost > 0 && (
-                    <div className="flex items-center gap-3 mt-2 pt-2 border-t text-xs text-muted-foreground">
-                      {presentation.imageModel && (
-                        <span
-                          className="truncate max-w-[100px]"
-                          title={presentation.imageModel}
-                        >
-                          {presentation.imageModel
-                            .replace(/^google:/, "")
-                            .replace(/-/g, " ")}
-                        </span>
-                      )}
-                      <div className="flex items-center gap-0.5 ml-auto">
-                        <DollarSign className="h-3 w-3" />
-                        <span className="font-mono">
-                          {presentation.stats.totalCost.toFixed(4)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="cursor-pointer"
-                    onClick={() => handleRowClick(row.original)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No presentations found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
 
-          {(table.getCanPreviousPage() || table.getCanNextPage()) && (
-            <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
-              <div className="flex-1 text-sm text-muted-foreground">
-                {table.getFilteredRowModel().rows.length} presentation(s)
-              </div>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  Next
-                </Button>
-              </div>
+                      {/* Status badge - bottom-right */}
+                      <span
+                        className={`absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm ${status.color}`}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
+
+                    <CardHeader className="pb-1.5 pt-2">
+                      <CardTitle className="text-base">
+                        {presentation.title}
+                      </CardTitle>
+                      {presentation.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                          {presentation.description}
+                        </p>
+                      )}
+                    </CardHeader>
+
+                    <CardContent className="pt-0 pb-3">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(presentation.createdAt, {
+                            addSuffix: true,
+                          })}
+                        </div>
+                        {presentation.totalSlides > 0 && (
+                          <div>{presentation.totalSlides} slides</div>
+                        )}
+                      </div>
+                      {showStats && presentation.stats?.totalCost > 0 && (
+                        <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t text-xs text-muted-foreground">
+                          {presentation.imageModel && (
+                            <span title={presentation.imageModel}>
+                              {presentation.imageModel
+                                .replace(/^google:/, "")
+                                .replace(/-/g, " ")}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-0.5 ml-auto">
+                            <DollarSign className="h-3 w-3" />
+                            <span className="font-mono">
+                              {presentation.stats.totalCost.toFixed(4)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && "selected"}
+                        className="cursor-pointer"
+                        onClick={() => handleRowClick(row.original)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No presentations found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+
+              {(table.getCanPreviousPage() || table.getCanNextPage()) && (
+                <div className="flex items-center justify-end space-x-2 py-4 px-4 border-t">
+                  <div className="flex-1 text-sm text-muted-foreground">
+                    {table.getFilteredRowModel().rows.length} presentation(s)
+                  </div>
+                  <div className="space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </ScrollArea>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

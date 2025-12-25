@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
+export * as description from "./presentations/description";
 export * as designSystem from "./presentations/designSystem";
 export * as pptxExport from "./presentations/export";
 export * as generateSlides from "./presentations/generateSlides";
@@ -21,6 +22,7 @@ const presentationStatusValidator = v.union(
   v.literal("design_complete"),
   v.literal("slides_generating"),
   v.literal("slides_complete"),
+  v.literal("stopped"),
   v.literal("error"),
 );
 
@@ -190,8 +192,19 @@ export const listByUserWithStats = query({
           0,
         );
 
+        // Get thumbnail from title slide (first slide with slideType "title")
+        const titleSlide = slides.find(
+          (s) => s.slideType === "title" && s.position === 0,
+        );
+        const thumbnailStorageId =
+          titleSlide?.imageStorageId ?? slides[0]?.imageStorageId;
+        const thumbnailStatus =
+          titleSlide?.imageStatus ?? slides[0]?.imageStatus;
+
         return {
           ...p,
+          thumbnailStorageId,
+          thumbnailStatus,
           stats: {
             totalCost,
             totalInputTokens,

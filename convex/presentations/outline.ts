@@ -7,6 +7,7 @@ import type { Doc } from "../_generated/dataModel";
 import {
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
 } from "../_generated/server";
 import {
@@ -24,6 +25,25 @@ const outlineStatusValidator = v.union(
   v.literal("regenerating"),
   v.literal("ready"),
 );
+
+// ===== Internal Queries =====
+
+export const getOutlineItemsInternal = internalQuery({
+  args: {
+    presentationId: v.id("presentations"),
+    version: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const items = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation_version", (q) =>
+        q.eq("presentationId", args.presentationId).eq("version", args.version),
+      )
+      .collect();
+
+    return items.sort((a, b) => a.position - b.position);
+  },
+});
 
 // ===== Public Mutations =====
 
@@ -233,6 +253,14 @@ export const approveOutlineFromItems = mutation({
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.presentations.designSystem.generateDesignSystem,
+      { presentationId: args.presentationId },
+    );
+
+    // Schedule description generation (runs in parallel with design system)
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.description.generateDescriptionAction,
       { presentationId: args.presentationId },
     );
 
@@ -473,14 +501,247 @@ export const parseOutlineMessage = mutation({
       });
     }
 
-    // Update presentation
+    // Update presentation - mark as outline_complete so UI can proceed
     await ctx.db.patch(args.presentationId, {
+      status: "outline_complete",
       currentOutlineVersion: 1,
       outlineStatus: "ready",
+      totalSlides: parsedSlides.length,
       updatedAt: now,
     });
 
     return { itemCount: parsedSlides.length, alreadyParsed: false };
+  },
+});
+
+/**
+ * Internal version of parseOutlineMessage for use by generation.ts
+ * Does not require authentication - uses userId from args
+ */
+export const parseOutlineMessageInternal = internalMutation({
+  args: {
+    presentationId: v.id("presentations"),
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== args.userId) {
+      console.error(
+        "[parseOutlineMessageInternal] Presentation not found or user mismatch",
+      );
+      return { itemCount: 0, error: "Presentation not found" };
+    }
+
+    // Check if outlineItems already exist
+    const existingItems = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .first();
+
+    if (existingItems) {
+      // Items already exist, no need to parse again
+      console.log("[parseOutlineMessageInternal] Items already exist");
+      return { itemCount: 0, alreadyParsed: true };
+    }
+
+    // Get the message
+    const message = await ctx.db.get(args.messageId);
+    if (
+      !message ||
+      message.role !== "assistant" ||
+      message.status !== "complete"
+    ) {
+      console.error("[parseOutlineMessageInternal] Invalid message:", {
+        exists: !!message,
+        role: message?.role,
+        status: message?.status,
+      });
+      return { itemCount: 0, error: "Invalid message for parsing" };
+    }
+
+    // Check for minimum content
+    const content = message.content?.trim() || "";
+    if (content.length < 50) {
+      console.warn(
+        "[parseOutlineMessageInternal] Content too short:",
+        content.length,
+      );
+      return { itemCount: 0, alreadyParsed: false, error: "Content too short" };
+    }
+
+    // Parse the outline
+    const parsedSlides = parseOutlineMarkdown(content);
+
+    if (parsedSlides.length === 0) {
+      console.error(
+        "[parseOutlineMessageInternal] Failed to parse outline. Content preview:",
+        content.substring(0, 500),
+      );
+      return {
+        itemCount: 0,
+        alreadyParsed: false,
+        error: "No slides found in content",
+      };
+    }
+
+    // Create outlineItems
+    const now = Date.now();
+    for (const slideData of parsedSlides) {
+      await ctx.db.insert("outlineItems", {
+        presentationId: args.presentationId,
+        userId: args.userId,
+        position: slideData.position,
+        slideType: slideData.slideType,
+        title: slideData.title,
+        content: slideData.content,
+        speakerNotes: slideData.speakerNotes,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Update presentation - mark as outline_complete so UI can proceed
+    await ctx.db.patch(args.presentationId, {
+      status: "outline_complete",
+      currentOutlineVersion: 1,
+      outlineStatus: "ready",
+      totalSlides: parsedSlides.length,
+      updatedAt: now,
+    });
+
+    console.log(
+      "[parseOutlineMessageInternal] Successfully parsed",
+      parsedSlides.length,
+      "slides",
+    );
+    return { itemCount: parsedSlides.length, alreadyParsed: false };
+  },
+});
+
+/**
+ * Repair a stuck presentation by re-parsing its outline from the conversation.
+ * Use this when a presentation is stuck in "outline_pending" or "outline_generating" state.
+ */
+export const repairStuckOutline = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    // Only allow repair on stuck presentations
+    if (
+      presentation.status !== "outline_pending" &&
+      presentation.status !== "outline_generating"
+    ) {
+      return { success: false, reason: "Presentation is not stuck" };
+    }
+
+    // Get the conversation linked to this presentation
+    if (!presentation.conversationId) {
+      throw new Error("No conversation linked to this presentation");
+    }
+
+    // Get the last assistant message from the conversation
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", presentation.conversationId!),
+      )
+      .order("desc")
+      .collect();
+
+    const lastAssistantMessage = messages.find(
+      (m) => m.role === "assistant" && m.status === "complete",
+    );
+
+    if (!lastAssistantMessage) {
+      // No complete message yet - conversation might still be generating
+      // Set status to error so user can try again
+      await ctx.db.patch(args.presentationId, {
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      return {
+        success: false,
+        reason:
+          "No complete AI response found. Please try creating a new presentation.",
+      };
+    }
+
+    // Check for minimum content
+    const content = lastAssistantMessage.content?.trim() || "";
+    if (content.length < 50) {
+      await ctx.db.patch(args.presentationId, {
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      return { success: false, reason: "AI response too short to parse" };
+    }
+
+    // Parse the outline
+    const parsedSlides = parseOutlineMarkdown(content);
+
+    if (parsedSlides.length === 0) {
+      await ctx.db.patch(args.presentationId, {
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      return {
+        success: false,
+        reason: "Could not parse slides from AI response",
+      };
+    }
+
+    // Delete any existing outline items for this presentation
+    const existingItems = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .collect();
+
+    for (const item of existingItems) {
+      await ctx.db.delete(item._id);
+    }
+
+    // Create new outline items
+    const now = Date.now();
+    for (const slideData of parsedSlides) {
+      await ctx.db.insert("outlineItems", {
+        presentationId: args.presentationId,
+        userId: user._id,
+        position: slideData.position,
+        slideType: slideData.slideType,
+        title: slideData.title,
+        content: slideData.content,
+        speakerNotes: slideData.speakerNotes,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Update presentation status
+    await ctx.db.patch(args.presentationId, {
+      status: "outline_complete",
+      currentOutlineVersion: 1,
+      outlineStatus: "ready",
+      totalSlides: parsedSlides.length,
+      updatedAt: now,
+    });
+
+    return { success: true, slideCount: parsedSlides.length };
   },
 });
 

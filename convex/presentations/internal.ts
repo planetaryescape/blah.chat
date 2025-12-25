@@ -20,6 +20,7 @@ const presentationStatusValidator = v.union(
   v.literal("design_complete"),
   v.literal("slides_generating"),
   v.literal("slides_complete"),
+  v.literal("stopped"),
   v.literal("error"),
 );
 

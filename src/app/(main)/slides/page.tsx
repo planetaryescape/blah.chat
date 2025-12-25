@@ -652,14 +652,17 @@ export default function SlidesPage() {
             <div className="flex-1 min-h-0 rounded-md border border-border/40 overflow-hidden bg-background/50">
               <div className="h-full overflow-auto">
                 <Table>
-                  <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow
                         key={headerGroup.id}
                         className="hover:bg-transparent"
                       >
                         {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id}>
+                          <TableHead
+                            key={header.id}
+                            className="sticky top-0 bg-background z-10"
+                          >
                             {header.isPlaceholder
                               ? null
                               : flexRender(

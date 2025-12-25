@@ -149,7 +149,7 @@ export function VirtualizedMessageList({
                       "grid-cols-[1fr_min(56rem,100%)_1fr]",
                     chatWidth === "wide" &&
                       "grid-cols-[1fr_min(72rem,100%)_1fr]",
-                    chatWidth === "full" && "grid-cols-[1fr_min(95%,100%)_1fr]",
+                    chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
                     !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
                   )}
                 >

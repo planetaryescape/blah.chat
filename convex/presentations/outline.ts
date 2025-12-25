@@ -133,6 +133,14 @@ export const approveOutline = mutation({
       { presentationId: args.presentationId },
     );
 
+    // Schedule embedding generation for semantic search
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.embeddings.generateEmbedding,
+      { presentationId: args.presentationId },
+    );
+
     return { slideCount: parsedSlides.length };
   },
 });
@@ -261,6 +269,14 @@ export const approveOutlineFromItems = mutation({
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.presentations.description.generateDescriptionAction,
+      { presentationId: args.presentationId },
+    );
+
+    // Schedule embedding generation for semantic search
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.embeddings.generateEmbedding,
       { presentationId: args.presentationId },
     );
 

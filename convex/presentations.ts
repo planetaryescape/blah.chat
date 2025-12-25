@@ -4,6 +4,7 @@ import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 export * as description from "./presentations/description";
 export * as designSystem from "./presentations/designSystem";
+export * as embeddings from "./presentations/embeddings";
 export * as pptxExport from "./presentations/export";
 export * as generateSlides from "./presentations/generateSlides";
 export * as internal from "./presentations/internal";
@@ -108,6 +109,8 @@ export const create = mutation({
       imageStyle: args.imageStyle,
       totalSlides: 0,
       generatedSlideCount: 0,
+      starred: false,
+      pinned: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -408,6 +411,42 @@ export const deletePresentation = mutation({
 
     // 3. Delete presentation
     await ctx.db.delete(args.presentationId);
+  },
+});
+
+// ===== Organization (Star/Pin) =====
+
+export const togglePin = mutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      pinned: !presentation.pinned,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const toggleStar = mutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      starred: !presentation.starred,
+      updatedAt: Date.now(),
+    });
   },
 });
 

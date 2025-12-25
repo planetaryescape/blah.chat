@@ -1327,13 +1327,30 @@ export default defineSchema({
       ),
     ),
 
+    // Organization (matches conversations pattern)
+    starred: v.optional(v.boolean()),
+    pinned: v.optional(v.boolean()),
+
+    // Vector embedding for semantic search
+    embedding: v.optional(v.array(v.float64())),
+
     // Timestamps
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_conversation", ["conversationId"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_pinned", ["userId", "pinned"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId"],
+    })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["userId"],
+    }),
 
   // Individual slides within presentations
   slides: defineTable({

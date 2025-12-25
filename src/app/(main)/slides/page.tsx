@@ -53,14 +53,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
@@ -651,17 +643,14 @@ export default function SlidesPage() {
             {/* Scrollable table */}
             <div className="flex-1 min-h-0 rounded-md border border-border/40 overflow-hidden bg-background/50">
               <div className="h-full overflow-auto">
-                <Table>
-                  <TableHeader>
+                <table className="w-full caption-bottom text-sm">
+                  <thead className="[&_tr]:border-b">
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow
-                        key={headerGroup.id}
-                        className="hover:bg-transparent"
-                      >
+                      <tr key={headerGroup.id} className="border-b">
                         {headerGroup.headers.map((header) => (
-                          <TableHead
+                          <th
                             key={header.id}
-                            className="sticky top-0 bg-background z-10"
+                            className="sticky top-0 bg-background z-10 h-10 px-2 text-left align-middle font-medium text-muted-foreground"
                           >
                             {header.isPlaceholder
                               ? null
@@ -669,42 +658,42 @@ export default function SlidesPage() {
                                   header.column.columnDef.header,
                                   header.getContext(),
                                 )}
-                          </TableHead>
+                          </th>
                         ))}
-                      </TableRow>
+                      </tr>
                     ))}
-                  </TableHeader>
-                  <TableBody>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
                     {table.getRowModel().rows?.length ? (
                       table.getRowModel().rows.map((row) => (
-                        <TableRow
+                        <tr
                           key={row.id}
                           data-state={row.getIsSelected() && "selected"}
-                          className="cursor-pointer hover:bg-muted/30 transition-colors"
+                          className="border-b transition-colors cursor-pointer hover:bg-muted/30"
                           onClick={() => handleRowClick(row.original)}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id}>
+                            <td key={cell.id} className="p-2 align-middle">
                               {flexRender(
                                 cell.column.columnDef.cell,
                                 cell.getContext(),
                               )}
-                            </TableCell>
+                            </td>
                           ))}
-                        </TableRow>
+                        </tr>
                       ))
                     ) : (
-                      <TableRow>
-                        <TableCell
+                      <tr className="border-b">
+                        <td
                           colSpan={columns.length}
-                          className="h-24 text-center"
+                          className="h-24 text-center p-2 align-middle"
                         >
                           No presentations found.
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     )}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             </div>
 

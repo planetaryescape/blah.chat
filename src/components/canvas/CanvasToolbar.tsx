@@ -8,6 +8,7 @@ import {
   History,
   MoreHorizontal,
   Redo2,
+  RefreshCw,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -53,9 +54,16 @@ export function CanvasToolbar({
     documentId ? { documentId } : "skip",
   );
 
-  const { canUndo, canRedo, undo, redo, currentVersion } = useCanvasHistory(
-    documentId ?? undefined,
-  );
+  const {
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    currentVersion,
+    latestVersion,
+    isViewingOldVersion,
+    jumpToVersion,
+  } = useCanvasHistory(documentId ?? undefined);
 
   const handleCopy = async () => {
     if (document?.content) {
@@ -93,8 +101,31 @@ export function CanvasToolbar({
             : "Document"}
         </span>
         <span className="text-muted-foreground/50">|</span>
-        <span>v{currentVersion}</span>
+        <span className={isViewingOldVersion ? "text-amber-500" : ""}>
+          v{currentVersion}
+          {isViewingOldVersion && ` of ${latestVersion}`}
+        </span>
       </div>
+
+      {/* Jump to Latest - shown when viewing old version */}
+      {isViewingOldVersion && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-xs ml-2 gap-1"
+              onClick={() => jumpToVersion(latestVersion)}
+            >
+              <RefreshCw className="h-3 w-3" />
+              Latest
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Jump to latest version (v{latestVersion})
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Undo/Redo */}
       <div className="flex items-center gap-0.5 ml-2">

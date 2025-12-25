@@ -1,66 +1,56 @@
-import { FileCode, FileText } from "lucide-react";
-import { useCanvasContext } from "@/contexts/CanvasContext";
+import { Loader2 } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
+import { ArtifactCard } from "../ArtifactCard";
 import type { ToolRendererProps } from "./types";
 
 /**
  * Renderer for the createDocument tool.
- * Shows document creation with type-specific icon and toggle link.
+ * Shows artifact card on success for easy canvas access.
  */
 export function CreateDocumentRenderer({
   parsedArgs,
   parsedResult,
   state,
 }: ToolRendererProps) {
-  const { documentId, setDocumentId } = useCanvasContext();
-  const Icon = parsedArgs?.documentType === "code" ? FileCode : FileText;
+  const resultDocId = parsedResult?.documentId as
+    | Id<"canvasDocuments">
+    | undefined;
 
-  const resultDocId = parsedResult?.documentId;
-  const isOpen = documentId === resultDocId;
-
-  const handleToggle = () => {
-    if (isOpen) {
-      setDocumentId(null);
-    } else if (resultDocId) {
-      setDocumentId(resultDocId as Id<"canvasDocuments">);
-    }
-  };
-
-  return (
-    <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
-      <div className="flex items-center gap-2">
-        <Icon className="h-3 w-3 text-muted-foreground" />
-        <span className="font-mono text-muted-foreground">
-          "{parsedArgs?.title}"
-        </span>
-        {parsedArgs?.language && (
-          <span className="px-1.5 py-0.5 rounded bg-muted text-[10px]">
-            {parsedArgs.language}
-          </span>
-        )}
+  // Show loading state while executing
+  if (state === "executing") {
+    return (
+      <div className="text-xs flex items-center gap-2 text-muted-foreground py-2">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>Creating "{parsedArgs?.title}"...</span>
       </div>
+    );
+  }
 
-      {parsedResult && state !== "executing" && (
-        <div className="text-muted-foreground flex items-center gap-2">
-          {parsedResult.success ? (
-            <>
-              <span>Created • {parsedResult.lineCount} lines</span>
-              <span className="text-[10px]">•</span>
-              <span
-                onClick={handleToggle}
-                onKeyDown={(e) => e.key === "Enter" && handleToggle()}
-                role="button"
-                tabIndex={0}
-                className="text-primary hover:underline cursor-pointer text-[10px]"
-              >
-                {isOpen ? "Close" : "Open"}
-              </span>
-            </>
-          ) : (
-            <span className="text-destructive">{parsedResult.error}</span>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  // Show error if failed
+  if (parsedResult && !parsedResult.success) {
+    return (
+      <div className="text-xs text-destructive py-2">
+        Failed to create document: {parsedResult.error}
+      </div>
+    );
+  }
+
+  // Show artifact card on success
+  if (parsedResult?.success && resultDocId) {
+    return (
+      <div className="mt-2">
+        <ArtifactCard
+          documentId={resultDocId}
+          title={parsedArgs?.title ?? "Document"}
+          documentType={parsedArgs?.documentType ?? "prose"}
+          language={parsedArgs?.language}
+          version={1}
+          lineCount={parsedResult.lineCount}
+        />
+      </div>
+    );
+  }
+
+  // Fallback for partial states
+  return null;
 }

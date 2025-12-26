@@ -42,15 +42,21 @@ vi.mock("../DeleteConversationDialog", () => ({
     ) : null,
 }));
 
+// Mock ConversationPrefetcher to avoid ConvexQueryCacheContext issues
+vi.mock("../ConversationPrefetcher", () => ({
+  ConversationPrefetcher: () => null,
+}));
+
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 // Import AFTER mocks
 import { ConversationItem } from "../ConversationItem";
 
 // Access mocked router
 const mockRouterPush = vi.fn();
+const mockRouterPrefetch = vi.fn();
 vi.mock("next/navigation", async () => {
   return {
-    useRouter: () => ({ push: mockRouterPush }),
+    useRouter: () => ({ push: mockRouterPush, prefetch: mockRouterPrefetch }),
     usePathname: () => "/chat/other-id",
   };
 });

@@ -28,6 +28,11 @@ vi.mock("../MarkdownContent", () => ({
   ),
 }));
 
+// Mock QuickModelSwitcher to avoid sortModels dependency issues
+vi.mock("../QuickModelSwitcher", () => ({
+  QuickModelSwitcher: () => null,
+}));
+
 import type { Id } from "@/convex/_generated/dataModel";
 // Import component AFTER mocks
 import { ChatMessage } from "../ChatMessage";

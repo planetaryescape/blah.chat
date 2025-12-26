@@ -116,6 +116,7 @@
     "nuqs": "^2.8.5",
     "officeparser": "^5.2.2",
     "papaparse": "^5.5.3",
+    "pdf-lib": "^1.17.1",
     "perfect-freehand": "^1.2.2",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.3",

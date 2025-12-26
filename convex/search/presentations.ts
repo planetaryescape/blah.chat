@@ -7,9 +7,9 @@ import { action, query } from "../_generated/server";
 import { getCurrentUser } from "../lib/userSync";
 import { applyRRF } from "../lib/utils/search";
 
-// Relevance thresholds for stricter search
-const VECTOR_SIMILARITY_THRESHOLD = 0.72; // Only include results with cosine similarity >= 0.72
-const MIN_RRF_SCORE = 0.008; // Minimum RRF score to include in results (k=60: rank 1 = 0.016, rank 10 = 0.014)
+// Relevance thresholds - balanced for semantic search
+const VECTOR_SIMILARITY_THRESHOLD = 0.55; // Cosine similarity threshold (text-embedding-3-small typically: 0.5-0.8)
+const MIN_RRF_SCORE = 0.004; // Minimum RRF score (k=60: rank 1 = 0.016, rank 20 = 0.012, rank 50 = 0.009)
 
 /**
  * Hybrid search for presentations using RRF (Reciprocal Rank Fusion)

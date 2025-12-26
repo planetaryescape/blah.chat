@@ -10,9 +10,15 @@ import { getCurrentUser, getCurrentUserOrCreate } from "../lib/userSync";
 // ===== Validators =====
 
 const slideTypeValidator = v.union(
+  // Presentation types (16:9)
   v.literal("title"),
   v.literal("section"),
   v.literal("content"),
+  // Carousel/Story types (1:1, 9:16)
+  v.literal("hook"),
+  v.literal("rehook"),
+  v.literal("value"),
+  v.literal("cta"),
 );
 
 const imageStatusValidator = v.union(

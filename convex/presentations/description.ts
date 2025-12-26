@@ -1,0 +1,125 @@
+import { generateText } from "ai";
+import { v } from "convex/values";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getModel } from "@/lib/ai/registry";
+import { internal } from "../_generated/api";
+import {
+  internalAction,
+  internalMutation,
+  mutation,
+} from "../_generated/server";
+import {
+  buildDescriptionPrompt,
+  DESCRIPTION_SYSTEM_PROMPT,
+} from "../lib/prompts/operational/presentationDescription";
+import { getCurrentUserOrCreate } from "../lib/userSync";
+
+// Model for description generation - fast and cheap via Cerebras
+const DESCRIPTION_MODEL = "openai:gpt-oss-20b";
+
+// ===== Internal Mutations =====
+
+export const updateDescriptionInternal = internalMutation({
+  args: {
+    presentationId: v.id("presentations"),
+    description: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.presentationId, {
+      description: args.description,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// ===== Internal Actions =====
+
+export const generateDescriptionAction = internalAction({
+  args: {
+    presentationId: v.id("presentations"),
+  },
+  handler: async (ctx, args) => {
+    // Fetch presentation
+    const presentation = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.internal.getPresentationInternal,
+      { presentationId: args.presentationId },
+    )) as { title: string; currentOutlineVersion?: number } | null;
+
+    if (!presentation) {
+      console.error("Presentation not found for description generation");
+      return;
+    }
+
+    // Fetch outline items for current version
+    const version = presentation.currentOutlineVersion ?? 1;
+    const outlineItems = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.outline.getOutlineItemsInternal,
+      { presentationId: args.presentationId, version },
+    )) as Array<{ title: string; content: string }> | null;
+
+    if (!outlineItems || outlineItems.length === 0) {
+      console.log("No outline items found for description generation");
+      return;
+    }
+
+    try {
+      const model = getModel(DESCRIPTION_MODEL);
+
+      const result = await generateText({
+        model,
+        system: DESCRIPTION_SYSTEM_PROMPT,
+        prompt: buildDescriptionPrompt(
+          presentation.title,
+          outlineItems.map((item) => ({
+            title: item.title,
+            content: item.content,
+          })),
+        ),
+        providerOptions: getGatewayOptions(DESCRIPTION_MODEL, undefined, [
+          "presentation-description",
+        ]),
+      });
+
+      const description = result.text.trim();
+
+      if (description) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.presentations.description.updateDescriptionInternal,
+          { presentationId: args.presentationId, description },
+        );
+      }
+    } catch (error) {
+      console.error("Failed to generate description:", error);
+      // Don't throw - description is optional enhancement
+    }
+  },
+});
+
+// ===== Public Mutations =====
+
+export const regenerateDescription = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    // Schedule regeneration
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.description.generateDescriptionAction,
+      { presentationId: args.presentationId },
+    );
+
+    return { success: true };
+  },
+});

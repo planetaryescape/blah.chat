@@ -12,12 +12,35 @@ import {
 } from "../_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "../lib/userSync";
 
-// Get active document for a conversation
+// Get most recently updated active document for a conversation (for auto-sync)
 export const getByConversation = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, { conversationId }) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
+
+    // Get all active docs and return most recently updated
+    const docs = await ctx.db
+      .query("canvasDocuments")
+      .withIndex("by_user_conversation", (q) =>
+        q.eq("userId", user._id).eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    if (docs.length === 0) return null;
+
+    // Return most recently updated
+    return docs.sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  },
+});
+
+// List all active documents for a conversation
+export const listByConversation = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, { conversationId }) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
 
     return await ctx.db
       .query("canvasDocuments")
@@ -25,7 +48,7 @@ export const getByConversation = query({
         q.eq("userId", user._id).eq("conversationId", conversationId),
       )
       .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
+      .collect();
   },
 });
 
@@ -55,22 +78,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
 
-    // Archive any existing active document for this conversation
-    const existing = await ctx.db
-      .query("canvasDocuments")
-      .withIndex("by_user_conversation", (q) =>
-        q.eq("userId", user._id).eq("conversationId", args.conversationId),
-      )
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        status: "archived",
-        updatedAt: Date.now(),
-      });
-    }
-
+    // Allow multiple active documents per conversation (no archiving)
     const now = Date.now();
     const documentId = await ctx.db.insert("canvasDocuments", {
       userId: user._id,
@@ -216,22 +224,7 @@ export const createInternal = internalMutation({
     documentType: v.union(v.literal("code"), v.literal("prose")),
   },
   handler: async (ctx, args) => {
-    // Archive any existing active document
-    const existing = await ctx.db
-      .query("canvasDocuments")
-      .withIndex("by_user_conversation", (q) =>
-        q.eq("userId", args.userId).eq("conversationId", args.conversationId),
-      )
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        status: "archived",
-        updatedAt: Date.now(),
-      });
-    }
-
+    // Allow multiple active documents per conversation (no archiving)
     const now = Date.now();
     const documentId = await ctx.db.insert("canvasDocuments", {
       userId: args.userId,

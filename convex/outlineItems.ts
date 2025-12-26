@@ -10,9 +10,22 @@ import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 // ===== Validators =====
 
 export const slideTypeValidator = v.union(
+  // Presentation types (16:9)
   v.literal("title"),
   v.literal("section"),
   v.literal("content"),
+  // Carousel/Story types (1:1, 9:16)
+  v.literal("hook"),
+  v.literal("rehook"),
+  v.literal("value"),
+  v.literal("cta"),
+  // Narrative beat types (emotional arc)
+  v.literal("context"),
+  v.literal("validation"),
+  v.literal("reality"),
+  v.literal("emotional"),
+  v.literal("reframe"),
+  v.literal("affirmation"),
 );
 
 // ===== Queries =====
@@ -20,11 +33,15 @@ export const slideTypeValidator = v.union(
 /**
  * List outline items for a presentation (latest version)
  */
-export const listByPresentation = query({
+/**
+ * List outline items for a presentation (latest version)
+ */
+export const list = query({
   args: {
     presentationId: v.id("presentations"),
   },
   handler: async (ctx, args) => {
+    // Reuse implementation or just rename the function
     const user = await getCurrentUser(ctx);
     if (!user) return [];
 
@@ -50,6 +67,8 @@ export const listByPresentation = query({
     return items.sort((a, b) => a.position - b.position);
   },
 });
+
+export const listByPresentation = list; // Helper alias if needed elsewhere
 
 /**
  * Get outline items count for a presentation
@@ -133,6 +152,38 @@ export const updateFeedback = mutation({
 });
 
 /**
+ * Update content fields for a specific outline item
+ */
+export const updateContent = mutation({
+  args: {
+    outlineItemId: v.id("outlineItems"),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    speakerNotes: v.optional(v.string()),
+    visualDirection: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const item = await ctx.db.get(args.outlineItemId);
+
+    if (!item || item.userId !== user._id) {
+      throw new Error("Outline item not found");
+    }
+
+    // Build patch object with only provided fields
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.title !== undefined) patch.title = args.title;
+    if (args.content !== undefined) patch.content = args.content;
+    if (args.speakerNotes !== undefined)
+      patch.speakerNotes = args.speakerNotes || undefined;
+    if (args.visualDirection !== undefined)
+      patch.visualDirection = args.visualDirection || undefined;
+
+    await ctx.db.patch(args.outlineItemId, patch);
+  },
+});
+
+/**
  * Update positions after drag-drop reorder
  */
 export const updatePositions = mutation({
@@ -183,6 +234,7 @@ export const createBatch = internalMutation({
         title: v.string(),
         content: v.string(),
         speakerNotes: v.optional(v.string()),
+        visualDirection: v.optional(v.string()),
       }),
     ),
   },
@@ -198,6 +250,7 @@ export const createBatch = internalMutation({
         title: item.title,
         content: item.content,
         speakerNotes: item.speakerNotes,
+        visualDirection: item.visualDirection,
         version: args.version,
         createdAt: now,
         updatedAt: now,
@@ -276,6 +329,30 @@ export const clearFeedback = internalMutation({
           updatedAt: Date.now(),
         });
       }
+    }
+  },
+});
+
+/**
+ * Update visual directions for multiple outline items (batch update)
+ * Called after design system generation to set AI-generated visual directions
+ */
+export const updateVisualDirections = internalMutation({
+  args: {
+    items: v.array(
+      v.object({
+        itemId: v.id("outlineItems"),
+        visualDirection: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const { itemId, visualDirection } of args.items) {
+      await ctx.db.patch(itemId, {
+        visualDirection,
+        updatedAt: now,
+      });
     }
   },
 });

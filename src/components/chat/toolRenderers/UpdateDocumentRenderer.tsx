@@ -1,59 +1,54 @@
-import { RefreshCw } from "lucide-react";
-import { useCanvasContext } from "@/contexts/CanvasContext";
-import type { Id } from "@/convex/_generated/dataModel";
+import { Check, Loader2, RefreshCw } from "lucide-react";
 import type { ToolRendererProps } from "./types";
 
 /**
  * Renderer for the updateDocument tool.
- * Shows update status, version info, and toggle link.
+ * Shows compact update status. Artifact card appears in message body via ArtifactList.
  */
 export function UpdateDocumentRenderer({
   parsedArgs,
   parsedResult,
   state,
 }: ToolRendererProps) {
-  const { documentId, setDocumentId } = useCanvasContext();
-  const resultDocId = parsedResult?.documentId;
-  const isOpen = documentId === resultDocId;
-
-  const handleToggle = () => {
-    if (isOpen) {
-      setDocumentId(null);
-    } else if (resultDocId) {
-      setDocumentId(resultDocId as Id<"canvasDocuments">);
-    }
-  };
-
-  return (
-    <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
-      <div className="flex items-center gap-2">
-        <RefreshCw className="h-3 w-3 text-muted-foreground" />
-        <span className="font-mono text-muted-foreground">
-          {parsedArgs?.changeDescription || "Updating..."}
-        </span>
+  // Loading state
+  if (state === "executing") {
+    return (
+      <div className="text-xs flex items-center gap-2 text-muted-foreground py-1">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>{parsedArgs?.changeDescription || "Updating document..."}</span>
       </div>
+    );
+  }
 
-      {parsedResult && state !== "executing" && (
-        <div className="text-muted-foreground flex items-center gap-2">
-          {parsedResult.success ? (
-            <>
-              <span>v{parsedResult.newVersion}</span>
-              <span className="text-[10px]">•</span>
-              <span
-                onClick={handleToggle}
-                onKeyDown={(e) => e.key === "Enter" && handleToggle()}
-                role="button"
-                tabIndex={0}
-                className="text-primary hover:underline cursor-pointer text-[10px]"
-              >
-                {isOpen ? "Close" : "View"}
-              </span>
-            </>
-          ) : (
-            <span className="text-destructive">{parsedResult.error}</span>
-          )}
+  // Error state
+  if (parsedResult && !parsedResult.success) {
+    return (
+      <div className="text-xs text-destructive py-1">
+        Failed: {parsedResult.error}
+      </div>
+    );
+  }
+
+  // Success state - compact inline display
+  if (parsedResult?.success) {
+    return (
+      <div className="text-xs flex items-center gap-2 py-1">
+        <div className="flex items-center gap-1.5 text-green-500">
+          <Check className="h-3 w-3" />
+          <span>Updated to v{parsedResult.newVersion}</span>
         </div>
-      )}
-    </div>
-  );
+        {parsedArgs?.changeDescription && (
+          <>
+            <span className="text-muted-foreground/50">·</span>
+            <RefreshCw className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground truncate max-w-[200px]">
+              {parsedArgs.changeDescription}
+            </span>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }

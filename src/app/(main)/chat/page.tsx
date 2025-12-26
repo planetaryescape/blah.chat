@@ -8,6 +8,7 @@ import {
 } from "convex/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
+import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
 import { api } from "@/convex/_generated/api";
 import { useNewChat } from "@/hooks/useNewChat";
 import { useNewChatModel } from "@/hooks/useNewChatModel";
@@ -104,28 +105,22 @@ function ChatPageContent() {
   }, [isAuthenticated, authLoading, fromTemplate, startNewChat]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <>
       <Authenticated>
-        <p className="text-muted-foreground">
-          {fromTemplate ? "Loading template..." : "Loading..."}
-        </p>
+        <MessageListSkeleton />
       </Authenticated>
       <Unauthenticated>
-        <p className="text-muted-foreground">Redirecting to sign in...</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-muted-foreground">Redirecting to sign in...</p>
+        </div>
       </Unauthenticated>
-    </div>
+    </>
   );
 }
 
 export default function ChatPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<MessageListSkeleton />}>
       <ChatPageContent />
     </Suspense>
   );

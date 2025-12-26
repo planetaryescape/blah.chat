@@ -7,6 +7,7 @@ import type { Doc } from "../_generated/dataModel";
 import {
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
 } from "../_generated/server";
 import {
@@ -24,6 +25,146 @@ const outlineStatusValidator = v.union(
   v.literal("regenerating"),
   v.literal("ready"),
 );
+
+// ===== Streaming Outline Polling =====
+
+/**
+ * Poll for new complete slides during outline generation.
+ * Called by scheduler every 500ms while status is "outline_generating".
+ * Parses partialContent and inserts newly completed slides.
+ */
+export const pollOutlineProgress = internalMutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+
+    // Stop polling if presentation doesn't exist or isn't generating
+    if (!presentation || presentation.status !== "outline_generating") {
+      return { done: true, reason: "not_generating" };
+    }
+
+    // Need conversation to find the streaming message
+    if (!presentation.conversationId) {
+      return { done: false, reschedule: true, reason: "no_conversation" };
+    }
+
+    // Get the latest assistant message (may be generating)
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", presentation.conversationId!),
+      )
+      .order("desc")
+      .take(5);
+
+    const assistantMessage = messages.find((m) => m.role === "assistant");
+
+    if (!assistantMessage) {
+      // Message not created yet, reschedule
+      await ctx.scheduler.runAfter(
+        500,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.outline.pollOutlineProgress,
+        { presentationId: args.presentationId },
+      );
+      return { done: false, reschedule: true, reason: "no_message" };
+    }
+
+    // Get current content (prefer partialContent during streaming)
+    const content =
+      assistantMessage.status === "generating"
+        ? assistantMessage.partialContent || ""
+        : assistantMessage.content || "";
+
+    if (content.length < 50) {
+      // Not enough content yet
+      await ctx.scheduler.runAfter(
+        500,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.outline.pollOutlineProgress,
+        { presentationId: args.presentationId },
+      );
+      return { done: false, reschedule: true, reason: "content_too_short" };
+    }
+
+    // Get existing outline items count
+    const existingItems = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .collect();
+
+    // Parse current content
+    const parsedSlides = parseOutlineMarkdown(content);
+
+    // Only insert slides we haven't seen yet (by position)
+    const existingPositions = new Set(existingItems.map((i) => i.position));
+    const newSlides = parsedSlides.filter(
+      (s) => !existingPositions.has(s.position),
+    );
+
+    const now = Date.now();
+    for (const slideData of newSlides) {
+      await ctx.db.insert("outlineItems", {
+        presentationId: args.presentationId,
+        userId: presentation.userId,
+        position: slideData.position,
+        slideType: slideData.slideType,
+        title: slideData.title,
+        content: slideData.content,
+        speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // If message is still generating, reschedule
+    if (assistantMessage.status === "generating") {
+      await ctx.scheduler.runAfter(
+        500,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.outline.pollOutlineProgress,
+        { presentationId: args.presentationId },
+      );
+      return {
+        done: false,
+        reschedule: true,
+        inserted: newSlides.length,
+        total: existingItems.length + newSlides.length,
+      };
+    }
+
+    // Message complete - do final parse and update status
+    // This is handled by parseOutlineMessageInternal triggered from generation.ts
+    return {
+      done: true,
+      inserted: newSlides.length,
+      total: existingItems.length + newSlides.length,
+    };
+  },
+});
+
+// ===== Internal Queries =====
+
+export const getOutlineItemsInternal = internalQuery({
+  args: {
+    presentationId: v.id("presentations"),
+    version: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const items = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation_version", (q) =>
+        q.eq("presentationId", args.presentationId).eq("version", args.version),
+      )
+      .collect();
+
+    return items.sort((a, b) => a.position - b.position);
+  },
+});
 
 // ===== Public Mutations =====
 
@@ -79,6 +220,7 @@ export const approveOutline = mutation({
         title: slideData.title,
         content: slideData.content,
         speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
         imageStatus: "pending",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -93,23 +235,21 @@ export const approveOutline = mutation({
       updatedAt: Date.now(),
     });
 
-    // Schedule title generation if using placeholder
-    if (presentation.title === "Untitled Presentation") {
-      await (ctx.scheduler.runAfter as any)(
-        0,
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.presentations.internal.generatePresentationTitle,
-        {
-          presentationId: args.presentationId,
-        },
-      );
-    }
+    // Note: Title generation happens in parseOutlineMessageInternal
 
     // Schedule design system generation (Phase 3)
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     await (ctx.scheduler.runAfter as any)(
       0,
       internal.presentations.designSystem.generateDesignSystem,
+      { presentationId: args.presentationId },
+    );
+
+    // Schedule embedding generation for semantic search
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.embeddings.generateEmbedding,
       { presentationId: args.presentationId },
     );
 
@@ -202,15 +342,16 @@ export const approveOutlineFromItems = mutation({
         title: item.title,
         content: item.content,
         speakerNotes: item.speakerNotes,
+        visualDirection: item.visualDirection,
         imageStatus: "pending",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
     }
 
-    // Update presentation
+    // Update presentation - set to slides_generating since we're about to start
     await ctx.db.patch(args.presentationId, {
-      status: "outline_complete",
+      status: "slides_generating",
       totalSlides: sortedItems.length,
       generatedSlideCount: 0,
       outlineStatus: undefined, // Clear outline status
@@ -218,21 +359,41 @@ export const approveOutlineFromItems = mutation({
       updatedAt: Date.now(),
     });
 
-    // Schedule title generation if using placeholder
-    if (presentation.title === "Untitled Presentation") {
+    // Note: Title generation happens in parseOutlineMessageInternal
+
+    // Design system already generated after outline - go directly to slide generation
+    // Check if design system exists, if not generate it first
+    if (presentation.designSystem) {
+      // Design already exists, go directly to slides
       await (ctx.scheduler.runAfter as any)(
         0,
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.presentations.internal.generatePresentationTitle,
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
+    } else {
+      // Fallback: design system missing, generate it (will trigger slides)
+      await (ctx.scheduler.runAfter as any)(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.designSystem.generateDesignSystem,
         { presentationId: args.presentationId },
       );
     }
 
-    // Schedule design system generation
+    // Schedule description generation (runs in parallel)
     await (ctx.scheduler.runAfter as any)(
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.presentations.designSystem.generateDesignSystem,
+      internal.presentations.description.generateDescriptionAction,
+      { presentationId: args.presentationId },
+    );
+
+    // Schedule embedding generation for semantic search
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.embeddings.generateEmbedding,
       { presentationId: args.presentationId },
     );
 
@@ -305,6 +466,7 @@ export const regenerateSlidesFromOutline = mutation({
         title: item.title,
         content: item.content,
         speakerNotes: item.speakerNotes,
+        visualDirection: item.visualDirection,
         imageStatus: "pending",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -387,6 +549,7 @@ export const recreateOutlineFromSlides = mutation({
         title: slide.title,
         content: slide.content,
         speakerNotes: slide.speakerNotes,
+        visualDirection: slide.visualDirection,
         version: currentVersion,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -467,20 +630,328 @@ export const parseOutlineMessage = mutation({
         title: slideData.title,
         content: slideData.content,
         speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
         version: 1,
         createdAt: now,
         updatedAt: now,
       });
     }
 
-    // Update presentation
+    // Update presentation - mark as outline_complete so UI can proceed
     await ctx.db.patch(args.presentationId, {
+      status: "outline_complete",
       currentOutlineVersion: 1,
       outlineStatus: "ready",
+      totalSlides: parsedSlides.length,
       updatedAt: now,
     });
 
     return { itemCount: parsedSlides.length, alreadyParsed: false };
+  },
+});
+
+/**
+ * Internal version of parseOutlineMessage for use by generation.ts
+ * Does not require authentication - uses userId from args
+ */
+export const parseOutlineMessageInternal = internalMutation({
+  args: {
+    presentationId: v.id("presentations"),
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== args.userId) {
+      console.error(
+        "[parseOutlineMessageInternal] Presentation not found or user mismatch",
+      );
+      return { itemCount: 0, error: "Presentation not found" };
+    }
+
+    // Check if outlineItems already exist
+    const existingItems = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .first();
+
+    if (existingItems) {
+      // Items already exist (from streaming), still need to update status and trigger design gen
+      console.log(
+        "[parseOutlineMessageInternal] Items already exist, updating status",
+      );
+
+      // Get all items for count
+      const allItems = await ctx.db
+        .query("outlineItems")
+        .withIndex("by_presentation", (q) =>
+          q.eq("presentationId", args.presentationId),
+        )
+        .collect();
+
+      // STILL update status to outline_complete
+      await ctx.db.patch(args.presentationId, {
+        status: "outline_complete",
+        currentOutlineVersion: 1,
+        outlineStatus: "ready",
+        totalSlides: allItems.length,
+        updatedAt: Date.now(),
+      });
+
+      // Generate presentation title from outline if still untitled
+      if (presentation.title === "Untitled Presentation") {
+        const titleSlide = allItems.find((item) => item.slideType === "title");
+        if (titleSlide?.title) {
+          // Use title slide's title as presentation title
+          await ctx.db.patch(args.presentationId, {
+            title: titleSlide.title,
+          });
+        } else {
+          // No title slide - schedule title generation from outline content
+          await ctx.scheduler.runAfter(
+            0,
+            internal.presentations.internal.generatePresentationTitle,
+            { presentationId: args.presentationId },
+          );
+        }
+      }
+
+      // STILL trigger design system generation
+      await ctx.scheduler.runAfter(
+        0,
+        internal.presentations.designSystem.generateDesignSystemFromOutline,
+        { presentationId: args.presentationId },
+      );
+
+      return { itemCount: allItems.length, alreadyParsed: true };
+    }
+
+    // Get the message
+    const message = await ctx.db.get(args.messageId);
+    if (
+      !message ||
+      message.role !== "assistant" ||
+      message.status !== "complete"
+    ) {
+      console.error("[parseOutlineMessageInternal] Invalid message:", {
+        exists: !!message,
+        role: message?.role,
+        status: message?.status,
+      });
+      return { itemCount: 0, error: "Invalid message for parsing" };
+    }
+
+    // Check for minimum content
+    const content = message.content?.trim() || "";
+    if (content.length < 50) {
+      console.warn(
+        "[parseOutlineMessageInternal] Content too short:",
+        content.length,
+      );
+      return { itemCount: 0, alreadyParsed: false, error: "Content too short" };
+    }
+
+    // Parse the outline
+    const parsedSlides = parseOutlineMarkdown(content);
+
+    if (parsedSlides.length === 0) {
+      console.error(
+        "[parseOutlineMessageInternal] Failed to parse outline. Content preview:",
+        content.substring(0, 500),
+      );
+      return {
+        itemCount: 0,
+        alreadyParsed: false,
+        error: "No slides found in content",
+      };
+    }
+
+    // Create outlineItems
+    const now = Date.now();
+    for (const slideData of parsedSlides) {
+      await ctx.db.insert("outlineItems", {
+        presentationId: args.presentationId,
+        userId: args.userId,
+        position: slideData.position,
+        slideType: slideData.slideType,
+        title: slideData.title,
+        content: slideData.content,
+        speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Update presentation - mark as outline_complete so UI can proceed
+    await ctx.db.patch(args.presentationId, {
+      status: "outline_complete",
+      currentOutlineVersion: 1,
+      outlineStatus: "ready",
+      totalSlides: parsedSlides.length,
+      updatedAt: now,
+    });
+
+    // Generate presentation title from outline if still untitled
+    if (presentation.title === "Untitled Presentation") {
+      const titleSlide = parsedSlides.find(
+        (slide) => slide.slideType === "title",
+      );
+      if (titleSlide?.title) {
+        // Use title slide's title as presentation title
+        await ctx.db.patch(args.presentationId, {
+          title: titleSlide.title,
+        });
+      } else {
+        // No title slide - schedule title generation from outline content
+        await ctx.scheduler.runAfter(
+          0,
+          internal.presentations.internal.generatePresentationTitle,
+          { presentationId: args.presentationId },
+        );
+      }
+    }
+
+    // Trigger design system generation (runs automatically after outline)
+    await ctx.scheduler.runAfter(
+      0,
+      internal.presentations.designSystem.generateDesignSystemFromOutline,
+      { presentationId: args.presentationId },
+    );
+
+    console.log(
+      "[parseOutlineMessageInternal] Successfully parsed",
+      parsedSlides.length,
+      "slides, triggered design system generation",
+    );
+    return { itemCount: parsedSlides.length, alreadyParsed: false };
+  },
+});
+
+/**
+ * Repair a stuck presentation by re-parsing its outline from the conversation.
+ * Use this when a presentation is stuck in "outline_pending" or "outline_generating" state.
+ */
+export const repairStuckOutline = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    // Only allow repair on stuck presentations
+    if (
+      presentation.status !== "outline_pending" &&
+      presentation.status !== "outline_generating"
+    ) {
+      return { success: false, reason: "Presentation is not stuck" };
+    }
+
+    // Get the conversation linked to this presentation
+    if (!presentation.conversationId) {
+      throw new Error("No conversation linked to this presentation");
+    }
+
+    // Get the last assistant message from the conversation
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", presentation.conversationId!),
+      )
+      .order("desc")
+      .collect();
+
+    const lastAssistantMessage = messages.find(
+      (m) => m.role === "assistant" && m.status === "complete",
+    );
+
+    if (!lastAssistantMessage) {
+      // No complete message yet - conversation might still be generating
+      // Set status to error so user can try again
+      await ctx.db.patch(args.presentationId, {
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      return {
+        success: false,
+        reason:
+          "No complete AI response found. Please try creating a new presentation.",
+      };
+    }
+
+    // Check for minimum content
+    const content = lastAssistantMessage.content?.trim() || "";
+    if (content.length < 50) {
+      await ctx.db.patch(args.presentationId, {
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      return { success: false, reason: "AI response too short to parse" };
+    }
+
+    // Parse the outline
+    const parsedSlides = parseOutlineMarkdown(content);
+
+    if (parsedSlides.length === 0) {
+      await ctx.db.patch(args.presentationId, {
+        status: "error",
+        updatedAt: Date.now(),
+      });
+      return {
+        success: false,
+        reason: "Could not parse slides from AI response",
+      };
+    }
+
+    // Delete any existing outline items for this presentation
+    const existingItems = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .collect();
+
+    for (const item of existingItems) {
+      await ctx.db.delete(item._id);
+    }
+
+    // Create new outline items
+    const now = Date.now();
+    for (const slideData of parsedSlides) {
+      await ctx.db.insert("outlineItems", {
+        presentationId: args.presentationId,
+        userId: user._id,
+        position: slideData.position,
+        slideType: slideData.slideType,
+        title: slideData.title,
+        content: slideData.content,
+        speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Update presentation status
+    await ctx.db.patch(args.presentationId, {
+      status: "outline_complete",
+      currentOutlineVersion: 1,
+      outlineStatus: "ready",
+      totalSlides: parsedSlides.length,
+      updatedAt: now,
+    });
+
+    return { success: true, slideCount: parsedSlides.length };
   },
 });
 
@@ -518,15 +989,15 @@ export const regenerateOutlineAction = internalAction({
         presentation.overallFeedback,
       );
 
-      // Get AI model
-      const model = getModel("zai:glm-4.6");
+      // Get AI model - using gpt-oss-120b via Cerebras for fast inference
+      const model = getModel("openai:gpt-oss-120b");
 
       // Generate new outline
       const result = await streamText({
         model,
         system: OUTLINE_FEEDBACK_SYSTEM_PROMPT,
         messages: [{ role: "user", content: feedbackPrompt }],
-        ...getGatewayOptions("zai:glm-4.6"),
+        ...getGatewayOptions("openai:gpt-oss-120b"),
       });
 
       // Get full response
@@ -564,6 +1035,7 @@ export const regenerateOutlineAction = internalAction({
             title: slide.title,
             content: slide.content,
             speakerNotes: slide.speakerNotes,
+            visualDirection: slide.visualDirection,
           })),
         },
       );

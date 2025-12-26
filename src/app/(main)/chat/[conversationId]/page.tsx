@@ -1,10 +1,10 @@
 "use client";
 
-import { useMutation } from "convex/react";
 import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { CanvasPanel } from "@/components/canvas/CanvasPanel";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -18,7 +18,6 @@ import { TTSPlayerBar } from "@/components/chat/TTSPlayerBar";
 import { VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import { QuickTemplateSwitcher } from "@/components/templates/QuickTemplateSwitcher";
 import { Button } from "@/components/ui/button";
-import { ProgressiveHints } from "@/components/ui/ProgressiveHints";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -29,15 +28,21 @@ import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { useCanvasAutoSync } from "@/hooks/useCanvasAutoSync";
+import { useChatKeyboardShortcuts } from "@/hooks/useChatKeyboardShortcuts";
+import { useChatModelSelection } from "@/hooks/useChatModelSelection";
+import { useComparisonHandlers } from "@/hooks/useComparisonHandlers";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { useConversationNavigation } from "@/hooks/useConversationNavigation";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
+import { useModelRecommendation } from "@/hooks/useModelRecommendation";
+import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
+import { useTemplateInsertion } from "@/hooks/useTemplateInsertion";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CONFIG } from "@/lib/ai/models";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
-import { getModelConfig, isValidModel } from "@/lib/ai/utils";
+import { getModelConfig } from "@/lib/ai/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
-import type { OptimisticMessage } from "@/types/optimistic";
 
 function ChatPageContent({
   params,
@@ -53,20 +58,17 @@ function ChatPageContent({
   const { filteredConversations } = useConversationContext();
   const { documentId, setDocumentId } = useCanvasContext();
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const activeCanvasDocument = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.canvas.documents.getByConversation,
     conversationId ? { conversationId } : "skip",
   );
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const {
     results: serverMessages,
     status: paginationStatus,
@@ -81,81 +83,20 @@ function ChatPageContent({
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
-  // Auto-close Canvas when exiting document mode
+  // Canvas auto-sync with conversation mode and navigation
   const isDocumentMode = conversation?.mode === "document";
-  useEffect(() => {
-    if (!isDocumentMode && documentId) {
-      setDocumentId(null);
-    }
-  }, [isDocumentMode, documentId, setDocumentId]);
-
-  // Clear Canvas when switching conversations
-  // Only run when conversationId changes (URL navigation), not on every render
-  const prevConversationIdRef = useRef(conversationId);
-  useEffect(() => {
-    if (prevConversationIdRef.current !== conversationId) {
-      prevConversationIdRef.current = conversationId;
-      // New conversation - clear any stale documentId
-      if (documentId) {
-        setDocumentId(null);
-      }
-    }
-  }, [conversationId, documentId, setDocumentId]);
+  const { handleClose: handleCanvasClose } = useCanvasAutoSync({
+    conversationId,
+    isDocumentMode,
+    documentId,
+    activeCanvasDocumentId: activeCanvasDocument?._id,
+    setDocumentId,
+  });
 
   // Optimistic UI: Overlay local optimistic messages on top of server state
-  // Using useState instead of useOptimistic for instant rendering with TanStack Query
-  type ServerMessage = NonNullable<typeof serverMessages>[number];
-  type MessageWithOptimistic = ServerMessage | OptimisticMessage;
-
-  const [optimisticMessages, setOptimisticMessages] = useState<
-    OptimisticMessage[]
-  >([]);
-
-  // Callback for ChatInput to add optimistic messages (instant, before API call)
-  const addOptimisticMessages = useCallback(
-    (newMessages: OptimisticMessage[]) => {
-      setOptimisticMessages((prev) => [...prev, ...newMessages]);
-    },
-    [],
-  );
-
-  // Merge server messages with optimistic messages, deduplicating confirmed ones
-  const messages = useMemo<MessageWithOptimistic[]>(() => {
-    const server = (serverMessages || []) as MessageWithOptimistic[];
-
-    if (optimisticMessages.length === 0) {
-      return server;
-    }
-
-    // Filter out optimistic messages that have been confirmed by server
-    // Match by role + timestamp within 5s window (handles slow networks)
-    // For assistant messages, also match by model (prevents comparison mode collisions)
-    const pendingOptimistic = optimisticMessages.filter((opt) => {
-      const hasServerVersion = server.some((m) => {
-        // Basic check: role and timestamp within 5s
-        if (m.role !== opt.role) return false;
-        if (Math.abs(m.createdAt - opt.createdAt) >= 5000) return false;
-
-        // For assistant messages, also check model (comparison mode dedup)
-        if (opt.role === "assistant" && opt.model && m.model !== opt.model) {
-          return false;
-        }
-
-        return true;
-      });
-      return !hasServerVersion;
-    });
-
-    // Merge and sort chronologically (don't clear state here to avoid blink)
-    return [...server, ...pendingOptimistic].sort(
-      (a, b) => a.createdAt - b.createdAt,
-    );
-  }, [serverMessages, optimisticMessages]);
-
-  // NOTE: We intentionally don't clean up optimistic messages from state
-  // The useMemo already filters them out visually when server confirms.
-  // Keeping them in state avoids the re-render that causes flash.
-  // They'll be cleared naturally on next message send or page navigation.
+  const { messages, addOptimisticMessages } = useOptimisticMessages({
+    serverMessages,
+  });
 
   // Extract chat width preference with loading detection
   const rawChatWidth = useQuery(api.users.getUserPreference, {
@@ -172,41 +113,14 @@ function ChatPageContent({
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
 
-  // Calculate final model selection based on priority logic
-  // Only show the model once both conversation and user data are loaded
-  const { selectedModel, modelLoading } = useMemo(() => {
-    // Show loading until we have definitive answers about both conversation and user
-    const conversationLoaded = conversation !== undefined; // null = not found, undefined = loading
-    const userLoaded = user !== undefined;
-
-    if (!conversationLoaded || !userLoaded) {
-      return { selectedModel: "", modelLoading: true };
-    }
-
-    // Now we can determine the final model without flickering
-    let finalModel = DEFAULT_MODEL_ID;
-
-    // Priority 1: Conversation model (if valid)
-    if (conversation?.model && isValidModel(conversation.model)) {
-      finalModel = conversation.model;
-    }
-    // Priority 2: User's default model (if valid)
-    else if (defaultModel && isValidModel(defaultModel)) {
-      finalModel = defaultModel;
-    }
-    // Priority 3: System default (always valid)
-    else {
-      finalModel = DEFAULT_MODEL_ID;
-    }
-
-    return { selectedModel: finalModel, modelLoading: false };
-  }, [conversation, user, defaultModel]);
-
-  // Separate state for optimistic updates during model changes
-  const [optimisticModel, setOptimisticModel] = useState<string | null>(null);
-
-  // The actual model to display - prefers optimistic updates over stable state
-  const displayModel = optimisticModel || selectedModel;
+  // Model selection with optimistic updates
+  const { selectedModel, displayModel, modelLoading, handleModelChange } =
+    useChatModelSelection({
+      conversationId,
+      conversation,
+      user,
+      defaultModel,
+    });
 
   const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>("none");
   const [attachments, setAttachments] = useState<
@@ -224,10 +138,6 @@ function ChatPageContent({
     "showModelNames",
     parseAsBoolean.withDefault(showModelNamesDuringComparison),
   );
-  const [syncScroll, _setSyncScroll] = useQueryState(
-    "syncScroll",
-    parseAsBoolean.withDefault(true),
-  );
 
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
@@ -237,217 +147,34 @@ function ChatPageContent({
   // Ref for infinite scroll at top of message list
   const messageListTopRef = useRef<HTMLDivElement | null>(null);
 
-  // Model recommendation state
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [previewModelId, setPreviewModelId] = useState<string | null>(null);
-  const [showSetDefaultPrompt, setShowSetDefaultPrompt] = useState(false);
-  const [switchedModelId, setSwitchedModelId] = useState<string | null>(null);
-  const [switchedModelAt, setSwitchedModelAt] = useState<number | null>(null);
-
   const { isActive, selectedModels, startComparison, exitComparison } =
     useComparisonMode();
   const { isMobile, isTouchDevice } = useMobileDetect();
 
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const recordVote = useMutation(api.votes.recordVote);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const createConsolidation = useMutation(
-    api.conversations.createConsolidationConversation,
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const consolidateInPlace = useMutation(
-    api.conversations.consolidateInSameChat,
-  );
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updateModelMutation = useMutation(api.conversations.updateModel);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-  const updatePreferences = useMutation(api.users.updatePreferences);
+  // Comparison voting and consolidation handlers
+  const { handleVote, handleConsolidate } = useComparisonHandlers({
+    conversationId,
+    messages,
+  });
 
-  const handleModelChange = useCallback(
-    async (modelId: string) => {
-      // Optimistic update - shows immediately while persisting
-      setOptimisticModel(modelId);
+  // Model recommendation (extracted to hook)
+  const modelRecommendation = useModelRecommendation({
+    conversation,
+    messages,
+    onModelChange: handleModelChange,
+  });
 
-      // Persist to DB if conversation exists
-      if (conversationId) {
-        try {
-          await updateModelMutation({
-            conversationId,
-            model: modelId,
-          });
-          // Clear optimistic state after successful persist
-          setOptimisticModel(null);
-        } catch (error) {
-          console.error("Failed to persist model:", error);
-          // Revert optimistic update on failure
-          setOptimisticModel(null);
-        }
-      }
-      // New conversations: model saved when first message sent (chat.ts:75)
-    },
-    [conversationId, updateModelMutation],
-  );
+  // Keyboard shortcuts (⌘J for model switcher, ⌘; for templates)
+  useChatKeyboardShortcuts({
+    onOpenQuickSwitcher: useCallback(() => setQuickSwitcherOpen(true), []),
+    onOpenTemplateSelector: useCallback(
+      () => setTemplateSelectorOpen(true),
+      [],
+    ),
+  });
 
-  const handleVote = async (winnerId: string, rating: string) => {
-    // Only handle votes for server-confirmed messages (not optimistic)
-    const msg = messages?.find(
-      (m) => !("_optimistic" in m) && m._id === winnerId,
-    );
-    if (msg?.comparisonGroupId) {
-      const voteRating = rating as
-        | "left_better"
-        | "right_better"
-        | "tie"
-        | "both_bad";
-      await recordVote({
-        comparisonGroupId: msg.comparisonGroupId,
-        winnerId: msg._id as Id<"messages">,
-        rating: voteRating,
-      });
-    }
-  };
-
-  const handleConsolidate = async (
-    model: string,
-    mode: "same-chat" | "new-chat",
-  ) => {
-    const msg = messages?.find((m) => m.comparisonGroupId);
-    if (!msg?.comparisonGroupId) return;
-
-    if (mode === "same-chat") {
-      // Consolidate in place - no navigation
-      await consolidateInPlace({
-        conversationId: conversationId!,
-        comparisonGroupId: msg.comparisonGroupId,
-        consolidationModel: model,
-      });
-
-      // Update conversation model to match consolidation choice
-      await updateModelMutation({
-        conversationId: conversationId!,
-        model: model,
-      });
-    } else {
-      // Create new conversation and navigate
-      const { conversationId: newConvId } = await createConsolidation({
-        comparisonGroupId: msg.comparisonGroupId,
-        consolidationModel: model,
-      });
-      router.push(`/chat/${newConvId}`);
-    }
-  };
-
-  // Model recommendation handlers
-  const handleSwitchModel = useCallback(
-    async (modelId: string) => {
-      // Update conversation model
-      await handleModelChange(modelId);
-
-      // Store for set-as-default prompt with timestamp
-      setSwitchedModelId(modelId);
-      setSwitchedModelAt(Date.now());
-    },
-    [handleModelChange],
-  );
-
-  const handlePreviewModel = useCallback((modelId: string) => {
-    setPreviewModelId(modelId);
-    setPreviewModalOpen(true);
-  }, []);
-
-  const handleSetAsDefault = useCallback(async () => {
-    if (!switchedModelId) return;
-
-    await updatePreferences({
-      preferences: {
-        defaultModel: switchedModelId,
-      },
-    });
-
-    setShowSetDefaultPrompt(false);
-  }, [switchedModelId, updatePreferences]);
-
-  // Show set-as-default prompt after first successful generation with switched model
-  useEffect(() => {
-    if (switchedModelId && switchedModelAt && messages && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-
-      // Check if last message was generated with switched model and completed
-      if (
-        lastMessage.role === "assistant" &&
-        lastMessage.status === "complete" &&
-        conversation?.model === switchedModelId &&
-        lastMessage._creationTime > switchedModelAt
-      ) {
-        // Show prompt after a brief delay (2 seconds)
-        const timer = setTimeout(() => {
-          setShowSetDefaultPrompt(true);
-        }, 2000);
-
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [messages, switchedModelId, switchedModelAt, conversation?.model]);
-
-  // Auto-open canvas panel when conversation has an active document AND is in document mode
-  useEffect(() => {
-    if (activeCanvasDocument && !documentId && isDocumentMode) {
-      setDocumentId(activeCanvasDocument._id);
-    }
-  }, [activeCanvasDocument, documentId, setDocumentId, isDocumentMode]);
-
-  // Quick model switcher keyboard shortcut (⌘J)
-  useEffect(() => {
-    const handler = () => setQuickSwitcherOpen(true);
-    window.addEventListener("open-quick-model-switcher", handler);
-    return () =>
-      window.removeEventListener("open-quick-model-switcher", handler);
-  }, []);
-
-  // Quick template switcher keyboard shortcut (⌘;)
-  useEffect(() => {
-    const handler = () => setTemplateSelectorOpen(true);
-    window.addEventListener("open-quick-template-switcher", handler);
-    return () =>
-      window.removeEventListener("open-quick-template-switcher", handler);
-  }, []);
-
-  // Handle template insertion from sessionStorage (after navigation from templates page)
-  useEffect(() => {
-    const insertTemplate = searchParams.get("insertTemplate");
-    if (insertTemplate !== "true") return;
-
-    // Read template text from sessionStorage
-    const templateText = sessionStorage.getItem("pending-template-text");
-    if (templateText) {
-      // Clear sessionStorage
-      sessionStorage.removeItem("pending-template-text");
-
-      // Dispatch insert-prompt event after a brief delay to ensure ChatInput is mounted
-      setTimeout(() => {
-        window.dispatchEvent(
-          new CustomEvent("insert-prompt", { detail: templateText }),
-        );
-        window.dispatchEvent(new CustomEvent("focus-chat-input"));
-      }, 100);
-    }
-
-    // Clean up URL param
-    const url = new URL(window.location.href);
-    url.searchParams.delete("insertTemplate");
-    router.replace(url.pathname + url.search, { scroll: false });
-  }, [searchParams, router]);
-
-  // Model preview modal (from recommendation banner)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const customEvent = e as CustomEvent<{ modelId: string }>;
-      setPreviewModelId(customEvent.detail.modelId);
-      setPreviewModalOpen(true);
-    };
-    window.addEventListener("open-model-preview", handler);
-    return () => window.removeEventListener("open-model-preview", handler);
-  }, []);
+  // Template insertion from sessionStorage (after navigation from templates page)
+  useTemplateInsertion();
 
   // Infinite scroll for loading more messages (at top of list)
   useEffect(() => {
@@ -513,46 +240,13 @@ function ChatPageContent({
   const showThinkingEffort =
     !!modelConfig?.reasoning || modelConfig?.capabilities?.includes("thinking");
   const hasMessages = (messages?.length ?? 0) > 0;
-  // If conversation is loading, default to 0 count
-  const messageCount = conversation?.messageCount || 0;
 
-  // Navigation helpers
-  const { currentIndex, isFirst, isLast } = useMemo(() => {
-    if (!filteredConversations?.length || !conversationId) {
-      return { currentIndex: -1, isFirst: true, isLast: true };
-    }
-
-    const sorted = [...filteredConversations].sort(
-      (a, b) => b._creationTime - a._creationTime,
-    );
-    const idx = sorted.findIndex((c) => c._id === conversationId);
-
-    return {
-      currentIndex: idx,
-      isFirst: idx <= 0,
-      isLast: idx >= sorted.length - 1,
-    };
-  }, [filteredConversations, conversationId]);
-
-  const navigateToPrevious = useCallback(() => {
-    if (isFirst || !filteredConversations?.length) return;
-
-    const sorted = [...filteredConversations].sort(
-      (a, b) => b._creationTime - a._creationTime,
-    );
-    const prevIdx = Math.max(currentIndex - 1, 0);
-    router.push(`/chat/${sorted[prevIdx]._id}`);
-  }, [isFirst, filteredConversations, currentIndex, router]);
-
-  const navigateToNext = useCallback(() => {
-    if (isLast || !filteredConversations?.length) return;
-
-    const sorted = [...filteredConversations].sort(
-      (a, b) => b._creationTime - a._creationTime,
-    );
-    const nextIdx = Math.min(currentIndex + 1, sorted.length - 1);
-    router.push(`/chat/${sorted[nextIdx]._id}`);
-  }, [isLast, filteredConversations, currentIndex, router]);
+  // Navigation between conversations
+  const { isFirst, isLast, navigateToPrevious, navigateToNext } =
+    useConversationNavigation({
+      conversationId,
+      filteredConversations,
+    });
 
   const isLoading =
     serverMessages === undefined ||
@@ -575,7 +269,6 @@ function ChatPageContent({
               selectedModel={displayModel}
               modelLoading={modelLoading}
               hasMessages={hasMessages}
-              messageCount={messageCount}
               isFirst={isFirst}
               isLast={isLast}
               isComparisonActive={isActive}
@@ -589,11 +282,25 @@ function ChatPageContent({
 
             <TTSPlayerBar />
 
-            {isLoading && <MessageListSkeleton chatWidth={chatWidth} />}
-
-            {!isLoading && (
-              <>
-                <div className="flex-1 flex flex-col min-h-0">
+            <AnimatePresence mode="popLayout">
+              {isLoading ? (
+                <motion.div
+                  key="skeleton"
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <MessageListSkeleton chatWidth={chatWidth} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={`messages-${conversationId}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 flex flex-col min-h-0"
+                >
                   {/* Load More Button (fallback for top of list) */}
                   {paginationStatus === "CanLoadMore" && (
                     <div className="flex justify-center p-4">
@@ -629,84 +336,81 @@ function ChatPageContent({
                       setShowModelNames(!showModelNames)
                     }
                     showModelNames={showModelNames ?? false}
-                    syncScroll={syncScroll ?? true}
                     highlightMessageId={highlightMessageId}
                     isCollaborative={conversation?.isCollaborative}
                   />
-                </div>
 
-                <ProgressiveHints
-                  messageCount={messages?.length ?? 0}
-                  conversationCount={filteredConversations?.length ?? 0}
-                />
+                  {/* Model Recommendation Banner */}
+                  {conversation?.modelRecommendation &&
+                    !conversation.modelRecommendation.dismissed && (
+                      <ModelRecommendationBanner
+                        recommendation={conversation.modelRecommendation}
+                        conversationId={conversationId}
+                        onSwitch={modelRecommendation.handleSwitchModel}
+                        onPreview={modelRecommendation.handlePreviewModel}
+                      />
+                    )}
 
-                {/* Model Recommendation Banner */}
-                {conversation?.modelRecommendation &&
-                  !conversation.modelRecommendation.dismissed && (
-                    <ModelRecommendationBanner
-                      recommendation={conversation.modelRecommendation}
-                      conversationId={conversationId}
-                      onSwitch={handleSwitchModel}
-                      onPreview={handlePreviewModel}
-                    />
-                  )}
+                  {/* Set Default Model Prompt (shows after successful generation) */}
+                  {modelRecommendation.showSetDefaultPrompt &&
+                    modelRecommendation.switchedModelId && (
+                      <SetDefaultModelPrompt
+                        modelId={modelRecommendation.switchedModelId}
+                        modelName={
+                          MODEL_CONFIG[modelRecommendation.switchedModelId]
+                            ?.name ?? modelRecommendation.switchedModelId
+                        }
+                        conversationId={conversationId}
+                        onSetDefault={modelRecommendation.handleSetAsDefault}
+                        onDismiss={modelRecommendation.dismissSetDefaultPrompt}
+                      />
+                    )}
 
-                {/* Set Default Model Prompt (shows after successful generation) */}
-                {showSetDefaultPrompt && switchedModelId && (
-                  <SetDefaultModelPrompt
-                    modelId={switchedModelId}
-                    modelName={
-                      MODEL_CONFIG[switchedModelId]?.name ?? switchedModelId
-                    }
-                    conversationId={conversationId}
-                    onSetDefault={handleSetAsDefault}
-                    onDismiss={() => setShowSetDefaultPrompt(false)}
+                  {/* Preview Modal */}
+                  {modelRecommendation.previewModalOpen &&
+                    modelRecommendation.previewModelId &&
+                    conversation?.modelRecommendation && (
+                      <ModelPreviewModal
+                        open={modelRecommendation.previewModalOpen}
+                        onOpenChange={modelRecommendation.setPreviewModalOpen}
+                        currentModelId={
+                          conversation.modelRecommendation.currentModelId
+                        }
+                        suggestedModelId={modelRecommendation.previewModelId}
+                        currentResponse={
+                          messages?.find((m) => m.role === "assistant")
+                            ?.content ?? ""
+                        }
+                        onSwitch={modelRecommendation.handleSwitchModel}
+                        conversationId={conversationId}
+                        userMessage={
+                          messages?.find((m) => m.role === "user")?.content ??
+                          ""
+                        }
+                      />
+                    )}
+
+                  <QuickModelSwitcher
+                    open={quickSwitcherOpen}
+                    onOpenChange={setQuickSwitcherOpen}
+                    currentModel={selectedModel}
+                    onSelectModel={handleModelChange}
                   />
-                )}
 
-                {/* Preview Modal */}
-                {previewModalOpen &&
-                  previewModelId &&
-                  conversation?.modelRecommendation && (
-                    <ModelPreviewModal
-                      open={previewModalOpen}
-                      onOpenChange={setPreviewModalOpen}
-                      currentModelId={
-                        conversation.modelRecommendation.currentModelId
-                      }
-                      suggestedModelId={previewModelId}
-                      currentResponse={
-                        messages?.find((m) => m.role === "assistant")
-                          ?.content ?? ""
-                      }
-                      onSwitch={handleSwitchModel}
-                      conversationId={conversationId}
-                      userMessage={
-                        messages?.find((m) => m.role === "user")?.content ?? ""
-                      }
-                    />
-                  )}
-
-                <QuickModelSwitcher
-                  open={quickSwitcherOpen}
-                  onOpenChange={setQuickSwitcherOpen}
-                  currentModel={selectedModel}
-                  onSelectModel={handleModelChange}
-                />
-
-                <QuickTemplateSwitcher
-                  open={templateSelectorOpen}
-                  onOpenChange={setTemplateSelectorOpen}
-                  mode="insert"
-                  onSelectTemplate={(prompt) => {
-                    // Dispatch event to insert template into chat input
-                    window.dispatchEvent(
-                      new CustomEvent("insert-prompt", { detail: prompt }),
-                    );
-                  }}
-                />
-              </>
-            )}
+                  <QuickTemplateSwitcher
+                    open={templateSelectorOpen}
+                    onOpenChange={setTemplateSelectorOpen}
+                    mode="insert"
+                    onSelectTemplate={(prompt) => {
+                      // Dispatch event to insert template into chat input
+                      window.dispatchEvent(
+                        new CustomEvent("insert-prompt", { detail: prompt }),
+                      );
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ChatInput always rendered - prevents focus loss during loading state transitions */}
             <div className="flex shrink-0">
@@ -742,7 +446,7 @@ function ChatPageContent({
             <ResizablePanel defaultSize={55} minSize={25}>
               <CanvasPanel
                 documentId={documentId}
-                onClose={() => setDocumentId(null)}
+                onClose={handleCanvasClose}
               />
             </ResizablePanel>
           </>

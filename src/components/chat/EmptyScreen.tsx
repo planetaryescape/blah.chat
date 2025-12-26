@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Brain, Code2, Eye, Sparkles, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { PromptCategory } from "@/lib/prompts/examplePrompts";
 import {
@@ -11,21 +11,86 @@ import {
 import { cn } from "@/lib/utils";
 import { MarkdownContent } from "./MarkdownContent";
 
+function getTimeOfDay(): "morning" | "afternoon" | "evening" {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+const TIME_GREETINGS: Record<"morning" | "afternoon" | "evening", string[]> = {
+  morning: ["Good morning", "Morning", "Ready to start the day"],
+  afternoon: ["Good afternoon", "How's the day going", "Afternoon"],
+  evening: ["Good evening", "Evening work session", "How can I help tonight"],
+};
+
 interface EmptyScreenProps {
   onClick: (value: string) => void;
   selectedModel?: string;
+  conversationCount?: number;
+  nickname?: string;
 }
 
-export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
+export function EmptyScreen({
+  onClick,
+  selectedModel,
+  conversationCount,
+  nickname,
+}: EmptyScreenProps) {
   const result = getPromptsForModel(selectedModel);
   const [activeCategory, setActiveCategory] = useState<PromptCategory>(
     result.category,
   );
 
+  // Stable random greeting - only changes on mount
+  const greeting = useMemo(() => {
+    const timeOfDay = getTimeOfDay();
+    const greetings = TIME_GREETINGS[timeOfDay];
+    return greetings[Math.floor(Math.random() * greetings.length)];
+  }, []);
+
   // Update active category when model changes
   useEffect(() => {
     setActiveCategory(result.category);
   }, [result.category]);
+
+  const isReturningUser = (conversationCount ?? 0) >= 2;
+
+  // Simple view for returning users
+  if (isReturningUser) {
+    const displayGreeting = nickname ? `${greeting}, ${nickname}` : greeting;
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] px-8 text-center animate-message-enter w-full">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-8 bg-linear-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+          {displayGreeting}
+        </h1>
+
+        {/* Keyboard shortcuts - hidden on mobile */}
+        <div className="hidden sm:flex gap-4 md:gap-6 text-xs text-muted-foreground/60 animate-in fade-in duration-700 delay-300 flex-wrap justify-center">
+          <div className="flex items-center gap-1.5">
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span className="text-xs">⌘</span>J
+            </kbd>
+            <span>models</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+            <span>commands</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span className="text-xs">⌘</span>
+              {";"}
+            </kbd>
+            <span>templates</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Category config
   const categories: Array<{
@@ -136,13 +201,20 @@ export function EmptyScreen({ onClick, selectedModel }: EmptyScreenProps) {
           <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
             <span className="text-xs">⌘</span>J
           </kbd>
-          <span>to select model</span>
+          <span>models</span>
         </div>
         <div className="flex items-center gap-1.5">
           <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
             <span className="text-xs">⌘</span>K
           </kbd>
-          <span>for commands</span>
+          <span>commands</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>
+            {";"}
+          </kbd>
+          <span>templates</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useMemo } from "react";
 import { BYODSettings } from "@/components/settings/BYODSettings";
@@ -11,6 +12,7 @@ import { MemorySettings } from "@/components/settings/MemorySettings";
 import { ShortcutsSettings } from "@/components/settings/ShortcutsSettings";
 import { STTSettings } from "@/components/settings/STTSettings";
 import { UISettings } from "@/components/settings/UISettings";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,11 +85,19 @@ function SettingsContent() {
       {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-4xl px-4 py-4">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight">Settings</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage your preferences and configure the AI assistant
-            </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+              <p className="text-sm text-muted-foreground">
+                Manage your preferences and configure the AI assistant
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/usage">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Usage
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

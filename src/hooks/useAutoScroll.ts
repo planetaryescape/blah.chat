@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 interface UseAutoScrollOptions {
   threshold?: number;
@@ -36,16 +42,16 @@ export function useAutoScroll(
   const isAtBottomRef = useRef(isAtBottom);
   const disableAutoScrollRef = useRef(disableAutoScroll);
 
-  // Keep refs in sync with state
-  useEffect(() => {
+  // Keep refs in sync with state - useLayoutEffect for synchronous update BEFORE MutationObserver
+  useLayoutEffect(() => {
     userScrolledUpRef.current = userScrolledUp;
   }, [userScrolledUp]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     isAtBottomRef.current = isAtBottom;
   }, [isAtBottom]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     disableAutoScrollRef.current = disableAutoScroll;
   }, [disableAutoScroll]);
 

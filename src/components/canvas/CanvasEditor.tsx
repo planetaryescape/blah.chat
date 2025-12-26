@@ -4,9 +4,9 @@ import { useMutation } from "convex/react";
 import type { editor } from "monaco-editor";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDebounceValue } from "usehooks-ts";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
 import { CanvasErrorBoundary } from "./CanvasErrorBoundary";
 import { CanvasToolbar } from "./CanvasToolbar";
 
@@ -43,18 +43,22 @@ export function CanvasEditor({
 
   // Local content for immediate UI
   const [localContent, setLocalContent] = useState(document.content);
-  const debouncedContent = useDebounce(localContent, 500);
+  const [debouncedContent] = useDebounceValue(localContent, 500);
 
-  // Sync external changes (LLM diffs) to editor
+  // Track previous server content to detect server-initiated changes only
+  const prevDocumentContentRef = useRef(document.content);
+
+  // Sync external changes (LLM diffs) to editor - only when SERVER value changes
   useEffect(() => {
-    if (document.content !== localContent && editorRef.current) {
-      const currentValue = editorRef.current.getValue();
-      if (currentValue !== document.content) {
+    if (document.content !== prevDocumentContentRef.current) {
+      // Server value changed (AI edit or external update)
+      if (editorRef.current) {
         editorRef.current.setValue(document.content);
-        setLocalContent(document.content);
       }
+      setLocalContent(document.content);
+      prevDocumentContentRef.current = document.content;
     }
-  }, [document.content, localContent]);
+  }, [document.content]);
 
   // Persist debounced changes
   useEffect(() => {

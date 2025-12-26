@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
+export * as description from "./presentations/description";
 export * as designSystem from "./presentations/designSystem";
+export * as embeddings from "./presentations/embeddings";
 export * as pptxExport from "./presentations/export";
 export * as generateSlides from "./presentations/generateSlides";
 export * as internal from "./presentations/internal";
@@ -21,6 +23,7 @@ const presentationStatusValidator = v.union(
   v.literal("design_complete"),
   v.literal("slides_generating"),
   v.literal("slides_complete"),
+  v.literal("stopped"),
   v.literal("error"),
 );
 
@@ -56,6 +59,10 @@ export const create = mutation({
     imageModel: v.optional(v.string()),
     slideStyle: v.optional(slideStyleValidator),
     templateId: v.optional(v.id("designTemplates")),
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ),
+    imageStyle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -98,8 +105,12 @@ export const create = mutation({
       imageModel: args.imageModel ?? "google:gemini-3-pro-image-preview",
       slideStyle: args.slideStyle ?? "illustrative",
       templateId: args.templateId,
+      aspectRatio: args.aspectRatio ?? "16:9",
+      imageStyle: args.imageStyle,
       totalSlides: 0,
       generatedSlideCount: 0,
+      starred: false,
+      pinned: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -117,13 +128,56 @@ export const get = query({
     const presentation = await ctx.db.get(args.presentationId);
     if (!presentation || presentation.userId !== user._id) return null;
 
-    // Get PPTX URL if available
+    // Get export URLs if available
     let pptxUrl: string | null = null;
+    let pdfUrl: string | null = null;
+    let imagesZipUrl: string | null = null;
+
     if (presentation.pptxStorageId) {
       pptxUrl = await ctx.storage.getUrl(presentation.pptxStorageId);
     }
+    if (presentation.pdfStorageId) {
+      pdfUrl = await ctx.storage.getUrl(presentation.pdfStorageId);
+    }
+    if (presentation.imagesZipStorageId) {
+      imagesZipUrl = await ctx.storage.getUrl(presentation.imagesZipStorageId);
+    }
 
-    return { ...presentation, pptxUrl };
+    return { ...presentation, pptxUrl, pdfUrl, imagesZipUrl };
+  },
+});
+
+/**
+ * Get sources used in presentation outline generation (from grounded web search)
+ */
+export const getSources = query({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.userId !== user._id) return [];
+    if (!presentation.conversationId) return [];
+
+    const conversationId = presentation.conversationId;
+
+    // Get first assistant message (contains the outline with sources)
+    const message = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("role"), "assistant"))
+      .first();
+
+    if (!message) return [];
+
+    // Get sources for this message
+    return ctx.db
+      .query("sources")
+      .withIndex("by_message", (q) => q.eq("messageId", message._id))
+      .collect();
   },
 });
 
@@ -184,8 +238,19 @@ export const listByUserWithStats = query({
           0,
         );
 
+        // Get thumbnail from title slide (first slide with slideType "title")
+        const titleSlide = slides.find(
+          (s) => s.slideType === "title" && s.position === 0,
+        );
+        const thumbnailStorageId =
+          titleSlide?.imageStorageId ?? slides[0]?.imageStorageId;
+        const thumbnailStatus =
+          titleSlide?.imageStatus ?? slides[0]?.imageStatus;
+
         return {
           ...p,
+          thumbnailStorageId,
+          thumbnailStatus,
           stats: {
             totalCost,
             totalInputTokens,
@@ -278,6 +343,26 @@ export const updateTitle = mutation({
 
     await ctx.db.patch(args.presentationId, {
       title: args.title,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateOverallFeedback = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+    feedback: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      overallFeedback: args.feedback || undefined,
       updatedAt: Date.now(),
     });
   },
@@ -392,6 +477,42 @@ export const deletePresentation = mutation({
   },
 });
 
+// ===== Organization (Star/Pin) =====
+
+export const togglePin = mutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      pinned: !presentation.pinned,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const toggleStar = mutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      starred: !presentation.starred,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // ===== Backward Compatibility Re-exports =====
 // These re-export functions from submodules for backward compatibility
 // TODO: Update consumers to use submodule imports directly
@@ -420,10 +541,14 @@ export {
 } from "./presentations/outline";
 // From retry.ts
 export {
+  downloadImages,
+  downloadPDF,
   downloadPPTX,
   regenerateSlideImage,
   retryGeneration,
   updateImageModel,
+  updateImagesZipInternal,
+  updatePdfInternal,
   updatePptxCache,
   updatePptxInternal,
 } from "./presentations/retry";

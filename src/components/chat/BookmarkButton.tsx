@@ -15,6 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { analytics } from "@/lib/analytics";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -45,6 +50,8 @@ export function BookmarkButton({
   const createBookmark = useMutation(api.bookmarks.create);
   const removeBookmark = useMutation(api.bookmarks.remove);
   const updateBookmark = useMutation(api.bookmarks.update);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const recordAction = useMutation(api.usage.mutations.recordAction);
 
   const isBookmarked = !!existingBookmark;
 
@@ -100,6 +107,7 @@ export function BookmarkButton({
           hasNote: !!note,
           tagCount: tagList?.length || 0,
         });
+        recordAction({ actionType: "bookmark_message", resourceId: messageId });
       }
       setShowDialog(false);
       setNote("");
@@ -111,19 +119,28 @@ export function BookmarkButton({
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-        onClick={handleToggleBookmark}
-        title={isBookmarked ? "Remove bookmark (B)" : "Bookmark message (B)"}
-      >
-        {isBookmarked ? (
-          <BookmarkCheck className="h-4 w-4 text-primary" />
-        ) : (
-          <Bookmark className="h-4 w-4" />
-        )}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
+            onClick={handleToggleBookmark}
+          >
+            {isBookmarked ? (
+              <BookmarkCheck className="h-4 w-4 text-primary" />
+            ) : (
+              <Bookmark className="h-4 w-4" />
+            )}
+            <span className="sr-only">
+              {isBookmarked ? "Remove bookmark" : "Bookmark message"}
+            </span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{isBookmarked ? "Remove bookmark (B)" : "Bookmark message (B)"}</p>
+        </TooltipContent>
+      </Tooltip>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>

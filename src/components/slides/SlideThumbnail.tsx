@@ -12,11 +12,25 @@ interface Props {
   index: number;
   isActive: boolean;
   onClick: () => void;
+  aspectRatio?: "16:9" | "1:1" | "9:16";
 }
 
-export function SlideThumbnail({ slide, index, isActive, onClick }: Props) {
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
+const ASPECT_CLASSES = {
+  "16:9": "aspect-video",
+  "1:1": "aspect-square",
+  "9:16": "aspect-[9/16]",
+} as const;
+
+export function SlideThumbnail({
+  slide,
+  index,
+  isActive,
+  onClick,
+  aspectRatio = "16:9",
+}: Props) {
+  const aspectClass = ASPECT_CLASSES[aspectRatio];
   const imageUrl = useQuery(
+    // @ts-ignore - Type depth exceeded with 94+ Convex modules
     api.storage.getUrl,
     slide.imageStorageId
       ? { storageId: slide.imageStorageId as Id<"_storage"> }
@@ -34,7 +48,7 @@ export function SlideThumbnail({ slide, index, isActive, onClick }: Props) {
           : "border-transparent hover:border-muted-foreground/30",
       )}
     >
-      <div className="aspect-video bg-muted relative">
+      <div className={cn(aspectClass, "bg-muted relative")}>
         {/* Pending State */}
         {slide.imageStatus === "pending" && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">

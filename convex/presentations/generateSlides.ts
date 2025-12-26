@@ -18,6 +18,8 @@ interface Presentation {
   designSystem: unknown;
   slideStyle?: "wordy" | "illustrative";
   templateId?: string;
+  aspectRatio?: "16:9" | "1:1" | "9:16";
+  imageStyle?: string;
 }
 
 interface DesignTemplate {
@@ -31,6 +33,20 @@ interface DesignTemplate {
 }
 
 const BATCH_SIZE = 10;
+
+// Helper to check if generation was stopped
+async function checkIfStopped(
+  ctx: any,
+  presentationId: string,
+): Promise<boolean> {
+  const current = (await (ctx.runQuery as any)(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    internal.presentations.internal.getPresentationInternal,
+    { presentationId },
+  )) as { status: string } | null;
+
+  return current?.status === "stopped";
+}
 
 export const generateSlides = internalAction({
   args: { presentationId: v.id("presentations") },
@@ -52,6 +68,8 @@ export const generateSlides = internalAction({
 
       const slideStyle = presentation.slideStyle ?? "illustrative";
       const isTemplateBased = !!presentation.templateId;
+      const aspectRatio = presentation.aspectRatio ?? "16:9";
+      const imageStyle = presentation.imageStyle;
 
       // Fetch logo data from template if available
       let logoStorageId: string | undefined;
@@ -117,6 +135,8 @@ export const generateSlides = internalAction({
               isTemplateBased,
               logoStorageId,
               logoGuidelines,
+              aspectRatio,
+              imageStyle,
             },
           );
           console.log("Title slide complete");
@@ -129,6 +149,12 @@ export const generateSlides = internalAction({
           internal.presentations.incrementProgressInternal,
           { presentationId: args.presentationId },
         );
+
+        // Check if stopped after title slide
+        if (await checkIfStopped(ctx, args.presentationId)) {
+          console.log("Generation stopped by user after title slide");
+          return { success: false, stopped: true };
+        }
       }
 
       // BATCH 2: Section slides (parallel, context: title)
@@ -155,6 +181,8 @@ export const generateSlides = internalAction({
               isTemplateBased,
               logoStorageId,
               logoGuidelines,
+              aspectRatio,
+              imageStyle,
             },
           ),
         );
@@ -179,6 +207,12 @@ export const generateSlides = internalAction({
         }
 
         console.log("Section slides complete");
+
+        // Check if stopped after section slides
+        if (await checkIfStopped(ctx, args.presentationId)) {
+          console.log("Generation stopped by user after section slides");
+          return { success: false, stopped: true };
+        }
       }
 
       // BATCH 3: Content slides (parallel with sub-batching)
@@ -222,6 +256,8 @@ export const generateSlides = internalAction({
                 isTemplateBased,
                 logoStorageId,
                 logoGuidelines,
+                aspectRatio,
+                imageStyle,
               },
             ),
           );
@@ -243,6 +279,14 @@ export const generateSlides = internalAction({
               internal.presentations.incrementProgressInternal,
               { presentationId: args.presentationId },
             );
+          }
+
+          // Check if stopped after each sub-batch
+          if (await checkIfStopped(ctx, args.presentationId)) {
+            console.log(
+              `Generation stopped by user after content sub-batch ${batchIndex + 1}`,
+            );
+            return { success: false, stopped: true };
           }
         }
 

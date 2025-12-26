@@ -997,12 +997,12 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     description: "1T param MoE with 32B active, strong coding/reasoning.",
     contextWindow: 32768,
     pricing: { input: 0, output: 0 },
-    capabilities: ["function-calling"],
+    capabilities: [],
     actualModelId: "moonshotai/kimi-k2:free",
     gateway: "openrouter",
     userFriendlyDescription:
       "Trillion-parameter model excelling at coding and reasoning benchmarks.",
-    bestFor: "Code synthesis, reasoning, tool use tasks",
+    bestFor: "Code synthesis, reasoning tasks",
   },
   "openrouter:llama-3.3-70b": {
     id: "openrouter:llama-3.3-70b",

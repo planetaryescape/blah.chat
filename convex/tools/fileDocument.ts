@@ -1,7 +1,8 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { action, internalAction } from "../_generated/server";
 
 export const processDocument = internalAction({
   args: {
@@ -229,5 +230,31 @@ export const processDocument = internalAction({
         error: errorMessage,
       };
     }
+  },
+});
+
+/**
+ * Public action for slides - extracts document text for outline generation
+ */
+export const extractDocumentForSlides = action({
+  args: {
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    mimeType: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ success: boolean; text?: string; error?: string }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    return (await ctx.runAction(internal.tools.fileDocument.processDocument, {
+      storageId: args.storageId,
+      fileName: args.fileName,
+      mimeType: args.mimeType,
+      action: "extract" as const,
+    })) as { success: boolean; text?: string; error?: string };
   },
 });

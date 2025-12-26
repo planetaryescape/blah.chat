@@ -32,6 +32,7 @@ export const create = mutation({
       }),
     ),
     isPresentation: v.optional(v.boolean()),
+    enableGrounding: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -61,6 +62,7 @@ export const create = mutation({
         },
       }),
       ...(args.isPresentation && { isPresentation: true }),
+      ...(args.enableGrounding && { enableGrounding: true }),
     });
 
     // Update user stats for progressive hints

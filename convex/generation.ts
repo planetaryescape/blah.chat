@@ -101,6 +101,26 @@ export const generateResponse = internalAction({
         );
       }
 
+      // 1.5 Start outline polling if this is a presentation generation
+      const presentationForPolling = await ctx.runQuery(
+        // @ts-ignore
+        internal.presentations.internal.getPresentationByConversation,
+        { conversationId: args.conversationId },
+      );
+      if (
+        presentationForPolling &&
+        (presentationForPolling.status === "outline_generating" ||
+          presentationForPolling.status === "outline_pending")
+      ) {
+        // Start polling for streaming outline updates
+        await ctx.scheduler.runAfter(
+          500,
+          // @ts-ignore
+          internal.presentations.outline.pollOutlineProgress,
+          { presentationId: presentationForPolling._id },
+        );
+      }
+
       // 2. Get conversation history
       const messages = await ctx.runQuery(internal.messages.listInternal, {
         conversationId: args.conversationId,
@@ -393,6 +413,12 @@ export const generateResponse = internalAction({
           conversation,
         });
         options.onStepFinish = createOnStepFinish();
+
+        // Disable search tools for presentations without grounding enabled
+        if (conversation?.isPresentation && !conversation?.enableGrounding) {
+          delete options.tools.tavilySearch;
+          delete options.tools.tavilyAdvancedSearch;
+        }
       }
 
       // 13. Apply provider options (merge with gateway options)

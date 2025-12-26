@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { AnimatePresence, motion } from "framer-motion";
 import { GripVertical } from "lucide-react";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
@@ -103,6 +104,7 @@ interface OutlineSidebarProps {
   selectedItemId: Id<"outlineItems"> | null;
   onSelect: (itemId: Id<"outlineItems">) => void;
   onItemsReorder: (items: Doc<"outlineItems">[]) => void;
+  isGenerating?: boolean;
 }
 
 export function OutlineSidebar({
@@ -111,6 +113,7 @@ export function OutlineSidebar({
   selectedItemId,
   onSelect,
   onItemsReorder,
+  isGenerating = false,
 }: OutlineSidebarProps) {
   // @ts-ignore - Type depth exceeded
   const updatePositions = useMutation(api.outlineItems.updatePositions);
@@ -181,16 +184,32 @@ export function OutlineSidebar({
           <SortableContext
             items={items.map((item) => item._id)}
             strategy={verticalListSortingStrategy}
+            disabled={isGenerating}
           >
-            {items.map((item, index) => (
-              <OutlineSidebarItem
-                key={item._id}
-                item={item}
-                index={index}
-                isSelected={selectedItemId === item._id}
-                onSelect={() => onSelect(item._id)}
-              />
-            ))}
+            <AnimatePresence mode="popLayout">
+              {items.map((item, index) => (
+                <motion.div
+                  key={item._id}
+                  initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -20, scale: 0.95 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30,
+                    delay: isGenerating ? index * 0.05 : 0,
+                  }}
+                  layout
+                >
+                  <OutlineSidebarItem
+                    item={item}
+                    index={index}
+                    isSelected={selectedItemId === item._id}
+                    onSelect={() => onSelect(item._id)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </SortableContext>
         </DndContext>
       </div>

@@ -24,6 +24,7 @@ interface OutlineCardProps {
   item: Doc<"outlineItems">;
   index: number;
   onFeedbackChange: (itemId: Id<"outlineItems">, feedback: string) => void;
+  aspectRatio?: "16:9" | "1:1" | "9:16";
 }
 
 const slideTypeLabels: Record<string, string> = {
@@ -43,10 +44,15 @@ export function OutlineCard({
   item,
   index,
   onFeedbackChange,
+  aspectRatio = "16:9",
 }: OutlineCardProps) {
   const [showFeedback, setShowFeedback] = useState(!!item.feedback);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [localFeedback, setLocalFeedback] = useState(item.feedback || "");
+
+  // Format-aware: social formats (1:1, 9:16) have simplified display
+  const isSocial = aspectRatio === "1:1" || aspectRatio === "9:16";
+  const notesLabel = aspectRatio === "16:9" ? "Speaker Notes" : "Caption";
 
   const {
     attributes,
@@ -106,18 +112,20 @@ export function OutlineCard({
 
       {/* Content */}
       <div className="p-4 space-y-3">
-        {/* Title */}
-        <h3 className="font-semibold text-base leading-tight">{item.title}</h3>
-
-        {/* Bullets/Content */}
-        {item.content && (
-          <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {item.content}
-          </div>
+        {/* Title - only for presentations */}
+        {!isSocial && item.title && (
+          <h3 className="font-semibold text-base leading-tight">
+            {item.title}
+          </h3>
         )}
 
-        {/* Speaker Notes (collapsible) */}
-        {item.speakerNotes && (
+        {/* Content - for social show title as content, for presentations show content */}
+        <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+          {isSocial ? item.title : item.content}
+        </div>
+
+        {/* Speaker Notes - only for presentations */}
+        {!isSocial && item.speakerNotes && (
           <Collapsible open={notesExpanded} onOpenChange={setNotesExpanded}>
             <CollapsibleTrigger asChild>
               <Button
@@ -130,7 +138,7 @@ export function OutlineCard({
                 ) : (
                   <ChevronDown className="h-3 w-3 mr-1" />
                 )}
-                Speaker Notes
+                {notesLabel}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>

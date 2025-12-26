@@ -28,6 +28,7 @@ export async function GET(request: Request) {
 
   try {
     // Get user from Convex
+    // @ts-ignore - Type depth exceeded with 94+ Convex modules
     const user: any = await (convex.query as any)(api.users.getCurrentUser, {});
     if (!user) {
       return new NextResponse("User not found", { status: 404 });

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, mutation } from "../_generated/server";
 
 export const recordTranscription = internalMutation({
   args: {
@@ -183,6 +183,34 @@ export const recordTTS = internalMutation({
       outputTokens: args.characterCount, // Track chars as "output tokens"
       cost: args.cost,
       messageCount: 1,
+    });
+  },
+});
+
+// Track user action button clicks
+export const recordAction = mutation({
+  args: {
+    actionType: v.string(), // copy_message, bookmark_message, save_as_note, etc.
+    resourceId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.insert("activityEvents", {
+      userId: user._id,
+      eventType: args.actionType,
+      resourceId: args.resourceId,
+      metadata: args.metadata,
+      createdAt: Date.now(),
     });
   },
 });

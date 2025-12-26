@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchBadge } from "@/components/chat/BranchBadge";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 import { ConversationHeaderMenu } from "@/components/chat/ConversationHeaderMenu";
-import { ExtractMemoriesButton } from "@/components/chat/ExtractMemoriesButton";
 import { FireButton } from "@/components/chat/FireButton";
 import { IncognitoBadge } from "@/components/chat/IncognitoBadge";
 import { ModelBadge } from "@/components/chat/ModelBadge";
@@ -19,7 +18,6 @@ interface ChatHeaderProps {
   selectedModel: string;
   modelLoading: boolean;
   hasMessages: boolean;
-  messageCount: number;
   isFirst: boolean;
   isLast: boolean;
   isComparisonActive: boolean;
@@ -37,7 +35,6 @@ export function ChatHeader({
   selectedModel,
   modelLoading,
   hasMessages,
-  messageCount,
   isFirst,
   isLast,
   isComparisonActive,
@@ -50,6 +47,30 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   return (
     <header className="flex items-center gap-4 border-b px-4 py-3 shrink-0">
+      {/* Navigation buttons - left side next to title */}
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onNavigatePrevious}
+          disabled={isFirst}
+          className="h-7 w-7 shrink-0 cursor-pointer"
+          title="Previous conversation (⌘[)"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onNavigateNext}
+          disabled={isLast}
+          className="h-7 w-7 shrink-0 cursor-pointer"
+          title="Next conversation (⌘])"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+
       <div className="flex items-center gap-1 flex-1 min-w-0">
         <h1 className="text-lg font-semibold truncate">
           {conversation?.title || "New Chat"}
@@ -78,10 +99,6 @@ export function ChatHeader({
       )}
 
       <div className="flex items-center gap-2">
-        {/* Hide memory extraction for incognito - no memories saved */}
-        {conversationId && messageCount >= 3 && !conversation?.isIncognito && (
-          <ExtractMemoriesButton conversationId={conversationId} />
-        )}
         {hasMessages && conversationId && (
           <ContextWindowIndicator
             conversationId={conversationId}
@@ -98,30 +115,6 @@ export function ChatHeader({
           <FireButton conversationId={conversationId} />
         )}
         {conversation && <ConversationHeaderMenu conversation={conversation} />}
-
-        {/* Navigation buttons - always in same position on right */}
-        <div className="flex items-center gap-1 ml-2 pl-2 border-l">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNavigatePrevious}
-            disabled={isFirst}
-            className="h-7 w-7 shrink-0 cursor-pointer"
-            title="Previous conversation (⌘[)"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNavigateNext}
-            disabled={isLast}
-            className="h-7 w-7 shrink-0 cursor-pointer"
-            title="Next conversation (⌘])"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
       </div>
     </header>
   );

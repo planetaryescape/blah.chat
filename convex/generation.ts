@@ -101,6 +101,26 @@ export const generateResponse = internalAction({
         );
       }
 
+      // 1.5 Start outline polling if this is a presentation generation
+      const presentationForPolling = await ctx.runQuery(
+        // @ts-ignore
+        internal.presentations.internal.getPresentationByConversation,
+        { conversationId: args.conversationId },
+      );
+      if (
+        presentationForPolling &&
+        (presentationForPolling.status === "outline_generating" ||
+          presentationForPolling.status === "outline_pending")
+      ) {
+        // Start polling for streaming outline updates
+        await ctx.scheduler.runAfter(
+          500,
+          // @ts-ignore
+          internal.presentations.outline.pollOutlineProgress,
+          { presentationId: presentationForPolling._id },
+        );
+      }
+
       // 2. Get conversation history
       const messages = await ctx.runQuery(internal.messages.listInternal, {
         conversationId: args.conversationId,
@@ -393,6 +413,12 @@ export const generateResponse = internalAction({
           conversation,
         });
         options.onStepFinish = createOnStepFinish();
+
+        // Disable search tools for presentations without grounding enabled
+        if (conversation?.isPresentation && !conversation?.enableGrounding) {
+          delete options.tools.tavilySearch;
+          delete options.tools.tavilyAdvancedSearch;
+        }
       }
 
       // 13. Apply provider options (merge with gateway options)
@@ -816,6 +842,35 @@ export const generateResponse = internalAction({
       await ctx.runMutation(internal.conversations.updateLastMessageAt, {
         conversationId: args.conversationId,
       });
+
+      // 10.5. Check if this was a presentation generation and trigger parsing
+      // We check if there's a presentation associated with this conversation
+      // that is in the "outline_generating" or "outline_pending" state
+      const presentation = await ctx.runQuery(
+        // @ts-ignore
+        internal.presentations.internal.getPresentationByConversation,
+        { conversationId: args.conversationId },
+      );
+
+      if (
+        presentation &&
+        (presentation.status === "outline_generating" ||
+          presentation.status === "outline_pending")
+      ) {
+        console.log(
+          "[Generation] Triggering outline parsing for presentation:",
+          presentation._id,
+        );
+        await ctx.runMutation(
+          // @ts-ignore
+          internal.presentations.outline.parseOutlineMessageInternal,
+          {
+            presentationId: presentation._id,
+            messageId: args.assistantMessageId,
+            userId: args.userId,
+          },
+        );
+      }
 
       // 11. Calculate and update token usage
       const allMessagesForCounting = await ctx.runQuery(

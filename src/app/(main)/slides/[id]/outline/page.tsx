@@ -1,506 +1,386 @@
 "use client";
 
-import { useMutation } from "convex/react";
-import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
-import { AlertTriangle, ArrowLeft, Loader2, Presentation } from "lucide-react";
+export const dynamic = "force-dynamic";
+
+import { useMutation, useQuery } from "convex/react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
-import { OutlineActions } from "@/components/slides/outline/OutlineActions";
-import { OutlineCardList } from "@/components/slides/outline/OutlineCardList";
+import { OutlineLoadingSkeleton } from "@/components/slides/outline/OutlineLoadingSkeleton";
+import { OutlineSidebar } from "@/components/slides/outline/OutlineSidebar";
+import { OutlineSlideEditor } from "@/components/slides/outline/OutlineSlideEditor";
 import { OverallFeedbackSection } from "@/components/slides/outline/OverallFeedbackSection";
+import { VisualInfoPanel } from "@/components/slides/outline/VisualInfoPanel";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { cn } from "@/lib/utils";
 
-export default function OutlineEditorPage({
+export default function SlideOutlinePage({
   params,
 }: {
   params: Promise<{ id: Id<"presentations"> }>;
 }) {
   const unwrappedParams = use(params);
-  const presentationId = unwrappedParams.id;
+  return <SlideOutlineContent presentationId={unwrappedParams.id} />;
+}
+
+function SlideOutlineContent({
+  presentationId,
+}: {
+  presentationId: Id<"presentations">;
+}) {
   const router = useRouter();
   const { showSlides, isLoading: prefsLoading } = useFeatureToggles();
 
-  // Queries
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const presentation = useQuery(api.presentations.get, { presentationId });
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const outlineItems = useQuery(api.outlineItems.listByPresentation, {
-    presentationId,
-  });
-
-  // Query messages to detect when initial outline is ready
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const { results: messages } = usePaginatedQuery(
-    api.messages.listPaginated,
-    presentation?.conversationId
-      ? { conversationId: presentation.conversationId }
-      : "skip",
-    { initialNumItems: 10 },
-  );
-
-  // Query slides to detect post-generation mode
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const slides = useQuery(api.presentations.getSlides, { presentationId });
-
-  // Mutations
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const submitFeedback = useMutation(api.presentations.submitOutlineFeedback);
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const approveOutline = useMutation(api.presentations.approveOutlineFromItems);
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const updateFeedback = useMutation(api.outlineItems.updateFeedback);
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const updateImageModel = useMutation(api.presentations.updateImageModel);
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const parseOutlineMessage = useMutation(
-    api.presentations.parseOutlineMessage,
-  );
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const regenerateSlides = useMutation(
-    api.presentations.regenerateSlidesFromOutline,
-  );
-  // @ts-ignore - Type depth exceeded with 94+ Convex modules
-  const recreateOutline = useMutation(
-    api.presentations.recreateOutlineFromSlides,
-  );
-
-  // Local state
-  const [localItems, setLocalItems] = useState<Doc<"outlineItems">[] | null>(
-    null,
-  );
-  const [overallFeedback, setOverallFeedback] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isVisualPanelOpen, setIsVisualPanelOpen] = useState(true);
+  const [selectedItemId, setSelectedItemId] =
+    useState<Id<"outlineItems"> | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
-  const [isRecreatingOutline, setIsRecreatingOutline] = useState(false);
-  const [selectedImageModel, setSelectedImageModel] = useState(
-    "google:gemini-3-pro-image-preview",
-  );
-  const hasAttemptedParse = useRef(false);
-  const hasAttemptedRecreate = useRef(false);
 
-  // Detect post-generation mode (slides already exist)
-  const hasExistingSlides = slides && slides.length > 0;
-  const isPostGeneration =
-    hasExistingSlides ||
-    presentation?.status === "slides_generating" ||
-    presentation?.status === "slides_complete";
+  // Queries
+  // @ts-ignore - Type depth exceeded
+  const presentation = useQuery(api.presentations.get, { presentationId });
+  // @ts-ignore - Type depth exceeded
+  const rawItems = useQuery(api.outlineItems.list, { presentationId });
 
-  // Detect when initial outline is ready but no outlineItems exist
-  // This happens when user first arrives after AI generates the outline
+  // Local state for optimistic updates
+  const [items, setItems] = useState<Doc<"outlineItems">[] | null>(null);
+
+  // Sync items when loaded (support streaming updates)
   useEffect(() => {
-    if (hasAttemptedParse.current) return;
-    if (!messages || !outlineItems) return;
-    if (outlineItems.length > 0) return; // Already have items
-    if (isParsing) return;
-
-    // Find complete assistant message
-    const completeAssistant = messages.find(
-      (m) => m.role === "assistant" && m.status === "complete",
-    );
-
-    if (!completeAssistant) return;
-
-    // Parse and create outlineItems
-    hasAttemptedParse.current = true;
-    setIsParsing(true);
-
-    parseOutlineMessage({
-      presentationId,
-      messageId: completeAssistant._id,
-    })
-      .then((result) => {
-        // If parsing returned an error, allow retry after delay
-        if (result?.error) {
-          console.warn("Parse returned error, will allow retry:", result.error);
-          setTimeout(() => {
-            hasAttemptedParse.current = false;
-          }, 3000);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to parse outline:", error);
-        // Allow retry on error
-        setTimeout(() => {
-          hasAttemptedParse.current = false;
-        }, 3000);
-      })
-      .finally(() => {
-        setIsParsing(false);
-      });
-  }, [messages, outlineItems, presentationId, parseOutlineMessage, isParsing]);
-
-  // Recreate outline from slides if in post-generation mode but no outline items
-  // This handles legacy presentations where outline was deleted after approval
-  useEffect(() => {
-    if (hasAttemptedRecreate.current) return;
-    if (!outlineItems || !slides) return;
-    if (outlineItems.length > 0) return; // Already have outline items
-    if (slides.length === 0) return; // No slides to recreate from
-    if (isRecreatingOutline) return;
-
-    // In post-generation mode with slides but no outline - recreate
-    hasAttemptedRecreate.current = true;
-    setIsRecreatingOutline(true);
-
-    recreateOutline({ presentationId })
-      .catch((error) => {
-        console.error("Failed to recreate outline from slides:", error);
-      })
-      .finally(() => {
-        setIsRecreatingOutline(false);
-      });
-  }, [
-    outlineItems,
-    slides,
-    presentationId,
-    recreateOutline,
-    isRecreatingOutline,
-  ]);
-
-  // Sync server items to local state for optimistic reordering
-  const items = useMemo(() => {
-    if (localItems !== null) return localItems;
-    return outlineItems ?? [];
-  }, [localItems, outlineItems]);
-
-  // Reset local items when server items change (after regeneration)
-  useMemo(() => {
-    if (outlineItems) {
-      setLocalItems(null);
-    }
-  }, [outlineItems]);
-
-  // Check if any items have feedback
-  const hasFeedback = useMemo(() => {
-    const hasItemFeedback = items.some((item) => item.feedback);
-    const hasOverallFeedback = overallFeedback.trim().length > 0;
-    return hasItemFeedback || hasOverallFeedback;
-  }, [items, overallFeedback]);
-
-  // Check if AI is still generating initial outline (no complete assistant message yet)
-  const isInitialGenerating = useMemo(() => {
-    if (!messages) return true; // Still loading
-    const completeAssistant = messages.find(
-      (m) => m.role === "assistant" && m.status === "complete",
-    );
-    return !completeAssistant;
-  }, [messages]);
-
-  // Check outline status
-  const isGenerating =
-    presentation?.outlineStatus === "regenerating" ||
-    isParsing ||
-    isInitialGenerating ||
-    isRecreatingOutline;
-  const slidesGenerating = presentation?.status === "slides_generating";
-  const canApprove = items.length > 0 && !isGenerating && !slidesGenerating;
-  const canRegenerate =
-    items.length > 0 && !isGenerating && !slidesGenerating && !isRegenerating;
-
-  // Handle feedback change on individual items
-  const handleFeedbackChange = useCallback(
-    async (itemId: Id<"outlineItems">, feedback: string) => {
-      try {
-        await updateFeedback({ outlineItemId: itemId, feedback });
-      } catch (error) {
-        console.error("Failed to update feedback:", error);
+    if (rawItems) {
+      // Always sync to get latest items (supports streaming)
+      setItems(rawItems);
+      // Auto-select first item if nothing selected and items exist
+      if (!selectedItemId && rawItems.length > 0) {
+        setSelectedItemId(rawItems[0]._id);
       }
-    },
-    [updateFeedback],
+    }
+  }, [rawItems, selectedItemId]);
+
+  // @ts-ignore - Type depth exceeded
+  const updateStatus = useMutation(api.presentations.updateStatus);
+  // @ts-ignore - Type depth exceeded
+  const approveOutline = useMutation(
+    api.presentations.outline.approveOutlineFromItems,
+  );
+  // @ts-ignore - Type depth exceeded
+  const submitFeedback = useMutation(
+    api.presentations.outline.submitOutlineFeedback,
+  );
+  // @ts-ignore - Type depth exceeded
+  const updateFeedback = useMutation(api.outlineItems.updateFeedback);
+  // @ts-ignore - Type depth exceeded
+  const updateOverallFeedback = useMutation(
+    api.presentations.updateOverallFeedback,
   );
 
-  // Handle reorder (optimistic)
-  const handleReorder = useCallback((newItems: Doc<"outlineItems">[]) => {
-    setLocalItems(newItems);
-  }, []);
+  // Overall feedback state
+  const [localOverallFeedback, setLocalOverallFeedback] = useState(
+    presentation?.overallFeedback || "",
+  );
 
-  // Handle submit feedback
+  // Sync overall feedback when presentation loads
+  useEffect(() => {
+    if (presentation?.overallFeedback !== undefined) {
+      setLocalOverallFeedback(presentation.overallFeedback || "");
+    }
+  }, [presentation?.overallFeedback]);
+
+  // Reset regenerating state when outline regeneration completes
+  useEffect(() => {
+    if (
+      presentation?.outlineStatus === "ready" ||
+      presentation?.outlineStatus === undefined
+    ) {
+      setIsRegenerating(false);
+    }
+  }, [presentation?.outlineStatus]);
+
+  const handleOverallFeedbackChange = (value: string) => {
+    setLocalOverallFeedback(value);
+    // Debounce would be nice here, but for simplicity just save on change
+    updateOverallFeedback({ presentationId, feedback: value });
+  };
+
+  // Check if any feedback exists
+  const hasFeedback =
+    localOverallFeedback.trim() !== "" ||
+    (items?.some((item) => item.feedback?.trim()) ?? false);
+
   const handleSubmitFeedback = async () => {
-    if (!hasFeedback) return;
-
-    setIsSubmitting(true);
-    try {
-      await submitFeedback({
-        presentationId,
-        overallFeedback: overallFeedback.trim() || undefined,
-      });
-      // Clear local overall feedback after submission
-      setOverallFeedback("");
-    } catch (error) {
-      console.error("Failed to submit feedback:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle approve
-  const handleApprove = async () => {
-    if (!canApprove) return;
-
-    setIsApproving(true);
-    try {
-      // Update image model first
-      await updateImageModel({
-        presentationId,
-        imageModel: selectedImageModel,
-      });
-
-      // Then approve
-      await approveOutline({ presentationId });
-
-      // Redirect to preview
-      router.push(`/slides/${presentationId}/preview`);
-    } catch (error) {
-      console.error("Failed to approve outline:", error);
-      setIsApproving(false);
-    }
-  };
-
-  // Handle regenerate slides (deletes existing slides and recreates from outline)
-  const handleRegenerateSlides = async () => {
-    if (!canRegenerate) return;
+    if (!hasFeedback || isRegenerating) return;
 
     setIsRegenerating(true);
     try {
-      // Update image model first
-      await updateImageModel({
+      await submitFeedback({
         presentationId,
-        imageModel: selectedImageModel,
+        overallFeedback: localOverallFeedback,
       });
-
-      // Regenerate slides (deletes existing + triggers new generation)
-      await regenerateSlides({ presentationId });
-
-      // Redirect to preview to watch generation
-      router.push(`/slides/${presentationId}/preview`);
-    } catch (error) {
-      console.error("Failed to regenerate slides:", error);
+      toast.success("Regenerating outline with your feedback...");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to submit feedback");
       setIsRegenerating(false);
     }
   };
 
-  // Show loading while preferences are being fetched
-  if (prefsLoading) {
+  // Select Item Handler
+  const handleSelect = (id: Id<"outlineItems">) => {
+    setSelectedItemId(id);
+    // On mobile, maybe close sidebar?
+  };
+
+  const handleFeedbackChange = (
+    itemId: Id<"outlineItems">,
+    feedback: string,
+  ) => {
+    updateFeedback({ outlineItemId: itemId, feedback });
+
+    // Update local state
+    if (items) {
+      setItems((prev) =>
+        prev
+          ? prev.map((item) =>
+              item._id === itemId ? { ...item, feedback } : item,
+            )
+          : [],
+      );
+    }
+  };
+
+  const handleItemsReorder = (newItems: Doc<"outlineItems">[]) => {
+    setItems(newItems);
+  };
+
+  const handleApprove = async () => {
+    if (!presentation || !items) return;
+
+    try {
+      await updateStatus({ presentationId, status: "slides_generating" });
+      router.push(`/slides/${presentationId}/preview`); // Redirect to preview/generating page
+      await approveOutline({ presentationId });
+    } catch (e) {
+      toast.error("Failed to approve outline");
+      console.error(e);
+      await updateStatus({ presentationId, status: "outline_complete" });
+    }
+  };
+
+  // Feature toggle check
+  if (prefsLoading) return <FeatureLoadingScreen />;
+  if (!showSlides)
+    return <DisabledFeaturePage featureName="Slides" settingKey="showSlides" />;
+
+  if (!presentation) {
     return <FeatureLoadingScreen />;
   }
 
-  // Feature toggle check
-  if (!showSlides) {
-    return <DisabledFeaturePage featureName="Slides" settingKey="showSlides" />;
+  // Determine if we're in a generating state
+  const isOutlineGenerating =
+    presentation.status === "outline_pending" ||
+    presentation.status === "outline_generating";
+  const isDesignGenerating = presentation.status === "design_generating";
+  const isGenerating = isOutlineGenerating || isDesignGenerating;
+
+  // Show full skeleton only if outline_pending with no items yet
+  // Once items start streaming in, show the main layout
+  if (
+    presentation.status === "outline_pending" &&
+    (!items || items.length === 0)
+  ) {
+    return (
+      <OutlineLoadingSkeleton
+        aspectRatio={presentation.aspectRatio || "16:9"}
+      />
+    );
   }
 
-  // Loading state
-  if (!presentation) {
+  // Use empty array as fallback during streaming
+  const displayItems = items || [];
+
+  if (presentation.status === "error") {
     return (
-      <div className="flex h-[100dvh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-background">
+        <p className="text-destructive font-medium mb-2">Generation Failed</p>
+        <p className="text-muted-foreground">
+          Please try creating the presentation again.
+        </p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => router.push("/slides/new")}
+        >
+          Back to Create
+        </Button>
       </div>
     );
   }
 
+  const selectedItem = displayItems.find((i) => i._id === selectedItemId);
+
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/slides")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Presentation className="h-5 w-5 text-primary" />
-            <h1 className="font-semibold">{presentation.title}</h1>
-          </div>
-        </div>
-
-        <OutlineActions
-          hasFeedback={hasFeedback}
-          isSubmitting={isSubmitting}
-          isApproving={isApproving}
-          isGenerating={isGenerating}
-          canApprove={canApprove}
-          onSubmitFeedback={handleSubmitFeedback}
-          onApprove={handleApprove}
-          isPostGeneration={isPostGeneration}
-          isRegenerating={isRegenerating}
-          canRegenerate={canRegenerate}
-          onRegenerateSlides={handleRegenerateSlides}
-        />
-      </header>
-
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Cards Area */}
-        <ScrollArea className="flex-1">
-          <div className="p-6 space-y-6">
-            {/* Overall Feedback */}
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "flex-shrink-0 transition-all duration-300 ease-in-out border-r z-20 bg-background flex flex-col",
+          isSidebarOpen
+            ? "w-80 translate-x-0"
+            : "w-0 -translate-x-full opacity-0 pointer-events-none absolute md:relative",
+        )}
+      >
+        {/* Overall Feedback - hide during generation */}
+        {!isOutlineGenerating && (
+          <div className="p-3 border-b">
             <OverallFeedbackSection
-              value={overallFeedback}
-              onChange={setOverallFeedback}
-              disabled={isGenerating || isSubmitting}
-            />
-
-            {/* Post-generation Warning Banner */}
-            {isPostGeneration && !isGenerating && !slidesGenerating && (
-              <div className="flex items-center gap-3 rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
-                <AlertTriangle className="h-5 w-5 text-blue-500 shrink-0" />
-                <div>
-                  <p className="font-medium text-blue-600 dark:text-blue-400">
-                    Editing generated slides
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Changes to the outline require regenerating all slides. This
-                    will delete existing slides and images.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Status Banner */}
-            {isGenerating && (
-              <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/20 p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
-                <div>
-                  <p className="font-medium text-amber-600 dark:text-amber-400">
-                    Regenerating outline...
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Your feedback is being applied. This may take a moment.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Outline Cards */}
-            <OutlineCardList
-              presentationId={presentationId}
-              items={items}
-              onItemsReorder={handleReorder}
-              onFeedbackChange={handleFeedbackChange}
-              isLoading={outlineItems === undefined}
+              value={localOverallFeedback}
+              onChange={handleOverallFeedbackChange}
             />
           </div>
-        </ScrollArea>
-
-        {/* Sidebar */}
-        <div className="hidden w-80 flex-col border-l bg-muted/30 lg:flex">
-          <ScrollArea className="flex-1">
-            <div className="space-y-6 p-6">
-              {/* Instructions */}
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Outline Editor</h2>
-                <p className="text-sm text-muted-foreground">
-                  Review your presentation outline. Add feedback to any slide or
-                  provide overall suggestions.
-                </p>
-              </div>
-
-              {/* How it works */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">How it works</h3>
-                <ol className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex gap-2">
-                    <span className="font-medium text-foreground shrink-0">
-                      1.
-                    </span>
-                    Review the generated outline cards
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-medium text-foreground shrink-0">
-                      2.
-                    </span>
-                    Add feedback to specific slides or overall
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-medium text-foreground shrink-0">
-                      3.
-                    </span>
-                    Submit feedback to regenerate
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-medium text-foreground shrink-0">
-                      4.
-                    </span>
-                    Approve when satisfied to generate slides
-                  </li>
-                </ol>
-              </div>
-
-              {/* Tips */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Feedback tips</h3>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  <li>• "Make this slide more concise"</li>
-                  <li>• "Add more details about X"</li>
-                  <li>• "Combine with the next slide"</li>
-                  <li>• "Add a slide about Y here"</li>
-                </ul>
-              </div>
-
-              {/* Stats */}
-              <div className="rounded-lg border bg-background p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total slides</span>
-                  <span className="font-medium">{items.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-muted-foreground">With feedback</span>
-                  <span className="font-medium">
-                    {items.filter((i) => i.feedback).length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
-
-          {/* Model selector + Actions */}
-          <div className="space-y-4 border-t p-4">
-            <div className="space-y-2">
-              <Label htmlFor="image-model">Image Generation Model</Label>
-              <Select
-                value={selectedImageModel}
-                onValueChange={setSelectedImageModel}
-              >
-                <SelectTrigger id="image-model">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="google:gemini-2.5-flash-image">
-                    Gemini 2.5 Flash (Budget)
-                  </SelectItem>
-                  <SelectItem value="google:gemini-3-pro-image-preview">
-                    Gemini 3 Pro (Recommended)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {selectedImageModel === "google:gemini-2.5-flash-image"
-                  ? "Fast & cost-effective"
-                  : "Advanced reasoning, highest quality"}
-              </p>
+        )}
+        {/* Generating indicator */}
+        {isOutlineGenerating && (
+          <div className="p-3 border-b bg-primary/5">
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Generating outline...</span>
             </div>
           </div>
+        )}
+        {/* Slide List */}
+        <div className="flex-1 overflow-hidden">
+          <OutlineSidebar
+            presentationId={presentationId}
+            items={displayItems}
+            selectedItemId={selectedItemId}
+            onSelect={handleSelect}
+            onItemsReorder={handleItemsReorder}
+            isGenerating={isOutlineGenerating}
+          />
         </div>
       </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-secondary/5 relative">
+        {/* Toolbar / Header for Main Area */}
+        <header className="flex-shrink-0 h-14 border-b bg-background flex items-center justify-between px-4 z-10">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="h-8 w-8"
+            >
+              {isSidebarOpen ? (
+                <PanelLeftClose className="h-4 w-4" />
+              ) : (
+                <PanelLeftOpen className="h-4 w-4" />
+              )}
+            </Button>
+            <div className="h-6 w-px bg-border mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="gap-2 text-muted-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <span className="font-semibold text-sm hidden sm:inline-block ml-2">
+              {presentation.title}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Hide action buttons during generation (outline or design) */}
+            {!isOutlineGenerating && !isDesignGenerating && (
+              <>
+                <Button
+                  onClick={handleSubmitFeedback}
+                  disabled={!hasFeedback || isRegenerating || isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Apply Feedback
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleApprove}
+                  disabled={isGenerating || displayItems.length === 0}
+                  size="sm"
+                  className="h-8 shadow-sm gap-2"
+                >
+                  Generate Slides <ArrowRight className="h-3 w-3" />
+                </Button>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* Editor Area */}
+        <div className="flex-1 overflow-hidden relative">
+          {selectedItem ? (
+            <OutlineSlideEditor
+              item={selectedItem}
+              index={displayItems.findIndex((i) => i._id === selectedItemId)}
+              onFeedbackChange={handleFeedbackChange}
+              aspectRatio={presentation.aspectRatio || "16:9"}
+            />
+          ) : isOutlineGenerating ? (
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+              <Loader2 className="h-12 w-12 mb-4 text-primary animate-spin" />
+              <p className="font-medium">Generating your first slide...</p>
+              <p className="text-sm mt-1">
+                Slides will appear as they're created
+              </p>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+              <Sparkles className="h-12 w-12 mb-4 text-muted-foreground/20" />
+              <p className="font-medium">Select a slide to edit</p>
+              <p className="text-sm mt-1">
+                Or drag to reorder slides in the sidebar
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Visual Info Panel */}
+      <VisualInfoPanel
+        designSystem={presentation.designSystem}
+        visualDirection={selectedItem?.visualDirection}
+        isOpen={isVisualPanelOpen}
+        onToggle={() => setIsVisualPanelOpen(!isVisualPanelOpen)}
+        isDesignGenerating={isDesignGenerating}
+        isOutlineGenerating={isOutlineGenerating}
+      />
     </div>
   );
 }

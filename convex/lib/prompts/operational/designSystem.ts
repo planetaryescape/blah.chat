@@ -174,17 +174,87 @@ function formatTemplateConstraints(template: TemplateConstraints): string {
 }
 
 /**
- * Build design system prompt, optionally with template constraints
+ * Get image style guidance for the design system prompt
+ */
+function getImageStyleGuidance(imageStyle: string): string {
+  const styleGuidance: Record<string, string> = {
+    "minimalist-line": `USER SELECTED IMAGE STYLE: Minimalist Line Art
+- imageGuidelines MUST specify: clean line drawings, thin elegant strokes, monochromatic or 2-3 colors max
+- visualStyle should be: "minimal" or compatible with line art
+- Avoid: gradients, complex textures, photorealistic elements
+- Reference: architectural blueprints, wireframes, Apple-style minimalism`,
+
+    "corporate-vector": `USER SELECTED IMAGE STYLE: Corporate Vector
+- imageGuidelines MUST specify: flat vector graphics, solid colors, professional business illustrations
+- visualStyle should be: "illustrative" or compatible with vector art
+- Avoid: photographs, 3D renders, hand-drawn sketches
+- Reference: Notion, Slack, modern SaaS company aesthetic`,
+
+    photorealistic: `USER SELECTED IMAGE STYLE: Photorealistic
+- imageGuidelines MUST specify: HIGH-RESOLUTION PHOTOGRAPHY, real photos of real subjects
+- visualStyle should be: "photorealistic" - this is NON-NEGOTIABLE
+- The design system must assume ALL images will be real photographs
+- Avoid: any mention of illustrations, vectors, or stylized graphics
+- Reference: National Geographic, Apple product photography, Getty Images editorial`,
+
+    "collage-art": `USER SELECTED IMAGE STYLE: Collage Art
+- imageGuidelines MUST specify: cut-paper aesthetic, layered compositions, mixed media
+- visualStyle should be: "artistic" or "collage"
+- Include: photography fragments, textures, geometric overlays, torn edges
+- Reference: Vogue editorial, museum graphics, zine aesthetic`,
+
+    "3d-render": `USER SELECTED IMAGE STYLE: 3D Render
+- imageGuidelines MUST specify: soft rounded 3D shapes, clay-like materials, gentle gradients
+- visualStyle should be: "3d-render" or "illustrative"
+- Include: ambient occlusion, pastel colors, plastic/clay textures
+- Reference: Blender soft-body renders, Apple Memoji style`,
+
+    cyberpunk: `USER SELECTED IMAGE STYLE: Cyberpunk
+- imageGuidelines MUST specify: neon colors on dark backgrounds, glowing effects, futuristic UI
+- visualStyle should be: "cyberpunk" or "futuristic"
+- Include: cyan, magenta, electric blue accents; holographic elements; tech grids
+- Reference: Blade Runner, Tron, Cyberpunk 2077 UI`,
+  };
+
+  return (
+    styleGuidance[imageStyle] ||
+    `USER SELECTED IMAGE STYLE: ${imageStyle}
+- imageGuidelines should align with this visual style
+- Ensure all visual recommendations are compatible with "${imageStyle}" rendering`
+  );
+}
+
+/**
+ * Build design system prompt, optionally with template constraints and image style
  */
 export function buildDesignSystemPrompt(
   outlineContent: string,
   template?: TemplateConstraints,
+  imageStyle?: string,
 ): string {
+  let prompt: string;
+
   if (template) {
-    return DESIGN_SYSTEM_WITH_TEMPLATE_PROMPT.replace(
+    prompt = DESIGN_SYSTEM_WITH_TEMPLATE_PROMPT.replace(
       "{OUTLINE_CONTENT}",
       outlineContent,
     ).replace("{TEMPLATE_CONSTRAINTS}", formatTemplateConstraints(template));
+  } else {
+    prompt = DESIGN_SYSTEM_PROMPT.replace("{OUTLINE_CONTENT}", outlineContent);
   }
-  return DESIGN_SYSTEM_PROMPT.replace("{OUTLINE_CONTENT}", outlineContent);
+
+  // Inject image style guidance if provided
+  if (imageStyle) {
+    const styleGuidance = getImageStyleGuidance(imageStyle);
+    prompt += `\n\n═══════════════════════════════════════════════════════════════════════════════
+MANDATORY IMAGE STYLE CONSTRAINT
+═══════════════════════════════════════════════════════════════════════════════
+
+${styleGuidance}
+
+CRITICAL: Your imageGuidelines and visualStyle MUST be compatible with this user-selected style.
+The user has explicitly chosen this visual approach - do not override it with incompatible suggestions.`;
+  }
+
+  return prompt;
 }

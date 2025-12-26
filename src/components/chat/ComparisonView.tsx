@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { Eye, EyeOff, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useMediaQuery } from "usehooks-ts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +14,6 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSyncedScroll } from "@/hooks/useSyncedScroll";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";

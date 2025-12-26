@@ -18,6 +18,7 @@ interface SlideData {
   content: string;
   slideType: "title" | "section" | "content";
   imageStorageId?: Id<"_storage">;
+  visualDirection?: string;
 }
 
 interface DesignSystem {
@@ -86,6 +87,11 @@ export const generateSlideImage = internalAction({
         size: v.string(),
       }),
     ),
+    // New fields
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ),
+    imageStyle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
@@ -109,6 +115,7 @@ export const generateSlideImage = internalAction({
 
       const slideStyle = args.slideStyle ?? "illustrative";
       const isTemplateBased = args.isTemplateBased ?? false;
+      const aspectRatio = args.aspectRatio ?? "16:9";
 
       // Check if we have a reference image to use
       const referenceStorageId =
@@ -151,10 +158,18 @@ export const generateSlideImage = internalAction({
         designSystem: args.designSystem as DesignSystem,
         contextSlides: args.contextSlides,
         slideStyle,
+        aspectRatio,
         isTemplateBased,
         hasLogo: !!logoImageBase64,
         logoGuidelines: args.logoGuidelines,
+        imageStyle: args.imageStyle,
+        visualDirection: slide.visualDirection,
       });
+
+      // Inject Aspect Ratio context
+      if (aspectRatio !== "16:9") {
+        prompt += `\n\nFORMAT:\nRequired Aspect Ratio: ${aspectRatio}. Ensure layout fits within this vertical/square frame.`;
+      }
 
       // Merge custom prompt if provided
       if (args.customPrompt) {
@@ -226,7 +241,7 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
             ...getGatewayOptions(args.modelId, slide.userId, ["slide-image"]),
             google: {
               imageConfig: {
-                aspectRatio: "16:9",
+                aspectRatio: aspectRatio,
               },
             },
           },
@@ -239,7 +254,7 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
             ...getGatewayOptions(args.modelId, slide.userId, ["slide-image"]),
             google: {
               imageConfig: {
-                aspectRatio: "16:9",
+                aspectRatio: aspectRatio,
               },
             },
           },

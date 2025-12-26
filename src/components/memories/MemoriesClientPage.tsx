@@ -11,6 +11,7 @@ import {
 } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useDebounceValue } from "usehooks-ts";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
 import { MemoriesHeader } from "@/components/memories/MemoriesHeader";
 import { MemoryFilters } from "@/components/memories/MemoryFilters";
@@ -18,7 +19,6 @@ import { MemoryItem } from "@/components/memories/MemoryItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { useDebounce } from "@/hooks/useDebounce";
 
 const CATEGORY_LABELS: Record<string, { title: string; description: string }> =
   {
@@ -74,7 +74,7 @@ export function MemoriesClientPage() {
     parseAsString.withDefault(""),
   );
 
-  const debouncedSearchQuery = useDebounce(searchParam, 300);
+  const [debouncedSearchQuery] = useDebounceValue(searchParam, 300);
 
   // @ts-ignore - Type instantiation is excessively deep and possibly infinite
   const memories = useQuery(api.memories.listFiltered, {

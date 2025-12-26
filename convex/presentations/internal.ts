@@ -20,6 +20,7 @@ const presentationStatusValidator = v.union(
   v.literal("design_complete"),
   v.literal("slides_generating"),
   v.literal("slides_complete"),
+  v.literal("stopped"),
   v.literal("error"),
 );
 
@@ -194,5 +195,17 @@ Output only the title, no quotes or punctuation at the end.`,
       console.error("Presentation title generation failed:", error);
       // Keep "Untitled Presentation" on failure
     }
+  },
+});
+
+export const getPresentationByConversation = internalQuery({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("presentations")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .first();
   },
 });

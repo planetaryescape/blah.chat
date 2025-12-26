@@ -1,16 +1,19 @@
-import type { Doc } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
+
+interface SourceInfo {
+  position: number;
+  title?: string | null;
+  url: string;
+}
 
 export function exportConversationToMarkdown(
   conversation: Doc<"conversations">,
   messages: Doc<"messages">[],
+  sourcesByMessage?: Map<Id<"messages">, SourceInfo[]>,
 ): string {
   let md = `# ${conversation.title}\n\n`;
-  md += `**Created**: ${new Date(conversation.createdAt).toLocaleString()}\n`;
-  md += `**Model**: ${conversation.model}\n`;
-  if (conversation.systemPrompt) {
-    md += `**System Prompt**: ${conversation.systemPrompt}\n`;
-  }
-  md += `\n---\n\n`;
+  md += `*Created: ${new Date(conversation.createdAt).toLocaleString()}*\n\n`;
+  md += `---\n\n`;
 
   for (const msg of messages) {
     const role =
@@ -19,11 +22,17 @@ export function exportConversationToMarkdown(
         : msg.role === "assistant"
           ? "Assistant"
           : "System";
-    md += `## ${role}\n\n`;
+    md += `**${role}:**\n\n`;
     md += `${msg.content}\n\n`;
 
-    if (msg.cost) {
-      md += `*Cost: $${msg.cost.toFixed(4)} | Tokens: ${msg.inputTokens || 0}/${msg.outputTokens || 0}*\n\n`;
+    // Add sources for this message
+    const sources = sourcesByMessage?.get(msg._id);
+    if (sources?.length) {
+      md += `**Sources:**\n`;
+      for (const src of sources) {
+        md += `- [${src.position}] [${src.title || src.url}](${src.url})\n`;
+      }
+      md += `\n`;
     }
   }
 

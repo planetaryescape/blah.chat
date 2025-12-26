@@ -136,6 +136,31 @@ export const getSources = query({
 });
 
 /**
+ * Get all sources for a conversation.
+ * Used for copying entire conversation with sources.
+ */
+export const getByConversation = query({
+  args: {
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, { conversationId }) => {
+    const sources = await ctx.db
+      .query("sources")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .collect();
+
+    return sources.map((src) => ({
+      messageId: src.messageId,
+      position: src.position,
+      title: src.title,
+      url: src.url,
+    }));
+  },
+});
+
+/**
  * Get sources with fallback to legacy message.sources[] field.
  * Fixes race condition where normalized table hasn't been populated yet.
  * Returns: { sources, source: "normalized" | "legacy" | "none" }

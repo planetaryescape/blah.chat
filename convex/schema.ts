@@ -98,6 +98,17 @@ export default defineSchema({
     ),
     // Presentation mode (slides feature conversations)
     isPresentation: v.optional(v.boolean()),
+    // Enable web search grounding for presentations
+    enableGrounding: v.optional(v.boolean()),
+    // Presentation metadata
+    slideStyle: v.optional(
+      v.union(v.literal("wordy"), v.literal("illustrative")),
+    ),
+    imageStyle: v.optional(v.string()), // e.g. "minimalist line art", "photorealistic"
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ), // default 16:9
+    templateId: v.optional(v.id("templates")),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -832,6 +843,23 @@ export default defineSchema({
     lastUpdated: v.number(),
   }).index("by_user", ["userId"]),
 
+  // User percentile rankings (calculated daily)
+  userRankings: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // YYYY-MM-DD
+    overallPercentile: v.number(), // 0-100, higher = more active
+    modelRankings: v.array(
+      v.object({
+        model: v.string(),
+        percentile: v.number(),
+        totalUsers: v.number(),
+      }),
+    ),
+    totalActiveUsers: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "date"]),
+
   ttsCache: defineTable({
     hash: v.string(), // sha256 of text+voice+speed
     storageId: v.id("_storage"),
@@ -1228,6 +1256,7 @@ export default defineSchema({
     userId: v.id("users"),
     conversationId: v.optional(v.id("conversations")), // Links to outline chat iteration
     title: v.string(),
+    description: v.optional(v.string()), // AI-generated summary
 
     // Generation state tracking
     status: v.union(
@@ -1238,6 +1267,7 @@ export default defineSchema({
       v.literal("design_complete"),
       v.literal("slides_generating"),
       v.literal("slides_complete"),
+      v.literal("stopped"),
       v.literal("error"),
     ),
 
@@ -1277,9 +1307,23 @@ export default defineSchema({
     totalSlides: v.number(),
     generatedSlideCount: v.number(),
 
+    // New format fields
+    aspectRatio: v.optional(
+      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
+    ),
+    imageStyle: v.optional(v.string()),
+
     // PPTX export caching
     pptxStorageId: v.optional(v.id("_storage")),
     pptxGeneratedAt: v.optional(v.number()),
+
+    // PDF export caching (for social/stories)
+    pdfStorageId: v.optional(v.id("_storage")),
+    pdfGeneratedAt: v.optional(v.number()),
+
+    // Images ZIP export caching (for social/stories)
+    imagesZipStorageId: v.optional(v.id("_storage")),
+    imagesZipGeneratedAt: v.optional(v.number()),
 
     // Card-based outline editor fields
     overallFeedback: v.optional(v.string()), // General feedback not tied to specific slide
@@ -1293,13 +1337,30 @@ export default defineSchema({
       ),
     ),
 
+    // Organization (matches conversations pattern)
+    starred: v.optional(v.boolean()),
+    pinned: v.optional(v.boolean()),
+
+    // Vector embedding for semantic search
+    embedding: v.optional(v.array(v.float64())),
+
     // Timestamps
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_conversation", ["conversationId"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_pinned", ["userId", "pinned"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId"],
+    })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["userId"],
+    }),
 
   // Individual slides within presentations
   slides: defineTable({
@@ -1308,15 +1369,29 @@ export default defineSchema({
 
     position: v.number(), // Slide order (1, 2, 3...)
     slideType: v.union(
+      // Presentation types (16:9)
       v.literal("title"),
       v.literal("section"),
       v.literal("content"),
+      // Carousel/Story types (1:1, 9:16)
+      v.literal("hook"),
+      v.literal("rehook"),
+      v.literal("value"),
+      v.literal("cta"),
+      // Narrative beat types (emotional arc)
+      v.literal("context"),
+      v.literal("validation"),
+      v.literal("reality"),
+      v.literal("emotional"),
+      v.literal("reframe"),
+      v.literal("affirmation"),
     ),
 
     // Text content (from outline, editable)
     title: v.string(),
-    content: v.string(), // Markdown bullets
+    content: v.string(), // Markdown bullets or supporting text
     speakerNotes: v.optional(v.string()),
+    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
 
     // Image generation state
     imageStatus: v.union(
@@ -1352,15 +1427,29 @@ export default defineSchema({
 
     position: v.number(), // Slide order (1, 2, 3...)
     slideType: v.union(
+      // Presentation types (16:9)
       v.literal("title"),
       v.literal("section"),
       v.literal("content"),
+      // Carousel/Story types (1:1, 9:16)
+      v.literal("hook"),
+      v.literal("rehook"),
+      v.literal("value"),
+      v.literal("cta"),
+      // Narrative beat types (emotional arc)
+      v.literal("context"),
+      v.literal("validation"),
+      v.literal("reality"),
+      v.literal("emotional"),
+      v.literal("reframe"),
+      v.literal("affirmation"),
     ),
 
     // Content (from parsed outline)
     title: v.string(),
-    content: v.string(), // Markdown bullets
+    content: v.string(), // Markdown bullets or supporting text
     speakerNotes: v.optional(v.string()),
+    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
 
     // Per-slide feedback from user
     feedback: v.optional(v.string()),

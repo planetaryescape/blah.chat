@@ -209,7 +209,7 @@ export function SlideDetails({ slide, slideNumber, totalSlides }: Props) {
           ) : (
             <>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Regenerate Slide
+              Edit Slide
             </>
           )}
         </Button>

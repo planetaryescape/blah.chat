@@ -1,8 +1,6 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { AlertCircle, Info } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
@@ -52,40 +50,60 @@ export function ContextWindowIndicator({
 
   const warningLevel = getWarningLevel();
 
-  const getProgressColor = () => {
+  const getStrokeColor = () => {
     switch (warningLevel) {
       case "critical":
-        return "bg-destructive";
+        return "stroke-destructive";
       case "warning":
-        return "bg-yellow-500";
+        return "stroke-yellow-500";
       case "caution":
-        return "bg-yellow-400";
+        return "stroke-yellow-400";
       default:
-        return "bg-primary";
+        return "stroke-primary";
     }
   };
 
-  const getIcon = () => {
-    if (warningLevel === "critical" || warningLevel === "warning") {
-      return <AlertCircle className="h-4 w-4 text-destructive" />;
-    }
-    return <Info className="h-4 w-4 text-muted-foreground" />;
-  };
+  // Circular progress SVG params
+  const size = 20;
+  const strokeWidth = 2.5;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center gap-2 min-w-[120px]">
-            {getIcon()}
-            <div className="flex-1">
-              <Progress
-                value={percentage}
-                className="h-2"
-                indicatorClassName={getProgressColor()}
+          <div className="flex items-center gap-1.5 cursor-pointer">
+            <svg
+              width={size}
+              height={size}
+              viewBox={`0 0 ${size} ${size}`}
+              className="-rotate-90"
+            >
+              {/* Background track */}
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                strokeWidth={strokeWidth}
+                className="stroke-muted-foreground/30"
               />
-            </div>
-            <span className="text-sm text-muted-foreground tabular-nums">
+              {/* Progress arc */}
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                className={getStrokeColor()}
+              />
+            </svg>
+            <span className="text-xs text-muted-foreground tabular-nums">
               {percentage}%
             </span>
           </div>

@@ -1,66 +1,66 @@
-import { FileCode, FileText } from "lucide-react";
-import { useCanvasContext } from "@/contexts/CanvasContext";
-import type { Id } from "@/convex/_generated/dataModel";
+import { Check, FileCode, FileText, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { ToolRendererProps } from "./types";
 
 /**
  * Renderer for the createDocument tool.
- * Shows document creation with type-specific icon and toggle link.
+ * Shows compact tool info. Artifact card appears in message body via ArtifactList.
  */
 export function CreateDocumentRenderer({
   parsedArgs,
   parsedResult,
   state,
 }: ToolRendererProps) {
-  const { documentId, setDocumentId } = useCanvasContext();
   const Icon = parsedArgs?.documentType === "code" ? FileCode : FileText;
 
-  const resultDocId = parsedResult?.documentId;
-  const isOpen = documentId === resultDocId;
+  // Show loading state while executing
+  if (state === "executing") {
+    return (
+      <div className="text-xs flex items-center gap-2 text-muted-foreground py-1">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>Creating "{parsedArgs?.title}"...</span>
+      </div>
+    );
+  }
 
-  const handleToggle = () => {
-    if (isOpen) {
-      setDocumentId(null);
-    } else if (resultDocId) {
-      setDocumentId(resultDocId as Id<"canvasDocuments">);
-    }
-  };
+  // Show error if failed
+  if (parsedResult && !parsedResult.success) {
+    return (
+      <div className="text-xs text-destructive py-1">
+        Failed: {parsedResult.error}
+      </div>
+    );
+  }
 
-  return (
-    <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
-      <div className="flex items-center gap-2">
+  // Show success info
+  if (parsedResult?.success) {
+    return (
+      <div className="text-xs flex items-center gap-2 py-1">
+        <div className="flex items-center gap-1.5 text-green-500">
+          <Check className="h-3 w-3" />
+          <span>Created</span>
+        </div>
+        <span className="text-muted-foreground/50">·</span>
         <Icon className="h-3 w-3 text-muted-foreground" />
-        <span className="font-mono text-muted-foreground">
-          "{parsedArgs?.title}"
+        <span className="text-muted-foreground truncate max-w-[200px]">
+          {parsedArgs?.title ?? "Document"}
         </span>
         {parsedArgs?.language && (
-          <span className="px-1.5 py-0.5 rounded bg-muted text-[10px]">
+          <Badge variant="secondary" className="h-4 text-[10px] px-1">
             {parsedArgs.language}
-          </span>
+          </Badge>
+        )}
+        {parsedResult.lineCount && (
+          <>
+            <span className="text-muted-foreground/50">·</span>
+            <span className="text-muted-foreground">
+              {parsedResult.lineCount} lines
+            </span>
+          </>
         )}
       </div>
+    );
+  }
 
-      {parsedResult && state !== "executing" && (
-        <div className="text-muted-foreground flex items-center gap-2">
-          {parsedResult.success ? (
-            <>
-              <span>Created • {parsedResult.lineCount} lines</span>
-              <span className="text-[10px]">•</span>
-              <span
-                onClick={handleToggle}
-                onKeyDown={(e) => e.key === "Enter" && handleToggle()}
-                role="button"
-                tabIndex={0}
-                className="text-primary hover:underline cursor-pointer text-[10px]"
-              >
-                {isOpen ? "Close" : "Open"}
-              </span>
-            </>
-          ) : (
-            <span className="text-destructive">{parsedResult.error}</span>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }

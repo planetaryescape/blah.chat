@@ -314,7 +314,10 @@ export const runHousekeeping = internalMutation({
 });
 
 export const regenerate = mutation({
-  args: { messageId: v.id("messages") },
+  args: {
+    messageId: v.id("messages"),
+    modelId: v.optional(v.string()),
+  },
   handler: async (ctx, args): Promise<Id<"messages">> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
@@ -338,8 +341,9 @@ export const regenerate = mutation({
       { key: "defaultModel" },
     )) as string | null;
 
-    // Priority: message.model → conversation.model → user defaultModel preference → fallback
+    // Priority: explicit modelId → message.model → conversation.model → user defaultModel preference → fallback
     const modelId =
+      args.modelId ||
       message.model ||
       conversation.model ||
       userDefaultModel ||

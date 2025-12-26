@@ -98,6 +98,8 @@ export default defineSchema({
     ),
     // Presentation mode (slides feature conversations)
     isPresentation: v.optional(v.boolean()),
+    // Enable web search grounding for presentations
+    enableGrounding: v.optional(v.boolean()),
     // Presentation metadata
     slideStyle: v.optional(
       v.union(v.literal("wordy"), v.literal("illustrative")),
@@ -1315,6 +1317,14 @@ export default defineSchema({
     pptxStorageId: v.optional(v.id("_storage")),
     pptxGeneratedAt: v.optional(v.number()),
 
+    // PDF export caching (for social/stories)
+    pdfStorageId: v.optional(v.id("_storage")),
+    pdfGeneratedAt: v.optional(v.number()),
+
+    // Images ZIP export caching (for social/stories)
+    imagesZipStorageId: v.optional(v.id("_storage")),
+    imagesZipGeneratedAt: v.optional(v.number()),
+
     // Card-based outline editor fields
     overallFeedback: v.optional(v.string()), // General feedback not tied to specific slide
     currentOutlineVersion: v.optional(v.number()), // Track latest version for queries
@@ -1359,15 +1369,29 @@ export default defineSchema({
 
     position: v.number(), // Slide order (1, 2, 3...)
     slideType: v.union(
+      // Presentation types (16:9)
       v.literal("title"),
       v.literal("section"),
       v.literal("content"),
+      // Carousel/Story types (1:1, 9:16)
+      v.literal("hook"),
+      v.literal("rehook"),
+      v.literal("value"),
+      v.literal("cta"),
+      // Narrative beat types (emotional arc)
+      v.literal("context"),
+      v.literal("validation"),
+      v.literal("reality"),
+      v.literal("emotional"),
+      v.literal("reframe"),
+      v.literal("affirmation"),
     ),
 
     // Text content (from outline, editable)
     title: v.string(),
-    content: v.string(), // Markdown bullets
+    content: v.string(), // Markdown bullets or supporting text
     speakerNotes: v.optional(v.string()),
+    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
 
     // Image generation state
     imageStatus: v.union(
@@ -1403,15 +1427,29 @@ export default defineSchema({
 
     position: v.number(), // Slide order (1, 2, 3...)
     slideType: v.union(
+      // Presentation types (16:9)
       v.literal("title"),
       v.literal("section"),
       v.literal("content"),
+      // Carousel/Story types (1:1, 9:16)
+      v.literal("hook"),
+      v.literal("rehook"),
+      v.literal("value"),
+      v.literal("cta"),
+      // Narrative beat types (emotional arc)
+      v.literal("context"),
+      v.literal("validation"),
+      v.literal("reality"),
+      v.literal("emotional"),
+      v.literal("reframe"),
+      v.literal("affirmation"),
     ),
 
     // Content (from parsed outline)
     title: v.string(),
-    content: v.string(), // Markdown bullets
+    content: v.string(), // Markdown bullets or supporting text
     speakerNotes: v.optional(v.string()),
+    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
 
     // Per-slide feedback from user
     feedback: v.optional(v.string()),

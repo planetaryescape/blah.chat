@@ -18,6 +18,7 @@ interface SlideData {
   content: string;
   slideType: "title" | "section" | "content";
   imageStorageId?: Id<"_storage">;
+  visualDirection?: string;
 }
 
 interface DesignSystem {
@@ -157,15 +158,13 @@ export const generateSlideImage = internalAction({
         designSystem: args.designSystem as DesignSystem,
         contextSlides: args.contextSlides,
         slideStyle,
+        aspectRatio,
         isTemplateBased,
         hasLogo: !!logoImageBase64,
         logoGuidelines: args.logoGuidelines,
+        imageStyle: args.imageStyle,
+        visualDirection: slide.visualDirection,
       });
-
-      // Inject Image Style if provided
-      if (args.imageStyle) {
-        prompt += `\n\nVISUAL STYLE:\nGenerate this slide in the following style: "${args.imageStyle}".\nEnsure all visual elements align with this aesthetic.`;
-      }
 
       // Inject Aspect Ratio context
       if (aspectRatio !== "16:9") {

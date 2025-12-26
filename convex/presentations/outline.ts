@@ -26,6 +26,127 @@ const outlineStatusValidator = v.union(
   v.literal("ready"),
 );
 
+// ===== Streaming Outline Polling =====
+
+/**
+ * Poll for new complete slides during outline generation.
+ * Called by scheduler every 500ms while status is "outline_generating".
+ * Parses partialContent and inserts newly completed slides.
+ */
+export const pollOutlineProgress = internalMutation({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+
+    // Stop polling if presentation doesn't exist or isn't generating
+    if (!presentation || presentation.status !== "outline_generating") {
+      return { done: true, reason: "not_generating" };
+    }
+
+    // Need conversation to find the streaming message
+    if (!presentation.conversationId) {
+      return { done: false, reschedule: true, reason: "no_conversation" };
+    }
+
+    // Get the latest assistant message (may be generating)
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", presentation.conversationId!),
+      )
+      .order("desc")
+      .take(5);
+
+    const assistantMessage = messages.find((m) => m.role === "assistant");
+
+    if (!assistantMessage) {
+      // Message not created yet, reschedule
+      await ctx.scheduler.runAfter(
+        500,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.outline.pollOutlineProgress,
+        { presentationId: args.presentationId },
+      );
+      return { done: false, reschedule: true, reason: "no_message" };
+    }
+
+    // Get current content (prefer partialContent during streaming)
+    const content =
+      assistantMessage.status === "generating"
+        ? assistantMessage.partialContent || ""
+        : assistantMessage.content || "";
+
+    if (content.length < 50) {
+      // Not enough content yet
+      await ctx.scheduler.runAfter(
+        500,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.outline.pollOutlineProgress,
+        { presentationId: args.presentationId },
+      );
+      return { done: false, reschedule: true, reason: "content_too_short" };
+    }
+
+    // Get existing outline items count
+    const existingItems = await ctx.db
+      .query("outlineItems")
+      .withIndex("by_presentation", (q) =>
+        q.eq("presentationId", args.presentationId),
+      )
+      .collect();
+
+    // Parse current content
+    const parsedSlides = parseOutlineMarkdown(content);
+
+    // Only insert slides we haven't seen yet (by position)
+    const existingPositions = new Set(existingItems.map((i) => i.position));
+    const newSlides = parsedSlides.filter(
+      (s) => !existingPositions.has(s.position),
+    );
+
+    const now = Date.now();
+    for (const slideData of newSlides) {
+      await ctx.db.insert("outlineItems", {
+        presentationId: args.presentationId,
+        userId: presentation.userId,
+        position: slideData.position,
+        slideType: slideData.slideType,
+        title: slideData.title,
+        content: slideData.content,
+        speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // If message is still generating, reschedule
+    if (assistantMessage.status === "generating") {
+      await ctx.scheduler.runAfter(
+        500,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.outline.pollOutlineProgress,
+        { presentationId: args.presentationId },
+      );
+      return {
+        done: false,
+        reschedule: true,
+        inserted: newSlides.length,
+        total: existingItems.length + newSlides.length,
+      };
+    }
+
+    // Message complete - do final parse and update status
+    // This is handled by parseOutlineMessageInternal triggered from generation.ts
+    return {
+      done: true,
+      inserted: newSlides.length,
+      total: existingItems.length + newSlides.length,
+    };
+  },
+});
+
 // ===== Internal Queries =====
 
 export const getOutlineItemsInternal = internalQuery({
@@ -99,6 +220,7 @@ export const approveOutline = mutation({
         title: slideData.title,
         content: slideData.content,
         speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
         imageStatus: "pending",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -113,17 +235,7 @@ export const approveOutline = mutation({
       updatedAt: Date.now(),
     });
 
-    // Schedule title generation if using placeholder
-    if (presentation.title === "Untitled Presentation") {
-      await (ctx.scheduler.runAfter as any)(
-        0,
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.presentations.internal.generatePresentationTitle,
-        {
-          presentationId: args.presentationId,
-        },
-      );
-    }
+    // Note: Title generation happens in parseOutlineMessageInternal
 
     // Schedule design system generation (Phase 3)
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -230,15 +342,16 @@ export const approveOutlineFromItems = mutation({
         title: item.title,
         content: item.content,
         speakerNotes: item.speakerNotes,
+        visualDirection: item.visualDirection,
         imageStatus: "pending",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
     }
 
-    // Update presentation
+    // Update presentation - set to slides_generating since we're about to start
     await ctx.db.patch(args.presentationId, {
-      status: "outline_complete",
+      status: "slides_generating",
       totalSlides: sortedItems.length,
       generatedSlideCount: 0,
       outlineStatus: undefined, // Clear outline status
@@ -246,25 +359,29 @@ export const approveOutlineFromItems = mutation({
       updatedAt: Date.now(),
     });
 
-    // Schedule title generation if using placeholder
-    if (presentation.title === "Untitled Presentation") {
+    // Note: Title generation happens in parseOutlineMessageInternal
+
+    // Design system already generated after outline - go directly to slide generation
+    // Check if design system exists, if not generate it first
+    if (presentation.designSystem) {
+      // Design already exists, go directly to slides
       await (ctx.scheduler.runAfter as any)(
         0,
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.presentations.internal.generatePresentationTitle,
+        internal.presentations.generateSlides.generateSlides,
+        { presentationId: args.presentationId },
+      );
+    } else {
+      // Fallback: design system missing, generate it (will trigger slides)
+      await (ctx.scheduler.runAfter as any)(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.designSystem.generateDesignSystem,
         { presentationId: args.presentationId },
       );
     }
 
-    // Schedule design system generation
-    await (ctx.scheduler.runAfter as any)(
-      0,
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.presentations.designSystem.generateDesignSystem,
-      { presentationId: args.presentationId },
-    );
-
-    // Schedule description generation (runs in parallel with design system)
+    // Schedule description generation (runs in parallel)
     await (ctx.scheduler.runAfter as any)(
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -349,6 +466,7 @@ export const regenerateSlidesFromOutline = mutation({
         title: item.title,
         content: item.content,
         speakerNotes: item.speakerNotes,
+        visualDirection: item.visualDirection,
         imageStatus: "pending",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -431,6 +549,7 @@ export const recreateOutlineFromSlides = mutation({
         title: slide.title,
         content: slide.content,
         speakerNotes: slide.speakerNotes,
+        visualDirection: slide.visualDirection,
         version: currentVersion,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -511,6 +630,7 @@ export const parseOutlineMessage = mutation({
         title: slideData.title,
         content: slideData.content,
         speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -559,9 +679,54 @@ export const parseOutlineMessageInternal = internalMutation({
       .first();
 
     if (existingItems) {
-      // Items already exist, no need to parse again
-      console.log("[parseOutlineMessageInternal] Items already exist");
-      return { itemCount: 0, alreadyParsed: true };
+      // Items already exist (from streaming), still need to update status and trigger design gen
+      console.log(
+        "[parseOutlineMessageInternal] Items already exist, updating status",
+      );
+
+      // Get all items for count
+      const allItems = await ctx.db
+        .query("outlineItems")
+        .withIndex("by_presentation", (q) =>
+          q.eq("presentationId", args.presentationId),
+        )
+        .collect();
+
+      // STILL update status to outline_complete
+      await ctx.db.patch(args.presentationId, {
+        status: "outline_complete",
+        currentOutlineVersion: 1,
+        outlineStatus: "ready",
+        totalSlides: allItems.length,
+        updatedAt: Date.now(),
+      });
+
+      // Generate presentation title from outline if still untitled
+      if (presentation.title === "Untitled Presentation") {
+        const titleSlide = allItems.find((item) => item.slideType === "title");
+        if (titleSlide?.title) {
+          // Use title slide's title as presentation title
+          await ctx.db.patch(args.presentationId, {
+            title: titleSlide.title,
+          });
+        } else {
+          // No title slide - schedule title generation from outline content
+          await ctx.scheduler.runAfter(
+            0,
+            internal.presentations.internal.generatePresentationTitle,
+            { presentationId: args.presentationId },
+          );
+        }
+      }
+
+      // STILL trigger design system generation
+      await ctx.scheduler.runAfter(
+        0,
+        internal.presentations.designSystem.generateDesignSystemFromOutline,
+        { presentationId: args.presentationId },
+      );
+
+      return { itemCount: allItems.length, alreadyParsed: true };
     }
 
     // Get the message
@@ -615,6 +780,7 @@ export const parseOutlineMessageInternal = internalMutation({
         title: slideData.title,
         content: slideData.content,
         speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -630,10 +796,37 @@ export const parseOutlineMessageInternal = internalMutation({
       updatedAt: now,
     });
 
+    // Generate presentation title from outline if still untitled
+    if (presentation.title === "Untitled Presentation") {
+      const titleSlide = parsedSlides.find(
+        (slide) => slide.slideType === "title",
+      );
+      if (titleSlide?.title) {
+        // Use title slide's title as presentation title
+        await ctx.db.patch(args.presentationId, {
+          title: titleSlide.title,
+        });
+      } else {
+        // No title slide - schedule title generation from outline content
+        await ctx.scheduler.runAfter(
+          0,
+          internal.presentations.internal.generatePresentationTitle,
+          { presentationId: args.presentationId },
+        );
+      }
+    }
+
+    // Trigger design system generation (runs automatically after outline)
+    await ctx.scheduler.runAfter(
+      0,
+      internal.presentations.designSystem.generateDesignSystemFromOutline,
+      { presentationId: args.presentationId },
+    );
+
     console.log(
       "[parseOutlineMessageInternal] Successfully parsed",
       parsedSlides.length,
-      "slides",
+      "slides, triggered design system generation",
     );
     return { itemCount: parsedSlides.length, alreadyParsed: false };
   },
@@ -742,6 +935,7 @@ export const repairStuckOutline = mutation({
         title: slideData.title,
         content: slideData.content,
         speakerNotes: slideData.speakerNotes,
+        visualDirection: slideData.visualDirection,
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -795,15 +989,15 @@ export const regenerateOutlineAction = internalAction({
         presentation.overallFeedback,
       );
 
-      // Get AI model
-      const model = getModel("zai:glm-4.6");
+      // Get AI model - using gpt-oss-120b via Cerebras for fast inference
+      const model = getModel("openai:gpt-oss-120b");
 
       // Generate new outline
       const result = await streamText({
         model,
         system: OUTLINE_FEEDBACK_SYSTEM_PROMPT,
         messages: [{ role: "user", content: feedbackPrompt }],
-        ...getGatewayOptions("zai:glm-4.6"),
+        ...getGatewayOptions("openai:gpt-oss-120b"),
       });
 
       // Get full response
@@ -841,6 +1035,7 @@ export const regenerateOutlineAction = internalAction({
             title: slide.title,
             content: slide.content,
             speakerNotes: slide.speakerNotes,
+            visualDirection: slide.visualDirection,
           })),
         },
       );

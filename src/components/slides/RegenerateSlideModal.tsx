@@ -56,9 +56,9 @@ export function RegenerateSlideModal({ slide, open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Regenerate Slide</DialogTitle>
+          <DialogTitle>Edit Slide</DialogTitle>
           <DialogDescription>
-            Optionally provide instructions to customize the regeneration.
+            Describe what to change, or leave empty to regenerate fresh.
           </DialogDescription>
         </DialogHeader>
 

@@ -306,6 +306,7 @@ export default function PreviewPage({
               slide={currentSlide}
               direction={direction}
               onZoom={() => setZoomOpen(true)}
+              aspectRatio={presentation.aspectRatio || "16:9"}
             />
           )}
         </div>
@@ -403,7 +404,10 @@ export default function PreviewPage({
             <FileEdit className="h-4 w-4 mr-2" />
             Edit Outline
           </Button>
-          <DownloadButton presentationId={presentationId} />
+          <DownloadButton
+            presentationId={presentationId}
+            aspectRatio={presentation?.aspectRatio}
+          />
           <Button size="sm" onClick={handlePresent} disabled={!isComplete}>
             <Play className="h-4 w-4 mr-2" />
             Present
@@ -431,6 +435,7 @@ export default function PreviewPage({
                   index={index}
                   isActive={index === currentSlideIndex}
                   onClick={() => jumpToSlide(index)}
+                  aspectRatio={presentation.aspectRatio || "16:9"}
                 />
               ))}
             </div>
@@ -444,6 +449,7 @@ export default function PreviewPage({
               slide={currentSlide}
               direction={direction}
               onZoom={() => setZoomOpen(true)}
+              aspectRatio={presentation.aspectRatio || "16:9"}
             />
           )}
         </main>

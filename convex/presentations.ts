@@ -128,13 +128,56 @@ export const get = query({
     const presentation = await ctx.db.get(args.presentationId);
     if (!presentation || presentation.userId !== user._id) return null;
 
-    // Get PPTX URL if available
+    // Get export URLs if available
     let pptxUrl: string | null = null;
+    let pdfUrl: string | null = null;
+    let imagesZipUrl: string | null = null;
+
     if (presentation.pptxStorageId) {
       pptxUrl = await ctx.storage.getUrl(presentation.pptxStorageId);
     }
+    if (presentation.pdfStorageId) {
+      pdfUrl = await ctx.storage.getUrl(presentation.pdfStorageId);
+    }
+    if (presentation.imagesZipStorageId) {
+      imagesZipUrl = await ctx.storage.getUrl(presentation.imagesZipStorageId);
+    }
 
-    return { ...presentation, pptxUrl };
+    return { ...presentation, pptxUrl, pdfUrl, imagesZipUrl };
+  },
+});
+
+/**
+ * Get sources used in presentation outline generation (from grounded web search)
+ */
+export const getSources = query({
+  args: { presentationId: v.id("presentations") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.userId !== user._id) return [];
+    if (!presentation.conversationId) return [];
+
+    const conversationId = presentation.conversationId;
+
+    // Get first assistant message (contains the outline with sources)
+    const message = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId),
+      )
+      .filter((q) => q.eq(q.field("role"), "assistant"))
+      .first();
+
+    if (!message) return [];
+
+    // Get sources for this message
+    return ctx.db
+      .query("sources")
+      .withIndex("by_message", (q) => q.eq("messageId", message._id))
+      .collect();
   },
 });
 
@@ -300,6 +343,26 @@ export const updateTitle = mutation({
 
     await ctx.db.patch(args.presentationId, {
       title: args.title,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateOverallFeedback = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+    feedback: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const presentation = await ctx.db.get(args.presentationId);
+
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      overallFeedback: args.feedback || undefined,
       updatedAt: Date.now(),
     });
   },
@@ -478,10 +541,14 @@ export {
 } from "./presentations/outline";
 // From retry.ts
 export {
+  downloadImages,
+  downloadPDF,
   downloadPPTX,
   regenerateSlideImage,
   retryGeneration,
   updateImageModel,
+  updateImagesZipInternal,
+  updatePdfInternal,
   updatePptxCache,
   updatePptxInternal,
 } from "./presentations/retry";

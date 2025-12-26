@@ -198,6 +198,100 @@ export const downloadPPTX = mutation({
   },
 });
 
+export const downloadPDF = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+    forceRegenerate: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    if (presentation.status !== "slides_complete") {
+      throw new Error("Slides not fully generated yet");
+    }
+
+    // If already cached and not forcing regeneration, return URL
+    if (presentation.pdfStorageId && !args.forceRegenerate) {
+      const url = await ctx.storage.getUrl(presentation.pdfStorageId);
+      if (url) {
+        return { success: true, url, cached: true };
+      }
+    }
+
+    // If forcing regeneration, delete old PDF and clear cache
+    if (args.forceRegenerate && presentation.pdfStorageId) {
+      await ctx.storage.delete(presentation.pdfStorageId);
+      await ctx.db.patch(args.presentationId, {
+        pdfStorageId: undefined,
+        pdfGeneratedAt: undefined,
+      });
+    }
+
+    // Trigger generation
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.export.generatePDF,
+      { presentationId: args.presentationId },
+    );
+
+    // Return generating status - client will poll
+    return { success: true, generating: true, cached: false };
+  },
+});
+
+export const downloadImages = mutation({
+  args: {
+    presentationId: v.id("presentations"),
+    forceRegenerate: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation || presentation.userId !== user._id) {
+      throw new Error("Presentation not found");
+    }
+
+    if (presentation.status !== "slides_complete") {
+      throw new Error("Slides not fully generated yet");
+    }
+
+    // If already cached and not forcing regeneration, return URL
+    if (presentation.imagesZipStorageId && !args.forceRegenerate) {
+      const url = await ctx.storage.getUrl(presentation.imagesZipStorageId);
+      if (url) {
+        return { success: true, url, cached: true };
+      }
+    }
+
+    // If forcing regeneration, delete old ZIP and clear cache
+    if (args.forceRegenerate && presentation.imagesZipStorageId) {
+      await ctx.storage.delete(presentation.imagesZipStorageId);
+      await ctx.db.patch(args.presentationId, {
+        imagesZipStorageId: undefined,
+        imagesZipGeneratedAt: undefined,
+      });
+    }
+
+    // Trigger generation
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.presentations.export.generateImagesZip,
+      { presentationId: args.presentationId },
+    );
+
+    // Return generating status - client will poll
+    return { success: true, generating: true, cached: false };
+  },
+});
+
 export const stopGeneration = mutation({
   args: {
     presentationId: v.id("presentations"),
@@ -441,6 +535,62 @@ export const updatePptxInternal = internalMutation({
     await ctx.db.patch(args.presentationId, {
       pptxStorageId: args.pptxStorageId,
       pptxGeneratedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updatePdfInternal = internalMutation({
+  args: {
+    presentationId: v.id("presentations"),
+    pdfStorageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation) {
+      throw new Error("Presentation not found");
+    }
+
+    // Delete old PDF if exists
+    if (presentation.pdfStorageId) {
+      try {
+        await ctx.storage.delete(presentation.pdfStorageId);
+      } catch (e) {
+        console.error("Failed to delete old PDF:", e);
+      }
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      pdfStorageId: args.pdfStorageId,
+      pdfGeneratedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateImagesZipInternal = internalMutation({
+  args: {
+    presentationId: v.id("presentations"),
+    imagesZipStorageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const presentation = await ctx.db.get(args.presentationId);
+    if (!presentation) {
+      throw new Error("Presentation not found");
+    }
+
+    // Delete old ZIP if exists
+    if (presentation.imagesZipStorageId) {
+      try {
+        await ctx.storage.delete(presentation.imagesZipStorageId);
+      } catch (e) {
+        console.error("Failed to delete old images ZIP:", e);
+      }
+    }
+
+    await ctx.db.patch(args.presentationId, {
+      imagesZipStorageId: args.imagesZipStorageId,
+      imagesZipGeneratedAt: Date.now(),
       updatedAt: Date.now(),
     });
   },

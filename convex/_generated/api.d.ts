@@ -120,6 +120,7 @@ import type * as lib_prompts_operational_summarization from "../lib/prompts/oper
 import type * as lib_prompts_operational_tagExtraction from "../lib/prompts/operational/tagExtraction.js";
 import type * as lib_prompts_operational_templateAnalysis from "../lib/prompts/operational/templateAnalysis.js";
 import type * as lib_prompts_operational_titleGeneration from "../lib/prompts/operational/titleGeneration.js";
+import type * as lib_prompts_operational_visualDirection from "../lib/prompts/operational/visualDirection.js";
 import type * as lib_prompts_operational_visualFormatting from "../lib/prompts/operational/visualFormatting.js";
 import type * as lib_prompts_systemBuilder from "../lib/prompts/systemBuilder.js";
 import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/builtIn.js";
@@ -363,6 +364,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/operational/tagExtraction": typeof lib_prompts_operational_tagExtraction;
   "lib/prompts/operational/templateAnalysis": typeof lib_prompts_operational_templateAnalysis;
   "lib/prompts/operational/titleGeneration": typeof lib_prompts_operational_titleGeneration;
+  "lib/prompts/operational/visualDirection": typeof lib_prompts_operational_visualDirection;
   "lib/prompts/operational/visualFormatting": typeof lib_prompts_operational_visualFormatting;
   "lib/prompts/systemBuilder": typeof lib_prompts_systemBuilder;
   "lib/prompts/templates/builtIn": typeof lib_prompts_templates_builtIn;

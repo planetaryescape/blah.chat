@@ -1,6 +1,6 @@
 "use node";
 
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 import type { ModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -18,7 +18,7 @@ export interface BuildSystemPromptsArgs {
 }
 
 export interface BuildSystemPromptsResult {
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   memoryContent: string | null;
 }
 
@@ -31,7 +31,7 @@ export async function buildSystemPrompts(
   ctx: ActionCtx,
   args: BuildSystemPromptsArgs,
 ): Promise<BuildSystemPromptsResult> {
-  const systemMessages: CoreMessage[] = [];
+  const systemMessages: ModelMessage[] = [];
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)

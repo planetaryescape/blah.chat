@@ -18,7 +18,7 @@
     "analyze": "ANALYZE=true bun run build"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.56",
+    "@ai-sdk/anthropic": "^3.0.1",
     "@ai-sdk/cerebras": "^1.0.33",
     "@ai-sdk/gateway": "^2.0.23",
     "@ai-sdk/google": "^2.0.51",

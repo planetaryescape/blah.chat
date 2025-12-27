@@ -27,6 +27,7 @@ jobs:
 
       - name: Convex dry run (typecheck + schema validation)
         run: bunx convex deploy --dry-run --typecheck enable
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
@@ -50,6 +51,7 @@ jobs:
 
       - name: Deploy to Convex (staging)
         run: bunx convex deploy
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
@@ -73,5 +75,6 @@ jobs:
 
       - name: Deploy to Convex (production)
         run: bunx convex deploy
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}

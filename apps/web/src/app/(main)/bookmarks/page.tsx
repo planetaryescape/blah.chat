@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { Bookmark, LayoutGrid, List, Search } from "lucide-react";
 import { Suspense, useMemo, useState } from "react";
@@ -12,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 
 export const dynamic = "force-dynamic";
 

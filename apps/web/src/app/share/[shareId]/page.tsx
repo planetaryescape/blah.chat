@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth } from "@clerk/nextjs";
 import { useAction, useQuery } from "convex/react";
 import { motion } from "framer-motion";
@@ -28,7 +29,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 
 export default function SharePage({
   params,

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { useUserPreference } from "@/hooks/useUserPreference";
 import { useConversations } from "@/lib/hooks/queries/useConversations";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 import { EmptyScreen } from "./EmptyScreen";

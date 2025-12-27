@@ -8,10 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/lib/test/setup.ts"],
-    include: [
-      "src/**/*.test.{ts,tsx}",
-      "../../packages/backend/convex/**/*.test.ts",
-    ],
+    include: ["src/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", "e2e", ".next"],
     css: false, // Don't process CSS imports
     server: {

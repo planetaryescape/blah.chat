@@ -232,6 +232,7 @@
         "@types/node": "^20.19.27",
         "convex-test": "^0.0.41",
         "typescript": "^5.9.3",
+        "vitest": "^4.0.16",
       },
     },
     "packages/config": {

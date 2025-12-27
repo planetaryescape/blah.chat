@@ -1,4 +1,4 @@
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 import type { Doc } from "../_generated/dataModel";
 
 // Legacy sync functions removed - use async versions (countTokensAsync, etc.)
@@ -92,7 +92,7 @@ export async function countTokensAsync(
  * Includes per-message overhead for chat format
  */
 export async function countMessageTokensAsync(
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   modelId: string,
 ): Promise<number> {
   const counter = await getTokenCounter(modelId);
@@ -114,7 +114,7 @@ export async function calculateConversationTokensAsync(
   const counter = await getTokenCounter(modelId);
 
   // Convert messages to CoreMessage format
-  const coreMessages: CoreMessage[] = messages.map((msg) => ({
+  const coreMessages: ModelMessage[] = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
     content: msg.content,
   }));

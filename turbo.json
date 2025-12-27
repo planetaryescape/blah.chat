@@ -26,7 +26,7 @@
       "dependsOn": ["^build"]
     },
     "test:e2e": {
-      "dependsOn": ["build"],
+      "cache": false,
       "passThroughEnv": [
         "CI",
         "NEXT_PUBLIC_CONVEX_URL",

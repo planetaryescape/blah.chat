@@ -31,7 +31,7 @@
     "@tavily/ai-sdk": "^0.3.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "ai": "^5.0.116",
+    "ai": "^6.0.3",
     "convex": "^1.31.2",
     "convex-helpers": "^0.1.108",
     "date-fns": "^4.1.0",

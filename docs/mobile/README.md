@@ -1,53 +1,79 @@
 # blah.chat Mobile App - Implementation Guide
 
-**Last Updated**: December 2024
+**Last Updated**: December 2025
 **Target Platform**: React Native (iOS & Android) via Expo
-**Architecture**: Hybrid - Convex WebSocket for real-time, REST API fallback
+**Architecture**: Convex Direct (WebSocket real-time subscriptions)
+**Location**: `apps/mobile/` in monorepo
 
 ---
 
 ## Overview
 
-This directory contains comprehensive, self-contained guides for implementing the blah.chat mobile app using React Native and Expo. Each phase document is standalone - a developer can pick up any phase and execute it without referencing other documents.
+This directory contains comprehensive guides for implementing the blah.chat mobile app using Expo and React Native within the existing Turborepo monorepo. The mobile app uses **Convex directly** for real-time WebSocket subscriptions - the same pattern as the web app.
 
-**Project Context**: blah.chat is a personal AI chat assistant with access to 60+ models, mid-chat switching, conversation branching, RAG memories, and transparent cost tracking. Built with Next.js, Convex (real-time DB), Clerk (auth), and Vercel AI SDK.
+**Project Context**: blah.chat is a personal AI chat assistant with access to 46+ models, mid-chat switching, conversation branching, RAG memories, and transparent cost tracking. The monorepo structure:
+
+```
+blah.chat/
+├── apps/
+│   ├── web/           # Next.js 15 (production)
+│   └── mobile/        # Expo (this guide)
+├── packages/
+│   ├── backend/       # @blah-chat/backend - Convex (shared)
+│   ├── ai/            # @blah-chat/ai - Model configs (scaffold)
+│   ├── shared/        # @blah-chat/shared - Utilities (scaffold)
+│   └── config/        # @blah-chat/config - TypeScript configs
+└── turbo.json
+```
 
 ---
 
 ## Architecture Decision
 
-### Why Keep REST API?
+### Why Convex Direct (Not REST API)?
 
-The mobile app will use **both Convex WebSocket and REST API**:
+The mobile app uses **Convex React client directly** - same as web:
 
-**Convex WebSocket (Primary)**:
-- Real-time chat message streaming
-- Live conversation updates
-- Instant UI synchronization
-- <100ms latency
+**Benefits:**
+- Real-time WebSocket subscriptions (auto-updating UI)
+- Same reactive patterns as web (less code duplication)
+- Type-safe queries/mutations shared with web
+- <100ms latency for updates
+- Built-in offline retry (Convex SDK handles reconnection)
+- Single source of truth: `packages/backend/convex/`
 
-**REST API (Secondary)**:
-- Offline message queue
-- Future TUI (Terminal UI) app support
-- Graceful degradation on poor networks
-- HTTP caching benefits
+**How it works:**
+```typescript
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@blah-chat/backend/convex/_generated/api";
 
-This hybrid approach provides maximum flexibility and resilience.
+// Reactive subscription - auto-updates when data changes
+const messages = useQuery(api.messages.list, { conversationId });
+
+// Mutation - optimistic updates built-in
+const sendMessage = useMutation(api.chat.sendMessage);
+```
+
+**Polyfills Required:** React Native needs Node.js polyfills (Buffer, process) configured in Metro bundler - covered in Phase 1.
 
 ---
 
-## Phase Structure
+## V1 Scope
 
-Each phase is designed to be **executed sequentially** but **documented independently**. Every phase file contains:
+### Included in V1
+- **Chat**: Send messages, real-time streaming responses
+- **Resilient Generation**: Responses survive app crash/refresh
+- **RAG/Memories**: Auto-extraction, semantic search, personalization
+- **Multi-Model**: 46 model selector, switch mid-conversation
+- **Tool Calls**: Web search, code execution, file processing (server-side)
+- **Cost Tracking**: Per-message pricing, usage dashboard
+- **PostHog Analytics**: Session tracking, feature flags
 
-- **Full Project Context**: What blah.chat is, tech stack, architecture
-- **Current State**: What exists before this phase
-- **Phase Goals**: What will be achieved
-- **Prerequisites**: What needs to be in place first
-- **Step-by-Step Implementation**: Detailed instructions with code
-- **Testing Checklist**: How to verify success
-- **Troubleshooting**: Common issues and solutions
-- **Next Phase Preview**: What comes after
+### Deferred to V2
+- Projects management
+- Notes system
+- Tasks
+- File attachments in projects
 
 ---
 
@@ -55,257 +81,158 @@ Each phase is designed to be **executed sequentially** but **documented independ
 
 ### **Phase 0: Prerequisites & Setup** (`phase-0-prerequisites.md`)
 **Duration**: 1-2 hours
-**Skills Required**: Basic React Native, environment setup
 
-**What You'll Do**:
-- Install development tools (Node.js, Bun, Expo CLI)
-- Set up iOS/Android simulators
-- Understand Convex and Clerk architecture
-- Verify web app is running locally
+- Install development tools (Bun, Expo CLI, simulators)
+- Verify monorepo is set up correctly
+- Understand Convex + Clerk architecture
+- Run `bunx convex dev` from `packages/backend/`
 
-**Deliverables**:
-- Development environment ready
-- Ability to run Expo apps
-- Understanding of blah.chat architecture
+**Deliverable**: Development environment ready
 
 ---
 
 ### **Phase 1: Project Setup & Authentication** (`phase-1-setup-auth.md`)
 **Duration**: 4-6 hours
-**Skills Required**: React Native, Expo, authentication flows
 
-**What You'll Do**:
-- Bootstrap Expo app with TypeScript
-- Configure Metro bundler for Convex
+- Create `apps/mobile/` with Expo Router
+- Configure Metro bundler for monorepo workspaces
+- Add Node.js polyfills (Buffer, process)
 - Integrate Clerk authentication
-- Set up Convex client with auth
-- Implement sign-in/sign-up flows
-- Create protected route structure
+- Set up Convex client with `ConvexProviderWithClerk`
+- Configure NativeWind (Tailwind CSS for RN)
 
 **Deliverables**:
 - Authenticated Expo app
-- User can sign in with email/Google/Apple
-- Convex queries work for authenticated users
+- Convex queries work
 - Basic navigation structure
+- NativeWind styling ready
 
-**Key Files Created**:
-- `app/_layout.tsx` - Root providers
-- `app/(auth)/sign-in.tsx` - Sign-in screen
-- `app/(tabs)/` - Main app navigation
-- `lib/convex.ts` - Convex client setup
-- `metro.config.js` - Bundler configuration
+**Key Files**:
+```
+apps/mobile/
+├── app/_layout.tsx       # Root providers (Clerk + Convex)
+├── app/(auth)/sign-in.tsx
+├── app/(tabs)/_layout.tsx
+├── metro.config.js       # Monorepo + polyfills
+├── tailwind.config.js    # NativeWind
+└── tsconfig.json         # Paths to @blah-chat/backend
+```
 
 ---
 
 ### **Phase 2: Core Chat Implementation** (`phase-2-core-chat.md`)
 **Duration**: 8-12 hours
-**Skills Required**: React Native lists, WebSockets, real-time data
 
-**What You'll Do**:
-- Build conversation list with pull-to-refresh
+- Build conversation list with FlashList
 - Implement virtualized message list
-- Create chat input with auto-expand
-- Add model selector bottom sheet
-- Implement real-time message streaming
-- Add offline message queue
-- Create message action menu (copy, regenerate, delete)
+- Create chat input with model selector
+- Add real-time streaming display (`partialContent`)
+- Implement resilient generation pattern
+- Add message actions (copy, regenerate, delete)
 
 **Deliverables**:
 - Functional chat interface
 - Real-time streaming responses
-- Offline support with queue
-- Model switching mid-conversation
-- Message actions (copy, edit, delete, regenerate)
+- Model switching
+- Optimistic UI updates
 
 **Key Components**:
-- `ConversationList.tsx` - Conversation sidebar
-- `ChatScreen.tsx` - Main chat view
-- `MessageList.tsx` - Virtualized messages
-- `ChatInput.tsx` - Message input with attachments
-- `ModelSelector.tsx` - Model picker bottom sheet
-- `MessageActions.tsx` - Action menu
+```
+components/
+├── ConversationList.tsx   # FlashList + pull-to-refresh
+├── MessageList.tsx        # Virtualized with streaming
+├── ChatInput.tsx          # Auto-expand + model picker
+├── ModelSelector.tsx      # Bottom sheet (46 models)
+└── MessageBubble.tsx      # Markdown + code highlighting
+```
+
+**Critical Pattern - Resilient Generation**:
+```typescript
+// Message stored in DB with partialContent
+// If app crashes, response continues server-side
+// On reopen, useQuery auto-fetches completed/partial response
+const messages = useQuery(api.messages.list, { conversationId });
+// Each message has: status, content, partialContent
+```
 
 ---
 
-### **Phase 3: File Uploads & Voice** (`phase-3-files-voice.md`)
+### **Phase 3: Files & Voice** (`phase-3-files-voice.md`)
 **Duration**: 6-8 hours
-**Skills Required**: React Native media APIs, file handling
 
-**What You'll Do**:
-- Integrate image picker and camera
-- Implement file upload to Convex storage
-- Add voice recording with waveform
-- Integrate speech-to-text (STT)
-- Add text-to-speech (TTS) playback
-- Create attachment preview component
+- Image picker (camera + gallery)
+- File upload to Convex storage
+- Voice recording with waveform
+- Speech-to-text (STT)
+- Text-to-speech (TTS) playback
 
 **Deliverables**:
-- Image upload from gallery/camera
-- Document file uploads (PDF, TXT)
-- Voice message recording
+- Image uploads in chat
+- Voice messages
 - Audio transcription
-- TTS message playback
-- Attachment management
-
-**Key Components**:
-- `ImagePicker.tsx` - Camera & gallery
-- `FileUploadButton.tsx` - Document picker
-- `VoiceRecorder.tsx` - Audio recording
-- `AudioWaveform.tsx` - Visual feedback
-- `TTSPlayer.tsx` - Playback controls
-- `AttachmentPreview.tsx` - File thumbnails
+- TTS playback
 
 ---
 
 ### **Phase 4: Projects & Organization** (`phase-4-projects.md`)
-**Duration**: 6-8 hours
-**Skills Required**: Tab navigation, CRUD operations
+**Status**: V2 - Future Work
 
-**What You'll Do**:
-- Create project list screen
-- Implement project creation/editing
-- Add project-scoped conversations
-- Build notes system (markdown editor)
-- Add bookmarks screen
-- Implement search functionality
+- Project management
+- Notes system
+- Tasks
+- Search functionality
 
-**Deliverables**:
-- Project management interface
-- Link conversations to projects
-- Create/edit notes with markdown
-- Bookmark messages
-- Search across conversations
-- Filter by project/date/model
-
-**Key Components**:
-- `ProjectList.tsx` - Project cards
-- `ProjectDetail.tsx` - Project view with tabs
-- `NoteEditor.tsx` - Markdown editor
-- `BookmarkList.tsx` - Saved messages
-- `SearchScreen.tsx` - Global search
-
----
-
-### **Phase 5: Advanced Features** (`phase-5-advanced.md`)
-**Duration**: 8-10 hours
-**Skills Required**: Advanced React Native, native modules
-
-**What You'll Do**:
-- Add push notifications
-- Implement background sync
-- Create comparison mode (multi-model)
-- Add conversation branching UI
-- Build memory management interface
-- Implement usage/cost tracking
-- Add settings screens
-- Create share functionality
-
-**Deliverables**:
-- Push notifications for completed messages
-- Background message generation
-- Side-by-side model comparison
-- Conversation branch navigation
-- Memory (RAG) management
-- Cost tracking dashboard
-- Comprehensive settings
-- Native share integration
-
-**Key Components**:
-- `NotificationHandler.tsx` - Push setup
-- `ComparisonView.tsx` - Multi-model UI
-- `BranchNavigator.tsx` - Tree visualization
-- `MemoryManager.tsx` - RAG interface
-- `UsageDashboard.tsx` - Cost tracking
-- `SettingsScreen.tsx` - User preferences
-
----
-
-## Development Workflow
-
-### Recommended Sequence
-
-1. **Complete Phase 0** - Set up environment
-2. **Complete Phase 1** - Auth working, can query Convex
-3. **Test Phase 1** thoroughly - Don't proceed until auth solid
-4. **Complete Phase 2** - Core chat functional
-5. **Test Phase 2** thoroughly - Send messages, real-time works
-6. **Complete Phase 3** - Media support
-7. **Complete Phase 4** - Organization features
-8. **Complete Phase 5** - Polish & advanced features
-
-### Between Phases
-
-- **Git commit** after each phase
-- **Test on physical device** (not just simulator)
-- **Review code quality** - refactor before moving on
-- **Update documentation** - note any deviations from plan
+**Note**: This phase is documented for future reference but is outside V1 scope.
 
 ---
 
 ## Technology Stack
 
-### Frontend (Mobile)
-- **React Native** - Cross-platform framework
-- **Expo SDK 52+** - Managed workflow with native modules
-- **TypeScript** - Type safety
-- **React Navigation 7** - Navigation library
-- **React Native Paper** or **Tamagui** - UI component library
+### Mobile App
+- **Framework**: Expo SDK 54+ with Expo Router
+- **Language**: TypeScript
+- **Styling**: NativeWind (Tailwind CSS for RN)
+- **Lists**: FlashList v2 (5x faster than FlatList)
+- **Markdown**: react-native-markdown-display
+- **Code Highlighting**: Shiki (via react-native-shiki-engine) or Prism
 
-### Backend (Shared with Web)
-- **Convex** - Real-time database with WebSocket
-- **Clerk** - Authentication
-- **Vercel AI SDK** - LLM integrations
-- **Next.js API Routes** - REST API fallback
+### Shared Backend
+- **Database**: Convex (shared via `@blah-chat/backend`)
+- **Auth**: Clerk (shared configuration)
+- **AI**: Vercel AI SDK + Gateway (server-side)
+- **Analytics**: PostHog (React Native SDK)
 
 ### State Management
-- **Convex Reactive Queries** - Real-time data (primary)
-- **TanStack Query** - REST API caching (fallback)
-- **Zustand** or **Redux Toolkit** - Local state & offline queue
-- **AsyncStorage** or **MMKV** - Persistent storage
-
-### Key Libraries
-- **@clerk/clerk-expo** - Authentication
-- **convex** - Real-time sync
-- **expo-image-picker** - Camera & gallery
-- **expo-av** - Audio recording/playback
-- **expo-file-system** - File operations
-- **expo-notifications** - Push notifications
-- **react-native-markdown-display** - Markdown rendering
-- **@shopify/flash-list** - Virtualized lists
+- **Primary**: Convex reactive queries (real-time)
+- **Local**: React Context for UI state
+- **Offline**: Convex SDK auto-retry (minimal setup)
 
 ---
 
 ## Project Structure
 
 ```
-mobile/
-├── app/                          # Expo Router (file-based routing)
-│   ├── _layout.tsx               # Root providers
+apps/mobile/
+├── app/                          # Expo Router
+│   ├── _layout.tsx               # Root: Clerk + Convex providers
 │   ├── (auth)/
 │   │   ├── sign-in.tsx
 │   │   └── sign-up.tsx
 │   └── (tabs)/
 │       ├── _layout.tsx           # Tab navigation
-│       ├── index.tsx             # Conversations
-│       ├── projects.tsx          # Projects
-│       ├── search.tsx            # Search
+│       ├── index.tsx             # Conversations list
+│       ├── chat/[id].tsx         # Chat screen
 │       └── settings.tsx          # Settings
 ├── components/
-│   ├── chat/                     # Chat UI components
-│   ├── projects/                 # Project components
+│   ├── chat/                     # Chat components
 │   ├── common/                   # Shared components
-│   └── ui/                       # UI primitives
+│   └── ui/                       # NativeWind primitives
 ├── lib/
-│   ├── convex.ts                 # Convex client setup
-│   ├── api.ts                    # REST API client
-│   ├── hooks/                    # Custom hooks
-│   └── utils/                    # Utilities
-├── constants/
-│   ├── Colors.ts
-│   └── Layout.ts
-├── assets/                       # Images, fonts
-├── app.config.js                 # Expo configuration
-├── metro.config.js               # Metro bundler config
+│   ├── polyfills.ts              # Buffer, process (MUST import first)
+│   └── hooks/                    # Custom hooks
+├── app.config.js                 # Expo config
+├── metro.config.js               # Monorepo + polyfills
+├── tailwind.config.js            # NativeWind
 ├── package.json
 └── tsconfig.json
 ```
@@ -314,192 +241,112 @@ mobile/
 
 ## Environment Variables
 
-Create `.env` file in mobile project root:
+In `apps/mobile/.env`:
 
 ```bash
 # Clerk Authentication
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 
-# Convex Real-time Database
+# Convex (same deployment as web)
 EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 
-# REST API (web app backend)
-EXPO_PUBLIC_API_URL=http://localhost:3000/api/v1
-EXPO_PUBLIC_API_URL_PRODUCTION=https://blah.chat/api/v1
-
-# Optional: Analytics, monitoring
-EXPO_PUBLIC_POSTHOG_KEY=
-EXPO_PUBLIC_SENTRY_DSN=
+# Analytics (optional)
+EXPO_PUBLIC_POSTHOG_KEY=phc_...
 ```
 
-**Security Note**: `EXPO_PUBLIC_` prefix makes variables available in client code. Never put secrets here.
+**Note**: `EXPO_PUBLIC_` prefix required for client access. Never put secrets here.
 
 ---
 
-## Testing Strategy
+## Key Commands
 
-### Unit Tests
-- Use **Jest** + **React Native Testing Library**
-- Test components in isolation
-- Mock Convex queries and API calls
+```bash
+# From monorepo root
+bun install                          # Install all workspaces
 
-### Integration Tests
-- Test authentication flows
-- Test chat message sending/receiving
-- Test file uploads
-- Test offline queue
+# Start Convex backend (terminal 1)
+cd packages/backend && bunx convex dev
 
-### E2E Tests
-- Use **Detox** or **Maestro**
-- Test critical user journeys
-- Run on physical devices
+# Start mobile app (terminal 2)
+cd apps/mobile && bunx expo start
 
-### Manual Testing Checklist
-- Test on iOS simulator
-- Test on Android emulator
-- Test on physical iPhone
-- Test on physical Android device
-- Test on slow network (throttled)
-- Test offline scenarios
-- Test with large conversations (1000+ messages)
-- Test with multiple file types
+# Run on iOS simulator
+bunx expo run:ios
+
+# Run on Android emulator
+bunx expo run:android
+
+# Clear Metro cache
+bunx expo start -c
+```
 
 ---
 
 ## Performance Targets
 
-- **Initial Load**: <2s on 4G
-- **Message Send**: <100ms perceived latency (optimistic UI)
-- **Message Receive**: <500ms (real-time streaming)
-- **Conversation List**: <1s to load 100 conversations
-- **Message List**: <1s to render 100 messages (virtualized)
-- **File Upload**: <5s for 5MB image
-- **Memory Usage**: <150MB for typical session
-- **Battery**: <5% drain per hour of active use
+| Metric | Target |
+|--------|--------|
+| Initial Load | <2s on 4G |
+| Message Send | <100ms (optimistic UI) |
+| Streaming Update | <200ms latency |
+| 100 Messages | <1s render (FlashList) |
+| Memory Usage | <150MB typical |
+| Battery | <5% drain/hour active |
 
 ---
 
-## Common Issues & Solutions
+## Common Issues
 
 ### "Buffer is not defined"
-**Cause**: Missing Node.js polyfills
-**Solution**: Add polyfills in Phase 1 setup
+**Cause**: Missing polyfills
+**Fix**: Import polyfills first line of `_layout.tsx`
 
-### "Cannot find module 'convex'"
-**Cause**: Metro bundler cache or incorrect config
-**Solution**: Clear cache with `npx expo start -c`
+### Convex queries return undefined
+**Cause**: Auth not ready
+**Fix**: Wait for `isLoaded` from Clerk before rendering
 
-### Clerk authentication loops
-**Cause**: Token cache not configured
-**Solution**: Implement SecureStore token cache (Phase 1)
+### Metro can't find workspace packages
+**Cause**: Missing watchFolders
+**Fix**: Configure `metro.config.js` for monorepo (Phase 1)
 
-### Messages not streaming
-**Cause**: WebSocket connection issues
-**Solution**: Check Convex URL, enable verbose logging
-
-### File uploads fail
-**Cause**: CORS or authentication issues
-**Solution**: Verify Convex auth token in headers
+### Styles not applying
+**Cause**: NativeWind not configured
+**Fix**: Add babel plugin + tailwind.config.js (Phase 1)
 
 ---
 
 ## Resources
 
-### Official Documentation
-- **Expo**: https://docs.expo.dev
-- **React Navigation**: https://reactnavigation.org
-- **Convex React Native**: https://docs.convex.dev/client/react-native
-- **Clerk Expo**: https://clerk.com/docs/expo
+### Official Docs
+- [Expo](https://docs.expo.dev)
+- [Convex React Native](https://docs.convex.dev/client/react-native)
+- [Clerk Expo](https://clerk.com/docs/expo)
+- [NativeWind](https://www.nativewind.dev)
+- [FlashList](https://shopify.github.io/flash-list)
 
-### Example Apps
-- **Convex + Expo Monorepo**: https://github.com/get-convex/turbo-expo-nextjs-clerk-convex-monorepo
-- **React Native Chat**: https://github.com/galaxies-dev/react-native-chat-convex
-
-### Community
-- **Convex Discord**: https://convex.dev/community
-- **Clerk Discord**: https://clerk.com/discord
-- **Expo Discord**: https://chat.expo.dev
-
----
-
-## Support & Troubleshooting
-
-### Before Starting
-1. Read Phase 0 completely
-2. Ensure all prerequisites installed
-3. Verify web app runs locally
-4. Join community Discord channels
-
-### While Implementing
-1. Follow phases sequentially
-2. Test thoroughly after each phase
-3. Commit code after each phase
-4. Document any deviations
-
-### If Stuck
-1. Check troubleshooting section in phase doc
-2. Search Convex/Clerk/Expo documentation
-3. Ask in community Discord
-4. Review example apps linked above
-
----
-
-## Success Criteria
-
-### Phase 1 Complete
-- ✅ User can sign in/out
-- ✅ Convex queries work
-- ✅ Navigation functional
-
-### Phase 2 Complete
-- ✅ Send messages
-- ✅ Receive real-time responses
-- ✅ Switch models
-- ✅ Offline queue works
-
-### Phase 3 Complete
-- ✅ Upload images
-- ✅ Record voice messages
-- ✅ Play TTS
-
-### Phase 4 Complete
-- ✅ Create projects
-- ✅ Take notes
-- ✅ Search works
-
-### Phase 5 Complete
-- ✅ Push notifications
-- ✅ Background sync
-- ✅ All features parity with web
+### Reference Template
+- [get-convex/turbo-expo-nextjs-clerk-convex-monorepo](https://github.com/get-convex/turbo-expo-nextjs-clerk-convex-monorepo)
 
 ---
 
 ## Timeline Estimates
 
-**Solo Developer (experienced with React Native)**:
+**V1 (Chat + RAG + Memories)**:
 - Phase 0: 1-2 hours
 - Phase 1: 4-6 hours
 - Phase 2: 8-12 hours
 - Phase 3: 6-8 hours
+- **Total V1**: 19-28 hours (3-4 days full-time)
+
+**V2 (Projects + Notes + Tasks)**:
 - Phase 4: 6-8 hours
-- Phase 5: 8-10 hours
-- **Total**: 33-46 hours (5-7 days full-time, 2-3 weeks part-time)
-
-**Solo Developer (new to React Native)**:
-- Add 50-100% to estimates above
-- **Total**: 50-90 hours (7-12 days full-time, 3-6 weeks part-time)
-
-**Team of 2-3 Developers**:
-- Can parallelize Phases 3, 4, 5
-- **Total**: 2-3 weeks calendar time
+- **Total with V2**: 25-36 hours
 
 ---
 
 ## Next Steps
 
 1. **Read Phase 0** (`phase-0-prerequisites.md`)
-2. **Set up development environment**
-3. **Verify web app runs locally**
+2. **Verify monorepo works**: `bun install && bun dev`
+3. **Start Convex**: `cd packages/backend && bunx convex dev`
 4. **Proceed to Phase 1** (`phase-1-setup-auth.md`)
-
-Good luck! 🚀

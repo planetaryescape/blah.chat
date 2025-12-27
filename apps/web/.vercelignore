@@ -1,0 +1,21 @@
+# Other monorepo packages (not needed for web deployment)
+../mobile
+
+# Dev/test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+__tests__
+e2e
+*.md
+!README.md
+
+# Build artifacts from other packages
+../../packages/backend/convex/_generated
+
+# IDE/Editor
+.vscode
+.idea
+
+# Logs
+*.log

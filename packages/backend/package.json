@@ -1,0 +1,62 @@
+{
+  "name": "@blah-chat/backend",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./convex/index.ts",
+  "types": "./convex/_generated/dataModel.d.ts",
+  "exports": {
+    "./*": "./convex/*",
+    "./_generated/*": "./convex/_generated/*"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "generate": "convex codegen"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.56",
+    "@ai-sdk/gateway": "^2.0.23",
+    "@ai-sdk/google": "^2.0.51",
+    "@ai-sdk/openai": "^2.0.88",
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@convex-dev/resend": "^0.2.3",
+    "@dqbd/tiktoken": "^1.0.22",
+    "@e2b/code-interpreter": "^2.3.3",
+    "@google/generative-ai": "^0.24.1",
+    "@openrouter/ai-sdk-provider": "^1.5.4",
+    "@react-email/components": "^1.0.2",
+    "@react-email/render": "^2.0.0",
+    "@tavily/ai-sdk": "^0.3.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "ai": "^5.0.116",
+    "convex": "^1.31.2",
+    "convex-helpers": "^0.1.108",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.11.0",
+    "marked": "^17.0.1",
+    "mathjs": "^15.1.0",
+    "nanoid": "^5.1.6",
+    "officeparser": "^5.2.2",
+    "pdf-lib": "^1.17.1",
+    "posthog-node": "^5.18.0",
+    "pptx-content-extractor": "^1.0.3",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "remove-markdown": "^0.6.2",
+    "sharp": "^0.34.5",
+    "svix": "^1.82.0",
+    "tiktoken": "^1.0.22",
+    "unpdf": "^1.4.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.27",
+    "convex-test": "^0.0.41",
+    "typescript": "^5.9.3"
+  }
+}

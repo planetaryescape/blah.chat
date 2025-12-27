@@ -16,5 +16,5 @@
     }
   },
   "include": ["convex/**/*.ts"],
-  "exclude": ["node_modules", "convex/_generated"]
+  "exclude": ["node_modules", "convex/_generated", "convex/__tests__", "**/*.test.ts"]
 }

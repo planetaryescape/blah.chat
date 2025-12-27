@@ -1,0 +1,3 @@
+{
+  "/api/download/pptx/[presentationId]/route": "app/api/download/pptx/[presentationId]/route.js"
+}

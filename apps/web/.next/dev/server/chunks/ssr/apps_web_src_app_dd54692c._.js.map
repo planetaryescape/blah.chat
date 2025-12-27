@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/bhekanik/code/planetaryescape/blah.chat/apps/web/src/app/opengraph-image.png.mjs%20%28structured%20image%20object%29"],"sourcesContent":["import src from \"IMAGE\";\nexport default { src, width: 1024, height: 1024 }\n"],"names":[],"mappings":";;;;AAAA;;uCACe;IAAE,KAAA,oKAAG;IAAE,OAAO;IAAM,QAAQ;AAAK"}}]
+}

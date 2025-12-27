@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(main)/layout,_N_T_/(main)/admin/layout,_N_T_/(main)/admin/byod/layout,_N_T_/(main)/admin/byod/page,_N_T_/admin/byod"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1haW4p/admin/byod/__PAGE__",
+    "/!KG1haW4p/admin/byod",
+    "/!KG1haW4p/admin",
+    "/!KG1haW4p",
+    "/_index",
+    "/_head"
+  ]
+}

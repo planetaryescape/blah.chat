@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../../../apps/web/src/app/opengraph-image.png.mjs%20%28structured%20image%20object%29"],"sourcesContent":["import src from \"IMAGE\";\nexport default { src, width: 1024, height: 1024 }\n"],"names":[],"mappings":"kHACe,CAAE,IADjB,AACiB,EADjB,CAAA,CAAA,QACiB,OAAG,CAAE,MAAO,KAAM,OAAQ,IAAK"}

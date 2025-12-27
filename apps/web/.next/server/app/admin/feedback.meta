@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(main)/layout,_N_T_/(main)/admin/layout,_N_T_/(main)/admin/feedback/layout,_N_T_/(main)/admin/feedback/page,_N_T_/admin/feedback"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1haW4p/admin/feedback/__PAGE__",
+    "/!KG1haW4p/admin/feedback",
+    "/!KG1haW4p/admin",
+    "/!KG1haW4p",
+    "/_index",
+    "/_head"
+  ]
+}

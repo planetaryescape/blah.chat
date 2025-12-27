@@ -1,0 +1,17 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(main)/layout,_N_T_/(main)/slides/layout,_N_T_/(main)/slides/new/layout,_N_T_/(main)/slides/new/page,_N_T_/slides/new"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1haW4p/slides/new/__PAGE__",
+    "/!KG1haW4p/slides/new",
+    "/!KG1haW4p/slides",
+    "/!KG1haW4p",
+    "/_index",
+    "/_head"
+  ]
+}

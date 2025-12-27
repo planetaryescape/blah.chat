@@ -1,0 +1,12 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/apps/web/src/app/(main)/projects/[id]/tasks/page": [
+      "static/media/0c795a286deabae8-s.p.b6c48e4e.woff2",
+      "static/media/a343f882a40d2cc9-s.p.71e1367e.woff2",
+      "static/media/70bc3e132a0a741e-s.p.15008bfb.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

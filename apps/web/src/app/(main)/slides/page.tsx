@@ -383,40 +383,29 @@ export default function SlidesPage() {
     [showStats, togglePin, toggleStar],
   );
 
-  // Filter and search presentations
   const filteredPresentations = useMemo(() => {
     if (!presentations) return [];
 
     let data = [...presentations];
 
-    // If searching and have hybrid search results, use those (preserves relevance order)
     if (searchQuery.trim() && searchResultIds !== null) {
-      // Filter to only include search results, preserve order from search
-      const matchedPresentations = data.filter((p: any) =>
-        searchResultIds.has(p._id),
-      );
-      // No additional sorting when using search results - relevance order is preserved
-      return matchedPresentations;
+      return data.filter((p) => searchResultIds.has(p._id));
     }
 
-    // No search query - apply filters and sort normally
     if (filter === "starred") {
-      data = data.filter((p: any) => p.starred === true);
+      data = data.filter((p) => p.starred);
     } else if (filter === "pinned") {
-      data = data.filter((p: any) => p.pinned === true);
+      data = data.filter((p) => p.pinned);
     }
 
-    // Sort: pinned first, then by updatedAt
-    return data.sort((a: any, b: any) => {
-      const aPinned = a.pinned === true;
-      const bPinned = b.pinned === true;
-      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+    return data.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.updatedAt - a.updatedAt;
     });
   }, [presentations, filter, searchQuery, searchResultIds]);
 
   const tableData = useMemo(() => {
-    return filteredPresentations.map((p: any) => ({
+    return filteredPresentations.map((p) => ({
       ...p,
       statusLabel: statusLabels[p.status] || {
         label: p.status,
@@ -451,7 +440,7 @@ export default function SlidesPage() {
     return <DisabledFeaturePage featureName="Slides" settingKey="showSlides" />;
   }
 
-  const handleRowClick = (presentation: any) => {
+  const handleRowClick = (presentation: PresentationWithStats) => {
     const href =
       presentation.status === "slides_complete"
         ? `/slides/${presentation._id}/preview`
@@ -476,7 +465,6 @@ export default function SlidesPage() {
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -510,7 +498,6 @@ export default function SlidesPage() {
             </div>
           </div>
 
-          {/* Search and Filter Row */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
             <div className="relative flex-1 max-w-xs">
               {isSearching ? (
@@ -548,7 +535,6 @@ export default function SlidesPage() {
         </div>
       </div>
 
-      {/* Content Area */}
       {presentations === undefined ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -745,10 +731,8 @@ export default function SlidesPage() {
           </div>
         </ScrollArea>
       ) : (
-        /* List View - flex layout with sticky bottom pagination */
         <div className="flex-1 flex flex-col min-h-0 px-4 pb-4">
           <div className="container mx-auto max-w-6xl flex-1 flex flex-col min-h-0 pt-8">
-            {/* Scrollable table */}
             <div className="flex-1 min-h-0 rounded-md border border-border/40 overflow-hidden bg-background/50">
               <div className="h-full overflow-auto">
                 <table className="w-full caption-bottom text-sm">
@@ -805,7 +789,6 @@ export default function SlidesPage() {
               </div>
             </div>
 
-            {/* Fixed bottom pagination */}
             {table.getPageCount() > 0 && (
               <div className="flex-shrink-0 flex items-center justify-end space-x-2 pt-4">
                 <div className="flex-1 text-sm text-muted-foreground">
@@ -839,7 +822,6 @@ export default function SlidesPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}

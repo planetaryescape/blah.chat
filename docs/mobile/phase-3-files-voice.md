@@ -1,4 +1,4 @@
-# Phase 3: File Uploads & Voice
+# Phase 3: Files & Voice
 
 **Duration**: 6-8 hours
 **Difficulty**: Intermediate
@@ -6,67 +6,58 @@
 
 ---
 
-## Project Context
-
-### What is blah.chat?
-
-blah.chat supports multimodal interactions: images, documents, voice messages, and text-to-speech. This phase implements media capabilities for mobile, leveraging native APIs for camera, audio recording, and speech.
-
-### Architecture: File Storage
-
-**Convex File Storage**:
-1. User selects file (image/document)
-2. Upload to Convex storage via `generateUploadUrl()`
-3. Get `storageId`
-4. Attach to message in `attachments` table (normalized)
-5. Retrieve via `getUrl(storageId)` for display
-
-**Voice Flow**:
-1. Record audio → local file
-2. Transcribe via OpenAI/Groq (backend action)
-3. Insert transcribed text as message
-4. Optional: Store audio as attachment
-
----
-
 ## What You'll Build
 
 By the end of this phase:
 
-✅ Image picker (camera + gallery)
-✅ Document file picker
-✅ Upload to Convex storage
-✅ Attachment previews in messages
-✅ Voice recording with waveform
-✅ Speech-to-text transcription
-✅ Text-to-speech playback
-✅ Audio player controls
+- Image picker (camera + gallery)
+- Document file picker
+- Upload to Convex storage
+- Attachment previews in messages
+- Voice recording with timer
+- Speech-to-text transcription
+- Text-to-speech playback
+- Audio player controls
 
 ---
 
-## Current State
+## Architecture: File Storage
 
-**Before This Phase**:
-- Text chat working
-- Messages send/receive
-- Real-time streaming
+**Convex File Storage Flow**:
 
-**After This Phase**:
-- Full multimedia support
-- Voice messages
-- Image sharing
-- Document uploads
+```
+1. User selects file (image/document)
+   ↓
+2. Upload to Convex storage via generateUploadUrl()
+   ↓
+3. Get storageId
+   ↓
+4. Attach to message in attachments table (normalized)
+   ↓
+5. Retrieve via getUrl(storageId) for display
+```
+
+**Voice Flow**:
+
+```
+1. Record audio → local file
+   ↓
+2. Upload to Convex storage
+   ↓
+3. Transcribe via OpenAI Whisper / Groq (backend action)
+   ↓
+4. Insert transcribed text as message
+   ↓
+5. Optional: Store audio as attachment
+```
 
 ---
 
 ## Step 1: Install Media Dependencies
 
 ```bash
-npx expo install \
-  expo-image-picker \
-  expo-document-picker \
-  expo-av \
-  expo-file-system
+cd apps/mobile
+bun add expo-image-picker expo-document-picker expo-av expo-file-system
 ```
 
 **Dependencies**:
@@ -77,89 +68,94 @@ npx expo install \
 
 ---
 
-## Step 2: Request Permissions
+## Step 2: Configure Permissions
 
-### 2.1 Configure app.json Permissions
+### 2.1 Update app.config.js
 
-Edit `app.json`:
+Add plugins to `apps/mobile/app.config.js`:
 
-```json
-{
-  "expo": {
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos",
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
-        }
-      ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
-        }
-      ]
-    ],
-    "ios": {
-      "infoPlist": {
-        "NSCameraUsageDescription": "blah.chat needs camera access to send photos",
-        "NSPhotoLibraryUsageDescription": "blah.chat needs photo library access to send images",
-        "NSMicrophoneUsageDescription": "blah.chat needs microphone access for voice messages"
-      }
+```javascript
+plugins: [
+  "expo-router",
+  "expo-secure-store",
+  [
+    "expo-image-picker",
+    {
+      photosPermission: "Allow blah.chat to access your photos",
+      cameraPermission: "Allow blah.chat to access your camera",
     },
-    "android": {
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
-      ]
-    }
-  }
-}
+  ],
+  [
+    "expo-av",
+    {
+      microphonePermission: "Allow blah.chat to access your microphone for voice messages",
+    },
+  ],
+],
+ios: {
+  supportsTablet: true,
+  bundleIdentifier: "com.blahchat.mobile",
+  infoPlist: {
+    NSCameraUsageDescription: "blah.chat needs camera access to send photos",
+    NSPhotoLibraryUsageDescription: "blah.chat needs photo library access to send images",
+    NSMicrophoneUsageDescription: "blah.chat needs microphone access for voice messages",
+  },
+},
+android: {
+  adaptiveIcon: {
+    foregroundImage: "./assets/adaptive-icon.png",
+    backgroundColor: "#000000",
+  },
+  package: "com.blahchat.mobile",
+  permissions: [
+    "CAMERA",
+    "READ_EXTERNAL_STORAGE",
+    "WRITE_EXTERNAL_STORAGE",
+    "RECORD_AUDIO",
+  ],
+},
 ```
 
 ### 2.2 Create Permission Helper
 
-Create `lib/permissions.ts`:
+Create `apps/mobile/lib/permissions.ts`:
 
 ```typescript
 // lib/permissions.ts
-import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
-import { Alert } from 'react-native';
+import * as ImagePicker from "expo-image-picker";
+import { Audio } from "expo-av";
+import { Alert } from "react-native";
 
-export async function requestCameraPermission() {
+export async function requestCameraPermission(): Promise<boolean> {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  if (status !== 'granted') {
+  if (status !== "granted") {
     Alert.alert(
-      'Permission Denied',
-      'Camera access is required to take photos. Please enable it in Settings.'
+      "Permission Denied",
+      "Camera access is required to take photos. Please enable it in Settings."
     );
     return false;
   }
   return true;
 }
 
-export async function requestMediaLibraryPermission() {
+export async function requestMediaLibraryPermission(): Promise<boolean> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
+  if (status !== "granted") {
     Alert.alert(
-      'Permission Denied',
-      'Photo library access is required. Please enable it in Settings.'
+      "Permission Denied",
+      "Photo library access is required. Please enable it in Settings."
     );
     return false;
   }
   return true;
 }
 
-export async function requestAudioPermission() {
+export async function requestAudioPermission(): Promise<boolean> {
   const { status } = await Audio.requestPermissionsAsync();
-  if (status !== 'granted') {
+  if (status !== "granted") {
     Alert.alert(
-      'Permission Denied',
-      'Microphone access is required for voice messages. Please enable it in Settings.'
+      "Permission Denied",
+      "Microphone access is required for voice messages. Please enable it in Settings."
     );
     return false;
   }
@@ -169,50 +165,116 @@ export async function requestAudioPermission() {
 
 ---
 
-## Step 3: Add Image Picker to Chat Input
+## Step 3: Create Upload Helper
 
-### 3.1 Update ChatInput Component
-
-Edit `components/chat/ChatInput.tsx`:
+Create `apps/mobile/lib/upload.ts`:
 
 ```typescript
-// components/chat/ChatInput.tsx
-import { View, TextInput, TouchableOpacity, StyleSheet, ActionSheetIOS, Platform, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import { requestCameraPermission, requestMediaLibraryPermission } from '@/lib/permissions';
+// lib/upload.ts
+import * as FileSystem from "expo-file-system";
+
+interface UploadOptions {
+  generateUploadUrl: () => Promise<string>;
+  fileUri: string;
+  mimeType?: string;
+}
+
+export async function uploadToConvex({
+  generateUploadUrl,
+  fileUri,
+  mimeType = "image/jpeg",
+}: UploadOptions): Promise<string> {
+  // Get upload URL from Convex
+  const uploadUrl = await generateUploadUrl();
+
+  // Read file as base64
+  const base64 = await FileSystem.readAsStringAsync(fileUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  // Convert base64 to blob
+  const response = await fetch(`data:${mimeType};base64,${base64}`);
+  const blob = await response.blob();
+
+  // Upload to Convex storage
+  const result = await fetch(uploadUrl, {
+    method: "POST",
+    headers: { "Content-Type": blob.type },
+    body: blob,
+  });
+
+  const json = await result.json();
+  return json.storageId;
+}
+```
+
+---
+
+## Step 4: Add Image Picker to Chat Input
+
+### 4.1 Update ChatInput Component
+
+Update `apps/mobile/src/components/chat/ChatInput.tsx`:
+
+```typescript
+// src/components/chat/ChatInput.tsx
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Text,
+  Image,
+  ActionSheetIOS,
+  Platform,
+  Alert,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import {
+  requestCameraPermission,
+  requestMediaLibraryPermission,
+} from "@/lib/permissions";
 
 interface Attachment {
   uri: string;
-  type: 'image' | 'document';
+  type: "image" | "document";
   name: string;
   mimeType: string;
 }
 
 interface ChatInputProps {
   onSend: (content: string, attachments?: Attachment[]) => void;
+  onModelPress?: () => void;
+  currentModel?: string;
 }
 
-export function ChatInput({ onSend }: ChatInputProps) {
-  const [message, setMessage] = useState('');
+function getModelDisplayName(modelId?: string): string {
+  if (!modelId) return "Select Model";
+  const parts = modelId.split(":");
+  if (parts.length < 2) return modelId;
+  return parts[1].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function ChatInput({ onSend, onModelPress, currentModel }: ChatInputProps) {
+  const [message, setMessage] = useState("");
   const [height, setHeight] = useState(40);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const handleSend = () => {
     if (!message.trim() && attachments.length === 0) return;
-    onSend(message.trim(), attachments);
-    setMessage('');
+    onSend(message.trim(), attachments.length > 0 ? attachments : undefined);
+    setMessage("");
     setAttachments([]);
     setHeight(40);
   };
 
   const showImageOptions = () => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          options: ["Cancel", "Take Photo", "Choose from Library"],
           cancelButtonIndex: 0,
         },
         async (buttonIndex) => {
@@ -221,11 +283,10 @@ export function ChatInput({ onSend }: ChatInputProps) {
         }
       );
     } else {
-      // Android: show both options
-      Alert.alert('Add Photo', 'Choose source', [
-        { text: 'Take Photo', onPress: handleCamera },
-        { text: 'Choose from Library', onPress: handleImageLibrary },
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert("Add Photo", "Choose source", [
+        { text: "Take Photo", onPress: handleCamera },
+        { text: "Choose from Library", onPress: handleImageLibrary },
+        { text: "Cancel", style: "cancel" },
       ]);
     }
   };
@@ -245,9 +306,9 @@ export function ChatInput({ onSend }: ChatInputProps) {
         ...attachments,
         {
           uri: result.assets[0].uri,
-          type: 'image',
+          type: "image",
           name: `photo_${Date.now()}.jpg`,
-          mimeType: 'image/jpeg',
+          mimeType: "image/jpeg",
         },
       ]);
     }
@@ -266,9 +327,9 @@ export function ChatInput({ onSend }: ChatInputProps) {
     if (!result.canceled) {
       const newAttachments = result.assets.map((asset) => ({
         uri: asset.uri,
-        type: 'image' as const,
+        type: "image" as const,
         name: asset.fileName || `image_${Date.now()}.jpg`,
-        mimeType: asset.mimeType || 'image/jpeg',
+        mimeType: asset.mimeType || "image/jpeg",
       }));
       setAttachments([...attachments, ...newAttachments]);
     }
@@ -276,7 +337,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
 
   const handleDocument = async () => {
     const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'text/plain', 'application/msword'],
+      type: ["application/pdf", "text/plain", "application/msword"],
       copyToCacheDirectory: true,
     });
 
@@ -285,9 +346,9 @@ export function ChatInput({ onSend }: ChatInputProps) {
         ...attachments,
         {
           uri: result.assets[0].uri,
-          type: 'document',
+          type: "document",
           name: result.assets[0].name,
-          mimeType: result.assets[0].mimeType || 'application/octet-stream',
+          mimeType: result.assets[0].mimeType || "application/octet-stream",
         },
       ]);
     }
@@ -297,22 +358,42 @@ export function ChatInput({ onSend }: ChatInputProps) {
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
+  const canSend = message.trim().length > 0 || attachments.length > 0;
+
   return (
-    <View style={styles.container}>
+    <View className="bg-background border-t border-border px-4 py-3">
+      {/* Model selector button */}
+      {onModelPress && (
+        <TouchableOpacity
+          className="flex-row items-center gap-1 mb-2"
+          onPress={onModelPress}
+        >
+          <Ionicons name="cube-outline" size={14} color="#666" />
+          <Text className="text-xs text-muted">
+            {getModelDisplayName(currentModel)}
+          </Text>
+          <Ionicons name="chevron-down" size={12} color="#666" />
+        </TouchableOpacity>
+      )}
+
       {/* Attachment Previews */}
       {attachments.length > 0 && (
-        <View style={styles.attachmentPreview}>
+        <View className="flex-row gap-2 mb-3">
           {attachments.map((attachment, index) => (
-            <View key={index} style={styles.attachmentItem}>
-              {attachment.type === 'image' ? (
-                <Image source={{ uri: attachment.uri }} style={styles.attachmentImage} />
+            <View key={index} className="relative">
+              {attachment.type === "image" ? (
+                <Image
+                  source={{ uri: attachment.uri }}
+                  className="w-15 h-15 rounded-lg bg-card"
+                  style={{ width: 60, height: 60 }}
+                />
               ) : (
-                <View style={styles.documentIcon}>
+                <View className="w-15 h-15 rounded-lg bg-card items-center justify-center" style={{ width: 60, height: 60 }}>
                   <Ionicons name="document" size={24} color="#0066ff" />
                 </View>
               )}
               <TouchableOpacity
-                style={styles.removeButton}
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full"
                 onPress={() => removeAttachment(index)}
               >
                 <Ionicons name="close-circle" size={20} color="#fff" />
@@ -322,18 +403,25 @@ export function ChatInput({ onSend }: ChatInputProps) {
         </View>
       )}
 
-      <View style={styles.inputContainer}>
+      <View className="flex-row items-end gap-2">
         {/* Attachment Buttons */}
-        <TouchableOpacity style={styles.iconButton} onPress={showImageOptions}>
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center"
+          onPress={showImageOptions}
+        >
           <Ionicons name="camera" size={24} color="#666" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={handleDocument}>
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center"
+          onPress={handleDocument}
+        >
           <Ionicons name="attach" size={24} color="#666" />
         </TouchableOpacity>
 
         {/* Text Input */}
         <TextInput
-          style={[styles.input, { height: Math.max(40, Math.min(height, 120)) }]}
+          className="flex-1 bg-card rounded-2xl px-4 py-2.5 text-base text-foreground border border-border"
+          style={{ height: Math.max(40, Math.min(height, 120)) }}
           placeholder="Message..."
           placeholderTextColor="#666"
           value={message}
@@ -346,160 +434,50 @@ export function ChatInput({ onSend }: ChatInputProps) {
 
         {/* Send Button */}
         <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!message.trim() && attachments.length === 0) && styles.sendButtonDisabled,
-          ]}
+          className={`w-10 h-10 rounded-full bg-primary items-center justify-center ${
+            !canSend ? "opacity-40" : ""
+          }`}
           onPress={handleSend}
-          disabled={!message.trim() && attachments.length === 0}
+          disabled={!canSend}
         >
-          <Ionicons name="send" size={20} color="#fff" />
+          <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#000',
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  attachmentPreview: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  attachmentItem: {
-    position: 'relative',
-  },
-  attachmentImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#1a1a1a',
-  },
-  documentIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#ff3b30',
-    borderRadius: 10,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: '#333',
-    maxHeight: 120,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0066ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    opacity: 0.4,
-  },
-});
 ```
 
 ---
 
-## Step 4: Upload to Convex Storage
+## Step 5: Update Chat Screen to Handle Uploads
 
-### 4.1 Create Upload Helper
-
-Create `lib/convex/upload.ts`:
-
-```typescript
-// lib/convex/upload.ts
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import * as FileSystem from 'expo-file-system';
-
-export async function uploadToConvex(
-  fileUri: string,
-  generateUploadUrl: () => Promise<string>
-): Promise<string> {
-  // Get upload URL from Convex
-  const uploadUrl = await generateUploadUrl();
-
-  // Read file as base64
-  const base64 = await FileSystem.readAsStringAsync(fileUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-
-  // Convert base64 to blob
-  const response = await fetch(`data:image/jpeg;base64,${base64}`);
-  const blob = await response.blob();
-
-  // Upload to Convex storage
-  const result = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': blob.type },
-    body: blob,
-  });
-
-  const { storageId } = await result.json();
-  return storageId;
-}
-```
-
-### 4.2 Update Chat Screen to Handle Uploads
-
-Edit `app/chat/[id].tsx`:
+Update `apps/mobile/app/chat/[id].tsx` to handle file uploads:
 
 ```typescript
 // Add to imports
-import { uploadToConvex } from '@/lib/convex/upload';
+import { uploadToConvex } from "@/lib/upload";
+import { Alert } from "react-native";
 
 // Add mutation for generating upload URL
 const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
-// Update handleSend
+// Update handleSend to upload attachments first
 const handleSend = useCallback(
   async (content: string, attachments?: Attachment[]) => {
+    const modelId = selectedModel || conversation?.model || "openai:gpt-4o";
+
     // Upload attachments first
     const uploadedAttachments = [];
 
     if (attachments) {
       for (const attachment of attachments) {
         try {
-          const storageId = await uploadToConvex(
-            attachment.uri,
-            generateUploadUrl
-          );
+          const storageId = await uploadToConvex({
+            generateUploadUrl,
+            fileUri: attachment.uri,
+            mimeType: attachment.mimeType,
+          });
           uploadedAttachments.push({
             storageId,
             name: attachment.name,
@@ -507,49 +485,49 @@ const handleSend = useCallback(
             type: attachment.type,
           });
         } catch (error) {
-          console.error('Upload failed:', error);
-          Alert.alert('Upload Failed', `Could not upload ${attachment.name}`);
+          console.error("Upload failed:", error);
+          Alert.alert("Upload Failed", `Could not upload ${attachment.name}`);
         }
       }
     }
 
-    // Send message with uploaded attachments
     try {
       await sendMessage({
         conversationId,
         content,
-        modelId: conversation?.modelId || 'openai:gpt-4o',
-        attachments: uploadedAttachments,
+        model: modelId,
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
       });
     } catch (error) {
-      Alert.alert('Failed to send message');
+      console.error("Failed to send message:", error);
     }
   },
-  [conversationId, sendMessage, conversation, generateUploadUrl]
+  [conversationId, sendMessage, conversation, selectedModel, generateUploadUrl]
 );
 ```
 
 ---
 
-## Step 5: Add Voice Recording
+## Step 6: Add Voice Recording
 
-### 5.1 Create Voice Recorder Component
+### 6.1 Create Voice Recorder Component
 
-Create `components/chat/VoiceRecorder.tsx`:
+Create `apps/mobile/src/components/chat/VoiceRecorder.tsx`:
 
 ```typescript
-// components/chat/VoiceRecorder.tsx
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useState, useRef } from 'react';
-import { Audio } from 'expo-av';
-import { requestAudioPermission } from '@/lib/permissions';
+// src/components/chat/VoiceRecorder.tsx
+import { View, TouchableOpacity, Text, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useState, useRef } from "react";
+import { Audio } from "expo-av";
+import { requestAudioPermission } from "@/lib/permissions";
 
 interface VoiceRecorderProps {
-  onRecordingComplete: (uri: string) => void;
+  onRecordingComplete: (uri: string, durationMs: number) => void;
+  onCancel?: () => void;
 }
 
-export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
+export function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRecorderProps) {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [duration, setDuration] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -564,11 +542,11 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
         playsInSilentModeIOS: true,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
+      const { recording: newRecording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
 
-      setRecording(recording);
+      setRecording(newRecording);
       setDuration(0);
 
       // Update duration every second
@@ -576,7 +554,7 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
         setDuration((prev) => prev + 1);
       }, 1000);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      console.error("Failed to start recording:", error);
     }
   };
 
@@ -589,12 +567,14 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
     }
 
     await recording.stopAndUnloadAsync();
+    const status = await recording.getStatusAsync();
     const uri = recording.getURI();
     setRecording(null);
+    const finalDuration = duration;
     setDuration(0);
 
     if (uri) {
-      onRecordingComplete(uri);
+      onRecordingComplete(uri, finalDuration * 1000);
     }
   };
 
@@ -609,139 +589,123 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
     await recording.stopAndUnloadAsync();
     setRecording(null);
     setDuration(0);
+    onCancel?.();
   };
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (recording) {
     return (
-      <View style={styles.recordingContainer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={cancelRecording}>
+      <View className="flex-row items-center gap-3 px-4 py-3">
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center"
+          onPress={cancelRecording}
+        >
           <Ionicons name="close" size={24} color="#ff3b30" />
         </TouchableOpacity>
 
-        <View style={styles.waveformContainer}>
-          <View style={styles.recordingIndicator} />
-          <Text style={styles.durationText}>{formatDuration(duration)}</Text>
+        <View className="flex-1 flex-row items-center gap-3 bg-card rounded-2xl px-4 py-3 border border-border">
+          <View className="w-3 h-3 rounded-full bg-red-500" />
+          <Text
+            className={`text-base text-foreground ${
+              Platform.OS === "ios" ? "font-mono" : ""
+            }`}
+          >
+            {formatDuration(duration)}
+          </Text>
         </View>
 
-        <TouchableOpacity style={styles.stopButton} onPress={stopRecording}>
-          <Ionicons name="stop" size={24} color="#fff" />
+        <TouchableOpacity
+          className="w-10 h-10 rounded-full bg-red-500 items-center justify-center"
+          onPress={stopRecording}
+        >
+          <Ionicons name="stop" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <TouchableOpacity style={styles.micButton} onPress={startRecording}>
+    <TouchableOpacity
+      className="w-10 h-10 items-center justify-center"
+      onPress={startRecording}
+    >
       <Ionicons name="mic" size={24} color="#666" />
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  micButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recordingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  cancelButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  waveformContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  recordingIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#ff3b30',
-  },
-  durationText: {
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#fff',
-  },
-  stopButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ff3b30',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
 ```
 
-### 5.2 Add to ChatInput
+### 6.2 Integrate Voice Recorder into Chat Input
 
-Edit `components/chat/ChatInput.tsx`:
+Add voice recording button to ChatInput before the send button:
 
 ```typescript
 // Add import
-import { VoiceRecorder } from './VoiceRecorder';
+import { VoiceRecorder } from "./VoiceRecorder";
+
+// Add state
+const [isRecording, setIsRecording] = useState(false);
 
 // Add handler
-const handleVoiceRecording = async (uri: string) => {
+const handleVoiceRecording = async (uri: string, durationMs: number) => {
+  setIsRecording(false);
+
   // Upload audio to Convex
-  const storageId = await uploadToConvex(uri, generateUploadUrl);
+  const storageId = await uploadToConvex({
+    generateUploadUrl,
+    fileUri: uri,
+    mimeType: "audio/m4a",
+  });
 
   // Transcribe via backend action
-  const transcription = await transcribeAudio({ storageId });
-
-  // Send transcribed text as message
-  onSend(transcription);
+  try {
+    const transcription = await transcribeAudio({ storageId });
+    onSend(transcription);
+  } catch (error) {
+    console.error("Transcription failed:", error);
+    Alert.alert("Transcription Failed", "Could not transcribe audio");
+  }
 };
 
-// Add to input container (before send button)
-<VoiceRecorder onRecordingComplete={handleVoiceRecording} />
+// Add before send button
+<VoiceRecorder
+  onRecordingComplete={handleVoiceRecording}
+  onCancel={() => setIsRecording(false)}
+/>
 ```
 
 ---
 
-## Step 6: Add Text-to-Speech Playback
+## Step 7: Add Text-to-Speech Playback
 
-### 6.1 Create TTS Player Component
+### 7.1 Create TTS Player Component
 
-Create `components/chat/TTSPlayer.tsx`:
+Create `apps/mobile/src/components/chat/TTSPlayer.tsx`:
 
 ```typescript
-// components/chat/TTSPlayer.tsx
-import { TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
-import { Audio } from 'expo-av';
+// src/components/chat/TTSPlayer.tsx
+import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useState, useEffect } from "react";
+import { Audio } from "expo-av";
+import { useAction } from "convex/react";
+import { api } from "@blah-chat/backend/convex/_generated/api";
 
 interface TTSPlayerProps {
-  messageId: string;
   text: string;
 }
 
-export function TTSPlayer({ messageId, text }: TTSPlayerProps) {
+export function TTSPlayer({ text }: TTSPlayerProps) {
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+
+  const generateTTS = useAction(api.tts.generate);
 
   useEffect(() => {
     return () => {
@@ -764,58 +728,66 @@ export function TTSPlayer({ messageId, text }: TTSPlayerProps) {
       return;
     }
 
-    // Generate TTS audio (call backend action)
-    const audioUrl = await generateTTS({ text });
+    setLoading(true);
+    try {
+      // Generate TTS audio via backend action
+      const audioUrl = await generateTTS({ text });
 
-    const { sound: newSound } = await Audio.Sound.createAsync(
-      { uri: audioUrl },
-      { shouldPlay: true }
-    );
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        { shouldPlay: true }
+      );
 
-    newSound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isLoaded && status.didJustFinish) {
-        setPlaying(false);
-      }
-    });
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setPlaying(false);
+        }
+      });
 
-    setSound(newSound);
-    setPlaying(true);
+      setSound(newSound);
+      setPlaying(true);
+    } catch (error) {
+      console.error("TTS failed:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <TouchableOpacity style={styles.button} onPress={handlePlay}>
+    <TouchableOpacity
+      className="w-8 h-8 rounded-full bg-card border border-border items-center justify-center"
+      onPress={handlePlay}
+      disabled={loading}
+    >
       <Ionicons
-        name={playing ? 'pause' : 'volume-high'}
-        size={16}
+        name={loading ? "ellipsis-horizontal" : playing ? "pause" : "volume-high"}
+        size={14}
         color="#0066ff"
       />
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-});
 ```
 
-### 6.2 Add to Message Component
+### 7.2 Add TTS to Message Actions
 
-Edit `components/chat/MessageList.tsx`:
+Update MessageList to include TTS button for assistant messages:
 
 ```typescript
-// Add to assistant messages
-{!isUser && item.status === 'complete' && (
-  <View style={styles.messageActions}>
-    <TTSPlayer messageId={item._id} text={item.content} />
+// Add import
+import { TTSPlayer } from "./TTSPlayer";
+
+// Add to assistant message actions (after copy button)
+{!isUser && item.status === "complete" && (
+  <View className="flex-row gap-4 mt-2">
+    <TouchableOpacity
+      className="flex-row items-center gap-1"
+      onPress={() => handleCopy(displayContent)}
+    >
+      <Ionicons name="copy-outline" size={14} color="#666" />
+      <Text className="text-xs text-muted">Copy</Text>
+    </TouchableOpacity>
+    <TTSPlayer text={displayContent} />
   </View>
 )}
 ```
@@ -834,8 +806,8 @@ Edit `components/chat/MessageList.tsx`:
 - [ ] Uploaded images display in messages
 - [ ] Voice recording starts and shows timer
 - [ ] Recording stops and uploads
-- [ ] Audio transcribes to text
-- [ ] TTS playback works
+- [ ] Audio transcribes to text (requires backend action)
+- [ ] TTS playback works (requires backend action)
 - [ ] TTS pause/resume works
 - [ ] Audio quality is acceptable
 
@@ -844,34 +816,86 @@ Edit `components/chat/MessageList.tsx`:
 ## Troubleshooting
 
 ### Camera permission denied
+
 **Cause**: User denied permission
-**Solution**: Guide user to Settings to enable manually
+**Fix**: Guide user to Settings to enable manually
 
 ### Upload fails with "Invalid storage ID"
+
 **Cause**: File format not supported or too large
-**Solution**: Check file size limit (10MB), validate mime type
+**Fix**: Check file size limit (10MB for Convex), validate mime type
 
 ### Voice recording silent
+
 **Cause**: Microphone not configured
-**Solution**: Ensure `Audio.setAudioModeAsync` called before recording
+**Fix**: Ensure `Audio.setAudioModeAsync` called before recording
 
 ### TTS not playing
+
 **Cause**: Audio mode conflicts with recording
-**Solution**: Reset audio mode after recording stops
+**Fix**: Reset audio mode after recording stops:
+```typescript
+await Audio.setAudioModeAsync({
+  allowsRecordingIOS: false,
+  playsInSilentModeIOS: true,
+});
+```
+
+### "Cannot find api.files.generateUploadUrl"
+
+**Cause**: Backend mutation not exported
+**Fix**: Ensure `packages/backend/convex/files.ts` exports the mutation
+
+---
+
+## Backend Requirements
+
+This phase requires these backend endpoints (should already exist):
+
+```typescript
+// packages/backend/convex/files.ts
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
+
+// packages/backend/convex/transcription.ts
+export const transcribe = action(async (ctx, { storageId }) => {
+  // Call OpenAI Whisper or Groq for transcription
+});
+
+// packages/backend/convex/tts.ts
+export const generate = action(async (ctx, { text }) => {
+  // Call TTS provider (Deepgram, ElevenLabs, etc.)
+  // Return audio URL
+});
+```
+
+---
+
+## Success Criteria
+
+You're ready for V1 launch when:
+
+1. Images can be attached and sent
+2. Documents can be attached
+3. Voice recording works
+4. Transcription works (if backend configured)
+5. TTS playback works (if backend configured)
 
 ---
 
 ## Next Phase Preview
 
-**Phase 4: Projects & Organization** will add:
-- Project management
-- Notes system with markdown editor
-- Bookmarks
-- Search functionality
-- Tags and categories
+**Phase 4: Projects & Organization** is **V2 - Future Work**.
 
-**Estimated Time**: 6-8 hours
+For V1, the mobile app is complete with:
+- Chat with real-time streaming
+- RAG/Memories integration
+- Multi-model selection (46 models)
+- File attachments
+- Voice input/output
+- Cost tracking via backend
 
 ---
 
-**Next**: [Phase 4: Projects & Organization](./phase-4-projects.md)
+**Next**: [Phase 4: Projects & Organization](./phase-4-projects.md) (V2 - Future)

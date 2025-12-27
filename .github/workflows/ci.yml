@@ -28,7 +28,8 @@ jobs:
         run: bun run lint
 
       - name: Convex typecheck
-        run: bunx convex deploy --dry-run --typecheck enable
+        run: bun run deploy -- --dry-run --typecheck enable
+        working-directory: packages/backend
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
@@ -36,6 +37,7 @@ jobs:
     name: Unit & Integration Tests
     runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: lint-and-typecheck
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -48,6 +50,12 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate Convex types
+        run: bun run generate
+        working-directory: packages/backend
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
       - name: Run tests
         run: bun run test:run

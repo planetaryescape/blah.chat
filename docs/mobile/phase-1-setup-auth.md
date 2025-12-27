@@ -6,388 +6,416 @@
 
 ---
 
-## Project Context
-
-### What is blah.chat?
-
-blah.chat is a personal AI chat assistant with access to 60+ AI models (OpenAI, Claude, Gemini, Groq, etc.), conversation branching, RAG memories, and transparent cost tracking. Built with Next.js, Convex (real-time DB), and Clerk (auth).
-
-### Tech Stack
-
-**Backend (Shared)**:
-- Convex: Real-time database with WebSocket subscriptions
-- Clerk: Authentication with OAuth support
-- Vercel AI SDK: LLM integrations
-
-**Frontend Web (Existing)**:
-- Next.js 15, React 19, TypeScript
-- Tailwind CSS v4, shadcn/ui
-
-**Frontend Mobile (Building Now)**:
-- React Native via Expo
-- TypeScript
-- React Navigation
-- Convex + Clerk integration
-
----
-
 ## What You'll Build
 
-By the end of this phase, you'll have:
+By the end of this phase:
 
-✅ Expo app with TypeScript configured
-✅ Metro bundler with Node.js polyfills for Convex
-✅ Clerk authentication (email, Google, Apple)
-✅ Convex client connected with auth
-✅ Sign-in and sign-up screens
-✅ Protected tab navigation
-✅ Simple test screen showing Convex data
+- Expo app at `apps/mobile/` in the monorepo
+- Metro bundler configured for workspace packages
+- Node.js polyfills for Convex (Buffer, process)
+- Clerk authentication (email, Google, Apple)
+- Convex client connected with auth
+- NativeWind (Tailwind CSS for React Native)
+- Sign-in/sign-up screens
+- Protected tab navigation
+- Test screen showing Convex data
 
 **This is the foundation** for all future phases. Get this right.
 
 ---
 
-## Current State
-
-**Before This Phase**:
-- Web app runs at http://localhost:3000
-- Convex backend running (`bunx convex dev`)
-- Clerk configured in web app
-- Development environment ready (iOS/Android simulators)
-
-**After This Phase**:
-- Mobile app running on simulator
-- User can sign in/out
-- Convex queries work in mobile app
-- Navigation structure in place
-
----
-
 ## Architecture Overview
+
+### Provider Hierarchy
+
+```typescript
+<ClerkProvider>                     // Auth provider
+  <ClerkLoaded>                     // Wait for Clerk to initialize
+    <ConvexProviderWithClerk>       // Convex with auth
+      <Slot />                      // Expo Router renders children
+    </ConvexProviderWithClerk>
+  </ClerkLoaded>
+</ClerkProvider>
+```
 
 ### Authentication Flow
 
 ```
 User Interaction
     ↓
-Clerk (Email/OAuth)
+Clerk (Email/OAuth) via @clerk/clerk-expo
     ↓
 JWT Token (with user ID)
     ↓
-ConvexProviderWithClerk
+ConvexProviderWithClerk (convex/react-clerk)
     ↓
 WebSocket Connection (authenticated)
     ↓
-Convex Backend (validates JWT)
+Convex Backend (validates JWT via auth.config.ts)
     ↓
 Data Query/Mutation (with user context)
 ```
 
-### Provider Hierarchy
+---
 
-```typescript
-<ClerkProvider>           // Auth provider
-  <ClerkLoaded>           // Wait for Clerk to initialize
-    <ConvexProviderWithClerk>  // Convex with auth
-      <NavigationContainer>     // React Navigation
-        <App />
-      </NavigationContainer>
-    </ConvexProviderWithClerk>
-  </ClerkLoaded>
-</ClerkProvider>
+## Step 1: Create Expo App in Monorepo
+
+### 1.1 Create App Directory
+
+```bash
+cd /path/to/blah.chat
+mkdir -p apps/mobile
+cd apps/mobile
 ```
+
+### 1.2 Initialize Expo Project
+
+```bash
+bunx create-expo-app@latest . --template blank-typescript
+```
+
+**Note**: The `.` creates the project in the current directory.
+
+### 1.3 Update package.json for Monorepo
+
+Edit `apps/mobile/package.json`:
+
+```json
+{
+  "name": "@blah-chat/mobile",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "bunx expo start",
+    "ios": "bunx expo run:ios",
+    "android": "bunx expo run:android",
+    "build:ios": "bunx eas build --platform ios",
+    "build:android": "bunx eas build --platform android"
+  },
+  "dependencies": {
+    "@blah-chat/backend": "workspace:*",
+    "convex": "^1.17.0",
+    "@clerk/clerk-expo": "^2.4.0",
+    "expo": "~52.0.0",
+    "expo-router": "~4.0.0",
+    "expo-secure-store": "~14.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0",
+    "nativewind": "^4.1.0",
+    "tailwindcss": "^3.4.0",
+    "@expo/vector-icons": "^14.0.0",
+    "buffer": "^6.0.3",
+    "process": "^0.11.10",
+    "react-native-url-polyfill": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.0",
+    "typescript": "~5.3.0"
+  }
+}
+```
+
+**Key Changes**:
+- `name`: Scoped package name for monorepo
+- `main`: Entry point for Expo Router
+- `@blah-chat/backend`: workspace dependency (shared Convex)
+- `nativewind`: Tailwind CSS for React Native
+
+### 1.4 Install Dependencies
+
+From monorepo root:
+
+```bash
+cd /path/to/blah.chat
+bun install
+```
+
+This installs all workspace dependencies, including linking `@blah-chat/backend`.
 
 ---
 
-## Step 1: Create Expo Project
-
-### 1.1 Create New App
-
-Navigate to where you want the mobile app (separate from web):
-
-```bash
-cd ~/code  # Or wherever you keep projects
-npx create-expo-app@latest blah-chat-mobile
-
-# Select template:
-# ✓ blank (TypeScript)
-```
-
-**Expected output**:
-```
-✅ Your project is ready!
-
-To run your project, navigate to the directory and run:
-  cd blah-chat-mobile
-  npx expo start
-```
-
-### 1.2 Navigate and Install Core Dependencies
-
-```bash
-cd blah-chat-mobile
-
-# Install Convex
-npm install convex
-
-# Install Clerk + Secure Storage
-npm install @clerk/clerk-expo expo-secure-store
-
-# Install React Navigation
-npm install @react-navigation/native @react-navigation/bottom-tabs @react-navigation/native-stack
-
-# Install React Navigation dependencies (required by Expo)
-npx expo install react-native-screens react-native-safe-area-context
-```
-
-### 1.3 Verify Installation
-
-```bash
-npm list convex @clerk/clerk-expo
-```
-
-**Expected**:
-```
-blah-chat-mobile@1.0.0
-├── @clerk/clerk-expo@2.x.x
-└── convex@1.x.x
-```
-
----
-
-## Step 2: Configure Metro Bundler (Critical)
+## Step 2: Configure Metro Bundler for Monorepo
 
 ### 2.1 Why This Matters
 
-Convex client depends on Node.js globals (`Buffer`, `process`) not available in React Native. Without polyfills, you'll get errors like:
+Metro bundler needs to:
+1. Resolve workspace packages (`@blah-chat/backend`)
+2. Watch monorepo root `node_modules`
+3. Provide Node.js polyfills (Buffer, process) for Convex
 
-```
-❌ ReferenceError: Buffer is not defined
-❌ ReferenceError: process is not defined
-```
+### 2.2 Create Metro Config
 
-### 2.2 Install Polyfill Dependencies
-
-```bash
-npm install \
-  buffer \
-  process \
-  readable-stream \
-  crypto-browserify \
-  stream-browserify \
-  react-native-url-polyfill
-```
-
-### 2.3 Create Polyfills File
-
-Create `polyfills.ts` in project root:
-
-```typescript
-// polyfills.ts
-import { Buffer } from 'buffer';
-import process from 'process';
-import 'react-native-url-polyfill/auto';
-
-// Assign to global scope
-if (typeof global.Buffer === 'undefined') {
-  global.Buffer = Buffer;
-}
-
-if (typeof global.process === 'undefined') {
-  global.process = process;
-}
-
-// Prevent "process is not defined" in production
-global.process.env = global.process.env || {};
-```
-
-### 2.4 Configure Metro
-
-Create `metro.config.js` in project root:
+Create `apps/mobile/metro.config.js`:
 
 ```javascript
 // metro.config.js
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require("expo/metro-config");
+const path = require("path");
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const monorepoRoot = path.resolve(projectRoot, "../..");
 
-// Enable Node.js polyfills
+const config = getDefaultConfig(projectRoot);
+
+// 1. Watch all files in monorepo (for workspace packages)
+config.watchFolders = [monorepoRoot];
+
+// 2. Resolve node_modules from both project and monorepo root
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(monorepoRoot, "node_modules"),
+];
+
+// 3. Node.js polyfills for Convex
 config.resolver.extraNodeModules = {
-  buffer: require.resolve('buffer'),
-  process: require.resolve('process'),
-  crypto: require.resolve('crypto-browserify'),
-  stream: require.resolve('readable-stream'),
+  buffer: require.resolve("buffer"),
+  process: require.resolve("process"),
 };
 
-// Enable package.json "exports" field (required for modern packages)
+// 4. Enable package.json "exports" field (modern packages)
 config.resolver.unstable_enablePackageExports = true;
 
-// Set condition names for module resolution
+// 5. Condition names for module resolution
 config.resolver.unstable_conditionNames = [
-  'browser',
-  'require',
-  'react-native',
+  "browser",
+  "require",
+  "react-native",
 ];
+
+// 6. Disable package.json main field resolution for workspace packages
+// This ensures Metro uses the "exports" field instead
+config.resolver.disableHierarchicalLookup = false;
 
 module.exports = config;
 ```
 
-### 2.5 Import Polyfills in App Entry
+### 2.3 Create Polyfills File
 
-Edit `App.tsx` (or `app/_layout.tsx` if using Expo Router):
+Create `apps/mobile/lib/polyfills.ts`:
 
 ```typescript
-// FIRST LINE - import polyfills before anything else
-import './polyfills';
+// lib/polyfills.ts
+// MUST be imported as FIRST line in app/_layout.tsx
 
-// Now import other modules
-import { StatusBar } from 'expo-status-bar';
-import { Text, View } from 'react-native';
-// ... rest of imports
+import { Buffer } from "buffer";
+import process from "process";
+import "react-native-url-polyfill/auto";
+
+// Assign to global scope
+if (typeof global.Buffer === "undefined") {
+  global.Buffer = Buffer;
+}
+
+if (typeof global.process === "undefined") {
+  global.process = process;
+}
+
+// Prevent "process is not defined" errors
+global.process.env = global.process.env || {};
 ```
 
-**CRITICAL**: Polyfill import must be first line, before React Native imports.
+**CRITICAL**: This file must be imported as the FIRST line in `app/_layout.tsx`.
 
 ---
 
-## Step 3: Configure Environment Variables
+## Step 3: Configure TypeScript for Monorepo
 
-### 3.1 Create Environment Config
+### 3.1 Create tsconfig.json
 
-Create `app.config.js` in project root (replaces `app.json`):
+Create `apps/mobile/tsconfig.json`:
+
+```json
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@blah-chat/backend/*": ["../../packages/backend/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}
+```
+
+**Key Points**:
+- `@/*` maps to `./src/` for app code
+- `@blah-chat/backend/*` maps to the shared backend package
+
+### 3.2 Create Type Declaration
+
+Create `apps/mobile/expo-env.d.ts`:
+
+```typescript
+/// <reference types="nativewind/types" />
+/// <reference types="expo-router/types" />
+```
+
+This enables NativeWind and Expo Router types.
+
+---
+
+## Step 4: Set Up NativeWind (Tailwind CSS)
+
+### 4.1 Create Tailwind Config
+
+Create `apps/mobile/tailwind.config.js`:
+
+```javascript
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./app/**/*.{js,jsx,ts,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}",
+  ],
+  presets: [require("nativewind/preset")],
+  theme: {
+    extend: {
+      colors: {
+        // Match web app theme
+        background: "#000000",
+        foreground: "#ffffff",
+        primary: "#0066ff",
+        muted: "#666666",
+        border: "#333333",
+        card: "#1a1a1a",
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+### 4.2 Create Global CSS
+
+Create `apps/mobile/global.css`:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### 4.3 Configure Babel
+
+Create `apps/mobile/babel.config.js`:
+
+```javascript
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: [
+      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      "nativewind/babel",
+    ],
+  };
+};
+```
+
+---
+
+## Step 5: Environment Variables
+
+### 5.1 Create App Config
+
+Create `apps/mobile/app.config.js`:
 
 ```javascript
 // app.config.js
 export default {
   expo: {
-    name: 'blah.chat',
-    slug: 'blah-chat-mobile',
-    version: '1.0.0',
-    orientation: 'portrait',
-    icon: './assets/icon.png',
-    userInterfaceStyle: 'automatic',
+    name: "blah.chat",
+    slug: "blah-chat-mobile",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "automatic",
+    scheme: "blahchat", // For deep linking
     splash: {
-      image: './assets/splash.png',
-      resizeMode: 'contain',
-      backgroundColor: '#000000',
+      image: "./assets/splash.png",
+      resizeMode: "contain",
+      backgroundColor: "#000000",
     },
-    assetBundlePatterns: ['**/*'],
+    assetBundlePatterns: ["**/*"],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.blahchat.mobile',
+      bundleIdentifier: "com.blahchat.mobile",
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#000000',
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#000000",
       },
-      package: 'com.blahchat.mobile',
-    },
-    web: {
-      favicon: './assets/favicon.png',
+      package: "com.blahchat.mobile",
     },
     extra: {
-      // Environment variables accessible via Constants.expoConfig.extra
       clerkPublishableKey: process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY,
       convexUrl: process.env.EXPO_PUBLIC_CONVEX_URL,
     },
+    plugins: ["expo-router", "expo-secure-store"],
   },
 };
 ```
 
-### 3.2 Create .env File
+### 5.2 Create Environment File
 
-Create `.env` in project root:
+Create `apps/mobile/.env`:
 
 ```bash
-# Clerk Authentication
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_... # From Clerk dashboard
+# Clerk Authentication (same as web app)
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 
-# Convex Real-time Database
-EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud # From bunx convex dev
+# Convex URL (same as web app)
+EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+
+# Optional: PostHog Analytics
+EXPO_PUBLIC_POSTHOG_KEY=phc_...
 ```
 
-**Get these values**:
-1. **Clerk Key**: https://dashboard.clerk.com → Your App → API Keys
-2. **Convex URL**: From terminal where `bunx convex dev` is running
+**Get these values from**:
+1. **Clerk Key**: Same as `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` in `apps/web/.env.local`
+2. **Convex URL**: Same as `NEXT_PUBLIC_CONVEX_URL` in `apps/web/.env.local`
 
-### 3.3 Add .env to .gitignore
+### 5.3 Add to .gitignore
 
-Edit `.gitignore`:
+Ensure `apps/mobile/.gitignore` includes:
 
 ```
-# Environment variables
 .env
 .env.local
 ```
 
 ---
 
-## Step 4: Set Up Clerk Authentication
+## Step 6: Create Convex Client Setup
 
-### 4.1 Configure Clerk Dashboard for Mobile
+### 6.1 Create Convex Client
 
-1. Go to https://dashboard.clerk.com
-2. Select your application
-3. Go to **Configure → JWT Templates**
-4. Find the "convex" template (created in Phase 0)
-5. Go to **Configure → User & Authentication → Social Connections**
-6. Enable:
-   - ✅ **Google** (for OAuth)
-   - ✅ **Apple** (required for iOS App Store)
-7. Go to **Configure → User & Authentication → Email, Phone, Username**
-8. Ensure **Email address** is required
-
-### 4.2 Create Token Cache
-
-Create `lib/tokenCache.ts`:
-
-```typescript
-// lib/tokenCache.ts
-import * as SecureStore from 'expo-secure-store';
-
-export const tokenCache = {
-  async getToken(key: string) {
-    try {
-      const item = await SecureStore.getItemAsync(key);
-      return item;
-    } catch (error) {
-      console.error('SecureStore get item error:', error);
-      return null;
-    }
-  },
-  async saveToken(key: string, value: string) {
-    try {
-      return SecureStore.setItemAsync(key, value);
-    } catch (error) {
-      console.error('SecureStore set item error:', error);
-      return;
-    }
-  },
-};
-```
-
-**Why SecureStore?**
-- Encrypts tokens (not plain localStorage)
-- Required for production apps
-- Uses iOS Keychain / Android Keystore
-
-### 4.3 Create Convex Client Setup
-
-Create `lib/convex.ts`:
+Create `apps/mobile/lib/convex.ts`:
 
 ```typescript
 // lib/convex.ts
-import { ConvexReactClient } from 'convex/react';
-import Constants from 'expo-constants';
+import { ConvexReactClient } from "convex/react";
+import Constants from "expo-constants";
 
 const convexUrl = Constants.expoConfig?.extra?.convexUrl;
 
 if (!convexUrl) {
   throw new Error(
-    'Missing EXPO_PUBLIC_CONVEX_URL environment variable.\n' +
-      'Add it to your .env file:\n' +
-      'EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud'
+    "Missing EXPO_PUBLIC_CONVEX_URL environment variable.\n" +
+      "Add it to your .env file:\n" +
+      "EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud"
   );
 }
 
@@ -398,55 +426,71 @@ export const convex = new ConvexReactClient(convexUrl, {
 });
 ```
 
+### 6.2 Create Token Cache
+
+Create `apps/mobile/lib/tokenCache.ts`:
+
+```typescript
+// lib/tokenCache.ts
+import * as SecureStore from "expo-secure-store";
+
+export const tokenCache = {
+  async getToken(key: string): Promise<string | null> {
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch (error) {
+      console.error("SecureStore get error:", error);
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string): Promise<void> {
+    try {
+      await SecureStore.setItemAsync(key, value);
+    } catch (error) {
+      console.error("SecureStore set error:", error);
+    }
+  },
+};
+```
+
+**Why SecureStore?**
+- Encrypts tokens (not plain AsyncStorage)
+- Uses iOS Keychain / Android Keystore
+- Required for production apps
+
 ---
 
-## Step 5: Create Root Layout with Providers
+## Step 7: Create Root Layout with Providers
 
-### 5.1 Install Expo Router (File-Based Routing)
-
-```bash
-npx expo install expo-router
-```
-
-### 5.2 Update package.json Entry Point
-
-Edit `package.json`:
-
-```json
-{
-  "main": "expo-router/entry"
-}
-```
-
-### 5.3 Create App Directory Structure
+### 7.1 Create Directory Structure
 
 ```bash
-mkdir -p app/(auth)
-mkdir -p app/(tabs)
+cd apps/mobile
+mkdir -p app/(auth) app/(tabs) src/components lib
 ```
 
-### 5.4 Create Root Layout
+### 7.2 Create Root Layout
 
-Create `app/_layout.tsx`:
+Create `apps/mobile/app/_layout.tsx`:
 
 ```typescript
 // app/_layout.tsx
-import './polyfills'; // MUST BE FIRST
+import "../lib/polyfills"; // MUST BE FIRST LINE
+import "../global.css"; // NativeWind styles
 
-import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
-import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { Slot } from 'expo-router';
-import Constants from 'expo-constants';
-import { tokenCache } from '@/lib/tokenCache';
-import { convex } from '@/lib/convex';
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { Slot } from "expo-router";
+import Constants from "expo-constants";
+import { tokenCache } from "@/lib/tokenCache";
+import { convex } from "@/lib/convex";
 
 const clerkPublishableKey = Constants.expoConfig?.extra?.clerkPublishableKey;
 
 if (!clerkPublishableKey) {
   throw new Error(
-    'Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable.\n' +
-      'Add it to your .env file:\n' +
-      'EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...'
+    "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY.\n" +
+      "Add it to your .env file."
   );
 }
 
@@ -467,492 +511,22 @@ export default function RootLayout() {
 ```
 
 **Key Points**:
-- `ClerkProvider` wraps everything (auth state)
-- `ClerkLoaded` waits for Clerk to initialize (prevents flicker)
-- `ConvexProviderWithClerk` connects Convex with Clerk auth
-- `Slot` renders child routes (Expo Router pattern)
+- Polyfills imported FIRST (before React Native)
+- NativeWind CSS imported second
+- `ClerkLoaded` prevents auth flicker
+- `ConvexProviderWithClerk` provides authenticated Convex client
 
 ---
 
-## Step 6: Create Authentication Screens
+## Step 8: Create Index Route (Auth Gate)
 
-### 6.1 Create Sign-In Screen
-
-Create `app/(auth)/sign-in.tsx`:
-
-```typescript
-// app/(auth)/sign-in.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useSignIn, useOAuth } from '@clerk/clerk-expo';
-import { useRouter } from 'expo-router';
-
-export default function SignInScreen() {
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const { startOAuthFlow: startGoogleOAuth } = useOAuth({ strategy: 'oauth_google' });
-  const router = useRouter();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Email/Password Sign-In
-  const handleEmailSignIn = async () => {
-    if (!isLoaded || !signIn) return;
-
-    setLoading(true);
-    try {
-      const signInAttempt = await signIn.create({
-        identifier: email,
-        password,
-      });
-
-      if (signInAttempt.status === 'complete') {
-        await setActive({ session: signInAttempt.createdSessionId });
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Error', 'Sign-in incomplete. Please try again.');
-      }
-    } catch (err: any) {
-      Alert.alert('Sign-In Failed', err.errors?.[0]?.longMessage || err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Google OAuth Sign-In
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const { createdSessionId, setActive } = await startGoogleOAuth();
-
-      if (createdSessionId) {
-        await setActive!({ session: createdSessionId });
-        router.replace('/(tabs)');
-      }
-    } catch (err: any) {
-      Alert.alert('OAuth Failed', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>blah.chat</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!loading}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-        />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleEmailSignIn}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.button, styles.googleButton, loading && styles.buttonDisabled]}
-          onPress={handleGoogleSignIn}
-          disabled={loading}
-        >
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => router.push('/(auth)/sign-up')}
-          disabled={loading}
-        >
-          <Text style={styles.linkText}>
-            Don't have an account? <Text style={styles.linkTextBold}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#999',
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  button: {
-    backgroundColor: '#0066ff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  googleButton: {
-    backgroundColor: '#fff',
-  },
-  googleButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#333',
-  },
-  dividerText: {
-    marginHorizontal: 12,
-    color: '#666',
-    fontSize: 14,
-  },
-  linkButton: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#999',
-    fontSize: 14,
-  },
-  linkTextBold: {
-    color: '#0066ff',
-    fontWeight: '600',
-  },
-});
-```
-
-### 6.2 Create Sign-Up Screen
-
-Create `app/(auth)/sign-up.tsx`:
-
-```typescript
-// app/(auth)/sign-up.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useSignUp } from '@clerk/clerk-expo';
-import { useRouter } from 'expo-router';
-
-export default function SignUpScreen() {
-  const { signUp, isLoaded, setActive } = useSignUp();
-  const router = useRouter();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
-  const [pendingVerification, setPendingVerification] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // Step 1: Create account
-  const handleSignUp = async () => {
-    if (!isLoaded || !signUp) return;
-
-    setLoading(true);
-    try {
-      await signUp.create({
-        emailAddress: email,
-        password,
-      });
-
-      // Send verification email
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-
-      setPendingVerification(true);
-    } catch (err: any) {
-      Alert.alert('Sign-Up Failed', err.errors?.[0]?.longMessage || err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Verify email code
-  const handleVerify = async () => {
-    if (!isLoaded || !signUp) return;
-
-    setLoading(true);
-    try {
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
-      });
-
-      if (signUpAttempt.status === 'complete') {
-        await setActive({ session: signUpAttempt.createdSessionId });
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Error', 'Verification incomplete. Please try again.');
-      }
-    } catch (err: any) {
-      Alert.alert('Verification Failed', err.errors?.[0]?.longMessage || err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (pendingVerification) {
-    return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.content}>
-          <Text style={styles.title}>Verify Email</Text>
-          <Text style={styles.subtitle}>
-            We sent a code to {email}
-          </Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Enter 6-digit code"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            editable={!loading}
-          />
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleVerify}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Verify</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => setPendingVerification(false)}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>Back to sign up</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join blah.chat today</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!loading}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-        />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSignUp}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => router.back()}
-          disabled={loading}
-        >
-          <Text style={styles.linkText}>
-            Already have an account? <Text style={styles.linkTextBold}>Sign In</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#999',
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  button: {
-    backgroundColor: '#0066ff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  linkButton: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#999',
-    fontSize: 14,
-  },
-  linkTextBold: {
-    color: '#0066ff',
-    fontWeight: '600',
-  },
-});
-```
-
----
-
-## Step 7: Create Protected Navigation
-
-### 7.1 Create Index Route (Entry Point)
-
-Create `app/index.tsx`:
+Create `apps/mobile/app/index.tsx`:
 
 ```typescript
 // app/index.tsx
-import { useAuth } from '@clerk/clerk-expo';
-import { Redirect } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useAuth } from "@clerk/clerk-expo";
+import { Redirect } from "expo-router";
+import { View, ActivityIndicator } from "react-native";
 
 export default function Index() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -960,7 +534,7 @@ export default function Index() {
   // Show loading while checking auth
   if (!isLoaded) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 bg-background items-center justify-center">
         <ActivityIndicator size="large" color="#0066ff" />
       </View>
     );
@@ -973,46 +547,401 @@ export default function Index() {
 
   return <Redirect href="/(auth)/sign-in" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
 ```
 
-### 7.2 Create Tab Navigation Layout
+---
 
-Create `app/(tabs)/_layout.tsx`:
+## Step 9: Create Authentication Screens
+
+### 9.1 Create Sign-In Screen
+
+Create `apps/mobile/app/(auth)/sign-in.tsx`:
+
+```typescript
+// app/(auth)/sign-in.tsx
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { useSignIn, useOAuth } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
+
+export default function SignInScreen() {
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const { startOAuthFlow: startGoogleOAuth } = useOAuth({
+    strategy: "oauth_google",
+  });
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleEmailSignIn = async () => {
+    if (!isLoaded || !signIn) return;
+
+    setLoading(true);
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert("Error", "Sign-in incomplete. Please try again.");
+      }
+    } catch (err: unknown) {
+      const error = err as { errors?: Array<{ longMessage?: string }>; message?: string };
+      Alert.alert(
+        "Sign-In Failed",
+        error.errors?.[0]?.longMessage || error.message || "Unknown error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { createdSessionId, setActive: setOAuthActive } =
+        await startGoogleOAuth();
+
+      if (createdSessionId && setOAuthActive) {
+        await setOAuthActive({ session: createdSessionId });
+        router.replace("/(tabs)");
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      Alert.alert("OAuth Failed", error.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      className="flex-1 bg-background"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View className="flex-1 justify-center px-6">
+        <Text className="text-4xl font-bold text-foreground mb-2 text-center">
+          blah.chat
+        </Text>
+        <Text className="text-base text-muted mb-8 text-center">
+          Sign in to your account
+        </Text>
+
+        <TextInput
+          className="bg-card rounded-xl p-4 text-base text-foreground mb-3 border border-border"
+          placeholder="Email"
+          placeholderTextColor="#666"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          editable={!loading}
+        />
+
+        <TextInput
+          className="bg-card rounded-xl p-4 text-base text-foreground mb-3 border border-border"
+          placeholder="Password"
+          placeholderTextColor="#666"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          editable={!loading}
+        />
+
+        <TouchableOpacity
+          className={`bg-primary rounded-xl p-4 items-center mt-2 ${
+            loading ? "opacity-60" : ""
+          }`}
+          onPress={handleEmailSignIn}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-foreground text-base font-semibold">
+              Sign In
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <View className="flex-row items-center my-6">
+          <View className="flex-1 h-px bg-border" />
+          <Text className="mx-3 text-muted text-sm">or</Text>
+          <View className="flex-1 h-px bg-border" />
+        </View>
+
+        <TouchableOpacity
+          className={`bg-foreground rounded-xl p-4 items-center ${
+            loading ? "opacity-60" : ""
+          }`}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        >
+          <Text className="text-background text-base font-semibold">
+            Continue with Google
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="mt-6 items-center"
+          onPress={() => router.push("/(auth)/sign-up")}
+          disabled={loading}
+        >
+          <Text className="text-muted text-sm">
+            Don't have an account?{" "}
+            <Text className="text-primary font-semibold">Sign Up</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+```
+
+### 9.2 Create Sign-Up Screen
+
+Create `apps/mobile/app/(auth)/sign-up.tsx`:
+
+```typescript
+// app/(auth)/sign-up.tsx
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { useSignUp } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
+
+export default function SignUpScreen() {
+  const { signUp, isLoaded, setActive } = useSignUp();
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!isLoaded || !signUp) return;
+
+    setLoading(true);
+    try {
+      await signUp.create({
+        emailAddress: email,
+        password,
+      });
+
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setPendingVerification(true);
+    } catch (err: unknown) {
+      const error = err as { errors?: Array<{ longMessage?: string }>; message?: string };
+      Alert.alert(
+        "Sign-Up Failed",
+        error.errors?.[0]?.longMessage || error.message || "Unknown error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!isLoaded || !signUp) return;
+
+    setLoading(true);
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert("Error", "Verification incomplete.");
+      }
+    } catch (err: unknown) {
+      const error = err as { errors?: Array<{ longMessage?: string }>; message?: string };
+      Alert.alert(
+        "Verification Failed",
+        error.errors?.[0]?.longMessage || error.message || "Unknown error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (pendingVerification) {
+    return (
+      <KeyboardAvoidingView
+        className="flex-1 bg-background"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View className="flex-1 justify-center px-6">
+          <Text className="text-4xl font-bold text-foreground mb-2 text-center">
+            Verify Email
+          </Text>
+          <Text className="text-base text-muted mb-8 text-center">
+            We sent a code to {email}
+          </Text>
+
+          <TextInput
+            className="bg-card rounded-xl p-4 text-base text-foreground mb-3 border border-border"
+            placeholder="Enter 6-digit code"
+            placeholderTextColor="#666"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            maxLength={6}
+            editable={!loading}
+          />
+
+          <TouchableOpacity
+            className={`bg-primary rounded-xl p-4 items-center mt-2 ${
+              loading ? "opacity-60" : ""
+            }`}
+            onPress={handleVerify}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-foreground text-base font-semibold">
+                Verify
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="mt-6 items-center"
+            onPress={() => setPendingVerification(false)}
+            disabled={loading}
+          >
+            <Text className="text-muted text-sm">Back to sign up</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      className="flex-1 bg-background"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View className="flex-1 justify-center px-6">
+        <Text className="text-4xl font-bold text-foreground mb-2 text-center">
+          Create Account
+        </Text>
+        <Text className="text-base text-muted mb-8 text-center">
+          Join blah.chat today
+        </Text>
+
+        <TextInput
+          className="bg-card rounded-xl p-4 text-base text-foreground mb-3 border border-border"
+          placeholder="Email"
+          placeholderTextColor="#666"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          editable={!loading}
+        />
+
+        <TextInput
+          className="bg-card rounded-xl p-4 text-base text-foreground mb-3 border border-border"
+          placeholder="Password"
+          placeholderTextColor="#666"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          editable={!loading}
+        />
+
+        <TouchableOpacity
+          className={`bg-primary rounded-xl p-4 items-center mt-2 ${
+            loading ? "opacity-60" : ""
+          }`}
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-foreground text-base font-semibold">
+              Sign Up
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="mt-6 items-center"
+          onPress={() => router.back()}
+          disabled={loading}
+        >
+          <Text className="text-muted text-sm">
+            Already have an account?{" "}
+            <Text className="text-primary font-semibold">Sign In</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+```
+
+---
+
+## Step 10: Create Tab Navigation
+
+### 10.1 Create Tab Layout
+
+Create `apps/mobile/app/(tabs)/_layout.tsx`:
 
 ```typescript
 // app/(tabs)/_layout.tsx
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#0066ff',
-        tabBarInactiveTintColor: '#666',
+        tabBarActiveTintColor: "#0066ff",
+        tabBarInactiveTintColor: "#666",
         tabBarStyle: {
-          backgroundColor: '#000',
-          borderTopColor: '#333',
+          backgroundColor: "#000",
+          borderTopColor: "#333",
         },
         headerStyle: {
-          backgroundColor: '#000',
+          backgroundColor: "#000",
         },
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Chat',
+          title: "Chat",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubbles" size={size} color={color} />
           ),
@@ -1021,7 +950,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: "Profile",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
@@ -1032,19 +961,15 @@ export default function TabLayout() {
 }
 ```
 
----
+### 10.2 Create Chat Tab (Convex Test)
 
-## Step 8: Create Test Screens with Convex Data
-
-### 8.1 Create Chat Tab (Convex Test)
-
-Create `app/(tabs)/index.tsx`:
+Create `apps/mobile/app/(tabs)/index.tsx`:
 
 ```typescript
 // app/(tabs)/index.tsx
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { useQuery } from 'convex/react';
-import { api } from '@/convex/_generated/api';
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { useQuery } from "convex/react";
+import { api } from "@blah-chat/backend/convex/_generated/api";
 
 export default function ChatTab() {
   // Test Convex query - list conversations
@@ -1052,40 +977,49 @@ export default function ChatTab() {
 
   if (conversations === undefined) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 bg-background items-center justify-center">
         <ActivityIndicator size="large" color="#0066ff" />
-        <Text style={styles.loadingText}>Loading conversations...</Text>
+        <Text className="mt-4 text-base text-muted">
+          Loading conversations...
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Conversations</Text>
-        <Text style={styles.subtitle}>
+    <ScrollView className="flex-1 bg-background">
+      <View className="p-5">
+        <Text className="text-3xl font-bold text-foreground mb-2">
+          Conversations
+        </Text>
+        <Text className="text-base text-muted mb-6">
           {conversations.length === 0
-            ? 'No conversations yet. Start one in the web app!'
+            ? "No conversations yet. Start one in the web app!"
             : `Found ${conversations.length} conversation(s)`}
         </Text>
 
         {conversations.map((conv) => (
-          <View key={conv._id} style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {conv.title || 'Untitled Conversation'}
+          <View
+            key={conv._id}
+            className="bg-card rounded-xl p-4 mb-3 border border-border"
+          >
+            <Text className="text-lg font-semibold text-foreground mb-1">
+              {conv.title || "Untitled Conversation"}
             </Text>
-            <Text style={styles.cardMeta}>
-              {conv.modelId || 'No model'} • {new Date(conv.createdAt).toLocaleDateString()}
+            <Text className="text-sm text-muted">
+              {conv.model || "No model"} •{" "}
+              {new Date(conv._creationTime).toLocaleDateString()}
             </Text>
           </View>
         ))}
 
         {conversations.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              ✨ This is working!{'\n\n'}
-              Go to http://localhost:3000 in your browser and create a conversation.
-              {'\n\n'}It will appear here in real-time.
+          <View className="mt-10 p-6 bg-card rounded-xl border border-border">
+            <Text className="text-base text-muted text-center leading-6">
+              This is working!{"\n\n"}
+              Go to http://localhost:3000 in your browser and create a
+              conversation.{"\n\n"}
+              It will appear here in real-time.
             </Text>
           </View>
         )}
@@ -1093,75 +1027,17 @@ export default function ChatTab() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#999',
-    marginBottom: 24,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#999',
-  },
-  card: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  cardMeta: {
-    fontSize: 14,
-    color: '#666',
-  },
-  emptyState: {
-    marginTop: 40,
-    padding: 24,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-});
 ```
 
-### 8.2 Create Profile Tab (Auth Test)
+### 10.3 Create Profile Tab
 
-Create `app/(tabs)/profile.tsx`:
+Create `apps/mobile/app/(tabs)/profile.tsx`:
 
 ```typescript
 // app/(tabs)/profile.tsx
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useUser, useAuth } from '@clerk/clerk-expo';
-import { useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, Platform } from "react-native";
+import { useUser, useAuth } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
 
 export default function ProfileTab() {
   const { user } = useUser();
@@ -1170,205 +1046,125 @@ export default function ProfileTab() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace('/(auth)/sign-in');
+    router.replace("/(auth)/sign-in");
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Profile</Text>
+    <View className="flex-1 bg-background p-5">
+      <Text className="text-3xl font-bold text-foreground mb-6">Profile</Text>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{user?.primaryEmailAddress?.emailAddress}</Text>
-        </View>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.label}>User ID</Text>
-          <Text style={styles.valueSmall}>{user?.id}</Text>
-        </View>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.label}>Joined</Text>
-          <Text style={styles.value}>
-            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
-          </Text>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+      <View className="bg-card rounded-xl p-4 mb-3 border border-border">
+        <Text className="text-xs text-muted uppercase tracking-wide mb-1">
+          Email
+        </Text>
+        <Text className="text-base text-foreground">
+          {user?.primaryEmailAddress?.emailAddress}
+        </Text>
       </View>
+
+      <View className="bg-card rounded-xl p-4 mb-3 border border-border">
+        <Text className="text-xs text-muted uppercase tracking-wide mb-1">
+          User ID
+        </Text>
+        <Text
+          className={`text-xs text-muted ${
+            Platform.OS === "ios" ? "font-mono" : ""
+          }`}
+        >
+          {user?.id}
+        </Text>
+      </View>
+
+      <View className="bg-card rounded-xl p-4 mb-3 border border-border">
+        <Text className="text-xs text-muted uppercase tracking-wide mb-1">
+          Joined
+        </Text>
+        <Text className="text-base text-foreground">
+          {user?.createdAt
+            ? new Date(user.createdAt).toLocaleDateString()
+            : "Unknown"}
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        className="bg-red-500 rounded-xl p-4 items-center mt-6"
+        onPress={handleSignOut}
+      >
+        <Text className="text-foreground text-base font-semibold">
+          Sign Out
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 24,
-  },
-  infoCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  value: {
-    fontSize: 16,
-    color: '#fff',
-  },
-  valueSmall: {
-    fontSize: 12,
-    color: '#999',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-  button: {
-    backgroundColor: '#ff3b30',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
 ```
 
 ---
 
-## Step 9: Set Up TypeScript Path Aliases
+## Step 11: Update turbo.json for Mobile
 
-### 9.1 Configure tsconfig.json
-
-Edit `tsconfig.json`:
+Update the root `turbo.json` to include mobile tasks:
 
 ```json
 {
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"],
-      "@/convex/*": ["../blah.chat/convex/*"]
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "mobile:dev": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
 ```
 
-**Note**: Adjust `"../blah.chat/convex/*"` path to match your web app location.
-
-### 9.2 Create Convex Types Symlink
-
-From mobile project root:
-
-```bash
-# macOS/Linux
-ln -s ../blah.chat/convex ./convex
-
-# Windows (run as Administrator)
-mklink /D convex ..\blah.chat\convex
-```
-
-This allows importing: `import { api } from '@/convex/_generated/api'`
-
 ---
 
-## Step 10: Run and Test
+## Step 12: Run and Test
 
-### 10.1 Start Development Server
+### 12.1 Start Development
 
-Ensure web app and Convex are still running:
-
-Terminal 1 (web app):
+**Terminal 1** (Convex backend):
 ```bash
-cd ~/code/blah.chat
+cd packages/backend
 bunx convex dev
 ```
 
-Terminal 2 (web app):
+**Terminal 2** (Web app - optional, for testing real-time):
 ```bash
-cd ~/code/blah.chat
 bun dev
 ```
 
-Terminal 3 (mobile app):
+**Terminal 3** (Mobile app):
 ```bash
-cd ~/code/blah-chat-mobile
-npx expo start --clear
+cd apps/mobile
+bunx expo start --clear
 ```
 
-### 10.2 Open on Simulator
+### 12.2 Open on Simulator
 
-In Expo Dev Tools:
+In Expo CLI:
 - Press `i` for iOS Simulator
 - Press `a` for Android Emulator
 
-**Or scan QR code** with Expo Go on physical device
-
-### 10.3 Test Authentication
-
-1. App opens to sign-in screen
-2. Click **Sign Up**
-3. Enter email and password
-4. Receive verification code email
-5. Enter code
-6. Redirected to Chat tab
-7. See "Found 0 conversations" (or your existing ones)
-
-### 10.4 Test Convex Real-Time
-
-1. Keep mobile app open on Chat tab
-2. In web browser (http://localhost:3000):
-   - Create a new conversation
-   - Send a message
-3. Mobile app should update immediately (no refresh needed)
-
-### 10.5 Test Sign Out
-
-1. Go to Profile tab
-2. Click **Sign Out**
-3. Redirected to sign-in screen
-
----
-
-## Testing Checklist
+### 12.3 Test Checklist
 
 - [ ] App builds without errors
 - [ ] No "Buffer is not defined" errors
-- [ ] No "process is not defined" errors
-- [ ] Sign-up flow works (email verification)
-- [ ] Sign-in with email/password works
-- [ ] Google OAuth works (if configured)
-- [ ] Sign-out redirects to auth screen
-- [ ] Chat tab loads conversations
-- [ ] Creating conversation in web app shows in mobile real-time
+- [ ] Sign-in redirects to tabs
+- [ ] Chat tab loads conversations from Convex
+- [ ] Creating conversation in web app shows in mobile (real-time)
 - [ ] Profile tab shows user info
-- [ ] Tab navigation works smoothly
-- [ ] No console errors or warnings
+- [ ] Sign-out redirects to auth screen
 
 ---
 
@@ -1377,107 +1173,68 @@ In Expo Dev Tools:
 ### "Buffer is not defined"
 
 **Cause**: Polyfills not loaded first
-**Solution**:
-1. Verify `polyfills.ts` exists in root
-2. Check `import './polyfills';` is **first line** in `app/_layout.tsx`
-3. Clear cache: `npx expo start --clear`
+**Fix**:
+1. Verify `import "../lib/polyfills"` is **first line** in `app/_layout.tsx`
+2. Clear cache: `bunx expo start --clear`
 
----
+### "Cannot find module @blah-chat/backend"
 
-### "process.env is not defined"
+**Cause**: Monorepo packages not linked
+**Fix**:
+1. Run `bun install` from monorepo root
+2. Verify `metro.config.js` has correct `watchFolders`
+3. Restart: `bunx expo start --clear`
 
-**Cause**: Process polyfill incomplete
-**Solution**: Add to `polyfills.ts`:
-```typescript
-global.process.env = global.process.env || {};
-```
-
----
-
-### "Unable to resolve module 'convex'"
-
-**Cause**: Metro bundler not configured
-**Solution**:
-1. Verify `metro.config.js` has `extraNodeModules`
-2. Restart bundler: `npx expo start --clear`
-3. Reinstall: `rm -rf node_modules && npm install`
-
----
-
-### Clerk "Invalid publishable key"
+### "Clerk invalid publishable key"
 
 **Cause**: Wrong key or not set
-**Solution**:
-1. Check `.env` has correct `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
-2. Verify key starts with `pk_test_` or `pk_live_`
-3. Restart expo: `npx expo start --clear`
-
----
+**Fix**:
+1. Check `apps/mobile/.env` has correct key
+2. Key should match `apps/web/.env.local`
+3. Restart expo after env changes
 
 ### "Cannot connect to Convex"
 
 **Cause**: Wrong URL or Convex not running
-**Solution**:
+**Fix**:
 1. Check `.env` has correct `EXPO_PUBLIC_CONVEX_URL`
-2. Verify Convex dev running: `bunx convex dev`
-3. Test URL in browser (should show JSON response)
+2. Verify Convex dev running: `cd packages/backend && bunx convex dev`
+
+### NativeWind styles not applying
+
+**Cause**: Babel plugin or CSS import missing
+**Fix**:
+1. Verify `babel.config.js` has `nativewind/babel` preset
+2. Verify `global.css` is imported in `app/_layout.tsx`
+3. Clear cache: `bunx expo start --clear`
 
 ---
 
-### Google OAuth "Redirect URI mismatch"
+## Success Criteria
 
-**Cause**: Clerk not configured for mobile redirects
-**Solution**:
-1. In Clerk Dashboard → Social Connections → Google
-2. Add redirect URI: `exp://localhost:8081`
-3. Add: `https://your-app.clerk.accounts.dev/v1/oauth_callback`
+You're ready for Phase 2 when:
 
----
-
-### Conversations not showing
-
-**Cause**: Auth not working or no conversations in web
-**Solution**:
-1. Check Profile tab shows your email (auth working)
-2. Create conversation in web app (http://localhost:3000)
-3. Check Convex dashboard for data: https://dashboard.convex.dev
+1. Mobile app builds without errors
+2. Sign-in/sign-up flow works
+3. Convex queries load data
+4. Real-time updates work (create in web, see in mobile)
+5. NativeWind styles render correctly
+6. Tab navigation works
 
 ---
 
-## Next Steps
+## Next Phase Preview
 
-### What You Built
+**Phase 2: Core Chat Implementation** will cover:
 
-✅ Expo app with TypeScript
-✅ Metro bundler configured with polyfills
-✅ Clerk authentication (email + OAuth)
-✅ Convex client with auth
-✅ Sign-in/sign-up screens
-✅ Protected tab navigation
-✅ Real-time data sync test
-
-### What's Next (Phase 2)
-
-**Phase 2: Core Chat Implementation** will add:
-- Conversation list with pull-to-refresh
-- Full chat screen with message list
-- Virtualized message rendering
-- Chat input with auto-expand
-- Model selector bottom sheet
-- Real-time message streaming
-- Offline message queue
-- Message actions (copy, edit, delete, regenerate)
+- Conversation list with FlashList
+- Chat screen with virtualized messages
+- Real-time streaming display (`partialContent`)
+- Chat input with model selector
+- Resilient generation pattern
+- Message actions (copy, regenerate)
 
 **Estimated Time**: 8-12 hours
-
----
-
-## Resources
-
-- **Expo Router Docs**: https://docs.expo.dev/router/introduction/
-- **Clerk Expo SDK**: https://clerk.com/docs/reference/expo/overview
-- **Convex React Native**: https://docs.convex.dev/client/react-native
-- **React Navigation**: https://reactnavigation.org
 
 ---
 

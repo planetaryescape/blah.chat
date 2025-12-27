@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   type ColumnDef,
   flexRender,
@@ -340,7 +340,8 @@ export default function SlidesPage() {
               toast.success("Generating description...");
             },
             onTogglePin: () => togglePin({ presentationId: presentation._id }),
-            onToggleStar: () => toggleStar({ presentationId: presentation._id }),
+            onToggleStar: () =>
+              toggleStar({ presentationId: presentation._id }),
             onDelete: () => setDeleteId(presentation._id),
           });
 
@@ -576,157 +577,161 @@ export default function SlidesPage() {
         <ScrollArea className="flex-1 w-full min-h-0">
           <div className="container mx-auto max-w-6xl px-4 py-8">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredPresentations.map((presentation: PresentationWithStats) => {
-                const status = statusLabels[presentation.status] || {
-                  label: presentation.status,
-                  color: "text-muted-foreground",
-                };
+              {filteredPresentations.map(
+                (presentation: PresentationWithStats) => {
+                  const status = statusLabels[presentation.status] || {
+                    label: presentation.status,
+                    color: "text-muted-foreground",
+                  };
 
-                const menuItems = getPresentationMenuItems({
-                  presentation,
-                  onStopGeneration: () => {
-                    stopGeneration({ presentationId: presentation._id });
-                    toast.info("Stopping generation...");
-                  },
-                  onRestartGeneration: () => {
-                    retryGeneration({ presentationId: presentation._id });
-                    toast.success("Restarting generation...");
-                  },
-                  onRegenerateDescription: () => {
-                    regenerateDescription({ presentationId: presentation._id });
-                    toast.success("Generating description...");
-                  },
-                  onTogglePin: () =>
-                    togglePin({ presentationId: presentation._id }),
-                  onToggleStar: () =>
-                    toggleStar({ presentationId: presentation._id }),
-                  onDelete: () => setDeleteId(presentation._id),
-                });
+                  const menuItems = getPresentationMenuItems({
+                    presentation,
+                    onStopGeneration: () => {
+                      stopGeneration({ presentationId: presentation._id });
+                      toast.info("Stopping generation...");
+                    },
+                    onRestartGeneration: () => {
+                      retryGeneration({ presentationId: presentation._id });
+                      toast.success("Restarting generation...");
+                    },
+                    onRegenerateDescription: () => {
+                      regenerateDescription({
+                        presentationId: presentation._id,
+                      });
+                      toast.success("Generating description...");
+                    },
+                    onTogglePin: () =>
+                      togglePin({ presentationId: presentation._id }),
+                    onToggleStar: () =>
+                      toggleStar({ presentationId: presentation._id }),
+                    onDelete: () => setDeleteId(presentation._id),
+                  });
 
-                return (
-                  <Card
-                    key={presentation._id}
-                    className="cursor-pointer transition-shadow hover:shadow-md overflow-hidden"
-                    onClick={() => handleRowClick(presentation)}
-                  >
-                    <div className="relative">
-                      <PresentationThumbnail
-                        storageId={presentation.thumbnailStorageId}
-                        status={presentation.thumbnailStatus}
-                        title={presentation.title}
-                        size="card"
-                      />
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 left-2 h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleStar({ presentationId: presentation._id });
-                        }}
-                      >
-                        <Star
-                          className={cn(
-                            "h-4 w-4",
-                            presentation.starred &&
-                              "fill-yellow-500 text-yellow-500",
-                          )}
+                  return (
+                    <Card
+                      key={presentation._id}
+                      className="cursor-pointer transition-shadow hover:shadow-md overflow-hidden"
+                      onClick={() => handleRowClick(presentation)}
+                    >
+                      <div className="relative">
+                        <PresentationThumbnail
+                          storageId={presentation.thumbnailStorageId}
+                          status={presentation.thumbnailStatus}
+                          title={presentation.title}
+                          size="card"
                         />
-                      </Button>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 left-2 h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar({ presentationId: presentation._id });
+                          }}
                         >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                          <Star
+                            className={cn(
+                              "h-4 w-4",
+                              presentation.starred &&
+                                "fill-yellow-500 text-yellow-500",
+                            )}
+                          />
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {menuItems.map((item) => (
-                            <DropdownMenuItem
-                              key={item.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                item.onClick();
-                              }}
-                              className={
-                                item.destructive
-                                  ? "text-destructive focus:text-destructive"
-                                  : undefined
-                              }
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="absolute top-2 right-2 h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background/90"
                             >
-                              {item.icon}
-                              {item.label}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {menuItems.map((item) => (
+                              <DropdownMenuItem
+                                key={item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  item.onClick();
+                                }}
+                                className={
+                                  item.destructive
+                                    ? "text-destructive focus:text-destructive"
+                                    : undefined
+                                }
+                              >
+                                {item.icon}
+                                {item.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
 
-                      {presentation.pinned && (
-                        <span className="absolute bottom-2 left-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-orange-500 flex items-center gap-1">
-                          <Pin className="h-3 w-3 fill-current" />
-                          Pinned
-                        </span>
-                      )}
-
-                      <span
-                        className={`absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm ${status.color}`}
-                      >
-                        {status.label}
-                      </span>
-                    </div>
-
-                    <CardHeader className="pb-1.5 pt-2">
-                      <CardTitle className="text-base">
-                        {presentation.title}
-                      </CardTitle>
-                      {presentation.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                          {presentation.description}
-                        </p>
-                      )}
-                    </CardHeader>
-
-                    <CardContent className="pt-0 pb-3">
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(presentation.createdAt, {
-                            addSuffix: true,
-                          })}
-                        </div>
-                        {presentation.totalSlides > 0 && (
-                          <div>{presentation.totalSlides} slides</div>
+                        {presentation.pinned && (
+                          <span className="absolute bottom-2 left-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-orange-500 flex items-center gap-1">
+                            <Pin className="h-3 w-3 fill-current" />
+                            Pinned
+                          </span>
                         )}
+
+                        <span
+                          className={`absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm ${status.color}`}
+                        >
+                          {status.label}
+                        </span>
                       </div>
-                      {showStats && presentation.stats?.totalCost > 0 && (
-                        <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t text-xs text-muted-foreground">
-                          {presentation.imageModel && (
-                            <span title={presentation.imageModel}>
-                              {presentation.imageModel
-                                .replace(/^google:/, "")
-                                .replace(/-/g, " ")}
-                            </span>
-                          )}
-                          <div className="flex items-center gap-0.5 ml-auto">
-                            <DollarSign className="h-3 w-3" />
-                            <span className="font-mono">
-                              {presentation.stats.totalCost.toFixed(4)}
-                            </span>
+
+                      <CardHeader className="pb-1.5 pt-2">
+                        <CardTitle className="text-base">
+                          {presentation.title}
+                        </CardTitle>
+                        {presentation.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            {presentation.description}
+                          </p>
+                        )}
+                      </CardHeader>
+
+                      <CardContent className="pt-0 pb-3">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDistanceToNow(presentation.createdAt, {
+                              addSuffix: true,
+                            })}
                           </div>
+                          {presentation.totalSlides > 0 && (
+                            <div>{presentation.totalSlides} slides</div>
+                          )}
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        {showStats && presentation.stats?.totalCost > 0 && (
+                          <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t text-xs text-muted-foreground">
+                            {presentation.imageModel && (
+                              <span title={presentation.imageModel}>
+                                {presentation.imageModel
+                                  .replace(/^google:/, "")
+                                  .replace(/-/g, " ")}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-0.5 ml-auto">
+                              <DollarSign className="h-3 w-3" />
+                              <span className="font-mono">
+                                {presentation.stats.totalCost.toFixed(4)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                },
+              )}
             </div>
           </div>
         </ScrollArea>
@@ -790,7 +795,7 @@ export default function SlidesPage() {
             </div>
 
             {table.getPageCount() > 0 && (
-              <div className="flex-shrink-0 flex items-center justify-end space-x-2 pt-4">
+              <div className="shrink-0 flex items-center justify-end space-x-2 pt-4">
                 <div className="flex-1 text-sm text-muted-foreground">
                   {table.getFilteredRowModel().rows.length} presentation(s)
                 </div>

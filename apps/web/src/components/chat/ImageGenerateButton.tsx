@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation } from "convex/react";
 import { ImageIcon, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -24,8 +26,6 @@ import {
 } from "@/components/ui/select";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 
 interface ImageGenerateButtonProps {

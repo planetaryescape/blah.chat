@@ -77,7 +77,7 @@ function NewSlidesContent() {
   const [selectedTemplateId, setSelectedTemplateId] =
     useState<Id<"designTemplates"> | null>(null);
   const [templateSectionOpen, setTemplateSectionOpen] = useState(false);
-  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [_uploadingDocument, setUploadingDocument] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // URL-persisted wizard state (enables deep linking)

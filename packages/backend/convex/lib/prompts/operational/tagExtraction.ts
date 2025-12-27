@@ -40,11 +40,15 @@ EXAMPLES:
 - Content about "Python async/await" + existing "python" → Use "python"
 - Content about "machine learning basics" + existing "ai" → Use "ai" (close enough)
 - Content about "kubernetes deployment" + no k8s/devops tags → Create "kubernetes" (new domain)
+- Content about "casting notes for film project" + existing "projects" → Create "projects/film/casting" (nested)
 
 RULES:
 - 1-3 tags based on relevance (not always 3)
 - Lowercase, kebab-case for multi-word (e.g., "machine-learning")
 - Skip generic: "help", "code", "general", "note", "misc", "other"
+- Compound tags supported: use "/" for nesting (e.g., "projects/acting/cast", "work/meetings")
+  - Creates folder-like hierarchy
+  - Use when content fits a specific subcategory of an existing tag
 
 CONTENT:
 ${content}

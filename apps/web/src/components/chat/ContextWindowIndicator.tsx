@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import {
   Tooltip,
@@ -8,8 +10,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getModelConfig } from "@/lib/ai/utils";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 
 interface ContextWindowIndicatorProps {
   conversationId: Id<"conversations">;

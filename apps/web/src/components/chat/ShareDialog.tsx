@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Check, Copy, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -24,8 +26,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { analytics } from "@/lib/analytics";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 
 interface ShareDialogProps {
   conversationId: Id<"conversations">;

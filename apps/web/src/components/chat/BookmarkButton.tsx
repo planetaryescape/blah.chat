@@ -1,5 +1,7 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useState } from "react";
@@ -21,8 +23,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { analytics } from "@/lib/analytics";
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 
 interface BookmarkButtonProps {
   messageId: Id<"messages">;

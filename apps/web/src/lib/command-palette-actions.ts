@@ -1,3 +1,4 @@
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   Archive,
   Bookmark,
@@ -21,7 +22,6 @@ import {
   Sun,
   Trash2,
 } from "lucide-react";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 
 export type ActionItem = {
   id: string;

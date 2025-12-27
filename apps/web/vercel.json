@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "framework": "nextjs",
-  "rootDirectory": "apps/web",
   "buildCommand": "cd ../.. && bun run build --filter=@blah-chat/web",
   "installCommand": "cd ../.. && bun install",
   "regions": ["lhr1"],

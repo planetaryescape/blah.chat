@@ -26,7 +26,13 @@
       "dependsOn": ["^build"]
     },
     "test:e2e": {
-      "dependsOn": ["build"]
+      "dependsOn": ["build"],
+      "passThroughEnv": [
+        "CI",
+        "NEXT_PUBLIC_CONVEX_URL",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "CLERK_SECRET_KEY"
+      ]
     }
   }
 }

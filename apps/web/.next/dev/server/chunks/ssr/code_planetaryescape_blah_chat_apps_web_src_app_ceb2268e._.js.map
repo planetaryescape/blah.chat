@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/bhekanik/code/planetaryescape/blah.chat/apps/web/src/app/apple-icon.png.mjs%20%28structured%20image%20object%29"],"sourcesContent":["import src from \"IMAGE\";\nexport default { src, width: 180, height: 180 }\n"],"names":[],"mappings":";;;;AAAA;;uCACe;IAAE,KAAA,0MAAG;IAAE,OAAO;IAAK,QAAQ;AAAI"}}]
-}

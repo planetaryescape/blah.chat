@@ -1,1 +1,0 @@
-(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,634316,e=>{"use strict";var c=e.i(530101);e.i(481138),e.s([],686540),e.i(686540),e.s(["ArchitectureModule",()=>c.ArchitectureModule,"createArchitectureServices",()=>c.createArchitectureServices],634316)}]);

@@ -24,11 +24,8 @@ import {
   Pin,
   Plus,
   Presentation,
-  RefreshCw,
-  RotateCcw,
   Search,
   Star,
-  StopCircle,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -38,6 +35,10 @@ import { useDebouncedCallback } from "use-debounce";
 import { useLocalStorage } from "usehooks-ts";
 import { DisabledFeaturePage } from "@/components/DisabledFeaturePage";
 import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
+import {
+  getPresentationMenuItems,
+  type PresentationWithStats,
+} from "@/components/slides/PresentationActionsMenu";
 import { PresentationThumbnail } from "@/components/slides/PresentationThumbnail";
 import {
   AlertDialog,
@@ -161,19 +162,11 @@ export default function SlidesPage() {
     executeHybridSearch(searchQuery);
   }, [searchQuery, filter, executeHybridSearch]);
 
-  // Define type for presentation with stats
-  type PresentationWithStats = Doc<"presentations"> & {
-    thumbnailStorageId?: Id<"_storage">;
-    thumbnailStatus?: string;
-    stats: {
-      totalCost: number;
-      totalInputTokens: number;
-      totalOutputTokens: number;
-    };
-    statusLabel?: any;
+  type PresentationWithStatusLabel = PresentationWithStats & {
+    statusLabel: { label: string; color: string };
   };
 
-  const columns = useMemo<ColumnDef<PresentationWithStats>[]>(
+  const columns = useMemo<ColumnDef<PresentationWithStatusLabel>[]>(
     () => [
       {
         id: "thumbnail",
@@ -332,16 +325,24 @@ export default function SlidesPage() {
         id: "actions",
         cell: ({ row }) => {
           const presentation = row.original;
-          const isGenerating = [
-            "slides_generating",
-            "design_generating",
-          ].includes(presentation.status);
-          const canRestart = [
-            "error",
-            "stopped",
-            "design_complete",
-            "outline_complete",
-          ].includes(presentation.status);
+          const menuItems = getPresentationMenuItems({
+            presentation,
+            onStopGeneration: () => {
+              stopGeneration({ presentationId: presentation._id });
+              toast.info("Stopping generation...");
+            },
+            onRestartGeneration: () => {
+              retryGeneration({ presentationId: presentation._id });
+              toast.success("Restarting generation...");
+            },
+            onRegenerateDescription: () => {
+              regenerateDescription({ presentationId: presentation._id });
+              toast.success("Generating description...");
+            },
+            onTogglePin: () => togglePin({ presentationId: presentation._id }),
+            onToggleStar: () => toggleStar({ presentationId: presentation._id }),
+            onDelete: () => setDeleteId(presentation._id),
+          });
 
           return (
             <div className="flex justify-end">
@@ -355,72 +356,23 @@ export default function SlidesPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {isGenerating && (
+                  {menuItems.map((item) => (
                     <DropdownMenuItem
+                      key={item.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        stopGeneration({ presentationId: presentation._id });
-                        toast.info("Stopping generation...");
+                        item.onClick();
                       }}
+                      className={
+                        item.destructive
+                          ? "text-destructive focus:text-destructive"
+                          : undefined
+                      }
                     >
-                      <StopCircle className="mr-2 h-4 w-4" />
-                      Stop Generation
+                      {item.icon}
+                      {item.label}
                     </DropdownMenuItem>
-                  )}
-                  {canRestart && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        retryGeneration({ presentationId: presentation._id });
-                        toast.success("Restarting generation...");
-                      }}
-                    >
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Restart Generation
-                    </DropdownMenuItem>
-                  )}
-                  {!presentation.description && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        regenerateDescription({
-                          presentationId: presentation._id,
-                        });
-                        toast.success("Generating description...");
-                      }}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Generate Description
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePin({ presentationId: presentation._id });
-                    }}
-                  >
-                    <Pin className="mr-2 h-4 w-4" />
-                    {presentation.pinned ? "Unpin" : "Pin"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleStar({ presentationId: presentation._id });
-                    }}
-                  >
-                    <Star className="mr-2 h-4 w-4" />
-                    {presentation.starred ? "Unstar" : "Star"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteId(presentation._id);
-                    }}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -638,22 +590,32 @@ export default function SlidesPage() {
         <ScrollArea className="flex-1 w-full min-h-0">
           <div className="container mx-auto max-w-6xl px-4 py-8">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredPresentations.map((presentation: any) => {
+              {filteredPresentations.map((presentation: PresentationWithStats) => {
                 const status = statusLabels[presentation.status] || {
                   label: presentation.status,
                   color: "text-muted-foreground",
                 };
 
-                const isGenerating = [
-                  "slides_generating",
-                  "design_generating",
-                ].includes(presentation.status);
-                const canRestart = [
-                  "error",
-                  "stopped",
-                  "design_complete",
-                  "outline_complete",
-                ].includes(presentation.status);
+                const menuItems = getPresentationMenuItems({
+                  presentation,
+                  onStopGeneration: () => {
+                    stopGeneration({ presentationId: presentation._id });
+                    toast.info("Stopping generation...");
+                  },
+                  onRestartGeneration: () => {
+                    retryGeneration({ presentationId: presentation._id });
+                    toast.success("Restarting generation...");
+                  },
+                  onRegenerateDescription: () => {
+                    regenerateDescription({ presentationId: presentation._id });
+                    toast.success("Generating description...");
+                  },
+                  onTogglePin: () =>
+                    togglePin({ presentationId: presentation._id }),
+                  onToggleStar: () =>
+                    toggleStar({ presentationId: presentation._id }),
+                  onDelete: () => setDeleteId(presentation._id),
+                });
 
                 return (
                   <Card
@@ -661,7 +623,6 @@ export default function SlidesPage() {
                     className="cursor-pointer transition-shadow hover:shadow-md overflow-hidden"
                     onClick={() => handleRowClick(presentation)}
                   >
-                    {/* Thumbnail with overlay badges */}
                     <div className="relative">
                       <PresentationThumbnail
                         storageId={presentation.thumbnailStorageId}
@@ -670,7 +631,6 @@ export default function SlidesPage() {
                         size="card"
                       />
 
-                      {/* Star button - top-left */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -683,13 +643,12 @@ export default function SlidesPage() {
                         <Star
                           className={cn(
                             "h-4 w-4",
-                            presentation.starred === true &&
+                            presentation.starred &&
                               "fill-yellow-500 text-yellow-500",
                           )}
                         />
                       </Button>
 
-                      {/* Menu - top-right */}
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           asChild
@@ -704,88 +663,33 @@ export default function SlidesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {isGenerating && (
+                          {menuItems.map((item) => (
                             <DropdownMenuItem
+                              key={item.id}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                stopGeneration({
-                                  presentationId: presentation._id,
-                                });
-                                toast.info("Stopping generation...");
+                                item.onClick();
                               }}
+                              className={
+                                item.destructive
+                                  ? "text-destructive focus:text-destructive"
+                                  : undefined
+                              }
                             >
-                              <StopCircle className="mr-2 h-4 w-4" />
-                              Stop Generation
+                              {item.icon}
+                              {item.label}
                             </DropdownMenuItem>
-                          )}
-                          {canRestart && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                retryGeneration({
-                                  presentationId: presentation._id,
-                                });
-                                toast.success("Restarting generation...");
-                              }}
-                            >
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                              Restart Generation
-                            </DropdownMenuItem>
-                          )}
-                          {!presentation.description && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                regenerateDescription({
-                                  presentationId: presentation._id,
-                                });
-                                toast.success("Generating description...");
-                              }}
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Generate Description
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              togglePin({ presentationId: presentation._id });
-                            }}
-                          >
-                            <Pin className="mr-2 h-4 w-4" />
-                            {presentation.pinned ? "Unpin" : "Pin"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleStar({ presentationId: presentation._id });
-                            }}
-                          >
-                            <Star className="mr-2 h-4 w-4" />
-                            {presentation.starred ? "Unstar" : "Star"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteId(presentation._id);
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {/* Pinned indicator - bottom-left */}
-                      {presentation.pinned === true && (
+                      {presentation.pinned && (
                         <span className="absolute bottom-2 left-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-orange-500 flex items-center gap-1">
                           <Pin className="h-3 w-3 fill-current" />
                           Pinned
                         </span>
                       )}
 
-                      {/* Status badge - bottom-right */}
                       <span
                         className={`absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm ${status.color}`}
                       >

@@ -4,16 +4,17 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'convex/**'
-      - 'e2e/**'
-      - 'playwright.config.ts'
+      - 'apps/web/src/**'
+      - 'apps/web/e2e/**'
+      - 'apps/web/playwright.config.ts'
+      - 'packages/backend/convex/**'
   workflow_dispatch:
 
 jobs:
   e2e:
     name: Playwright E2E
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    environment: staging
     timeout-minutes: 30
 
     steps:
@@ -35,8 +36,8 @@ jobs:
         run: bun run test:e2e
         env:
           CI: true
-          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL || 'https://example.convex.cloud' }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_MOCK' }}
+          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

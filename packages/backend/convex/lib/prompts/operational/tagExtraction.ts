@@ -1,16 +1,16 @@
 /**
  * Auto-Tagging Prompt
  *
- * Used for automatically tagging notes with existing tag reuse priority.
+ * Used for automatically tagging notes/tasks with existing tag reuse priority.
  * Generates 1-3 tags based on content relevance.
  */
 
 /**
- * Prompt for auto-tagging notes with existing tag priority.
- * Used by: notes/tags.ts (extractAndApplyTags action)
+ * Prompt for auto-tagging with existing tag priority.
+ * Used by: notes/tags.ts, tasks/tags.ts
  *
- * @param content - The note content to tag (first 1000 chars)
- * @param existingTags - User's existing tags (top 20 by usage)
+ * @param content - The content to tag (truncated to ~1000 chars)
+ * @param existingTags - ALL user's existing tags (sorted by usage)
  */
 export function buildAutoTagPrompt(
   content: string,
@@ -18,23 +18,35 @@ export function buildAutoTagPrompt(
 ): string {
   const tagsContext =
     existingTags.length > 0
-      ? `EXISTING TAGS (prioritize reuse):
-${existingTags.map((t) => `- ${t.displayName} (used ${t.usageCount}×)`).join("\n")}`
-      : "No existing tags yet.";
+      ? `YOUR EXISTING TAGS (${existingTags.length} total):
+${existingTags.map((t) => `- ${t.displayName} (${t.usageCount}×)`).join("\n")}`
+      : "No existing tags yet - create appropriate ones.";
 
-  return `Auto-tag this note with 1-3 tags.
-
-CRITICAL RULES:
-1. STRONGLY prefer existing tags (reuse > create new)
-2. Only create new tags if content doesn't fit existing ones
-3. Use 1-3 tags based on relevance (not always 3)
-4. Min confidence: 80% (skip uncertain tags)
-5. Lowercase only, kebab-case for multi-word (e.g., "machine-learning")
-6. Skip generic tags like "help", "code", "general", "note"
+  return `Auto-tag this content with 1-3 tags.
 
 ${tagsContext}
 
-NOTE CONTENT:
+DECISION PROCESS:
+1. First, check if ANY existing tag fits the content well
+2. Prefer existing tags even if not a perfect match (80%+ fit = use it)
+3. Only create a NEW tag when:
+   - Content covers a genuinely new topic not in your tags
+   - Existing tags would be misleading or too vague
+   - The new tag would likely be reused for similar future content
+
+EXAMPLES:
+- Content about "React hooks" + existing "react" → Use "react" (subtopic fits parent)
+- Content about "gardening tips" + no gardening tags → Create "gardening" (genuinely new)
+- Content about "Python async/await" + existing "python" → Use "python"
+- Content about "machine learning basics" + existing "ai" → Use "ai" (close enough)
+- Content about "kubernetes deployment" + no k8s/devops tags → Create "kubernetes" (new domain)
+
+RULES:
+- 1-3 tags based on relevance (not always 3)
+- Lowercase, kebab-case for multi-word (e.g., "machine-learning")
+- Skip generic: "help", "code", "general", "note", "misc", "other"
+
+CONTENT:
 ${content}
 
 Return JSON: {"tags": ["tag1", "tag2"]}`;

@@ -48,9 +48,9 @@ export const extractAndApplyTaskTags = internalAction({
         {},
       )) as Doc<"tags">[];
 
-      const popularTags = existingTags
+      // Pass ALL tags sorted by usage (no truncation - gives LLM full context)
+      const sortedTags = existingTags
         .sort((a, b) => b.usageCount - a.usageCount)
-        .slice(0, 20)
         .map((t) => ({ displayName: t.displayName, usageCount: t.usageCount }));
 
       // Combine title + description for context
@@ -65,7 +65,7 @@ export const extractAndApplyTaskTags = internalAction({
         providerOptions: getGatewayOptions(TAG_EXTRACTION_MODEL.id, undefined, [
           "task-auto-tagging",
         ]),
-        prompt: buildAutoTagPrompt(content, popularTags),
+        prompt: buildAutoTagPrompt(content, sortedTags),
       });
       const llmTime = Date.now() - llmStart;
 

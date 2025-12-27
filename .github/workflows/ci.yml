@@ -37,6 +37,7 @@ jobs:
     name: Unit & Integration Tests
     runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: lint-and-typecheck
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -53,6 +54,8 @@ jobs:
       - name: Generate Convex types
         run: bun run generate
         working-directory: packages/backend
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
       - name: Run tests
         run: bun run test:run

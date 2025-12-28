@@ -398,6 +398,11 @@
   }
 }
 
+/* Scroll-to-top buffer for user messages (ChatGPT-style UX) */
+[id^="message-"] {
+  scroll-margin-top: 5rem; /* 80px - accounts for header + breathing room */
+}
+
 /* Performance Optimizations */
 .prose {
   /* Prevent layout thrashing during streaming */

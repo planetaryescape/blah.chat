@@ -1,22 +1,22 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import {
-  View,
-  Text,
+  type BottomSheetModal,
+  BottomSheetModalProvider,
+} from "@gorhom/bottom-sheet";
+import { useMutation } from "convex/react";
+import * as Haptics from "expo-haptics";
+import { Stack, useRouter } from "expo-router";
+import { MessageSquare } from "lucide-react-native";
+import { useCallback, useRef, useState } from "react";
+import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
-import { useMutation } from "convex/react";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ModelSelector } from "@/components/chat/ModelSelector";
-import { useState, useCallback, useRef } from "react";
-import {
-  BottomSheetModal,
-  BottomSheetModalProvider,
-} from "@gorhom/bottom-sheet";
-import { MessageSquare } from "lucide-react-native";
-import * as Haptics from "expo-haptics";
 import { colors } from "@/lib/theme/colors";
 
 export default function NewChatScreen() {

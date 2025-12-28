@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
-import { X, Square, Mic } from "lucide-react-native";
+import { Square, X } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { requestAudioPermission } from "@/lib/permissions";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
-import { requestAudioPermission } from "@/lib/permissions";
+import { radius, spacing } from "@/lib/theme/spacing";
 import { uploadToConvex } from "@/lib/upload";
 
 interface VoiceRecorderProps {

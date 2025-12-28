@@ -1,25 +1,25 @@
-import {
-  View,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  StyleSheet,
-} from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
-import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id, Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { MessageList } from "@/components/chat/MessageList";
-import { ChatInput } from "@/components/chat/ChatInput";
-import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
-import { ModelSelector } from "@/components/chat/ModelSelector";
-import { useState, useCallback, useRef, useEffect } from "react";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
-  BottomSheetModal,
+  type BottomSheetModal,
   BottomSheetModalProvider,
 } from "@gorhom/bottom-sheet";
+import { useAction, useMutation, useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { MessageList } from "@/components/chat/MessageList";
+import { ModelSelector } from "@/components/chat/ModelSelector";
+import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
 import { colors } from "@/lib/theme/colors";
 import type { Attachment } from "@/lib/utils/fileUtils";
 
@@ -32,7 +32,7 @@ export default function ChatScreen() {
   const modelSelectorRef = useRef<BottomSheetModal>(null);
   const [selectedModel, setSelectedModel] = useState<string | undefined>();
   const [isRecording, setIsRecording] = useState(false);
-  const [pendingTranscript, setPendingTranscript] = useState("");
+  const [_pendingTranscript, setPendingTranscript] = useState("");
 
   const prevMessagesRef = useRef<Message[]>([]);
 

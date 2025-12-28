@@ -1,36 +1,35 @@
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActionSheetIOS,
-  Platform,
-  Alert,
-} from "react-native";
-import {
-  Send,
-  ChevronDown,
-  Square,
-  Cpu,
-  Camera,
-  Paperclip,
-  Mic,
-  Image as ImageIcon,
-} from "lucide-react-native";
-import { useState, useCallback } from "react";
-import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import * as Haptics from "expo-haptics";
-import { colors } from "@/lib/theme/colors";
-import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import * as ImagePicker from "expo-image-picker";
+import {
+  ChevronDown,
+  Cpu,
+  Image as ImageIcon,
+  Mic,
+  Paperclip,
+  Send,
+  Square,
+} from "lucide-react-native";
+import { useCallback, useState } from "react";
+import {
+  ActionSheetIOS,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   requestCameraPermission,
   requestMediaLibraryPermission,
 } from "@/lib/permissions";
+import { colors } from "@/lib/theme/colors";
+import { fonts } from "@/lib/theme/fonts";
+import { radius, spacing } from "@/lib/theme/spacing";
 import { uploadToConvex } from "@/lib/upload";
-import { getAttachmentType, type Attachment } from "@/lib/utils/fileUtils";
+import { type Attachment, getAttachmentType } from "@/lib/utils/fileUtils";
 import { AttachmentPreview, type LocalAttachment } from "./AttachmentPreview";
 
 const MAX_ATTACHMENTS = 10;

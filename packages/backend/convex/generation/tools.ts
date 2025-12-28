@@ -30,6 +30,7 @@ import { createTaskManagerTool } from "../ai/tools/taskManager";
 import { createUpdateDocumentTool } from "../ai/tools/updateDocument";
 import { createUrlReaderTool } from "../ai/tools/urlReader";
 import { createWeatherTool } from "../ai/tools/weather";
+import { createSearchKnowledgeBankTool } from "../knowledgeBank/tool";
 import type { MemoryExtractionLevel } from "../lib/prompts/operational/memoryExtraction";
 
 /**
@@ -207,6 +208,13 @@ More thorough but slower. Use only when depth is needed.`,
     tools.searchTasks = createSearchTasksTool(ctx, userId);
     tools.queryHistory = createQueryHistoryTool(ctx, userId, conversationId);
     tools.searchAll = createSearchAllTool(ctx, userId, conversationId);
+
+    // Knowledge Bank search: searches user's saved documents, web pages, videos
+    tools.searchKnowledgeBank = createSearchKnowledgeBankTool(
+      ctx,
+      userId,
+      conversation?.projectId,
+    );
   }
 
   return tools;

@@ -7,6 +7,7 @@ import { Suspense, useMemo } from "react";
 import { BYODSettings } from "@/components/settings/BYODSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
+import { KnowledgeBankSettings } from "@/components/settings/KnowledgeBankSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
 import { MemorySettings } from "@/components/settings/MemorySettings";
 import { ShortcutsSettings } from "@/components/settings/ShortcutsSettings";
@@ -23,6 +24,11 @@ const SETTINGS_SECTIONS = [
     id: "personalization",
     label: "Personalization",
     component: CustomInstructionsForm,
+  },
+  {
+    id: "knowledge",
+    label: "Knowledge Bank",
+    component: KnowledgeBankSettings,
   },
   {
     id: "models",

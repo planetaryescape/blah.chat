@@ -5,6 +5,6 @@
  */
 
 export { colors } from "./colors";
-export { fonts, fontFamily } from "./fonts";
+export { fontFamily, fonts } from "./fonts";
+export { layout, radius, spacing } from "./spacing";
 export { typography } from "./typography";
-export { spacing, radius, layout } from "./spacing";

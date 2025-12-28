@@ -1,20 +1,20 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import {
-  BottomSheetModal,
-  BottomSheetView,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
-import { forwardRef, useMemo, useCallback } from "react";
-import { CheckCircle, Eye, Brain } from "lucide-react-native";
-import { colors } from "@/lib/theme/colors";
-import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
 import {
   getMobileModels,
   getModelTier,
   getProviderDisplayName,
   type ModelConfig,
 } from "@blah-chat/ai";
+import {
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import { Brain, CheckCircle, Eye } from "lucide-react-native";
+import { forwardRef, useCallback, useMemo } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { colors } from "@/lib/theme/colors";
+import { fonts } from "@/lib/theme/fonts";
+import { radius, spacing } from "@/lib/theme/spacing";
 
 interface ModelSelectorProps {
   selectedModel?: string;

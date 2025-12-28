@@ -1,12 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
-import { Audio, AVPlaybackStatus } from "expo-av";
+import { Audio, type AVPlaybackStatus } from "expo-av";
 import * as Haptics from "expo-haptics";
-import { Volume2, Square } from "lucide-react-native";
+import { Square, Volume2 } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 import removeMarkdown from "remove-markdown";
 import { colors } from "@/lib/theme/colors";
-import { spacing, radius } from "@/lib/theme/spacing";
-import { getTTSUrl, chunkText } from "@/lib/utils/ttsUtils";
+import { radius } from "@/lib/theme/spacing";
+import { chunkText, getTTSUrl } from "@/lib/utils/ttsUtils";
 
 interface TTSPlayerProps {
   text: string;

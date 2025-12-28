@@ -2,15 +2,24 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Sparkles, Mail } from "lucide-react-native";
+import {
+  AuthDivider,
+  SocialAuthButtons,
+} from "@/components/auth/SocialAuthButtons";
+import { colors } from "@/lib/theme/colors";
+import { fonts } from "@/lib/theme/fonts";
+import { spacing, radius } from "@/lib/theme/spacing";
 
 export default function SignUpScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -23,6 +32,9 @@ export default function SignUpScreen() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState<
+    "email" | "password" | "code" | null
+  >(null);
 
   const handleSignUp = async () => {
     if (!isLoaded) return;
@@ -68,61 +80,73 @@ export default function SignUpScreen() {
   };
 
   if (pendingVerification) {
+    const isVerifyDisabled = loading || code.length < 6;
+
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 bg-background"
+        style={styles.container}
       >
         <View
-          className="flex-1 px-6 justify-center"
-          style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+          style={[
+            styles.content,
+            {
+              paddingTop: insets.top + spacing.xl,
+              paddingBottom: insets.bottom,
+            },
+          ]}
         >
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-foreground mb-2">
-              Verify your email
-            </Text>
-            <Text className="text-muted-foreground">
-              We sent a code to {email}
-            </Text>
+          {/* Verification Icon */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logo}>
+              <Mail size={28} color={colors.primary} />
+            </View>
+          </View>
+
+          <View style={styles.header}>
+            <Text style={styles.title}>Verify your email</Text>
+            <Text style={styles.subtitle}>We sent a code to {email}</Text>
           </View>
 
           {error ? (
-            <View className="bg-destructive/10 rounded-lg px-4 py-3 mb-4">
-              <Text className="text-destructive text-sm">{error}</Text>
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
 
-          <View className="gap-4">
-            <View>
-              <Text className="text-sm font-medium text-foreground mb-2">
-                Verification Code
-              </Text>
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Verification Code</Text>
               <TextInput
                 value={code}
                 onChangeText={setCode}
-                placeholder="Enter 6-digit code"
-                placeholderTextColor="#71717a"
+                placeholder="000000"
+                placeholderTextColor={colors.mutedForeground}
                 keyboardType="number-pad"
-                className="bg-secondary rounded-xl px-4 py-3 text-foreground text-base text-center tracking-widest"
+                onFocus={() => setIsFocused("code")}
+                onBlur={() => setIsFocused(null)}
+                style={[
+                  styles.input,
+                  styles.codeInput,
+                  isFocused === "code" && styles.inputFocused,
+                ]}
                 maxLength={6}
               />
             </View>
 
             <Pressable
               onPress={handleVerify}
-              disabled={loading || code.length < 6}
-              className={`rounded-xl py-4 items-center mt-2 ${
-                loading || code.length < 6
-                  ? "bg-primary/50"
-                  : "bg-primary active:bg-primary/90"
-              }`}
+              disabled={isVerifyDisabled}
+              style={({ pressed }) => [
+                styles.button,
+                isVerifyDisabled && styles.buttonDisabled,
+                pressed && !isVerifyDisabled && styles.buttonPressed,
+              ]}
             >
               {loading ? (
-                <ActivityIndicator color="#0a0a0a" />
+                <ActivityIndicator color={colors.primaryForeground} />
               ) : (
-                <Text className="text-primary-foreground font-semibold text-base">
-                  Verify
-                </Text>
+                <Text style={styles.buttonText}>Verify</Text>
               )}
             </Pressable>
           </View>
@@ -131,89 +155,108 @@ export default function SignUpScreen() {
     );
   }
 
+  const isDisabled = loading || !email || !password;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
+      style={styles.container}
     >
       <View
-        className="flex-1 px-6 justify-center"
-        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+        style={[
+          styles.content,
+          { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom },
+        ]}
       >
+        {/* Brand Logo */}
+        <View style={styles.logoContainer}>
+          <View style={styles.logo}>
+            <Sparkles size={28} color={colors.primary} />
+          </View>
+        </View>
+
         {/* Header */}
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-foreground mb-2">
-            Create account
-          </Text>
-          <Text className="text-muted-foreground">
+        <View style={styles.header}>
+          <Text style={styles.title}>Create account</Text>
+          <Text style={styles.subtitle}>
             Sign up to get started with blah.chat
           </Text>
         </View>
 
+        {/* Social Auth */}
+        <SocialAuthButtons onError={setError} />
+
+        {/* Divider */}
+        <AuthDivider />
+
         {/* Error message */}
         {error ? (
-          <View className="bg-destructive/10 rounded-lg px-4 py-3 mb-4">
-            <Text className="text-destructive text-sm">{error}</Text>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
         {/* Form */}
-        <View className="gap-4">
-          <View>
-            <Text className="text-sm font-medium text-foreground mb-2">
-              Email
-            </Text>
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor="#71717a"
+              placeholderTextColor={colors.mutedForeground}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
-              className="bg-secondary rounded-xl px-4 py-3 text-foreground text-base"
+              onFocus={() => setIsFocused("email")}
+              onBlur={() => setIsFocused(null)}
+              style={[
+                styles.input,
+                isFocused === "email" && styles.inputFocused,
+              ]}
             />
           </View>
 
-          <View>
-            <Text className="text-sm font-medium text-foreground mb-2">
-              Password
-            </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
               placeholder="Create a password"
-              placeholderTextColor="#71717a"
+              placeholderTextColor={colors.mutedForeground}
               secureTextEntry
-              className="bg-secondary rounded-xl px-4 py-3 text-foreground text-base"
+              onFocus={() => setIsFocused("password")}
+              onBlur={() => setIsFocused(null)}
+              style={[
+                styles.input,
+                isFocused === "password" && styles.inputFocused,
+              ]}
             />
           </View>
 
           <Pressable
             onPress={handleSignUp}
-            disabled={loading || !email || !password}
-            className={`rounded-xl py-4 items-center mt-2 ${
-              loading || !email || !password
-                ? "bg-primary/50"
-                : "bg-primary active:bg-primary/90"
-            }`}
+            disabled={isDisabled}
+            style={({ pressed }) => [
+              styles.button,
+              isDisabled && styles.buttonDisabled,
+              pressed && !isDisabled && styles.buttonPressed,
+            ]}
           >
             {loading ? (
-              <ActivityIndicator color="#0a0a0a" />
+              <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <Text className="text-primary-foreground font-semibold text-base">
-                Sign Up
-              </Text>
+              <Text style={styles.buttonText}>Sign Up</Text>
             )}
           </Pressable>
         </View>
 
         {/* Sign in link */}
-        <View className="flex-row justify-center mt-6">
-          <Text className="text-muted-foreground">Already have an account? </Text>
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Already have an account? </Text>
           <Link href="/(auth)/sign-in" asChild>
             <Pressable>
-              <Text className="text-primary font-medium">Sign in</Text>
+              <Text style={styles.link}>Sign in</Text>
             </Pressable>
           </Link>
         </View>
@@ -221,3 +264,122 @@ export default function SignUpScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    justifyContent: "center",
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  header: {
+    marginBottom: spacing.lg,
+  },
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: 28,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontFamily: fonts.body,
+    color: colors.mutedForeground,
+    fontSize: 15,
+    textAlign: "center",
+  },
+  errorContainer: {
+    backgroundColor: `${colors.error}15`,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  errorText: {
+    fontFamily: fonts.body,
+    color: colors.error,
+    fontSize: 14,
+    textAlign: "center",
+  },
+  form: {
+    gap: spacing.md,
+  },
+  inputGroup: {
+    gap: spacing.xs,
+  },
+  label: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.foreground,
+  },
+  input: {
+    fontFamily: fonts.body,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    color: colors.foreground,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  inputFocused: {
+    borderColor: colors.ring,
+  },
+  codeInput: {
+    textAlign: "center",
+    letterSpacing: 8,
+    fontFamily: fonts.bodySemibold,
+    fontSize: 24,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    marginTop: spacing.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
+  },
+  buttonPressed: {
+    opacity: 0.9,
+  },
+  buttonText: {
+    fontFamily: fonts.bodySemibold,
+    color: colors.primaryForeground,
+    fontSize: 16,
+  },
+  linkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: spacing.lg,
+  },
+  linkText: {
+    fontFamily: fonts.body,
+    color: colors.mutedForeground,
+    fontSize: 14,
+  },
+  link: {
+    fontFamily: fonts.bodySemibold,
+    color: colors.primary,
+    fontSize: 14,
+  },
+});

@@ -2,35 +2,18 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { MessageSquare, Settings } from "lucide-react-native";
-import { useColorScheme, View, Text, Pressable } from "react-native";
-
-function DrawerContent() {
-  // Placeholder drawer content - will be replaced with ConversationList
-  return (
-    <View className="flex-1 bg-background pt-safe">
-      <View className="px-4 py-3 border-b border-border">
-        <Text className="text-lg font-semibold text-foreground">
-          blah.chat
-        </Text>
-      </View>
-      <View className="flex-1 px-2 py-2">
-        <Text className="text-muted-foreground text-sm px-2">
-          Conversations will appear here
-        </Text>
-      </View>
-    </View>
-  );
-}
+import { View, Text, StyleSheet } from "react-native";
+import { DrawerContent } from "@/components/navigation/DrawerContent";
+import { colors } from "@/lib/theme/colors";
 
 export default function DrawerLayout() {
   const { isSignedIn, isLoaded } = useAuth();
-  const colorScheme = useColorScheme();
 
   // Wait for auth to load
   if (!isLoaded) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Text className="text-foreground">Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -43,19 +26,18 @@ export default function DrawerLayout() {
   return (
     // @ts-ignore - React 18/19 type mismatch in monorepo
     <Drawer
-      drawerContent={DrawerContent}
+      drawerContent={(props) => <DrawerContent {...props} />}
       screenOptions={{
         headerStyle: {
-          backgroundColor: colorScheme === "dark" ? "#0a0a0a" : "#ffffff",
+          backgroundColor: colors.background,
         },
-        headerTintColor: colorScheme === "dark" ? "#fafafa" : "#0a0a0a",
+        headerTintColor: colors.foreground,
         drawerStyle: {
-          backgroundColor: colorScheme === "dark" ? "#0a0a0a" : "#ffffff",
+          backgroundColor: colors.background,
           width: 280,
         },
-        drawerActiveTintColor: colorScheme === "dark" ? "#fafafa" : "#0a0a0a",
-        drawerInactiveTintColor:
-          colorScheme === "dark" ? "#a1a1aa" : "#71717a",
+        drawerActiveTintColor: colors.foreground,
+        drawerInactiveTintColor: colors.mutedForeground,
       }}
     >
       <Drawer.Screen
@@ -67,6 +49,7 @@ export default function DrawerLayout() {
           drawerIcon: ({ color, size }) => (
             <MessageSquare color={color} size={size} />
           ),
+          drawerItemStyle: { display: "none" },
         }}
       />
       <Drawer.Screen
@@ -74,7 +57,15 @@ export default function DrawerLayout() {
         options={{
           drawerLabel: "Conversation",
           title: "Chat",
-          drawerItemStyle: { display: "none" }, // Hide from drawer list
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="chat/new"
+        options={{
+          drawerLabel: "New Chat",
+          title: "New Chat",
+          drawerItemStyle: { display: "none" },
         }}
       />
       <Drawer.Screen
@@ -86,8 +77,21 @@ export default function DrawerLayout() {
           drawerIcon: ({ color, size }) => (
             <Settings color={color} size={size} />
           ),
+          drawerItemStyle: { display: "none" },
         }}
       />
     </Drawer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    color: colors.foreground,
+  },
+});

@@ -1,9 +1,9 @@
 {
-  "extends": "../config/tsconfig.base.json",
+  "extends": "@blah-chat/config/base",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

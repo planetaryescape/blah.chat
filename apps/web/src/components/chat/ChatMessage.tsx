@@ -168,8 +168,12 @@ export const ChatMessage = memo(
     );
 
     // Split into complete and partial for backward compatibility
-    const toolCalls = allToolCalls?.filter((tc: any) => !tc.isPartial);
-    const partialToolCalls = allToolCalls?.filter((tc: any) => tc.isPartial);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolCalls = allToolCalls?.filter((tc) => !tc.isPartial) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const partialToolCalls = allToolCalls?.filter(
+      (tc) => tc.isPartial,
+    ) as any[];
 
     // Model recommendation handlers
     const handleModelSwitch = async (modelId: string) => {

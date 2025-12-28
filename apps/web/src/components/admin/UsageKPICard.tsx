@@ -11,6 +11,7 @@ interface UsageKPICardProps {
     value: number;
     label: string;
   };
+  subtext?: string;
   className?: string;
 }
 
@@ -19,6 +20,7 @@ export function UsageKPICard({
   value,
   icon: Icon,
   trend,
+  subtext,
   className,
 }: UsageKPICardProps) {
   return (
@@ -29,6 +31,9 @@ export function UsageKPICard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
+        {subtext && (
+          <p className="text-xs text-muted-foreground mt-1">{subtext}</p>
+        )}
         {trend && (
           <p
             className={`text-xs ${

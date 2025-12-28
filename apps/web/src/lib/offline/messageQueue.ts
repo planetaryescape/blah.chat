@@ -1,8 +1,9 @@
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { cache } from "@/lib/cache";
 
 /**
  * Queued message for offline mode
- * Persisted in localStorage, sent when online
+ * Persisted in IndexedDB via Dexie, sent when online
  */
 export interface QueuedMessage {
   id: string;
@@ -22,19 +23,19 @@ export interface QueuedMessage {
 }
 
 /**
- * Offline message queue with localStorage persistence
+ * Offline message queue with IndexedDB persistence (via Dexie)
  * Auto-retries when connection restored with exponential backoff
  */
 export class MessageQueue {
-  private readonly STORAGE_KEY = "blah-chat-offline-queue";
   private readonly MAX_RETRIES = 3;
 
   /**
    * Add message to offline queue
+   * @throws Error if IndexedDB write fails (e.g., quota exceeded)
    */
-  enqueue(message: Omit<QueuedMessage, "id" | "timestamp" | "retries">): void {
-    const queue = this.getQueue();
-
+  async enqueue(
+    message: Omit<QueuedMessage, "id" | "timestamp" | "retries">,
+  ): Promise<void> {
     const queuedMessage: QueuedMessage = {
       ...message,
       id: crypto.randomUUID(),
@@ -42,8 +43,13 @@ export class MessageQueue {
       retries: 0,
     };
 
-    queue.push(queuedMessage);
-    this.persist(queue);
+    await cache.pendingMutations.add({
+      _id: queuedMessage.id,
+      type: "sendMessage",
+      payload: queuedMessage,
+      createdAt: Date.now(),
+      retries: 0,
+    });
 
     // Dispatch event for UI update
     this.dispatchQueueUpdate();
@@ -55,26 +61,26 @@ export class MessageQueue {
   async processQueue(
     sendFn: (msg: QueuedMessage) => Promise<void>,
   ): Promise<void> {
-    const queue = this.getQueue();
+    const queue = await this.getQueue();
 
     for (const msg of queue) {
       try {
         await sendFn(msg);
 
         // Success - remove from queue
-        this.remove(msg.id);
+        await this.remove(msg.id);
       } catch (_error) {
         // Failed - increment retry count
         if (msg.retries >= this.MAX_RETRIES) {
           // Max retries exceeded - remove permanently
-          this.remove(msg.id);
+          await this.remove(msg.id);
           console.error(
             `[MessageQueue] Permanently failed after ${this.MAX_RETRIES} retries:`,
             msg.content.slice(0, 50),
           );
         } else {
           // Increment retry count
-          this.incrementRetry(msg.id);
+          await this.incrementRetry(msg.id);
 
           // Exponential backoff: 2s → 4s → 8s
           const backoffMs = 2000 * 2 ** msg.retries;
@@ -87,63 +93,76 @@ export class MessageQueue {
   /**
    * Get all queued messages
    */
-  getQueue(): QueuedMessage[] {
+  async getQueue(): Promise<QueuedMessage[]> {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const pending = await cache.pendingMutations
+        .where("type")
+        .equals("sendMessage")
+        .toArray();
+      return pending.map((p) => p.payload as QueuedMessage);
     } catch (error) {
       console.error("[MessageQueue] Failed to read queue:", error);
       return [];
     }
   }
 
-  /**
-   * Get queue count for UI display
-   */
-  getCount(): number {
-    return this.getQueue().length;
+  async getCount(): Promise<number> {
+    try {
+      return await cache.pendingMutations
+        .where("type")
+        .equals("sendMessage")
+        .count();
+    } catch {
+      return 0;
+    }
   }
 
-  /**
-   * Clear entire queue (for manual reset)
-   */
-  clear(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
+  async clear(): Promise<void> {
+    try {
+      await cache.pendingMutations.clear();
+    } catch (error) {
+      console.error("[MessageQueue] Failed to clear queue:", error);
+    }
     this.dispatchQueueUpdate();
   }
 
   // Private helpers
 
-  private persist(queue: QueuedMessage[]): void {
+  private async remove(id: string): Promise<void> {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue));
+      await cache.pendingMutations.delete(id);
     } catch (error) {
-      console.error("[MessageQueue] Failed to persist queue:", error);
+      console.error("[MessageQueue] Failed to remove:", error);
     }
-  }
-
-  private remove(id: string): void {
-    const queue = this.getQueue().filter((m) => m.id !== id);
-    this.persist(queue);
     this.dispatchQueueUpdate();
   }
 
-  private incrementRetry(id: string): void {
-    const queue = this.getQueue();
-    const msg = queue.find((m) => m.id === id);
-
-    if (msg) {
-      msg.retries++;
-      this.persist(queue);
+  private async incrementRetry(id: string): Promise<void> {
+    try {
+      const mutation = await cache.pendingMutations.get(id);
+      if (mutation) {
+        const payload = mutation.payload as QueuedMessage;
+        payload.retries++;
+        await cache.pendingMutations.put({
+          ...mutation,
+          payload,
+          retries: mutation.retries + 1,
+        });
+      }
+    } catch (error) {
+      console.error("[MessageQueue] Failed to increment retry:", error);
     }
   }
 
   private dispatchQueueUpdate(): void {
-    window.dispatchEvent(
-      new CustomEvent("queue-updated", {
-        detail: { count: this.getCount() },
-      }),
-    );
+    // Get count async and dispatch
+    this.getCount().then((count) => {
+      window.dispatchEvent(
+        new CustomEvent("queue-updated", {
+          detail: { count },
+        }),
+      );
+    });
   }
 }
 

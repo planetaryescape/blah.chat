@@ -606,6 +606,56 @@ export const markExtracted = internalMutation({
   },
 });
 
+// ===== Batch Queries for Local Cache =====
+
+/**
+ * Batch get metadata (attachments, toolCalls, sources) for multiple messages.
+ * Used by local cache sync to reduce per-message queries.
+ */
+export const batchGetMetadata = query({
+  args: {
+    messageIds: v.array(v.id("messages")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return { attachments: [], toolCalls: [], sources: [] };
+
+    // Batch fetch all metadata in parallel
+    const [attachments, toolCalls, sources] = await Promise.all([
+      Promise.all(
+        args.messageIds.map((id) =>
+          ctx.db
+            .query("attachments")
+            .withIndex("by_message", (q) => q.eq("messageId", id))
+            .collect(),
+        ),
+      ),
+      Promise.all(
+        args.messageIds.map((id) =>
+          ctx.db
+            .query("toolCalls")
+            .withIndex("by_message", (q) => q.eq("messageId", id))
+            .collect(),
+        ),
+      ),
+      Promise.all(
+        args.messageIds.map((id) =>
+          ctx.db
+            .query("sources")
+            .withIndex("by_message", (q) => q.eq("messageId", id))
+            .collect(),
+        ),
+      ),
+    ]);
+
+    return {
+      attachments: attachments.flat(),
+      toolCalls: toolCalls.flat(),
+      sources: sources.flat(),
+    };
+  },
+});
+
 // ===== Backward Compatibility Re-exports =====
 
 // From attachments.ts

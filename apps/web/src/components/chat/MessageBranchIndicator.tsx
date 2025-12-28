@@ -1,13 +1,12 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, GitBranch } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useCachedChildBranches } from "@/hooks/useCacheSync";
 
 interface MessageBranchIndicatorProps {
   messageId: Id<"messages">;
@@ -19,17 +18,10 @@ export function MessageBranchIndicator({
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Check if this is a temporary optimistic message (not yet persisted)
-  const isTempMessage =
-    typeof messageId === "string" && messageId.startsWith("temp-");
+  // Read from local cache (instant) - synced by useConversationCacheSync
+  const childBranches = useCachedChildBranches(messageId);
 
-  // Skip query for temporary optimistic messages
-  // @ts-ignore - Type depth exceeded with complex Convex query
-  const childBranches = useQuery(
-    api.conversations.getChildBranchesFromMessage,
-    isTempMessage ? "skip" : { messageId },
-  );
-
+  // Don't reserve space - most messages don't have branches
   // Don't render if no branches
   if (!childBranches || childBranches.length === 0) {
     return null;
@@ -67,11 +59,10 @@ export function MessageBranchIndicator({
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-            className="overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <div className="mt-2 space-y-1 pl-2">
               {childBranches.map(

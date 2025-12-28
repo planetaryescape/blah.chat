@@ -12,18 +12,24 @@ export function OfflineQueueIndicator() {
   const [queueCount, setQueueCount] = useState(0);
 
   useEffect(() => {
-    // Initial count
-    const updateCount = () => {
-      setQueueCount(messageQueue.getCount());
+    // Initial count (async from Dexie)
+    const updateCount = async () => {
+      const count = await messageQueue.getCount();
+      setQueueCount(count);
     };
 
     updateCount();
 
-    // Listen for queue changes
-    window.addEventListener("queue-updated", updateCount);
+    // Listen for queue changes (event includes count)
+    const handleQueueUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<{ count: number }>).detail;
+      setQueueCount(detail.count);
+    };
+
+    window.addEventListener("queue-updated", handleQueueUpdate);
 
     return () => {
-      window.removeEventListener("queue-updated", updateCount);
+      window.removeEventListener("queue-updated", handleQueueUpdate);
     };
   }, []);
 

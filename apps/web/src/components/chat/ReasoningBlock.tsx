@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Brain, ChevronDown, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -26,9 +24,6 @@ export function ReasoningBlock({
   reasoningTokens,
   isThinking = false,
 }: ReasoningBlockProps) {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const _user = useQuery(api.users.getCurrentUser);
-
   // Phase 4: Use new preference hook
   const reasoningPrefs = useUserPreference("reasoning");
 
@@ -101,11 +96,10 @@ export function ReasoningBlock({
       <AnimatePresence>
         {isExpanded && displayReasoning && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <div
               className={cn(

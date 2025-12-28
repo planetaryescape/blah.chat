@@ -50,8 +50,6 @@ export function MessageActions({
   const [showCreateNote, setShowCreateNote] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const router = useRouter();
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const _user = useQuery(api.users.getCurrentUser as any);
   const retryMessage = useMutation(api.chat.retryMessage);
   const stop = useMutation(api.chat.stopGeneration);
   const regenerate = useMutation(api.chat.regenerate);
@@ -68,14 +66,10 @@ export function MessageActions({
   const { isMobile } = useMobileDetect();
   const features = useFeatureToggles();
 
-  // Phase 4: Use new preference hooks
-  const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
-  const prefTtsEnabled = useUserPreference("ttsEnabled");
+  const ttsEnabled = useUserPreference("ttsEnabled");
 
   const isUser = message.role === "user";
   const isGenerating = ["pending", "generating"].includes(message.status);
-  const _alwaysShow = prefAlwaysShowActions;
-  const ttsEnabled = prefTtsEnabled;
   const shouldShowRetry =
     isUser && nextMessage?.status === "error" && !isGenerating;
 

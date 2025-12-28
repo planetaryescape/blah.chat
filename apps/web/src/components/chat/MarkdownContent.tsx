@@ -77,27 +77,6 @@ interface MarkdownContentProps {
 }
 
 /**
- * KaTeX configuration for rehype-katex plugin
- * Note: displayMode and throwOnError are omitted (handled by rehype-katex)
- * Chemistry notation (\ce, \pu) enabled via mhchem import above
- */
-const _katexOptions = {
-  errorColor: "hsl(var(--destructive))",
-  output: "htmlAndMathml" as const, // Both visual HTML + accessible MathML
-  strict: "ignore" as const, // Continue rendering on unsupported commands (resilient for streaming)
-  // Common math shortcuts
-  macros: {
-    "\\RR": "\\mathbb{R}",
-    "\\NN": "\\mathbb{N}",
-    "\\ZZ": "\\mathbb{Z}",
-    "\\QQ": "\\mathbb{Q}",
-    "\\CC": "\\mathbb{C}",
-    "\\abs": "\\left|#1\\right|",
-    "\\norm": "\\left\\|#1\\right\\|",
-  },
-};
-
-/**
  * Standard components for Streamdown
  *
  * Math support via Streamdown's built-in remark-math + rehype-katex:
@@ -159,8 +138,13 @@ const createMarkdownComponents = () => ({
       <img
         src={src}
         alt={alt || "Image"}
-        className="rounded-lg max-w-full h-auto my-4 block"
-        style={{ maxHeight: "600px", backgroundColor: "#fff" }}
+        className="rounded-lg max-w-full my-4 block"
+        style={{
+          maxHeight: "600px",
+          minHeight: "100px", // Reserve space to prevent layout shift
+          backgroundColor: "#f5f5f5",
+          objectFit: "contain",
+        }}
         loading="lazy"
         onError={(e) => {
           console.error("[Markdown] Image failed to load:", src);

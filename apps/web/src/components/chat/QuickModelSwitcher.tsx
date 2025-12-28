@@ -52,8 +52,6 @@ export function QuickModelSwitcher({
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const _user = useQuery(api.users.getCurrentUser);
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const proAccess = useQuery(api.adminSettings.getProModelAccess);
 
   const prefDefaultModel = useUserPreference("defaultModel");

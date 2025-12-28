@@ -2,12 +2,31 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 
+const featureValidator = v.union(
+  v.literal("chat"),
+  v.literal("slides"),
+  v.literal("notes"),
+  v.literal("tasks"),
+  v.literal("files"),
+  v.literal("memory"),
+  v.literal("smart_assistant"),
+);
+
+const _operationTypeValidator = v.union(
+  v.literal("text"),
+  v.literal("tts"),
+  v.literal("stt"),
+  v.literal("image"),
+);
+
 export const recordTranscription = internalMutation({
   args: {
     userId: v.id("users"),
     model: v.string(),
     durationMinutes: v.number(),
     cost: v.number(),
+    conversationId: v.optional(v.id("conversations")),
+    feature: v.optional(featureValidator),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
@@ -16,6 +35,9 @@ export const recordTranscription = internalMutation({
       userId: args.userId,
       date,
       model: args.model,
+      conversationId: args.conversationId,
+      feature: args.feature ?? "chat",
+      operationType: "stt",
       inputTokens: 0,
       outputTokens: 0,
       cost: args.cost,
@@ -30,6 +52,7 @@ export const recordImageGeneration = internalMutation({
     conversationId: v.id("conversations"),
     model: v.string(),
     cost: v.number(),
+    feature: v.optional(featureValidator),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
@@ -38,6 +61,9 @@ export const recordImageGeneration = internalMutation({
       userId: args.userId,
       date,
       model: args.model,
+      conversationId: args.conversationId,
+      feature: args.feature ?? "chat",
+      operationType: "image",
       inputTokens: 0,
       outputTokens: 0,
       cost: args.cost,
@@ -62,6 +88,9 @@ export const recordSlideImageGeneration = internalMutation({
       userId: args.userId,
       date,
       model: args.model,
+      presentationId: args.presentationId,
+      feature: "slides",
+      operationType: "image",
       inputTokens: args.inputTokens ?? 0,
       outputTokens: args.outputTokens ?? 0,
       cost: args.cost,
@@ -73,15 +102,18 @@ export const recordSlideImageGeneration = internalMutation({
 export const recordTextGeneration = internalMutation({
   args: {
     userId: v.id("users"),
-    conversationId: v.id("conversations"),
+    conversationId: v.optional(v.id("conversations")),
+    presentationId: v.optional(v.id("presentations")),
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
     reasoningTokens: v.optional(v.number()),
     cost: v.number(),
+    feature: v.optional(featureValidator),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
+    const feature = args.feature ?? "chat";
 
     // Upsert: aggregate daily per user+date+model
     const existing = await ctx.db
@@ -106,6 +138,9 @@ export const recordTextGeneration = internalMutation({
         date,
         model: args.model,
         conversationId: args.conversationId,
+        presentationId: args.presentationId,
+        feature,
+        operationType: "text",
         inputTokens: args.inputTokens,
         outputTokens: args.outputTokens,
         reasoningTokens: args.reasoningTokens,
@@ -171,6 +206,8 @@ export const recordTTS = internalMutation({
     model: v.string(), // e.g., "deepgram:tts"
     characterCount: v.number(),
     cost: v.number(),
+    conversationId: v.optional(v.id("conversations")),
+    feature: v.optional(featureValidator),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
@@ -179,6 +216,9 @@ export const recordTTS = internalMutation({
       userId: args.userId,
       date,
       model: args.model,
+      conversationId: args.conversationId,
+      feature: args.feature ?? "chat",
+      operationType: "tts",
       inputTokens: 0,
       outputTokens: args.characterCount, // Track chars as "output tokens"
       cost: args.cost,

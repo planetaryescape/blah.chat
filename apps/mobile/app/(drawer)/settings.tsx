@@ -1,9 +1,29 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useQuery } from "convex/react";
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import { ChevronRight, LogOut, Moon, Bell, Shield, Wifi, WifiOff } from "lucide-react-native";
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from "react-native";
+import {
+  ChevronRight,
+  LogOut,
+  Moon,
+  Bell,
+  Shield,
+  Wifi,
+  WifiOff,
+  Sparkles,
+} from "lucide-react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  StyleSheet,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "@/lib/theme/colors";
+import { fonts } from "@/lib/theme/fonts";
+import { spacing, radius } from "@/lib/theme/spacing";
 
 interface SettingsItemProps {
   icon: React.ReactNode;
@@ -11,6 +31,7 @@ interface SettingsItemProps {
   value?: string;
   onPress?: () => void;
   destructive?: boolean;
+  showChevron?: boolean;
 }
 
 function SettingsItem({
@@ -19,24 +40,26 @@ function SettingsItem({
   value,
   onPress,
   destructive,
+  showChevron = true,
 }: SettingsItemProps) {
   return (
     <Pressable
-      className="flex-row items-center px-4 py-3 bg-secondary/50 active:bg-secondary"
+      style={({ pressed }) => [
+        styles.settingsItem,
+        pressed && styles.settingsItemPressed,
+      ]}
       onPress={onPress}
     >
-      <View className="w-8 h-8 items-center justify-center">{icon}</View>
+      <View style={styles.iconContainer}>{icon}</View>
       <Text
-        className={`flex-1 text-base ml-3 ${
-          destructive ? "text-destructive" : "text-foreground"
-        }`}
+        style={[styles.settingsLabel, destructive && styles.destructiveText]}
       >
         {label}
       </Text>
-      {value && (
-        <Text className="text-muted-foreground text-sm mr-2">{value}</Text>
+      {value && <Text style={styles.settingsValue}>{value}</Text>}
+      {showChevron && onPress && (
+        <ChevronRight size={18} color={colors.mutedForeground} />
       )}
-      <ChevronRight size={20} className="text-muted-foreground" />
     </Pressable>
   );
 }
@@ -49,11 +72,9 @@ function SettingsSection({
   children: React.ReactNode;
 }) {
   return (
-    <View className="mb-6">
-      <Text className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 mb-2">
-        {title}
-      </Text>
-      <View className="rounded-xl overflow-hidden mx-4">{children}</View>
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionContent}>{children}</View>
     </View>
   );
 }
@@ -63,7 +84,6 @@ export default function SettingsScreen() {
   const { user } = useUser();
   const insets = useSafeAreaInsets();
 
-  // Test Convex real-time connection
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list);
   const isConvexConnected = conversations !== undefined;
@@ -80,98 +100,255 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const userInitial =
+    user?.firstName?.[0] ||
+    user?.emailAddresses[0]?.emailAddress[0]?.toUpperCase() ||
+    "?";
+
   return (
     <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: insets.bottom + spacing.lg }}
     >
-      {/* User info */}
-      <View className="items-center py-6">
-        <View className="w-16 h-16 rounded-full bg-primary items-center justify-center mb-3">
-          <Text className="text-2xl font-semibold text-primary-foreground">
-            {user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress[0]?.toUpperCase() || "?"}
+      {/* Profile Card */}
+      <View style={styles.profileCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{userInitial}</Text>
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={styles.userName}>{user?.firstName || "User"}</Text>
+          <Text style={styles.userEmail}>
+            {user?.emailAddresses[0]?.emailAddress}
           </Text>
         </View>
-        <Text className="text-lg font-semibold text-foreground">
-          {user?.firstName || "User"}
-        </Text>
-        <Text className="text-sm text-muted-foreground">
-          {user?.emailAddresses[0]?.emailAddress}
-        </Text>
       </View>
 
       {/* Preferences */}
       <SettingsSection title="Preferences">
         <SettingsItem
-          icon={<Moon size={20} className="text-foreground" />}
+          icon={<Moon size={20} color={colors.foreground} />}
           label="Appearance"
-          value="System"
-          onPress={() => {
-            // TODO: Open appearance picker
-          }}
+          value="Dark"
         />
-        <View className="h-px bg-border" />
+        <View style={styles.divider} />
         <SettingsItem
-          icon={<Bell size={20} className="text-foreground" />}
+          icon={<Bell size={20} color={colors.foreground} />}
           label="Notifications"
-          onPress={() => {
-            // TODO: Open notifications settings
-          }}
         />
       </SettingsSection>
 
       {/* Privacy */}
       <SettingsSection title="Privacy">
         <SettingsItem
-          icon={<Shield size={20} className="text-foreground" />}
+          icon={<Shield size={20} color={colors.foreground} />}
           label="Privacy Policy"
-          onPress={() => {
-            // TODO: Open privacy policy
-          }}
         />
+      </SettingsSection>
+
+      {/* Connection Status */}
+      <SettingsSection title="Connection">
+        <View style={styles.connectionItem}>
+          <View style={styles.iconContainer}>
+            {conversations === undefined ? (
+              <ActivityIndicator size="small" color={colors.mutedForeground} />
+            ) : isConvexConnected ? (
+              <Wifi size={20} color={colors.success} />
+            ) : (
+              <WifiOff size={20} color={colors.error} />
+            )}
+          </View>
+          <Text style={styles.settingsLabel}>Convex Status</Text>
+          <View style={styles.statusBadge}>
+            <View
+              style={[
+                styles.statusDot,
+                {
+                  backgroundColor: isConvexConnected
+                    ? colors.success
+                    : colors.error,
+                },
+              ]}
+            />
+            <Text style={styles.statusText}>
+              {conversations === undefined
+                ? "Connecting"
+                : isConvexConnected
+                  ? `${conversationCount} chats`
+                  : "Offline"}
+            </Text>
+          </View>
+        </View>
       </SettingsSection>
 
       {/* Account */}
       <SettingsSection title="Account">
         <SettingsItem
-          icon={<LogOut size={20} className="text-destructive" />}
+          icon={<LogOut size={20} color={colors.error} />}
           label="Sign Out"
           onPress={handleSignOut}
           destructive
+          showChevron={false}
         />
       </SettingsSection>
 
-      {/* Connection Status - Tests Convex real-time */}
-      <SettingsSection title="Connection">
-        <View className="flex-row items-center px-4 py-3 bg-secondary/50">
-          <View className="w-8 h-8 items-center justify-center">
-            {conversations === undefined ? (
-              <ActivityIndicator size="small" color="#a1a1aa" />
-            ) : isConvexConnected ? (
-              <Wifi size={20} className="text-green-500" />
-            ) : (
-              <WifiOff size={20} className="text-destructive" />
-            )}
-          </View>
-          <Text className="flex-1 text-base ml-3 text-foreground">
-            Convex Status
-          </Text>
-          <Text className="text-muted-foreground text-sm">
-            {conversations === undefined
-              ? "Connecting..."
-              : isConvexConnected
-                ? `Connected • ${conversationCount} chats`
-                : "Disconnected"}
-          </Text>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <View style={styles.footerBrand}>
+          <Sparkles size={16} color={colors.primary} />
+          <Text style={styles.footerBrandText}>blah.chat</Text>
         </View>
-      </SettingsSection>
-
-      {/* Version */}
-      <View className="items-center mt-4">
-        <Text className="text-xs text-muted-foreground">
-          blah.chat v0.1.0
-        </Text>
+        <Text style={styles.versionText}>Version 0.1.0</Text>
       </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.lg,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontFamily: fonts.heading,
+    fontSize: 22,
+    color: colors.primaryForeground,
+  },
+  profileInfo: {
+    marginLeft: spacing.md,
+    flex: 1,
+  },
+  userName: {
+    fontFamily: fonts.headingMedium,
+    fontSize: 18,
+    color: colors.foreground,
+    marginBottom: 2,
+  },
+  userEmail: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.mutedForeground,
+  },
+  section: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 11,
+    color: colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  sectionContent: {
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    marginHorizontal: spacing.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  settingsItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  settingsItemPressed: {
+    backgroundColor: colors.secondary,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: colors.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsLabel: {
+    flex: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    marginLeft: spacing.sm,
+    color: colors.foreground,
+  },
+  settingsValue: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.mutedForeground,
+    marginRight: spacing.xs,
+  },
+  destructiveText: {
+    color: colors.error,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: spacing.md + 36 + spacing.sm,
+  },
+  connectionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.secondary,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.mutedForeground,
+  },
+  footer: {
+    alignItems: "center",
+    paddingTop: spacing.xl,
+    gap: spacing.sm,
+  },
+  footerBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  footerBrandText: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.foreground,
+  },
+  versionText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.mutedForeground,
+  },
+});

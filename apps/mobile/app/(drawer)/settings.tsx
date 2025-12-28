@@ -1,29 +1,29 @@
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useQuery } from "convex/react";
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import {
+  Bell,
   ChevronRight,
   LogOut,
   Moon,
-  Bell,
   Shield,
+  Sparkles,
   Wifi,
   WifiOff,
-  Sparkles,
 } from "lucide-react-native";
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
-  Alert,
-  ActivityIndicator,
   StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import { radius, spacing } from "@/lib/theme/spacing";
 
 interface SettingsItemProps {
   icon: React.ReactNode;

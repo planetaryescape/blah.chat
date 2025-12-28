@@ -1,25 +1,25 @@
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
+import { Mail, Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   TextInput,
   View,
-  StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Sparkles, Mail } from "lucide-react-native";
 import {
   AuthDivider,
   SocialAuthButtons,
 } from "@/components/auth/SocialAuthButtons";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import { radius, spacing } from "@/lib/theme/spacing";
 
 export default function SignUpScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();

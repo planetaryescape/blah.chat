@@ -1,16 +1,16 @@
+import { FileText, Mic, X } from "lucide-react-native";
 import {
-  View,
-  Text,
+  ActivityIndicator,
   Image,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { X, FileText, Mic } from "lucide-react-native";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import { radius, spacing } from "@/lib/theme/spacing";
 import { formatSize, getFileTypeColor } from "@/lib/utils/fileUtils";
 
 export interface LocalAttachment {

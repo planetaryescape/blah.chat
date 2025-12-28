@@ -1,13 +1,13 @@
+import { ChevronDown } from "lucide-react-native";
 import { useCallback } from "react";
-import { StyleSheet, Pressable } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import Animated, {
+  interpolate,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  interpolate,
-  type SharedValue,
 } from "react-native-reanimated";
-import { ChevronDown } from "lucide-react-native";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";
 

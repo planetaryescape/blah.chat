@@ -5,13 +5,13 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   View,
-  StyleSheet,
 } from "react-native";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import { radius, spacing } from "@/lib/theme/spacing";
 
 function GoogleIcon() {
   return (

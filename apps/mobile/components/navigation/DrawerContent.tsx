@@ -1,22 +1,22 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { FlashList } from "@shopify/flash-list";
-import { useQuery } from "convex/react";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useRouter, usePathname } from "expo-router";
-import {
-  Plus,
-  Pin,
-  Star,
-  Settings,
-  MessageSquare,
-  Sparkles,
-} from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
+import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "convex/react";
+import { usePathname, useRouter } from "expo-router";
+import {
+  MessageSquare,
+  Pin,
+  Plus,
+  Settings,
+  Sparkles,
+  Star,
+} from "lucide-react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import { radius, spacing } from "@/lib/theme/spacing";
 
 type Conversation = Doc<"conversations">;
 

@@ -2,7 +2,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { MessageSquare, Settings } from "lucide-react-native";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { DrawerContent } from "@/components/navigation/DrawerContent";
 import { colors } from "@/lib/theme/colors";
 

@@ -3,8 +3,9 @@ import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
@@ -83,6 +84,13 @@ export const generateTitle = internalAction({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
     try {
+      // Get conversation to get userId
+      const conversation = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with helper queries
+        internal.lib.helpers.getConversation,
+        { id: args.conversationId },
+      )) as { userId: Id<"users"> } | null;
+
       // Get all messages in conversation
       const messages = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with helper queries
@@ -117,6 +125,31 @@ ${conversationText}`,
       let title = "";
       for await (const chunk of result.textStream) {
         title += chunk;
+      }
+
+      // Track usage with feature: "chat"
+      const usage = await result.usage;
+      if (conversation && usage) {
+        const inputTokens = usage.inputTokens ?? 0;
+        const outputTokens = usage.outputTokens ?? 0;
+        const cost = calculateCost(TITLE_GENERATION_MODEL.id, {
+          inputTokens,
+          outputTokens,
+        });
+
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordTextGeneration,
+          {
+            userId: conversation.userId,
+            conversationId: args.conversationId,
+            model: TITLE_GENERATION_MODEL.id,
+            inputTokens,
+            outputTokens,
+            cost,
+            feature: "chat",
+          },
+        );
       }
 
       // Update conversation title

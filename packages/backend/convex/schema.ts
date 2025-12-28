@@ -1667,4 +1667,13 @@ export default defineSchema({
     .index("by_migration", ["migrationId"])
     .index("by_user_migration", ["userId", "migrationId"])
     .index("by_status", ["status"]),
+
+  // Shared Bible verse cache (reduces external API calls)
+  cachedBibleVerses: defineTable({
+    osis: v.string(), // OSIS reference (e.g., "John.3.16")
+    reference: v.string(), // Human-readable (e.g., "John 3:16")
+    text: v.string(), // Verse content
+    version: v.string(), // Bible version (e.g., "WEB")
+    cachedAt: v.number(),
+  }).index("by_osis", ["osis"]),
 });

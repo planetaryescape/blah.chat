@@ -153,11 +153,14 @@ export default function UserDetailPage({
     userId,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const presentationStats = useQuery(api.usage.queries.getUserPresentationStats, {
-    userId,
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
-  });
+  const presentationStats = useQuery(
+    api.usage.queries.getUserPresentationStats,
+    {
+      userId,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    },
+  );
 
   // Virtualization setup - MUST be before early return to maintain hook order
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -336,7 +339,10 @@ export default function UserDetailPage({
               />
               <UsageKPICard
                 label="Presentations"
-                value={presentationStats?.presentationsCount ?? activityStats.slidesCount}
+                value={
+                  presentationStats?.presentationsCount ??
+                  activityStats.slidesCount
+                }
                 icon={Presentation}
               />
               <UsageKPICard
@@ -531,31 +537,50 @@ export default function UserDetailPage({
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <div className="text-sm text-muted-foreground">Presentations</div>
-                        <div className="text-2xl font-bold">{presentationStats.presentationsCount}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Presentations
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {presentationStats.presentationsCount}
+                        </div>
                       </div>
                       <div>
-                        <div className="text-sm text-muted-foreground">Total Slides</div>
-                        <div className="text-2xl font-bold">{presentationStats.slidesCount}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Total Slides
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {presentationStats.slidesCount}
+                        </div>
                       </div>
                     </div>
                     <div className="h-px bg-border" />
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Outline Generation</span>
-                        <span className="font-mono">{formatCurrency(presentationStats.outlineCost)}</span>
+                        <span className="text-muted-foreground">
+                          Outline Generation
+                        </span>
+                        <span className="font-mono">
+                          {formatCurrency(presentationStats.outlineCost)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Image Generation</span>
-                        <span className="font-mono">{formatCurrency(presentationStats.imageCost)}</span>
+                        <span className="text-muted-foreground">
+                          Image Generation
+                        </span>
+                        <span className="font-mono">
+                          {formatCurrency(presentationStats.imageCost)}
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm font-medium border-t pt-2">
                         <span>Total</span>
-                        <span>{formatCurrency(presentationStats.totalCost)}</span>
+                        <span>
+                          {formatCurrency(presentationStats.totalCost)}
+                        </span>
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {presentationStats.outlineRequests} outline requests • {presentationStats.imageRequests} image requests
+                      {presentationStats.outlineRequests} outline requests •{" "}
+                      {presentationStats.imageRequests} image requests
                     </div>
                   </div>
                 </CardContent>

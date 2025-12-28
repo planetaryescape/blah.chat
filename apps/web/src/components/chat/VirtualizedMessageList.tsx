@@ -165,7 +165,7 @@ export function VirtualizedMessageList({
 
 // Memoized virtual item to prevent unnecessary re-renders
 interface VirtualizedItemProps {
-  virtualItem: { key: string | number; index: number; start: number };
+  virtualItem: { key: string | number | bigint; index: number; start: number };
   grouped: GroupedItem[];
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;

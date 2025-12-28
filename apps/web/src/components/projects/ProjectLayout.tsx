@@ -5,9 +5,9 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import {
   Archive,
+  BookOpen,
   ChevronLeft,
   FileText,
-  FolderOpen,
   LayoutGrid,
   MessageSquare,
   MoreHorizontal,
@@ -72,10 +72,10 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
       count: stats?.noteCount || undefined,
     },
     {
-      id: "files",
-      label: "Files",
-      icon: FolderOpen,
-      path: `/projects/${projectId}/files`,
+      id: "knowledge",
+      label: "Knowledge",
+      icon: BookOpen,
+      path: `/projects/${projectId}/knowledge`,
       count: stats?.fileCount || undefined,
     },
     {

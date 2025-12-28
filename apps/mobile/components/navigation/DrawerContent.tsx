@@ -1,0 +1,318 @@
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "convex/react";
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useRouter, usePathname } from "expo-router";
+import {
+  Plus,
+  Pin,
+  Star,
+  Settings,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { DrawerContentComponentProps } from "@react-navigation/drawer";
+import { colors } from "@/lib/theme/colors";
+import { fonts } from "@/lib/theme/fonts";
+import { spacing, radius } from "@/lib/theme/spacing";
+
+type Conversation = Doc<"conversations">;
+
+export function DrawerContent(props: DrawerContentComponentProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
+
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const conversations = useQuery(api.conversations.list) as
+    | Conversation[]
+    | undefined;
+
+  const handleNewChat = () => {
+    router.push("/chat/new");
+    props.navigation.closeDrawer();
+  };
+
+  const handleConversation = (id: string) => {
+    router.push(`/chat/${id}`);
+    props.navigation.closeDrawer();
+  };
+
+  const handleSettings = () => {
+    router.push("/settings");
+    props.navigation.closeDrawer();
+  };
+
+  const handleHome = () => {
+    router.push("/");
+    props.navigation.closeDrawer();
+  };
+
+  const renderConversation = ({ item }: { item: Conversation }) => {
+    const isActive = pathname === `/chat/${item._id}`;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.conversationItem,
+          isActive && styles.conversationItemActive,
+        ]}
+        onPress={() => handleConversation(item._id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.conversationRow}>
+          <Text
+            style={[
+              styles.conversationTitle,
+              isActive && styles.conversationTitleActive,
+            ]}
+            numberOfLines={1}
+          >
+            {item.title || "Untitled"}
+          </Text>
+          <View style={styles.badges}>
+            {item.pinned && (
+              <Pin
+                size={12}
+                color={colors.mutedForeground}
+                fill={colors.mutedForeground}
+              />
+            )}
+            {item.starred && (
+              <Star size={12} color={colors.star} fill={colors.star} />
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header with branding and New Chat */}
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.brandRow}>
+          <View style={styles.logoContainer}>
+            <Sparkles size={18} color={colors.primary} />
+          </View>
+          <Text style={styles.brandText}>blah.chat</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.newChatButton}
+          onPress={handleNewChat}
+          activeOpacity={0.8}
+        >
+          <Plus size={18} color={colors.primaryForeground} />
+          <Text style={styles.newChatText}>New Chat</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* All Chats nav item */}
+      <TouchableOpacity
+        style={[styles.navItem, pathname === "/" && styles.navItemActive]}
+        onPress={handleHome}
+        activeOpacity={0.7}
+      >
+        <MessageSquare
+          size={18}
+          color={pathname === "/" ? colors.primary : colors.mutedForeground}
+        />
+        <Text
+          style={[
+            styles.navItemText,
+            pathname === "/" && styles.navItemTextActive,
+          ]}
+        >
+          All Chats
+        </Text>
+      </TouchableOpacity>
+
+      {/* Conversations list */}
+      <View style={styles.conversationsList}>
+        <Text style={styles.sectionTitle}>Recent</Text>
+        {conversations && conversations.length > 0 ? (
+          <FlashList
+            data={conversations.slice(0, 20)}
+            renderItem={renderConversation}
+            keyExtractor={(item) => item._id}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <MessageSquare size={32} color={colors.border} strokeWidth={1.5} />
+            <Text style={styles.emptyText}>No conversations yet</Text>
+            <Text style={styles.emptySubtext}>Start a new chat to begin</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Footer with Settings */}
+      <View
+        style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}
+      >
+        <TouchableOpacity
+          style={[
+            styles.navItem,
+            pathname === "/settings" && styles.navItemActive,
+          ]}
+          onPress={handleSettings}
+          activeOpacity={0.7}
+        >
+          <Settings
+            size={18}
+            color={
+              pathname === "/settings" ? colors.primary : colors.mutedForeground
+            }
+          />
+          <Text
+            style={[
+              styles.navItemText,
+              pathname === "/settings"
+                ? styles.navItemTextActive
+                : styles.navItemTextMuted,
+            ]}
+          >
+            Settings
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: spacing.md,
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  logoContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.md,
+    backgroundColor: colors.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandText: {
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    color: colors.foreground,
+  },
+  newChatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+  },
+  newChatText: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 15,
+    color: colors.primaryForeground,
+  },
+  navItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: spacing.sm,
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
+  },
+  navItemActive: {
+    backgroundColor: `${colors.primary}15`,
+  },
+  navItemText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.foreground,
+  },
+  navItemTextActive: {
+    color: colors.primary,
+  },
+  navItemTextMuted: {
+    color: colors.mutedForeground,
+  },
+  conversationsList: {
+    flex: 1,
+    marginTop: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: fonts.bodySemibold,
+    fontSize: 11,
+    color: colors.mutedForeground,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  conversationItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    marginHorizontal: spacing.sm,
+    marginVertical: 1,
+    borderRadius: radius.md,
+  },
+  conversationItemActive: {
+    backgroundColor: `${colors.primary}15`,
+  },
+  conversationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  conversationTitle: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.foreground,
+  },
+  conversationTitleActive: {
+    fontFamily: fonts.bodyMedium,
+    color: colors.primary,
+  },
+  badges: {
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  emptyText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.mutedForeground,
+    marginTop: spacing.sm,
+  },
+  emptySubtext: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.mutedForeground,
+    opacity: 0.7,
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
+  },
+});

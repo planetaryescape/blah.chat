@@ -12,13 +12,13 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
-      "@/*": ["./*"],
-      "@blah-chat/backend/convex/_generated/*": ["../../packages/backend/convex/_generated/*"]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "types/**/*.d.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"

@@ -2,15 +2,24 @@ import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Sparkles } from "lucide-react-native";
+import {
+  AuthDivider,
+  SocialAuthButtons,
+} from "@/components/auth/SocialAuthButtons";
+import { colors } from "@/lib/theme/colors";
+import { fonts } from "@/lib/theme/fonts";
+import { spacing, radius } from "@/lib/theme/spacing";
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -21,6 +30,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState<"email" | "password" | null>(null);
 
   const handleSignIn = async () => {
     if (!isLoaded) return;
@@ -45,89 +55,106 @@ export default function SignInScreen() {
     }
   };
 
+  const isDisabled = loading || !email || !password;
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
+      style={styles.container}
     >
       <View
-        className="flex-1 px-6 justify-center"
-        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+        style={[
+          styles.content,
+          { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom },
+        ]}
       >
-        {/* Header */}
-        <View className="mb-8">
-          <Text className="text-3xl font-bold text-foreground mb-2">
-            Welcome back
-          </Text>
-          <Text className="text-muted-foreground">
-            Sign in to continue to blah.chat
-          </Text>
+        {/* Brand Logo */}
+        <View style={styles.logoContainer}>
+          <View style={styles.logo}>
+            <Sparkles size={28} color={colors.primary} />
+          </View>
         </View>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.subtitle}>Sign in to continue to blah.chat</Text>
+        </View>
+
+        {/* Social Auth */}
+        <SocialAuthButtons onError={setError} />
+
+        {/* Divider */}
+        <AuthDivider />
 
         {/* Error message */}
         {error ? (
-          <View className="bg-destructive/10 rounded-lg px-4 py-3 mb-4">
-            <Text className="text-destructive text-sm">{error}</Text>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
         {/* Form */}
-        <View className="gap-4">
-          <View>
-            <Text className="text-sm font-medium text-foreground mb-2">
-              Email
-            </Text>
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor="#71717a"
+              placeholderTextColor={colors.mutedForeground}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
-              className="bg-secondary rounded-xl px-4 py-3 text-foreground text-base"
+              onFocus={() => setIsFocused("email")}
+              onBlur={() => setIsFocused(null)}
+              style={[
+                styles.input,
+                isFocused === "email" && styles.inputFocused,
+              ]}
             />
           </View>
 
-          <View>
-            <Text className="text-sm font-medium text-foreground mb-2">
-              Password
-            </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Password</Text>
             <TextInput
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your password"
-              placeholderTextColor="#71717a"
+              placeholderTextColor={colors.mutedForeground}
               secureTextEntry
-              className="bg-secondary rounded-xl px-4 py-3 text-foreground text-base"
+              onFocus={() => setIsFocused("password")}
+              onBlur={() => setIsFocused(null)}
+              style={[
+                styles.input,
+                isFocused === "password" && styles.inputFocused,
+              ]}
             />
           </View>
 
           <Pressable
             onPress={handleSignIn}
-            disabled={loading || !email || !password}
-            className={`rounded-xl py-4 items-center mt-2 ${
-              loading || !email || !password
-                ? "bg-primary/50"
-                : "bg-primary active:bg-primary/90"
-            }`}
+            disabled={isDisabled}
+            style={({ pressed }) => [
+              styles.button,
+              isDisabled && styles.buttonDisabled,
+              pressed && !isDisabled && styles.buttonPressed,
+            ]}
           >
             {loading ? (
-              <ActivityIndicator color="#0a0a0a" />
+              <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <Text className="text-primary-foreground font-semibold text-base">
-                Sign In
-              </Text>
+              <Text style={styles.buttonText}>Sign In</Text>
             )}
           </Pressable>
         </View>
 
         {/* Sign up link */}
-        <View className="flex-row justify-center mt-6">
-          <Text className="text-muted-foreground">Don't have an account? </Text>
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Don't have an account? </Text>
           <Link href="/(auth)/sign-up" asChild>
             <Pressable>
-              <Text className="text-primary font-medium">Sign up</Text>
+              <Text style={styles.link}>Sign up</Text>
             </Pressable>
           </Link>
         </View>
@@ -135,3 +162,116 @@ export default function SignInScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    justifyContent: "center",
+  },
+  logoContainer: {
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  header: {
+    marginBottom: spacing.lg,
+  },
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: 28,
+    color: colors.foreground,
+    marginBottom: spacing.xs,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontFamily: fonts.body,
+    color: colors.mutedForeground,
+    fontSize: 15,
+    textAlign: "center",
+  },
+  errorContainer: {
+    backgroundColor: `${colors.error}15`,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  errorText: {
+    fontFamily: fonts.body,
+    color: colors.error,
+    fontSize: 14,
+    textAlign: "center",
+  },
+  form: {
+    gap: spacing.md,
+  },
+  inputGroup: {
+    gap: spacing.xs,
+  },
+  label: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.foreground,
+  },
+  input: {
+    fontFamily: fonts.body,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    color: colors.foreground,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  inputFocused: {
+    borderColor: colors.ring,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    marginTop: spacing.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
+  },
+  buttonPressed: {
+    opacity: 0.9,
+  },
+  buttonText: {
+    fontFamily: fonts.bodySemibold,
+    color: colors.primaryForeground,
+    fontSize: 16,
+  },
+  linkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: spacing.lg,
+  },
+  linkText: {
+    fontFamily: fonts.body,
+    color: colors.mutedForeground,
+    fontSize: 14,
+  },
+  link: {
+    fontFamily: fonts.bodySemibold,
+    color: colors.primary,
+    fontSize: 14,
+  },
+});

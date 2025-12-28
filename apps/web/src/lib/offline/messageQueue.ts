@@ -1,10 +1,6 @@
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { cache } from "@/lib/cache";
 
-/**
- * Queued message for offline mode
- * Persisted in IndexedDB via Dexie, sent when online
- */
 export interface QueuedMessage {
   id: string;
   conversationId: Id<"conversations">;
@@ -22,17 +18,9 @@ export interface QueuedMessage {
   retries: number;
 }
 
-/**
- * Offline message queue with IndexedDB persistence (via Dexie)
- * Auto-retries when connection restored with exponential backoff
- */
 export class MessageQueue {
   private readonly MAX_RETRIES = 3;
 
-  /**
-   * Add message to offline queue
-   * @throws Error if IndexedDB write fails (e.g., quota exceeded)
-   */
   async enqueue(
     message: Omit<QueuedMessage, "id" | "timestamp" | "retries">,
   ): Promise<void> {
@@ -51,13 +39,9 @@ export class MessageQueue {
       retries: 0,
     });
 
-    // Dispatch event for UI update
     this.dispatchQueueUpdate();
   }
 
-  /**
-   * Process all queued messages with exponential backoff retry
-   */
   async processQueue(
     sendFn: (msg: QueuedMessage) => Promise<void>,
   ): Promise<void> {
@@ -66,20 +50,15 @@ export class MessageQueue {
     for (const msg of queue) {
       try {
         await sendFn(msg);
-
-        // Success - remove from queue
         await this.remove(msg.id);
       } catch (_error) {
-        // Failed - increment retry count
         if (msg.retries >= this.MAX_RETRIES) {
-          // Max retries exceeded - remove permanently
           await this.remove(msg.id);
           console.error(
             `[MessageQueue] Permanently failed after ${this.MAX_RETRIES} retries:`,
             msg.content.slice(0, 50),
           );
         } else {
-          // Increment retry count
           await this.incrementRetry(msg.id);
 
           // Exponential backoff: 2s → 4s → 8s
@@ -90,9 +69,6 @@ export class MessageQueue {
     }
   }
 
-  /**
-   * Get all queued messages
-   */
   async getQueue(): Promise<QueuedMessage[]> {
     try {
       const pending = await cache.pendingMutations
@@ -126,8 +102,6 @@ export class MessageQueue {
     this.dispatchQueueUpdate();
   }
 
-  // Private helpers
-
   private async remove(id: string): Promise<void> {
     try {
       await cache.pendingMutations.delete(id);
@@ -155,7 +129,6 @@ export class MessageQueue {
   }
 
   private dispatchQueueUpdate(): void {
-    // Get count async and dispatch
     this.getCount().then((count) => {
       window.dispatchEvent(
         new CustomEvent("queue-updated", {
@@ -166,7 +139,4 @@ export class MessageQueue {
   }
 }
 
-/**
- * Singleton instance for app-wide use
- */
 export const messageQueue = new MessageQueue();

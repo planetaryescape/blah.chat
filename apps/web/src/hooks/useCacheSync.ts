@@ -12,10 +12,6 @@ interface MessageCacheSyncOptions {
   initialNumItems?: number;
 }
 
-/**
- * Sync messages for a conversation to local cache
- * Returns instant reads from IndexedDB with pagination support
- */
 export function useMessageCacheSync({
   conversationId,
   initialNumItems = 50,
@@ -61,9 +57,6 @@ export function useMessageCacheSync({
   };
 }
 
-/**
- * Batch sync message metadata (attachments, toolCalls, sources) for visible messages
- */
 export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
   // Stable reference using shallow comparison (avoids JSON.stringify every render)
   const prevIdsRef = useRef<Id<"messages">[]>([]);
@@ -106,10 +99,6 @@ interface ConversationCacheSyncOptions {
   projectId?: Id<"projects"> | "none" | null;
 }
 
-/**
- * Sync conversations to local cache with optional project filtering
- * Convex subscription syncs all conversations, Dexie returns filtered
- */
 export function useConversationCacheSync(
   options: ConversationCacheSyncOptions = {},
 ) {
@@ -158,9 +147,6 @@ export function useConversationCacheSync(
   };
 }
 
-/**
- * Sync notes to local cache
- */
 export function useNoteCacheSync(userId: string | undefined) {
   const notes = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
@@ -184,9 +170,6 @@ export function useNoteCacheSync(userId: string | undefined) {
   );
 }
 
-/**
- * Sync tasks to local cache
- */
 export function useTaskCacheSync(userId: string | undefined) {
   const tasks = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
@@ -210,9 +193,6 @@ export function useTaskCacheSync(userId: string | undefined) {
   );
 }
 
-/**
- * Sync projects to local cache
- */
 export function useProjectCacheSync(userId: string | undefined) {
   const projects = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
@@ -236,9 +216,6 @@ export function useProjectCacheSync(userId: string | undefined) {
   );
 }
 
-/**
- * Read attachments from cache for a message
- */
 export function useCachedAttachments(messageId: Id<"messages"> | string) {
   return useLiveQuery(
     () => cache.attachments.where("messageId").equals(messageId).toArray(),
@@ -247,9 +224,6 @@ export function useCachedAttachments(messageId: Id<"messages"> | string) {
   );
 }
 
-/**
- * Read tool calls from cache for a message
- */
 export function useCachedToolCalls(messageId: Id<"messages"> | string) {
   return useLiveQuery(
     () => cache.toolCalls.where("messageId").equals(messageId).toArray(),
@@ -258,9 +232,6 @@ export function useCachedToolCalls(messageId: Id<"messages"> | string) {
   );
 }
 
-/**
- * Read sources from cache for a message
- */
 export function useCachedSources(messageId: Id<"messages"> | string) {
   return useLiveQuery(
     () => cache.sources.where("messageId").equals(messageId).toArray(),
@@ -269,9 +240,6 @@ export function useCachedSources(messageId: Id<"messages"> | string) {
   );
 }
 
-/**
- * Read child branches from cache for a message
- */
 export function useCachedChildBranches(
   parentMessageId: Id<"messages"> | string,
 ) {

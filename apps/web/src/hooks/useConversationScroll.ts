@@ -39,17 +39,21 @@ export function useConversationScroll({
   // Scroll to bottom on conversation switch
   useEffect(() => {
     if (highlightMessageId || !conversationId || messageCount === 0) return;
-    if (lastScrolledConversationRef.current === conversationId) return;
-
-    // Mark as scrolled BEFORE the RAF to prevent race conditions
-    lastScrolledConversationRef.current = conversationId;
 
     const lastIndex = groupedRef.current.length - 1;
-    if (lastIndex >= 0) {
-      requestAnimationFrame(() => {
-        virtualizerRef.current.scrollToIndex(lastIndex, { align: "end" });
-      });
-    }
+    if (lastIndex < 0) return;
+
+    // Skip if already scrolled for this conversation
+    if (lastScrolledConversationRef.current === conversationId) return;
+    lastScrolledConversationRef.current = conversationId;
+
+    // Use setTimeout to ensure virtualizer has initialized and measured items
+    // RAF alone isn't enough when loading from cache (items render synchronously)
+    const timeoutId = setTimeout(() => {
+      virtualizerRef.current.scrollToIndex(lastIndex, { align: "end" });
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
   }, [conversationId, highlightMessageId, messageCount]);
 
   // Scroll user message to top of viewport on send (ChatGPT-style UX)

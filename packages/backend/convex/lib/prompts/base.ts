@@ -1,4 +1,5 @@
 import type { ModelConfig } from "@/lib/ai/models";
+import type { MemoryExtractionLevel } from "./operational/memoryExtraction";
 import { VISUAL_FORMATTING_PROMPT } from "./operational/visualFormatting";
 
 interface CustomInstructions {
@@ -17,6 +18,7 @@ interface BasePromptOptions {
   prefetchedMemories: string | null;
   currentDate: string;
   customInstructions?: CustomInstructions | null;
+  memoryExtractionLevel?: MemoryExtractionLevel;
 }
 
 function formatContextWindow(contextWindow: number): string {
@@ -33,6 +35,7 @@ export function getBasePrompt(options: BasePromptOptions): string {
     prefetchedMemories,
     currentDate,
     customInstructions,
+    memoryExtractionLevel,
   } = options;
 
   // Check if user has custom tone/style that should override defaults
@@ -53,6 +56,7 @@ export function getBasePrompt(options: BasePromptOptions): string {
   const memorySection = buildMemorySection(
     hasFunctionCalling,
     prefetchedMemories,
+    memoryExtractionLevel,
   );
 
   // Build provider-specific section
@@ -397,18 +401,58 @@ function buildCapabilities(
   return caps.join("\n");
 }
 
+/**
+ * Build proactive search instructions for active/aggressive extraction levels
+ * These levels instruct the AI to always search personal data before responding
+ */
+function buildProactiveSearchInstruction(
+  memoryExtractionLevel?: MemoryExtractionLevel,
+): string {
+  if (memoryExtractionLevel === "active") {
+    return `
+    <proactive_search>
+      Before responding, check for relevant personal context:
+      1. Call searchMemories for any relevant facts, preferences, or past discussions
+      2. Consider calling searchAll if the topic might relate to their files, notes, tasks, or past conversations
+
+      Even if you think you know the answer, the user may have shared context that should inform your response.
+    </proactive_search>`;
+  }
+
+  if (memoryExtractionLevel === "aggressive") {
+    return `
+    <proactive_search priority="high">
+      ALWAYS search the user's personal data before EVERY response:
+      1. Call searchMemories to check for relevant facts, preferences, context
+      2. Call searchAll to check files, notes, tasks, and past conversations
+
+      Do NOT skip this step. The user wants maximum personalization.
+      Check even for simple questions—they may have relevant context stored.
+    </proactive_search>`;
+  }
+
+  // For none/passive/minimal/moderate: no proactive instruction
+  return "";
+}
+
 function buildMemorySection(
   hasFunctionCalling: boolean,
   prefetchedMemories: string | null,
+  memoryExtractionLevel?: MemoryExtractionLevel,
 ): string {
   if (hasFunctionCalling) {
+    // Build proactive search instructions for active/aggressive levels
+    const proactiveInstruction = buildProactiveSearchInstruction(
+      memoryExtractionLevel,
+    );
+
     return `  <memory_system>
     <preloaded>
       User identity, preferences, and relationships are automatically provided at the start of each conversation. These are always available—no tool call needed.
     </preloaded>
 
     <on_demand>
-      <description>Use the searchMemories tool to retrieve past conversation context, decisions, projects, and facts.</description>
+      <description>Use the searchMemories tool to retrieve past conversation context, decisions, projects, and facts. Use searchAll to search files, notes, tasks, and past conversations.</description>
 
       <when_to_search>
         - User asks about THEIR OWN information: skills, preferences, history, opinions
@@ -416,6 +460,7 @@ function buildMemorySection(
         - User references past conversations: "What did I say about...", "Remember when..."
         - User asks about their projects/goals not in pre-loaded memories
         - User asks about specific events, decisions, or prior conversation context
+        - User asks about files, notes, or tasks they've created
       </when_to_search>
 
       <when_not_to_search>
@@ -433,8 +478,9 @@ function buildMemorySection(
         "What is sushi?" = GENERAL KNOWLEDGE → answer from training
       </critical_distinction>
 
-      <multi_turn>You can call searchMemories multiple times to clarify or narrow results if the first search doesn't surface what you need.</multi_turn>
+      <multi_turn>You can call searchMemories or searchAll multiple times to clarify or narrow results if the first search doesn't surface what you need.</multi_turn>
     </on_demand>
+${proactiveInstruction}
   </memory_system>`;
   }
 

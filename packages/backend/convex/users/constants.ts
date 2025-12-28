@@ -60,6 +60,9 @@ export const PREFERENCE_DEFAULTS = {
     autoExpand: false,
     showDuringStreaming: true,
   },
+
+  // Memory
+  memoryExtractionLevel: "moderate" as const,
 } as const;
 
 export const PREFERENCE_CATEGORIES: Record<string, string> = {
@@ -104,4 +107,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   // Special: nested objects stored as single rows
   customInstructions: "customInstructions",
   reasoning: "reasoning",
+
+  // Memory
+  memoryExtractionLevel: "memory",
 };

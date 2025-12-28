@@ -7,7 +7,7 @@ import { MODEL_CONFIG } from "@/lib/ai/models";
 import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
@@ -20,6 +20,7 @@ import {
   detectCreditsError,
   estimateWastedCost,
 } from "./lib/errorTracking";
+import type { MemoryExtractionLevel } from "./lib/prompts/operational/memoryExtraction";
 import {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_PROMPT,
@@ -161,22 +162,36 @@ export const generateResponse = internalAction({
       const hasFunctionCalling =
         modelConfig.capabilities?.includes("function-calling") ?? false;
 
-      // 6. Pre-fetch contextual memories for non-tool models
+      // 5b. Get user's memory extraction level preference
+      const memoryExtractionLevel = ((await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.users.getUserPreferenceByUserId,
+        { userId: args.userId, key: "memoryExtractionLevel" },
+      )) ?? "moderate") as MemoryExtractionLevel;
+
+      // 6. Pre-fetch contextual memories for NON-TOOL models only
+      // Tool-capable models use searchMemories/searchAll tools instead
+      // (active/aggressive levels are instructed via system prompt to call these)
       let prefetchedMemories: string | null = null;
 
-      if (!hasFunctionCalling && lastUserMsg) {
+      // Only pre-fetch for non-tool models that can't call searchMemories
+      const shouldFetchMemories =
+        memoryExtractionLevel !== "none" && lastUserMsg && !hasFunctionCalling;
+
+      if (shouldFetchMemories) {
         try {
           // Build search query from last user message (content is a string)
           const searchQuery = (lastUserMsg.content || "").slice(0, 500); // Cap query length
 
           if (searchQuery.trim()) {
-            // Search all non-identity categories
+            // Search all non-identity categories for non-tool models
+            const fetchLimit = 15;
             const searchResults = await ctx.runAction(
               internal.memories.search.hybridSearch,
               {
                 userId: args.userId,
                 query: searchQuery,
-                limit: 15, // Higher than tool default (5) since this is all they get
+                limit: fetchLimit,
                 // No category filter = search all
               },
             );
@@ -243,6 +258,7 @@ export const generateResponse = internalAction({
             modelConfig,
             hasFunctionCalling,
             prefetchedMemories,
+            memoryExtractionLevel,
           });
 
       const systemPrompts = systemPromptsResult.messages;
@@ -402,6 +418,7 @@ export const generateResponse = internalAction({
           userId: args.userId,
           conversationId: args.conversationId,
           messageAttachments,
+          memoryExtractionLevel,
           conversation,
         });
         options.onStepFinish = createOnStepFinish();

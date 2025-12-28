@@ -94,6 +94,7 @@ export function VirtualizedMessageList({
     messages,
     virtualizer,
     grouped,
+    scrollContainer: containerRef,
   });
 
   if (messages.length === 0) {

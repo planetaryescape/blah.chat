@@ -1,8 +1,9 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { useNoteCacheSync } from "@/hooks/useCacheSync";
 import { ChevronLeft } from "lucide-react";
 import {
   parseAsArrayOf,
@@ -87,14 +88,47 @@ function NotesPageContent() {
 
   const { isMobile } = useMobileDetect();
 
-  // @ts-ignore - Type depth exceeded with complex Convex query
-  const notes = useQuery(api.notes.searchNotes, {
-    searchQuery,
-    filterPinned: filterPinned || undefined,
-    filterTags: selectedTags.length > 0 ? selectedTags : undefined,
-    tagFilterMode,
-    ...(projectId && { projectId }),
-  });
+  // Local-first: fetch all notes, filter client-side
+  const { notes: allNotes, isLoading: notesLoading } = useNoteCacheSync();
+
+  // Client-side filtering
+  const notes = useMemo(() => {
+    let filtered = allNotes;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (n) =>
+          n.title?.toLowerCase().includes(query) ||
+          n.content?.toLowerCase().includes(query),
+      );
+    }
+
+    // Pinned filter
+    if (filterPinned) {
+      filtered = filtered.filter((n) => n.isPinned);
+    }
+
+    // Project filter
+    if (projectId) {
+      filtered = filtered.filter((n) => n.projectId === projectId);
+    }
+
+    // Tags filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((n) => {
+        const noteTags = n.tags || [];
+        if (tagFilterMode === "AND") {
+          return selectedTags.every((tag) => noteTags.includes(tag));
+        }
+        return selectedTags.some((tag) => noteTags.includes(tag));
+      });
+    }
+
+    // Sort by updatedAt descending
+    return [...filtered].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }, [allNotes, searchQuery, filterPinned, projectId, selectedTags, tagFilterMode]);
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation
   const createNote = useMutation(api.notes.createNote);

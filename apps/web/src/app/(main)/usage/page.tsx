@@ -85,6 +85,26 @@ const COST_TYPE_COLORS = {
   slides: "#f59e0b",
 };
 
+const FEATURE_COLORS: Record<string, string> = {
+  chat: "#3b82f6",
+  slides: "#f59e0b",
+  notes: "#10b981",
+  tasks: "#ec4899",
+  files: "#8b5cf6",
+  memory: "#6366f1",
+  smart_assistant: "#14b8a6",
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  chat: "Chat",
+  slides: "Slides",
+  notes: "Notes",
+  tasks: "Tasks",
+  files: "Files",
+  memory: "Memory",
+  smart_assistant: "Smart Assistant",
+};
+
 function UsagePageContent() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
 
@@ -107,6 +127,11 @@ function UsagePageContent() {
     endDate: dateRange.endDate,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const costByFeature = useQuery(api.usage.queries.getCostByFeature, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const activityStats = useQuery(api.usage.queries.getActivityStats);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const totalCounts = useQuery(api.usage.queries.getTotalCounts);
@@ -118,6 +143,11 @@ function UsagePageContent() {
   const percentileRanking = useQuery(api.usage.queries.getPercentileRanking);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const actionStats = useQuery(api.usage.queries.getActionStats);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const presentationStats = useQuery(api.usage.queries.getPresentationStats, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
 
   const isLoading =
     usageSummary === undefined ||
@@ -145,6 +175,24 @@ function UsagePageContent() {
         { name: "Images", value: costByType.images.cost },
         { name: "Slides", value: costByType.slides.cost },
       ].filter((d) => d.value > 0)
+    : [];
+
+  // Feature breakdown data
+  const featureData = costByFeature
+    ? Object.entries(costByFeature)
+        .filter(([_, data]) => data.total > 0)
+        .map(([feature, data]) => ({
+          name: FEATURE_LABELS[feature] || feature,
+          key: feature,
+          value: data.total,
+          breakdown: {
+            text: data.text,
+            tts: data.tts,
+            stt: data.stt,
+            image: data.image,
+          },
+        }))
+        .sort((a, b) => b.value - a.value)
     : [];
 
   const modelPieData =
@@ -263,8 +311,14 @@ function UsagePageContent() {
                   />
                   <UsageKPICard
                     label="Presentations"
-                    value={activityStats?.slidesCount ?? 0}
+                    value={presentationStats?.presentationsCount ?? activityStats?.slidesCount ?? 0}
                     icon={Presentation}
+                  />
+                  <UsageKPICard
+                    label="Total Slides"
+                    value={presentationStats?.slidesCount ?? 0}
+                    icon={Image}
+                    subtext={presentationStats ? `$${presentationStats.totalCost.toFixed(2)} total` : undefined}
                   />
                   <UsageKPICard
                     label="Tasks"
@@ -536,6 +590,119 @@ function UsagePageContent() {
                             />
                           </PieChart>
                         </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cost by Feature */}
+                  {featureData.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">
+                        Cost by Feature
+                      </h4>
+                      <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={featureData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              label={({ name, percent }) =>
+                                `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
+                              }
+                              labelLine={{ strokeWidth: 1 }}
+                            >
+                              {featureData.map((entry) => (
+                                <Cell
+                                  key={`cell-${entry.key}`}
+                                  fill={FEATURE_COLORS[entry.key] || COLORS[0]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(val) => [
+                                `$${(val as number).toFixed(4)}`,
+                                "Cost",
+                              ]}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      {/* Sub-breakdown */}
+                      <div className="mt-4 space-y-2">
+                        {featureData.map((feature) => (
+                          <div
+                            key={feature.key}
+                            className="text-xs text-muted-foreground"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    FEATURE_COLORS[feature.key] || COLORS[0],
+                                }}
+                              />
+                              <span className="font-medium">{feature.name}</span>
+                              <span className="ml-auto">
+                                ${feature.value.toFixed(4)}
+                              </span>
+                            </div>
+                            <div className="ml-4 flex flex-wrap gap-x-3 gap-y-0.5">
+                              {feature.breakdown.text > 0 && (
+                                <span>Text: ${feature.breakdown.text.toFixed(4)}</span>
+                              )}
+                              {feature.breakdown.tts > 0 && (
+                                <span>TTS: ${feature.breakdown.tts.toFixed(4)}</span>
+                              )}
+                              {feature.breakdown.stt > 0 && (
+                                <span>STT: ${feature.breakdown.stt.toFixed(4)}</span>
+                              )}
+                              {feature.breakdown.image > 0 && (
+                                <span>Image: ${feature.breakdown.image.toFixed(4)}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Slides Cost Breakdown */}
+                  {presentationStats && presentationStats.totalCost > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">
+                        Slides Cost Breakdown
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Presentations</span>
+                          <span className="font-medium">{presentationStats.presentationsCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total Slides</span>
+                          <span className="font-medium">{presentationStats.slidesCount}</span>
+                        </div>
+                        <div className="h-px bg-border my-2" />
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Outline Generation</span>
+                          <span className="font-medium">${presentationStats.outlineCost.toFixed(4)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Image Generation</span>
+                          <span className="font-medium">${presentationStats.imageCost.toFixed(4)}</span>
+                        </div>
+                        <div className="h-px bg-border my-2" />
+                        <div className="flex items-center justify-between text-sm font-medium">
+                          <span>Total Slides Cost</span>
+                          <span>${presentationStats.totalCost.toFixed(4)}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-2">
+                          {presentationStats.outlineRequests} outline requests • {presentationStats.imageRequests} image requests
+                        </div>
                       </div>
                     </div>
                   )}

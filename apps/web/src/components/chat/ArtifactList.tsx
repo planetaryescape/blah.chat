@@ -1,9 +1,8 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { useMemo } from "react";
+import { useCachedToolCalls } from "@/hooks/useCacheSync";
 import { cn } from "@/lib/utils";
 import { ArtifactCard } from "./ArtifactCard";
 
@@ -17,16 +16,8 @@ interface ArtifactListProps {
  * Renders in the message body, separate from the collapsible tool call area.
  */
 export function ArtifactList({ messageId, className }: ArtifactListProps) {
-  // Skip query for temporary optimistic messages
-  const isTempMessage =
-    typeof messageId === "string" && messageId.startsWith("temp-");
-
-  // Query tool calls for this message
-  const toolCalls = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.messages.toolCalls.getToolCalls,
-    isTempMessage ? "skip" : { messageId },
-  );
+  // Read from local cache (instant) - synced by useMetadataCacheSync in VirtualizedMessageList
+  const toolCalls = useCachedToolCalls(messageId);
 
   // Filter for document-related tools with successful results
   const documentArtifacts = useMemo(() => {
@@ -64,6 +55,7 @@ export function ArtifactList({ messageId, className }: ArtifactListProps) {
       });
   }, [toolCalls]);
 
+  // Don't reserve space - most messages don't have artifacts
   if (documentArtifacts.length === 0) return null;
 
   return (

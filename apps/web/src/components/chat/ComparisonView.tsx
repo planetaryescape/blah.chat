@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { Eye, EyeOff, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
@@ -47,10 +45,6 @@ export function ComparisonView({
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [showConsolidateDialog, setShowConsolidateDialog] = useState(false);
   const [votedMessageId, setVotedMessageId] = useState<string | undefined>();
-
-  // Get user preferences for statistics display
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const _user = useQuery(api.users.getCurrentUser);
 
   // Phase 4: Use new preference hook
   const showStats = useUserPreference("showComparisonStatistics");

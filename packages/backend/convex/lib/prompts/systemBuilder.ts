@@ -5,6 +5,7 @@ import type { ModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { getKnowledgeBankSystemPrompt } from "../../knowledgeBank/tool";
 import { getBasePrompt } from "./base";
 import { formatMemoriesByCategory, truncateMemories } from "./formatting";
 import type { MemoryExtractionLevel } from "./operational/memoryExtraction";
@@ -139,6 +140,29 @@ export async function buildSystemPrompts(
         role: "system",
         content: `## Project Context\n${project.systemPrompt}`,
       });
+    }
+  }
+
+  // === 4.25. KNOWLEDGE BANK ===
+  // Skip for incognito blank slate mode
+  if (!isBlankSlate && args.hasFunctionCalling) {
+    try {
+      const hasKnowledge = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.knowledgeBank.index.hasKnowledge,
+        { userId: args.userId },
+      )) as boolean;
+
+      const kbPrompt = getKnowledgeBankSystemPrompt(hasKnowledge);
+      if (kbPrompt) {
+        systemMessages.push({
+          role: "system",
+          content: kbPrompt,
+        });
+      }
+    } catch (error) {
+      console.error("[KnowledgeBank] Failed to check knowledge bank:", error);
+      // Continue without KB prompt (graceful degradation)
     }
   }
 

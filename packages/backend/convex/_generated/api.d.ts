@@ -164,6 +164,8 @@ import type * as migrations_007_verify_token_usage from "../migrations/007_verif
 import type * as migrations_008_backfill_presentation_conversations from "../migrations/008_backfill_presentation_conversations.js";
 import type * as migrations_009_backfill_usage_features from "../migrations/009_backfill_usage_features.js";
 import type * as migrations_010_fix_gemini_image_pricing from "../migrations/010_fix_gemini_image_pricing.js";
+import type * as migrations_011_migrate_project_files_to_kb from "../migrations/011_migrate_project_files_to_kb.js";
+import type * as migrations_012_rechunk_knowledge from "../migrations/012_rechunk_knowledge.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
 import type * as notes from "../notes.js";
@@ -415,6 +417,8 @@ declare const fullApi: ApiFromModules<{
   "migrations/008_backfill_presentation_conversations": typeof migrations_008_backfill_presentation_conversations;
   "migrations/009_backfill_usage_features": typeof migrations_009_backfill_usage_features;
   "migrations/010_fix_gemini_image_pricing": typeof migrations_010_fix_gemini_image_pricing;
+  "migrations/011_migrate_project_files_to_kb": typeof migrations_011_migrate_project_files_to_kb;
+  "migrations/012_rechunk_knowledge": typeof migrations_012_rechunk_knowledge;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
   notes: typeof notes;

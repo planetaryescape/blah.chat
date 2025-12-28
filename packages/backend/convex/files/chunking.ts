@@ -3,7 +3,10 @@
  * Smart Manager Phase 4: File RAG System
  *
  * Splits documents into overlapping chunks for embedding generation.
- * Target: 1500 tokens (~6k chars), 300 token overlap for context continuity.
+ * Target: 500 tokens (~2k chars), 75 token overlap (15%) for context continuity.
+ *
+ * Research shows 400-512 tokens optimal for retrieval quality.
+ * Larger chunks (1500+) return unfocused context; smaller lose meaning.
  *
  * Pattern: Follow convex/messages/embeddings.ts for batch processing
  */
@@ -13,12 +16,12 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 
-// Chunk configuration
-const CHARS_PER_TOKEN = 4; // Approximate (actual varies by model)
-const TARGET_TOKENS = 1500;
-const OVERLAP_TOKENS = 300;
-const CHUNK_SIZE_CHARS = TARGET_TOKENS * CHARS_PER_TOKEN; // ~6000 chars
-const OVERLAP_SIZE_CHARS = OVERLAP_TOKENS * CHARS_PER_TOKEN; // ~1200 chars
+// Chunk configuration (optimized based on RAG research)
+export const CHARS_PER_TOKEN = 4; // Approximate (actual varies by model)
+export const TARGET_TOKENS = 500; // Optimal for retrieval (was 1500)
+export const OVERLAP_TOKENS = 75; // 15% overlap for context (was 300)
+export const CHUNK_SIZE_CHARS = TARGET_TOKENS * CHARS_PER_TOKEN; // ~2000 chars
+export const OVERLAP_SIZE_CHARS = OVERLAP_TOKENS * CHARS_PER_TOKEN; // ~300 chars
 
 export interface FileChunk {
   content: string;

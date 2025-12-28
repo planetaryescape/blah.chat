@@ -47,8 +47,6 @@ export function VirtualizedMessageList({
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
     threshold: 100,
-    animationDuration: 400,
-    disableAutoScroll: true,
   });
 
   const { data: conversationsData } = useConversations();
@@ -65,7 +63,7 @@ export function VirtualizedMessageList({
   const virtualizer = useVirtualizer({
     count: grouped.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => 150,
+    estimateSize: () => 250, // Conservative estimate to reduce layout thrashing
     overscan: 5,
   });
 
@@ -74,15 +72,15 @@ export function VirtualizedMessageList({
   useHighlightScroll({
     highlightMessageId,
     grouped,
-    containerRef,
     virtualizer,
   });
   useConversationScroll({
-    containerRef,
     conversationId,
     messageCount: messages.length,
     highlightMessageId,
     messages,
+    virtualizer,
+    grouped,
   });
 
   if (messages.length === 0) {
@@ -112,11 +110,11 @@ export function VirtualizedMessageList({
         className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
         style={{
           contain: "layout style paint",
-          contentVisibility: "auto",
+          // Disable contentVisibility during generation to prevent reflows
+          contentVisibility: isGenerating ? "visible" : "auto",
         }}
       >
         <div
-          className={cn(isGenerating && "pb-[80vh]")}
           style={{
             height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
@@ -142,7 +140,7 @@ export function VirtualizedMessageList({
               >
                 <div
                   className={cn(
-                    "grid gap-4 px-4 py-2 transition-all duration-300 ease-out",
+                    "grid gap-4 px-4 py-2",
                     chatWidth === "narrow" &&
                       "grid-cols-[1fr_min(42rem,100%)_1fr]",
                     chatWidth === "standard" &&

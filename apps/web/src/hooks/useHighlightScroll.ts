@@ -1,17 +1,15 @@
 "use client";
 
 import type { Virtualizer } from "@tanstack/react-virtual";
-import { type RefObject, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { GroupedItem } from "@/hooks/useMessageGrouping";
 
 interface UseHighlightScrollOptions {
   highlightMessageId?: string;
   grouped: GroupedItem[];
-  containerRef: RefObject<HTMLElement | null>;
   virtualizer: Virtualizer<any, any>;
 }
 
-const HINT_OFFSET = 80;
 const SCROLL_DELAY = 300;
 const HIGHLIGHT_DURATION = 1200;
 
@@ -19,7 +17,6 @@ const HIGHLIGHT_DURATION = 1200;
 export function useHighlightScroll({
   highlightMessageId,
   grouped,
-  containerRef,
   virtualizer,
 }: UseHighlightScrollOptions): void {
   const scrolledToHighlight = useRef(false);
@@ -49,18 +46,8 @@ export function useHighlightScroll({
 
     setTimeout(() => {
       const element = document.getElementById(`message-${highlightMessageId}`);
-      const container = containerRef.current;
-      if (element && container) {
-        const containerRect = container.getBoundingClientRect();
-        const elementRect = element.getBoundingClientRect();
-        const elementTop =
-          elementRect.top - containerRect.top + container.scrollTop;
-
-        container.scrollTo({
-          top: Math.max(0, elementTop - HINT_OFFSET),
-          behavior: "smooth",
-        });
-
+      if (element) {
+        // Only add highlight, don't scroll again (virtualizer already scrolled)
         element.classList.add("message-highlight");
         setTimeout(
           () => element.classList.remove("message-highlight"),
@@ -70,7 +57,7 @@ export function useHighlightScroll({
     }, SCROLL_DELAY);
 
     scrolledToHighlight.current = true;
-  }, [highlightMessageId, grouped, virtualizer, containerRef]);
+  }, [highlightMessageId, grouped, virtualizer]);
 
   useEffect(() => {
     scrolledToHighlight.current = false;

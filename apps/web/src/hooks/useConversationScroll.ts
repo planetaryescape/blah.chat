@@ -1,7 +1,7 @@
 "use client";
 
-import type { RefObject } from "react";
 import { useEffect, useRef } from "react";
+import type { GroupedItem } from "@/hooks/useMessageGrouping";
 
 interface Message {
   _id: string;
@@ -9,81 +9,77 @@ interface Message {
 }
 
 interface UseConversationScrollOptions {
-  containerRef: RefObject<HTMLElement | null>;
   conversationId?: string;
   messageCount: number;
   highlightMessageId?: string;
   messages: Message[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  virtualizer: any;
+  grouped: GroupedItem[];
 }
-
-const MAX_SCROLL_ATTEMPTS = 20;
-const SCROLL_RETRY_DELAY = 50;
-const HINT_OFFSET = 50;
 
 /** Scrolls to bottom on conversation switch, and to new user message on send */
 export function useConversationScroll({
-  containerRef,
   conversationId,
   messageCount,
   highlightMessageId,
   messages,
+  virtualizer,
+  grouped,
 }: UseConversationScrollOptions): void {
   const lastScrolledConversationRef = useRef<string | null>(null);
   const prevMessageCountRef = useRef(messageCount);
+
+  // Refs to avoid stale closures - effect deps stay minimal
+  const virtualizerRef = useRef(virtualizer);
+  const groupedRef = useRef(grouped);
+  virtualizerRef.current = virtualizer;
+  groupedRef.current = grouped;
 
   // Scroll to bottom on conversation switch
   useEffect(() => {
     if (highlightMessageId || !conversationId || messageCount === 0) return;
     if (lastScrolledConversationRef.current === conversationId) return;
 
-    let attempts = 0;
-    let timeoutId: ReturnType<typeof setTimeout>;
+    // Mark as scrolled BEFORE the RAF to prevent race conditions
+    lastScrolledConversationRef.current = conversationId;
 
-    const tryScroll = () => {
-      const container = containerRef.current;
-      if (container && container.scrollHeight > container.clientHeight) {
-        container.scrollTop = container.scrollHeight;
-        lastScrolledConversationRef.current = conversationId;
-        return;
-      }
-      if (++attempts < MAX_SCROLL_ATTEMPTS) {
-        timeoutId = setTimeout(tryScroll, SCROLL_RETRY_DELAY);
-      }
-    };
+    const lastIndex = groupedRef.current.length - 1;
+    if (lastIndex >= 0) {
+      requestAnimationFrame(() => {
+        virtualizerRef.current.scrollToIndex(lastIndex, { align: "end" });
+      });
+    }
+  }, [conversationId, highlightMessageId, messageCount]);
 
-    const rafId = requestAnimationFrame(tryScroll);
-    return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(timeoutId);
-    };
-  }, [conversationId, highlightMessageId, messageCount, containerRef]);
-
-  // Scroll to new user message on send
+  // Scroll user message to top of viewport on send (ChatGPT-style UX)
   useEffect(() => {
     const prevCount = prevMessageCountRef.current;
-    if (messageCount > prevCount) {
-      const newUserMessage = messages
-        .slice(prevCount)
-        .find((m) => m.role === "user");
-      if (newUserMessage) {
-        requestAnimationFrame(() => {
-          const element = document.getElementById(
-            `message-${newUserMessage._id}`,
-          );
-          const container = containerRef.current;
-          if (element && container) {
-            const containerRect = container.getBoundingClientRect();
-            const elementRect = element.getBoundingClientRect();
-            const elementTop =
-              elementRect.top - containerRect.top + container.scrollTop;
-            container.scrollTo({
-              top: Math.max(0, elementTop - HINT_OFFSET),
-              behavior: "smooth",
-            });
-          }
-        });
-      }
-    }
     prevMessageCountRef.current = messageCount;
-  }, [messages, messageCount, containerRef]);
+
+    if (messageCount <= prevCount) return;
+
+    const newUserMessage = messages
+      .slice(prevCount)
+      .find((m) => m.role === "user");
+
+    if (!newUserMessage) return;
+
+    // Find the index in grouped items
+    const userMsgIndex = groupedRef.current.findIndex(
+      (item) =>
+        (item.type === "message" && item.data._id === newUserMessage._id) ||
+        (item.type === "comparison" &&
+          item.userMessage._id === newUserMessage._id),
+    );
+
+    if (userMsgIndex !== -1) {
+      requestAnimationFrame(() => {
+        virtualizerRef.current.scrollToIndex(userMsgIndex, {
+          align: "start",
+          behavior: "smooth",
+        });
+      });
+    }
+  }, [messages, messageCount]);
 }

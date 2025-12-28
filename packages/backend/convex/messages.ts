@@ -428,6 +428,7 @@ export const completeMessage = internalMutation({
           outputTokens: args.outputTokens,
           reasoningTokens: args.reasoningTokens,
           cost: args.cost,
+          feature: "chat",
         },
       );
 

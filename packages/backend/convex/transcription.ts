@@ -290,6 +290,7 @@ export const transcribeAudio = action({
         model: `${provider}:stt`,
         durationMinutes,
         cost,
+        feature: "chat",
       },
     );
 

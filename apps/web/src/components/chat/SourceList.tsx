@@ -71,7 +71,7 @@ export function SourceList({ messageId, className }: SourceListProps) {
       {/* Expandable Sources Grid */}
       {isExpanded && (
         <div className="grid gap-2 sm:grid-cols-2">
-          {sources.map((source: SourceWithMetadata, idx: number) => (
+          {(sources as unknown as SourceWithMetadata[]).map((source, idx) => (
             <SourceCard
               key={source.position || idx}
               source={source}

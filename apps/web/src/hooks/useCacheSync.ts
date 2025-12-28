@@ -32,8 +32,9 @@ export function useMessageCacheSync({
   }, [convexMessages.results]);
 
   // Read from local cache (instant)
-  const cachedMessages = useLiveQuery<Doc<"messages">[]>(
-    async () =>
+  // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
+  const cachedMessages: Doc<"messages">[] = useLiveQuery(
+    () =>
       conversationId
         ? cache.messages
             .where("conversationId")

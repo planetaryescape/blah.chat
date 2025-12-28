@@ -147,11 +147,10 @@ export function useConversationCacheSync(
   };
 }
 
-export function useNoteCacheSync(userId: string | undefined) {
+export function useNoteCacheSync() {
   const notes = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.notes.list,
-    userId ? {} : "skip",
   );
 
   useEffect(() => {
@@ -160,21 +159,22 @@ export function useNoteCacheSync(userId: string | undefined) {
     }
   }, [notes]);
 
-  return useLiveQuery(
-    () =>
-      userId
-        ? cache.notes.where("userId").equals(userId).toArray()
-        : Promise.resolve([]),
-    [userId],
+  const cachedNotes = useLiveQuery(
+    () => cache.notes.toArray(),
+    [],
     [] as Doc<"notes">[],
   );
+
+  return {
+    notes: cachedNotes,
+    isLoading: notes === undefined && cachedNotes.length === 0,
+  };
 }
 
-export function useTaskCacheSync(userId: string | undefined) {
+export function useTaskCacheSync() {
   const tasks = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.tasks.list,
-    userId ? {} : "skip",
   );
 
   useEffect(() => {
@@ -183,21 +183,22 @@ export function useTaskCacheSync(userId: string | undefined) {
     }
   }, [tasks]);
 
-  return useLiveQuery(
-    () =>
-      userId
-        ? cache.tasks.where("userId").equals(userId).toArray()
-        : Promise.resolve([]),
-    [userId],
+  const cachedTasks = useLiveQuery(
+    () => cache.tasks.toArray(),
+    [],
     [] as Doc<"tasks">[],
   );
+
+  return {
+    tasks: cachedTasks,
+    isLoading: tasks === undefined && cachedTasks.length === 0,
+  };
 }
 
-export function useProjectCacheSync(userId: string | undefined) {
+export function useProjectCacheSync() {
   const projects = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.projects.list,
-    userId ? {} : "skip",
   );
 
   useEffect(() => {
@@ -206,14 +207,16 @@ export function useProjectCacheSync(userId: string | undefined) {
     }
   }, [projects]);
 
-  return useLiveQuery(
-    () =>
-      userId
-        ? cache.projects.where("userId").equals(userId).toArray()
-        : Promise.resolve([]),
-    [userId],
+  const cachedProjects = useLiveQuery(
+    () => cache.projects.toArray(),
+    [],
     [] as Doc<"projects">[],
   );
+
+  return {
+    projects: cachedProjects,
+    isLoading: projects === undefined && cachedProjects.length === 0,
+  };
 }
 
 export function useCachedAttachments(messageId: Id<"messages"> | string) {

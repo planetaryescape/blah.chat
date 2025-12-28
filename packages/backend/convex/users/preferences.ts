@@ -224,6 +224,23 @@ function validatePreference(key: string, value: any): void {
       }
       break;
 
+    case "memoryExtractionLevel":
+      if (
+        ![
+          "none",
+          "passive",
+          "minimal",
+          "moderate",
+          "active",
+          "aggressive",
+        ].includes(value)
+      ) {
+        throw new Error(
+          "memoryExtractionLevel must be 'none', 'passive', 'minimal', 'moderate', 'active', or 'aggressive'",
+        );
+      }
+      break;
+
     // Boolean preferences
     case "sendOnEnter":
     case "alwaysShowMessageActions":

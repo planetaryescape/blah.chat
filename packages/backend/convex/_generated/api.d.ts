@@ -41,6 +41,7 @@ import type * as ai_tools_taskManager from "../ai/tools/taskManager.js";
 import type * as ai_tools_updateDocument from "../ai/tools/updateDocument.js";
 import type * as ai_tools_urlReader from "../ai/tools/urlReader.js";
 import type * as ai_tools_weather from "../ai/tools/weather.js";
+import type * as bible from "../bible.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as byod_credentials from "../byod/credentials.js";
 import type * as byod_deploy from "../byod/deploy.js";
@@ -285,6 +286,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/updateDocument": typeof ai_tools_updateDocument;
   "ai/tools/urlReader": typeof ai_tools_urlReader;
   "ai/tools/weather": typeof ai_tools_weather;
+  bible: typeof bible;
   bookmarks: typeof bookmarks;
   "byod/credentials": typeof byod_credentials;
   "byod/deploy": typeof byod_deploy;

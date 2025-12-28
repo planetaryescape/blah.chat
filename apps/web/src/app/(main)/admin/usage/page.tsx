@@ -73,15 +73,20 @@ export default function UsagePage() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const monthlyTotal = useQuery(api.usage.queries.getAllUsersMonthlyTotal);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const dailySpend = useQuery(api.usage.queries.getAllUsersDailySpend, { days: 30 });
+  const dailySpend = useQuery(api.usage.queries.getAllUsersDailySpend, {
+    days: 30,
+  });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const spendByModel = useQuery(api.usage.queries.getAllUsersSpendByModel, {
     days: 30,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversationCosts = useQuery(api.usage.queries.getAllUsersConversationCosts, {
-    limit: 10,
-  });
+  const conversationCosts = useQuery(
+    api.usage.queries.getAllUsersConversationCosts,
+    {
+      limit: 10,
+    },
+  );
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const userCount = useQuery(api.admin.getUserCount);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -90,10 +95,13 @@ export default function UsagePage() {
     endDate: dateRange.endDate,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const presentationStats = useQuery(api.usage.queries.getAllUsersPresentationStats, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
-  });
+  const presentationStats = useQuery(
+    api.usage.queries.getAllUsersPresentationStats,
+    {
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    },
+  );
 
   if (
     !monthlyTotal ||
@@ -388,16 +396,24 @@ export default function UsagePage() {
                         </div>
                         <div className="ml-5 text-xs text-muted-foreground flex flex-wrap gap-x-4">
                           {feature.breakdown.text > 0 && (
-                            <span>Text: ${feature.breakdown.text.toFixed(4)}</span>
+                            <span>
+                              Text: ${feature.breakdown.text.toFixed(4)}
+                            </span>
                           )}
                           {feature.breakdown.tts > 0 && (
-                            <span>TTS: ${feature.breakdown.tts.toFixed(4)}</span>
+                            <span>
+                              TTS: ${feature.breakdown.tts.toFixed(4)}
+                            </span>
                           )}
                           {feature.breakdown.stt > 0 && (
-                            <span>STT: ${feature.breakdown.stt.toFixed(4)}</span>
+                            <span>
+                              STT: ${feature.breakdown.stt.toFixed(4)}
+                            </span>
                           )}
                           {feature.breakdown.image > 0 && (
-                            <span>Image: ${feature.breakdown.image.toFixed(4)}</span>
+                            <span>
+                              Image: ${feature.breakdown.image.toFixed(4)}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -421,37 +437,63 @@ export default function UsagePage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Presentations</span>
-                      <span className="text-lg font-bold">{presentationStats.presentationsCount}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Total Presentations
+                      </span>
+                      <span className="text-lg font-bold">
+                        {presentationStats.presentationsCount}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total Slides Generated</span>
-                      <span className="text-lg font-bold">{presentationStats.slidesCount}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Total Slides Generated
+                      </span>
+                      <span className="text-lg font-bold">
+                        {presentationStats.slidesCount}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Avg Slides per Presentation</span>
+                      <span className="text-sm text-muted-foreground">
+                        Avg Slides per Presentation
+                      </span>
                       <span className="text-lg font-bold">
                         {presentationStats.presentationsCount > 0
-                          ? (presentationStats.slidesCount / presentationStats.presentationsCount).toFixed(1)
+                          ? (
+                              presentationStats.slidesCount /
+                              presentationStats.presentationsCount
+                            ).toFixed(1)
                           : 0}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Outline Generation Cost</span>
-                      <span className="font-mono">${presentationStats.outlineCost.toFixed(4)}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Outline Generation Cost
+                      </span>
+                      <span className="font-mono">
+                        ${presentationStats.outlineCost.toFixed(4)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Image Generation Cost</span>
-                      <span className="font-mono">${presentationStats.imageCost.toFixed(4)}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Image Generation Cost
+                      </span>
+                      <span className="font-mono">
+                        ${presentationStats.imageCost.toFixed(4)}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between border-t pt-2">
-                      <span className="text-sm font-medium">Total Slides Cost</span>
-                      <span className="text-lg font-bold">${presentationStats.totalCost.toFixed(4)}</span>
+                      <span className="text-sm font-medium">
+                        Total Slides Cost
+                      </span>
+                      <span className="text-lg font-bold">
+                        ${presentationStats.totalCost.toFixed(4)}
+                      </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {presentationStats.outlineRequests} outline requests • {presentationStats.imageRequests} image requests
+                      {presentationStats.outlineRequests} outline requests •{" "}
+                      {presentationStats.imageRequests} image requests
                     </div>
                   </div>
                 </div>

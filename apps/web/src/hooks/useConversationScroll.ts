@@ -59,7 +59,8 @@ export function useConversationScroll({
       if (!container) return;
 
       const isAtBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        50;
 
       if (isAtBottom || attempts >= maxAttempts) return;
 

@@ -20,9 +20,46 @@ import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { DOCUMENT_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+
+// Usage tracking context
+interface UsageContext {
+  ctx: ActionCtx;
+  userId: Id<"users">;
+}
+
+// Helper to track usage after LLM call
+async function trackUsage(
+  usageCtx: UsageContext,
+  usage: { inputTokens?: number; outputTokens?: number } | undefined,
+) {
+  if (!usage) return;
+
+  const inputTokens = usage.inputTokens ?? 0;
+  const outputTokens = usage.outputTokens ?? 0;
+
+  const cost = calculateCost(DOCUMENT_EXTRACTION_MODEL.id, {
+    inputTokens,
+    outputTokens,
+  });
+
+  await (usageCtx.ctx.runMutation as any)(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    internal.usage.mutations.recordTextGeneration,
+    {
+      userId: usageCtx.userId,
+      model: DOCUMENT_EXTRACTION_MODEL.id,
+      inputTokens,
+      outputTokens,
+      cost,
+      feature: "files",
+    },
+  );
+}
 
 // File type categories
 const TEXT_TYPES = [
@@ -107,6 +144,12 @@ export const extractText = internalAction({
       throw new Error("File not found");
     }
 
+    // Create usage context for cost tracking
+    const usageCtx: UsageContext = {
+      ctx,
+      userId: file.userId,
+    };
+
     // Get file content from storage
     const blob = await ctx.storage.get(file.storageId);
     if (!blob) {
@@ -131,12 +174,12 @@ export const extractText = internalAction({
 
     if (PDF_TYPES.includes(mimeType)) {
       // PDF: Page-by-page LLM extraction
-      return await extractPdfWithLlm(blob, file.name);
+      return await extractPdfWithLlm(blob, file.name, usageCtx);
     }
 
     if (DOCX_TYPES.includes(mimeType)) {
       // DOCX: LLM extraction
-      return await extractDocWithLlm(blob, file.name);
+      return await extractDocWithLlm(blob, file.name, usageCtx);
     }
 
     // Fallback: Try direct text extraction
@@ -153,7 +196,77 @@ export const extractText = internalAction({
     }
 
     // Last resort: LLM extraction for unknown types
-    return await extractGenericWithLlm(blob, file.name, mimeType);
+    return await extractGenericWithLlm(blob, file.name, mimeType, usageCtx);
+  },
+});
+
+/**
+ * Extract text from storage directly (for Knowledge Bank)
+ * Does not require a files table record
+ */
+export const extractTextFromStorage = internalAction({
+  args: {
+    storageId: v.id("_storage"),
+    mimeType: v.string(),
+    fileName: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args): Promise<string> => {
+    // Create usage context for cost tracking
+    const usageCtx: UsageContext = {
+      ctx,
+      userId: args.userId,
+    };
+
+    // Get file content from storage
+    const blob = await ctx.storage.get(args.storageId);
+    if (!blob) {
+      throw new Error("File content not found in storage");
+    }
+
+    const mimeType = args.mimeType.toLowerCase();
+
+    // Route based on file type
+    if (
+      TEXT_TYPES.some(
+        (t) => mimeType.includes(t) || mimeType.startsWith("text/"),
+      )
+    ) {
+      const text = await blob.text();
+      console.log(
+        `[Extraction] Direct text: ${args.fileName} (${text.length} chars)`,
+      );
+      return text;
+    }
+
+    if (PDF_TYPES.includes(mimeType)) {
+      return await extractPdfWithLlm(blob, args.fileName, usageCtx);
+    }
+
+    if (DOCX_TYPES.includes(mimeType)) {
+      return await extractDocWithLlm(blob, args.fileName, usageCtx);
+    }
+
+    // Fallback: Try direct text extraction
+    try {
+      const text = await blob.text();
+      if (text && text.trim().length > 0) {
+        console.log(
+          `[Extraction] Fallback text: ${args.fileName} (${text.length} chars)`,
+        );
+        return text;
+      }
+    } catch {
+      // Not a text file
+    }
+
+    // Last resort: LLM extraction for unknown types
+    return await extractGenericWithLlm(
+      blob,
+      args.fileName,
+      mimeType,
+      usageCtx,
+    );
   },
 });
 
@@ -164,6 +277,7 @@ export const extractText = internalAction({
 async function extractPdfWithLlm(
   blob: Blob,
   fileName: string,
+  usageCtx: UsageContext,
 ): Promise<string> {
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
@@ -208,6 +322,9 @@ async function extractPdfWithLlm(
         maxOutputTokens: 16000,
       });
 
+      // Track usage for each page extraction
+      await trackUsage(usageCtx, result.usage);
+
       const pageText = result.text.trim();
 
       // Check if we've reached the end (blank pages or repeated content)
@@ -250,6 +367,7 @@ async function extractPdfWithLlm(
 async function extractDocWithLlm(
   blob: Blob,
   fileName: string,
+  usageCtx: UsageContext,
 ): Promise<string> {
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
@@ -286,6 +404,9 @@ async function extractDocWithLlm(
     maxOutputTokens: 32000,
   });
 
+  // Track usage
+  await trackUsage(usageCtx, result.usage);
+
   const text = result.text.trim();
   const duration = Date.now() - startTime;
   console.log(
@@ -302,6 +423,7 @@ async function extractGenericWithLlm(
   blob: Blob,
   fileName: string,
   mimeType: string,
+  usageCtx: UsageContext,
 ): Promise<string> {
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
@@ -335,6 +457,9 @@ async function extractGenericWithLlm(
     ],
     maxOutputTokens: 32000,
   });
+
+  // Track usage
+  await trackUsage(usageCtx, result.usage);
 
   const text = result.text.trim();
   const duration = Date.now() - startTime;

@@ -10,6 +10,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -25,6 +26,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { DateRangePicker } from "@/components/admin/DateRangePicker";
 import {
   Card,
   CardContent,
@@ -32,6 +34,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getLastNDays } from "@/lib/utils/date";
 
 const COLORS = [
   "#8b5cf6",
@@ -42,25 +45,55 @@ const COLORS = [
   "#6366f1",
 ];
 
+const FEATURE_COLORS: Record<string, string> = {
+  chat: "#3b82f6",
+  slides: "#f59e0b",
+  notes: "#10b981",
+  tasks: "#ec4899",
+  files: "#8b5cf6",
+  memory: "#6366f1",
+  smart_assistant: "#14b8a6",
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  chat: "Chat",
+  slides: "Slides",
+  notes: "Notes",
+  tasks: "Tasks",
+  files: "Files",
+  memory: "Memory",
+  smart_assistant: "Smart Assistant",
+};
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// ... imports
-
 export default function UsagePage() {
+  const [dateRange, setDateRange] = useState(() => getLastNDays(30));
+
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const monthlyTotal = useQuery(api.usage.queries.getMonthlyTotal);
+  const monthlyTotal = useQuery(api.usage.queries.getAllUsersMonthlyTotal);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const dailySpend = useQuery(api.usage.queries.getDailySpend, { days: 30 });
+  const dailySpend = useQuery(api.usage.queries.getAllUsersDailySpend, { days: 30 });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const spendByModel = useQuery(api.usage.queries.getSpendByModel, {
+  const spendByModel = useQuery(api.usage.queries.getAllUsersSpendByModel, {
     days: 30,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversationCosts = useQuery(api.usage.queries.getConversationCosts, {
+  const conversationCosts = useQuery(api.usage.queries.getAllUsersConversationCosts, {
     limit: 10,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const userCount = useQuery(api.admin.getUserCount);
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const costByFeature = useQuery(api.usage.queries.getAllUsersCostByFeature, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const presentationStats = useQuery(api.usage.queries.getAllUsersPresentationStats, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
 
   if (
     !monthlyTotal ||
@@ -78,6 +111,24 @@ export default function UsagePage() {
 
   const avgCostPerUser = userCount > 0 ? monthlyTotal.cost / userCount : 0;
 
+  // Feature breakdown data
+  const featureData = costByFeature
+    ? Object.entries(costByFeature)
+        .filter(([_, data]) => data.total > 0)
+        .map(([feature, data]) => ({
+          name: FEATURE_LABELS[feature] || feature,
+          key: feature,
+          value: data.total,
+          breakdown: {
+            text: data.text,
+            tts: data.tts,
+            stt: data.stt,
+            image: data.image,
+          },
+        }))
+        .sort((a, b) => b.value - a.value)
+    : [];
+
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
       {/* Background gradients */}
@@ -87,13 +138,16 @@ export default function UsagePage() {
       {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/60 backdrop-blur-xl border-b border-border/40 shadow-sm transition-all duration-200">
         <div className="container mx-auto max-w-7xl px-4 py-4">
-          <div className="mb-2">
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Usage & Costs
-            </h1>
-            <p className="text-muted-foreground">
-              Track your AI usage, costs, and budget across all conversations
-            </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Usage & Costs
+              </h1>
+              <p className="text-muted-foreground">
+                Track AI usage, costs, and budget across all users
+              </p>
+            </div>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
         </div>
         {/* Gradient Glow */}
@@ -274,6 +328,136 @@ export default function UsagePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Cost by Feature */}
+          {featureData.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Cost by Feature</CardTitle>
+                <CardDescription>
+                  Cost breakdown by product feature (all users)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={featureData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label={({ name, percent }) =>
+                          `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
+                        }
+                        labelLine={{ strokeWidth: 1 }}
+                      >
+                        {featureData.map((entry) => (
+                          <Cell
+                            key={`cell-${entry.key}`}
+                            fill={FEATURE_COLORS[entry.key] || COLORS[0]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val) => [
+                          `$${(val as number).toFixed(4)}`,
+                          "Cost",
+                        ]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Sub-breakdown */}
+                  <div className="space-y-3">
+                    {featureData.map((feature) => (
+                      <div key={feature.key} className="text-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor:
+                                FEATURE_COLORS[feature.key] || COLORS[0],
+                            }}
+                          />
+                          <span className="font-medium">{feature.name}</span>
+                          <span className="ml-auto font-mono">
+                            ${feature.value.toFixed(4)}
+                          </span>
+                        </div>
+                        <div className="ml-5 text-xs text-muted-foreground flex flex-wrap gap-x-4">
+                          {feature.breakdown.text > 0 && (
+                            <span>Text: ${feature.breakdown.text.toFixed(4)}</span>
+                          )}
+                          {feature.breakdown.tts > 0 && (
+                            <span>TTS: ${feature.breakdown.tts.toFixed(4)}</span>
+                          )}
+                          {feature.breakdown.stt > 0 && (
+                            <span>STT: ${feature.breakdown.stt.toFixed(4)}</span>
+                          )}
+                          {feature.breakdown.image > 0 && (
+                            <span>Image: ${feature.breakdown.image.toFixed(4)}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Slides Stats */}
+          {presentationStats && presentationStats.totalCost > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Slides Statistics</CardTitle>
+                <CardDescription>
+                  Presentation generation costs (all users)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Presentations</span>
+                      <span className="text-lg font-bold">{presentationStats.presentationsCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Slides Generated</span>
+                      <span className="text-lg font-bold">{presentationStats.slidesCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Avg Slides per Presentation</span>
+                      <span className="text-lg font-bold">
+                        {presentationStats.presentationsCount > 0
+                          ? (presentationStats.slidesCount / presentationStats.presentationsCount).toFixed(1)
+                          : 0}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Outline Generation Cost</span>
+                      <span className="font-mono">${presentationStats.outlineCost.toFixed(4)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Image Generation Cost</span>
+                      <span className="font-mono">${presentationStats.imageCost.toFixed(4)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t pt-2">
+                      <span className="text-sm font-medium">Total Slides Cost</span>
+                      <span className="text-lg font-bold">${presentationStats.totalCost.toFixed(4)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {presentationStats.outlineRequests} outline requests • {presentationStats.imageRequests} image requests
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Top Conversations by Cost */}
           <Card>

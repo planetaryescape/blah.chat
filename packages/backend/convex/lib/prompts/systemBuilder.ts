@@ -7,6 +7,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 import { getBasePrompt } from "./base";
 import { formatMemoriesByCategory, truncateMemories } from "./formatting";
+import type { MemoryExtractionLevel } from "./operational/memoryExtraction";
 
 export interface BuildSystemPromptsArgs {
   userId: Id<"users">;
@@ -15,6 +16,7 @@ export interface BuildSystemPromptsArgs {
   modelConfig: ModelConfig;
   hasFunctionCalling: boolean;
   prefetchedMemories: string | null;
+  memoryExtractionLevel: MemoryExtractionLevel;
 }
 
 export interface BuildSystemPromptsResult {
@@ -70,6 +72,7 @@ export async function buildSystemPrompts(
     prefetchedMemories: args.prefetchedMemories,
     currentDate,
     customInstructions: customInstructions, // Pass to conditionally modify tone section
+    memoryExtractionLevel: args.memoryExtractionLevel,
   };
   const basePrompt = getBasePrompt(basePromptOptions);
 

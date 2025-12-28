@@ -7,8 +7,11 @@ import { getGatewayOptions } from "@/lib/ai/gateway";
 import type { ModelConfig } from "@/lib/ai/models";
 import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { MODEL_TRIAGE_PROMPT } from "@/lib/prompts/modelTriage";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
 
 /**
@@ -91,11 +94,21 @@ export const analyzeModelFit = internalAction({
         return;
       }
 
+      // Get userId from conversation for cost tracking
+      const conversationUserId = conversation?.userId as Id<"users"> | undefined;
+
+      if (!conversationUserId) {
+        console.warn("No userId found in conversation for cost tracking");
+        return;
+      }
+
       // 4. Use gpt-oss-120b to analyze prompt complexity (ultra-fast via Cerebras)
       const analysis = await analyzePromptComplexity(
         args.userMessage,
         currentModel,
         alternatives,
+        ctx,
+        conversationUserId,
       );
 
       if (!analysis.shouldRecommend) {
@@ -184,6 +197,13 @@ export const generatePreview = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    // Get user for cost tracking
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getUserByClerkId,
+      { clerkId: identity.subject },
+    )) as { _id: Id<"users"> } | null;
+
     try {
       console.log("Preview generation started", {
         conversationId: args.conversationId,
@@ -258,6 +278,30 @@ export const generatePreview = action({
         ]),
       });
 
+      // Track usage with feature: "smart_assistant"
+      if (user && response.usage) {
+        const inputTokens = response.usage.inputTokens ?? 0;
+        const outputTokens = response.usage.outputTokens ?? 0;
+        const cost = calculateCost(args.suggestedModelId, {
+          inputTokens,
+          outputTokens,
+        });
+
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordTextGeneration,
+          {
+            userId: user._id,
+            conversationId: args.conversationId,
+            model: args.suggestedModelId,
+            inputTokens,
+            outputTokens,
+            cost,
+            feature: "smart_assistant",
+          },
+        );
+      }
+
       console.log("Preview generation completed", {
         conversationId: args.conversationId,
         suggestedModel: args.suggestedModelId,
@@ -324,7 +368,11 @@ async function analyzePromptComplexity(
   prompt: string,
   currentModel: ModelConfig,
   alternatives: string[],
+  ctx: ActionCtx,
+  userId: Id<"users">,
 ): Promise<AnalysisResult> {
+  const modelId = "openai:gpt-oss-120b";
+
   try {
     // Build dynamic schema with enum constraint to alternatives list
     const schema = z.object({
@@ -342,12 +390,10 @@ async function analyzePromptComplexity(
     });
 
     const response = await generateObject({
-      model: getModel("openai:gpt-oss-120b"),
+      model: getModel(modelId),
       schema,
       temperature: 0.3,
-      providerOptions: getGatewayOptions("openai:gpt-oss-120b", undefined, [
-        "model-triage",
-      ]),
+      providerOptions: getGatewayOptions(modelId, undefined, ["model-triage"]),
       prompt: `${MODEL_TRIAGE_PROMPT}
 
 USER QUERY:
@@ -371,6 +417,29 @@ ${alternatives
   })
   .join("\n\n")}`,
     });
+
+    // Track usage with feature: "smart_assistant"
+    if (response.usage) {
+      const inputTokens = response.usage.inputTokens ?? 0;
+      const outputTokens = response.usage.outputTokens ?? 0;
+      const cost = calculateCost(modelId, {
+        inputTokens,
+        outputTokens,
+      });
+
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId,
+          model: modelId,
+          inputTokens,
+          outputTokens,
+          cost,
+          feature: "smart_assistant",
+        },
+      );
+    }
 
     return response.object as AnalysisResult;
   } catch (error) {

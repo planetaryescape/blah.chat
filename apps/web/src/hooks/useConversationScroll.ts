@@ -16,6 +16,7 @@ interface UseConversationScrollOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   virtualizer: any;
   grouped: GroupedItem[];
+  scrollContainer?: React.RefObject<HTMLDivElement | null>;
 }
 
 /** Scrolls to bottom on conversation switch, and to new user message on send */
@@ -26,6 +27,7 @@ export function useConversationScroll({
   messages,
   virtualizer,
   grouped,
+  scrollContainer,
 }: UseConversationScrollOptions): void {
   const lastScrolledConversationRef = useRef<string | null>(null);
   const prevMessageCountRef = useRef(messageCount);
@@ -47,14 +49,20 @@ export function useConversationScroll({
     if (lastScrolledConversationRef.current === conversationId) return;
     lastScrolledConversationRef.current = conversationId;
 
-    // Use setTimeout to ensure virtualizer has initialized and measured items
-    // RAF alone isn't enough when loading from cache (items render synchronously)
+    // Use native scroll for reliability - virtualizer.scrollToIndex can be unreliable
+    // when items haven't been measured yet
     const timeoutId = setTimeout(() => {
-      virtualizerRef.current.scrollToIndex(lastIndex, { align: "end" });
-    }, 50);
+      const container = scrollContainer?.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      } else {
+        // Fallback to virtualizer if no container ref
+        virtualizerRef.current.scrollToIndex(lastIndex, { align: "end" });
+      }
+    }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [conversationId, highlightMessageId, messageCount]);
+  }, [conversationId, highlightMessageId, messageCount, scrollContainer]);
 
   // Scroll user message to top of viewport on send (ChatGPT-style UX)
   useEffect(() => {

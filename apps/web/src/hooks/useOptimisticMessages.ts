@@ -1,7 +1,7 @@
 "use client";
 
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 type ServerMessage = Doc<"messages">;
@@ -29,6 +29,9 @@ export function useOptimisticMessages({
     OptimisticMessage[]
   >([]);
 
+  // Keep last valid messages to prevent flash during brief empty states
+  const lastValidMessagesRef = useRef<MessageWithOptimistic[]>([]);
+
   // Callback for ChatInput to add optimistic messages (instant, before API call)
   const addOptimisticMessages = useCallback(
     (newMessages: OptimisticMessage[]) => {
@@ -41,7 +44,20 @@ export function useOptimisticMessages({
   const messages = useMemo<MessageWithOptimistic[]>(() => {
     const server = (serverMessages || []) as MessageWithOptimistic[];
 
+    // If server briefly returns empty but we had messages, keep showing them
+    // This prevents flash/scroll reset during reactive updates
+    if (
+      server.length === 0 &&
+      optimisticMessages.length === 0 &&
+      lastValidMessagesRef.current.length > 0
+    ) {
+      return lastValidMessagesRef.current;
+    }
+
     if (optimisticMessages.length === 0) {
+      if (server.length > 0) {
+        lastValidMessagesRef.current = server;
+      }
       return server;
     }
 
@@ -65,9 +81,15 @@ export function useOptimisticMessages({
     });
 
     // Merge and sort chronologically (don't clear state here to avoid blink)
-    return [...server, ...pendingOptimistic].sort(
+    const merged = [...server, ...pendingOptimistic].sort(
       (a, b) => a.createdAt - b.createdAt,
     );
+
+    if (merged.length > 0) {
+      lastValidMessagesRef.current = merged;
+    }
+
+    return merged;
   }, [serverMessages, optimisticMessages]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state

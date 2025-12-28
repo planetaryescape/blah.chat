@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { Redirect, Stack } from "expo-router";
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 
 export default function AuthLayout() {
   const { isSignedIn, isLoaded } = useAuth();

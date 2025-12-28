@@ -1,12 +1,12 @@
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import { Copy, Check, GitBranch, RotateCcw } from "lucide-react-native";
-import { useState, useCallback } from "react";
-import { TTSPlayer } from "./TTSPlayer";
+import { Check, Copy, GitBranch, RotateCcw } from "lucide-react-native";
+import { useCallback, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
-import { spacing, radius } from "@/lib/theme/spacing";
+import { radius, spacing } from "@/lib/theme/spacing";
+import { TTSPlayer } from "./TTSPlayer";
 
 interface Props {
   content: string;

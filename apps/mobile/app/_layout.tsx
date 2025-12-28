@@ -1,20 +1,19 @@
 import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import * as Font from "expo-font";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ActivityIndicator, View } from "react-native";
-import * as Font from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-
+import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
 import { convex } from "@/lib/convex";
 import { colors } from "@/lib/theme/colors";
-import { queryClient, persister } from "@/lib/cache/queryClient";
 
 // Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync();

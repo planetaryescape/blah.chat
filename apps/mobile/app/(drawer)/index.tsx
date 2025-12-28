@@ -1,9 +1,9 @@
-import { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { useQuery } from "convex/react";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "@/lib/theme/colors";
 
 type Conversation = Doc<"conversations">;

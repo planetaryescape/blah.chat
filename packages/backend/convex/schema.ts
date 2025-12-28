@@ -41,6 +41,7 @@ export default defineSchema({
       v.literal("advanced"),
       v.literal("customInstructions"),
       v.literal("reasoning"),
+      v.literal("memory"),
     ),
     key: v.string(), // "theme", "defaultModel", "ttsEnabled", etc.
     value: v.any(), // string | boolean | number | object

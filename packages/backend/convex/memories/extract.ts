@@ -7,15 +7,15 @@ import {
   MEMORY_EXTRACTION_MODEL,
 } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
-import { buildMemoryExtractionPrompt } from "../lib/prompts/operational/memoryExtraction";
+import {
+  buildMemoryExtractionPrompt,
+  EXTRACTION_THRESHOLDS,
+  type MemoryExtractionLevel,
+} from "../lib/prompts/operational/memoryExtraction";
 import { isMemoryDuplicate } from "../lib/utils/memory";
-
-// Constants for memory extraction quality control
-const IMPORTANCE_THRESHOLD = 7;
-const MIN_CONFIDENCE = 0.7;
 
 // TTL configuration (in milliseconds)
 const EXPIRATION_MS = {
@@ -62,6 +62,21 @@ export const extractMemories = internalAction({
     if (!conversation) {
       throw new Error("Conversation not found");
     }
+
+    // 2. Get user's extraction level preference
+    const extractionLevel = ((await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getUserPreferenceByUserId,
+      { userId: conversation.userId, key: "memoryExtractionLevel" },
+    )) ?? "moderate") as MemoryExtractionLevel;
+
+    // Skip extraction entirely if level is "none"
+    if (extractionLevel === "none") {
+      return { extracted: 0 };
+    }
+
+    // Get thresholds for this level
+    const thresholds = EXTRACTION_THRESHOLDS[extractionLevel];
 
     // 2. Query unextracted messages after cursor
     const unextractedMessages = (await ctx.runQuery(
@@ -151,6 +166,7 @@ export const extractMemories = internalAction({
         prompt: buildMemoryExtractionPrompt(
           existingMemoriesText,
           conversationText,
+          extractionLevel,
         ),
       });
 
@@ -159,11 +175,11 @@ export const extractMemories = internalAction({
         return { extracted: 0 };
       }
 
-      // 3. Filter by importance and confidence thresholds
+      // 3. Filter by importance and confidence thresholds (level-specific)
       const qualityFacts = result.object.facts.filter(
         (f) =>
-          f.importance >= IMPORTANCE_THRESHOLD &&
-          f.confidence >= MIN_CONFIDENCE,
+          f.importance >= thresholds.importance &&
+          f.confidence >= thresholds.confidence,
       );
 
       if (qualityFacts.length === 0) {
@@ -227,7 +243,7 @@ export const extractMemories = internalAction({
       }
 
       console.log(
-        `Extracted ${storedCount} unique memories (${qualityFacts.length - storedCount} duplicates filtered)`,
+        `[${extractionLevel}] Extracted ${storedCount} unique memories (${qualityFacts.length - storedCount} duplicates filtered)`,
       );
 
       // 6. Update conversation tracking

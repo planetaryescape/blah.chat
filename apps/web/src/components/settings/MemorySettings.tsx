@@ -12,6 +12,16 @@ import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
 import { MemoryFilters } from "@/components/memories/MemoryFilters";
 import { MemoryItem } from "@/components/memories/MemoryItem";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,6 +37,55 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useUserPreference } from "@/hooks/useUserPreference";
+
+type MemoryExtractionLevel =
+  | "none"
+  | "passive"
+  | "minimal"
+  | "moderate"
+  | "active"
+  | "aggressive";
+
+const EXTRACTION_LEVELS: {
+  value: MemoryExtractionLevel;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "none",
+    label: "Off",
+    description: "No memory extraction or retrieval. Complete privacy.",
+  },
+  {
+    value: "passive",
+    label: "Manual",
+    description: 'Only saves when you say "remember this".',
+  },
+  {
+    value: "minimal",
+    label: "Essential",
+    description: "Auto-saves only critical facts like name and primary role.",
+  },
+  {
+    value: "moderate",
+    label: "Standard",
+    description: "Auto-saves important facts and preferences. Recommended.",
+  },
+  {
+    value: "active",
+    label: "Proactive",
+    description:
+      "Liberal saving. AI checks your memories before every response.",
+  },
+  {
+    value: "aggressive",
+    label: "Maximum",
+    description: "Saves everything. AI always searches all your personal data.",
+  },
+];
 
 type Category =
   | "identity"
@@ -71,6 +130,14 @@ export function MemorySettings() {
 
   const [debouncedSearchQuery] = useDebounceValue(searchQuery, 300);
 
+  // Extraction level state
+  const currentLevel = useUserPreference(
+    "memoryExtractionLevel",
+  ) as MemoryExtractionLevel;
+  const [pendingLevel, setPendingLevel] =
+    useState<MemoryExtractionLevel | null>(null);
+  const [showAggressiveWarning, setShowAggressiveWarning] = useState(false);
+
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
@@ -93,10 +160,46 @@ export function MemorySettings() {
   );
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleExtractionLevelChange = async (
+    newLevel: MemoryExtractionLevel,
+  ) => {
+    // Show warning for aggressive level
+    if (newLevel === "aggressive" && currentLevel !== "aggressive") {
+      setPendingLevel(newLevel);
+      setShowAggressiveWarning(true);
+      return;
+    }
+
+    await saveExtractionLevel(newLevel);
+  };
+
+  const saveExtractionLevel = async (level: MemoryExtractionLevel) => {
+    try {
+      await updatePreferences({
+        preferences: { memoryExtractionLevel: level },
+      });
+      toast.success(
+        `Memory extraction set to "${EXTRACTION_LEVELS.find((l) => l.value === level)?.label}"`,
+      );
+    } catch (_error) {
+      toast.error("Failed to update memory settings");
+    }
+  };
+
+  const confirmAggressiveLevel = async () => {
+    if (pendingLevel) {
+      await saveExtractionLevel(pendingLevel);
+      setPendingLevel(null);
+    }
+    setShowAggressiveWarning(false);
+  };
 
   const handleAddMemory = async (content: string) => {
     try {
@@ -186,14 +289,54 @@ export function MemorySettings() {
 
   return (
     <div className="space-y-6">
+      {/* Extraction Level Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Memory Extraction Level</CardTitle>
+          <CardDescription>
+            Control how aggressively AI extracts and remembers facts from
+            conversations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={currentLevel}
+            onValueChange={(value) =>
+              handleExtractionLevelChange(value as MemoryExtractionLevel)
+            }
+            className="space-y-3"
+          >
+            {EXTRACTION_LEVELS.map((level) => (
+              <Label
+                key={level.value}
+                htmlFor={`level-${level.value}`}
+                className="flex items-start gap-3 rounded-lg border border-border/50 p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+              >
+                <RadioGroupItem
+                  value={level.value}
+                  id={`level-${level.value}`}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 space-y-1">
+                  <div className="font-medium leading-none">{level.label}</div>
+                  <div className="text-sm text-muted-foreground leading-snug">
+                    {level.description}
+                  </div>
+                </div>
+              </Label>
+            ))}
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
       {/* Actions Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Memory Settings</CardTitle>
+              <CardTitle>Memory Actions</CardTitle>
               <CardDescription>
-                Control how AI extracts and remembers facts from conversations
+                Manage and organize your stored memories
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -237,16 +380,6 @@ export function MemorySettings() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-lg bg-muted p-4">
-            <p className="text-sm">
-              <strong>How it works:</strong> AI analyzes your conversations and
-              extracts memorable facts like preferences, project details, and
-              context. These memories help AI provide more personalized
-              responses.
-            </p>
-          </div>
-        </CardContent>
       </Card>
 
       {/* Filters & Memories Card */}
@@ -351,6 +484,43 @@ export function MemorySettings() {
         memoriesCount={memories?.length || 0}
         onConfirm={handleDeleteAll}
       />
+
+      {/* Aggressive Level Warning Dialog */}
+      <AlertDialog
+        open={showAggressiveWarning}
+        onOpenChange={setShowAggressiveWarning}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enable aggressive memory?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Aggressive mode saves almost everything you share, including
+                minor preferences, tools mentioned in passing, and inferred
+                patterns.
+              </p>
+              <p>
+                You can review and delete any memories at any time from this
+                settings page. Your data stays private and is only used to
+                personalize your experience.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setPendingLevel(null);
+                setShowAggressiveWarning(false);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAggressiveLevel}>
+              Enable Aggressive Mode
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

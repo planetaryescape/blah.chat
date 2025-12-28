@@ -131,27 +131,44 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
         }
       };
 
-      // Wait for sourceopen
-      await new Promise<void>((resolve) => {
-        mediaSource.addEventListener(
-          "sourceopen",
-          () => {
-            try {
-              const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-              sourceBufferRef.current = sourceBuffer;
+      // Wait for sourceopen with timeout
+      const MSE_INIT_TIMEOUT = 5000;
 
-              sourceBuffer.addEventListener("updateend", () => {
-                processBufferQueue();
-              });
-              resolve();
-            } catch (e) {
-              console.error("MSE addSourceBuffer failed", e);
-              resolve();
-            }
-          },
-          { once: true },
-        );
-      });
+      try {
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            mediaSource.addEventListener(
+              "sourceopen",
+              () => {
+                try {
+                  const sourceBuffer =
+                    mediaSource.addSourceBuffer("audio/mpeg");
+                  sourceBufferRef.current = sourceBuffer;
+
+                  sourceBuffer.addEventListener("updateend", () => {
+                    processBufferQueue();
+                  });
+                  resolve();
+                } catch (e) {
+                  console.error("[TTS] MSE addSourceBuffer failed", e);
+                  resolve();
+                }
+              },
+              { once: true },
+            );
+          }),
+          new Promise<void>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("MSE initialization timeout")),
+              MSE_INIT_TIMEOUT,
+            ),
+          ),
+        ]);
+      } catch (e) {
+        console.error("[TTS] MSE init error:", e);
+        cleanupAudio();
+        return null;
+      }
 
       return sourceBufferRef.current ? audio : null;
     }, [cleanupAudio, processBufferQueue, onTimeUpdate, onEnded, onError]);

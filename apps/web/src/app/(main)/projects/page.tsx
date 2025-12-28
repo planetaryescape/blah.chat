@@ -2,7 +2,8 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
+import { useProjectCacheSync } from "@/hooks/useCacheSync";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -52,8 +53,7 @@ export default function ProjectsPage() {
     );
   }
 
-  // @ts-ignore
-  const projects = useQuery(api.projects.list);
+  const { projects, isLoading: projectsLoading } = useProjectCacheSync();
 
   // Dialog States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -193,7 +193,7 @@ export default function ProjectsPage() {
               </div>
             )}
 
-            {projects === undefined ? (
+            {projectsLoading ? (
               <div className="flex justify-center py-12 text-muted-foreground">
                 <span className="animate-pulse">Loading projects...</span>
               </div>

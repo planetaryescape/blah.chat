@@ -1,10 +1,11 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTaskCacheSync } from "@/hooks/useCacheSync";
 import { cn } from "@/lib/utils";
 import { TaskDetailPanel } from "./TaskDetailPanel";
 import { TaskMainView } from "./TaskMainView";
@@ -44,70 +45,68 @@ export function TasksDashboard({
     [setTaskParam],
   );
 
-  // Queries
-  const tasksAll = useQuery(
-    // @ts-ignore - Type depth exceeded with 94+ Convex modules
-    api.tasks.list,
-    view === "all" ? { projectId: projectFilter || undefined } : "skip",
-  );
-  // @ts-ignore
-  const tasksToday = useQuery(
-    api.tasks.getToday,
-    view === "today" ? {} : "skip",
-  );
-  // @ts-ignore
-  const tasksUpcoming = useQuery(
-    api.tasks.getUpcoming,
-    view === "upcoming" ? { days: 7 } : "skip",
-  );
-  // @ts-ignore
-  const tasksCompleted = useQuery(
-    api.tasks.list,
-    view === "completed"
-      ? { status: "completed", projectId: projectFilter || undefined }
-      : "skip",
-  );
-  // @ts-ignore - Fetching all tasks then filtering for Important,
-  // or ideally we'd have a specific query. For now, let's fetch all and filter client side
-  // if no specific endpoint exists, or assume 'urgency' filter support in list?
-  // Checking list args: { status?: ..., projectId?: ..., urgency?: ... }
-  // Let's optimize:
-  const tasksImportant = useQuery(
-    api.tasks.list,
-    view === "important" ? { urgency: "urgent" } : "skip", // Assuming urgency filter works or 'urgent' | 'high'
-  );
+  // Local-first: fetch all tasks, filter client-side
+  const { tasks: allTasks, isLoading: tasksLoading } = useTaskCacheSync();
 
-  // Select active dataset
+  // Helper: check if date is today
+  const isToday = useCallback((timestamp: number | undefined) => {
+    if (!timestamp) return false;
+    const date = new Date(timestamp);
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  }, []);
+
+  // Helper: check if date is within next N days
+  const isWithinDays = useCallback((timestamp: number | undefined, days: number) => {
+    if (!timestamp) return false;
+    const date = new Date(timestamp);
+    const today = new Date();
+    const future = new Date();
+    future.setDate(today.getDate() + days);
+    return date >= today && date <= future;
+  }, []);
+
+  // Select active dataset with client-side filtering
   const { tasks, title } = useMemo(() => {
-    // Projects logic
-    // We need project name if filtering by project
-    // But we don't have project list here easily available without another query or passing down.
-    // However, if we are in "all" view with a project filter, we act like it's a project view.
+    let filtered: Doc<"tasks">[] = allTasks;
 
     switch (view) {
       case "today":
-        return { tasks: tasksToday || [], title: "My Day" };
+        filtered = allTasks.filter(
+          (t) => t.status !== "completed" && isToday(t.deadline),
+        );
+        return { tasks: filtered, title: "My Day" };
       case "upcoming":
-        return { tasks: tasksUpcoming || [], title: "Planned" };
+        filtered = allTasks.filter(
+          (t) => t.status !== "completed" && isWithinDays(t.deadline, 7),
+        );
+        return { tasks: filtered, title: "Planned" };
       case "important":
-        return { tasks: tasksImportant || [], title: "Important" };
+        filtered = allTasks.filter(
+          (t) => t.status !== "completed" && (t.urgency === "urgent" || t.urgency === "high"),
+        );
+        return { tasks: filtered, title: "Important" };
       case "completed":
-        return { tasks: tasksCompleted || [], title: "Completed" };
+        filtered = allTasks.filter((t) => t.status === "completed");
+        if (projectFilter) {
+          filtered = filtered.filter((t) => t.projectId === projectFilter);
+        }
+        return { tasks: filtered, title: "Completed" };
       default:
+        filtered = allTasks.filter((t) => t.status !== "completed");
+        if (projectFilter) {
+          filtered = filtered.filter((t) => t.projectId === projectFilter);
+        }
         return {
-          tasks: tasksAll || [],
-          title: projectFilter ? "Project Tasks" : "Tasks", // Ideally fetch project name to display "Project X"
+          tasks: filtered,
+          title: projectFilter ? "Project Tasks" : "Tasks",
         };
     }
-  }, [
-    view,
-    tasksAll,
-    tasksToday,
-    tasksUpcoming,
-    tasksCompleted,
-    tasksImportant,
-    projectFilter,
-  ]);
+  }, [view, allTasks, projectFilter, isToday, isWithinDays]);
 
   // Special case: If projectFilter is set, we might want to fetch project name to display as Title
   // @ts-ignore

@@ -311,14 +311,22 @@ function UsagePageContent() {
                   />
                   <UsageKPICard
                     label="Presentations"
-                    value={presentationStats?.presentationsCount ?? activityStats?.slidesCount ?? 0}
+                    value={
+                      presentationStats?.presentationsCount ??
+                      activityStats?.slidesCount ??
+                      0
+                    }
                     icon={Presentation}
                   />
                   <UsageKPICard
                     label="Total Slides"
                     value={presentationStats?.slidesCount ?? 0}
                     icon={Image}
-                    subtext={presentationStats ? `$${presentationStats.totalCost.toFixed(2)} total` : undefined}
+                    subtext={
+                      presentationStats
+                        ? `$${presentationStats.totalCost.toFixed(2)} total`
+                        : undefined
+                    }
                   />
                   <UsageKPICard
                     label="Tasks"
@@ -646,23 +654,33 @@ function UsagePageContent() {
                                     FEATURE_COLORS[feature.key] || COLORS[0],
                                 }}
                               />
-                              <span className="font-medium">{feature.name}</span>
+                              <span className="font-medium">
+                                {feature.name}
+                              </span>
                               <span className="ml-auto">
                                 ${feature.value.toFixed(4)}
                               </span>
                             </div>
                             <div className="ml-4 flex flex-wrap gap-x-3 gap-y-0.5">
                               {feature.breakdown.text > 0 && (
-                                <span>Text: ${feature.breakdown.text.toFixed(4)}</span>
+                                <span>
+                                  Text: ${feature.breakdown.text.toFixed(4)}
+                                </span>
                               )}
                               {feature.breakdown.tts > 0 && (
-                                <span>TTS: ${feature.breakdown.tts.toFixed(4)}</span>
+                                <span>
+                                  TTS: ${feature.breakdown.tts.toFixed(4)}
+                                </span>
                               )}
                               {feature.breakdown.stt > 0 && (
-                                <span>STT: ${feature.breakdown.stt.toFixed(4)}</span>
+                                <span>
+                                  STT: ${feature.breakdown.stt.toFixed(4)}
+                                </span>
                               )}
                               {feature.breakdown.image > 0 && (
-                                <span>Image: ${feature.breakdown.image.toFixed(4)}</span>
+                                <span>
+                                  Image: ${feature.breakdown.image.toFixed(4)}
+                                </span>
                               )}
                             </div>
                           </div>
@@ -679,21 +697,37 @@ function UsagePageContent() {
                       </h4>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Presentations</span>
-                          <span className="font-medium">{presentationStats.presentationsCount}</span>
+                          <span className="text-muted-foreground">
+                            Presentations
+                          </span>
+                          <span className="font-medium">
+                            {presentationStats.presentationsCount}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Total Slides</span>
-                          <span className="font-medium">{presentationStats.slidesCount}</span>
+                          <span className="text-muted-foreground">
+                            Total Slides
+                          </span>
+                          <span className="font-medium">
+                            {presentationStats.slidesCount}
+                          </span>
                         </div>
                         <div className="h-px bg-border my-2" />
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Outline Generation</span>
-                          <span className="font-medium">${presentationStats.outlineCost.toFixed(4)}</span>
+                          <span className="text-muted-foreground">
+                            Outline Generation
+                          </span>
+                          <span className="font-medium">
+                            ${presentationStats.outlineCost.toFixed(4)}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Image Generation</span>
-                          <span className="font-medium">${presentationStats.imageCost.toFixed(4)}</span>
+                          <span className="text-muted-foreground">
+                            Image Generation
+                          </span>
+                          <span className="font-medium">
+                            ${presentationStats.imageCost.toFixed(4)}
+                          </span>
                         </div>
                         <div className="h-px bg-border my-2" />
                         <div className="flex items-center justify-between text-sm font-medium">
@@ -701,7 +735,8 @@ function UsagePageContent() {
                           <span>${presentationStats.totalCost.toFixed(4)}</span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-2">
-                          {presentationStats.outlineRequests} outline requests • {presentationStats.imageRequests} image requests
+                          {presentationStats.outlineRequests} outline requests •{" "}
+                          {presentationStats.imageRequests} image requests
                         </div>
                       </div>
                     </div>

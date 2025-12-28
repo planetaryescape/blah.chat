@@ -32,16 +32,16 @@ export function useMessageCacheSync({
   }, [convexMessages.results]);
 
   // Read from local cache (instant)
-  const cachedMessages = useLiveQuery(
-    () =>
+  const cachedMessages = useLiveQuery<Doc<"messages">[]>(
+    async () =>
       conversationId
         ? cache.messages
             .where("conversationId")
             .equals(conversationId)
             .sortBy("createdAt")
-        : Promise.resolve([]),
+        : [],
     [conversationId],
-    [] as Doc<"messages">[],
+    [],
   );
 
   // Determine loading states (compatible with useStableMessages)
@@ -175,6 +175,7 @@ export function useTaskCacheSync() {
   const tasks = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.tasks.list,
+    {},
   );
 
   useEffect(() => {

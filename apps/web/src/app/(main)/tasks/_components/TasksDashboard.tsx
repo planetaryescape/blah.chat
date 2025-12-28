@@ -61,14 +61,17 @@ export function TasksDashboard({
   }, []);
 
   // Helper: check if date is within next N days
-  const isWithinDays = useCallback((timestamp: number | undefined, days: number) => {
-    if (!timestamp) return false;
-    const date = new Date(timestamp);
-    const today = new Date();
-    const future = new Date();
-    future.setDate(today.getDate() + days);
-    return date >= today && date <= future;
-  }, []);
+  const isWithinDays = useCallback(
+    (timestamp: number | undefined, days: number) => {
+      if (!timestamp) return false;
+      const date = new Date(timestamp);
+      const today = new Date();
+      const future = new Date();
+      future.setDate(today.getDate() + days);
+      return date >= today && date <= future;
+    },
+    [],
+  );
 
   // Select active dataset with client-side filtering
   const { tasks, title } = useMemo(() => {
@@ -87,7 +90,9 @@ export function TasksDashboard({
         return { tasks: filtered, title: "Planned" };
       case "important":
         filtered = allTasks.filter(
-          (t) => t.status !== "completed" && (t.urgency === "urgent" || t.urgency === "high"),
+          (t) =>
+            t.status !== "completed" &&
+            (t.urgency === "urgent" || t.urgency === "high"),
         );
         return { tasks: filtered, title: "Important" };
       case "completed":

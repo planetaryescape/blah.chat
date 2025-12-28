@@ -435,4 +435,48 @@
       opacity: 1;
     }
   }
+
+  /* Bible Verse Links */
+  .prose .bible-verse-link {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+    padding: 0 0.1em;
+    border-radius: 2px;
+    transition:
+      background 150ms ease,
+      color 150ms ease,
+      text-decoration-style 150ms ease;
+    cursor: pointer;
+  }
+
+  .prose .bible-verse-link:hover {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    text-decoration: none;
+  }
+
+  /* Bible Verse Popover */
+  .bible-verse-popover {
+    max-width: 320px;
+  }
+
+  .bible-verse-popover .verse-reference {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+    font-size: 0.95rem;
+  }
+
+  .bible-verse-popover .verse-text {
+    line-height: 1.6;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+  }
+
+  .bible-verse-popover .verse-link {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+  }
 }

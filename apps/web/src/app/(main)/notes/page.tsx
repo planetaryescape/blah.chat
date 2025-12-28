@@ -127,8 +127,17 @@ function NotesPageContent() {
     }
 
     // Sort by updatedAt descending
-    return [...filtered].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  }, [allNotes, searchQuery, filterPinned, projectId, selectedTags, tagFilterMode]);
+    return [...filtered].sort(
+      (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0),
+    );
+  }, [
+    allNotes,
+    searchQuery,
+    filterPinned,
+    projectId,
+    selectedTags,
+    tagFilterMode,
+  ]);
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation
   const createNote = useMutation(api.notes.createNote);

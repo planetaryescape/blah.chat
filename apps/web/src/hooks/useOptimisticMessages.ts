@@ -1,14 +1,14 @@
 "use client";
 
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 type ServerMessage = Doc<"messages">;
 export type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
 interface UseOptimisticMessagesOptions {
-  serverMessages: ServerMessage[] | undefined;
+  serverMessages: ServerMessage[];
 }
 
 interface UseOptimisticMessagesReturn {
@@ -20,7 +20,8 @@ interface UseOptimisticMessagesReturn {
  * Manages optimistic UI for messages - overlay local optimistic messages
  * on top of server state with deduplication when server confirms.
  *
- * Uses useState instead of useOptimistic for instant rendering with TanStack Query.
+ * Note: serverMessages is now guaranteed to be stable (never undefined)
+ * thanks to useStableMessages wrapper upstream.
  */
 export function useOptimisticMessages({
   serverMessages,
@@ -28,9 +29,6 @@ export function useOptimisticMessages({
   const [optimisticMessages, setOptimisticMessages] = useState<
     OptimisticMessage[]
   >([]);
-
-  // Keep last valid messages to prevent flash during brief empty states
-  const lastValidMessagesRef = useRef<MessageWithOptimistic[]>([]);
 
   // Callback for ChatInput to add optimistic messages (instant, before API call)
   const addOptimisticMessages = useCallback(
@@ -42,22 +40,9 @@ export function useOptimisticMessages({
 
   // Merge server messages with optimistic messages, deduplicating confirmed ones
   const messages = useMemo<MessageWithOptimistic[]>(() => {
-    const server = (serverMessages || []) as MessageWithOptimistic[];
-
-    // If server briefly returns empty but we had messages, keep showing them
-    // This prevents flash/scroll reset during reactive updates
-    if (
-      server.length === 0 &&
-      optimisticMessages.length === 0 &&
-      lastValidMessagesRef.current.length > 0
-    ) {
-      return lastValidMessagesRef.current;
-    }
+    const server = serverMessages as MessageWithOptimistic[];
 
     if (optimisticMessages.length === 0) {
-      if (server.length > 0) {
-        lastValidMessagesRef.current = server;
-      }
       return server;
     }
 
@@ -80,16 +65,10 @@ export function useOptimisticMessages({
       return !hasServerVersion;
     });
 
-    // Merge and sort chronologically (don't clear state here to avoid blink)
-    const merged = [...server, ...pendingOptimistic].sort(
+    // Merge and sort chronologically
+    return [...server, ...pendingOptimistic].sort(
       (a, b) => a.createdAt - b.createdAt,
     );
-
-    if (merged.length > 0) {
-      lastValidMessagesRef.current = merged;
-    }
-
-    return merged;
   }, [serverMessages, optimisticMessages]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state

@@ -49,6 +49,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useConversationContext } from "@/contexts/ConversationContext";
+import { useConversationCacheSync } from "@/hooks/useCacheSync";
 import { useListKeyboardNavigation } from "@/hooks/useListKeyboardNavigation";
 import { useNewChat } from "@/hooks/useNewChat";
 import { cn } from "@/lib/utils";
@@ -97,11 +98,12 @@ const MENU_ITEMS = [
 export function AppSidebar() {
   const [projectFilter, setProjectFilter] = useQueryState("project");
 
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const rawConversations = useQuery(api.conversations.list, {
-    projectId:
-      (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
-  });
+  // Local-first: Convex syncs to Dexie, reads from cache (instant)
+  const { conversations: rawConversations, isLoading: conversationsLoading } =
+    useConversationCacheSync({
+      projectId:
+        (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
+    });
 
   // Filter out presentation conversations (they have their own UI in /slides)
   const conversations = useMemo(
@@ -397,7 +399,7 @@ export function AppSidebar() {
         <div className="flex-1 min-h-0 overflow-hidden">
           <SidebarGroup className="group-data-[collapsible=icon]:hidden h-full pt-0">
             <SidebarGroupContent className="h-full overflow-y-auto">
-              {conversations === undefined ? (
+              {conversationsLoading ? (
                 <ConversationListSkeleton />
               ) : (
                 <>

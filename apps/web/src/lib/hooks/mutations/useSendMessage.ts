@@ -37,7 +37,7 @@ export function useSendMessage(
   // Auto-process offline queue when connection restored
   useEffect(() => {
     const handleOnline = async () => {
-      const queueCount = messageQueue.getCount();
+      const queueCount = await messageQueue.getCount();
       if (queueCount === 0) return;
 
       toast.info(

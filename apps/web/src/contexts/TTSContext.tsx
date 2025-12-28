@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -48,10 +49,13 @@ const TTSContext = createContext<TTSContextValue | null>(null);
 export function TTSProvider({
   children,
   defaultSpeed = 1,
+  defaultVoice,
 }: {
   children: ReactNode;
   defaultSpeed?: number;
+  defaultVoice?: string;
 }) {
+  const voiceRef = useRef(defaultVoice);
   const [state, setState] = useState<TTSState>({
     isVisible: false,
     isLoading: false,
@@ -66,19 +70,22 @@ export function TTSProvider({
     isStreaming: false,
   });
 
+  const durationRef = useRef(0);
+
   const audioPlayer = useTTSAudioPlayer({
     defaultSpeed,
     onTimeUpdate: (currentTime, duration) => {
+      durationRef.current = duration;
       setState((prev) => ({ ...prev, currentTime, duration }));
     },
     onEnded: () => {
       setState((prev) => ({ ...prev, isPlaying: false, isStreaming: false }));
       analytics.track("tts_playback_completed", {
-        playbackDurationMs: state.duration * 1000,
+        playbackDurationMs: durationRef.current * 1000,
       });
     },
     onError: (e) => {
-      console.error("Audio error", e);
+      console.error("[TTS] Audio error", e);
     },
   });
 
@@ -88,6 +95,11 @@ export function TTSProvider({
     setState((prev) => ({ ...prev, speed: clamped }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultSpeed, audioPlayer.setSpeed]);
+
+  // Update voice ref when preference changes
+  useEffect(() => {
+    voiceRef.current = defaultVoice;
+  }, [defaultVoice]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -142,19 +154,20 @@ export function TTSProvider({
       const audio = await audioPlayer.initializeAudio();
       if (!audio) {
         toast.error("Browser does not support streaming audio playback.");
+        setState((prev) => ({ ...prev, isLoading: false, isVisible: false }));
         return;
       }
 
       try {
-        await audioPlayer.play();
-        setState((prev) => ({ ...prev, isPlaying: true }));
-
         analytics.track("tts_initiated", {
           messageLength: speechText.length,
-          voiceUsed: "default",
+          voiceUsed: voiceRef.current ?? "default",
         });
 
         // Fetch and append chunks
+        let failedChunks = 0;
+        let successfulChunks = 0;
+
         for (let i = 0; i < chunks.length; i++) {
           if (audioPlayer.isAborted()) break;
 
@@ -163,7 +176,7 @@ export function TTSProvider({
           const chunk = chunks[i];
           const ttsUrl = getTTSUrl(
             chunk,
-            undefined,
+            voiceRef.current,
             audioPlayer.speedRef.current,
           );
 
@@ -172,11 +185,22 @@ export function TTSProvider({
           });
 
           if (!response.ok) {
-            console.error(
-              "TTS Fetch failed",
-              response.status,
-              response.statusText,
-            );
+            failedChunks++;
+
+            // If all chunks failed, show error and cleanup
+            if (failedChunks === chunks.length) {
+              toast.error(
+                "Failed to generate speech. Check your TTS settings.",
+              );
+              setState((prev) => ({
+                ...prev,
+                isLoading: false,
+                isPlaying: false,
+                isVisible: false,
+              }));
+              audioPlayer.cleanupAudio();
+              return;
+            }
             continue;
           }
 
@@ -184,9 +208,21 @@ export function TTSProvider({
           if (audioPlayer.isAborted()) break;
 
           audioPlayer.appendBuffer(arrayBuffer);
+          successfulChunks++;
 
-          if (i === 0) {
-            setState((prev) => ({ ...prev, isLoading: false }));
+          // Start playback after first chunk arrives
+          if (successfulChunks === 1) {
+            try {
+              await audioPlayer.play();
+              setState((prev) => ({
+                ...prev,
+                isLoading: false,
+                isPlaying: true,
+              }));
+            } catch {
+              // Continue anyway - some browsers may auto-resume
+              setState((prev) => ({ ...prev, isLoading: false }));
+            }
           }
         }
 
@@ -194,9 +230,14 @@ export function TTSProvider({
         setState((prev) => ({ ...prev, isLoading: false }));
       } catch (error) {
         if (audioPlayer.isAborted()) return;
-        console.error("TTS error:", error);
+        console.error("[TTS] Error:", error);
         toast.error("Failed to stream audio");
         audioPlayer.cleanupAudio();
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          isPlaying: false,
+        }));
       }
     },
     [audioPlayer],

@@ -37,7 +37,6 @@ export function STTSettings() {
   // Phase 4: Use new preference hooks for source of truth
   const prefSttEnabled = useUserPreference("sttEnabled");
   const prefTtsEnabled = useUserPreference("ttsEnabled");
-  const prefTtsProvider = useUserPreference("ttsProvider");
   const prefTtsVoice = useUserPreference("ttsVoice");
   const prefTtsSpeed = useUserPreference("ttsSpeed");
   const prefTtsAutoRead = useUserPreference("ttsAutoRead");
@@ -147,11 +146,10 @@ export function STTSettings() {
       {/* Text-to-Speech Settings */}
       <TTSSettings
         ttsEnabled={prefTtsEnabled}
-        ttsProvider={prefTtsProvider}
         ttsVoice={prefTtsVoice}
         ttsSpeed={prefTtsSpeed}
         ttsAutoRead={prefTtsAutoRead}
-        onSettingsChange={async (settings: any) => {
+        onSettingsChange={async (settings) => {
           try {
             await updatePreferences({ preferences: settings });
             toast.success("TTS settings updated!");

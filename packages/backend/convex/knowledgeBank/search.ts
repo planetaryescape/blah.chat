@@ -14,9 +14,7 @@ import {
   internalQuery,
   query,
 } from "../_generated/server";
-
-// Embedding model (must match processing)
-const EMBEDDING_MODEL = "text-embedding-3-small";
+import { EMBEDDING_MODEL } from "./constants";
 
 // Search result interface
 export interface KnowledgeSearchResult {

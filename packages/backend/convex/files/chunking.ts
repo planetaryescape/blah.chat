@@ -7,6 +7,7 @@
  *
  * Research shows 400-512 tokens optimal for retrieval quality.
  * Larger chunks (1500+) return unfocused context; smaller lose meaning.
+ * See: https://www.pinecone.io/learn/chunking-strategies/
  *
  * Pattern: Follow convex/messages/embeddings.ts for batch processing
  */

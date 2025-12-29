@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { usePaginatedQuery, useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "convex-helpers/react/cache";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -28,6 +28,7 @@ import {
 import { useCanvasContext } from "@/contexts/CanvasContext";
 import { useConversationContext } from "@/contexts/ConversationContext";
 import { TTSProvider } from "@/contexts/TTSContext";
+import { useMessageCacheSync } from "@/hooks/useCacheSync";
 import { useCanvasAutoSync } from "@/hooks/useCanvasAutoSync";
 import { useChatKeyboardShortcuts } from "@/hooks/useChatKeyboardShortcuts";
 import { useChatModelSelection } from "@/hooks/useChatModelSelection";
@@ -69,17 +70,16 @@ function ChatPageContent({
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
+  // Local-first: Convex syncs to Dexie, reads from cache (instant)
   const {
     results: serverMessages,
     status: paginationStatus,
     loadMore,
-  } = usePaginatedQuery(
-    api.messages.listPaginated,
-    conversationId ? { conversationId } : "skip",
-    {
-      initialNumItems: 50,
-    },
-  );
+    isFirstLoad,
+  } = useMessageCacheSync({
+    conversationId,
+    initialNumItems: 50,
+  });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
 
@@ -109,6 +109,7 @@ function ChatPageContent({
     "showModelNamesDuringComparison",
   );
   const ttsSpeed = useUserPreference("ttsSpeed");
+  const ttsVoice = useUserPreference("ttsVoice");
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
@@ -248,13 +249,10 @@ function ChatPageContent({
       filteredConversations,
     });
 
-  const isLoading =
-    serverMessages === undefined ||
-    paginationStatus === "LoadingFirstPage" ||
-    isChatWidthLoading;
+  const isLoading = isFirstLoad || isChatWidthLoading;
 
   return (
-    <TTSProvider defaultSpeed={ttsSpeed}>
+    <TTSProvider defaultSpeed={ttsSpeed} defaultVoice={ttsVoice}>
       <ResizablePanelGroup
         orientation="horizontal"
         className="flex-1 min-h-0"
@@ -329,7 +327,6 @@ function ChatPageContent({
                     messages={messages as Doc<"messages">[]}
                     selectedModel={displayModel}
                     chatWidth={chatWidth}
-                    isGenerating={isGenerating}
                     onVote={handleVote}
                     onConsolidate={handleConsolidate}
                     onToggleModelNames={() =>

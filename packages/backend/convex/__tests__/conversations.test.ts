@@ -1,10 +1,10 @@
-import { convexTest } from "../../__tests__/testSetup";
 import { describe, expect, it } from "vitest";
 import {
   createMockIdentity,
   createTestConversationData,
   createTestUserData,
 } from "@/lib/test/factories";
+import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
 import schema from "../schema";
 

@@ -83,6 +83,26 @@ const COST_TYPE_COLORS = {
   slides: "#f59e0b",
 };
 
+const FEATURE_COLORS: Record<string, string> = {
+  chat: "#3b82f6",
+  slides: "#f59e0b",
+  notes: "#10b981",
+  tasks: "#ec4899",
+  files: "#8b5cf6",
+  memory: "#6366f1",
+  smart_assistant: "#14b8a6",
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  chat: "Chat",
+  slides: "Slides",
+  notes: "Notes",
+  tasks: "Tasks",
+  files: "Files",
+  memory: "Memory",
+  smart_assistant: "Smart Assistant",
+};
+
 export default function UserDetailPage({
   params,
 }: {
@@ -123,9 +143,24 @@ export default function UserDetailPage({
     endDate: dateRange.endDate,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const costByFeature = useQuery(api.usage.queries.getUserCostByFeature, {
+    userId,
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const activityStats = useQuery(api.usage.queries.getUserActivityStats, {
     userId,
   });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const presentationStats = useQuery(
+    api.usage.queries.getUserPresentationStats,
+    {
+      userId,
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    },
+  );
 
   // Virtualization setup - MUST be before early return to maintain hook order
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -148,6 +183,7 @@ export default function UserDetailPage({
     !dailySpend ||
     !modelBreakdown ||
     !costByType ||
+    !costByFeature ||
     !activityStats
   ) {
     return (
@@ -156,6 +192,22 @@ export default function UserDetailPage({
       </div>
     );
   }
+
+  // Feature breakdown data
+  const featureData = Object.entries(costByFeature)
+    .filter(([_, data]) => data.total > 0)
+    .map(([feature, data]) => ({
+      name: FEATURE_LABELS[feature] || feature,
+      key: feature,
+      value: data.total,
+      breakdown: {
+        text: data.text,
+        tts: data.tts,
+        stt: data.stt,
+        image: data.image,
+      },
+    }))
+    .sort((a, b) => b.value - a.value);
 
   // Prepare export data
   const exportData = modelBreakdown.map((model: ModelBreakdown) => ({
@@ -286,8 +338,16 @@ export default function UserDetailPage({
                 icon={Clock}
               />
               <UsageKPICard
-                label="Slides"
-                value={activityStats.slidesCount}
+                label="Presentations"
+                value={
+                  presentationStats?.presentationsCount ??
+                  activityStats.slidesCount
+                }
+                icon={Presentation}
+              />
+              <UsageKPICard
+                label="Total Slides"
+                value={presentationStats?.slidesCount ?? 0}
                 icon={Presentation}
               />
               <UsageKPICard
@@ -376,6 +436,156 @@ export default function UserDetailPage({
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+
+            {/* Cost by Feature Breakdown */}
+            {featureData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cost by Feature</CardTitle>
+                  <CardDescription>
+                    Distribution across product features
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={featureData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={(entry: any) =>
+                          `${entry.name}: ${formatCurrency(entry.value)}`
+                        }
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {featureData.map((entry) => (
+                          <Cell
+                            key={`cell-${entry.key}`}
+                            fill={FEATURE_COLORS[entry.key] || COLORS[0]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) =>
+                          formatCurrency((value as number) ?? 0)
+                        }
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Sub-breakdown */}
+                  <div className="mt-4 space-y-2">
+                    {featureData.map((feature) => (
+                      <div
+                        key={feature.key}
+                        className="text-xs text-muted-foreground"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{
+                              backgroundColor:
+                                FEATURE_COLORS[feature.key] || COLORS[0],
+                            }}
+                          />
+                          <span className="font-medium">{feature.name}</span>
+                          <span className="ml-auto">
+                            {formatCurrency(feature.value)}
+                          </span>
+                        </div>
+                        <div className="ml-4 flex flex-wrap gap-x-3 gap-y-0.5">
+                          {feature.breakdown.text > 0 && (
+                            <span>
+                              Text: {formatCurrency(feature.breakdown.text)}
+                            </span>
+                          )}
+                          {feature.breakdown.tts > 0 && (
+                            <span>
+                              TTS: {formatCurrency(feature.breakdown.tts)}
+                            </span>
+                          )}
+                          {feature.breakdown.stt > 0 && (
+                            <span>
+                              STT: {formatCurrency(feature.breakdown.stt)}
+                            </span>
+                          )}
+                          {feature.breakdown.image > 0 && (
+                            <span>
+                              Image: {formatCurrency(feature.breakdown.image)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Slides Cost Breakdown */}
+            {presentationStats && presentationStats.totalCost > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Slides Cost Breakdown</CardTitle>
+                  <CardDescription>
+                    Presentation generation costs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">
+                          Presentations
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {presentationStats.presentationsCount}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">
+                          Total Slides
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {presentationStats.slidesCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-px bg-border" />
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Outline Generation
+                        </span>
+                        <span className="font-mono">
+                          {formatCurrency(presentationStats.outlineCost)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Image Generation
+                        </span>
+                        <span className="font-mono">
+                          {formatCurrency(presentationStats.imageCost)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm font-medium border-t pt-2">
+                        <span>Total</span>
+                        <span>
+                          {formatCurrency(presentationStats.totalCost)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {presentationStats.outlineRequests} outline requests •{" "}
+                      {presentationStats.imageRequests} image requests
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Cost Type Breakdown */}
             {costTypeData.length > 0 && (

@@ -8,7 +8,7 @@ type ServerMessage = Doc<"messages">;
 export type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
 interface UseOptimisticMessagesOptions {
-  serverMessages: ServerMessage[] | undefined;
+  serverMessages: ServerMessage[];
 }
 
 interface UseOptimisticMessagesReturn {
@@ -20,7 +20,8 @@ interface UseOptimisticMessagesReturn {
  * Manages optimistic UI for messages - overlay local optimistic messages
  * on top of server state with deduplication when server confirms.
  *
- * Uses useState instead of useOptimistic for instant rendering with TanStack Query.
+ * Note: serverMessages is now guaranteed to be stable (never undefined)
+ * thanks to useStableMessages wrapper upstream.
  */
 export function useOptimisticMessages({
   serverMessages,
@@ -39,7 +40,7 @@ export function useOptimisticMessages({
 
   // Merge server messages with optimistic messages, deduplicating confirmed ones
   const messages = useMemo<MessageWithOptimistic[]>(() => {
-    const server = (serverMessages || []) as MessageWithOptimistic[];
+    const server = serverMessages as MessageWithOptimistic[];
 
     if (optimisticMessages.length === 0) {
       return server;
@@ -64,7 +65,7 @@ export function useOptimisticMessages({
       return !hasServerVersion;
     });
 
-    // Merge and sort chronologically (don't clear state here to avoid blink)
+    // Merge and sort chronologically
     return [...server, ...pendingOptimistic].sort(
       (a, b) => a.createdAt - b.createdAt,
     );

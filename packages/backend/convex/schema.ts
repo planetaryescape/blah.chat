@@ -41,6 +41,7 @@ export default defineSchema({
       v.literal("advanced"),
       v.literal("customInstructions"),
       v.literal("reasoning"),
+      v.literal("memory"),
     ),
     key: v.string(), // "theme", "defaultModel", "ttsEnabled", etc.
     value: v.any(), // string | boolean | number | object
@@ -606,6 +607,95 @@ export default defineSchema({
       filterFields: ["userId", "projectId"],
     }),
 
+  // ===== KNOWLEDGE BANK =====
+
+  // Knowledge sources (PDFs, text, web URLs, YouTube videos)
+  // Scope: userId only = user-level (global), projectId set = project-scoped
+  knowledgeSources: defineTable({
+    userId: v.id("users"),
+    projectId: v.optional(v.id("projects")), // null = user-level, set = project-scoped
+
+    type: v.union(
+      v.literal("file"), // PDF, DOCX, TXT
+      v.literal("text"), // Pasted text
+      v.literal("web"), // Web URL
+      v.literal("youtube"), // YouTube video
+    ),
+
+    // Common fields
+    title: v.string(),
+    description: v.optional(v.string()),
+
+    // Type-specific fields
+    storageId: v.optional(v.id("_storage")), // for files
+    url: v.optional(v.string()), // for web/youtube
+    rawContent: v.optional(v.string()), // for pasted text
+    videoMetadata: v.optional(
+      v.object({
+        videoId: v.string(),
+        duration: v.optional(v.number()), // seconds
+        channel: v.optional(v.string()),
+        thumbnailUrl: v.optional(v.string()),
+      }),
+    ),
+
+    // File metadata
+    mimeType: v.optional(v.string()),
+    size: v.optional(v.number()),
+
+    // Processing status
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
+    error: v.optional(v.string()),
+    chunkCount: v.optional(v.number()),
+    processedAt: v.optional(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_project", ["projectId"])
+    .index("by_user_type", ["userId", "type"])
+    .index("by_user_project", ["userId", "projectId"])
+    .index("by_status", ["status"]),
+
+  // Knowledge chunks (vectorized content from sources)
+  knowledgeChunks: defineTable({
+    sourceId: v.id("knowledgeSources"),
+    userId: v.id("users"),
+    projectId: v.optional(v.id("projects")), // denormalized for efficient vector filtering
+
+    // Content
+    content: v.string(),
+    chunkIndex: v.number(),
+
+    // Position metadata
+    charOffset: v.number(),
+    tokenCount: v.number(),
+
+    // Source-specific metadata
+    startTime: v.optional(v.string()), // YouTube timestamp (e.g., "12:34")
+    endTime: v.optional(v.string()),
+    pageNumber: v.optional(v.number()), // PDF page
+
+    // Embedding
+    embedding: v.array(v.float64()),
+
+    createdAt: v.number(),
+  })
+    .index("by_source", ["sourceId"])
+    .index("by_user", ["userId"])
+    .index("by_project", ["projectId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 1536,
+      filterFields: ["userId", "projectId"],
+    }),
+
   bookmarks: defineTable({
     userId: v.id("users"),
     messageId: v.id("messages"),
@@ -762,6 +852,26 @@ export default defineSchema({
     date: v.string(),
     model: v.string(),
     conversationId: v.optional(v.id("conversations")),
+    presentationId: v.optional(v.id("presentations")),
+    feature: v.optional(
+      v.union(
+        v.literal("chat"),
+        v.literal("slides"),
+        v.literal("notes"),
+        v.literal("tasks"),
+        v.literal("files"),
+        v.literal("memory"),
+        v.literal("smart_assistant"),
+      ),
+    ),
+    operationType: v.optional(
+      v.union(
+        v.literal("text"),
+        v.literal("tts"),
+        v.literal("stt"),
+        v.literal("image"),
+      ),
+    ),
     inputTokens: v.number(),
     outputTokens: v.number(),
     reasoningTokens: v.optional(v.number()),
@@ -772,7 +882,9 @@ export default defineSchema({
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"])
     .index("by_user_date_model", ["userId", "date", "model"])
-    .index("by_conversation", ["conversationId"]),
+    .index("by_conversation", ["conversationId"])
+    .index("by_presentation", ["presentationId"])
+    .index("by_user_feature", ["userId", "feature"]),
 
   templates: defineTable({
     userId: v.optional(v.id("users")),
@@ -1667,4 +1779,13 @@ export default defineSchema({
     .index("by_migration", ["migrationId"])
     .index("by_user_migration", ["userId", "migrationId"])
     .index("by_status", ["status"]),
+
+  // Shared Bible verse cache (reduces external API calls)
+  cachedBibleVerses: defineTable({
+    osis: v.string(), // OSIS reference (e.g., "John.3.16")
+    reference: v.string(), // Human-readable (e.g., "John 3:16")
+    text: v.string(), // Verse content
+    version: v.string(), // Bible version (e.g., "WEB")
+    cachedAt: v.number(),
+  }).index("by_osis", ["osis"]),
 });

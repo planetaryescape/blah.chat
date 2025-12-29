@@ -1,4 +1,3 @@
-import { convexTest } from "./testSetup";
 import { describe, expect, it } from "vitest";
 import {
   createMockIdentity,
@@ -8,6 +7,7 @@ import {
 } from "@/lib/test/factories";
 import { api } from "../convex/_generated/api";
 import schema from "../convex/schema";
+import { convexTest } from "./testSetup";
 
 describe("convex/bookmarks", () => {
   describe("create mutation", () => {

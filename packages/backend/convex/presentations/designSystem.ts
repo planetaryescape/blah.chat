@@ -3,14 +3,49 @@ import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { DESIGN_SYSTEM_GENERATION_MODEL } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
 import {
   buildDesignSystemPrompt,
   type TemplateConstraints,
 } from "../lib/prompts/operational/designSystem";
 import { buildVisualDirectionPrompt } from "../lib/prompts/operational/visualDirection";
+
+// Helper to track usage for slides feature
+async function trackSlidesUsage(
+  ctx: ActionCtx,
+  userId: Id<"users">,
+  presentationId: Id<"presentations">,
+  modelId: string,
+  usage: { inputTokens?: number; outputTokens?: number } | undefined,
+) {
+  if (!usage) return;
+
+  const inputTokens = usage.inputTokens ?? 0;
+  const outputTokens = usage.outputTokens ?? 0;
+
+  const cost = calculateCost(modelId, {
+    inputTokens,
+    outputTokens,
+  });
+
+  await (ctx.runMutation as any)(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    internal.usage.mutations.recordTextGeneration,
+    {
+      userId,
+      presentationId,
+      model: modelId,
+      inputTokens,
+      outputTokens,
+      cost,
+      feature: "slides",
+    },
+  );
+}
 
 interface SlideData {
   title: string;
@@ -195,6 +230,25 @@ export const generateDesignSystem = internalAction({
 
       await Promise.race([streamPromise, timeoutPromise]);
 
+      // Get presentation to get userId for cost tracking
+      const presentationForUserId = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.internal.getPresentationInternal,
+        { presentationId: args.presentationId },
+      )) as { userId: Id<"users"> } | null;
+
+      // Track usage
+      const usage = await result.usage;
+      if (presentationForUserId && usage) {
+        await trackSlidesUsage(
+          ctx,
+          presentationForUserId.userId,
+          args.presentationId,
+          DESIGN_SYSTEM_GENERATION_MODEL.id,
+          usage,
+        );
+      }
+
       let designSystem: DesignSystem;
       try {
         designSystem = parseDesignSystemResponse(responseText);
@@ -354,6 +408,25 @@ export const generateDesignSystemFromOutline = internalAction({
 
       await Promise.race([streamPromise, timeoutPromise]);
 
+      // Get presentation to get userId for cost tracking
+      const presentationForUserId = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.presentations.internal.getPresentationInternal,
+        { presentationId: args.presentationId },
+      )) as { userId: Id<"users"> } | null;
+
+      // Track usage for design system generation
+      const designUsage = await result.usage;
+      if (presentationForUserId && designUsage) {
+        await trackSlidesUsage(
+          ctx,
+          presentationForUserId.userId,
+          args.presentationId,
+          DESIGN_SYSTEM_GENERATION_MODEL.id,
+          designUsage,
+        );
+      }
+
       let designSystem: DesignSystem;
       try {
         designSystem = parseDesignSystemResponse(responseText);
@@ -417,6 +490,18 @@ export const generateDesignSystemFromOutline = internalAction({
         })();
 
         await Promise.race([visualStreamPromise, timeoutPromise]);
+
+        // Track usage for visual directions generation
+        const visualUsage = await visualResult.usage;
+        if (presentationForUserId && visualUsage) {
+          await trackSlidesUsage(
+            ctx,
+            presentationForUserId.userId,
+            args.presentationId,
+            DESIGN_SYSTEM_GENERATION_MODEL.id,
+            visualUsage,
+          );
+        }
 
         // Parse visual directions
         try {

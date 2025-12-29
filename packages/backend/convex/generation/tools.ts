@@ -30,6 +30,8 @@ import { createTaskManagerTool } from "../ai/tools/taskManager";
 import { createUpdateDocumentTool } from "../ai/tools/updateDocument";
 import { createUrlReaderTool } from "../ai/tools/urlReader";
 import { createWeatherTool } from "../ai/tools/weather";
+import { createSearchKnowledgeBankTool } from "../knowledgeBank/tool";
+import type { MemoryExtractionLevel } from "../lib/prompts/operational/memoryExtraction";
 
 /**
  * Configuration for building AI tools
@@ -39,6 +41,7 @@ export interface BuildToolsConfig {
   userId: Id<"users">;
   conversationId: Id<"conversations">;
   messageAttachments?: Doc<"attachments">[];
+  memoryExtractionLevel?: MemoryExtractionLevel;
   conversation?: {
     isIncognito?: boolean;
     incognitoSettings?: {
@@ -59,14 +62,29 @@ export interface BuildToolsConfig {
  * - Document tools: Only in document mode
  */
 export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
-  const { ctx, userId, conversationId, messageAttachments, conversation } =
-    config;
+  const {
+    ctx,
+    userId,
+    conversationId,
+    messageAttachments,
+    memoryExtractionLevel = "moderate",
+    conversation,
+  } = config;
 
   // Incognito mode settings
   const isIncognito = conversation?.isIncognito ?? false;
   const incognitoSettings = conversation?.incognitoSettings;
   const enableReadTools =
     !isIncognito || incognitoSettings?.enableReadTools !== false;
+
+  // Memory tool settings based on extraction level
+  // none = no memory tools, passive = save only, moderate+ = all tools
+  const enableMemoryWriteTools =
+    !isIncognito && memoryExtractionLevel !== "none";
+  const enableMemoryReadTools =
+    enableReadTools &&
+    memoryExtractionLevel !== "none" &&
+    memoryExtractionLevel !== "passive";
 
   // Capability tools: ALWAYS available (stateless, no persistent writes)
   const calculatorTool = createCalculatorTool();
@@ -132,18 +150,26 @@ More thorough but slower. Use only when depth is needed.`,
     weather: weatherTool,
   };
 
-  // Write tools: DISABLED for incognito (saveMemory, deleteMemory, manageTasks, canvas)
+  // Write tools: DISABLED for incognito
   if (!isIncognito) {
-    const memorySaveTool = createMemorySaveTool(ctx, userId);
-    const memoryDeleteTool = createMemoryDeleteTool(ctx, userId);
-    const taskManagerTool = createTaskManagerTool(
+    // Memory write tools: respect extraction level
+    // - none: no memory tools
+    // - passive+: saveMemory available
+    // - moderate+: deleteMemory also available
+    if (enableMemoryWriteTools) {
+      tools.saveMemory = createMemorySaveTool(ctx, userId);
+      // deleteMemory only for moderate+ (not passive)
+      if (memoryExtractionLevel !== "passive") {
+        tools.deleteMemory = createMemoryDeleteTool(ctx, userId);
+      }
+    }
+
+    // Task manager: always available (not memory-related)
+    tools.manageTasks = createTaskManagerTool(
       ctx,
       userId,
       conversation?.projectId,
     );
-    tools.saveMemory = memorySaveTool;
-    tools.deleteMemory = memoryDeleteTool;
-    tools.manageTasks = taskManagerTool;
 
     // Canvas/Document mode tools
     const isDocumentMode = conversation?.mode === "document";
@@ -171,22 +197,24 @@ More thorough but slower. Use only when depth is needed.`,
 
   // Read tools: Configurable for incognito (search user data)
   if (enableReadTools) {
-    const memorySearchTool = createMemorySearchTool(ctx, userId);
-    const searchFilesTool = createSearchFilesTool(ctx, userId);
-    const searchNotesTool = createSearchNotesTool(ctx, userId);
-    const searchTasksTool = createSearchTasksTool(ctx, userId);
-    const queryHistoryTool = createQueryHistoryTool(
+    // Memory search: respects extraction level (moderate+ only)
+    if (enableMemoryReadTools) {
+      tools.searchMemories = createMemorySearchTool(ctx, userId);
+    }
+
+    // Other search tools: always available when read tools enabled
+    tools.searchFiles = createSearchFilesTool(ctx, userId);
+    tools.searchNotes = createSearchNotesTool(ctx, userId);
+    tools.searchTasks = createSearchTasksTool(ctx, userId);
+    tools.queryHistory = createQueryHistoryTool(ctx, userId, conversationId);
+    tools.searchAll = createSearchAllTool(ctx, userId, conversationId);
+
+    // Knowledge Bank search: searches user's saved documents, web pages, videos
+    tools.searchKnowledgeBank = createSearchKnowledgeBankTool(
       ctx,
       userId,
-      conversationId,
+      conversation?.projectId,
     );
-    const searchAllTool = createSearchAllTool(ctx, userId, conversationId);
-    tools.searchMemories = memorySearchTool;
-    tools.searchFiles = searchFilesTool;
-    tools.searchNotes = searchNotesTool;
-    tools.searchTasks = searchTasksTool;
-    tools.queryHistory = queryHistoryTool;
-    tools.searchAll = searchAllTool;
   }
 
   return tools;

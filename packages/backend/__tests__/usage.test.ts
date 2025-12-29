@@ -1,4 +1,3 @@
-import { convexTest } from "./testSetup";
 import { describe, expect, it } from "vitest";
 import {
   createMockIdentity,
@@ -8,6 +7,7 @@ import {
 import { internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import schema from "../convex/schema";
+import { convexTest } from "./testSetup";
 
 describe("convex/usage", () => {
   describe("recordTranscription", () => {

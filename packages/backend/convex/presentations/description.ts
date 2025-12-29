@@ -2,7 +2,9 @@ import { generateText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
   internalAction,
   internalMutation,
@@ -44,7 +46,11 @@ export const generateDescriptionAction = internalAction({
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.presentations.internal.getPresentationInternal,
       { presentationId: args.presentationId },
-    )) as { title: string; currentOutlineVersion?: number } | null;
+    )) as {
+      title: string;
+      currentOutlineVersion?: number;
+      userId: Id<"users">;
+    } | null;
 
     if (!presentation) {
       console.error("Presentation not found for description generation");
@@ -81,6 +87,30 @@ export const generateDescriptionAction = internalAction({
           "presentation-description",
         ]),
       });
+
+      // Track usage with feature: "slides"
+      if (result.usage) {
+        const inputTokens = result.usage.inputTokens ?? 0;
+        const outputTokens = result.usage.outputTokens ?? 0;
+        const cost = calculateCost(DESCRIPTION_MODEL, {
+          inputTokens,
+          outputTokens,
+        });
+
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordTextGeneration,
+          {
+            userId: presentation.userId,
+            presentationId: args.presentationId,
+            model: DESCRIPTION_MODEL,
+            inputTokens,
+            outputTokens,
+            cost,
+            feature: "slides",
+          },
+        );
+      }
 
       const description = result.text.trim();
 

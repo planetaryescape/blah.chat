@@ -4,8 +4,9 @@
  * convex-test needs to know where the convex functions are located.
  * In a monorepo, we need to explicitly provide the module map.
  */
-import { convexTest as originalConvexTest } from "convex-test";
+
 import type { GenericSchema, SchemaDefinition } from "convex/server";
+import { convexTest as originalConvexTest } from "convex-test";
 
 // Import all convex modules relative to this test file
 // Must include _generated for convex-test to work

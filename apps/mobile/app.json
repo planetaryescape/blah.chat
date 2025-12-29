@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "blah.chat",
+    "slug": "blah-chat",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "blahchat",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "ios": {
+      "bundleIdentifier": "chat.blah.app",
+      "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "blah.chat needs camera access to send photos",
+        "NSPhotoLibraryUsageDescription": "blah.chat needs photo library access to attach images",
+        "NSMicrophoneUsageDescription": "blah.chat needs microphone access for voice messages"
+      }
+    },
+    "android": {
+      "package": "chat.blah.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow blah.chat to access your photos",
+          "cameraPermission": "Allow blah.chat to access your camera"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow blah.chat to access your microphone for voice messages"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "90d8e51e-5262-4ecd-94e4-cc53b8923d43"
+      }
+    }
+  }
+}

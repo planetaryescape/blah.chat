@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { analytics } from "@/lib/analytics";
+import { cache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 interface MessageActionsMenuProps {
@@ -31,7 +32,16 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
 
   const handleDelete = async () => {
     try {
-      await deleteMsg({ messageId: message._id as Id<"messages"> });
+      const messageId = message._id as Id<"messages">;
+      await deleteMsg({ messageId });
+
+      // Clear from local cache (prevents stale data)
+      await Promise.all([
+        cache.messages.delete(messageId),
+        cache.attachments.where("messageId").equals(messageId).delete(),
+        cache.toolCalls.where("messageId").equals(messageId).delete(),
+        cache.sources.where("messageId").equals(messageId).delete(),
+      ]).catch(console.error);
 
       // Track message deletion
       analytics.track("message_deleted", {

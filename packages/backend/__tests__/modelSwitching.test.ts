@@ -1,4 +1,3 @@
-import { convexTest } from "./testSetup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMockIdentity,
@@ -7,6 +6,7 @@ import {
 } from "@/lib/test/factories";
 import { api } from "../convex/_generated/api";
 import schema from "../convex/schema";
+import { convexTest } from "./testSetup";
 
 describe("model switching", () => {
   // Use fake timers to prevent scheduled functions from running

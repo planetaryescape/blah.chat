@@ -1,16 +1,21 @@
 /**
- * @blah-chat/ai
+ * @blah-chat/ai - Shared AI model configuration
  *
- * Shared AI model configurations, prompts, and types.
- *
- * TODO: Extract from apps/web/src/lib/ai/:
- * - models.ts (46 model definitions)
- * - types.ts
- * - benchmarks.ts
- * - categories.ts
- * - reasoning/
- *
- * For now, import directly from @/lib/ai in apps/web.
+ * Used by both web and mobile apps for consistent model handling
  */
 
-export {};
+export {
+  getMobileModels,
+  getModelTier,
+  getProviderDisplayName,
+  MODEL_CONFIG,
+} from "./models";
+
+export type {
+  Capability,
+  CostTier,
+  ModelConfig,
+  ModelTier,
+  Provider,
+  SpeedTier,
+} from "./types";

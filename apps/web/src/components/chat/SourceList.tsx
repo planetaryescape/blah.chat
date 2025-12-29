@@ -1,8 +1,6 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +11,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { useCachedSources } from "@/hooks/useCacheSync";
 import { cn } from "@/lib/utils";
 
 type SourceWithMetadata = {
@@ -41,18 +40,10 @@ interface SourceListProps {
 export function SourceList({ messageId, className }: SourceListProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Check if this is a temporary optimistic message (not yet persisted)
-  const isTempMessage =
-    typeof messageId === "string" && messageId.startsWith("temp-");
+  // Read from local cache (instant) - synced by useMetadataCacheSync in VirtualizedMessageList
+  const sources = useCachedSources(messageId);
 
-  // Fetch sources from normalized tables (Phase 2 migration complete)
-  // Skip query for temporary optimistic messages
-  const sources = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.sources.operations.getSources,
-    isTempMessage ? "skip" : { messageId },
-  );
-
+  // Don't reserve space - most messages don't have sources
   // Hide if no sources
   if (!sources || sources.length === 0) return null;
 
@@ -80,7 +71,7 @@ export function SourceList({ messageId, className }: SourceListProps) {
       {/* Expandable Sources Grid */}
       {isExpanded && (
         <div className="grid gap-2 sm:grid-cols-2">
-          {sources.map((source: SourceWithMetadata, idx: number) => (
+          {(sources as unknown as SourceWithMetadata[]).map((source, idx) => (
             <SourceCard
               key={source.position || idx}
               source={source}

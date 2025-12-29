@@ -6,8 +6,10 @@ import {
   MEMORY_RERANK_MODEL,
 } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { ActionCtx } from "../_generated/server";
 import { internalAction, internalQuery } from "../_generated/server";
 import { buildMemoryRerankPrompt } from "../lib/prompts/operational/memoryRerank";
 import { applyRRF } from "../lib/utils/search";
@@ -18,6 +20,8 @@ const MIN_CONFIDENCE = 0.7;
 async function rerankMemories(
   query: string,
   candidates: Doc<"memories">[],
+  ctx: ActionCtx,
+  userId: Id<"users">,
 ): Promise<Doc<"memories">[]> {
   if (candidates.length <= 1) return candidates;
 
@@ -32,6 +36,29 @@ async function rerankMemories(
         "memory-rerank",
       ]),
     });
+
+    // Track usage with feature: "memory"
+    if (result.usage) {
+      const inputTokens = result.usage.inputTokens ?? 0;
+      const outputTokens = result.usage.outputTokens ?? 0;
+      const cost = calculateCost(MEMORY_RERANK_MODEL.id, {
+        inputTokens,
+        outputTokens,
+      });
+
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId,
+          model: MEMORY_RERANK_MODEL.id,
+          inputTokens,
+          outputTokens,
+          cost,
+          feature: "memory",
+        },
+      );
+    }
 
     const indices = result.text
       .trim()
@@ -242,7 +269,12 @@ export const hybridSearch = internalAction({
       const candidates = filtered.slice(0, 20);
 
       // 6. Rerank with LLM
-      const reranked = await rerankMemories(args.query, candidates);
+      const reranked = await rerankMemories(
+        args.query,
+        candidates,
+        ctx,
+        args.userId,
+      );
 
       // 7. Return top N after reranking
       return reranked.slice(0, limit);

@@ -448,7 +448,7 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     contextWindow: 65536, // 65K tokens
     pricing: {
       input: 2.0, // Same as Gemini 3 Pro (text tokens)
-      output: 12.0, // Text output (image output is $120/M but varies)
+      output: 120.0, // Image output pricing per Vercel AI Gateway - images billed at higher $/MTok-equivalent rate than text to reflect per-image rendering costs
     },
     capabilities: ["image-generation", "vision", "thinking"],
     description:

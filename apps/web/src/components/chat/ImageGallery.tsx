@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImageThumbnail } from "./ImageThumbnail";
@@ -26,41 +25,19 @@ export function ImageGallery({ images, onImageClick }: ImageGalleryProps) {
 
   return (
     <div className="space-y-2">
-      <motion.div
+      <div
         className={`grid gap-2 ${images.length >= 3 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
-        variants={{
-          container: {
-            transition: { staggerChildren: 0.05 },
-          },
-        }}
-        initial="container"
-        animate="container"
       >
         {visibleImages.map((image, index) => (
-          <motion.div
-            key={image.storageId}
-            variants={{
-              container: {
-                opacity: 0,
-                scale: 0.8,
-              },
-              item: {
-                opacity: 1,
-                scale: 1,
-              },
-            }}
-            initial="container"
-            animate="item"
-            transition={{ duration: 0.2 }}
-          >
+          <div key={image.storageId}>
             <ImageThumbnail
               url={image.url}
               alt={image.name}
               onClick={() => onImageClick(index)}
             />
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
 
       {!showAll && remainingCount > 0 && (
         <Button

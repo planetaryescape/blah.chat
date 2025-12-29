@@ -159,6 +159,16 @@ export const updatePreferences = mutation({
       showProjects: v.optional(v.boolean()),
       showBookmarks: v.optional(v.boolean()),
       showSlides: v.optional(v.boolean()),
+      memoryExtractionLevel: v.optional(
+        v.union(
+          v.literal("none"),
+          v.literal("passive"),
+          v.literal("minimal"),
+          v.literal("moderate"),
+          v.literal("active"),
+          v.literal("aggressive"),
+        ),
+      ),
     }),
   },
   handler: async (ctx, args) => {
@@ -362,5 +372,16 @@ export const getAllUserPreferences = query({
     if (!user) return null;
 
     return await getAllUserPreferencesHelper(ctx, user._id);
+  },
+});
+
+/**
+ * Get single user preference by userId (for internal use)
+ * Used by actions that already have userId (e.g., memory extraction)
+ */
+export const getUserPreferenceByUserId = query({
+  args: { userId: v.id("users"), key: v.string() },
+  handler: async (ctx, { userId, key }) => {
+    return await getUserPreferenceHelper(ctx, userId, key as any);
   },
 });

@@ -11,6 +11,7 @@ import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
+import { useUserPreference } from "@/hooks/useUserPreference";
 
 interface ChatHeaderProps {
   conversation: Doc<"conversations"> | null | undefined;
@@ -45,6 +46,8 @@ export function ChatHeader({
   onModelBadgeClick,
   onComparisonBadgeClick,
 }: ChatHeaderProps) {
+  const showMessageStats = useUserPreference("showMessageStatistics");
+
   return (
     <header className="flex items-center gap-4 border-b px-4 py-3 shrink-0">
       {/* Navigation buttons - left side next to title */}
@@ -99,7 +102,7 @@ export function ChatHeader({
       )}
 
       <div className="flex items-center gap-2">
-        {hasMessages && conversationId && (
+        {showMessageStats && hasMessages && conversationId && (
           <ContextWindowIndicator
             conversationId={conversationId}
             modelId={selectedModel}

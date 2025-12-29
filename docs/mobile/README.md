@@ -79,44 +79,55 @@ const sendMessage = useMutation(api.chat.sendMessage);
 
 ## Implementation Phases
 
-### **Phase 0: Prerequisites & Setup** (`phase-0-prerequisites.md`)
-**Duration**: 1-2 hours
+### **Phase 0: Prerequisites & Setup** (`phase-0-prerequisites.md`) ✅ COMPLETE
+**Duration**: 1-2 hours | **Completed**: December 2025
 
-- Install development tools (Bun, Expo CLI, simulators)
-- Verify monorepo is set up correctly
-- Understand Convex + Clerk architecture
-- Run `bunx convex dev` from `packages/backend/`
+- ✅ Install development tools (Bun, Expo CLI, simulators)
+- ✅ Verify monorepo is set up correctly
+- ✅ Understand Convex + Clerk architecture
+- ✅ Run `bunx convex dev` from `packages/backend/`
 
 **Deliverable**: Development environment ready
 
 ---
 
-### **Phase 1: Project Setup & Authentication** (`phase-1-setup-auth.md`)
-**Duration**: 4-6 hours
+### **Phase 1: Project Setup & Authentication** (`phase-1-setup-auth.md`) ✅ COMPLETE
+**Duration**: 4-6 hours | **Completed**: December 2025
 
-- Create `apps/mobile/` with Expo Router
-- Configure Metro bundler for monorepo workspaces
-- Add Node.js polyfills (Buffer, process)
-- Integrate Clerk authentication
-- Set up Convex client with `ConvexProviderWithClerk`
-- Configure NativeWind (Tailwind CSS for RN)
+- ✅ Create `apps/mobile/` with Expo Router
+- ✅ Configure Metro bundler for monorepo workspaces
+- ✅ Add Node.js polyfills (Buffer, process)
+- ✅ Integrate Clerk authentication (email)
+- ✅ Set up Convex client with `ConvexProviderWithClerk`
+- ✅ Design system (Obsidian Void theme, custom fonts)
+- ✅ TypeScript configuration with backend type shims
 
 **Deliverables**:
-- Authenticated Expo app
-- Convex queries work
-- Basic navigation structure
-- NativeWind styling ready
+- ✅ Authenticated Expo app (SDK 54)
+- ✅ Convex queries work (connection status in Settings)
+- ✅ Drawer navigation (ChatGPT/Claude pattern)
+- ✅ Design system ready (colors, fonts, spacing)
 
 **Key Files**:
 ```
 apps/mobile/
-├── app/_layout.tsx       # Root providers (Clerk + Convex)
+├── app/_layout.tsx           # Root providers (Clerk + Convex)
 ├── app/(auth)/sign-in.tsx
-├── app/(tabs)/_layout.tsx
-├── metro.config.js       # Monorepo + polyfills
-├── tailwind.config.js    # NativeWind
-└── tsconfig.json         # Paths to @blah-chat/backend
+├── app/(drawer)/_layout.tsx  # Drawer navigation
+├── lib/polyfills.ts          # Buffer/process polyfills
+├── lib/convex.ts             # Convex client
+├── lib/clerk.ts              # Token cache
+├── lib/theme/                # Design system (colors, fonts, spacing)
+├── types/backend.d.ts        # Backend type shims
+├── metro.config.js           # Monorepo + polyfills
+└── tsconfig.json             # TypeScript config
 ```
+
+**Notes**:
+- Drawer navigation (ChatGPT/Claude pattern)
+- StyleSheet with theme tokens (no NativeWind)
+- Syne + Manrope fonts via expo-google-fonts
+- TypeScript passes (`bun run typecheck`)
 
 ---
 
@@ -186,15 +197,28 @@ const messages = useQuery(api.messages.list, { conversationId });
 
 ---
 
+## Design System
+
+See **[`design-system.md`](./design-system.md)** for complete styling reference:
+
+- **Colors**: Obsidian Void theme (deep indigo + rose quartz)
+- **Typography**: Syne (headings) + Manrope (body)
+- **Spacing**: 4px grid system
+- **Components**: Buttons, inputs, cards, message bubbles
+
+All components must use theme tokens from `@/lib/theme`.
+
+---
+
 ## Technology Stack
 
 ### Mobile App
 - **Framework**: Expo SDK 54+ with Expo Router
 - **Language**: TypeScript
-- **Styling**: NativeWind (Tailwind CSS for RN)
+- **Styling**: StyleSheet with theme tokens (not NativeWind)
 - **Lists**: FlashList v2 (5x faster than FlatList)
 - **Markdown**: react-native-markdown-display
-- **Code Highlighting**: Shiki (via react-native-shiki-engine) or Prism
+- **Fonts**: @expo-google-fonts/syne, @expo-google-fonts/manrope
 
 ### Shared Backend
 - **Database**: Convex (shared via `@blah-chat/backend`)
@@ -309,9 +333,9 @@ bunx expo start -c
 **Cause**: Missing watchFolders
 **Fix**: Configure `metro.config.js` for monorepo (Phase 1)
 
-### Styles not applying
-**Cause**: NativeWind not configured
-**Fix**: Add babel plugin + tailwind.config.js (Phase 1)
+### Fonts not loading
+**Cause**: Fonts not loaded in root layout
+**Fix**: Use `useFonts` hook in `_layout.tsx` and show loading state
 
 ---
 
@@ -346,7 +370,12 @@ bunx expo start -c
 
 ## Next Steps
 
-1. **Read Phase 0** (`phase-0-prerequisites.md`)
-2. **Verify monorepo works**: `bun install && bun dev`
-3. **Start Convex**: `cd packages/backend && bunx convex dev`
-4. **Proceed to Phase 1** (`phase-1-setup-auth.md`)
+~~1. **Read Phase 0** (`phase-0-prerequisites.md`)~~ ✅ Done
+~~2. **Verify monorepo works**: `bun install && bun dev`~~ ✅ Done
+~~3. **Start Convex**: `cd packages/backend && bunx convex dev`~~ ✅ Done
+~~4. **Proceed to Phase 1** (`phase-1-setup-auth.md`)~~ ✅ Done
+
+**Current**: Phase 2 - Core Chat Implementation
+1. Start mobile app: `cd apps/mobile && bunx expo start`
+2. Read Phase 2 guide: `phase-2-core-chat.md`
+3. Implement conversation list, chat input, message streaming

@@ -301,5 +301,279 @@ describe("cascade delete", () => {
         }),
       ).rejects.toThrow("Not found");
     });
+
+    it("deletes related conversationTokenUsage", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, tokenUsageId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+
+        const tId = await ctx.db.insert("conversationTokenUsage", {
+          conversationId,
+          model: "gpt-4o",
+          inputTokens: 100,
+          outputTokens: 50,
+          totalTokens: 150,
+          messageCount: 5,
+          lastUpdatedAt: Date.now(),
+          createdAt: Date.now(),
+        });
+
+        return { convId: conversationId, tokenUsageId: tId };
+      });
+
+      let tokenUsage = await t.run(async (ctx) => ctx.db.get(tokenUsageId));
+      expect(tokenUsage).toBeDefined();
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.conversations.deleteConversation, {
+        conversationId: convId,
+      });
+
+      tokenUsage = await t.run(async (ctx) => ctx.db.get(tokenUsageId));
+      expect(tokenUsage).toBeNull();
+    });
+
+    it("deletes related attachments", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, attachmentId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+        const msgId = await ctx.db.insert(
+          "messages",
+          createTestMessageData(conversationId, userId),
+        );
+
+        // Create a fake storage entry for the attachment
+        const storageId = await ctx.storage.store(new Blob(["test"]));
+
+        const aId = await ctx.db.insert("attachments", {
+          messageId: msgId,
+          conversationId,
+          userId,
+          type: "image",
+          name: "test.png",
+          storageId,
+          mimeType: "image/png",
+          size: 1024,
+          createdAt: Date.now(),
+        });
+
+        return { convId: conversationId, attachmentId: aId };
+      });
+
+      let attachment = await t.run(async (ctx) => ctx.db.get(attachmentId));
+      expect(attachment).toBeDefined();
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.conversations.deleteConversation, {
+        conversationId: convId,
+      });
+
+      attachment = await t.run(async (ctx) => ctx.db.get(attachmentId));
+      expect(attachment).toBeNull();
+    });
+
+    it("deletes related toolCalls", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, toolCallId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+        const msgId = await ctx.db.insert(
+          "messages",
+          createTestMessageData(conversationId, userId),
+        );
+
+        const tcId = await ctx.db.insert("toolCalls", {
+          messageId: msgId,
+          conversationId,
+          userId,
+          toolCallId: "tc-123",
+          toolName: "web_search",
+          args: { query: "test" },
+          isPartial: false,
+          timestamp: Date.now(),
+          createdAt: Date.now(),
+        });
+
+        return { convId: conversationId, toolCallId: tcId };
+      });
+
+      let toolCall = await t.run(async (ctx) => ctx.db.get(toolCallId));
+      expect(toolCall).toBeDefined();
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.conversations.deleteConversation, {
+        conversationId: convId,
+      });
+
+      toolCall = await t.run(async (ctx) => ctx.db.get(toolCallId));
+      expect(toolCall).toBeNull();
+    });
+
+    it("deletes related sources", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, sourceId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+        const msgId = await ctx.db.insert(
+          "messages",
+          createTestMessageData(conversationId, userId),
+        );
+
+        const sId = await ctx.db.insert("sources", {
+          messageId: msgId,
+          conversationId,
+          userId,
+          url: "https://example.com",
+          urlHash: "abc123",
+          title: "Example",
+          position: 1,
+          provider: "generic",
+          isPartial: false,
+          createdAt: Date.now(),
+        });
+
+        return { convId: conversationId, sourceId: sId };
+      });
+
+      let source = await t.run(async (ctx) => ctx.db.get(sourceId));
+      expect(source).toBeDefined();
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.conversations.deleteConversation, {
+        conversationId: convId,
+      });
+
+      source = await t.run(async (ctx) => ctx.db.get(sourceId));
+      expect(source).toBeNull();
+    });
+
+    it("deletes related canvasDocuments and canvasHistory", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, docId, historyId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+
+        const dId = await ctx.db.insert("canvasDocuments", {
+          conversationId,
+          userId,
+          title: "Test Canvas",
+          content: "# Hello",
+          documentType: "prose",
+          version: 1,
+          status: "active",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+
+        const hId = await ctx.db.insert("canvasHistory", {
+          documentId: dId,
+          userId,
+          content: "# Hello",
+          version: 1,
+          source: "created",
+          createdAt: Date.now(),
+        });
+
+        return { convId: conversationId, docId: dId, historyId: hId };
+      });
+
+      let doc = await t.run(async (ctx) => ctx.db.get(docId));
+      let history = await t.run(async (ctx) => ctx.db.get(historyId));
+      expect(doc).toBeDefined();
+      expect(history).toBeDefined();
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.conversations.deleteConversation, {
+        conversationId: convId,
+      });
+
+      doc = await t.run(async (ctx) => ctx.db.get(docId));
+      history = await t.run(async (ctx) => ctx.db.get(historyId));
+      expect(doc).toBeNull();
+      expect(history).toBeNull();
+    });
+
+    it("nullifies presentation conversationId instead of delete", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      const { convId, presentationId } = await t.run(async (ctx) => {
+        const userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        const conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId),
+        );
+
+        const pId = await ctx.db.insert("presentations", {
+          userId,
+          conversationId,
+          title: "Test Presentation",
+          status: "outline_pending",
+          imageModel: "dall-e-3",
+          totalSlides: 10,
+          generatedSlideCount: 0,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+
+        return { convId: conversationId, presentationId: pId };
+      });
+
+      const asUser = t.withIdentity(identity);
+      await asUser.mutation(api.conversations.deleteConversation, {
+        conversationId: convId,
+      });
+
+      const presentation = await t.run(async (ctx) =>
+        ctx.db.get(presentationId),
+      );
+      expect(presentation).toBeDefined();
+      expect(presentation?.conversationId).toBeUndefined();
+    });
   });
 });

@@ -16,7 +16,6 @@ export function useMessageCacheSync({
   conversationId,
   initialNumItems = 50,
 }: MessageCacheSyncOptions) {
-  // Subscribe to Convex for real-time updates
   const convexMessages = usePaginatedQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.messages.listPaginated,
@@ -24,14 +23,28 @@ export function useMessageCacheSync({
     { initialNumItems },
   );
 
-  // Sync to Dexie when Convex updates
   useEffect(() => {
-    if (convexMessages.results?.length) {
-      cache.messages.bulkPut(convexMessages.results).catch(console.error);
-    }
-  }, [convexMessages.results]);
+    if (!conversationId || convexMessages.results === undefined) return;
 
-  // Read from local cache (instant)
+    const syncCache = async () => {
+      const convexIds = new Set(convexMessages.results.map((m) => m._id));
+      const dexieRecords = await cache.messages
+        .where("conversationId")
+        .equals(conversationId)
+        .toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) await cache.messages.bulkDelete(orphanIds);
+      if (convexMessages.results.length > 0)
+        await cache.messages.bulkPut(convexMessages.results);
+    };
+
+    syncCache().catch(console.error);
+  }, [convexMessages.results, conversationId]);
+
   // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
   const cachedMessages: Doc<"messages">[] = useLiveQuery(
     () =>
@@ -45,7 +58,6 @@ export function useMessageCacheSync({
     [],
   );
 
-  // Determine loading states (compatible with useStableMessages)
   const isFirstLoad =
     convexMessages.results === undefined && cachedMessages.length === 0;
 
@@ -59,7 +71,6 @@ export function useMessageCacheSync({
 }
 
 export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
-  // Stable reference using shallow comparison (avoids JSON.stringify every render)
   const prevIdsRef = useRef<Id<"messages">[]>([]);
   const stableIds = useMemo(() => {
     const changed =
@@ -69,14 +80,12 @@ export function useMetadataCacheSync(messageIds: Id<"messages">[]) {
     return prevIdsRef.current;
   }, [messageIds]);
 
-  // Batch fetch from Convex
   const metadata = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.messages.batchGetMetadata,
     stableIds.length > 0 ? { messageIds: stableIds } : "skip",
   );
 
-  // Sync to Dexie (with null checks)
   useEffect(() => {
     if (!metadata) return;
 
@@ -100,44 +109,54 @@ interface ConversationCacheSyncOptions {
   projectId?: Id<"projects"> | "none" | null;
 }
 
+/**
+ * Get conversations from Dexie filtered by projectId.
+ * Note: "none" case uses toArray() + filter because Dexie can't index null/undefined values.
+ */
+async function getConversationsByProject(
+  projectId: Id<"projects"> | "none" | null | undefined,
+): Promise<Doc<"conversations">[]> {
+  if (projectId && projectId !== "none") {
+    return cache.conversations.where("projectId").equals(projectId).toArray();
+  }
+  if (projectId === "none") {
+    return (await cache.conversations.toArray()).filter((c) => !c.projectId);
+  }
+  return cache.conversations.toArray();
+}
+
 export function useConversationCacheSync(
   options: ConversationCacheSyncOptions = {},
 ) {
   const { projectId } = options;
 
-  // Subscribe to Convex - pass projectId to server for filtering
   const conversations = useQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.conversations.list,
     { projectId: projectId || undefined },
   );
 
-  // Sync to Dexie when Convex updates
   useEffect(() => {
-    if (conversations?.length) {
-      cache.conversations.bulkPut(conversations).catch(console.error);
-    }
-  }, [conversations]);
+    if (conversations === undefined) return;
 
-  // Read from local cache (instant) with project filtering
+    const syncCache = async () => {
+      const convexIds = new Set(conversations.map((c) => c._id));
+      const dexieRecords = await getConversationsByProject(projectId);
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) await cache.conversations.bulkDelete(orphanIds);
+      if (conversations.length > 0)
+        await cache.conversations.bulkPut(conversations);
+    };
+
+    syncCache().catch(console.error);
+  }, [conversations, projectId]);
+
   const cachedConversations = useLiveQuery(
-    async () => {
-      const query = cache.conversations.toCollection();
-
-      if (projectId === "none") {
-        // Filter to conversations with no project
-        return (await query.toArray()).filter((c) => !c.projectId);
-      }
-      if (projectId) {
-        // Filter by specific project
-        return cache.conversations
-          .where("projectId")
-          .equals(projectId)
-          .toArray();
-      }
-      // No filter - return all
-      return query.toArray();
-    },
+    () => getConversationsByProject(projectId),
     [projectId],
     [] as Doc<"conversations">[],
   );

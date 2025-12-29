@@ -22,6 +22,8 @@ export interface BudgetState {
     resultCount: number;
     topScore: number;
   }>;
+  /** Per-tool call counts for rate limiting (Phase 3) */
+  toolCallCounts: Record<string, number>;
 }
 
 /**
@@ -29,6 +31,23 @@ export interface BudgetState {
  */
 const LOW_QUALITY_THRESHOLD = 0.5;
 const MAX_SEARCH_ATTEMPTS = 4;
+
+/**
+ * Per-tool rate limits (max calls per generation).
+ * Prevents tool abuse while allowing reasonable usage.
+ */
+const TOOL_RATE_LIMITS: Record<string, number> = {
+  searchAll: 5,
+  searchFiles: 5,
+  searchNotes: 5,
+  searchTasks: 5,
+  searchKnowledgeBank: 5,
+  queryHistory: 5,
+  urlReader: 3,
+  codeExecution: 2,
+  weather: 3,
+  default: 10,
+};
 
 /**
  * Tool token estimates (chars/4 approximation) - for context tracking only.
@@ -58,6 +77,7 @@ export function createBudgetState(maxTokens: number): BudgetState {
     usedTokens: 0,
     toolCallCount: 0,
     searchHistory: [],
+    toolCallCounts: {},
   };
 }
 
@@ -97,6 +117,42 @@ export function recordSearch(
 }
 
 /**
+ * Check if a tool has hit its rate limit.
+ * Returns limited: true with message if limit exceeded.
+ */
+export function isToolRateLimited(
+  state: BudgetState,
+  toolName: string,
+): { limited: boolean; message?: string } {
+  const limit = TOOL_RATE_LIMITS[toolName] ?? TOOL_RATE_LIMITS.default;
+  const count = state.toolCallCounts[toolName] ?? 0;
+  if (count >= limit) {
+    return {
+      limited: true,
+      message: `${toolName} limit reached (${count}/${limit}). Try a different approach.`,
+    };
+  }
+  return { limited: false };
+}
+
+/**
+ * Record a tool call for rate limiting.
+ * Returns new state (immutable pattern).
+ */
+export function recordToolCall(
+  state: BudgetState,
+  toolName: string,
+): BudgetState {
+  return {
+    ...state,
+    toolCallCounts: {
+      ...state.toolCallCounts,
+      [toolName]: (state.toolCallCounts[toolName] ?? 0) + 1,
+    },
+  };
+}
+
+/**
  * For Phase 3: Detect if SAME query was already searched (runaway pattern).
  */
 export function isRepeatedQuery(state: BudgetState, query: string): boolean {
@@ -115,11 +171,24 @@ export function getContextPercent(state: BudgetState): number {
 }
 
 /**
- * For Phase 3: Format status for prompt injection when context is getting full.
+ * Format status for prompt injection when context is getting full.
+ * Tiered messaging based on usage level.
  */
 export function formatStatus(state: BudgetState): string {
   const percentUsed = getContextPercent(state);
-  return `[Context: ${state.toolCallCount} tool calls, ~${percentUsed}% of context used]`;
+  const toolCount = state.toolCallCount;
+
+  if (percentUsed >= 70) {
+    return `[Budget Critical: ~${percentUsed}% context, ${toolCount} tools]
+Answer now with current info or ask user for clarification.`;
+  }
+
+  if (percentUsed >= 50) {
+    return `[Budget: ~${percentUsed}% context, ${toolCount} tools]
+Prioritize essential searches only.`;
+  }
+
+  return `[Context: ${toolCount} tool calls, ~${percentUsed}% of context used]`;
 }
 
 /**
@@ -211,4 +280,63 @@ export function formatSearchWarning(state: BudgetState): string | null {
   }
 
   return null;
+}
+
+/**
+ * Truncate tool result for context management.
+ * Preserves structure where possible.
+ */
+export function truncateToolResult(
+  result: unknown,
+  maxChars: number = 500,
+): unknown {
+  const str = JSON.stringify(result);
+  if (str.length <= maxChars) return result;
+
+  // Preserve structure for arrays - keep first 3 items
+  if (Array.isArray(result)) {
+    return result
+      .slice(0, 3)
+      .map((item) => truncateToolResult(item, Math.floor(maxChars / 3)));
+  }
+
+  // Truncate string content
+  if (typeof result === "string") {
+    return `${result.slice(0, maxChars)}... [truncated]`;
+  }
+
+  // For objects, truncate string values
+  if (typeof result === "object" && result !== null) {
+    const truncated: Record<string, unknown> = {};
+    const keys = Object.keys(result);
+    const charPerKey = Math.floor(maxChars / keys.length);
+    for (const key of keys) {
+      truncated[key] = truncateToolResult(
+        (result as Record<string, unknown>)[key],
+        charPerKey,
+      );
+    }
+    return truncated;
+  }
+
+  return result;
+}
+
+/**
+ * Check if AI should suggest asking user for clarification.
+ * Returns true when stuck patterns detected.
+ */
+export function shouldSuggestAskUser(state: BudgetState): boolean {
+  const { searchHistory } = state;
+
+  // 3+ searches with all low quality results
+  if (searchHistory.length >= 3) {
+    const recentScores = searchHistory.slice(-3).map((h) => h.topScore);
+    if (recentScores.every((s) => s < 0.7)) return true;
+  }
+
+  // Budget critical
+  if (getContextPercent(state) >= 70) return true;
+
+  return false;
 }

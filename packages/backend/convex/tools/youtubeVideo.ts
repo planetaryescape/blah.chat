@@ -1,8 +1,9 @@
 "use node";
 
-import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { v } from "convex/values";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 
@@ -29,7 +30,12 @@ export const analyzeVideo = internalAction({
 
     try {
       const result = await generateText({
-        model: google("gemini-2.5-flash"),
+        model: getModel("google:gemini-2.5-flash"),
+        providerOptions: getGatewayOptions(
+          "google:gemini-2.5-flash",
+          undefined,
+          ["youtube-video"],
+        ),
         messages: [
           {
             role: "user",

@@ -136,11 +136,22 @@ export function useConversationCacheSync(
     { projectId: projectId || undefined },
   );
 
+  // Use ref to prevent React Compiler from tracking individual array elements
+  const conversationsRef = useRef(conversations);
+  conversationsRef.current = conversations;
+
+  // Stable hash for change detection - avoids dependency array size changing
+  const conversationsHash = useMemo(
+    () => conversations?.map((c) => c._id).join(",") ?? "",
+    [conversations],
+  );
+
   useEffect(() => {
-    if (conversations === undefined) return;
+    const convs = conversationsRef.current;
+    if (convs === undefined) return;
 
     const syncCache = async () => {
-      const convexIds = new Set(conversations.map((c) => c._id));
+      const convexIds = new Set(convs.map((c) => c._id));
       const dexieRecords = await getConversationsByProject(projectId);
 
       const orphanIds = dexieRecords
@@ -148,12 +159,11 @@ export function useConversationCacheSync(
         .map((d) => d._id);
 
       if (orphanIds.length > 0) await cache.conversations.bulkDelete(orphanIds);
-      if (conversations.length > 0)
-        await cache.conversations.bulkPut(conversations);
+      if (convs.length > 0) await cache.conversations.bulkPut(convs);
     };
 
     syncCache().catch(console.error);
-  }, [conversations, projectId]);
+  }, [conversationsHash, projectId]);
 
   const cachedConversations = useLiveQuery(
     () => getConversationsByProject(projectId),

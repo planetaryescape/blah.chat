@@ -258,6 +258,7 @@
       "name": "@blah-chat/ai",
       "version": "0.0.0",
       "devDependencies": {
+        "@blah-chat/config": "workspace:*",
         "typescript": "^5.9.3",
       },
     },

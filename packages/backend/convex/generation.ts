@@ -38,6 +38,9 @@ import { calculateConversationTokensAsync } from "./tokens/counting";
 // Re-export generation submodules
 export * as image from "./generation/image";
 
+/** Maximum tool execution steps before stopping (prevents runaway loops) */
+const MAX_TOOL_STEPS = 15;
+
 export const generateResponse = internalAction({
   args: {
     conversationId: v.id("conversations"),
@@ -405,7 +408,7 @@ export const generateResponse = internalAction({
       const options: any = {
         model: finalModel,
         messages: allMessages,
-        stopWhen: hasFunctionCalling ? stepCountIs(15) : undefined, // Multi-step tool calling (5 was too restrictive)
+        stopWhen: hasFunctionCalling ? stepCountIs(MAX_TOOL_STEPS) : undefined,
         providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
       };
 

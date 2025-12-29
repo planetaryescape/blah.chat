@@ -78,7 +78,9 @@ function getCache(): BlahChatCache {
   if (typeof window === "undefined") {
     // Return a mock for SSR - will never be called in practice
     // since all cache usage is in "use client" components
-    throw new Error("Cache not available during SSR");
+    throw new Error(
+      "Attempted to access IndexedDB cache during SSR. Ensure cache is only used in client components.",
+    );
   }
   if (!_cache) {
     _cache = new BlahChatCache();

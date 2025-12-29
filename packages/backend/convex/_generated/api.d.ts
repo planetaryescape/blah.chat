@@ -98,6 +98,7 @@ import type * as import_ from "../import.js";
 import type * as incognito from "../incognito.js";
 import type * as jobs_actions from "../jobs/actions.js";
 import type * as jobs_crud from "../jobs/crud.js";
+import type * as knowledgeBank_constants from "../knowledgeBank/constants.js";
 import type * as knowledgeBank_index from "../knowledgeBank/index.js";
 import type * as knowledgeBank_process from "../knowledgeBank/process.js";
 import type * as knowledgeBank_search from "../knowledgeBank/search.js";
@@ -351,6 +352,7 @@ declare const fullApi: ApiFromModules<{
   incognito: typeof incognito;
   "jobs/actions": typeof jobs_actions;
   "jobs/crud": typeof jobs_crud;
+  "knowledgeBank/constants": typeof knowledgeBank_constants;
   "knowledgeBank/index": typeof knowledgeBank_index;
   "knowledgeBank/process": typeof knowledgeBank_process;
   "knowledgeBank/search": typeof knowledgeBank_search;

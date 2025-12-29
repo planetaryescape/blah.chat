@@ -6,7 +6,7 @@
  * 2. Detect runaway patterns (repeated queries, not raw counts)
  * 3. Provide visibility to downstream phases
  *
- * NOTE: This does NOT block tool calls. Existing stepCountIs(5) handles step limits.
+ * NOTE: This does NOT block tool calls. Existing step limit logic handles step limits.
  * This module provides awareness functions for future Phase 3 prompt injection.
  */
 

@@ -277,7 +277,6 @@ async function extractPdfWithLlm(
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
-  const dataUrl = `data:application/pdf;base64,${base64}`;
 
   // First, get page count estimate (assume 1 page per 3000 bytes as rough estimate)
   // For more accurate page count, we'd need a PDF library
@@ -304,7 +303,7 @@ async function extractPdfWithLlm(
             content: [
               {
                 type: "file",
-                data: dataUrl,
+                data: base64,
                 mediaType: "application/pdf",
               },
               {
@@ -369,7 +368,6 @@ async function extractDocWithLlm(
   const base64 = Buffer.from(arrayBuffer).toString("base64");
   const mimeType =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  const dataUrl = `data:${mimeType};base64,${base64}`;
 
   console.log(`[Extraction] DOCX: ${fileName}`);
 
@@ -386,7 +384,7 @@ async function extractDocWithLlm(
         content: [
           {
             type: "file",
-            data: dataUrl,
+            data: base64,
             mediaType: mimeType,
           },
           {
@@ -423,7 +421,6 @@ async function extractGenericWithLlm(
   const startTime = Date.now();
   const arrayBuffer = await blob.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
-  const dataUrl = `data:${mimeType};base64,${base64}`;
 
   console.log(`[Extraction] Generic: ${fileName} (${mimeType})`);
 
@@ -440,7 +437,7 @@ async function extractGenericWithLlm(
         content: [
           {
             type: "file",
-            data: dataUrl,
+            data: base64,
             mediaType: mimeType,
           },
           {

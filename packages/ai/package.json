@@ -9,6 +9,7 @@
   },
   "scripts": {},
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@blah-chat/config": "workspace:*"
   }
 }

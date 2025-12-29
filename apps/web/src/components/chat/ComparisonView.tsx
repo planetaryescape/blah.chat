@@ -16,13 +16,18 @@ import { useSyncedScroll } from "@/hooks/useSyncedScroll";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { ComparisonPanel } from "./ComparisonPanel";
 import { ConsolidateDialog } from "./ConsolidateDialog";
 
 type ConsolidationMode = "same-chat" | "new-chat";
 
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+  senderUser?: { name?: string; imageUrl?: string } | null;
+};
+
 interface ComparisonViewProps {
-  assistantMessages: Doc<"messages">[];
+  assistantMessages: MessageWithUser[];
   comparisonGroupId: string;
   showModelNames: boolean;
   onVote: (winnerId: string, rating: string) => void;

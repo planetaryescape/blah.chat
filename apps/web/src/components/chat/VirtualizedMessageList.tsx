@@ -13,21 +13,18 @@ import {
   type GroupedItem,
   useMessageGrouping,
 } from "@/hooks/useMessageGrouping";
-import { useUserPreference } from "@/hooks/useUserPreference";
-import { useConversations } from "@/lib/hooks/queries/useConversations";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
+import type { OptimisticMessage } from "@/types/optimistic";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
-import { EmptyScreen } from "./EmptyScreen";
 
-type MessageWithUser = Doc<"messages"> & {
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
-  selectedModel?: string;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -39,7 +36,6 @@ interface VirtualizedMessageListProps {
 
 export function VirtualizedMessageList({
   messages,
-  selectedModel,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -52,21 +48,13 @@ export function VirtualizedMessageList({
     threshold: 100,
   });
 
-  const { data: conversationsData } = useConversations();
-  const conversationCount =
-    (conversationsData as { items?: unknown[] } | undefined)?.items?.length ??
-    0;
-  const customInstructions = useUserPreference("customInstructions");
-  const nickname =
-    (customInstructions as { nickname?: string } | undefined)?.nickname || "";
-
-  const conversationId = messages[0]?.conversationId;
-  const grouped = useMessageGrouping(messages);
+  const conversationId = messages?.[0]?.conversationId;
+  const grouped = useMessageGrouping(messages ?? []);
 
   // Batch sync message metadata (attachments, toolCalls, sources) to local cache
   const messageIds = useMemo(
     () =>
-      messages
+      (messages ?? [])
         .filter((m) => !String(m._id).startsWith("temp-"))
         .map((m) => m._id as Id<"messages">),
     [messages],
@@ -89,32 +77,22 @@ export function VirtualizedMessageList({
   });
   useConversationScroll({
     conversationId,
-    messageCount: messages.length,
+    messageCount: messages?.length ?? 0,
     highlightMessageId,
-    messages,
+    messages: messages ?? [],
     virtualizer,
     grouped,
     scrollContainer: containerRef,
   });
 
-  if (messages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full w-full">
-        <EmptyScreen
-          selectedModel={selectedModel}
-          conversationCount={conversationCount}
-          nickname={nickname}
-          onClick={(val: string) => {
-            const event = new CustomEvent("insert-prompt", { detail: val });
-            window.dispatchEvent(event);
-          }}
-        />
-      </div>
-    );
+  // VirtualizedMessageList should only render when there are messages
+  // Empty state (including undefined/loading) is handled by parent component
+  if (!messages || messages.length === 0) {
+    return null;
   }
 
   return (
-    <div className="flex-1 max-h-full min-h-0 min-w-0 relative flex flex-col overflow-hidden">
+    <>
       <div
         ref={containerRef}
         role="log"
@@ -159,7 +137,7 @@ export function VirtualizedMessageList({
           <ArrowDown className="w-3 h-3" aria-hidden="true" />
         </Button>
       )}
-    </div>
+    </>
   );
 }
 

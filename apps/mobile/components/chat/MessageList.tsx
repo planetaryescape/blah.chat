@@ -37,7 +37,6 @@ interface MessageListProps {
   conversationId: string;
 }
 
-// Component to display message attachments
 function MessageAttachments({ messageId }: { messageId: Id<"messages"> }) {
   // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
   const attachments = useQuery(api.messages.attachments.getAttachments, {
@@ -160,7 +159,6 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const createBookmark = useMutation(api.bookmarks.create);
 
-  // Context menu actions based on message type
   const getContextMenuActions = useCallback((msg: Message) => {
     const isUser = msg.role === "user";
     const isComplete = msg.status === "complete";
@@ -188,7 +186,6 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     return actions;
   }, []);
 
-  // Handle context menu action selection
   const handleContextMenuAction = useCallback(
     async (actionTitle: string, msg: Message) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -219,8 +216,6 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
           }
           break;
         case "Read Aloud":
-          // TTS is handled inline, but also available in context menu
-          // For context menu, we just show a hint
           Alert.alert(
             "Tip",
             "Use the TTS button below the message for playback",
@@ -266,7 +261,6 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     [createBookmark, branchFromMessage, createNote, deleteMessage, router],
   );
 
-  // Inline action handlers
   const handleBranchInline = useCallback(
     async (msg: Message) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

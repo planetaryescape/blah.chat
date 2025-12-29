@@ -431,7 +431,7 @@ export const ChatInput = memo(function ChatInput({
 
           {/* Right button(s) - bottom-aligned */}
           <div className="pb-1.5 flex-shrink-0 flex items-center gap-1">
-            {/* Always render VoiceInput to preserve ref during recording */}
+            {/* VoiceInput always rendered (hidden when !showMic) to preserve ref during recording */}
             <div className={cn(showMic ? "block" : "hidden")}>
               <Tooltip>
                 <TooltipTrigger asChild>

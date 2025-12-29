@@ -15,6 +15,12 @@ import { extractSources, extractWebSearchSources } from "./generation/sources";
 import { buildTools, createOnStepFinish } from "./generation/tools";
 import { trackServerEvent } from "./lib/analytics";
 import {
+  type BudgetState,
+  createBudgetState,
+  estimateToolCost,
+  recordUsage,
+} from "./lib/budgetTracker";
+import {
   captureException,
   classifyStreamingError,
   detectCreditsError,
@@ -156,6 +162,11 @@ export const generateResponse = internalAction({
       if (!modelConfig) {
         throw new Error(`Model ${args.modelId} not found in configuration`);
       }
+
+      // 4b. Initialize budget tracking (Phase 1 infrastructure, used in Phase 3)
+      let budgetState: BudgetState = createBudgetState(
+        modelConfig.contextWindow,
+      );
 
       // 5. Check for vision and function-calling capabilities
       const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
@@ -394,7 +405,7 @@ export const generateResponse = internalAction({
       const options: any = {
         model: finalModel,
         messages: allMessages,
-        stopWhen: hasFunctionCalling ? stepCountIs(5) : undefined, // Multi-step tool calling
+        stopWhen: hasFunctionCalling ? stepCountIs(15) : undefined, // Multi-step tool calling (5 was too restrictive)
         providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
       };
 
@@ -412,6 +423,9 @@ export const generateResponse = internalAction({
       const isGeminiFlashLite = args.modelId === "google:gemini-2.0-flash-lite";
       const shouldEnableTools = hasFunctionCalling && !isGeminiFlashLite;
 
+      // Search cache: cleared after each generation (scoped to this action)
+      const searchCache = new Map<string, unknown>();
+
       if (shouldEnableTools) {
         options.tools = buildTools({
           ctx,
@@ -420,6 +434,7 @@ export const generateResponse = internalAction({
           messageAttachments,
           memoryExtractionLevel,
           conversation,
+          searchCache,
         });
         options.onStepFinish = createOnStepFinish();
 
@@ -523,6 +538,14 @@ export const generateResponse = internalAction({
               timestamp: existing.timestamp,
               textPosition: existing.textPosition,
             })) as Promise<void>;
+
+            // Track tool usage in budget (Phase 1 infrastructure, used in Phase 3)
+            const resultStr = JSON.stringify(resultValue ?? "");
+            const estimatedTokens = Math.max(
+              estimateToolCost(existing.name),
+              Math.ceil(resultStr.length / 4),
+            );
+            budgetState = recordUsage(budgetState, estimatedTokens);
           }
         }
 

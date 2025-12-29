@@ -489,6 +489,38 @@ export const ChatInput = memo(function ChatInput({
               </Tooltip>
             </div>
 
+            {/* Stop recording button (preview mode) - appears during recording */}
+            {isRecording && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() =>
+                        voiceInputRef.current?.stopRecording("preview")
+                      }
+                      aria-label="Stop recording and edit"
+                      className="h-10 w-10 rounded-full"
+                    >
+                      <Square
+                        className="w-4 h-4 fill-current"
+                        aria-hidden="true"
+                      />
+                    </Button>
+                  </motion.div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Stop & edit</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
             {/* Show send/stop button when not showing mic */}
             {!showMic && (
               <motion.div

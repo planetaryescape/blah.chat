@@ -176,6 +176,7 @@ export const ChatMessage = memo(
           arguments: JSON.stringify(tc.args),
           result: tc.result ? JSON.stringify(tc.result) : undefined,
           timestamp: tc.timestamp,
+          textPosition: tc.textPosition,
           isPartial: tc.isPartial,
         })),
       [rawToolCalls],

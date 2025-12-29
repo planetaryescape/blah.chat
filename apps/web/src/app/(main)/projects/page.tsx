@@ -3,7 +3,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
-import { useProjectCacheSync } from "@/hooks/useCacheSync";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProjectCacheSync } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { analytics } from "@/lib/analytics";
 

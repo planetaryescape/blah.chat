@@ -1,11 +1,9 @@
 "use client";
 
-import { BookOpen, FileText, Globe, Youtube, X } from "lucide-react";
+import { BookOpen, FileText, Globe, X, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-type SourceType = "file" | "text" | "web" | "youtube";
-type SourceStatus = "pending" | "processing" | "completed" | "failed";
+import type { SourceStatus, SourceType } from "./types";
 
 interface KnowledgeFiltersProps {
   typeFilter: SourceType | "all";
@@ -14,14 +12,17 @@ interface KnowledgeFiltersProps {
   onStatusChange: (status: SourceStatus | "all") => void;
 }
 
-const TYPE_OPTIONS: { value: SourceType | "all"; label: string; icon?: any }[] =
-  [
-    { value: "all", label: "All Types" },
-    { value: "file", label: "Files", icon: FileText },
-    { value: "text", label: "Text", icon: BookOpen },
-    { value: "web", label: "Web", icon: Globe },
-    { value: "youtube", label: "YouTube", icon: Youtube },
-  ];
+const TYPE_OPTIONS: {
+  value: SourceType | "all";
+  label: string;
+  icon?: typeof FileText;
+}[] = [
+  { value: "all", label: "All Types" },
+  { value: "file", label: "Files", icon: FileText },
+  { value: "text", label: "Text", icon: BookOpen },
+  { value: "web", label: "Web", icon: Globe },
+  { value: "youtube", label: "YouTube", icon: Youtube },
+];
 
 const STATUS_OPTIONS: { value: SourceStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -46,7 +47,6 @@ export function KnowledgeFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Type filters */}
       <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
         {TYPE_OPTIONS.map((option) => {
           const Icon = option.icon;
@@ -70,7 +70,6 @@ export function KnowledgeFilters({
         })}
       </div>
 
-      {/* Status filters */}
       <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
         {STATUS_OPTIONS.map((option) => (
           <button
@@ -89,7 +88,6 @@ export function KnowledgeFilters({
         ))}
       </div>
 
-      {/* Clear filters */}
       {hasActiveFilters && (
         <Button
           variant="ghost"

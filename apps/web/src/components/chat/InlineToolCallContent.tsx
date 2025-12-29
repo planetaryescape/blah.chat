@@ -20,6 +20,28 @@ interface InlineToolCallContentProps {
   isStreaming?: boolean;
 }
 
+/**
+ * Small loading indicator shown after tool calls complete but before text resumes.
+ */
+function StreamingIndicator() {
+  return (
+    <div className="flex gap-1 items-center h-4 mt-2">
+      <span
+        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+        style={{ animationDelay: "0ms" }}
+      />
+      <span
+        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+        style={{ animationDelay: "150ms" }}
+      />
+      <span
+        className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
+        style={{ animationDelay: "300ms" }}
+      />
+    </div>
+  );
+}
+
 interface ContentSegment {
   type: "text" | "tool";
   content?: string;
@@ -122,8 +144,21 @@ export function InlineToolCallContent({
 
   // Handle empty state
   if (segments.length === 0) {
+    // Still streaming but no segments yet - show loading
+    if (isStreaming) {
+      return <StreamingIndicator />;
+    }
     return null;
   }
+
+  // Check if we should show loading indicator after tool calls
+  // Show when: streaming, have tool calls, all tools completed, and last segment is a tool (no text after)
+  const lastSegment = segments[segments.length - 1];
+  const allToolsComplete =
+    allToolCalls.length > 0 &&
+    allToolCalls.every((tc) => tc.result !== undefined);
+  const showPostToolLoading =
+    isStreaming && allToolsComplete && lastSegment?.type === "tool";
 
   return (
     <div className="inline-tool-content space-y-2">
@@ -150,6 +185,8 @@ export function InlineToolCallContent({
 
         return null;
       })}
+      {/* Show loading indicator when tools are done but text hasn't started */}
+      {showPostToolLoading && <StreamingIndicator />}
     </div>
   );
 }

@@ -166,7 +166,6 @@ export const updatePreferences = mutation({
           v.literal("minimal"),
           v.literal("moderate"),
           v.literal("active"),
-          v.literal("aggressive"),
         ),
       ),
     }),

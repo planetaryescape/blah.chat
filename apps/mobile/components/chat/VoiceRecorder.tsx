@@ -65,7 +65,6 @@ export function VoiceRecorder({
       setState("recording");
       setDuration(0);
 
-      // Start timer
       timerRef.current = setInterval(() => {
         setDuration((d) => d + 1);
       }, 1000);
@@ -82,7 +81,6 @@ export function VoiceRecorder({
 
     setState("processing");
 
-    // Stop timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -97,19 +95,16 @@ export function VoiceRecorder({
         throw new Error("No recording URI");
       }
 
-      // Reset audio mode
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
       });
 
-      // Upload recording
       const storageId = await uploadToConvex({
         generateUploadUrl,
         fileUri: uri,
         mimeType: "audio/m4a",
       });
 
-      // Transcribe
       const transcript = await transcribeAudio({
         storageId,
         mimeType: "audio/m4a",
@@ -125,35 +120,29 @@ export function VoiceRecorder({
   }, [generateUploadUrl, transcribeAudio, onTranscript, onCancel]);
 
   const handleCancel = useCallback(async () => {
-    // Stop timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
 
-    // Stop recording if active
     if (recordingRef.current) {
       try {
         await recordingRef.current.stopAndUnloadAsync();
       } catch {
-        // Ignore errors during cleanup
+        // Cleanup errors expected
       }
       recordingRef.current = null;
     }
 
-    // Reset audio mode
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-      });
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
     } catch {
-      // Ignore
+      // Cleanup errors expected
     }
 
     onCancel();
   }, [onCancel]);
 
-  // Start recording on mount
   useEffect(() => {
     startRecording();
 

@@ -14,11 +14,8 @@ import {
   chunkText,
   OVERLAP_SIZE_CHARS,
 } from "../files/chunking";
+import { EMBEDDING_BATCH_SIZE, EMBEDDING_MODEL } from "./constants";
 import { KNOWLEDGE_BANK_LIMITS } from "./index";
-
-// Embedding model configuration
-const EMBEDDING_MODEL = "text-embedding-3-small";
-const EMBEDDING_BATCH_SIZE = 100;
 
 interface ProcessedChunk {
   content: string;
@@ -322,9 +319,6 @@ async function extractYouTubeContent(
   // In production, you might want to use the official YouTube API
 
   try {
-    // Attempt to fetch transcript from YouTube
-    const _transcriptUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
     // Use Gemini to extract/transcribe if available
     // For MVP: Use a transcript extraction service
     const response = await fetch(

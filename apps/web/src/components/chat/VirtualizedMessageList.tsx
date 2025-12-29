@@ -76,7 +76,7 @@ export function VirtualizedMessageList({
   const virtualizer = useVirtualizer({
     count: grouped.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => 400, // Larger estimate reduces layout thrashing
+    estimateSize: () => 400, // Larger estimate reduces layout thrashing: virtualizer reserves more initial space, reducing re-measurements when actual height exceeds estimate
     overscan: 5, // Reduced - height reservations prevent layout shift
   });
 

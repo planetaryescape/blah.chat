@@ -9,13 +9,11 @@ interface KnowledgeChunkCardProps {
   chunk: KnowledgeChunk;
   sourceType: SourceType;
   isHighlighted?: boolean;
+  previewLength?: number;
 }
 
-export function KnowledgeChunkCard({
-  chunk,
-  sourceType,
-  isHighlighted,
-}: KnowledgeChunkCardProps) {
+export function KnowledgeChunkCard(props: KnowledgeChunkCardProps) {
+  const { chunk, sourceType, isHighlighted } = props;
   const [isExpanded, setIsExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +30,7 @@ export function KnowledgeChunkCard({
     }
   }, [isHighlighted]);
 
-  const previewLength = 200;
+  const previewLength = props.previewLength ?? 200;
   const hasMore = chunk.content.length > previewLength;
   const displayContent = isExpanded
     ? chunk.content

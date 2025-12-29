@@ -1,6 +1,7 @@
 import { cache } from "./db";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
  * Cleanup old cached data (>30 days)
@@ -36,12 +37,15 @@ export async function cleanupOldData(): Promise<void> {
     // Cleanup old notes (30 days since last update)
     await cache.notes.where("updatedAt").below(thirtyDaysAgo).delete();
 
-    // Cleanup old tasks (30 days since creation, except completed which stay longer)
-    // Keep completed tasks for reference, only delete old pending ones
+    // Cleanup old tasks:
+    // - Pending/in-progress tasks: delete after 30 days
+    // - Completed tasks: keep longer (90 days) for reference, then delete
+    const ninetyDaysAgo = Date.now() - NINETY_DAYS_MS;
     const oldTaskIds = (await cache.tasks
       .filter(
         (task) =>
-          task._creationTime < thirtyDaysAgo && task.status !== "completed",
+          (task._creationTime < thirtyDaysAgo && task.status !== "completed") ||
+          (task._creationTime < ninetyDaysAgo && task.status === "completed"),
       )
       .primaryKeys()) as string[];
     if (oldTaskIds.length > 0) {

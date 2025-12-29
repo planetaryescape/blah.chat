@@ -431,8 +431,8 @@ export const ChatInput = memo(function ChatInput({
 
           {/* Right button(s) - bottom-aligned */}
           <div className="pb-1.5 flex-shrink-0 flex items-center gap-1">
-            {/* Show mic when empty, send when has content (ChatGPT behavior) */}
-            {showMic ? (
+            {/* Always render VoiceInput to preserve ref during recording */}
+            <div className={cn(showMic ? "block" : "hidden")}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
@@ -487,7 +487,10 @@ export const ChatInput = memo(function ChatInput({
                   <p>Voice input</p>
                 </TooltipContent>
               </Tooltip>
-            ) : (
+            </div>
+
+            {/* Show send/stop button when not showing mic */}
+            {!showMic && (
               <motion.div
                 whileHover={canSend ? { scale: 1.05 } : undefined}
                 whileTap={canSend ? { scale: 0.95, rotate: -2 } : undefined}

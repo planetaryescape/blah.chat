@@ -50,6 +50,8 @@ export interface BuildToolsConfig {
     projectId?: Id<"projects">;
     mode?: string;
   } | null;
+  /** Search result cache (cleared after each generation) */
+  searchCache?: Map<string, unknown>;
 }
 
 /**
@@ -69,6 +71,7 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
     messageAttachments,
     memoryExtractionLevel = "moderate",
     conversation,
+    searchCache,
   } = config;
 
   // Incognito mode settings
@@ -207,7 +210,12 @@ More thorough but slower. Use only when depth is needed.`,
     tools.searchNotes = createSearchNotesTool(ctx, userId);
     tools.searchTasks = createSearchTasksTool(ctx, userId);
     tools.queryHistory = createQueryHistoryTool(ctx, userId, conversationId);
-    tools.searchAll = createSearchAllTool(ctx, userId, conversationId);
+    tools.searchAll = createSearchAllTool(
+      ctx,
+      userId,
+      conversationId,
+      searchCache,
+    );
 
     // Knowledge Bank search: searches user's saved documents, web pages, videos
     tools.searchKnowledgeBank = createSearchKnowledgeBankTool(

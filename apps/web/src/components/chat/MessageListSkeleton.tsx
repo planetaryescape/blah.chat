@@ -56,7 +56,7 @@ export function MessageListSkeleton({
         {/* Grid structure matches VirtualizedMessageList exactly */}
         <div
           className={cn(
-            "grid gap-4 p-4 transition-all duration-300 ease-out",
+            "grid gap-4 p-4",
             chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
             chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
             chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",

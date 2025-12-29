@@ -216,17 +216,6 @@ function ChatPageContent({
     }
   }, [conversation, router]);
 
-  // Autofocus input when navigating to conversation
-  useEffect(() => {
-    if (!conversationId || isMobile || isTouchDevice) return;
-
-    const timer = setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("focus-chat-input"));
-    }, 50);
-
-    return () => clearTimeout(timer);
-  }, [conversationId, isMobile, isTouchDevice]);
-
   // Derived state that handles loading gracefully
   const isGenerating =
     messages?.some(
@@ -249,6 +238,17 @@ function ChatPageContent({
     });
 
   const isLoading = isFirstLoad;
+
+  // Autofocus input when navigating to conversation (after loading completes)
+  useEffect(() => {
+    if (!conversationId || isMobile || isTouchDevice || isLoading) return;
+
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("focus-chat-input"));
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [conversationId, isMobile, isTouchDevice, isLoading]);
 
   return (
     <TTSProvider defaultSpeed={ttsSpeed} defaultVoice={ttsVoice}>
@@ -296,7 +296,7 @@ function ChatPageContent({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.5 }}
                   className="flex-1 flex flex-col min-h-0"
                 >
                   {/* Load More Button (fallback for top of list) */}
@@ -405,34 +405,36 @@ function ChatPageContent({
                       );
                     }}
                   />
+
+                  {/* ChatInput - autofocus after loading completes */}
+                  <div className="flex shrink-0">
+                    <ChatInput
+                      conversationId={conversationId}
+                      chatWidth={chatWidth}
+                      isGenerating={isGenerating}
+                      selectedModel={displayModel}
+                      onModelChange={handleModelChange}
+                      thinkingEffort={
+                        showThinkingEffort ? thinkingEffort : undefined
+                      }
+                      onThinkingEffortChange={setThinkingEffort}
+                      attachments={attachments}
+                      onAttachmentsChange={setAttachments}
+                      isComparisonMode={isActive}
+                      selectedModels={selectedModels}
+                      onStartComparison={startComparison}
+                      onExitComparison={exitComparison}
+                      isEmpty={messages?.length === 0}
+                      modelSelectorOpen={modelSelectorOpen}
+                      onModelSelectorOpenChange={setModelSelectorOpen}
+                      comparisonDialogOpen={comparisonDialogOpen}
+                      onComparisonDialogOpenChange={setComparisonDialogOpen}
+                      onOptimisticUpdate={addOptimisticMessages}
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* ChatInput always rendered - prevents focus loss during loading state transitions */}
-            <div className="flex shrink-0">
-              <ChatInput
-                conversationId={conversationId}
-                chatWidth={chatWidth}
-                isGenerating={isGenerating}
-                selectedModel={displayModel}
-                onModelChange={handleModelChange}
-                thinkingEffort={showThinkingEffort ? thinkingEffort : undefined}
-                onThinkingEffortChange={setThinkingEffort}
-                attachments={attachments}
-                onAttachmentsChange={setAttachments}
-                isComparisonMode={isActive}
-                selectedModels={selectedModels}
-                onStartComparison={startComparison}
-                onExitComparison={exitComparison}
-                isEmpty={messages?.length === 0}
-                modelSelectorOpen={modelSelectorOpen}
-                onModelSelectorOpenChange={setModelSelectorOpen}
-                comparisonDialogOpen={comparisonDialogOpen}
-                onComparisonDialogOpenChange={setComparisonDialogOpen}
-                onOptimisticUpdate={addOptimisticMessages}
-              />
-            </div>
           </div>
         </ResizablePanel>
 

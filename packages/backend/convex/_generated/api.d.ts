@@ -14,6 +14,7 @@ import type * as adminSettings from "../adminSettings.js";
 import type * as ai_generateTitle from "../ai/generateTitle.js";
 import type * as ai_modelTriage from "../ai/modelTriage.js";
 import type * as ai_taskExtraction from "../ai/taskExtraction.js";
+import type * as ai_tools_askForClarification from "../ai/tools/askForClarification.js";
 import type * as ai_tools_calculator from "../ai/tools/calculator.js";
 import type * as ai_tools_codeExecution from "../ai/tools/codeExecution.js";
 import type * as ai_tools_createDocument from "../ai/tools/createDocument.js";
@@ -271,6 +272,7 @@ declare const fullApi: ApiFromModules<{
   "ai/generateTitle": typeof ai_generateTitle;
   "ai/modelTriage": typeof ai_modelTriage;
   "ai/taskExtraction": typeof ai_taskExtraction;
+  "ai/tools/askForClarification": typeof ai_tools_askForClarification;
   "ai/tools/calculator": typeof ai_tools_calculator;
   "ai/tools/codeExecution": typeof ai_tools_codeExecution;
   "ai/tools/createDocument": typeof ai_tools_createDocument;

@@ -2,8 +2,9 @@
 
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMemo } from "react";
+import type { OptimisticMessage } from "@/types/optimistic";
 
-type MessageWithUser = Doc<"messages"> & {
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 

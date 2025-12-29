@@ -1,13 +1,14 @@
 /**
  * Backend Action: Search All
  *
- * Unified search across files, notes, tasks, and conversation history.
+ * Unified search across files, notes, tasks, conversation history, and knowledge bank.
  * Runs parallel searches and merges results with source attribution.
  */
 
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import type { KnowledgeSearchResult } from "../../knowledgeBank/search";
 
 // Result types for each resource (includes IDs and URLs for navigation)
 interface FileResult {
@@ -73,6 +74,7 @@ export const searchAll = internalAction({
         v.literal("notes"),
         v.literal("tasks"),
         v.literal("conversations"),
+        v.literal("knowledgeBank"),
       ),
     ),
     limit: v.number(),
@@ -84,6 +86,10 @@ export const searchAll = internalAction({
       notes?: { results: NoteResult[]; totalResults: number };
       tasks?: { results: TaskResult[]; totalResults: number };
       conversations?: { results: ConversationResult[]; totalResults: number };
+      knowledgeBank?: {
+        results: KnowledgeSearchResult[];
+        totalResults: number;
+      };
     } = {};
 
     // Run searches in parallel for enabled resource types
@@ -187,6 +193,30 @@ export const searchAll = internalAction({
       );
     }
 
+    if (args.resourceTypes.includes("knowledgeBank")) {
+      searchPromises.push(
+        (async () => {
+          const kbResults = (await (ctx.runAction as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.knowledgeBank.search.searchInternal,
+            {
+              userId: args.userId,
+              query: args.query,
+              projectId: args.projectId,
+              limit: args.limit,
+            },
+          )) as KnowledgeSearchResult[];
+
+          if (kbResults && kbResults.length > 0) {
+            results.knowledgeBank = {
+              results: kbResults,
+              totalResults: kbResults.length,
+            };
+          }
+        })(),
+      );
+    }
+
     // Wait for all searches to complete
     await Promise.all(searchPromises);
 
@@ -195,10 +225,13 @@ export const searchAll = internalAction({
       (results.files?.totalResults || 0) +
       (results.notes?.totalResults || 0) +
       (results.tasks?.totalResults || 0) +
-      (results.conversations?.totalResults || 0);
+      (results.conversations?.totalResults || 0) +
+      (results.knowledgeBank?.totalResults || 0);
 
     // Build summary message
     const foundTypes: string[] = [];
+    if (results.knowledgeBank)
+      foundTypes.push(`${results.knowledgeBank.totalResults} knowledge items`);
     if (results.files) foundTypes.push(`${results.files.totalResults} files`);
     if (results.notes) foundTypes.push(`${results.notes.totalResults} notes`);
     if (results.tasks) foundTypes.push(`${results.tasks.totalResults} tasks`);

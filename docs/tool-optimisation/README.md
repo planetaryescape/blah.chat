@@ -15,8 +15,8 @@ This project addresses two main areas:
 |-------|-------|--------|--------|
 | [Phase 1](./phase-1-foundation.md) | Foundation | 1, 2, 3, 12 | ✅ Complete |
 | [Phase 2](./phase-2-search-quality.md) | Search Quality | 4, 5, 6, 11 | ✅ Complete |
-| [Phase 3](./phase-3-safeguards.md) | Safeguards | 7, 8, 9, 10 | Pending |
-| [Phase 4](./phase-4-advanced.md) | Advanced | 13 | Pending |
+| [Phase 3](./phase-3-safeguards.md) | Safeguards | 7, 8, 9, 10 | ✅ Complete |
+| [Phase 4](./phase-4-advanced.md) | Advanced | 13 | ✅ Complete |
 
 ## Quick Reference
 
@@ -85,14 +85,9 @@ packages/backend/convex/
 ├── generation.ts                 # Main generation loop
 ├── generation/tools.ts           # Tool registration
 └── lib/
-    ├── budgetTracker.ts          # Token budget tracking (Phase 1)
-    ├── toolRateLimiter.ts        # Per-tool rate limits (Phase 3)
+    ├── budgetTracker.ts          # Token budget tracking (Phase 1, 3)
     └── utils/
-        ├── search.ts             # RRF implementation
-        ├── searchQuality.ts      # Quality scoring (Phase 2)
-        ├── rerank.ts             # LLM reranking (Phase 2)
-        ├── summarize.ts          # Context summarization (Phase 3)
-        └── queryExpansion.ts     # Query expansion (Phase 4)
+        └── search.ts             # RRF, quality scoring, reranking
 ```
 
 ## Success Metrics
@@ -102,7 +97,8 @@ After all phases complete:
 - [x] Knowledge bank always searched first (Phase 1)
 - [x] AI stops searching when quality is high (Phase 2)
 - [x] AI warns about diminishing returns (Phase 2)
-- [ ] Token budget visible to AI when low (Phase 3)
-- [ ] Rate limits prevent tool abuse (Phase 3)
-- [ ] Context never exceeds model limit (Phase 3)
-- [ ] AI asks user when stuck instead of infinite loops (Phase 3)
+- [x] Token budget visible to AI when low (Phase 3)
+- [x] Rate limits prevent tool abuse (Phase 3)
+- [x] Context never exceeds model limit (Phase 3)
+- [x] AI asks user when stuck instead of infinite loops (Phase 3)
+- [x] Query expansion handles vocabulary mismatch (Phase 4)

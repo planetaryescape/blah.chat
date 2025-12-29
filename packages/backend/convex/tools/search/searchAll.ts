@@ -161,6 +161,67 @@ async function rerankSearchResults(
 }
 
 /**
+ * Generate query variations for vocabulary mismatch.
+ * Reuses MEMORY_RERANK_MODEL (same cost-effective model).
+ */
+async function expandQuery(
+  query: string,
+  ctx: ActionCtx,
+  userId: Id<"users">,
+): Promise<string[]> {
+  const prompt = `Generate 3 alternative search queries for: "${query}"
+Use synonyms and related terms. Keep same intent.
+One query per line, no numbering.`;
+
+  try {
+    const result = await generateText({
+      model: getModel(MEMORY_RERANK_MODEL.id),
+      prompt,
+      temperature: 0.7,
+      providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
+        "search-expansion",
+      ]),
+    });
+
+    // Track cost (same pattern as reranking)
+    if (result.usage) {
+      const inputTokens = result.usage.inputTokens ?? 0;
+      const outputTokens = result.usage.outputTokens ?? 0;
+      const cost = calculateCost(MEMORY_RERANK_MODEL.id, {
+        inputTokens,
+        outputTokens,
+      });
+
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId,
+          model: MEMORY_RERANK_MODEL.id,
+          inputTokens,
+          outputTokens,
+          cost,
+          feature: "search-expansion",
+        },
+      );
+    }
+
+    return result.text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(
+        (l) =>
+          l.length > 0 &&
+          l.length < 200 &&
+          l.toLowerCase() !== query.toLowerCase(),
+      )
+      .slice(0, 3);
+  } catch {
+    return []; // Graceful degradation
+  }
+}
+
+/**
  * Convert various result types to unified format for RRF merging.
  * Spread original result first, then override with unified fields.
  */
@@ -258,6 +319,8 @@ export const searchAll = internalAction({
     ),
     limit: v.number(),
     currentConversationId: v.optional(v.id("conversations")),
+    enableExpansion: v.optional(v.boolean()),
+    isExpanded: v.optional(v.boolean()), // Prevents infinite recursion
   },
   handler: async (ctx, args) => {
     const searchedSources: string[] = [];
@@ -421,8 +484,53 @@ export const searchAll = internalAction({
     }
 
     // 4. Merge with RRF (knowledge bank already weighted 1.5x via DEFAULT_SOURCE_WEIGHTS)
-    const merged = applyRRF(allResults, [], 60, DEFAULT_SOURCE_WEIGHTS);
+    let merged = applyRRF(allResults, [], 60, DEFAULT_SOURCE_WEIGHTS);
     let quality: QualityResult = getQualityLevel(merged.map((r) => r.score));
+    let expanded = false;
+    let expandedQueries: string[] = [];
+
+    // 4.5. Query expansion for low-quality results
+    if (
+      quality.level === "low" &&
+      args.enableExpansion !== false &&
+      !args.isExpanded &&
+      merged.length < 3
+    ) {
+      const variations = await expandQuery(args.query, ctx, args.userId);
+
+      if (variations.length > 0) {
+        // Search with variations (parallel, marked as expanded)
+        const expandedSearches = variations.map((q) =>
+          (ctx.runAction as any)(
+            // @ts-ignore - TypeScript recursion limit
+            internal.tools.search.searchAll.searchAll,
+            {
+              ...args,
+              query: q,
+              isExpanded: true,
+              enableExpansion: false,
+            },
+          ),
+        );
+        const expandedResults = await Promise.all(expandedSearches);
+
+        // Flatten and merge with RRF (original results weighted higher via position)
+        const allExpanded = expandedResults.flatMap(
+          (r: { results?: UnifiedResult[] }) => r.results || [],
+        );
+        merged = applyRRF(
+          [...merged, ...allExpanded],
+          [],
+          60,
+          DEFAULT_SOURCE_WEIGHTS,
+        );
+
+        // Recalculate quality
+        quality = getQualityLevel(merged.map((r) => r.score));
+        expanded = true;
+        expandedQueries = variations;
+      }
+    }
 
     // 5. Rerank if quality not high and we have more results than limit
     let finalResults = merged.slice(0, args.limit);
@@ -457,6 +565,8 @@ export const searchAll = internalAction({
       searchedSources,
       earlyReturn: false,
       reranked,
+      expanded,
+      expandedQueries,
       summary:
         sourceCounts.length > 0
           ? `Found ${sourceCounts.join(", ")}`

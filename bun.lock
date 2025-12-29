@@ -75,6 +75,7 @@
       "devDependencies": {
         "@babel/core": "^7.25.0",
         "@babel/plugin-transform-react-jsx": "^7.27.1",
+        "@biomejs/biome": "2.2.0",
         "@types/node": "^22.0.0",
         "@types/react": "~19.1.10",
         "babel-preset-expo": "~54.0.9",

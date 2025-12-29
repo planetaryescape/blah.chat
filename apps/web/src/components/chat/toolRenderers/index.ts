@@ -31,6 +31,7 @@ import { UpdateDocumentRenderer } from "./UpdateDocumentRenderer";
 import { UrlReaderRenderer } from "./UrlReaderRenderer";
 import { WeatherRenderer } from "./WeatherRenderer";
 import { WebSearchRenderer } from "./WebSearchRenderer";
+import { YoutubeVideoRenderer } from "./YoutubeVideoRenderer";
 
 /**
  * Registry mapping tool names to their renderer components.
@@ -69,6 +70,8 @@ export const toolRenderers: Record<string, ComponentType<ToolRendererProps>> = {
   resolveConflict: ResolveConflictRenderer,
   // Knowledge bank
   searchKnowledgeBank: SearchKnowledgeBankRenderer,
+  // YouTube video analysis
+  youtubeVideo: YoutubeVideoRenderer,
 };
 
 // Export the default as a named export for explicit usage

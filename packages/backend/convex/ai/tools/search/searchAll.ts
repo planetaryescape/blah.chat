@@ -14,7 +14,9 @@ import type { ActionCtx } from "../../../_generated/server";
 import {
   type BudgetState,
   formatSearchWarning,
+  isToolRateLimited,
   recordSearch,
+  recordToolCall,
 } from "../../../lib/budgetTracker";
 
 /**
@@ -91,6 +93,24 @@ Parameters:
       ],
       limit = 3,
     }) => {
+      // Rate limit check
+      if (budgetState) {
+        const rateCheck = isToolRateLimited(budgetState.current, "searchAll");
+        if (rateCheck.limited) {
+          return {
+            success: false,
+            error: rateCheck.message,
+            rateLimited: true,
+            results: [],
+            totalResults: 0,
+            quality: { level: "low" as const, topScore: 0 },
+            searchedSources: [],
+            earlyReturn: false,
+          };
+        }
+        budgetState.update(recordToolCall(budgetState.current, "searchAll"));
+      }
+
       // Check cache first
       const cacheKey = getCacheKey(query, resourceTypes, projectId);
       if (searchCache?.has(cacheKey)) {

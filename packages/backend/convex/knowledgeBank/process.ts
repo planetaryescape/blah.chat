@@ -4,9 +4,14 @@
  * Handles extraction, chunking, and embedding generation for knowledge sources.
  */
 
+import { generateText } from "ai";
 import { v } from "convex/values";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { DOCUMENT_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import {
   CHARS_PER_TOKEN,
@@ -105,10 +110,11 @@ export const processSource = internalAction({
         }
 
         case "youtube": {
-          // Extract YouTube transcript
+          // Extract YouTube transcript (with Gemini fallback)
           const ytResult = await extractYouTubeContent(
             ctx,
             source.videoMetadata!.videoId,
+            source.userId,
           );
           text = ytResult.transcript;
           chunks = ytResult.chunks;
@@ -313,6 +319,7 @@ async function extractWebContent(
 async function extractYouTubeContent(
   ctx: any,
   videoId: string,
+  userId: Id<"users">,
 ): Promise<{ transcript: string; chunks: ProcessedChunk[] }> {
   // Try to get transcript using YouTube's API or a transcript service
   // For now, we'll use a simple approach with the youtube-transcript package
@@ -333,21 +340,97 @@ async function extractYouTubeContent(
     const response = await fetch(url.toString());
 
     if (!response.ok) {
-      // Fallback: Use video metadata only and note that transcript unavailable
+      // Fallback: Use Gemini 2.0 Flash to analyze the video
       console.log(
-        `[KnowledgeBank] Transcript not available for ${videoId}, using metadata only`,
+        `[KnowledgeBank] Transcript API failed for ${videoId}, trying Gemini fallback`,
       );
-      return {
-        transcript: `YouTube video: ${videoId}. Transcript not available.`,
-        chunks: [
+
+      try {
+        const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        const result = await generateText({
+          model: getModel(DOCUMENT_EXTRACTION_MODEL.id),
+          providerOptions: getGatewayOptions(
+            DOCUMENT_EXTRACTION_MODEL.id,
+            undefined,
+            ["knowledge-bank", "youtube"],
+          ),
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "file", data: youtubeUrl, mediaType: "video/mp4" },
+                {
+                  type: "text",
+                  text: `Watch this YouTube video and provide a comprehensive summary for knowledge retrieval.
+
+Include:
+- Overview (2-3 sentences)
+- Key points and concepts covered
+- Notable quotes or statements (paraphrased)
+- Main conclusions or takeaways
+
+Be thorough - this will be used for search and retrieval.`,
+                },
+              ],
+            },
+          ],
+          maxOutputTokens: 8000,
+        });
+
+        // Track usage
+        const inputTokens = result.usage?.inputTokens ?? 0;
+        const outputTokens = result.usage?.outputTokens ?? 0;
+        const cost = calculateCost(DOCUMENT_EXTRACTION_MODEL.id, {
+          inputTokens,
+          outputTokens,
+        });
+
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit
+          internal.usage.mutations.recordTextGeneration,
           {
-            content: `YouTube video: ${videoId}. Transcript not available. Consider watching the video directly.`,
-            chunkIndex: 0,
-            charOffset: 0,
-            tokenCount: 20,
+            userId,
+            model: DOCUMENT_EXTRACTION_MODEL.id,
+            inputTokens,
+            outputTokens,
+            cost,
+            feature: "files",
           },
-        ],
-      };
+        );
+
+        console.log(
+          `[KnowledgeBank] Gemini summary for ${videoId}: ${inputTokens} in, ${outputTokens} out, $${cost.toFixed(4)}`,
+        );
+
+        // Prepend marker for UI detection
+        const summary = `[AI Video Summary]\n\n${result.text}`;
+        const chunks = chunkText(summary).map((c) => ({
+          content: c.content,
+          chunkIndex: c.chunkIndex,
+          charOffset: c.metadata.charOffset,
+          tokenCount: c.metadata.tokenCount,
+        }));
+
+        return { transcript: summary, chunks };
+      } catch (geminiError) {
+        // Both failed - graceful degradation
+        console.error(
+          `[KnowledgeBank] Gemini fallback failed for ${videoId}:`,
+          geminiError,
+        );
+        return {
+          transcript: `YouTube video: ${videoId}. Transcript and AI analysis unavailable.`,
+          chunks: [
+            {
+              content: `YouTube video: ${videoId}. Both transcript extraction and AI analysis failed.`,
+              chunkIndex: 0,
+              charOffset: 0,
+              tokenCount: 20,
+            },
+          ],
+        };
+      }
     }
 
     const data = (await response.json()) as {

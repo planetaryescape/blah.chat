@@ -104,6 +104,7 @@ import type * as knowledgeBank_process from "../knowledgeBank/process.js";
 import type * as knowledgeBank_search from "../knowledgeBank/search.js";
 import type * as knowledgeBank_tool from "../knowledgeBank/tool.js";
 import type * as lib_analytics from "../lib/analytics.js";
+import type * as lib_budgetTracker from "../lib/budgetTracker.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
 import type * as lib_helpers from "../lib/helpers.js";
@@ -358,6 +359,7 @@ declare const fullApi: ApiFromModules<{
   "knowledgeBank/search": typeof knowledgeBank_search;
   "knowledgeBank/tool": typeof knowledgeBank_tool;
   "lib/analytics": typeof lib_analytics;
+  "lib/budgetTracker": typeof lib_budgetTracker;
   "lib/encryption": typeof lib_encryption;
   "lib/errorTracking": typeof lib_errorTracking;
   "lib/helpers": typeof lib_helpers;

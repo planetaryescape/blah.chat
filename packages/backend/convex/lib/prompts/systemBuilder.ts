@@ -10,6 +10,7 @@ import {
   type BudgetState,
   formatStatus,
   isContextGettingFull,
+  LOW_QUALITY_SCORE_THRESHOLD,
   shouldSuggestAskUser,
 } from "../budgetTracker";
 import { getBasePrompt } from "./base";
@@ -188,7 +189,7 @@ export async function buildSystemPrompts(
   if (args.budgetState && shouldSuggestAskUser(args.budgetState)) {
     const { searchHistory } = args.budgetState;
     const lowQualityCount = searchHistory.filter(
-      (h) => h.topScore < 0.7,
+      (h) => h.topScore < LOW_QUALITY_SCORE_THRESHOLD,
     ).length;
     systemMessages.push({
       role: "system",

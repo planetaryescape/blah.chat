@@ -33,6 +33,17 @@ const LOW_QUALITY_THRESHOLD = 0.5;
 const MAX_SEARCH_ATTEMPTS = 4;
 
 /**
+ * Threshold for "low quality" search results (used for stuck detection).
+ */
+export const LOW_QUALITY_SCORE_THRESHOLD = 0.7;
+
+/**
+ * Truncation constants for context management.
+ */
+const MAX_TRUNCATED_ARRAY_ITEMS = 3;
+export const MIN_TOOL_CALLS_FOR_TRUNCATION = 2;
+
+/**
  * Per-tool rate limits (max calls per generation).
  * Prevents tool abuse while allowing reasonable usage.
  */
@@ -293,11 +304,16 @@ export function truncateToolResult(
   const str = JSON.stringify(result);
   if (str.length <= maxChars) return result;
 
-  // Preserve structure for arrays - keep first 3 items
+  // Preserve structure for arrays - keep first N items
   if (Array.isArray(result)) {
     return result
-      .slice(0, 3)
-      .map((item) => truncateToolResult(item, Math.floor(maxChars / 3)));
+      .slice(0, MAX_TRUNCATED_ARRAY_ITEMS)
+      .map((item) =>
+        truncateToolResult(
+          item,
+          Math.floor(maxChars / MAX_TRUNCATED_ARRAY_ITEMS),
+        ),
+      );
   }
 
   // Truncate string content
@@ -309,6 +325,8 @@ export function truncateToolResult(
   if (typeof result === "object" && result !== null) {
     const truncated: Record<string, unknown> = {};
     const keys = Object.keys(result);
+    // Guard against division by zero for empty objects
+    if (keys.length === 0) return result;
     const charPerKey = Math.floor(maxChars / keys.length);
     for (const key of keys) {
       truncated[key] = truncateToolResult(
@@ -332,7 +350,7 @@ export function shouldSuggestAskUser(state: BudgetState): boolean {
   // 3+ searches with all low quality results
   if (searchHistory.length >= 3) {
     const recentScores = searchHistory.slice(-3).map((h) => h.topScore);
-    if (recentScores.every((s) => s < 0.7)) return true;
+    if (recentScores.every((s) => s < LOW_QUALITY_SCORE_THRESHOLD)) return true;
   }
 
   // Budget critical

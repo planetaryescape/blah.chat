@@ -100,7 +100,6 @@ Parameters:
           return {
             success: false,
             error: rateCheck.message,
-            rateLimited: true,
             results: [],
             totalResults: 0,
             quality: { level: "low" as const, topScore: 0 },

@@ -55,31 +55,17 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
     const initializeMermaid = async () => {
       const mermaid = await getMermaid();
       if (!mermaidInitialized) {
+        // Minimal initialization - full config happens during render
         mermaid.initialize({
           startOnLoad: false,
-          theme: config?.theme || "base",
-          themeVariables: config?.themeVariables || {},
-          flowchart: config?.flowchart || {
-            nodeSpacing: 50,
-            rankSpacing: 50,
-            curve: "basis",
-          },
-          sequence: config?.sequence || {
-            actorMargin: 50,
-            boxMargin: 10,
-            boxTextMargin: 5,
-            diagramMarginX: 50,
-            diagramMarginY: 10,
-            messageMargin: 35,
-          },
-          state: config?.state || { titleTopMargin: 25 },
+          theme: "base",
         });
         mermaidInitialized = true;
       }
     };
 
     initializeMermaid();
-  }, [config]);
+  }, []);
 
   useEffect(() => {
     const renderDiagram = async () => {
@@ -89,48 +75,35 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
 
         const mermaid = await getMermaid();
 
-        // Get theme-specific colors
+        // Use built-in Mermaid themes without color overrides
+        const theme = isDark ? "dark" : "default";
+
+        // Minimal theme overrides: improve text contrast in dark mode
         const themeVars = isDark
           ? {
-              // Dark mode colors
-              primaryColor: "#d4a574", // warm gold (same)
-              primaryTextColor: "#e8dfd4", // light beige text
-              primaryBorderColor: "#e89f5f", // bright orange border
-              lineColor: "#b8b8b8", // lighter gray lines
-              secondaryColor: "#3d3d3d", // dark gray
-              tertiaryColor: "#e89f5f", // deep orange
-              background: "#1a1a1a", // dark background
-              mainBkg: "#2d2d2d", // dark card bg
-              secondBkg: "#3d3d3d", // darker muted bg
-              textColor: "#e8dfd4", // light text
-              nodeBorder: "#d4a574", // gold borders
-              clusterBkg: "#2d2d2d", // dark cluster background
-              clusterBorder: "#b88a5f", // darker gold cluster border
-              edgeLabelBackground: "#2d2d2d", // dark edge label bg
+              // Dark mode: make text brighter/more visible (default uses #ccc)
+              primaryTextColor: "#ffffff",
+              secondaryTextColor: "#ffffff",
+              tertiaryTextColor: "#ffffff",
+              textColor: "#ffffff",
+              nodeTextColor: "#ffffff",
+              labelTextColor: "#ffffff",
+              actorTextColor: "#ffffff",
+              signalTextColor: "#ffffff",
+              ...config?.themeVariables,
             }
-          : {
-              // Light mode colors
-              primaryColor: "#d4a574",
-              primaryTextColor: "#2d2d2d",
-              primaryBorderColor: "#b88a5f",
-              lineColor: "#8b8b8b",
-              secondaryColor: "#e8dfd4",
-              tertiaryColor: "#e89f5f",
-              background: "#f0ebe5",
-              mainBkg: "#fdfcfb",
-              secondBkg: "#e8dfd4",
-              textColor: "#2d2d2d",
-            };
+          : config?.themeVariables || {};
 
-        // Re-initialize mermaid with theme-specific colors
+        // Re-initialize mermaid with minimal config - let Mermaid handle colors
         mermaid.initialize({
           startOnLoad: false,
-          theme: "base",
-          themeVariables: { ...themeVars, ...config?.themeVariables },
+          theme,
+          themeVariables: themeVars,
           flowchart: config?.flowchart || {
             nodeSpacing: 50,
             rankSpacing: 50,
             curve: "basis",
+            padding: 15,
           },
           sequence: config?.sequence || {
             actorMargin: 50,
@@ -140,7 +113,10 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
             diagramMarginY: 10,
             messageMargin: 35,
           },
-          state: config?.state || { titleTopMargin: 25 },
+          state: config?.state || {
+            titleTopMargin: 25,
+            padding: 15,
+          },
         });
 
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
@@ -284,7 +260,10 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
             Loading diagram...
           </div>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: svg }} />
+          <div
+            className="w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-w-full"
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
         )}
       </div>
     </div>

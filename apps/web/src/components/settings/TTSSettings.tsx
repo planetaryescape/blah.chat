@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertCircle, Info } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertCircle, Check, ChevronsUpDown, Info } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,30 +29,77 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
+import { cn } from "@/lib/utils";
 
 interface TTSSettingsProps {
   ttsEnabled: boolean;
-  ttsProvider: string;
   ttsVoice: string;
   ttsSpeed: number;
   ttsAutoRead: boolean;
   onSettingsChange: (settings: {
     ttsEnabled?: boolean;
-    ttsProvider?: string;
     ttsVoice?: string;
     ttsSpeed?: number;
     ttsAutoRead?: boolean;
   }) => void;
 }
+
+// Voice options - Aura 1 (12 voices) + Aura 2 (32 English voices)
+// Sorted alphabetically by label
+const VOICE_OPTIONS = [
+  { value: "aura-2-amalthea-en", label: "Amalthea (Female, gentle)" },
+  { value: "aura-2-andromeda-en", label: "Andromeda (Female, clear)" },
+  { value: "aura-angus-en", label: "Angus (Male, Irish accent)" },
+  { value: "aura-2-apollo-en", label: "Apollo (Male, bold)" },
+  { value: "aura-arcas-en", label: "Arcas (Male, calm)" },
+  { value: "aura-2-aries-en", label: "Aries (Male, aggressive)" },
+  { value: "aura-asteria-en", label: "Asteria (Female, warm)" },
+  { value: "aura-athena-en", label: "Athena (Female, authoritative)" },
+  { value: "aura-2-atlas-en", label: "Atlas (Male, strong)" },
+  { value: "aura-2-aurora-en", label: "Aurora (Female, soft)" },
+  { value: "aura-2-callista-en", label: "Callista (Female, powerful)" },
+  { value: "aura-2-cora-en", label: "Cora (Female, balanced)" },
+  { value: "aura-2-cordelia-en", label: "Cordelia (Female, sweet)" },
+  { value: "aura-2-delia-en", label: "Delia (Female, calm)" },
+  { value: "aura-2-draco-en", label: "Draco (Male, deep)" },
+  { value: "aura-2-electra-en", label: "Electra (Female, edgy)" },
+  { value: "aura-2-harmonia-en", label: "Harmonia (Female, musical)" },
+  { value: "aura-2-helena-en", label: "Helena (Female, classic)" },
+  { value: "aura-helios-en", label: "Helios (Male, warm)" },
+  { value: "aura-hera-en", label: "Hera (Female, friendly)" },
+  { value: "aura-2-hermes-en", label: "Hermes (Male, quick)" },
+  { value: "aura-2-hyperion-en", label: "Hyperion (Male, commanding)" },
+  { value: "aura-2-iris-en", label: "Iris (Female, bright)" },
+  { value: "aura-2-janus-en", label: "Janus (Male, dual)" },
+  { value: "aura-2-juno-en", label: "Juno (Female, mature)" },
+  { value: "aura-2-jupiter-en", label: "Jupiter (Male, kingly)" },
+  { value: "aura-luna-en", label: "Luna (Female, expressive)" },
+  { value: "aura-2-mars-en", label: "Mars (Male, battle-ready)" },
+  { value: "aura-2-minerva-en", label: "Minerva (Female, wise)" },
+  { value: "aura-2-neptune-en", label: "Neptune (Male, vast)" },
+  { value: "aura-2-odysseus-en", label: "Odysseus (Male, clever)" },
+  { value: "aura-2-ophelia-en", label: "Ophelia (Female, dreamy)" },
+  { value: "aura-orion-en", label: "Orion (Male, confident)" },
+  { value: "aura-orpheus-en", label: "Orpheus (Male, storytelling)" },
+  { value: "aura-2-pandora-en", label: "Pandora (Female, mysterious)" },
+  { value: "aura-perseus-en", label: "Perseus (Male, energetic)" },
+  { value: "aura-2-phoebe-en", label: "Phoebe (Female, energetic)" },
+  { value: "aura-2-pluto-en", label: "Pluto (Male, dark)" },
+  { value: "aura-2-saturn-en", label: "Saturn (Male, old)" },
+  { value: "aura-2-selene-en", label: "Selene (Female, mysterious)" },
+  { value: "aura-stella-en", label: "Stella (Female, professional)" },
+  { value: "aura-2-thalia-en", label: "Thalia (Female, cheerful)" },
+  { value: "aura-2-theia-en", label: "Theia (Female, motherly)" },
+  { value: "aura-2-vesta-en", label: "Vesta (Female, homey)" },
+  { value: "aura-zeus-en", label: "Zeus (Male, authoritative)" },
+];
 
 /**
  * TTS settings panel
@@ -53,7 +108,6 @@ interface TTSSettingsProps {
  */
 export function TTSSettings({
   ttsEnabled,
-  ttsProvider,
   ttsVoice,
   ttsSpeed,
   ttsAutoRead,
@@ -61,6 +115,7 @@ export function TTSSettings({
 }: TTSSettingsProps) {
   const [localSpeed, setLocalSpeed] = useState(ttsSpeed);
   const [showKeyMissingModal, setShowKeyMissingModal] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   // API key validation
   const validation = useApiKeyValidation();
@@ -75,68 +130,10 @@ export function TTSSettings({
     onSettingsChange({ ttsEnabled: checked });
   };
 
-  // Voice options per provider
-  const voiceOptions = {
-    deepgram: [
-      // English Voices - Female
-      { value: "aura-asteria-en", label: "Asteria (Female, warm)" },
-      { value: "aura-luna-en", label: "Luna (Female, expressive)" },
-      { value: "aura-stella-en", label: "Stella (Female, professional)" },
-      { value: "aura-athena-en", label: "Athena (Female, authoritative)" },
-      { value: "aura-hera-en", label: "Hera (Female, friendly)" },
-      { value: "aura-amalthea-en", label: "Amalthea (Female, gentle)" },
-      { value: "aura-andromeda-en", label: "Andromeda (Female, clear)" },
-      { value: "aura-aurora-en", label: "Aurora (Female, soft)" },
-      { value: "aura-callista-en", label: "Callista (Female, powerful)" },
-      { value: "aura-cora-en", label: "Cora (Female, balanced)" },
-      { value: "aura-cordelia-en", label: "Cordelia (Female, sweet)" },
-      { value: "aura-delia-en", label: "Delia (Female, calm)" },
-      { value: "aura-electra-en", label: "Electra (Female, edgy)" },
-      { value: "aura-harmonia-en", label: "Harmonia (Female, musical)" },
-      { value: "aura-helena-en", label: "Helena (Female, classic)" },
-      { value: "aura-iris-en", label: "Iris (Female, bright)" },
-      { value: "aura-juno-en", label: "Juno (Female, mature)" },
-      { value: "aura-minerva-en", label: "Minerva (Female, wise)" },
-      { value: "aura-ophelia-en", label: "Ophelia (Female, dreamy)" },
-      { value: "aura-pandora-en", label: "Pandora (Female, mysterious)" },
-      { value: "aura-phoebe-en", label: "Phoebe (Female, energetic)" },
-      { value: "aura-selene-en", label: "Selene (Female, mysterious)" },
-      { value: "aura-thalia-en", label: "Thalia (Female, cheerful)" },
-      { value: "aura-theia-en", label: "Theia (Female, motherly)" },
-      { value: "aura-vesta-en", label: "Vesta (Female, homey)" },
-
-      // English Voices - Male
-      { value: "aura-orion-en", label: "Orion (Male, confident)" },
-      { value: "aura-arcas-en", label: "Arcas (Male, calm)" },
-      { value: "aura-perseus-en", label: "Perseus (Male, energetic)" },
-      { value: "aura-angus-en", label: "Angus (Male, Irish accent)" },
-      { value: "aura-orpheus-en", label: "Orpheus (Male, storytelling)" },
-      { value: "aura-helios-en", label: "Helios (Male, warm)" },
-      { value: "aura-zeus-en", label: "Zeus (Male, authoritative)" },
-      { value: "aura-apollo-en", label: "Apollo (Male, bold)" },
-      { value: "aura-aries-en", label: "Aries (Male, aggressive)" },
-      { value: "aura-atlas-en", label: "Atlas (Male, strong)" },
-      { value: "aura-draco-en", label: "Draco (Male, deep)" },
-      { value: "aura-hermes-en", label: "Hermes (Male, quick)" },
-      { value: "aura-hyperion-en", label: "Hyperion (Male, commanding)" },
-      { value: "aura-janus-en", label: "Janus (Male, dual)" },
-      { value: "aura-jupiter-en", label: "Jupiter (Male, kingly)" },
-      { value: "aura-mars-en", label: "Mars (Male, battle-ready)" },
-      { value: "aura-neptune-en", label: "Neptune (Male, vast)" },
-      { value: "aura-odysseus-en", label: "Odysseus (Male, clever)" },
-      { value: "aura-pluto-en", label: "Pluto (Male, dark)" },
-      { value: "aura-saturn-en", label: "Saturn (Male, old)" },
-    ],
-  };
-
-  const currentVoices = voiceOptions.deepgram;
-
-  // Force provider to Deepgram now that other providers are removed
-  useEffect(() => {
-    if (ttsProvider !== "deepgram") {
-      onSettingsChange({ ttsProvider: "deepgram" });
-    }
-  }, [ttsProvider, onSettingsChange]);
+  const selectedVoice = useMemo(
+    () => VOICE_OPTIONS.find((v) => v.value === ttsVoice),
+    [ttsVoice],
+  );
 
   return (
     <Card>
@@ -175,33 +172,52 @@ export function TTSSettings({
 
         {ttsEnabled && (
           <>
-            {/* Provider Info */}
-            <div className="space-y-1">
-              <Label>Provider</Label>
-              <p className="text-sm text-muted-foreground">
-                Deepgram Aura (pay-as-you-go, $200 free credits). Other TTS
-                providers have been removed.
-              </p>
-            </div>
-
-            {/* Voice Selection */}
+            {/* Voice Selection - Searchable Combobox */}
             <div className="space-y-2">
-              <Label htmlFor="tts-voice">Voice</Label>
-              <Select
-                value={ttsVoice}
-                onValueChange={(value) => onSettingsChange({ ttsVoice: value })}
-              >
-                <SelectTrigger id="tts-voice">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentVoices.map((voice) => (
-                    <SelectItem key={voice.value} value={voice.value}>
-                      {voice.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Voice</Label>
+              <Popover open={voiceOpen} onOpenChange={setVoiceOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={voiceOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedVoice?.label ?? "Select voice..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search voices..." />
+                    <CommandList>
+                      <CommandEmpty>No voice found.</CommandEmpty>
+                      <CommandGroup>
+                        {VOICE_OPTIONS.map((voice) => (
+                          <CommandItem
+                            key={voice.value}
+                            value={voice.label}
+                            onSelect={() => {
+                              onSettingsChange({ ttsVoice: voice.value });
+                              setVoiceOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                ttsVoice === voice.value
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {voice.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Speed Control */}
@@ -253,10 +269,6 @@ export function TTSSettings({
                 <p>
                   Cost is tracked per character. Deepgram offers $200 free
                   credits and pay-as-you-go billing.
-                </p>
-                <p className="mt-1">
-                  <strong>Deepgram:</strong> Best value, natural quality. Other
-                  TTS providers were removed to keep costs predictable.
                 </p>
               </div>
             </div>

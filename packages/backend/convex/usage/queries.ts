@@ -305,6 +305,119 @@ export const getCostByType = query({
   },
 });
 
+// Feature type for grouping
+type FeatureType =
+  | "chat"
+  | "slides"
+  | "notes"
+  | "tasks"
+  | "files"
+  | "memory"
+  | "smart_assistant";
+type OperationType = "text" | "tts" | "stt" | "image";
+
+// Helper to derive feature from legacy records (no feature field)
+function deriveFeatureFromModel(model: string): {
+  feature: FeatureType;
+  operationType: OperationType;
+} {
+  const modelLower = model.toLowerCase();
+
+  if (modelLower.includes("whisper")) {
+    return { feature: "chat", operationType: "stt" };
+  }
+  if (modelLower.includes("tts")) {
+    return { feature: "chat", operationType: "tts" };
+  }
+  if (modelLower.includes("dall-e") || modelLower.includes("dalle")) {
+    return { feature: "chat", operationType: "image" };
+  }
+  if (
+    modelLower.includes("image") &&
+    (modelLower.includes("gemini") || modelLower.includes("google"))
+  ) {
+    return { feature: "slides", operationType: "image" };
+  }
+  return { feature: "chat", operationType: "text" };
+}
+
+// Structure for feature breakdown with sub-breakdown by operation type
+interface FeatureBreakdown {
+  total: number;
+  text: number;
+  tts: number;
+  stt: number;
+  image: number;
+  tokens: number;
+  requests: number;
+}
+
+function createEmptyFeatureBreakdown(): FeatureBreakdown {
+  return {
+    total: 0,
+    text: 0,
+    tts: 0,
+    stt: 0,
+    image: 0,
+    tokens: 0,
+    requests: 0,
+  };
+}
+
+export const getCostByFeature = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const breakdown: Record<FeatureType, FeatureBreakdown> = {
+      chat: createEmptyFeatureBreakdown(),
+      slides: createEmptyFeatureBreakdown(),
+      notes: createEmptyFeatureBreakdown(),
+      tasks: createEmptyFeatureBreakdown(),
+      files: createEmptyFeatureBreakdown(),
+      memory: createEmptyFeatureBreakdown(),
+      smart_assistant: createEmptyFeatureBreakdown(),
+    };
+
+    for (const record of records) {
+      // Use explicit feature/operationType if available, otherwise derive from model
+      let feature: FeatureType;
+      let opType: OperationType;
+
+      if (record.feature && record.operationType) {
+        feature = record.feature as FeatureType;
+        opType = record.operationType as OperationType;
+      } else {
+        const derived = deriveFeatureFromModel(record.model);
+        feature = derived.feature;
+        opType = derived.operationType;
+      }
+
+      const target = breakdown[feature];
+      target.total += record.cost;
+      target[opType] += record.cost;
+      target.tokens += record.inputTokens + record.outputTokens;
+      target.requests += 1;
+    }
+
+    return breakdown;
+  },
+});
+
 export const getActivityStats = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
@@ -457,21 +570,25 @@ export const getActivityHeatmap = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
 
-    // Get messages from last 365 days
-    const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+    // Use usageRecords (already aggregated daily) instead of scanning all messages
+    // This avoids the "Too many bytes read" error for heavy users
+    // Max 365 * 50 models = 18250 records worst case, but typically much less
+    const oneYearAgoStr = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
 
-    const messages = await ctx.db
-      .query("messages")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .filter((q) => q.gte(q.field("createdAt"), oneYearAgo))
-      .collect();
+    const usageRecords = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+      .filter((q) => q.gte(q.field("date"), oneYearAgoStr))
+      .take(20000); // Safety limit
 
-    // Build heatmap: { date: count }
+    // Build heatmap from usage records (sum messageCount per date)
     const heatmap: Record<string, number> = {};
 
-    for (const msg of messages) {
-      const date = new Date(msg.createdAt).toISOString().split("T")[0];
-      heatmap[date] = (heatmap[date] || 0) + 1;
+    for (const record of usageRecords) {
+      heatmap[record.date] =
+        (heatmap[record.date] || 0) + (record.messageCount || 0);
     }
 
     // Convert to array format for 52 weeks
@@ -968,6 +1085,459 @@ export const getUserActivityStats = query({
       templatesCount: templates.length,
       slidesCount: presentations.length,
       tasksCount: tasks.length,
+    };
+  },
+});
+
+export const getUserCostByFeature = query({
+  args: {
+    userId: v.id("users"),
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", args.userId))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const breakdown: Record<FeatureType, FeatureBreakdown> = {
+      chat: createEmptyFeatureBreakdown(),
+      slides: createEmptyFeatureBreakdown(),
+      notes: createEmptyFeatureBreakdown(),
+      tasks: createEmptyFeatureBreakdown(),
+      files: createEmptyFeatureBreakdown(),
+      memory: createEmptyFeatureBreakdown(),
+      smart_assistant: createEmptyFeatureBreakdown(),
+    };
+
+    for (const record of records) {
+      let feature: FeatureType;
+      let opType: OperationType;
+
+      if (record.feature && record.operationType) {
+        feature = record.feature as FeatureType;
+        opType = record.operationType as OperationType;
+      } else {
+        const derived = deriveFeatureFromModel(record.model);
+        feature = derived.feature;
+        opType = derived.operationType;
+      }
+
+      const target = breakdown[feature];
+      target.total += record.cost;
+      target[opType] += record.cost;
+      target.tokens += record.inputTokens + record.outputTokens;
+      target.requests += 1;
+    }
+
+    return breakdown;
+  },
+});
+
+export const getAllUsersCostByFeature = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const breakdown: Record<FeatureType, FeatureBreakdown> = {
+      chat: createEmptyFeatureBreakdown(),
+      slides: createEmptyFeatureBreakdown(),
+      notes: createEmptyFeatureBreakdown(),
+      tasks: createEmptyFeatureBreakdown(),
+      files: createEmptyFeatureBreakdown(),
+      memory: createEmptyFeatureBreakdown(),
+      smart_assistant: createEmptyFeatureBreakdown(),
+    };
+
+    for (const record of records) {
+      let feature: FeatureType;
+      let opType: OperationType;
+
+      if (record.feature && record.operationType) {
+        feature = record.feature as FeatureType;
+        opType = record.operationType as OperationType;
+      } else {
+        const derived = deriveFeatureFromModel(record.model);
+        feature = derived.feature;
+        opType = derived.operationType;
+      }
+
+      const target = breakdown[feature];
+      target.total += record.cost;
+      target[opType] += record.cost;
+      target.tokens += record.inputTokens + record.outputTokens;
+      target.requests += 1;
+    }
+
+    return breakdown;
+  },
+});
+
+// Admin query: Monthly total across ALL users
+export const getAllUsersMonthlyTotal = query({
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .filter((q) => q.gte(q.field("date"), monthStart))
+      .collect();
+
+    const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
+    const totalTokens = records.reduce(
+      (sum, r) => sum + r.inputTokens + r.outputTokens,
+      0,
+    );
+    const totalRequests = records.length;
+
+    const adminSettings = await ctx.db.query("adminSettings").first();
+    const monthlyBudget = adminSettings?.defaultMonthlyBudget ?? 0;
+
+    return {
+      cost: totalCost,
+      tokens: totalTokens,
+      requests: totalRequests,
+      budget: monthlyBudget,
+      percentUsed: monthlyBudget ? (totalCost / monthlyBudget) * 100 : 0,
+    };
+  },
+});
+
+// Admin query: Daily spend across ALL users
+export const getAllUsersDailySpend = query({
+  args: {
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const daysToFetch = args.days || 30;
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - daysToFetch);
+    const startDateStr = startDate.toISOString().split("T")[0];
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .filter((q) => q.gte(q.field("date"), startDateStr))
+      .collect();
+
+    const dailyTotals = records.reduce(
+      (acc, record) => {
+        const date = record.date;
+        if (!acc[date]) {
+          acc[date] = { date, cost: 0, tokens: 0 };
+        }
+        acc[date].cost += record.cost;
+        acc[date].tokens += record.inputTokens + record.outputTokens;
+        return acc;
+      },
+      {} as Record<string, { date: string; cost: number; tokens: number }>,
+    );
+
+    return Object.values(dailyTotals).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+  },
+});
+
+// Admin query: Spend by model across ALL users
+export const getAllUsersSpendByModel = query({
+  args: {
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    const daysToFetch = args.days || 30;
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - daysToFetch);
+    const startDateStr = startDate.toISOString().split("T")[0];
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .filter((q) => q.gte(q.field("date"), startDateStr))
+      .collect();
+
+    const modelTotals = records.reduce(
+      (acc, record) => {
+        const model = record.model;
+        if (!acc[model]) {
+          acc[model] = { model, cost: 0, tokens: 0, requests: 0 };
+        }
+        acc[model].cost += record.cost;
+        acc[model].tokens += record.inputTokens + record.outputTokens;
+        acc[model].requests += 1;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { model: string; cost: number; tokens: number; requests: number }
+      >,
+    );
+
+    return Object.values(modelTotals).sort((a, b) => b.cost - a.cost);
+  },
+});
+
+// Admin query: Top conversations by cost across ALL users
+export const getAllUsersConversationCosts = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    // Get all usage records with conversationId
+    const records = await ctx.db
+      .query("usageRecords")
+      .filter((q) => q.neq(q.field("conversationId"), undefined))
+      .collect();
+
+    // Group by conversationId
+    const conversationCosts = records.reduce(
+      (acc, record) => {
+        if (!record.conversationId) return acc;
+        const convId = record.conversationId;
+        if (!acc[convId]) {
+          acc[convId] = { conversationId: convId, cost: 0, tokens: 0 };
+        }
+        acc[convId].cost += record.cost;
+        acc[convId].tokens += record.inputTokens + record.outputTokens;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { conversationId: Id<"conversations">; cost: number; tokens: number }
+      >,
+    );
+
+    // Sort by cost and take top N
+    const sorted = Object.values(conversationCosts)
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, args.limit || 10);
+
+    // Fetch conversation titles
+    return Promise.all(
+      sorted.map(async (item) => {
+        const conv = await ctx.db.get(item.conversationId);
+        return {
+          conversationId: item.conversationId,
+          title: conv?.title || "Untitled",
+          cost: item.cost,
+          tokens: item.tokens,
+        };
+      }),
+    );
+  },
+});
+
+// ============================================
+// PRESENTATION STATS QUERIES
+// ============================================
+
+export const getPresentationStats = query({
+  args: {
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    // Count presentations
+    const presentations = await ctx.db
+      .query("presentations")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // Count total slides
+    const slides = await ctx.db
+      .query("slides")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    // Get usage records for slides feature
+    let usageRecords = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("feature"), "slides"))
+      .collect();
+
+    // Apply date filter if provided
+    if (args.startDate && args.endDate) {
+      usageRecords = usageRecords.filter(
+        (r) => r.date >= args.startDate! && r.date <= args.endDate!,
+      );
+    }
+
+    // Separate outline vs image costs
+    let outlineCost = 0;
+    let imageCost = 0;
+    let outlineRequests = 0;
+    let imageRequests = 0;
+
+    for (const record of usageRecords) {
+      if (record.operationType === "image") {
+        imageCost += record.cost;
+        imageRequests += 1;
+      } else {
+        outlineCost += record.cost;
+        outlineRequests += 1;
+      }
+    }
+
+    return {
+      presentationsCount: presentations.length,
+      slidesCount: slides.length,
+      outlineCost,
+      imageCost,
+      totalCost: outlineCost + imageCost,
+      outlineRequests,
+      imageRequests,
+    };
+  },
+});
+
+export const getAllUsersPresentationStats = query({
+  args: {
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    // Count all presentations
+    const presentations = await ctx.db.query("presentations").collect();
+
+    // Count all slides
+    const slides = await ctx.db.query("slides").collect();
+
+    // Get all usage records for slides feature
+    let usageRecords = await ctx.db
+      .query("usageRecords")
+      .filter((q) => q.eq(q.field("feature"), "slides"))
+      .collect();
+
+    // Apply date filter if provided
+    if (args.startDate && args.endDate) {
+      usageRecords = usageRecords.filter(
+        (r) => r.date >= args.startDate! && r.date <= args.endDate!,
+      );
+    }
+
+    // Separate outline vs image costs
+    let outlineCost = 0;
+    let imageCost = 0;
+    let outlineRequests = 0;
+    let imageRequests = 0;
+
+    for (const record of usageRecords) {
+      if (record.operationType === "image") {
+        imageCost += record.cost;
+        imageRequests += 1;
+      } else {
+        outlineCost += record.cost;
+        outlineRequests += 1;
+      }
+    }
+
+    return {
+      presentationsCount: presentations.length,
+      slidesCount: slides.length,
+      outlineCost,
+      imageCost,
+      totalCost: outlineCost + imageCost,
+      outlineRequests,
+      imageRequests,
+    };
+  },
+});
+
+export const getUserPresentationStats = query({
+  args: {
+    userId: v.id("users"),
+    startDate: v.optional(v.string()),
+    endDate: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    // Count user's presentations
+    const presentations = await ctx.db
+      .query("presentations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Count user's slides
+    const slides = await ctx.db
+      .query("slides")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Get usage records for slides feature
+    let usageRecords = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("feature"), "slides"))
+      .collect();
+
+    // Apply date filter if provided
+    if (args.startDate && args.endDate) {
+      usageRecords = usageRecords.filter(
+        (r) => r.date >= args.startDate! && r.date <= args.endDate!,
+      );
+    }
+
+    // Separate outline vs image costs
+    let outlineCost = 0;
+    let imageCost = 0;
+    let outlineRequests = 0;
+    let imageRequests = 0;
+
+    for (const record of usageRecords) {
+      if (record.operationType === "image") {
+        imageCost += record.cost;
+        imageRequests += 1;
+      } else {
+        outlineCost += record.cost;
+        outlineRequests += 1;
+      }
+    }
+
+    return {
+      presentationsCount: presentations.length,
+      slidesCount: slides.length,
+      outlineCost,
+      imageCost,
+      totalCost: outlineCost + imageCost,
+      outlineRequests,
+      imageRequests,
     };
   },
 });

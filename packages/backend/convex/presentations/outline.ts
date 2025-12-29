@@ -1,7 +1,8 @@
 import { streamText } from "ai";
 import { v } from "convex/values";
-import { getModel } from "@/lib/ai/registry";
 import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import {
@@ -847,6 +848,8 @@ export const repairStuckOutline = mutation({
 export const regenerateOutlineAction = internalAction({
   args: { presentationId: v.id("presentations") },
   handler: async (ctx, args) => {
+    const modelId = "openai:gpt-oss-120b";
+
     try {
       // Get presentation
       const presentation = (await (ctx.runQuery as any)(
@@ -877,18 +880,43 @@ export const regenerateOutlineAction = internalAction({
       );
 
       // Get AI model - using gpt-oss-120b via Cerebras for fast inference
-      const model = getModel("openai:gpt-oss-120b");
+      const model = getModel(modelId);
 
       // Generate new outline
       const result = await streamText({
         model,
         system: OUTLINE_FEEDBACK_SYSTEM_PROMPT,
         messages: [{ role: "user", content: feedbackPrompt }],
-        ...getGatewayOptions("openai:gpt-oss-120b"),
+        ...getGatewayOptions(modelId),
       });
 
       // Get full response
       const fullText = await result.text;
+
+      // Track usage with feature: "slides"
+      const usage = await result.usage;
+      if (usage) {
+        const inputTokens = usage.inputTokens ?? 0;
+        const outputTokens = usage.outputTokens ?? 0;
+        const cost = calculateCost(modelId, {
+          inputTokens,
+          outputTokens,
+        });
+
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordTextGeneration,
+          {
+            userId: presentation.userId,
+            presentationId: args.presentationId,
+            model: modelId,
+            inputTokens,
+            outputTokens,
+            cost,
+            feature: "slides",
+          },
+        );
+      }
 
       // Parse new outline
       const parsedSlides = parseOutlineMarkdown(fullText);

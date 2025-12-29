@@ -1,12 +1,14 @@
 "use node";
 
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 import type { ModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { getKnowledgeBankSystemPrompt } from "../../knowledgeBank/tool";
 import { getBasePrompt } from "./base";
 import { formatMemoriesByCategory, truncateMemories } from "./formatting";
+import type { MemoryExtractionLevel } from "./operational/memoryExtraction";
 
 export interface BuildSystemPromptsArgs {
   userId: Id<"users">;
@@ -15,10 +17,11 @@ export interface BuildSystemPromptsArgs {
   modelConfig: ModelConfig;
   hasFunctionCalling: boolean;
   prefetchedMemories: string | null;
+  memoryExtractionLevel: MemoryExtractionLevel;
 }
 
 export interface BuildSystemPromptsResult {
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   memoryContent: string | null;
 }
 
@@ -31,7 +34,7 @@ export async function buildSystemPrompts(
   ctx: ActionCtx,
   args: BuildSystemPromptsArgs,
 ): Promise<BuildSystemPromptsResult> {
-  const systemMessages: CoreMessage[] = [];
+  const systemMessages: ModelMessage[] = [];
   let memoryContentForTracking: string | null = null;
 
   // Parallelize context queries (user, project, conversation)
@@ -70,6 +73,7 @@ export async function buildSystemPrompts(
     prefetchedMemories: args.prefetchedMemories,
     currentDate,
     customInstructions: customInstructions, // Pass to conditionally modify tone section
+    memoryExtractionLevel: args.memoryExtractionLevel,
   };
   const basePrompt = getBasePrompt(basePromptOptions);
 
@@ -136,6 +140,29 @@ export async function buildSystemPrompts(
         role: "system",
         content: `## Project Context\n${project.systemPrompt}`,
       });
+    }
+  }
+
+  // === 4.25. KNOWLEDGE BANK ===
+  // Skip for incognito blank slate mode
+  if (!isBlankSlate && args.hasFunctionCalling) {
+    try {
+      const hasKnowledge = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.knowledgeBank.index.hasKnowledge,
+        { userId: args.userId },
+      )) as boolean;
+
+      const kbPrompt = getKnowledgeBankSystemPrompt(hasKnowledge);
+      if (kbPrompt) {
+        systemMessages.push({
+          role: "system",
+          content: kbPrompt,
+        });
+      }
+    } catch (error) {
+      console.error("[KnowledgeBank] Failed to check knowledge bank:", error);
+      // Continue without KB prompt (graceful degradation)
     }
   }
 

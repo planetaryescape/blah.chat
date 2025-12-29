@@ -6,6 +6,7 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { AuthStateListener } from "./AuthStateListener";
+import { CacheProvider } from "./cache-provider";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -42,7 +43,9 @@ export function ConvexClerkProvider({
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <ConvexQueryCacheProvider expiration={60000} maxIdleEntries={100}>
-          <AuthStateListener>{children}</AuthStateListener>
+          <CacheProvider>
+            <AuthStateListener>{children}</AuthStateListener>
+          </CacheProvider>
         </ConvexQueryCacheProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>

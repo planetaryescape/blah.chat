@@ -38,7 +38,10 @@ export const migration001: Migration = {
       throw new Error(`Failed to verify deployment: ${error}`);
     }
 
-    const result = (await response.json()) as { status: string; version?: number };
+    const result = (await response.json()) as {
+      status: string;
+      version?: number;
+    };
     if (result.status !== "ok") {
       throw new Error(`Unexpected ping response: ${JSON.stringify(result)}`);
     }

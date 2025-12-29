@@ -7,6 +7,7 @@ import { AlertCircle } from "lucide-react";
 import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -137,11 +138,10 @@ export const ChatMessage = memo(
         : null;
     const isCached = ttft !== null && isCachedResponse(ttft);
 
-    // Phase 1: Fetch attachments from new table (dual-read)
-    // Skip query for temporary optimistic messages
-    const attachments = useQuery(
-      api.messages.getAttachments,
-      isTempMessage ? "skip" : { messageId: message._id as Id<"messages"> },
+    // Read attachments from local cache (instant)
+    // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
+    const attachments = useCachedAttachments(
+      isTempMessage ? "" : (message._id as string),
     );
 
     // Fetch URLs for attachments
@@ -161,18 +161,19 @@ export const ChatMessage = memo(
         [],
     );
 
-    // Phase 1: Fetch tool calls from new table (dual-read)
-    // Skip query for temporary optimistic messages
-    const allToolCalls = useQuery(
-      api.messages.getToolCalls,
-      isTempMessage
-        ? "skip"
-        : { messageId: message._id as Id<"messages">, includePartial: true },
+    // Read tool calls from local cache (instant)
+    // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
+    const allToolCalls = useCachedToolCalls(
+      isTempMessage ? "" : (message._id as string),
     );
 
     // Split into complete and partial for backward compatibility
-    const toolCalls = allToolCalls?.filter((tc: any) => !tc.isPartial);
-    const partialToolCalls = allToolCalls?.filter((tc: any) => tc.isPartial);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolCalls = allToolCalls?.filter((tc) => !tc.isPartial) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const partialToolCalls = allToolCalls?.filter(
+      (tc) => tc.isPartial,
+    ) as any[];
 
     // Model recommendation handlers
     const handleModelSwitch = async (modelId: string) => {
@@ -335,7 +336,7 @@ export const ChatMessage = memo(
                   />
                 ) : (
                   <>
-                    {/* Inline tool calls and content - renders tool calls at their positions */}
+                    {/* Inline tool calls and content */}
                     {displayContent ||
                     toolCalls?.length ||
                     partialToolCalls?.length ? (
@@ -363,6 +364,7 @@ export const ChatMessage = memo(
                 {/* Source citations (Phase 2: from normalized tables) */}
                 <SourceList messageId={message._id as Id<"messages">} />
 
+                {/* Attachments - don't reserve space, most messages don't have attachments */}
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
                   <div className="mt-3 pt-3 border-t border-border/10">
                     <AttachmentRenderer
@@ -372,14 +374,16 @@ export const ChatMessage = memo(
                   </div>
                 )}
 
-                {/* Toggle for consolidated messages */}
-                {message.isConsolidation && originalResponses && (
-                  <MessageConsolidationToggle
-                    originalResponses={originalResponses}
-                    showOriginals={showOriginals}
-                    onToggle={() => setShowOriginals(!showOriginals)}
-                  />
-                )}
+                {/* Toggle for consolidated messages - only when responses loaded */}
+                {message.isConsolidation &&
+                  originalResponses !== undefined &&
+                  originalResponses.length > 0 && (
+                    <MessageConsolidationToggle
+                      originalResponses={originalResponses}
+                      showOriginals={showOriginals}
+                      onToggle={() => setShowOriginals(!showOriginals)}
+                    />
+                  )}
 
                 {/* Enhanced status announcements */}
                 {!isUser && (
@@ -436,23 +440,26 @@ export const ChatMessage = memo(
 
                 {/* Status indicator removed - optimistic updates should feel instant */}
 
-                {/* Model and statistics badges - INSIDE bubble */}
-                {!isUser &&
-                  (message.status === "complete" ||
-                    message.status === "generating" ||
-                    message.status === "stopped") &&
-                  modelName && (
-                    <MessageStatsBadges
-                      modelName={modelName}
-                      ttft={ttft}
-                      isCached={isCached}
-                      tokensPerSecond={message.tokensPerSecond}
-                      inputTokens={message.inputTokens}
-                      outputTokens={message.outputTokens}
-                      status={message.status}
-                      showStats={showStats}
-                    />
-                  )}
+                {/* Model and statistics badges - always reserve space to prevent layout shift */}
+                {!isUser && (
+                  <div className="min-h-[28px]">
+                    {(message.status === "complete" ||
+                      message.status === "generating" ||
+                      message.status === "stopped") &&
+                      modelName && (
+                        <MessageStatsBadges
+                          modelName={modelName}
+                          ttft={ttft}
+                          isCached={isCached}
+                          tokensPerSecond={message.tokensPerSecond}
+                          inputTokens={message.inputTokens}
+                          outputTokens={message.outputTokens}
+                          status={message.status}
+                          showStats={showStats}
+                        />
+                      )}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -504,8 +511,15 @@ export const ChatMessage = memo(
   (prev, next) => {
     return (
       prev.message._id === next.message._id &&
+      prev.message.content === next.message.content &&
       prev.message.partialContent === next.message.partialContent &&
       prev.message.status === next.message.status &&
+      prev.message.error === next.message.error &&
+      prev.message.reasoning === next.message.reasoning &&
+      prev.message.partialReasoning === next.message.partialReasoning &&
+      prev.message.thinkingStartedAt === next.message.thinkingStartedAt &&
+      prev.message.thinkingCompletedAt === next.message.thinkingCompletedAt &&
+      prev.message.isConsolidation === next.message.isConsolidation &&
       prev.nextMessage?.status === next.nextMessage?.status &&
       prev.isCollaborative === next.isCollaborative &&
       prev.senderUser?.name === next.senderUser?.name

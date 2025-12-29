@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { applyRRF, mergeMessagesWithRRF } from "../../../convex/lib/utils/search";
+import {
+  applyRRF,
+  mergeMessagesWithRRF,
+} from "../../../convex/lib/utils/search";
 
 // Helper to create mock items with _id
 const createItem = (id: string, extra?: Record<string, unknown>) => ({

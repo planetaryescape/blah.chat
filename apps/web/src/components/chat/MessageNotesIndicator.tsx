@@ -29,6 +29,7 @@ export function MessageNotesIndicator({
     isTempMessage ? "skip" : { messageId },
   );
 
+  // Don't reserve space - most messages don't have notes
   if (!notes || notes.length === 0) {
     return null;
   }
@@ -63,11 +64,10 @@ export function MessageNotesIndicator({
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-            className="overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <div className="mt-2 space-y-1 pl-2">
               {notes.map(

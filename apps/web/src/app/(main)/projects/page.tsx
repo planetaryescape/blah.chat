@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProjectCacheSync } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { analytics } from "@/lib/analytics";
 
@@ -52,8 +53,7 @@ export default function ProjectsPage() {
     );
   }
 
-  // @ts-ignore
-  const projects = useQuery(api.projects.list);
+  const { projects, isLoading: projectsLoading } = useProjectCacheSync();
 
   // Dialog States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -193,7 +193,7 @@ export default function ProjectsPage() {
               </div>
             )}
 
-            {projects === undefined ? (
+            {projectsLoading ? (
               <div className="flex justify-center py-12 text-muted-foreground">
                 <span className="animate-pulse">Loading projects...</span>
               </div>

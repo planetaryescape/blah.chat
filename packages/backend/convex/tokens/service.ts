@@ -3,7 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { TiktokenModel } from "@dqbd/tiktoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 import { estimateTokens } from "./counting";
 
 // Lazy import tiktoken to avoid WASM initialization errors
@@ -26,7 +26,7 @@ async function getTiktokenEncoder() {
  */
 export interface TokenCountService {
   countText(text: string): Promise<number>;
-  countMessages(messages: CoreMessage[]): Promise<number>;
+  countMessages(messages: ModelMessage[]): Promise<number>;
 }
 
 /**
@@ -82,7 +82,7 @@ class OpenAITokenCounter implements TokenCountService {
     }
   }
 
-  async countMessages(messages: CoreMessage[]): Promise<number> {
+  async countMessages(messages: ModelMessage[]): Promise<number> {
     let total = 0;
 
     for (const message of messages) {
@@ -150,7 +150,7 @@ class AnthropicTokenCounter implements TokenCountService {
     }
   }
 
-  async countMessages(messages: CoreMessage[]): Promise<number> {
+  async countMessages(messages: ModelMessage[]): Promise<number> {
     try {
       // Convert to Anthropic message format
       const anthropicMessages = messages.map((msg) => ({
@@ -221,7 +221,7 @@ class GoogleTokenCounter implements TokenCountService {
     }
   }
 
-  async countMessages(messages: CoreMessage[]): Promise<number> {
+  async countMessages(messages: ModelMessage[]): Promise<number> {
     try {
       const geminiModel = this.genAI.getGenerativeModel({ model: this.model });
 
@@ -270,7 +270,7 @@ class FallbackTokenCounter implements TokenCountService {
     return estimateTokens(text);
   }
 
-  async countMessages(messages: CoreMessage[]): Promise<number> {
+  async countMessages(messages: ModelMessage[]): Promise<number> {
     let total = 0;
 
     for (const message of messages) {

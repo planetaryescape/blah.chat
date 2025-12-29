@@ -41,7 +41,9 @@ export const executeCode = internalAction({
       });
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(errorData.error || `API returned ${response.status}`);
       }
 

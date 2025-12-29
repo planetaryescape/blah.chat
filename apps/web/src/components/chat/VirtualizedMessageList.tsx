@@ -1,13 +1,18 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown } from "lucide-react";
+import { memo, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { useMetadataCacheSync } from "@/hooks/useCacheSync";
 import { useConversationScroll } from "@/hooks/useConversationScroll";
 import { useHighlightScroll } from "@/hooks/useHighlightScroll";
-import { useMessageGrouping } from "@/hooks/useMessageGrouping";
+import {
+  type GroupedItem,
+  useMessageGrouping,
+} from "@/hooks/useMessageGrouping";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { useConversations } from "@/lib/hooks/queries/useConversations";
 import { cn } from "@/lib/utils";
@@ -30,7 +35,6 @@ interface VirtualizedMessageListProps {
   highlightMessageId?: string;
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
-  isGenerating?: boolean;
 }
 
 export function VirtualizedMessageList({
@@ -43,12 +47,9 @@ export function VirtualizedMessageList({
   chatWidth,
   highlightMessageId,
   isCollaborative,
-  isGenerating,
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
     threshold: 100,
-    animationDuration: 400,
-    disableAutoScroll: true,
   });
 
   const { data: conversationsData } = useConversations();
@@ -62,11 +63,21 @@ export function VirtualizedMessageList({
   const conversationId = messages[0]?.conversationId;
   const grouped = useMessageGrouping(messages);
 
+  // Batch sync message metadata (attachments, toolCalls, sources) to local cache
+  const messageIds = useMemo(
+    () =>
+      messages
+        .filter((m) => !String(m._id).startsWith("temp-"))
+        .map((m) => m._id as Id<"messages">),
+    [messages],
+  );
+  useMetadataCacheSync(messageIds);
+
   const virtualizer = useVirtualizer({
     count: grouped.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => 150,
-    overscan: 5,
+    estimateSize: () => 400, // Larger estimate reduces layout thrashing: virtualizer reserves more initial space, reducing re-measurements when actual height exceeds estimate
+    overscan: 5, // Reduced - height reservations prevent layout shift
   });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -74,15 +85,16 @@ export function VirtualizedMessageList({
   useHighlightScroll({
     highlightMessageId,
     grouped,
-    containerRef,
     virtualizer,
   });
   useConversationScroll({
-    containerRef,
     conversationId,
     messageCount: messages.length,
     highlightMessageId,
     messages,
+    virtualizer,
+    grouped,
+    scrollContainer: containerRef,
   });
 
   if (messages.length === 0) {
@@ -110,90 +122,29 @@ export function VirtualizedMessageList({
         aria-label="Chat message history"
         aria-atomic="false"
         className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
-        style={{
-          contain: "layout style paint",
-          contentVisibility: "auto",
-        }}
+        style={{ contain: "layout style paint" }}
       >
         <div
-          className={cn(isGenerating && "pb-[80vh]")}
           style={{
             height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
             position: "relative",
           }}
         >
-          {virtualItems.map((virtualItem) => {
-            const item = grouped[virtualItem.index];
-            const isMessage = item.type === "message";
-
-            return (
-              <div
-                key={virtualItem.key}
-                data-index={virtualItem.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualItem.start}px)`,
-                }}
-              >
-                <div
-                  className={cn(
-                    "grid gap-4 px-4 py-2 transition-all duration-300 ease-out",
-                    chatWidth === "narrow" &&
-                      "grid-cols-[1fr_min(42rem,100%)_1fr]",
-                    chatWidth === "standard" &&
-                      "grid-cols-[1fr_min(56rem,100%)_1fr]",
-                    chatWidth === "wide" &&
-                      "grid-cols-[1fr_min(72rem,100%)_1fr]",
-                    chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
-                    !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
-                  )}
-                >
-                  {isMessage ? (
-                    <div className="col-start-2">
-                      <ChatMessage
-                        message={item.data}
-                        nextMessage={(() => {
-                          if (virtualItem.index + 1 >= grouped.length)
-                            return undefined;
-                          const nextItem = grouped[virtualItem.index + 1];
-                          return nextItem.type === "message"
-                            ? nextItem.data
-                            : undefined;
-                        })()}
-                        isCollaborative={isCollaborative}
-                        senderUser={item.data.senderUser}
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="col-start-2">
-                        <ChatMessage
-                          message={item.userMessage}
-                          isCollaborative={isCollaborative}
-                          senderUser={item.userMessage.senderUser}
-                        />
-                      </div>
-                      <div className="col-span-full mt-4">
-                        <ComparisonView
-                          assistantMessages={item.assistantMessages}
-                          comparisonGroupId={item.id}
-                          showModelNames={showModelNames}
-                          onVote={onVote || (() => {})}
-                          onConsolidate={onConsolidate || (() => {})}
-                          onToggleModelNames={onToggleModelNames || (() => {})}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {virtualItems.map((virtualItem) => (
+            <VirtualizedItem
+              key={virtualItem.key}
+              virtualItem={virtualItem}
+              grouped={grouped}
+              chatWidth={chatWidth}
+              isCollaborative={isCollaborative}
+              showModelNames={showModelNames}
+              onVote={onVote}
+              onConsolidate={onConsolidate}
+              onToggleModelNames={onToggleModelNames}
+              measureElement={virtualizer.measureElement}
+            />
+          ))}
         </div>
       </div>
       {showScrollButton && (
@@ -211,3 +162,93 @@ export function VirtualizedMessageList({
     </div>
   );
 }
+
+// Memoized virtual item to prevent unnecessary re-renders
+interface VirtualizedItemProps {
+  virtualItem: { key: string | number | bigint; index: number; start: number };
+  grouped: GroupedItem[];
+  chatWidth?: ChatWidth;
+  isCollaborative?: boolean;
+  showModelNames: boolean;
+  onVote?: (winnerId: string, rating: string) => void;
+  onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
+  onToggleModelNames?: () => void;
+  measureElement: (node: Element | null) => void;
+}
+
+const VirtualizedItem = memo(function VirtualizedItem({
+  virtualItem,
+  grouped,
+  chatWidth,
+  isCollaborative,
+  showModelNames,
+  onVote,
+  onConsolidate,
+  onToggleModelNames,
+  measureElement,
+}: VirtualizedItemProps) {
+  const item = grouped[virtualItem.index];
+  const isMessage = item.type === "message";
+
+  const getNextMessage = useCallback(() => {
+    if (virtualItem.index + 1 >= grouped.length) return undefined;
+    const nextItem = grouped[virtualItem.index + 1];
+    return nextItem.type === "message" ? nextItem.data : undefined;
+  }, [virtualItem.index, grouped]);
+
+  return (
+    <div
+      data-index={virtualItem.index}
+      ref={measureElement}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        transform: `translateY(${virtualItem.start}px)`,
+      }}
+    >
+      <div
+        className={cn(
+          "grid gap-4 px-4 py-2",
+          chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
+          chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+          chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
+          chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
+          !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+        )}
+      >
+        {isMessage ? (
+          <div className="col-start-2">
+            <ChatMessage
+              message={item.data}
+              nextMessage={getNextMessage()}
+              isCollaborative={isCollaborative}
+              senderUser={item.data.senderUser}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="col-start-2">
+              <ChatMessage
+                message={item.userMessage}
+                isCollaborative={isCollaborative}
+                senderUser={item.userMessage.senderUser}
+              />
+            </div>
+            <div className="col-span-full mt-4">
+              <ComparisonView
+                assistantMessages={item.assistantMessages}
+                comparisonGroupId={item.id}
+                showModelNames={showModelNames}
+                onVote={onVote || (() => {})}
+                onConsolidate={onConsolidate || (() => {})}
+                onToggleModelNames={onToggleModelNames || (() => {})}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+});

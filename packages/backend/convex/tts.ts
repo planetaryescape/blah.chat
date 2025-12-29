@@ -100,11 +100,13 @@ export const generateSpeech = action({
         model: `${provider}:tts`,
         characterCount: charCount,
         cost,
+        feature: "chat",
       } satisfies {
         userId: Id<"users">;
         model: string;
         characterCount: number;
         cost: number;
+        feature: "chat";
       },
     );
 

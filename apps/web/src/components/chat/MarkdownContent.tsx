@@ -4,10 +4,12 @@ import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
+import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
 import { Component, memo, type ReactNode, useRef } from "react";
 import { Streamdown } from "streamdown";
+import { BibleVerseLink } from "./BibleVerseLink";
 import { CodeBlock } from "./CodeBlock";
 import { MathErrorBoundary } from "./MathErrorBoundary";
 import { MathSkeleton } from "./MathSkeleton";
@@ -75,27 +77,6 @@ interface MarkdownContentProps {
 }
 
 /**
- * KaTeX configuration for rehype-katex plugin
- * Note: displayMode and throwOnError are omitted (handled by rehype-katex)
- * Chemistry notation (\ce, \pu) enabled via mhchem import above
- */
-const _katexOptions = {
-  errorColor: "hsl(var(--destructive))",
-  output: "htmlAndMathml" as const, // Both visual HTML + accessible MathML
-  strict: "ignore" as const, // Continue rendering on unsupported commands (resilient for streaming)
-  // Common math shortcuts
-  macros: {
-    "\\RR": "\\mathbb{R}",
-    "\\NN": "\\mathbb{N}",
-    "\\ZZ": "\\mathbb{Z}",
-    "\\QQ": "\\mathbb{Q}",
-    "\\CC": "\\mathbb{C}",
-    "\\abs": "\\left|#1\\right|",
-    "\\norm": "\\left\\|#1\\right\\|",
-  },
-};
-
-/**
  * Standard components for Streamdown
  *
  * Math support via Streamdown's built-in remark-math + rehype-katex:
@@ -157,8 +138,13 @@ const createMarkdownComponents = () => ({
       <img
         src={src}
         alt={alt || "Image"}
-        className="rounded-lg max-w-full h-auto my-4 block"
-        style={{ maxHeight: "600px", backgroundColor: "#fff" }}
+        className="rounded-lg max-w-full my-4 block"
+        style={{
+          maxHeight: "600px",
+          minHeight: "100px", // Reserve space to prevent layout shift
+          backgroundColor: "#f5f5f5",
+          objectFit: "contain",
+        }}
         loading="lazy"
         onError={(e) => {
           console.error("[Markdown] Image failed to load:", src);
@@ -189,6 +175,12 @@ const createMarkdownComponents = () => ({
           {children}
         </a>
       );
+    }
+
+    // Handle Bible verse links (bible://John.3.16)
+    if (href?.startsWith("bible://")) {
+      const osis = href.replace("bible://", "");
+      return <BibleVerseLink osis={osis}>{children}</BibleVerseLink>;
     }
 
     // Default external link
@@ -260,6 +252,49 @@ function processCitations(text: string): string {
     .join("");
 }
 
+/**
+ * Process text to detect and linkify Bible verse references
+ * Supports both explicit syntax [[John 3:16]] and auto-detection
+ * Skips code blocks to avoid breaking code.
+ */
+function processBibleVerses(text: string): string {
+  // Split by code blocks and existing markdown links to avoid processing them
+  const parts = text.split(/(`{3}[\s\S]*?`{3}|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/);
+
+  return parts
+    .map((part) => {
+      // If it starts with ` it's code, or it's a markdown link, return unchanged
+      if (part.startsWith("`") || part.startsWith("[")) return part;
+
+      // Phase A: Explicit [[John 3:16]] → [John 3:16](bible://John.3.16)
+      let result = part.replace(/\[\[([^\]]+)\]\]/g, (_, ref) => {
+        const parsed = parseVerseReference(ref);
+        return parsed
+          ? `[${parsed.display}](bible://${parsed.osis})`
+          : `[[${ref}]]`;
+      });
+
+      // Phase B: Auto-detect "John 3:16" style references
+      const verses = findAllVerses(result);
+      if (verses.length > 0) {
+        // Replace in reverse order to preserve indices
+        for (const v of [...verses].reverse()) {
+          // Skip if already inside a markdown link
+          const before = result.slice(0, v.start);
+          if (before.match(/\[[^\]]*$/)) continue;
+
+          result =
+            result.slice(0, v.start) +
+            `[${v.display}](bible://${v.osis})` +
+            result.slice(v.end);
+        }
+      }
+
+      return result;
+    })
+    .join("");
+}
+
 export function MarkdownContent({
   content,
   isStreaming = false,
@@ -273,11 +308,12 @@ export function MarkdownContent({
   // AI models often output \(...\) but Streamdown expects $$...$$
   const normalizedContent = normalizeLatexDelimiters(content);
 
-  // Process citations before buffering
+  // Process citations and Bible verses before buffering
   // This ensures the buffer sees the "final" linkified version
   // If a [1] appears, the processed content will change non-monotonically
   // prompting useStreamBuffer to reset buffer and show the new content immediately
-  const processedContent = processCitations(normalizedContent);
+  const withCitations = processCitations(normalizedContent);
+  const processedContent = processBibleVerses(withCitations);
 
   // Buffer hook smoothly reveals characters from server chunks
   const { displayContent, hasBufferedContent } = useStreamBuffer(

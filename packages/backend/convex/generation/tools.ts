@@ -30,7 +30,9 @@ import { createTaskManagerTool } from "../ai/tools/taskManager";
 import { createUpdateDocumentTool } from "../ai/tools/updateDocument";
 import { createUrlReaderTool } from "../ai/tools/urlReader";
 import { createWeatherTool } from "../ai/tools/weather";
+import { createYoutubeVideoTool } from "../ai/tools/youtubeVideo";
 import { createSearchKnowledgeBankTool } from "../knowledgeBank/tool";
+import type { BudgetState } from "../lib/budgetTracker";
 import type { MemoryExtractionLevel } from "../lib/prompts/operational/memoryExtraction";
 
 /**
@@ -52,6 +54,11 @@ export interface BuildToolsConfig {
   } | null;
   /** Search result cache (cleared after each generation) */
   searchCache?: Map<string, unknown>;
+  /** Budget state for tracking search patterns and diminishing returns */
+  budgetState?: {
+    current: BudgetState;
+    update: (newState: BudgetState) => void;
+  };
 }
 
 /**
@@ -72,6 +79,7 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
     memoryExtractionLevel = "moderate",
     conversation,
     searchCache,
+    budgetState,
   } = config;
 
   // Incognito mode settings
@@ -100,6 +108,7 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
   );
   const codeExecutionTool = createCodeExecutionTool(ctx);
   const weatherTool = createWeatherTool(ctx);
+  const youtubeVideoTool = createYoutubeVideoTool(ctx, userId);
 
   // Create Tavily search tools with custom descriptions
   const tavilySearchTool = {
@@ -151,6 +160,7 @@ More thorough but slower. Use only when depth is needed.`,
     fileDocument: fileDocumentTool,
     codeExecution: codeExecutionTool,
     weather: weatherTool,
+    youtubeVideo: youtubeVideoTool,
   };
 
   // Write tools: DISABLED for incognito
@@ -215,6 +225,7 @@ More thorough but slower. Use only when depth is needed.`,
       userId,
       conversationId,
       searchCache,
+      budgetState,
     );
 
     // Knowledge Bank search: searches user's saved documents, web pages, videos

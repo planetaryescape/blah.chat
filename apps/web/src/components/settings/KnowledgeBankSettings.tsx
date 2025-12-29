@@ -7,7 +7,6 @@ import {
   BookOpen,
   ExternalLink,
   File,
-  FileText,
   Globe,
   Loader2,
   Plus,
@@ -21,6 +20,8 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { SOURCE_ICONS, STATUS_STYLES } from "@/components/knowledge/constants";
+import type { KnowledgeSource, SourceType } from "@/components/knowledge/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,46 +39,16 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
-type SourceType = "file" | "text" | "web" | "youtube";
-
-interface KnowledgeSource {
-  _id: Id<"knowledgeSources">;
-  title: string;
-  type: SourceType;
-  status: "pending" | "processing" | "completed" | "failed";
-  error?: string;
-  chunkCount?: number;
-  url?: string;
-  createdAt: number;
-}
-
-const SOURCE_ICONS = {
-  file: FileText,
-  text: BookOpen,
-  web: Globe,
-  youtube: Youtube,
-};
-
-const STATUS_COLORS = {
-  pending: "bg-yellow-500/10 text-yellow-500",
-  processing: "bg-blue-500/10 text-blue-500",
-  completed: "bg-green-500/10 text-green-500",
-  failed: "bg-red-500/10 text-red-500",
-};
-
 export function KnowledgeBankSettings() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [addType, setAddType] = useState<SourceType>("file");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [url, setUrl] = useState("");
 
-  // Queries
   // @ts-ignore - Type depth exceeded
   const sources = useQuery(api.knowledgeBank.index.list, {}) as
     | KnowledgeSource[]
@@ -85,7 +56,6 @@ export function KnowledgeBankSettings() {
   // @ts-ignore - Type depth exceeded
   const sourceCount = useQuery(api.knowledgeBank.index.getSourceCount, {});
 
-  // Mutations
   // @ts-ignore - Type depth exceeded
   const generateUploadUrl = useMutation(
     api.knowledgeBank.index.generateUploadUrl,
@@ -240,7 +210,6 @@ export function KnowledgeBankSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Knowledge Bank</h3>
         <p className="text-sm text-muted-foreground">
@@ -249,7 +218,6 @@ export function KnowledgeBankSettings() {
         </p>
       </div>
 
-      {/* Stats & Actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>{sourceCount ?? 0} / 100 sources</span>
@@ -267,7 +235,6 @@ export function KnowledgeBankSettings() {
         </Button>
       </div>
 
-      {/* Add Source Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogTrigger asChild>
           <Button>
@@ -413,7 +380,6 @@ export function KnowledgeBankSettings() {
         </DialogContent>
       </Dialog>
 
-      {/* Sources List */}
       <div className="space-y-3">
         {sources === undefined ? (
           <div className="flex items-center justify-center py-8">
@@ -443,7 +409,7 @@ export function KnowledgeBankSettings() {
                     <span className="font-medium truncate">{source.title}</span>
                     <Badge
                       variant="secondary"
-                      className={STATUS_COLORS[source.status]}
+                      className={STATUS_STYLES[source.status]}
                     >
                       {source.status}
                     </Badge>
@@ -503,7 +469,6 @@ export function KnowledgeBankSettings() {
         )}
       </div>
 
-      {/* Info */}
       <Alert>
         <File className="h-4 w-4" />
         <AlertDescription>

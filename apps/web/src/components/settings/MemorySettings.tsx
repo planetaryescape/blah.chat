@@ -12,16 +12,6 @@ import { AddMemoryDialog } from "@/components/memories/AddMemoryDialog";
 import { DeleteAllMemoriesDialog } from "@/components/memories/DeleteAllMemoriesDialog";
 import { MemoryFilters } from "@/components/memories/MemoryFilters";
 import { MemoryItem } from "@/components/memories/MemoryItem";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -46,8 +36,7 @@ type MemoryExtractionLevel =
   | "passive"
   | "minimal"
   | "moderate"
-  | "active"
-  | "aggressive";
+  | "active";
 
 const VALID_EXTRACTION_LEVELS: MemoryExtractionLevel[] = [
   "none",
@@ -55,7 +44,6 @@ const VALID_EXTRACTION_LEVELS: MemoryExtractionLevel[] = [
   "minimal",
   "moderate",
   "active",
-  "aggressive",
 ];
 
 function isValidExtractionLevel(
@@ -97,11 +85,6 @@ const EXTRACTION_LEVELS: {
     label: "Proactive",
     description:
       "Liberal saving. AI checks your memories before every response.",
-  },
-  {
-    value: "aggressive",
-    label: "Maximum",
-    description: "Saves everything. AI always searches all your personal data.",
   },
 ];
 
@@ -153,9 +136,6 @@ export function MemorySettings() {
   const currentLevel = (
     isValidExtractionLevel(rawLevel) ? rawLevel : "moderate"
   ) as MemoryExtractionLevel;
-  const [pendingLevel, setPendingLevel] =
-    useState<MemoryExtractionLevel | null>(null);
-  const [showAggressiveWarning, setShowAggressiveWarning] = useState(false);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const user = useQuery(api.users.getCurrentUser);
@@ -189,13 +169,6 @@ export function MemorySettings() {
   const handleExtractionLevelChange = async (
     newLevel: MemoryExtractionLevel,
   ) => {
-    // Show warning for aggressive level
-    if (newLevel === "aggressive" && currentLevel !== "aggressive") {
-      setPendingLevel(newLevel);
-      setShowAggressiveWarning(true);
-      return;
-    }
-
     await saveExtractionLevel(newLevel);
   };
 
@@ -210,14 +183,6 @@ export function MemorySettings() {
     } catch (_error) {
       toast.error("Failed to update memory settings");
     }
-  };
-
-  const confirmAggressiveLevel = async () => {
-    if (pendingLevel) {
-      await saveExtractionLevel(pendingLevel);
-      setPendingLevel(null);
-    }
-    setShowAggressiveWarning(false);
   };
 
   const handleAddMemory = async (content: string) => {
@@ -503,43 +468,6 @@ export function MemorySettings() {
         memoriesCount={memories?.length || 0}
         onConfirm={handleDeleteAll}
       />
-
-      {/* Aggressive Level Warning Dialog */}
-      <AlertDialog
-        open={showAggressiveWarning}
-        onOpenChange={setShowAggressiveWarning}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Enable aggressive memory?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                Aggressive mode saves almost everything you share, including
-                minor preferences, tools mentioned in passing, and inferred
-                patterns.
-              </p>
-              <p>
-                You can review and delete any memories at any time from this
-                settings page. Your data stays private and is only used to
-                personalize your experience.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setPendingLevel(null);
-                setShowAggressiveWarning(false);
-              }}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmAggressiveLevel}>
-              Enable Aggressive Mode
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

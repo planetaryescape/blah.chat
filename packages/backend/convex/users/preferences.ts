@@ -226,17 +226,10 @@ function validatePreference(key: string, value: any): void {
 
     case "memoryExtractionLevel":
       if (
-        ![
-          "none",
-          "passive",
-          "minimal",
-          "moderate",
-          "active",
-          "aggressive",
-        ].includes(value)
+        !["none", "passive", "minimal", "moderate", "active"].includes(value)
       ) {
         throw new Error(
-          "memoryExtractionLevel must be 'none', 'passive', 'minimal', 'moderate', 'active', or 'aggressive'",
+          "memoryExtractionLevel must be 'none', 'passive', 'minimal', 'moderate', or 'active'",
         );
       }
       break;

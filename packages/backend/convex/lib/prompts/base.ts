@@ -402,8 +402,8 @@ function buildCapabilities(
 }
 
 /**
- * Build proactive search instructions for active/aggressive extraction levels
- * These levels instruct the AI to always search personal data before responding
+ * Build proactive search instructions for active extraction level
+ * This level instructs the AI to search personal data before responding
  */
 function buildProactiveSearchInstruction(
   memoryExtractionLevel?: MemoryExtractionLevel,
@@ -419,18 +419,6 @@ function buildProactiveSearchInstruction(
     </proactive_search>`;
   }
 
-  if (memoryExtractionLevel === "aggressive") {
-    return `
-    <proactive_search priority="high">
-      ALWAYS search the user's personal data before EVERY response:
-      1. Call searchMemories to check for relevant facts, preferences, context
-      2. Call searchAll to check files, notes, tasks, and past conversations
-
-      Do NOT skip this step. The user wants maximum personalization.
-      Check even for simple questions—they may have relevant context stored.
-    </proactive_search>`;
-  }
-
   // For none/passive/minimal/moderate: no proactive instruction
   return "";
 }
@@ -441,7 +429,7 @@ function buildMemorySection(
   memoryExtractionLevel?: MemoryExtractionLevel,
 ): string {
   if (hasFunctionCalling) {
-    // Build proactive search instructions for active/aggressive levels
+    // Build proactive search instructions for active level
     const proactiveInstruction = buildProactiveSearchInstruction(
       memoryExtractionLevel,
     );

@@ -25,6 +25,12 @@ export interface BudgetState {
 }
 
 /**
+ * Search quality thresholds for diminishing returns detection.
+ */
+const LOW_QUALITY_THRESHOLD = 0.5;
+const MAX_SEARCH_ATTEMPTS = 4;
+
+/**
  * Tool token estimates (chars/4 approximation) - for context tracking only.
  * These are rough estimates based on typical tool result sizes.
  */
@@ -190,13 +196,17 @@ export function formatSearchWarning(state: BudgetState): string | null {
   // Check decreasing quality (3+ searches)
   if (searchHistory.length >= 3) {
     const last3 = searchHistory.slice(-3).map((h) => h.topScore);
-    if (last3[0] > last3[1] && last3[1] > last3[2] && last3[2] < 0.5) {
+    if (
+      last3[0] > last3[1] &&
+      last3[1] > last3[2] &&
+      last3[2] < LOW_QUALITY_THRESHOLD
+    ) {
       return "Search quality declining. Consider different approach or ask user.";
     }
   }
 
   // Check many searches without good results
-  if (searchHistory.length >= 4) {
+  if (searchHistory.length >= MAX_SEARCH_ATTEMPTS) {
     return "Multiple searches performed. Consider answering with current info.";
   }
 

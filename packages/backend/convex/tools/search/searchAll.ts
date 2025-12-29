@@ -421,7 +421,7 @@ export const searchAll = internalAction({
     }
 
     // 4. Merge with RRF (knowledge bank already weighted 1.5x via DEFAULT_SOURCE_WEIGHTS)
-    const merged = applyRRF([], allResults, 60, DEFAULT_SOURCE_WEIGHTS);
+    const merged = applyRRF(allResults, [], 60, DEFAULT_SOURCE_WEIGHTS);
     let quality: QualityResult = getQualityLevel(merged.map((r) => r.score));
 
     // 5. Rerank if quality not high and we have more results than limit

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("convex/react", () => ({
   useQuery: vi.fn(() => null),
   useMutation: vi.fn(() => vi.fn()),
+  useAction: vi.fn(() => vi.fn()),
 }));
 
 // Mock the send message hook

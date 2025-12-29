@@ -2,7 +2,8 @@ import type { ToolRendererProps } from "./types";
 
 /**
  * Renderer for the searchAll tool.
- * Displays aggregated search results across notes, tasks, files, and conversations.
+ * Displays aggregated search results across notes, tasks, files, conversations, and knowledge bank.
+ * Handles flat array response with `source` field.
  */
 export function SearchAllRenderer({
   parsedArgs,
@@ -10,8 +11,8 @@ export function SearchAllRenderer({
   state,
   ToolIcon,
 }: ToolRendererProps) {
-  const getTypeColor = (type: string) => {
-    switch (type) {
+  const getTypeColor = (source: string) => {
+    switch (source) {
       case "notes":
         return "bg-purple-500/20 text-purple-500";
       case "tasks":
@@ -20,13 +21,15 @@ export function SearchAllRenderer({
         return "bg-green-500/20 text-green-500";
       case "conversations":
         return "bg-orange-500/20 text-orange-500";
+      case "knowledgeBank":
+        return "bg-cyan-500/20 text-cyan-500";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
+  const getTypeLabel = (source: string) => {
+    switch (source) {
       case "notes":
         return "Note";
       case "tasks":
@@ -35,44 +38,21 @@ export function SearchAllRenderer({
         return "File";
       case "conversations":
         return "Chat";
+      case "knowledgeBank":
+        return "KB";
       default:
-        return type;
+        return source;
     }
   };
 
-  // Aggregate all results with type labels
-  const allResults: Array<{ type: string; item: any }> = [];
+  // Results from flat array format (new)
+  const results: Array<{ source: string; item: any }> =
+    parsedResult?.results?.map((item: any) => ({
+      source: item.source,
+      item,
+    })) ?? [];
 
-  if (parsedResult?.notes?.results) {
-    parsedResult.notes.results.forEach((item: any) => {
-      allResults.push({ type: "notes", item });
-    });
-  }
-  if (parsedResult?.tasks?.results) {
-    parsedResult.tasks.results.forEach((item: any) => {
-      allResults.push({ type: "tasks", item });
-    });
-  }
-  if (parsedResult?.files?.results) {
-    parsedResult.files.results.forEach((item: any) => {
-      allResults.push({ type: "files", item });
-    });
-  }
-  if (parsedResult?.conversations?.results) {
-    parsedResult.conversations.results.forEach((item: any) => {
-      allResults.push({ type: "conversations", item });
-    });
-  }
-
-  // Count totals per type
-  const totals = {
-    notes: parsedResult?.notes?.totalResults || 0,
-    tasks: parsedResult?.tasks?.totalResults || 0,
-    files: parsedResult?.files?.totalResults || 0,
-    conversations: parsedResult?.conversations?.totalResults || 0,
-  };
-  const totalCount =
-    totals.notes + totals.tasks + totals.files + totals.conversations;
+  const totalCount = parsedResult?.totalResults ?? results.length;
 
   return (
     <div className="text-xs space-y-1 border-l-2 border-border/40 pl-3">
@@ -90,13 +70,13 @@ export function SearchAllRenderer({
 
       {parsedResult && state !== "executing" && (
         <div className="space-y-1.5 max-h-48 overflow-y-auto">
-          {allResults.slice(0, 8).map(({ type, item }, i) => (
+          {results.slice(0, 8).map(({ source, item }, i) => (
             <div key={i} className="py-1">
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded ${getTypeColor(type)}`}
+                  className={`text-[9px] px-1.5 py-0.5 rounded ${getTypeColor(source)}`}
                 >
-                  {getTypeLabel(type)}
+                  {getTypeLabel(source)}
                 </span>
                 {item.url ? (
                   <a
@@ -106,6 +86,7 @@ export function SearchAllRenderer({
                     {item.title ||
                       item.filename ||
                       item.conversationTitle ||
+                      item.sourceTitle ||
                       "Untitled"}
                   </a>
                 ) : (
@@ -113,6 +94,7 @@ export function SearchAllRenderer({
                     {item.title ||
                       item.filename ||
                       item.conversationTitle ||
+                      item.sourceTitle ||
                       "Untitled"}
                   </span>
                 )}
@@ -127,12 +109,12 @@ export function SearchAllRenderer({
               </p>
             </div>
           ))}
-          {allResults.length === 0 && (
+          {results.length === 0 && (
             <div className="text-muted-foreground">No results found</div>
           )}
-          {allResults.length > 8 && (
+          {results.length > 8 && (
             <div className="text-muted-foreground text-[10px] pt-1">
-              +{allResults.length - 8} more results
+              +{results.length - 8} more results
             </div>
           )}
         </div>

@@ -11,7 +11,6 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Sync persister - faster than async with MMKV
 export const persister = createSyncStoragePersister({
   storage: mmkvStorage,
 });

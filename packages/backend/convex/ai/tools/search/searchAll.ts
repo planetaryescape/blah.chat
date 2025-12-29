@@ -2,8 +2,8 @@
  * Search Tool: Search All
  *
  * Unified search across files, notes, tasks, and conversation history.
- * Runs parallel searches and merges results with source attribution.
- * Works with or without projectId filter.
+ * Searches knowledge bank FIRST with early return on high-quality results.
+ * Merges results with RRF and tracks search patterns for diminishing returns.
  */
 
 import { tool } from "ai";
@@ -11,6 +11,11 @@ import { z } from "zod";
 import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx } from "../../../_generated/server";
+import {
+  type BudgetState,
+  formatSearchWarning,
+  recordSearch,
+} from "../../../lib/budgetTracker";
 
 /**
  * Generate cache key for search results.
@@ -28,6 +33,10 @@ export function createSearchAllTool(
   userId: Id<"users">,
   currentConversationId?: Id<"conversations">,
   searchCache?: Map<string, unknown>,
+  budgetState?: {
+    current: BudgetState;
+    update: (newState: BudgetState) => void;
+  },
 ) {
   return tool({
     description: `Search across ALL resource types (knowledge bank, files, notes, tasks, conversations) in one call.
@@ -102,6 +111,27 @@ Parameters:
           },
         );
 
+        // Track search in budget state for diminishing returns detection
+        if (budgetState && result.success) {
+          const topScore = result.quality?.topScore ?? 0;
+          const resultCount = Array.isArray(result.results)
+            ? result.results.length
+            : 0;
+          const newState = recordSearch(
+            budgetState.current,
+            query,
+            resultCount,
+            topScore,
+          );
+          budgetState.update(newState);
+
+          // Check for diminishing returns warning
+          const warning = formatSearchWarning(newState);
+          if (warning) {
+            result.warning = warning;
+          }
+        }
+
         // Cache successful result
         searchCache?.set(cacheKey, result);
         return result;
@@ -112,13 +142,11 @@ Parameters:
             success: false,
             error:
               "Invalid projectId - the ID provided is not a valid project ID",
-            results: {
-              knowledgeBank: [],
-              files: [],
-              notes: [],
-              tasks: [],
-              conversations: [],
-            },
+            results: [],
+            totalResults: 0,
+            quality: { level: "low" as const, topScore: 0 },
+            searchedSources: [],
+            earlyReturn: false,
           };
         }
         throw error;

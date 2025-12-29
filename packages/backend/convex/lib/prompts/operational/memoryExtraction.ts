@@ -2,7 +2,7 @@
  * Memory Extraction Prompt
  *
  * Used for extracting long-term memories from conversations.
- * Supports multiple extraction levels from passive to aggressive.
+ * Supports multiple extraction levels from passive to active.
  */
 
 export type MemoryExtractionLevel =
@@ -10,8 +10,7 @@ export type MemoryExtractionLevel =
   | "passive"
   | "minimal"
   | "moderate"
-  | "active"
-  | "aggressive";
+  | "active";
 
 /**
  * Thresholds for each extraction level
@@ -24,7 +23,6 @@ export const EXTRACTION_THRESHOLDS: Record<
   minimal: { importance: 8, confidence: 0.8 },
   moderate: { importance: 7, confidence: 0.7 },
   active: { importance: 5, confidence: 0.6 },
-  aggressive: { importance: 3, confidence: 0.5 },
 };
 
 /**
@@ -96,12 +94,6 @@ Preserve specifics exactly:
       return buildModeratePrompt(thresholds, rephrasingRules, expirationHints);
     case "active":
       return buildActivePrompt(thresholds, rephrasingRules, expirationHints);
-    case "aggressive":
-      return buildAggressivePrompt(
-        thresholds,
-        rephrasingRules,
-        expirationHints,
-      );
   }
 }
 
@@ -288,75 +280,6 @@ Only return facts with importance >= ${thresholds.importance}.
 - 0.7-0.9: Strong evidence, repeated mentions
 - 0.6-0.7: Reasonable inference from pattern
 - Below 0.6: Speculation (DO NOT EXTRACT)
-
-Only extract facts with confidence >= ${thresholds.confidence}.
-
-${expirationHints}`;
-}
-
-function buildAggressivePrompt(
-  thresholds: { importance: number; confidence: number },
-  rephrasingRules: string,
-  expirationHints: string,
-): string {
-  return `Remember everything significant the user shares about themselves.
-
-## Philosophy
-
-If the user tells you something about themselves, save it. Even details that seem minor can help personalize future interactions. Be liberal with extraction.
-
-## What to Capture
-
-Everything the user shares:
-- Identity: name, occupation, location, background, age, education
-- Preferences: likes, dislikes, style choices, tool preferences
-- Projects: current work, tech stacks, goals, challenges, deadlines
-- Relationships: team members, family, collaborators, even mentioned in passing
-- Schedule: time zones, working hours, availability patterns
-- Context: goals, values, commitments, life circumstances
-- Tools & workflows: software used, processes followed
-- Interests: hobbies, topics of curiosity, learning goals
-- Communication style: preferred formats, verbosity, humor
-
-## Pattern Extraction
-
-Actively infer from behavior:
-- Repeated question styles → communication preferences
-- Consistent topics → interests and focus areas
-- Tool mentions → technology preferences
-- Time patterns → schedule and availability
-
-## What to Capture (Even Single Mentions)
-
-- "I like X" → save it
-- "My team uses Y" → save it
-- "I'm working on Z" → save it
-- "I usually prefer A" → save it
-
-## What NOT to Capture
-
-- Purely test inputs with no real meaning
-- Obvious jokes with no personal relevance
-- Passwords, API keys, or sensitive credentials
-
-${rephrasingRules}
-
-## Scoring
-
-### Importance (1-10)
-- 9-10: Critical identity facts
-- 7-8: Strong preferences, active projects
-- 5-6: Useful context and patterns
-- 3-4: Minor details that could personalize
-- 1-2: Truly ephemeral (DO NOT SAVE)
-
-Only return facts with importance >= ${thresholds.importance}.
-
-### Confidence (0.0-1.0)
-- 0.9-1.0: Explicit statement
-- 0.7-0.9: Strong contextual evidence
-- 0.5-0.7: Reasonable inference
-- Below 0.5: Pure speculation (DO NOT EXTRACT)
 
 Only extract facts with confidence >= ${thresholds.confidence}.
 

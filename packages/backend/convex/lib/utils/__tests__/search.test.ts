@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { applyRRF, mergeMessagesWithRRF } from "../search";
+import {
+  applyRRF,
+  DEFAULT_SOURCE_WEIGHTS,
+  mergeMessagesWithRRF,
+} from "../search";
 
 // Helper to create mock items with _id
 const createItem = (id: string, extra?: Record<string, unknown>) => ({
@@ -121,5 +125,81 @@ describe("mergeMessagesWithRRF", () => {
 
     // 'a' should be ranked higher due to appearing in both
     expect(result[0]._id.toString()).toBe("a");
+  });
+});
+
+describe("applyRRF with sourceWeights", () => {
+  it("applies source weights when provided", () => {
+    const textResults = [
+      createItem("kb", { source: "knowledgeBank" }),
+      createItem("conv", { source: "conversations" }),
+    ];
+
+    const weights = { knowledgeBank: 1.5, conversations: 0.8 };
+    const result = applyRRF(textResults, [], 60, weights);
+
+    // Knowledge bank (1.5x weight at rank 0) vs conversations (0.8x at rank 1)
+    // kb: 1.5 * (1/61) ≈ 0.0246, conv: 0.8 * (1/62) ≈ 0.0129
+    expect(result[0]._id.toString()).toBe("kb");
+    expect(result[0].score).toBeCloseTo(1.5 / 61);
+    expect(result[1].score).toBeCloseTo(0.8 / 62);
+  });
+
+  it("reorders results based on weights", () => {
+    // Without weights, "a" at rank 0 would beat "b" at rank 1
+    // With weights, "b" (knowledgeBank 1.5x) at rank 1 can beat "a" (conversations 0.8x) at rank 0
+    const textResults = [
+      createItem("a", { source: "conversations" }), // rank 0, but low weight
+      createItem("b", { source: "knowledgeBank" }), // rank 1, but high weight
+    ];
+
+    const weights = { knowledgeBank: 1.5, conversations: 0.5 };
+    const result = applyRRF(textResults, [], 60, weights);
+
+    // a: 0.5 * (1/61) ≈ 0.0082
+    // b: 1.5 * (1/62) ≈ 0.0242
+    expect(result[0]._id.toString()).toBe("b");
+  });
+
+  it("uses default weight 1.0 for unknown sources", () => {
+    const textResults = [createItem("a", { source: "unknown" })];
+    const weights = { knowledgeBank: 1.5 };
+    const result = applyRRF(textResults, [], 60, weights);
+
+    // Unknown source gets weight 1.0
+    expect(result[0].score).toBeCloseTo(1 / 61);
+  });
+
+  it("ignores weights when item has no source field", () => {
+    const textResults = [createItem("a")]; // No source field
+    const weights = { knowledgeBank: 1.5 };
+    const result = applyRRF(textResults, [], 60, weights);
+
+    // No source = weight 1.0
+    expect(result[0].score).toBeCloseTo(1 / 61);
+  });
+
+  it("is backward compatible - no weights means equal weighting", () => {
+    const textResults = [
+      createItem("a", { source: "knowledgeBank" }),
+      createItem("b", { source: "conversations" }),
+    ];
+
+    const result = applyRRF(textResults, [], 60);
+
+    // Without weights, rank order preserved
+    expect(result[0]._id.toString()).toBe("a");
+    expect(result[0].score).toBeCloseTo(1 / 61);
+    expect(result[1].score).toBeCloseTo(1 / 62);
+  });
+});
+
+describe("DEFAULT_SOURCE_WEIGHTS", () => {
+  it("has expected weights", () => {
+    expect(DEFAULT_SOURCE_WEIGHTS.knowledgeBank).toBe(1.5);
+    expect(DEFAULT_SOURCE_WEIGHTS.files).toBe(1.2);
+    expect(DEFAULT_SOURCE_WEIGHTS.notes).toBe(1.0);
+    expect(DEFAULT_SOURCE_WEIGHTS.tasks).toBe(1.0);
+    expect(DEFAULT_SOURCE_WEIGHTS.conversations).toBe(0.8);
   });
 });

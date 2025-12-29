@@ -69,3 +69,30 @@ export function mergeMessagesWithRRF(
     .slice(0, limit)
     .map(({ score, ...item }) => item as Doc<"messages">);
 }
+
+/**
+ * Quality thresholds for search results.
+ * Aligned with MIN_CONFIDENCE (0.7) from memories/search.ts.
+ */
+const HIGH_QUALITY_THRESHOLD = 0.85;
+const MEDIUM_QUALITY_THRESHOLD = 0.7;
+
+export type QualityLevel = "high" | "medium" | "low";
+
+export interface QualityResult {
+  level: QualityLevel;
+  topScore: number;
+}
+
+/**
+ * Assess quality of search results based on scores.
+ * Used to decide early return or reranking.
+ */
+export function getQualityLevel(scores: number[]): QualityResult {
+  if (scores.length === 0) return { level: "low", topScore: 0 };
+  const topScore = Math.max(...scores);
+  if (topScore >= HIGH_QUALITY_THRESHOLD) return { level: "high", topScore };
+  if (topScore >= MEDIUM_QUALITY_THRESHOLD)
+    return { level: "medium", topScore };
+  return { level: "low", topScore };
+}

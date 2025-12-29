@@ -10,6 +10,7 @@ import {
   type BudgetState,
   formatStatus,
   isContextGettingFull,
+  shouldSuggestAskUser,
 } from "../budgetTracker";
 import { getBasePrompt } from "./base";
 import { formatMemoriesByCategory, truncateMemories } from "./formatting";
@@ -179,6 +180,19 @@ export async function buildSystemPrompts(
     systemMessages.push({
       role: "system",
       content: formatStatus(args.budgetState),
+    });
+  }
+
+  // === 4.4. ASK USER SUGGESTION (Phase 3) ===
+  // Nudge AI to ask for clarification when stuck
+  if (args.budgetState && shouldSuggestAskUser(args.budgetState)) {
+    const { searchHistory } = args.budgetState;
+    const lowQualityCount = searchHistory.filter(
+      (h) => h.topScore < 0.7,
+    ).length;
+    systemMessages.push({
+      role: "system",
+      content: `[Stuck Detection: ${lowQualityCount} low-quality searches. Use askForClarification tool to get user input instead of continuing to search.]`,
     });
   }
 

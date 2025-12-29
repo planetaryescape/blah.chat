@@ -166,3 +166,39 @@ export function getSearchPatternInfo(state: BudgetState): {
     hasRepeatedQueries,
   };
 }
+
+/**
+ * Format warning for diminishing returns patterns.
+ * Returns null if no concerning patterns detected.
+ */
+export function formatSearchWarning(state: BudgetState): string | null {
+  const { searchHistory } = state;
+  if (searchHistory.length === 0) return null;
+
+  const latest = searchHistory[searchHistory.length - 1];
+
+  // Check repeated query
+  const isDuplicate = searchHistory
+    .slice(0, -1)
+    .some(
+      (h) => h.query.toLowerCase().trim() === latest.query.toLowerCase().trim(),
+    );
+  if (isDuplicate) {
+    return `Already searched "${latest.query}". Try different terms or answer with current info.`;
+  }
+
+  // Check decreasing quality (3+ searches)
+  if (searchHistory.length >= 3) {
+    const last3 = searchHistory.slice(-3).map((h) => h.topScore);
+    if (last3[0] > last3[1] && last3[1] > last3[2] && last3[2] < 0.5) {
+      return "Search quality declining. Consider different approach or ask user.";
+    }
+  }
+
+  // Check many searches without good results
+  if (searchHistory.length >= 4) {
+    return "Multiple searches performed. Consider answering with current info.";
+  }
+
+  return null;
+}

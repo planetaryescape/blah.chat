@@ -438,6 +438,12 @@ export const generateResponse = internalAction({
           memoryExtractionLevel,
           conversation,
           searchCache,
+          budgetState: {
+            current: budgetState,
+            update: (newState) => {
+              budgetState = newState;
+            },
+          },
         });
         options.onStepFinish = createOnStepFinish();
 

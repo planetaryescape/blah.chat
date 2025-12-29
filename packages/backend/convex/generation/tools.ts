@@ -3,6 +3,7 @@
 import { tavilySearch } from "@tavily/ai-sdk";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import { createAskForClarificationTool } from "../ai/tools/askForClarification";
 import { createCalculatorTool } from "../ai/tools/calculator";
 import { createCodeExecutionTool } from "../ai/tools/codeExecution";
 import { createDocumentTool } from "../ai/tools/createDocument";
@@ -109,6 +110,7 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
   const codeExecutionTool = createCodeExecutionTool(ctx);
   const weatherTool = createWeatherTool(ctx);
   const youtubeVideoTool = createYoutubeVideoTool(ctx, userId);
+  const askForClarificationTool = createAskForClarificationTool();
 
   // Create Tavily search tools with custom descriptions
   const tavilySearchTool = {
@@ -161,6 +163,7 @@ More thorough but slower. Use only when depth is needed.`,
     codeExecution: codeExecutionTool,
     weather: weatherTool,
     youtubeVideo: youtubeVideoTool,
+    askForClarification: askForClarificationTool,
   };
 
   // Write tools: DISABLED for incognito

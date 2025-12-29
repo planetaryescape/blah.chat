@@ -17,6 +17,19 @@ export function useMessageCacheSync({
   conversationId,
   initialNumItems = 50,
 }: MessageCacheSyncOptions) {
+  // Track conversation ID changes to detect switches
+  const prevConversationIdRef = useRef<Id<"conversations"> | undefined>(
+    conversationId,
+  );
+  const isConversationChanging =
+    prevConversationIdRef.current !== conversationId;
+
+  // Update ref IMMEDIATELY (not in useEffect) to prevent stale data on next render
+  if (isConversationChanging) {
+    prevConversationIdRef.current = conversationId;
+  }
+
+  // Subscribe to Convex for real-time updates
   const convexMessages = usePaginatedQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.messages.listPaginated,
@@ -65,7 +78,7 @@ export function useMessageCacheSync({
   }, [conversationId, convexMessages.results?.length, triggerAutoRename]);
 
   // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
-  const cachedMessages: Doc<"messages">[] = useLiveQuery(
+  const cachedMessages: Doc<"messages">[] | undefined = useLiveQuery(
     () =>
       conversationId
         ? cache.messages
@@ -74,38 +87,24 @@ export function useMessageCacheSync({
             .sortBy("createdAt")
         : [],
     [conversationId],
-    [],
+    undefined, // Return undefined while loading, not []
   );
 
-  // Keep previous cached data during transitions (prevents skeleton flash)
-  // Pattern from useStableMessages.ts
-  const prevConversationIdRef = useRef(conversationId);
-  const lastValidCachedRef = useRef<Doc<"messages">[]>([]);
+  // Validate that cached messages actually belong to current conversation
+  // useLiveQuery can return stale data briefly when dependencies change
+  const validatedMessages = cachedMessages?.every(
+    (m) => m.conversationId === conversationId,
+  )
+    ? cachedMessages
+    : undefined;
 
-  // Reset cache on conversation change
-  if (conversationId !== prevConversationIdRef.current) {
-    prevConversationIdRef.current = conversationId;
-    lastValidCachedRef.current = [];
-  }
+  // During conversation switch, force return undefined to prevent stale data flash
+  const results = isConversationChanging ? undefined : validatedMessages;
 
-  // Store valid results
-  if (cachedMessages.length > 0) {
-    lastValidCachedRef.current = cachedMessages;
-  }
-
-  // Prefer: cache → previous cache → convex results → empty
-  const results =
-    cachedMessages.length > 0
-      ? cachedMessages
-      : lastValidCachedRef.current.length > 0
-        ? lastValidCachedRef.current
-        : (convexMessages.results ?? []);
-
-  // Show skeleton while loading first page AND we have no messages to display
+  // Determine loading states (compatible with useStableMessages)
   const isFirstLoad =
-    (convexMessages.status === "LoadingFirstPage" ||
-      convexMessages.results === undefined) &&
-    results.length === 0;
+    convexMessages.results === undefined &&
+    (results === undefined || results.length === 0);
 
   return {
     results,

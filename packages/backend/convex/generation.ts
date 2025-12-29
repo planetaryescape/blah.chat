@@ -19,6 +19,7 @@ import {
   createBudgetState,
   estimateToolCost,
   isContextGettingFull,
+  MIN_TOOL_CALLS_FOR_TRUNCATION,
   recordUsage,
   truncateToolResult,
 } from "./lib/budgetTracker";
@@ -442,8 +443,10 @@ export const generateResponse = internalAction({
           conversation,
           searchCache,
           budgetState: {
-            current: budgetState,
-            update: (newState) => {
+            get current() {
+              return budgetState;
+            },
+            update: (newState: BudgetState) => {
               budgetState = newState;
             },
           },
@@ -534,7 +537,10 @@ export const generateResponse = internalAction({
             let resultValue = (chunk as any).result ?? (chunk as any).output;
 
             // Phase 3: Truncate tool results when context is getting full
-            if (isContextGettingFull(budgetState) && toolCallsBuffer.size > 2) {
+            if (
+              isContextGettingFull(budgetState) &&
+              toolCallsBuffer.size > MIN_TOOL_CALLS_FOR_TRUNCATION
+            ) {
               resultValue = truncateToolResult(resultValue, 500);
             }
 

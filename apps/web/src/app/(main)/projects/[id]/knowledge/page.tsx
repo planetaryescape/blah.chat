@@ -284,7 +284,7 @@ export default function ProjectKnowledgePage({
       await removeSource({ sourceId: sourceToDelete._id });
       toast.success("Source deleted");
       setSourceToDelete(null);
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete");
     }
   };
@@ -293,7 +293,7 @@ export default function ProjectKnowledgePage({
     try {
       await reprocessSource({ sourceId });
       toast.success("Reprocessing started");
-    } catch (error) {
+    } catch {
       toast.error("Failed to reprocess");
     }
   };

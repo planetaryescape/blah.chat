@@ -46,7 +46,7 @@ export function TasksDashboard({
   );
 
   // Local-first: fetch all tasks, filter client-side
-  const { tasks: allTasks, isLoading: tasksLoading } = useTaskCacheSync();
+  const { tasks: allTasks } = useTaskCacheSync();
 
   // Helper: check if date is today
   const isToday = useCallback((timestamp: number | undefined) => {

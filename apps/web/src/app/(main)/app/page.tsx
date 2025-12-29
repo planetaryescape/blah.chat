@@ -2,12 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth } from "@clerk/nextjs";
-import {
-  Authenticated,
-  Unauthenticated,
-  useConvexAuth,
-  useQuery,
-} from "convex/react";
+import { Unauthenticated, useConvexAuth, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { UserSyncError } from "@/components/auth/UserSyncError";
@@ -70,9 +65,6 @@ export default function AppPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <Authenticated>
-        <p className="text-muted-foreground">Loading...</p>
-      </Authenticated>
       <Unauthenticated>
         <p className="text-muted-foreground">Redirecting to sign in...</p>
       </Unauthenticated>

@@ -18,7 +18,9 @@ import {
   type BudgetState,
   createBudgetState,
   estimateToolCost,
+  isContextGettingFull,
   recordUsage,
+  truncateToolResult,
 } from "./lib/budgetTracker";
 import {
   captureException,
@@ -273,6 +275,7 @@ export const generateResponse = internalAction({
             hasFunctionCalling,
             prefetchedMemories,
             memoryExtractionLevel,
+            budgetState,
           });
 
       const systemPrompts = systemPromptsResult.messages;
@@ -528,7 +531,13 @@ export const generateResponse = internalAction({
         if (chunk.type === "tool-result") {
           const existing = toolCallsBuffer.get(chunk.toolCallId);
           if (existing) {
-            const resultValue = (chunk as any).result ?? (chunk as any).output;
+            let resultValue = (chunk as any).result ?? (chunk as any).output;
+
+            // Phase 3: Truncate tool results when context is getting full
+            if (isContextGettingFull(budgetState) && toolCallsBuffer.size > 2) {
+              resultValue = truncateToolResult(resultValue, 500);
+            }
+
             toolCallsBuffer.set(chunk.toolCallId, {
               ...existing,
               result: JSON.stringify(resultValue),

@@ -322,7 +322,7 @@ export function KnowledgeBankSettings() {
                 <Textarea
                   id="content"
                   placeholder="Paste your text here..."
-                  className="min-h-[200px]"
+                  className="min-h-[200px] max-h-[300px] overflow-y-auto resize-none"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                 />

@@ -2,13 +2,28 @@
  * Backend Action: Search All
  *
  * Unified search across files, notes, tasks, conversation history, and knowledge bank.
- * Runs parallel searches and merges results with source attribution.
+ * Searches knowledge bank FIRST for early return on high-quality results.
+ * Merges results with RRF and optional LLM reranking.
  */
 
+import { generateText } from "ai";
 import { v } from "convex/values";
+import { getGatewayOptions } from "@/lib/ai/gateway";
+import { MEMORY_RERANK_MODEL } from "@/lib/ai/operational-models";
+import { getModel } from "@/lib/ai/registry";
+import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import type { ActionCtx } from "../../_generated/server";
 import { internalAction } from "../../_generated/server";
 import type { KnowledgeSearchResult } from "../../knowledgeBank/search";
+import { buildMemoryRerankPrompt } from "../../lib/prompts/operational/memoryRerank";
+import {
+  applyRRF,
+  DEFAULT_SOURCE_WEIGHTS,
+  getQualityLevel,
+  type QualityResult,
+} from "../../lib/utils/search";
 
 // Result types for each resource (includes IDs and URLs for navigation)
 interface FileResult {
@@ -63,6 +78,170 @@ interface SearchResponse<T> {
   totalResults?: number;
 }
 
+// Unified result type for RRF merging
+interface UnifiedResult {
+  _id: string;
+  source: string;
+  score: number;
+  content: string;
+  title?: string;
+  url?: string | null;
+  [key: string]: unknown;
+}
+
+/**
+ * Rerank search results using LLM (same pattern as memories/search.ts).
+ */
+async function rerankSearchResults(
+  ctx: ActionCtx,
+  userId: Id<"users">,
+  query: string,
+  results: UnifiedResult[],
+  limit: number,
+): Promise<UnifiedResult[]> {
+  if (results.length <= limit) return results;
+
+  // Take top 20 candidates for reranking
+  const candidates = results.slice(0, 20);
+  const items = candidates.map((r) => ({
+    content: r.content || r.title || "",
+  }));
+  const prompt = buildMemoryRerankPrompt(query, items);
+
+  try {
+    const result = await generateText({
+      model: getModel(MEMORY_RERANK_MODEL.id),
+      prompt,
+      temperature: 0,
+      providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
+        "search-rerank",
+      ]),
+    });
+
+    // Track usage
+    if (result.usage) {
+      const inputTokens = result.usage.inputTokens ?? 0;
+      const outputTokens = result.usage.outputTokens ?? 0;
+      const cost = calculateCost(MEMORY_RERANK_MODEL.id, {
+        inputTokens,
+        outputTokens,
+      });
+
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId,
+          model: MEMORY_RERANK_MODEL.id,
+          inputTokens,
+          outputTokens,
+          cost,
+          feature: "search-rerank",
+        },
+      );
+    }
+
+    // Parse indices (same pattern as rerankMemories)
+    const indices = result.text
+      .trim()
+      .split(",")
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((i) => !Number.isNaN(i) && i >= 0 && i < candidates.length);
+
+    if (indices.length === 0) {
+      console.log("[Rerank] Failed to parse response, using original order");
+      return results.slice(0, limit);
+    }
+
+    return indices.slice(0, limit).map((i) => candidates[i]);
+  } catch (error) {
+    console.error("[Rerank] Failed, using original order:", error);
+    return results.slice(0, limit);
+  }
+}
+
+/**
+ * Convert various result types to unified format for RRF merging.
+ * Spread original result first, then override with unified fields.
+ */
+function toUnified(
+  result:
+    | FileResult
+    | NoteResult
+    | TaskResult
+    | ConversationResult
+    | KnowledgeSearchResult,
+  source: string,
+): UnifiedResult {
+  // Handle KnowledgeSearchResult (has numeric score)
+  if ("chunkId" in result) {
+    return {
+      ...result,
+      _id: result.chunkId.toString(),
+      source,
+      score: result.score,
+      content: result.content,
+      title: result.sourceTitle,
+      url: result.sourceUrl,
+    };
+  }
+
+  // Handle other result types (have string score)
+  const scoreNum = Number.parseFloat(
+    (result as { score?: string }).score ?? "0",
+  );
+
+  if ("filename" in result) {
+    // FileResult
+    return {
+      ...result,
+      _id: result.id,
+      source,
+      score: scoreNum,
+      content: result.content,
+      title: result.filename,
+      url: result.url,
+    };
+  }
+
+  if ("preview" in result) {
+    // NoteResult
+    return {
+      ...result,
+      _id: result.id,
+      source,
+      score: scoreNum,
+      content: result.preview,
+      title: result.title,
+      url: result.url,
+    };
+  }
+
+  if ("conversationTitle" in result) {
+    // ConversationResult
+    return {
+      ...result,
+      _id: result.id,
+      source,
+      score: scoreNum,
+      content: result.content,
+      title: result.conversationTitle,
+      url: result.url,
+    };
+  }
+
+  // TaskResult
+  return {
+    ...result,
+    _id: result.id,
+    source,
+    score: scoreNum,
+    content: result.description ?? result.title,
+    title: result.title,
+    url: result.url,
+  };
+}
+
 export const searchAll = internalAction({
   args: {
     userId: v.id("users"),
@@ -81,21 +260,52 @@ export const searchAll = internalAction({
     currentConversationId: v.optional(v.id("conversations")),
   },
   handler: async (ctx, args) => {
-    const results: {
-      files?: { results: FileResult[]; totalResults: number };
-      notes?: { results: NoteResult[]; totalResults: number };
-      tasks?: { results: TaskResult[]; totalResults: number };
-      conversations?: { results: ConversationResult[]; totalResults: number };
-      knowledgeBank?: {
-        results: KnowledgeSearchResult[];
-        totalResults: number;
-      };
-    } = {};
+    const searchedSources: string[] = [];
+    const allResults: UnifiedResult[] = [];
 
-    // Run searches in parallel for enabled resource types
+    // 1. Search KB FIRST if included (knowledge-first strategy)
+    if (args.resourceTypes.includes("knowledgeBank")) {
+      const kbResults = (await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.knowledgeBank.search.searchInternal,
+        {
+          userId: args.userId,
+          query: args.query,
+          projectId: args.projectId,
+          limit: args.limit * 2, // Fetch more for quality assessment
+        },
+      )) as KnowledgeSearchResult[];
+
+      searchedSources.push("knowledgeBank");
+
+      if (kbResults && kbResults.length > 0) {
+        const tagged = kbResults.map((r) => toUnified(r, "knowledgeBank"));
+        const quality = getQualityLevel(kbResults.map((r) => r.score));
+
+        // Early return if KB has high quality results
+        if (quality.level === "high" && kbResults.length >= args.limit) {
+          return {
+            success: true,
+            results: tagged.slice(0, args.limit),
+            totalResults: kbResults.length,
+            quality,
+            searchedSources,
+            earlyReturn: true,
+            summary: `Found ${kbResults.length} high-quality knowledge items`,
+          };
+        }
+
+        allResults.push(...tagged);
+      }
+    }
+
+    // 2. Search remaining types in parallel
+    const remainingTypes = args.resourceTypes.filter(
+      (t) => t !== "knowledgeBank",
+    );
     const searchPromises: Promise<void>[] = [];
 
-    if (args.resourceTypes.includes("files")) {
+    if (remainingTypes.includes("files")) {
       searchPromises.push(
         (async () => {
           const response = (await (ctx.runAction as any)(
@@ -105,21 +315,21 @@ export const searchAll = internalAction({
               userId: args.userId,
               query: args.query,
               projectId: args.projectId,
-              limit: args.limit,
+              limit: args.limit * 2,
             },
           )) as SearchResponse<FileResult>;
 
           if (response.success && response.results.length > 0) {
-            results.files = {
-              results: response.results,
-              totalResults: response.totalResults || response.results.length,
-            };
+            searchedSources.push("files");
+            allResults.push(
+              ...response.results.map((r) => toUnified(r, "files")),
+            );
           }
         })(),
       );
     }
 
-    if (args.resourceTypes.includes("notes")) {
+    if (remainingTypes.includes("notes")) {
       searchPromises.push(
         (async () => {
           const response = (await (ctx.runAction as any)(
@@ -129,21 +339,21 @@ export const searchAll = internalAction({
               userId: args.userId,
               query: args.query,
               projectId: args.projectId,
-              limit: args.limit,
+              limit: args.limit * 2,
             },
           )) as SearchResponse<NoteResult>;
 
           if (response.success && response.results.length > 0) {
-            results.notes = {
-              results: response.results,
-              totalResults: response.totalResults || response.results.length,
-            };
+            searchedSources.push("notes");
+            allResults.push(
+              ...response.results.map((r) => toUnified(r, "notes")),
+            );
           }
         })(),
       );
     }
 
-    if (args.resourceTypes.includes("tasks")) {
+    if (remainingTypes.includes("tasks")) {
       searchPromises.push(
         (async () => {
           const response = (await (ctx.runAction as any)(
@@ -153,21 +363,21 @@ export const searchAll = internalAction({
               userId: args.userId,
               query: args.query,
               projectId: args.projectId,
-              limit: args.limit,
+              limit: args.limit * 2,
             },
           )) as SearchResponse<TaskResult>;
 
           if (response.success && response.results.length > 0) {
-            results.tasks = {
-              results: response.results,
-              totalResults: response.totalResults || response.results.length,
-            };
+            searchedSources.push("tasks");
+            allResults.push(
+              ...response.results.map((r) => toUnified(r, "tasks")),
+            );
           }
         })(),
       );
     }
 
-    if (args.resourceTypes.includes("conversations")) {
+    if (remainingTypes.includes("conversations")) {
       searchPromises.push(
         (async () => {
           const response = (await (ctx.runAction as any)(
@@ -177,83 +387,80 @@ export const searchAll = internalAction({
               userId: args.userId,
               query: args.query,
               projectId: args.projectId,
-              limit: args.limit,
+              limit: args.limit * 2,
               includeCurrentConversation: false,
               currentConversationId: args.currentConversationId,
             },
           )) as SearchResponse<ConversationResult>;
 
           if (response.success && response.results.length > 0) {
-            results.conversations = {
-              results: response.results,
-              totalResults: response.totalResults || response.results.length,
-            };
+            searchedSources.push("conversations");
+            allResults.push(
+              ...response.results.map((r) => toUnified(r, "conversations")),
+            );
           }
         })(),
       );
     }
 
-    if (args.resourceTypes.includes("knowledgeBank")) {
-      searchPromises.push(
-        (async () => {
-          const kbResults = (await (ctx.runAction as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            internal.knowledgeBank.search.searchInternal,
-            {
-              userId: args.userId,
-              query: args.query,
-              projectId: args.projectId,
-              limit: args.limit,
-            },
-          )) as KnowledgeSearchResult[];
-
-          if (kbResults && kbResults.length > 0) {
-            results.knowledgeBank = {
-              results: kbResults,
-              totalResults: kbResults.length,
-            };
-          }
-        })(),
-      );
-    }
-
-    // Wait for all searches to complete
     await Promise.all(searchPromises);
 
-    // Calculate total results across all types
-    const totalResults =
-      (results.files?.totalResults || 0) +
-      (results.notes?.totalResults || 0) +
-      (results.tasks?.totalResults || 0) +
-      (results.conversations?.totalResults || 0) +
-      (results.knowledgeBank?.totalResults || 0);
-
-    // Build summary message
-    const foundTypes: string[] = [];
-    if (results.knowledgeBank)
-      foundTypes.push(`${results.knowledgeBank.totalResults} knowledge items`);
-    if (results.files) foundTypes.push(`${results.files.totalResults} files`);
-    if (results.notes) foundTypes.push(`${results.notes.totalResults} notes`);
-    if (results.tasks) foundTypes.push(`${results.tasks.totalResults} tasks`);
-    if (results.conversations)
-      foundTypes.push(`${results.conversations.totalResults} conversations`);
-
-    if (totalResults === 0) {
+    // 3. Handle no results
+    if (allResults.length === 0) {
       return {
         success: true,
-        results: {},
+        results: [],
         totalResults: 0,
+        quality: { level: "low" as const, topScore: 0 },
+        searchedSources,
+        earlyReturn: false,
         message: args.projectId
           ? "No matching results found in project"
           : "No matching results found",
       };
     }
 
+    // 4. Merge with RRF (knowledge bank already weighted 1.5x via DEFAULT_SOURCE_WEIGHTS)
+    const merged = applyRRF([], allResults, 60, DEFAULT_SOURCE_WEIGHTS);
+    let quality: QualityResult = getQualityLevel(merged.map((r) => r.score));
+
+    // 5. Rerank if quality not high and we have more results than limit
+    let finalResults = merged.slice(0, args.limit);
+    let reranked = false;
+
+    if (quality.level !== "high" && merged.length > args.limit) {
+      finalResults = await rerankSearchResults(
+        ctx,
+        args.userId,
+        args.query,
+        merged,
+        args.limit,
+      );
+      reranked = true;
+      // Recalculate quality after reranking
+      quality = getQualityLevel(finalResults.map((r) => r.score));
+    }
+
+    // 6. Build summary
+    const sourceCounts = searchedSources
+      .map((s) => {
+        const count = finalResults.filter((r) => r.source === s).length;
+        return count > 0 ? `${count} ${s}` : null;
+      })
+      .filter(Boolean);
+
     return {
       success: true,
-      results,
-      totalResults,
-      summary: `Found ${foundTypes.join(", ")}`,
+      results: finalResults,
+      totalResults: allResults.length,
+      quality,
+      searchedSources,
+      earlyReturn: false,
+      reranked,
+      summary:
+        sourceCounts.length > 0
+          ? `Found ${sourceCounts.join(", ")}`
+          : `Found ${finalResults.length} results`,
     };
   },
 });

@@ -22,6 +22,7 @@ import {
   Search,
   StickyNote,
   Trash2,
+  Youtube,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -94,6 +95,8 @@ function getToolIcon(toolName: string) {
       return Search;
     case "searchKnowledgeBank":
       return Library;
+    case "youtubeVideo":
+      return Youtube;
     default:
       return Search;
   }
@@ -228,6 +231,10 @@ function getToolLabel(
     case "searchKnowledgeBank":
       if (isExecuting) return "Searching knowledge bank...";
       return `Knowledge bank (${result?.found || 0} found)`;
+    case "youtubeVideo":
+      if (isExecuting) return "Analyzing YouTube video...";
+      if (result?.success === false) return "Video analysis failed";
+      return "YouTube video analyzed";
     default:
       if (isExecuting) return "Processing...";
       return "Done";

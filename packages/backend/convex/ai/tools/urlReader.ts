@@ -5,8 +5,16 @@ import type { ActionCtx } from "../../_generated/server";
 
 export function createUrlReaderTool(ctx: ActionCtx) {
   return tool({
-    description:
-      "Read and extract content from any URL. Returns clean markdown or text content from web pages, documentation, articles, and more. Useful for reading documentation, articles, or any web content.",
+    description: `Read and extract content from web pages.
+
+✅ USE FOR:
+- Documentation, articles, blog posts
+- Web pages, news articles
+- Any non-video URL content
+
+⚠️ FOR YOUTUBE LINKS: Use the youtubeVideo tool instead - it can analyze the actual video content, not just the page text.
+
+Returns clean markdown or text content.`,
     inputSchema: z.object({
       url: z
         .string()

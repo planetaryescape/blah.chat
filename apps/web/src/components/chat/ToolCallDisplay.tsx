@@ -18,10 +18,14 @@ import {
   FileText,
   FolderTree,
   Globe,
+  History,
+  Library,
   Loader2,
   MessageSquare,
   RefreshCw,
   Search,
+  StickyNote,
+  Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -77,6 +81,22 @@ function getToolIcon(toolName: string) {
       return FileEdit;
     case "exitDocumentMode":
       return MessageSquare;
+    // Memory tools
+    case "deleteMemory":
+      return Trash2;
+    // Search tools
+    case "searchFiles":
+      return FileText;
+    case "searchNotes":
+      return StickyNote;
+    case "searchTasks":
+      return CheckSquare;
+    case "queryHistory":
+      return History;
+    case "searchAll":
+      return Search;
+    case "searchKnowledgeBank":
+      return Library;
     default:
       return Search;
   }
@@ -187,6 +207,30 @@ function getToolLabel(
       if (isExecuting) return "Exiting...";
       if (result?.success === false) return "Exit failed";
       return "Back to chat";
+    // Memory tools
+    case "deleteMemory":
+      if (isExecuting) return "Deleting memory...";
+      if (result?.success === false) return "Delete failed";
+      return "Memory deleted";
+    // Search tools
+    case "searchFiles":
+      if (isExecuting) return "Searching files...";
+      return `File search (${result?.totalResults || 0} found)`;
+    case "searchNotes":
+      if (isExecuting) return "Searching notes...";
+      return `Note search (${result?.totalResults || 0} found)`;
+    case "searchTasks":
+      if (isExecuting) return "Searching tasks...";
+      return `Task search (${result?.totalResults || 0} found)`;
+    case "queryHistory":
+      if (isExecuting) return "Searching history...";
+      return `History (${result?.totalResults || 0} found)`;
+    case "searchAll":
+      if (isExecuting) return "Searching everything...";
+      return `Search all (${result?.totalCount || 0} found)`;
+    case "searchKnowledgeBank":
+      if (isExecuting) return "Searching knowledge bank...";
+      return `Knowledge bank (${result?.found || 0} found)`;
     default:
       if (isExecuting) return "Processing...";
       return "Done";

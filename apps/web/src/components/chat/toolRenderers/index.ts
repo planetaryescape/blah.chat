@@ -22,6 +22,7 @@ import { ResolveConflictRenderer } from "./ResolveConflictRenderer";
 import { SaveMemoryRenderer } from "./SaveMemoryRenderer";
 import { SearchAllRenderer } from "./SearchAllRenderer";
 import { SearchFilesRenderer } from "./SearchFilesRenderer";
+import { SearchKnowledgeBankRenderer } from "./SearchKnowledgeBankRenderer";
 import { SearchMemoriesRenderer } from "./SearchMemoriesRenderer";
 import { SearchNotesRenderer } from "./SearchNotesRenderer";
 import { SearchTasksRenderer } from "./SearchTasksRenderer";
@@ -66,6 +67,8 @@ export const toolRenderers: Record<string, ComponentType<ToolRendererProps>> = {
   exitDocumentMode: ExitDocumentModeRenderer,
   // Conflict resolution
   resolveConflict: ResolveConflictRenderer,
+  // Knowledge bank
+  searchKnowledgeBank: SearchKnowledgeBankRenderer,
 };
 
 // Export the default as a named export for explicit usage

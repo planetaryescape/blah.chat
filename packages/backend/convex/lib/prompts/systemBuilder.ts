@@ -6,6 +6,11 @@ import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 import { getKnowledgeBankSystemPrompt } from "../../knowledgeBank/tool";
+import {
+  type BudgetState,
+  formatStatus,
+  isContextGettingFull,
+} from "../budgetTracker";
 import { getBasePrompt } from "./base";
 import { formatMemoriesByCategory, truncateMemories } from "./formatting";
 import type { MemoryExtractionLevel } from "./operational/memoryExtraction";
@@ -18,6 +23,8 @@ export interface BuildSystemPromptsArgs {
   hasFunctionCalling: boolean;
   prefetchedMemories: string | null;
   memoryExtractionLevel: MemoryExtractionLevel;
+  /** Budget state for context-aware prompts (Phase 3) */
+  budgetState?: BudgetState;
 }
 
 export interface BuildSystemPromptsResult {
@@ -164,6 +171,15 @@ export async function buildSystemPrompts(
       console.error("[KnowledgeBank] Failed to check knowledge bank:", error);
       // Continue without KB prompt (graceful degradation)
     }
+  }
+
+  // === 4.3. BUDGET AWARENESS (Phase 3) ===
+  // Inject budget status when context is getting full
+  if (args.budgetState && isContextGettingFull(args.budgetState)) {
+    systemMessages.push({
+      role: "system",
+      content: formatStatus(args.budgetState),
+    });
   }
 
   // === 4.5. DOCUMENT MODE PROMPT (Canvas) ===

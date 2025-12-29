@@ -6,6 +6,7 @@ export type { ToolCall, ToolCallState, ToolRendererProps } from "./types";
 export { getCallState } from "./types";
 
 // Import all renderers
+import { AskForClarificationRenderer } from "./AskForClarificationRenderer";
 import { CalculatorRenderer } from "./CalculatorRenderer";
 import { CodeExecutionRenderer } from "./CodeExecutionRenderer";
 import { CreateDocumentRenderer } from "./CreateDocumentRenderer";
@@ -72,6 +73,8 @@ export const toolRenderers: Record<string, ComponentType<ToolRendererProps>> = {
   searchKnowledgeBank: SearchKnowledgeBankRenderer,
   // YouTube video analysis
   youtubeVideo: YoutubeVideoRenderer,
+  // Clarification tool (Phase 3)
+  askForClarification: AskForClarificationRenderer,
 };
 
 // Export the default as a named export for explicit usage

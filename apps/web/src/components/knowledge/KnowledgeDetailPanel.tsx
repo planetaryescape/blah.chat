@@ -5,41 +5,24 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import {
   AlertCircle,
-  BookOpen,
   CheckCircle2,
   Clock,
   Download,
   ExternalLink,
   FileText,
-  Globe,
   Loader2,
   X,
-  Youtube,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SOURCE_ICONS, TYPE_LABELS } from "./constants";
 import { KnowledgeChunkCard } from "./KnowledgeChunkCard";
-
-type SourceType = "file" | "text" | "web" | "youtube";
+import type { SourceType } from "./types";
 
 interface KnowledgeDetailPanelProps {
   sourceId: Id<"knowledgeSources">;
   highlightChunkId?: Id<"knowledgeChunks"> | null;
   onClose: () => void;
 }
-
-const SOURCE_ICONS = {
-  file: FileText,
-  text: BookOpen,
-  web: Globe,
-  youtube: Youtube,
-};
-
-const TYPE_LABELS = {
-  file: "Document",
-  text: "Text Note",
-  web: "Web Page",
-  youtube: "YouTube Video",
-};
 
 export function KnowledgeDetailPanel({
   sourceId,
@@ -108,7 +91,6 @@ export function KnowledgeDetailPanel({
 
   return (
     <div className="flex flex-col h-full border-l bg-background">
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3 min-w-0">
           <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -122,7 +104,6 @@ export function KnowledgeDetailPanel({
         </Button>
       </div>
 
-      {/* Metadata */}
       <div className="p-4 border-b bg-muted/30">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -150,7 +131,6 @@ export function KnowledgeDetailPanel({
           )}
         </div>
 
-        {/* Action Links */}
         <div className="flex items-center gap-3 mt-3">
           {sourceData.url && (
             <a
@@ -190,7 +170,6 @@ export function KnowledgeDetailPanel({
         )}
       </div>
 
-      {/* Chunks List */}
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="p-4 space-y-3">
           {sourceData.chunks && sourceData.chunks.length > 0 ? (

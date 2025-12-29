@@ -1,30 +1,12 @@
 "use client";
 
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import {
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  Globe,
-  Youtube,
-} from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { TYPE_CONFIG } from "./constants";
 import { KnowledgeSourceCard } from "./KnowledgeSourceCard";
-
-type SourceType = "file" | "text" | "web" | "youtube";
-type SourceStatus = "pending" | "processing" | "completed" | "failed";
-
-interface KnowledgeSource {
-  _id: Id<"knowledgeSources">;
-  title: string;
-  type: SourceType;
-  status: SourceStatus;
-  chunkCount?: number;
-  url?: string;
-  createdAt: number;
-}
+import type { KnowledgeSource, SourceType } from "./types";
 
 interface KnowledgeSourceListProps {
   sources: KnowledgeSource[];
@@ -33,19 +15,7 @@ interface KnowledgeSourceListProps {
   groupByType: boolean;
 }
 
-const TYPE_CONFIG = {
-  file: { label: "Files", icon: FileText, order: 0 },
-  text: { label: "Text Notes", icon: BookOpen, order: 1 },
-  web: { label: "Web Pages", icon: Globe, order: 2 },
-  youtube: { label: "YouTube Videos", icon: Youtube, order: 3 },
-};
-
-interface GroupState {
-  file: boolean;
-  text: boolean;
-  web: boolean;
-  youtube: boolean;
-}
+type GroupState = Record<SourceType, boolean>;
 
 export function KnowledgeSourceList({
   sources,
@@ -65,7 +35,6 @@ export function KnowledgeSourceList({
   };
 
   if (!groupByType) {
-    // Flat list mode
     return (
       <div className="space-y-2">
         {sources.map((source) => (
@@ -80,7 +49,6 @@ export function KnowledgeSourceList({
     );
   }
 
-  // Group sources by type
   const groupedSources = sources.reduce(
     (acc, source) => {
       const type = source.type as SourceType;
@@ -91,7 +59,6 @@ export function KnowledgeSourceList({
     {} as Record<SourceType, KnowledgeSource[]>,
   );
 
-  // Sort groups by configured order
   const sortedTypes = (Object.keys(groupedSources) as SourceType[]).sort(
     (a, b) => TYPE_CONFIG[a].order - TYPE_CONFIG[b].order,
   );
@@ -106,7 +73,6 @@ export function KnowledgeSourceList({
 
         return (
           <div key={type}>
-            {/* Group Header */}
             <button
               type="button"
               onClick={() => toggleGroup(type)}
@@ -128,7 +94,6 @@ export function KnowledgeSourceList({
               </span>
             </button>
 
-            {/* Group Content */}
             {isExpanded && (
               <div className="mt-2 space-y-2 pl-2">
                 {typeSources.map((source) => (

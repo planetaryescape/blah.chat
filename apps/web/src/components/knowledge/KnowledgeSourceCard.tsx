@@ -1,50 +1,17 @@
 "use client";
 
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import {
-  BookOpen,
-  ExternalLink,
-  FileText,
-  Globe,
-  Loader2,
-  Youtube,
-} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-type SourceType = "file" | "text" | "web" | "youtube";
-type SourceStatus = "pending" | "processing" | "completed" | "failed";
-
-interface KnowledgeSource {
-  _id: Id<"knowledgeSources">;
-  title: string;
-  type: SourceType;
-  status: SourceStatus;
-  chunkCount?: number;
-  url?: string;
-  createdAt: number;
-}
+import { SOURCE_ICONS, STATUS_STYLES } from "./constants";
+import type { KnowledgeSource } from "./types";
 
 interface KnowledgeSourceCardProps {
   source: KnowledgeSource;
   isSelected: boolean;
   onClick: () => void;
 }
-
-const SOURCE_ICONS = {
-  file: FileText,
-  text: BookOpen,
-  web: Globe,
-  youtube: Youtube,
-};
-
-const STATUS_STYLES = {
-  pending: "bg-yellow-500/10 text-yellow-500",
-  processing: "bg-blue-500/10 text-blue-500",
-  completed: "bg-green-500/10 text-green-500",
-  failed: "bg-red-500/10 text-red-500",
-};
 
 export function KnowledgeSourceCard({
   source,

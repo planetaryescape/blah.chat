@@ -3,20 +3,11 @@
 import { ChevronDown, ChevronUp, Clock, FileText } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-
-interface KnowledgeChunk {
-  _id: string;
-  chunkIndex: number;
-  content: string;
-  tokenCount: number;
-  pageNumber?: number;
-  startTime?: string;
-  endTime?: string;
-}
+import type { KnowledgeChunk, SourceType } from "./types";
 
 interface KnowledgeChunkCardProps {
   chunk: KnowledgeChunk;
-  sourceType: "file" | "text" | "web" | "youtube";
+  sourceType: SourceType;
   isHighlighted?: boolean;
 }
 
@@ -47,7 +38,6 @@ export function KnowledgeChunkCard({
     ? chunk.content
     : chunk.content.slice(0, previewLength) + (hasMore ? "..." : "");
 
-  // Format metadata based on source type
   const getMetadataLabel = () => {
     if (sourceType === "youtube" && chunk.startTime) {
       if (chunk.endTime) {
@@ -75,7 +65,6 @@ export function KnowledgeChunkCard({
           : "border-border/50 bg-muted/30 hover:bg-muted/50",
       )}
     >
-      {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <MetadataIcon className="h-3 w-3" />
@@ -91,7 +80,6 @@ export function KnowledgeChunkCard({
         </span>
       </div>
 
-      {/* Content */}
       <div
         className={cn(
           "text-sm font-mono bg-background/50 rounded p-2 whitespace-pre-wrap break-words",
@@ -101,7 +89,6 @@ export function KnowledgeChunkCard({
         {displayContent}
       </div>
 
-      {/* Expand/Collapse button */}
       {hasMore && (
         <button
           type="button"

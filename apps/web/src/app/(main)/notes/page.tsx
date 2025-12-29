@@ -1,9 +1,8 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
-import { useNoteCacheSync } from "@/hooks/useCacheSync";
 import { ChevronLeft } from "lucide-react";
 import {
   parseAsArrayOf,
@@ -22,6 +21,7 @@ import { NoteEditor } from "@/components/notes/NoteEditor";
 import { NoteListSkeleton } from "@/components/notes/NoteListSkeleton";
 import { NoteSidebar } from "@/components/notes/NoteSidebar";
 import { Button } from "@/components/ui/button";
+import { useNoteCacheSync } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 
@@ -89,7 +89,7 @@ function NotesPageContent() {
   const { isMobile } = useMobileDetect();
 
   // Local-first: fetch all notes, filter client-side
-  const { notes: allNotes, isLoading: notesLoading } = useNoteCacheSync();
+  const { notes: allNotes } = useNoteCacheSync();
 
   // Client-side filtering
   const notes = useMemo(() => {

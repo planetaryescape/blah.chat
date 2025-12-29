@@ -10,18 +10,15 @@ import { Suspense, useMemo, useState } from "react";
 import { KnowledgeDetailPanel } from "@/components/knowledge/KnowledgeDetailPanel";
 import { KnowledgeFilters } from "@/components/knowledge/KnowledgeFilters";
 import { KnowledgeSourceList } from "@/components/knowledge/KnowledgeSourceList";
+import type { SourceStatus, SourceType } from "@/components/knowledge/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-type SourceType = "file" | "text" | "web" | "youtube";
-type SourceStatus = "pending" | "processing" | "completed" | "failed";
-
 function KnowledgePageContent() {
   const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
 
-  // URL state via nuqs for deep linking
   const [sourceParam, setSourceParam] = useQueryState(
     "source",
     parseAsString.withDefault(""),
@@ -36,25 +33,17 @@ function KnowledgePageContent() {
     parseAsString.withDefault("all"),
   );
 
-  // Local search state (not URL-persisted for performance)
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Queries
   // @ts-ignore - Type depth exceeded
   const sources = useQuery(api.knowledgeBank.index.list, {});
 
-  // Filter sources
   const filteredSources = useMemo(() => {
     if (!sources) return [];
 
     return sources.filter((source: any) => {
-      // Type filter
       if (typeParam !== "all" && source.type !== typeParam) return false;
-
-      // Status filter
       if (statusParam !== "all" && source.status !== statusParam) return false;
-
-      // Search filter (title only, case-insensitive)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         if (!source.title.toLowerCase().includes(query)) return false;
@@ -64,7 +53,6 @@ function KnowledgePageContent() {
     });
   }, [sources, typeParam, statusParam, searchQuery]);
 
-  // Selected source
   const selectedSourceId = sourceParam
     ? (sourceParam as Id<"knowledgeSources">)
     : null;
@@ -80,7 +68,6 @@ function KnowledgePageContent() {
     setSourceParam("");
   };
 
-  // Auth loading state
   if (authLoading) {
     return (
       <div className="h-[calc(100vh-theme(spacing.16))] flex items-center justify-center">
@@ -99,7 +86,6 @@ function KnowledgePageContent() {
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-6xl px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -125,7 +111,6 @@ function KnowledgePageContent() {
             </div>
 
             <div className="flex gap-3 items-center">
-              {/* Search */}
               <div className="relative w-full md:w-64 group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
                 <Input
@@ -145,7 +130,6 @@ function KnowledgePageContent() {
             </div>
           </div>
 
-          {/* Filters */}
           <div className="mt-4">
             <KnowledgeFilters
               typeFilter={typeParam as SourceType | "all"}
@@ -159,9 +143,7 @@ function KnowledgePageContent() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex min-h-0">
-        {/* Source List */}
         <ScrollArea className={cn("flex-1", selectedSourceId && "max-w-[60%]")}>
           <div className="container mx-auto max-w-6xl px-4 py-6">
             {sources === undefined ? (
@@ -202,7 +184,6 @@ function KnowledgePageContent() {
           </div>
         </ScrollArea>
 
-        {/* Detail Panel */}
         {selectedSourceId && (
           <div className="w-[40%] min-w-[350px] h-full overflow-hidden border-l">
             <KnowledgeDetailPanel

@@ -4,7 +4,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { AlertCircle } from "lucide-react";
-import { memo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
@@ -163,8 +163,22 @@ export const ChatMessage = memo(
 
     // Read tool calls from local cache (instant)
     // Cache is synced by useMetadataCacheSync in VirtualizedMessageList
-    const allToolCalls = useCachedToolCalls(
+    const rawToolCalls = useCachedToolCalls(
       isTempMessage ? "" : (message._id as string),
+    );
+
+    // Transform from DB format (toolName, args) to UI format (name, arguments)
+    const allToolCalls = useMemo(
+      () =>
+        rawToolCalls?.map((tc) => ({
+          id: tc.toolCallId,
+          name: tc.toolName,
+          arguments: JSON.stringify(tc.args),
+          result: tc.result ? JSON.stringify(tc.result) : undefined,
+          timestamp: tc.timestamp,
+          isPartial: tc.isPartial,
+        })),
+      [rawToolCalls],
     );
 
     // Split into complete and partial for backward compatibility

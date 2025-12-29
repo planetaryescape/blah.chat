@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex-helpers/react/cache";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +10,7 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { CanvasPanel } from "@/components/canvas/CanvasPanel";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { EmptyScreen } from "@/components/chat/EmptyScreen";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
 import { ModelPreviewModal } from "@/components/chat/ModelPreviewModal";
 import { ModelRecommendationBanner } from "@/components/chat/ModelRecommendationBanner";
@@ -109,6 +110,9 @@ function ChatPageContent({
   );
   const ttsSpeed = useUserPreference("ttsSpeed");
   const ttsVoice = useUserPreference("ttsVoice");
+  const customInstructions = useUserPreference("customInstructions");
+  const nickname =
+    (customInstructions as { nickname?: string } | undefined)?.nickname || "";
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
@@ -237,7 +241,9 @@ function ChatPageContent({
       filteredConversations,
     });
 
-  const isLoading = isFirstLoad;
+  const isLoading = isChatWidthLoading;
+  const isEmpty =
+    !isLoading && !isFirstLoad && messages && messages.length === 0;
 
   // Autofocus input when navigating to conversation (after loading completes)
   useEffect(() => {
@@ -323,19 +329,37 @@ function ChatPageContent({
                   {/* Invisible div for intersection observer */}
                   <div ref={messageListTopRef} className="h-px" />
 
-                  <VirtualizedMessageList
-                    messages={messages as Doc<"messages">[]}
-                    selectedModel={displayModel}
-                    chatWidth={chatWidth}
-                    onVote={handleVote}
-                    onConsolidate={handleConsolidate}
-                    onToggleModelNames={() =>
-                      setShowModelNames(!showModelNames)
-                    }
-                    showModelNames={showModelNames ?? false}
-                    highlightMessageId={highlightMessageId}
-                    isCollaborative={conversation?.isCollaborative}
-                  />
+                  {/* Empty state - only show when everything is loaded and no messages */}
+                  {isEmpty ? (
+                    <div className="flex items-center justify-center h-full w-full">
+                      <EmptyScreen
+                        selectedModel={displayModel}
+                        conversationCount={filteredConversations?.length ?? 0}
+                        nickname={nickname}
+                        onClick={(val: string) => {
+                          const event = new CustomEvent("insert-prompt", {
+                            detail: val,
+                          });
+                          window.dispatchEvent(event);
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1 max-h-full min-h-0 min-w-0 relative flex flex-col overflow-hidden">
+                      <VirtualizedMessageList
+                        messages={messages || []}
+                        chatWidth={chatWidth}
+                        onVote={handleVote}
+                        onConsolidate={handleConsolidate}
+                        onToggleModelNames={() =>
+                          setShowModelNames(!showModelNames)
+                        }
+                        showModelNames={showModelNames ?? false}
+                        highlightMessageId={highlightMessageId}
+                        isCollaborative={conversation?.isCollaborative}
+                      />
+                    </div>
+                  )}
 
                   {/* Model Recommendation Banner */}
                   {conversation?.modelRecommendation &&

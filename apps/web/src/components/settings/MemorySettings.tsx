@@ -49,6 +49,24 @@ type MemoryExtractionLevel =
   | "active"
   | "aggressive";
 
+const VALID_EXTRACTION_LEVELS: MemoryExtractionLevel[] = [
+  "none",
+  "passive",
+  "minimal",
+  "moderate",
+  "active",
+  "aggressive",
+];
+
+function isValidExtractionLevel(
+  value: unknown,
+): value is MemoryExtractionLevel {
+  return (
+    typeof value === "string" &&
+    VALID_EXTRACTION_LEVELS.includes(value as MemoryExtractionLevel)
+  );
+}
+
 const EXTRACTION_LEVELS: {
   value: MemoryExtractionLevel;
   label: string;
@@ -130,9 +148,10 @@ export function MemorySettings() {
 
   const [debouncedSearchQuery] = useDebounceValue(searchQuery, 300);
 
-  // Extraction level state
-  const currentLevel = useUserPreference(
-    "memoryExtractionLevel",
+  // Extraction level state with runtime validation
+  const rawLevel = useUserPreference("memoryExtractionLevel");
+  const currentLevel = (
+    isValidExtractionLevel(rawLevel) ? rawLevel : "moderate"
   ) as MemoryExtractionLevel;
   const [pendingLevel, setPendingLevel] =
     useState<MemoryExtractionLevel | null>(null);

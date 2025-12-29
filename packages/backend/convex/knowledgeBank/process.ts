@@ -319,11 +319,18 @@ async function extractYouTubeContent(
   // In production, you might want to use the official YouTube API
 
   try {
+    // Validate videoId format to prevent URL injection
+    const videoIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
+    if (!videoIdPattern.test(videoId)) {
+      throw new Error("Invalid YouTube videoId format");
+    }
+
     // Use Gemini to extract/transcribe if available
     // For MVP: Use a transcript extraction service
-    const response = await fetch(
-      `https://yt-transcript-api.vercel.app/api/transcript?videoId=${videoId}`,
-    );
+    const url = new URL("https://yt-transcript-api.vercel.app/api/transcript");
+    url.searchParams.set("videoId", videoId);
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       // Fallback: Use video metadata only and note that transcript unavailable

@@ -41,7 +41,21 @@ export function useBibleVerse(
       const res = await fetch(
         `/api/v1/bible/verse?ref=${encodeURIComponent(osis)}`,
       );
-      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(`Failed to load verse: ${res.status}`);
+      }
+
+      let data: {
+        status: string;
+        data?: { reference?: string; text: string; version?: string };
+        error?: string;
+      };
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Failed to parse server response");
+      }
 
       if (data.status === "success" && data.data) {
         const newVerse: CachedVerse = {

@@ -58,7 +58,21 @@ const BOOK_NAMES: Record<string, string> = {
 };
 
 function expandBookName(abbrev: string): string {
-  return BOOK_NAMES[abbrev] || abbrev;
+  // Direct lookup first
+  if (BOOK_NAMES[abbrev]) {
+    return BOOK_NAMES[abbrev];
+  }
+
+  // Handle numeric prefixes like "1John", "2Cor" - separate number from book
+  const match = abbrev.match(/^(\d+)\s*([A-Za-z].*)$/);
+  if (match) {
+    const [, numPrefix, bookPart] = match;
+    if (BOOK_NAMES[bookPart]) {
+      return `${numPrefix} ${BOOK_NAMES[bookPart]}`;
+    }
+  }
+
+  return abbrev;
 }
 
 /** Convert OSIS reference to BibleGateway URL */

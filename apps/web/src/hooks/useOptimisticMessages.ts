@@ -1,18 +1,18 @@
 "use client";
 
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 type ServerMessage = Doc<"messages">;
 export type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 
 interface UseOptimisticMessagesOptions {
-  serverMessages: ServerMessage[];
+  serverMessages: ServerMessage[] | undefined;
 }
 
 interface UseOptimisticMessagesReturn {
-  messages: MessageWithOptimistic[];
+  messages: MessageWithOptimistic[] | undefined;
   addOptimisticMessages: (msgs: OptimisticMessage[]) => void;
 }
 
@@ -20,8 +20,8 @@ interface UseOptimisticMessagesReturn {
  * Manages optimistic UI for messages - overlay local optimistic messages
  * on top of server state with deduplication when server confirms.
  *
- * Note: serverMessages is now guaranteed to be stable (never undefined)
- * thanks to useStableMessages wrapper upstream.
+ * Handles undefined serverMessages (loading state) by returning undefined
+ * to distinguish from empty array (no messages).
  */
 export function useOptimisticMessages({
   serverMessages,
@@ -29,6 +29,22 @@ export function useOptimisticMessages({
   const [optimisticMessages, setOptimisticMessages] = useState<
     OptimisticMessage[]
   >([]);
+
+  // Track conversation ID to clear optimistic messages on conversation switch
+  const conversationIdRef = useRef<string | undefined>(undefined);
+  const currentConversationId = serverMessages?.[0]?.conversationId;
+
+  // Clear optimistic messages when conversation changes
+  useEffect(() => {
+    if (
+      currentConversationId &&
+      conversationIdRef.current &&
+      conversationIdRef.current !== currentConversationId
+    ) {
+      setOptimisticMessages([]);
+    }
+    conversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
 
   // Callback for ChatInput to add optimistic messages (instant, before API call)
   const addOptimisticMessages = useCallback(
@@ -39,7 +55,12 @@ export function useOptimisticMessages({
   );
 
   // Merge server messages with optimistic messages, deduplicating confirmed ones
-  const messages = useMemo<MessageWithOptimistic[]>(() => {
+  const messages = useMemo<MessageWithOptimistic[] | undefined>(() => {
+    // If server messages are undefined (loading), return undefined
+    if (serverMessages === undefined) {
+      return undefined;
+    }
+
     const server = serverMessages as MessageWithOptimistic[];
 
     if (optimisticMessages.length === 0) {

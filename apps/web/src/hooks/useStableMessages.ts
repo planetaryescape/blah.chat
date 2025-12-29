@@ -44,7 +44,8 @@ export function useStableMessages({
   }
 
   // Update cache with ANY defined results (including empty arrays)
-  // This is critical - we must cache empty arrays as valid state, not skip them
+  // This is critical: caching empty arrays as valid state prevents a UI flash
+  // when switching to a new conversation that currently has no messages.
   if (results !== undefined) {
     lastValidResultsRef.current = results;
   }

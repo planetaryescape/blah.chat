@@ -45,35 +45,40 @@ const KEY_CONFIG: Record<
     required: boolean;
     placeholder: string;
     hint?: string;
+    disabledWarning?: string;
   }
 > = {
   vercelGateway: {
     label: "Vercel AI Gateway",
-    description: "Required for all AI model access",
+    description:
+      "Routes requests to OpenAI, Anthropic, Google, and other providers",
     required: true,
     placeholder: "vrcl_...",
     hint: "Create at vercel.com/account/tokens",
   },
   openRouter: {
     label: "OpenRouter",
-    description: "Access to 18+ additional models (DeepSeek, Llama, etc.)",
+    description: "Access to DeepSeek, Llama, Mistral, and 15+ other models",
     required: false,
     placeholder: "sk-or-...",
     hint: "Create at openrouter.ai/keys",
+    disabledWarning: "Without this key, OpenRouter models will be unavailable",
   },
   groq: {
     label: "Groq",
-    description: "Fast speech-to-text transcription",
+    description: "Powers voice input (speech-to-text)",
     required: false,
     placeholder: "gsk_...",
     hint: "Create at console.groq.com/keys",
+    disabledWarning: "Without this key, voice input will be disabled",
   },
   deepgram: {
     label: "Deepgram",
-    description: "Text-to-speech audio generation",
+    description: "Powers voice responses (text-to-speech)",
     required: false,
     placeholder: "...",
     hint: "Create at console.deepgram.com",
+    disabledWarning: "Without this key, text-to-speech will be disabled",
   },
 };
 
@@ -152,6 +157,11 @@ function ApiKeyCard({
       <CardContent className="space-y-3">
         {!hasKey ? (
           <>
+            {config.disabledWarning && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {config.disabledWarning}
+              </p>
+            )}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
@@ -289,9 +299,14 @@ export function BYOKSettings() {
             <Key className="h-5 w-5" />
             Bring Your Own API Keys
           </CardTitle>
-          <CardDescription>
-            Use your own API keys for AI services. Keys are encrypted with
-            AES-256-GCM before storage and validated before saving.
+          <CardDescription className="space-y-2">
+            <span className="block">
+              Pay for AI inference directly through your own accounts instead of
+              using platform credits. You control your usage and costs.
+            </span>
+            <span className="block text-xs">
+              Keys are encrypted with AES-256-GCM and validated before saving.
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -299,7 +314,8 @@ export function BYOKSettings() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Add a Vercel AI Gateway key below to enable BYOK mode.
+                <strong>Step 1:</strong> Add your Vercel AI Gateway key below,
+                then enable BYOK mode. Optional keys unlock additional features.
               </AlertDescription>
             </Alert>
           )}
@@ -330,10 +346,10 @@ export function BYOKSettings() {
         </CardContent>
       </Card>
 
-      {/* API Key Cards */}
+      {/* Required Key */}
       <div className="space-y-4">
         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-          API Keys
+          Required
         </h3>
 
         <ApiKeyCard
@@ -345,6 +361,19 @@ export function BYOKSettings() {
           }
           onRemove={() => removeApiKey({ keyType: "vercelGateway" })}
         />
+      </div>
+
+      {/* Optional Keys */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            Optional
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            These keys enable additional features. Without them, those features
+            will be disabled when BYOK is active.
+          </p>
+        </div>
 
         <ApiKeyCard
           keyType="openRouter"

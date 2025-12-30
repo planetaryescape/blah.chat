@@ -32,7 +32,6 @@ export default function ChatScreen() {
   const modelSelectorRef = useRef<BottomSheetModal>(null);
   const [selectedModel, setSelectedModel] = useState<string | undefined>();
   const [isRecording, setIsRecording] = useState(false);
-  const [_pendingTranscript, setPendingTranscript] = useState("");
 
   const prevMessagesRef = useRef<Message[]>([]);
 
@@ -114,13 +113,10 @@ export default function ChatScreen() {
   }, []);
 
   const handleTranscript = useCallback(
-    (text: string) => {
+    (text: string, audioAttachment?: Attachment) => {
       setIsRecording(false);
       if (text) {
-        setPendingTranscript(text);
-        // Auto-send the transcript
-        handleSend(text);
-        setPendingTranscript("");
+        handleSend(text, audioAttachment ? [audioAttachment] : undefined);
       }
     },
     [handleSend],

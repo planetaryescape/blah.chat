@@ -1,7 +1,13 @@
 import { embedMany } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
+import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 export const updateMemory = mutation({
   args: {
@@ -32,10 +38,25 @@ export const updateMemory = mutation({
     }
 
     // Generate new embedding for updated content
+    const tokenCount = estimateTokens(args.content);
     const embeddingResult = await embedMany({
       model: EMBEDDING_MODEL,
       values: [args.content],
     });
+
+    // Track embedding cost
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.usage.mutations.recordEmbedding,
+      {
+        userId: user._id,
+        model: EMBEDDING_PRICING.model,
+        tokenCount,
+        cost: calculateEmbeddingCost(tokenCount),
+        feature: "memory",
+      },
+    );
 
     // Create new version
     const newMemoryId = await ctx.db.insert("memories", {

@@ -12,9 +12,12 @@ import {
 import { Brain, CheckCircle, Eye } from "lucide-react-native";
 import { forwardRef, useCallback, useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { createGlassBackground } from "@/components/ui/GlassBackground";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
+
+const GlassBackgroundComponent = createGlassBackground();
 
 interface ModelSelectorProps {
   selectedModel?: string;
@@ -85,7 +88,7 @@ export const ModelSelector = forwardRef<BottomSheetModal, ModelSelectorProps>(
       <BottomSheetModal
         ref={ref}
         snapPoints={snapPoints}
-        backgroundStyle={styles.bottomSheetBackground}
+        backgroundComponent={GlassBackgroundComponent}
         handleIndicatorStyle={styles.handleIndicator}
       >
         <BottomSheetView style={styles.content}>

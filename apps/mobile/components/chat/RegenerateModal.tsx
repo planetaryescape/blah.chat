@@ -12,13 +12,16 @@ import {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useMutation } from "convex/react";
-import * as Haptics from "expo-haptics";
 import { Brain, CheckCircle, Eye, RotateCcw } from "lucide-react-native";
 import { forwardRef, useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { createGlassBackground } from "@/components/ui/GlassBackground";
+import { haptics } from "@/lib/haptics";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
+
+const GlassBackgroundComponent = createGlassBackground();
 
 interface RegenerateModalProps {
   messageId: Id<"messages"> | null;
@@ -82,7 +85,7 @@ export const RegenerateModal = forwardRef<
     if (!messageId || isRegenerating) return;
 
     setIsRegenerating(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.medium();
 
     try {
       await (
@@ -95,13 +98,13 @@ export const RegenerateModal = forwardRef<
         modelId: selectedModel || undefined,
       });
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       // @ts-ignore - ref type forwarding
       ref?.current?.dismiss();
       onRegenerated?.();
     } catch (error) {
       console.error("Failed to regenerate:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
     } finally {
       setIsRegenerating(false);
     }
@@ -116,7 +119,7 @@ export const RegenerateModal = forwardRef<
 
   const handleModelSelect = useCallback((modelId: string) => {
     setSelectedModel((prev) => (prev === modelId ? null : modelId));
-    Haptics.selectionAsync();
+    haptics.selection();
   }, []);
 
   const getTierColor = (tier: string) => {
@@ -129,7 +132,7 @@ export const RegenerateModal = forwardRef<
     <BottomSheetModal
       ref={ref}
       snapPoints={snapPoints}
-      backgroundStyle={styles.bottomSheetBackground}
+      backgroundComponent={GlassBackgroundComponent}
       handleIndicatorStyle={styles.handleIndicator}
     >
       <BottomSheetView style={styles.content}>

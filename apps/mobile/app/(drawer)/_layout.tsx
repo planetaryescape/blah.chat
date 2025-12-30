@@ -38,6 +38,11 @@ export default function DrawerLayout() {
         },
         drawerActiveTintColor: colors.foreground,
         drawerInactiveTintColor: colors.mutedForeground,
+        // Enhanced navigation polish
+        drawerType: "slide",
+        overlayColor: "rgba(0, 0, 0, 0.6)",
+        swipeEdgeWidth: 80,
+        swipeMinDistance: 20,
       }}
     >
       <Drawer.Screen
@@ -126,6 +131,27 @@ export default function DrawerLayout() {
         name="memories"
         options={{
           title: "Memories",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="knowledge"
+        options={{
+          title: "Knowledge Bank",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="templates"
+        options={{
+          title: "Templates",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="usage"
+        options={{
+          title: "Usage",
           drawerItemStyle: { display: "none" },
         }}
       />

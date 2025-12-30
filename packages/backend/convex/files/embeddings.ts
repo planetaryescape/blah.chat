@@ -8,9 +8,19 @@
 
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
-import { internalAction, internalMutation } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 // Batch size for embedding generation (API rate limits)
 const EMBEDDING_BATCH_SIZE = 100;
@@ -27,6 +37,17 @@ export const generateFileEmbeddings = internalAction({
     const startTime = Date.now();
 
     try {
+      // 0. Get file to retrieve userId for cost tracking
+      const file = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.files.embeddings.getFileInternal,
+        { fileId: args.fileId },
+      )) as { userId: Id<"users"> } | null;
+
+      if (!file) {
+        throw new Error("File not found");
+      }
+
       // 1. Update file status to "processing"
       (await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -79,6 +100,24 @@ export const generateFileEmbeddings = internalAction({
             });
             return embedding;
           }),
+        );
+
+        // Track embedding cost for this batch
+        const batchTokens = batchChunks.reduce(
+          (sum, chunk) => sum + estimateTokens(chunk.content),
+          0,
+        );
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordEmbedding,
+          {
+            userId: file.userId,
+            model: EMBEDDING_PRICING.model,
+            tokenCount: batchTokens,
+            cost: calculateEmbeddingCost(batchTokens),
+            feature: "files",
+          },
         );
 
         // Insert chunks with embeddings
@@ -231,5 +270,15 @@ export const insertFileChunks = internalMutation({
         createdAt: now,
       });
     }
+  },
+});
+
+/**
+ * Internal query to get file for cost tracking
+ */
+export const getFileInternal = internalQuery({
+  args: { fileId: v.id("files") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.fileId);
   },
 });

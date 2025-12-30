@@ -7,10 +7,15 @@
 
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 /**
  * Generate and store embedding for a tag (lazy generation)
@@ -40,11 +45,28 @@ export const generateTagEmbedding = internalAction({
       // Embed: "slug displayName" for richer semantic context
       // e.g., "machine-learning Machine Learning" captures both forms
       const text = `${tag.slug} ${tag.displayName}`;
+      const tokenCount = estimateTokens(text);
 
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
         value: text,
       });
+
+      // Track embedding cost (only for user-owned tags)
+      if (tag.userId) {
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordEmbedding,
+          {
+            userId: tag.userId,
+            model: EMBEDDING_PRICING.model,
+            tokenCount,
+            cost: calculateEmbeddingCost(tokenCount),
+            feature: "notes",
+          },
+        );
+      }
 
       // Store embedding
       (await (ctx.runMutation as any)(

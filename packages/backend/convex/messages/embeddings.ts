@@ -2,16 +2,20 @@ import { embed, generateText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
+  calculateEmbeddingCost,
   EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
   EMBEDDING_SUMMARIZATION_MODEL,
 } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
 const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
@@ -63,6 +67,9 @@ export const generateEmbedding = internalAction({
         contentToEmbed = await summarizeForEmbedding(args.content);
       }
 
+      // Estimate tokens before embedding
+      const tokenCount = estimateTokens(contentToEmbed);
+
       // Generate embedding
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
@@ -70,10 +77,33 @@ export const generateEmbedding = internalAction({
       });
 
       // Store embedding
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       await ctx.runMutation(internal.messages.embeddings.updateEmbedding, {
         messageId: args.messageId,
         embedding,
       });
+
+      // Track embedding cost (get userId from message)
+      const message = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.messages.embeddings.getMessage,
+        { messageId: args.messageId },
+      )) as { userId?: Id<"users">; conversationId: string } | null;
+
+      if (message?.userId) {
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordEmbedding,
+          {
+            userId: message.userId,
+            model: EMBEDDING_PRICING.model,
+            tokenCount,
+            cost: calculateEmbeddingCost(tokenCount),
+            feature: "chat",
+          },
+        );
+      }
     } catch (error) {
       console.error(
         "Failed to generate embedding for message:",
@@ -140,6 +170,8 @@ export const generateBatchEmbeddings = internalAction({
         contentToEmbed = await summarizeForEmbedding(contentToEmbed);
       }
 
+      const tokenCount = estimateTokens(contentToEmbed);
+
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
         value: contentToEmbed,
@@ -149,6 +181,22 @@ export const generateBatchEmbeddings = internalAction({
         messageId: msg._id,
         embedding,
       });
+
+      // Track embedding cost
+      if (msg.userId) {
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordEmbedding,
+          {
+            userId: msg.userId,
+            model: EMBEDDING_PRICING.model,
+            tokenCount,
+            cost: calculateEmbeddingCost(tokenCount),
+            feature: "chat",
+          },
+        );
+      }
     }
 
     // Schedule next batch if there are more messages
@@ -206,5 +254,12 @@ export const getMessagesWithoutEmbeddings = internalQuery({
       continueCursor: result.continueCursor,
       total,
     };
+  },
+});
+
+export const getMessage = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.messageId);
   },
 });

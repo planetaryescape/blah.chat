@@ -17,6 +17,7 @@ import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
 import { internalAction } from "../../_generated/server";
 import type { KnowledgeSearchResult } from "../../knowledgeBank/search";
+import { LLM_OPERATION_TIMEOUT, withTimeout } from "../../lib/budgetTracker";
 import { buildMemoryRerankPrompt } from "../../lib/prompts/operational/memoryRerank";
 import {
   applyRRF,
@@ -124,14 +125,18 @@ async function rerankSearchResults(
   const prompt = buildMemoryRerankPrompt(query, items);
 
   try {
-    const result = await generateText({
-      model: getModel(MEMORY_RERANK_MODEL.id),
-      prompt,
-      temperature: 0,
-      providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
-        "search-rerank",
-      ]),
-    });
+    const result = await withTimeout(
+      generateText({
+        model: getModel(MEMORY_RERANK_MODEL.id),
+        prompt,
+        temperature: 0,
+        providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
+          "search-rerank",
+        ]),
+      }),
+      LLM_OPERATION_TIMEOUT,
+      "search-rerank",
+    );
 
     // Track usage
     if (result.usage) {
@@ -198,14 +203,18 @@ Use synonyms and related terms. Keep same intent.
 One query per line, no numbering.`;
 
   try {
-    const result = await generateText({
-      model: getModel(MEMORY_RERANK_MODEL.id),
-      prompt,
-      temperature: 0.7,
-      providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
-        "search-expansion",
-      ]),
-    });
+    const result = await withTimeout(
+      generateText({
+        model: getModel(MEMORY_RERANK_MODEL.id),
+        prompt,
+        temperature: 0.7,
+        providerOptions: getGatewayOptions(MEMORY_RERANK_MODEL.id, undefined, [
+          "search-expansion",
+        ]),
+      }),
+      LLM_OPERATION_TIMEOUT,
+      "search-expansion",
+    );
 
     // Track cost (same pattern as reranking)
     if (result.usage) {

@@ -286,6 +286,8 @@ export const ChatMessage = memo(
           isUser ? "justify-end" : "justify-start",
           "[content-visibility:auto]",
           "supports-[content-visibility:auto]:[contain-intrinsic-size:auto_300px]",
+          // Reserve viewport space for generating assistant messages - pushes user message to top
+          !isUser && isGenerating && "min-h-[60vh]",
         )}
       >
         <div className={wrapperClass}>

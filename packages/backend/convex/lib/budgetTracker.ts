@@ -80,6 +80,78 @@ const TOOL_TOKEN_ESTIMATES: Record<string, number> = {
 };
 
 /**
+ * Tool execution timeout constants (ms).
+ * Prevents stuck tool calls from blocking generation.
+ */
+export const TOOL_TIMEOUTS: Record<string, number> = {
+  searchAll: 30000, // 30s - multiple parallel searches
+  searchFiles: 15000,
+  searchNotes: 15000,
+  searchTasks: 15000,
+  searchKnowledgeBank: 15000,
+  queryHistory: 15000,
+  urlReader: 120000, // 2min - external fetch can be slow
+  codeExecution: 120000, // 2min - code execution can take time
+  youtubeVideo: 300000, // 5min - video processing is slow
+  weather: 60000, // 1min - external API
+  calculator: 5000,
+  datetime: 1000,
+  default: 30000,
+};
+
+/**
+ * LLM call timeout for operational tasks (reranking, expansion).
+ */
+export const LLM_OPERATION_TIMEOUT = 15000; // 15s
+
+/**
+ * Custom error for timeout handling.
+ */
+export class TimeoutError extends Error {
+  constructor(
+    public readonly operation: string,
+    public readonly timeoutMs: number,
+  ) {
+    super(`${operation} timed out after ${timeoutMs}ms`);
+    this.name = "TimeoutError";
+  }
+}
+
+/**
+ * Wrap a promise with a wall-clock timeout.
+ * Throws TimeoutError if the promise doesn't resolve in time.
+ */
+export async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operation: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new TimeoutError(operation, timeoutMs));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
+
+/**
+ * Get timeout for a specific tool.
+ */
+export function getToolTimeout(toolName: string): number {
+  return TOOL_TIMEOUTS[toolName] ?? TOOL_TIMEOUTS.default;
+}
+
+/**
  * Create initial budget state for a generation.
  */
 export function createBudgetState(maxTokens: number): BudgetState {

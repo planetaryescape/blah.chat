@@ -78,6 +78,21 @@ interface SearchResponse<T> {
   totalResults?: number;
 }
 
+/** Response type from searchAll action (used for recursive expansion calls) */
+interface SearchAllResponse {
+  success: boolean;
+  results: UnifiedResult[];
+  totalResults: number;
+  quality: QualityResult;
+  searchedSources: string[];
+  earlyReturn: boolean;
+  reranked?: boolean;
+  expanded?: boolean;
+  expandedQueries?: string[];
+  summary?: string;
+  message?: string;
+}
+
 // Unified result type for RRF merging
 interface UnifiedResult {
   _id: string;
@@ -161,6 +176,14 @@ async function rerankSearchResults(
 }
 
 /**
+ * Escape user input for safe inclusion in LLM prompts.
+ * Uses JSON.stringify to escape quotes and control characters.
+ */
+function escapeForPrompt(input: string): string {
+  return JSON.stringify(input);
+}
+
+/**
  * Generate query variations for vocabulary mismatch.
  * Reuses MEMORY_RERANK_MODEL (same cost-effective model).
  */
@@ -169,7 +192,8 @@ async function expandQuery(
   ctx: ActionCtx,
   userId: Id<"users">,
 ): Promise<string[]> {
-  const prompt = `Generate 3 alternative search queries for: "${query}"
+  const safeQuery = escapeForPrompt(query);
+  const prompt = `Generate 3 alternative search queries for: ${safeQuery}
 Use synonyms and related terms. Keep same intent.
 One query per line, no numbering.`;
 
@@ -516,7 +540,7 @@ export const searchAll = internalAction({
 
         // Flatten and merge with RRF (original results weighted higher via position)
         const allExpanded = expandedResults.flatMap(
-          (r: { results?: UnifiedResult[] }) => r.results || [],
+          (r: SearchAllResponse) => r.results || [],
         );
         merged = applyRRF(
           [...merged, ...allExpanded],

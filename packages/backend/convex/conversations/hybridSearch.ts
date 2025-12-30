@@ -1,9 +1,14 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action, internalQuery } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 /**
  * Hybrid search for conversations
@@ -35,10 +40,25 @@ export const hybridSearch = action({
     // 2. Semantic search on recent messages, group by conversation
     try {
       // Generate embedding in ACTION (not query) since it requires network call
+      const tokenCount = estimateTokens(query);
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
         value: query,
       });
+
+      // Track embedding cost
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordEmbedding,
+        {
+          userId: user._id,
+          model: EMBEDDING_PRICING.model,
+          tokenCount,
+          cost: calculateEmbeddingCost(tokenCount),
+          feature: "chat",
+        },
+      );
 
       // Phase 7: Use native vector index (not manual scoring)
       const messageResults = await ctx.vectorSearch(

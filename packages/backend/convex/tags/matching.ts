@@ -9,11 +9,16 @@
 
 import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { levenshteinDistance } from "@/lib/utils/stringUtils";
 import { normalizeTagSlug } from "@/lib/utils/tagUtils";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 import { cosineSimilarity } from "./embeddings";
 
 const EMBEDDING_MODEL = openai.embedding("text-embedding-3-small");
@@ -41,7 +46,7 @@ export interface MatchResult {
 export async function findSimilarTag(
   ctx: ActionCtx,
   candidateTag: string,
-  _userId: Id<"users">,
+  userId: Id<"users">,
   existingTags: Doc<"tags">[],
   embeddingCache: Map<string, number[]>,
 ): Promise<MatchResult> {
@@ -78,10 +83,25 @@ export async function findSimilarTag(
   // ========================================
   try {
     // Generate embedding for candidate tag
+    const tokenCount = estimateTokens(candidateTag);
     const { embedding: candidateEmbed } = await embed({
       model: EMBEDDING_MODEL,
       value: candidateTag,
     });
+
+    // Track embedding cost
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.usage.mutations.recordEmbedding,
+      {
+        userId,
+        model: EMBEDDING_PRICING.model,
+        tokenCount,
+        cost: calculateEmbeddingCost(tokenCount),
+        feature: "notes",
+      },
+    );
 
     // Check similarity against all existing tags
     for (const tag of existingTags) {

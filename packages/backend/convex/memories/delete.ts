@@ -1,9 +1,14 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 /**
  * Memory deletion from AI tool
@@ -52,10 +57,25 @@ export const deleteFromTool = internalAction({
         // Mode 2: Semantic search using vector similarity
         try {
           // Generate embedding for the query
+          const tokenCount = estimateTokens(args.value);
           const embeddingResult = await embed({
             model: EMBEDDING_MODEL,
             value: args.value,
           });
+
+          // Track embedding cost
+          await ctx.scheduler.runAfter(
+            0,
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.usage.mutations.recordEmbedding,
+            {
+              userId: args.userId,
+              model: EMBEDDING_PRICING.model,
+              tokenCount,
+              cost: calculateEmbeddingCost(tokenCount),
+              feature: "memory",
+            },
+          );
 
           // Vector search for similar memories
           const vectorResults = await ctx.vectorSearch(

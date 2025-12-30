@@ -1,10 +1,15 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
 import { isMemoryDuplicate } from "../lib/utils/memory";
+import { estimateTokens } from "../tokens/counting";
 
 /**
  * Save a memory from LLM tool call.
@@ -28,10 +33,25 @@ export const saveFromTool = internalAction({
   }> => {
     try {
       // 1. Generate embedding for the content
+      const tokenCount = estimateTokens(args.content);
       const embeddingResult = await embed({
         model: EMBEDDING_MODEL,
         value: args.content,
       });
+
+      // Track embedding cost
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordEmbedding,
+        {
+          userId: args.userId,
+          model: EMBEDDING_PRICING.model,
+          tokenCount,
+          cost: calculateEmbeddingCost(tokenCount),
+          feature: "memory",
+        },
+      );
 
       // 2. Check for duplicates
       const duplicateCheck = await isMemoryDuplicate(

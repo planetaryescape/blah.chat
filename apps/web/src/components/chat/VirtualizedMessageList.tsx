@@ -32,6 +32,7 @@ interface VirtualizedMessageListProps {
   highlightMessageId?: string;
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
+  onScrollReady?: (ready: boolean) => void;
 }
 
 export function VirtualizedMessageList({
@@ -43,6 +44,7 @@ export function VirtualizedMessageList({
   chatWidth,
   highlightMessageId,
   isCollaborative,
+  onScrollReady,
 }: VirtualizedMessageListProps) {
   const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
     threshold: 100,
@@ -64,8 +66,8 @@ export function VirtualizedMessageList({
   const virtualizer = useVirtualizer({
     count: grouped.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => 400, // Larger estimate reduces layout thrashing: virtualizer reserves more initial space, reducing re-measurements when actual height exceeds estimate
-    overscan: 10, // Increased for smoother scroll with variable-height chat messages
+    estimateSize: () => 800, // Increased for long messages - reduces re-measurements
+    overscan: 5, // Reduced - height reservations prevent layout shift
   });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -75,7 +77,7 @@ export function VirtualizedMessageList({
     grouped,
     virtualizer,
   });
-  useConversationScroll({
+  const { isScrollReady } = useConversationScroll({
     conversationId,
     messageCount: messages?.length ?? 0,
     highlightMessageId,
@@ -83,6 +85,7 @@ export function VirtualizedMessageList({
     virtualizer,
     grouped,
     scrollContainer: containerRef,
+    onScrollReady,
   });
 
   // VirtualizedMessageList should only render when there are messages
@@ -107,6 +110,8 @@ export function VirtualizedMessageList({
             height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
             position: "relative",
+            opacity: isScrollReady ? 1 : 0,
+            transition: "opacity 150ms ease-in-out",
           }}
         >
           {virtualItems.map((virtualItem) => (

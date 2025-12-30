@@ -103,10 +103,11 @@ function ApiKeyCard({
       await onSave(key);
       setKey("");
       toast.success(`${config.label} key saved and validated`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save key",
-      );
+    } catch (error: unknown) {
+      // Handle ConvexError (has data property) vs regular Error
+      const errorObj = error as { data?: string; message?: string };
+      const message = errorObj.data || errorObj.message || "Failed to save key";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -117,10 +118,11 @@ function ApiKeyCard({
     try {
       await onRemove();
       toast.success(`${config.label} key removed`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to remove key",
-      );
+    } catch (error: unknown) {
+      const errorObj = error as { data?: string; message?: string };
+      const message =
+        errorObj.data || errorObj.message || "Failed to remove key";
+      toast.error(message);
     } finally {
       setRemoving(false);
     }
@@ -238,10 +240,11 @@ export function BYOKSettings() {
       try {
         await enableByok();
         toast.success("BYOK enabled! Using your own API keys now.");
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Failed to enable BYOK",
-        );
+      } catch (error: unknown) {
+        const errorObj = error as { data?: string; message?: string };
+        const message =
+          errorObj.data || errorObj.message || "Failed to enable BYOK";
+        toast.error(message);
       }
     } else {
       setShowDisableDialog(true);
@@ -252,10 +255,11 @@ export function BYOKSettings() {
     try {
       await disableByok();
       toast.success("BYOK disabled. Using platform keys now.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to disable BYOK",
-      );
+    } catch (error: unknown) {
+      const errorObj = error as { data?: string; message?: string };
+      const message =
+        errorObj.data || errorObj.message || "Failed to disable BYOK";
+      toast.error(message);
     }
     setShowDisableDialog(false);
   };

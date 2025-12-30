@@ -1,6 +1,6 @@
 "use node";
 
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";
@@ -91,18 +91,29 @@ export const saveApiKey = action({
       {},
     )) as Doc<"users"> | null;
 
-    if (!user) throw new Error("Not authenticated");
+    if (!user) throw new ConvexError("Please sign in to continue");
 
     // Basic format validation
     if (!args.apiKey || args.apiKey.trim().length < 10) {
-      throw new Error("API key is too short");
+      throw new ConvexError(
+        "API key appears to be too short. Please check you've copied the full key.",
+      );
     }
 
     // Validate key against provider (unless skipped)
     if (!args.skipValidation) {
       const validation = await validateApiKey(args.keyType, args.apiKey);
       if (!validation.valid) {
-        throw new Error(validation.error || "Invalid API key");
+        const providerNames: Record<KeyType, string> = {
+          vercelGateway: "Vercel AI Gateway",
+          openRouter: "OpenRouter",
+          groq: "Groq",
+          deepgram: "Deepgram",
+        };
+        throw new ConvexError(
+          validation.error ||
+            `Invalid ${providerNames[args.keyType]} API key. Please check the key is correct.`,
+        );
       }
     }
 
@@ -178,7 +189,7 @@ export const removeApiKey = action({
       {},
     )) as Doc<"users"> | null;
 
-    if (!user) throw new Error("Not authenticated");
+    if (!user) throw new ConvexError("Please sign in to continue");
 
     // Get existing config
     const existing = (await (ctx.runQuery as any)(
@@ -250,7 +261,7 @@ export const revalidateKey = action({
       {},
     )) as Doc<"users"> | null;
 
-    if (!user) throw new Error("Not authenticated");
+    if (!user) throw new ConvexError("Please sign in to continue");
 
     // Get existing config
     const existing = (await (ctx.runQuery as any)(
@@ -259,7 +270,7 @@ export const revalidateKey = action({
       { userId: user._id },
     )) as Doc<"userApiKeys"> | null;
 
-    if (!existing) throw new Error("No BYOK config found");
+    if (!existing) throw new ConvexError("No API keys configured yet");
 
     // Get the encrypted key and decrypt it
     const { decryptCredential } = await import("../lib/encryption");
@@ -285,8 +296,16 @@ export const revalidateKey = action({
       deepgram: 3,
     };
 
+    const providerNames: Record<KeyType, string> = {
+      vercelGateway: "Vercel AI Gateway",
+      openRouter: "OpenRouter",
+      groq: "Groq",
+      deepgram: "Deepgram",
+    };
+
     const encryptedKey = existing[fieldMap[args.keyType]];
-    if (!encryptedKey) throw new Error(`No ${args.keyType} key configured`);
+    if (!encryptedKey)
+      throw new ConvexError(`No ${providerNames[args.keyType]} key configured`);
 
     const ivParts = existing.encryptionIVs?.split(":") || [];
     const authTagParts = existing.authTags?.split(":") || [];
@@ -295,14 +314,18 @@ export const revalidateKey = action({
     const iv = ivParts[idx];
     const authTag = authTagParts[idx];
 
-    if (!iv || !authTag) throw new Error("Missing encryption metadata");
+    if (!iv || !authTag)
+      throw new ConvexError("Unable to decrypt key. Please re-add it.");
 
     // Decrypt and validate
     const apiKey = await decryptCredential(encryptedKey, iv, authTag);
     const validation = await validateApiKey(args.keyType, apiKey);
 
     if (!validation.valid) {
-      throw new Error(validation.error || "API key is no longer valid");
+      throw new ConvexError(
+        validation.error ||
+          `${providerNames[args.keyType]} API key is no longer valid`,
+      );
     }
 
     // Update last validated timestamp

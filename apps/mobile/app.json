@@ -17,6 +17,9 @@
       "bundleIdentifier": "chat.blah.app",
       "supportsTablet": true,
       "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "blah.chat needs camera access to send photos",
         "NSPhotoLibraryUsageDescription": "blah.chat needs photo library access to attach images",
@@ -38,6 +41,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-apple-authentication",
+      "expo-blur",
       [
         "expo-image-picker",
         {

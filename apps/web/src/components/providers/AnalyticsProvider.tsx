@@ -1,8 +1,25 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 import { analytics, initAnalytics } from "@/lib/analytics";
+
+function PageViewTracker() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (pathname) {
+      const url = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
+      analytics.pageview(url);
+    }
+  }, [pathname, searchParams]);
+
+  return null;
+}
 
 /**
  * Analytics provider that initializes PostHog on mount
@@ -32,5 +49,12 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     user?.createdAt,
   ]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <PageViewTracker />
+      </Suspense>
+      {children}
+    </>
+  );
 }

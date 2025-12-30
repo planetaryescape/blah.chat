@@ -598,6 +598,18 @@ interface AnalyticsEvent {
   model_usage_filtered: {
     model: string;
   };
+  embedding_generated: {
+    feature: string;
+    tokenCount: number;
+    costUsd: number;
+  };
+  ai_operation_completed: {
+    operationType: "text" | "embedding" | "image" | "tts" | "stt";
+    model: string;
+    feature: string;
+    costUsd: number;
+    durationMs?: number;
+  };
 
   // === FEEDBACK (4 events) ===
   feedback_submitted: {

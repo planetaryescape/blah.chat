@@ -51,8 +51,16 @@ export function useMessageCacheSync({
     api.conversations.actions.triggerAutoRename,
   );
 
+  // Track whether auto-rename has been triggered for the current conversation
+  const autoRenameTriggeredRef = useRef<Id<"conversations"> | null>(null);
+
   useEffect(() => {
     if (!conversationId || !convexMessages.results?.length) return;
+
+    // Only trigger once per conversation
+    if (autoRenameTriggeredRef.current === conversationId) return;
+    autoRenameTriggeredRef.current = conversationId;
+
     triggerAutoRename({ conversationId }).catch(() => {});
   }, [conversationId, convexMessages.results?.length, triggerAutoRename]);
 

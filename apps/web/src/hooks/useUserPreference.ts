@@ -2,13 +2,15 @@
  * Phase 4: User Preferences React Hooks
  *
  * Custom hooks for accessing user preferences from the flat key-value table.
- * Uses Dexie cache for instant reads, synced from single Convex subscription.
+ * Provides reactivity and automatic fallback to defaults.
+ * Uses Dexie cache for instant reads, synced from Convex.
  */
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
 import { useQuery } from "convex/react";
-import { usePreferenceCacheSync } from "./useCacheSync";
+import { useLiveQuery } from "dexie-react-hooks";
+import { cache } from "@/lib/cache";
 
 /**
  * Get a single user preference by key
@@ -23,11 +25,20 @@ import { usePreferenceCacheSync } from "./useCacheSync";
 export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
   key: K,
 ): (typeof PREFERENCE_DEFAULTS)[K] {
-  const { preferences } = usePreferenceCacheSync();
-  return (
-    (preferences[key] as (typeof PREFERENCE_DEFAULTS)[K]) ??
-    PREFERENCE_DEFAULTS[key]
+  // @ts-ignore - Type depth exceeded with Convex modules
+  const convexValue = useQuery(api.users.getUserPreference, { key });
+
+  const cachedPreferences = useLiveQuery(
+    () => cache.userPreferences.get("current"),
+    [],
+    null,
   );
+
+  // Prefer cached, fall back to convex, then defaults
+  if (cachedPreferences?.data?.[key] !== undefined) {
+    return cachedPreferences.data[key] as (typeof PREFERENCE_DEFAULTS)[K];
+  }
+  return convexValue ?? PREFERENCE_DEFAULTS[key];
 }
 
 /**
@@ -40,8 +51,10 @@ export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
  * console.log(preferences.theme, preferences.defaultModel);
  */
 export function useUserPreferences() {
-  const { preferences } = usePreferenceCacheSync();
-  return preferences;
+  // @ts-ignore - Type depth exceeded with Convex modules
+  const preferences = useQuery(api.users.getAllUserPreferences);
+
+  return preferences ?? PREFERENCE_DEFAULTS;
 }
 
 /**

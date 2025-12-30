@@ -7,7 +7,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { AlertCircle, FileText, Sparkles } from "lucide-react-native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -25,16 +25,22 @@ import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { formatSize, getFileTypeColor } from "@/lib/utils/fileUtils";
+import { ComparisonView } from "./ComparisonView";
 import { MessageEditMode } from "./MessageEditMode";
 import { MessageInlineActions } from "./MessageInlineActions";
 import { RegenerateModal } from "./RegenerateModal";
-import { ShimmerLoader } from "./ShimmerLoader";
 import {
   ScrollToBottomButton,
   useScrollToBottom,
 } from "./ScrollToBottomButton";
+import { ShimmerLoader } from "./ShimmerLoader";
 
 type Message = Doc<"messages">;
+
+// Union type for list items: either a single message or a comparison group
+type ListItem =
+  | { type: "message"; message: Message }
+  | { type: "comparison"; groupId: string; messages: Message[] };
 
 interface MessageListProps {
   messages: Message[];
@@ -172,6 +178,45 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
   const createNote = useMutation(api.notes.create);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const createBookmark = useMutation(api.bookmarks.create);
+
+  // Process messages to group comparison messages together
+  const listItems = useMemo((): ListItem[] => {
+    const items: ListItem[] = [];
+    const processedGroupIds = new Set<string>();
+
+    for (const msg of messages) {
+      // Cast via any to access comparisonGroupId field
+      const groupId = (msg as any).comparisonGroupId as string | undefined;
+
+      if (groupId) {
+        // Skip if already processed this group
+        if (processedGroupIds.has(groupId)) continue;
+        processedGroupIds.add(groupId);
+
+        // Find all messages in this comparison group
+        const groupMessages = messages.filter(
+          (m) =>
+            ((m as any).comparisonGroupId as string | undefined) === groupId,
+        );
+
+        // If multiple messages in group, treat as comparison
+        if (groupMessages.length > 1) {
+          items.push({
+            type: "comparison",
+            groupId,
+            messages: groupMessages,
+          });
+        } else {
+          // Single message with groupId, render normally
+          items.push({ type: "message", message: msg });
+        }
+      } else {
+        items.push({ type: "message", message: msg });
+      }
+    }
+
+    return items;
+  }, [messages]);
 
   const getContextMenuActions = useCallback((msg: Message) => {
     const isUser = msg.role === "user";
@@ -319,7 +364,7 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     listRef.current?.scrollToOffset?.({ offset: 0, animated: true });
   }, []);
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderSingleMessage = (item: Message) => {
     const isUser = item.role === "user";
     const displayContent = item.partialContent || item.content || "";
     const isGenerating = item.status === "generating";
@@ -418,15 +463,31 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     );
   };
 
+  const renderItem = ({ item }: { item: ListItem }) => {
+    if (item.type === "comparison") {
+      return (
+        <ComparisonView
+          messages={item.messages}
+          comparisonGroupId={item.groupId}
+          showModelNames={true}
+        />
+      );
+    }
+    return renderSingleMessage(item.message);
+  };
+
   // Cast FlashList props to avoid type issues with inverted prop
   const flashListProps = {
     ref: listRef,
-    data: messages,
-    renderItem: renderMessage,
+    data: listItems,
+    renderItem,
     inverted: true,
     estimatedItemSize: 120,
     contentContainerStyle: styles.listContent,
-    keyExtractor: (item: Message) => item._id,
+    keyExtractor: (item: ListItem) =>
+      item.type === "comparison"
+        ? `comparison-${item.groupId}`
+        : item.message._id,
     keyboardShouldPersistTaps: "handled" as const,
     onScroll: handleScroll,
     scrollEventThrottle: 16,

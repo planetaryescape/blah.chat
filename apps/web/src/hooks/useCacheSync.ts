@@ -102,9 +102,18 @@ export function useMessageCacheSync({
   const results = isConversationChanging ? undefined : validatedMessages;
 
   // Determine loading states (compatible with useStableMessages)
+  // isFirstLoad should be true when:
+  // 1. Convex is still loading (LoadingFirstPage) OR
+  // 2. Cache is still empty/loading (results undefined) OR
+  // 3. Convex has data but cache hasn't synced yet (mismatch in lengths)
+  const hasConvexData =
+    convexMessages.results && convexMessages.results.length > 0;
+  const hasCacheData = results && results.length > 0;
+  const isSyncInProgress = hasConvexData && !hasCacheData; // Convex loaded but cache not synced
+  const isConvexStillLoading = convexMessages.status === "LoadingFirstPage";
+
   const isFirstLoad =
-    convexMessages.results === undefined &&
-    (results === undefined || results.length === 0);
+    isConvexStillLoading || results === undefined || isSyncInProgress;
 
   return {
     results,

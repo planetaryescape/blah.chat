@@ -1,25 +1,78 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery } from "convex/react";
-import * as Haptics from "expo-haptics";
 import { Stack } from "expo-router";
 import { Brain, Search, Trash2 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from "react-native-reanimated";
 import { MemoryCard } from "@/components/memories/MemoryCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SwipeableRow } from "@/components/ui/SwipeableRow";
+import { haptics } from "@/lib/haptics";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// Animated chip with bounce effect
+function AnimatedChip({
+  label,
+  isActive,
+  onPress,
+  style,
+  textStyle,
+  activeStyle,
+  activeTextStyle,
+}: {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+  style: object;
+  textStyle: object;
+  activeStyle?: object;
+  activeTextStyle?: object;
+}) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePress = () => {
+    scale.value = withSequence(
+      withSpring(0.92, { damping: 15, stiffness: 400 }),
+      withSpring(1, { damping: 12, stiffness: 300 }),
+    );
+    haptics.selection();
+    onPress();
+  };
+
+  return (
+    <AnimatedPressable
+      style={[style, isActive && activeStyle, animatedStyle]}
+      onPress={handlePress}
+    >
+      <Text style={[textStyle, isActive && activeTextStyle]}>{label}</Text>
+    </AnimatedPressable>
+  );
+}
 
 type Memory = Doc<"memories">;
 
@@ -65,7 +118,7 @@ export default function MemoriesScreen() {
           onPress: async () => {
             try {
               await deleteMemory({ id: memoryId as any });
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              haptics.success();
             } catch (error) {
               console.error("Failed to delete:", error);
             }
@@ -88,7 +141,7 @@ export default function MemoriesScreen() {
           onPress: async () => {
             try {
               await deleteAllMemories({});
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              haptics.success();
             } catch (error) {
               console.error("Failed to delete all:", error);
             }
@@ -100,7 +153,9 @@ export default function MemoriesScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Memory }) => (
-      <MemoryCard memory={item} onDelete={() => handleDelete(item._id)} />
+      <SwipeableRow onDelete={() => handleDelete(item._id)}>
+        <MemoryCard memory={item} onDelete={() => handleDelete(item._id)} />
+      </SwipeableRow>
     ),
     [handleDelete],
   );
@@ -147,26 +202,16 @@ export default function MemoriesScreen() {
       <View style={styles.filtersContainer}>
         <View style={styles.categoryRow}>
           {CATEGORIES.map((cat) => (
-            <TouchableOpacity
+            <AnimatedChip
               key={cat.label}
-              style={[
-                styles.categoryChip,
-                category === cat.value && styles.categoryChipActive,
-              ]}
-              onPress={() => {
-                setCategory(cat.value);
-                Haptics.selectionAsync();
-              }}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  category === cat.value && styles.categoryChipTextActive,
-                ]}
-              >
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
+              label={cat.label}
+              isActive={category === cat.value}
+              onPress={() => setCategory(cat.value)}
+              style={styles.categoryChip}
+              textStyle={styles.categoryChipText}
+              activeStyle={styles.categoryChipActive}
+              activeTextStyle={styles.categoryChipTextActive}
+            />
           ))}
         </View>
 
@@ -174,26 +219,16 @@ export default function MemoriesScreen() {
         <View style={styles.sortRow}>
           <Text style={styles.sortLabel}>Sort by:</Text>
           {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
+            <AnimatedChip
               key={opt.value}
-              style={[
-                styles.sortChip,
-                sortBy === opt.value && styles.sortChipActive,
-              ]}
-              onPress={() => {
-                setSortBy(opt.value);
-                Haptics.selectionAsync();
-              }}
-            >
-              <Text
-                style={[
-                  styles.sortChipText,
-                  sortBy === opt.value && styles.sortChipTextActive,
-                ]}
-              >
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
+              label={opt.label}
+              isActive={sortBy === opt.value}
+              onPress={() => setSortBy(opt.value)}
+              style={styles.sortChip}
+              textStyle={styles.sortChipText}
+              activeStyle={styles.sortChipActive}
+              activeTextStyle={styles.sortChipTextActive}
+            />
           ))}
         </View>
       </View>
@@ -209,8 +244,9 @@ export default function MemoriesScreen() {
         <FlashList
           data={memories}
           renderItem={renderItem}
-          estimatedItemSize={140}
           keyExtractor={(item) => item._id}
+          // @ts-ignore - FlashList estimatedItemSize prop
+          estimatedItemSize={140}
           contentContainerStyle={styles.listContent}
         />
       )}

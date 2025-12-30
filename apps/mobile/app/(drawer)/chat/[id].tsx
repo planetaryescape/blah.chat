@@ -7,15 +7,18 @@ import {
 import { useAction, useMutation, useQuery } from "convex/react";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams } from "expo-router";
+import { PanelRightOpen } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { CanvasDrawer } from "@/components/canvas/CanvasDrawer";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { MessageList } from "@/components/chat/MessageList";
 import { ModelSelector } from "@/components/chat/ModelSelector";
@@ -32,6 +35,7 @@ export default function ChatScreen() {
   const modelSelectorRef = useRef<BottomSheetModal>(null);
   const [selectedModel, setSelectedModel] = useState<string | undefined>();
   const [isRecording, setIsRecording] = useState(false);
+  const [canvasVisible, setCanvasVisible] = useState(false);
 
   const prevMessagesRef = useRef<Message[]>([]);
 
@@ -154,6 +158,17 @@ export default function ChatScreen() {
           title: conversation.title || "Chat",
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.foreground,
+          headerRight: () => (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => {
+                setCanvasVisible(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <PanelRightOpen size={22} color={colors.foreground} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <KeyboardAvoidingView
@@ -186,6 +201,12 @@ export default function ChatScreen() {
         selectedModel={selectedModel || conversation.model}
         onSelect={handleModelSelect}
       />
+
+      <CanvasDrawer
+        conversationId={conversationId}
+        visible={canvasVisible}
+        onClose={() => setCanvasVisible(false)}
+      />
     </BottomSheetModalProvider>
   );
 }
@@ -194,6 +215,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerButton: {
+    padding: 8,
+    marginRight: 4,
   },
   loadingContainer: {
     flex: 1,

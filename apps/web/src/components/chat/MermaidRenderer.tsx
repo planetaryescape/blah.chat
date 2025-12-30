@@ -59,6 +59,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         mermaid.initialize({
           startOnLoad: false,
           theme: "base",
+          suppressErrorRendering: true, // Handle errors manually with custom UI
         });
         mermaidInitialized = true;
       }
@@ -98,6 +99,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         mermaid.initialize({
           startOnLoad: false,
           theme,
+          suppressErrorRendering: true, // Handle errors manually with custom UI
           themeVariables: themeVars,
           flowchart: config?.flowchart || {
             nodeSpacing: 50,
@@ -123,7 +125,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         const { svg: renderedSvg } = await mermaid.render(id, code);
         setSvg(renderedSvg);
       } catch (err) {
-        console.error("[MermaidRenderer] Render error:", err);
+        // Error is caught - show clean error UI (suppressErrorRendering prevents error SVG)
         setError(
           err instanceof Error ? err.message : "Failed to render diagram",
         );

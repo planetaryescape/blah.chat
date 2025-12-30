@@ -77,7 +77,7 @@ export function VirtualizedMessageList({
     count: grouped.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => 400, // Larger estimate reduces layout thrashing: virtualizer reserves more initial space, reducing re-measurements when actual height exceeds estimate
-    overscan: 5, // Reduced - height reservations prevent layout shift
+    overscan: 10, // Increased for smoother scroll with variable-height chat messages
   });
 
   const virtualItems = virtualizer.getVirtualItems();

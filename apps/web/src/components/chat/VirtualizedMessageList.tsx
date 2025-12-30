@@ -77,7 +77,7 @@ export function VirtualizedMessageList({
     grouped,
     virtualizer,
   });
-  const { isScrollReady } = useConversationScroll({
+  useConversationScroll({
     conversationId,
     messageCount: messages?.length ?? 0,
     highlightMessageId,
@@ -110,8 +110,6 @@ export function VirtualizedMessageList({
             height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
             position: "relative",
-            opacity: isScrollReady ? 1 : 0,
-            transition: "opacity 150ms ease-in-out",
           }}
         >
           {virtualItems.map((virtualItem) => (

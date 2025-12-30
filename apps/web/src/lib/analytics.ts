@@ -12,7 +12,7 @@ export function initAnalytics() {
   }
 
   posthog.init(apiKey, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "/ingest",
+    api_host: "/ingest", // Reverse proxy - bypasses ad blockers
     ui_host: "https://eu.posthog.com",
     person_profiles: "identified_only",
     capture_pageview: false, // We'll manually capture pageviews

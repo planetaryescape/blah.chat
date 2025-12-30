@@ -16,7 +16,9 @@ function PageViewTracker() {
         : pathname;
       analytics.pageview(url);
     }
-  }, [pathname, searchParams]);
+    // Only track on pathname changes, not query param changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return null;
 }

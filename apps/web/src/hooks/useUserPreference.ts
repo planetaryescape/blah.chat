@@ -2,12 +2,13 @@
  * Phase 4: User Preferences React Hooks
  *
  * Custom hooks for accessing user preferences from the flat key-value table.
- * Provides reactivity and automatic fallback to defaults.
+ * Uses Dexie cache for instant reads, synced from single Convex subscription.
  */
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
 import { useQuery } from "convex/react";
+import { usePreferenceCacheSync } from "./useCacheSync";
 
 /**
  * Get a single user preference by key
@@ -22,10 +23,11 @@ import { useQuery } from "convex/react";
 export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
   key: K,
 ): (typeof PREFERENCE_DEFAULTS)[K] {
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const value = useQuery(api.users.getUserPreference, { key });
-
-  return value ?? PREFERENCE_DEFAULTS[key];
+  const { preferences } = usePreferenceCacheSync();
+  return (
+    (preferences[key] as (typeof PREFERENCE_DEFAULTS)[K]) ??
+    PREFERENCE_DEFAULTS[key]
+  );
 }
 
 /**
@@ -38,10 +40,8 @@ export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
  * console.log(preferences.theme, preferences.defaultModel);
  */
 export function useUserPreferences() {
-  // @ts-ignore - Type depth exceeded with Convex modules
-  const preferences = useQuery(api.users.getAllUserPreferences);
-
-  return preferences ?? PREFERENCE_DEFAULTS;
+  const { preferences } = usePreferenceCacheSync();
+  return preferences;
 }
 
 /**
@@ -55,6 +55,7 @@ export function useUserPreferences() {
  * console.log(audioPrefs.ttsEnabled, audioPrefs.ttsVoice);
  */
 export function useUserPreferencesByCategory(category: string) {
+  // Keep direct query - category filtering happens server-side
   // @ts-ignore - Type depth exceeded with Convex modules
   const prefs = useQuery(api.users.getUserPreferencesByCategory, { category });
 

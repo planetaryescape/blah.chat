@@ -89,7 +89,12 @@ export const generateTitle = internalAction({
         // @ts-ignore - TypeScript recursion limit with helper queries
         internal.lib.helpers.getConversation,
         { id: args.conversationId },
-      )) as { userId: Id<"users"> } | null;
+      )) as { userId: Id<"users">; title: string; incognito?: boolean } | null;
+
+      // Early return if already renamed or incognito
+      if (!conversation) return;
+      if (conversation.title !== "New Chat") return;
+      if (conversation.incognito) return;
 
       // Get all messages in conversation
       const messages = (await (ctx.runQuery as any)(

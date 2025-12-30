@@ -22,6 +22,7 @@ import { MODEL_CATEGORIES } from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
+import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
@@ -56,15 +57,24 @@ export function QuickModelSwitcher({
 
   const prefDefaultModel = useUserPreference("defaultModel");
 
+  // BYOK check for OpenRouter models
+  const { isModelDisabledByByok, getByokModelDisabledMessage } =
+    useApiKeyValidation();
+
   // Pro model detection (explicit flag OR price threshold)
   const isProModel = (model: ModelConfig) =>
     model.isPro === true ||
     (model.pricing?.input ?? 0) >= 5 ||
     (model.pricing?.output ?? 0) >= 15;
 
+  // Check if model is disabled by BYOK (missing OpenRouter key)
+  const isByokDisabled = (model: ModelConfig) =>
+    isModelDisabledByByok(model.gateway || "");
+
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>
-    isProModel(model) && proAccess && !proAccess.canUse;
+    (isProModel(model) && proAccess && !proAccess.canUse) ||
+    isByokDisabled(model);
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -181,6 +191,19 @@ export function QuickModelSwitcher({
 
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
     const disabled = isModelDisabled(model);
+    const byokDisabled = isByokDisabled(model);
+
+    const handleDisabledClick = () => {
+      if (byokDisabled) {
+        // Show toast for BYOK-disabled models
+        const message = getByokModelDisabledMessage(model.gateway || "");
+        toast.error(message || "This model requires an API key");
+      } else {
+        // Show upgrade dialog for pro models
+        setUpgradeDialogOpen(true);
+      }
+    };
+
     return (
       <ModelSelectorItem
         key={model.id}
@@ -194,7 +217,7 @@ export function QuickModelSwitcher({
         mode={mode}
         showDefaultBadge={showDefaultBadge}
         activeCategory={activeCategory}
-        onSelect={disabled ? () => setUpgradeDialogOpen(true) : handleSelect}
+        onSelect={disabled ? handleDisabledClick : handleSelect}
         onToggleFavorite={toggleFavorite}
         isPro={isProModel(model)}
         proAccessRemaining={

@@ -486,7 +486,7 @@ export const getNote = query({
 /**
  * List all notes for current user (sorted by updated date)
  */
-export const listNotes = query({
+export const list = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -498,6 +498,9 @@ export const listNotes = query({
       .take(100); // Limit to most recent 100
   },
 });
+
+// Backward compatibility alias
+export const listNotes = list;
 
 export const getNotesFromMessage = query({
   args: {

@@ -106,7 +106,7 @@ export const saveApiKey = action({
     // Basic format validation
     if (!args.apiKey || args.apiKey.trim().length < 10) {
       throw new ConvexError(
-        "API key appears to be too short. Please check you've copied the full key.",
+        "API key must be at least 10 characters. Please check you've copied the full key.",
       );
     }
 

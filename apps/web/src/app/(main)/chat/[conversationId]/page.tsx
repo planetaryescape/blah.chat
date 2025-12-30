@@ -147,6 +147,8 @@ function ChatPageContent({
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
+  const [isScrollReady, setIsScrollReady] = useState(false);
+  const prevMessageCountRef = useRef(0);
 
   // Ref for infinite scroll at top of message list
   const messageListTopRef = useRef<HTMLDivElement | null>(null);
@@ -241,9 +243,48 @@ function ChatPageContent({
       filteredConversations,
     });
 
-  const isLoading = isChatWidthLoading;
+  const isChatWidthLoading = rawChatWidth === undefined;
+  const isLoading = isChatWidthLoading || messages === undefined;
+  const showSkeleton = isLoading || !isScrollReady;
   const isEmpty =
-    !isLoading && !isFirstLoad && messages && messages.length === 0;
+    !isLoading &&
+    !isFirstLoad &&
+    messages &&
+    messages.length === 0 &&
+    paginationStatus !== "LoadingFirstPage"; // Don't show empty during initial pagination load
+
+  // Reset scroll ready state when conversation changes
+  useEffect(() => {
+    setIsScrollReady(false);
+    prevMessageCountRef.current = 0;
+  }, [conversationId]);
+
+  // Set scroll ready when conversation is empty (no messages to scroll to)
+  // Also keep it ready when transitioning from empty to first message (no need to hide)
+  useEffect(() => {
+    const prevCount = prevMessageCountRef.current;
+    const currentCount = messages?.length ?? 0;
+    prevMessageCountRef.current = currentCount;
+
+    if (!isLoading && isEmpty) {
+      setIsScrollReady(true);
+      return;
+    }
+
+    // When transitioning from empty (0 msgs) to first message, stay ready (no skeleton flash)
+    // But only if we already had isEmpty = true (was actually empty, not loading)
+    // This prevents triggering on page load when messages go from undefined to loaded
+    if (
+      !isLoading &&
+      prevCount === 0 &&
+      currentCount > 0 &&
+      currentCount <= 2
+    ) {
+      // Only for very first messages (1-2), not when loading existing conversation
+      setIsScrollReady(true);
+      return;
+    }
+  }, [isLoading, isEmpty, messages]);
 
   // Autofocus input when navigating to conversation (after loading completes)
   useEffect(() => {
@@ -285,18 +326,24 @@ function ChatPageContent({
 
             <TTSPlayerBar />
 
-            <AnimatePresence mode="popLayout">
-              {isLoading ? (
-                <motion.div
-                  key="skeleton"
-                  className="flex-1 flex flex-col min-h-0"
-                  initial={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <MessageListSkeleton chatWidth={chatWidth} />
-                </motion.div>
-              ) : (
+            <div className="flex-1 flex flex-col min-h-0 relative">
+              {/* Skeleton overlay - shows while loading or scroll positioning */}
+              <AnimatePresence>
+                {showSkeleton && (
+                  <motion.div
+                    key="skeleton-overlay"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute inset-0 z-10 bg-background"
+                  >
+                    <MessageListSkeleton chatWidth={chatWidth} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Message content - always rendered when loaded */}
+              {!isLoading && (
                 <motion.div
                   key={`messages-${conversationId}`}
                   initial={{ opacity: 0 }}
@@ -357,6 +404,7 @@ function ChatPageContent({
                         showModelNames={showModelNames ?? false}
                         highlightMessageId={highlightMessageId}
                         isCollaborative={conversation?.isCollaborative}
+                        onScrollReady={setIsScrollReady}
                       />
                     </div>
                   )}
@@ -458,7 +506,7 @@ function ChatPageContent({
                   </div>
                 </motion.div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </ResizablePanel>
 

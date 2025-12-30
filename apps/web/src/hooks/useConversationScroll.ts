@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GroupedItem } from "@/hooks/useMessageGrouping";
 
 interface Message {
@@ -17,6 +17,11 @@ interface UseConversationScrollOptions {
   virtualizer: any;
   grouped: GroupedItem[];
   scrollContainer?: React.RefObject<HTMLDivElement | null>;
+  onScrollReady?: (ready: boolean) => void;
+}
+
+interface UseConversationScrollReturn {
+  isScrollReady: boolean;
 }
 
 /** Scrolls to bottom on conversation switch, and to new user message on send */
@@ -28,9 +33,12 @@ export function useConversationScroll({
   virtualizer,
   grouped,
   scrollContainer,
-}: UseConversationScrollOptions): void {
-  const lastScrolledConversationRef = useRef<string | null>(null);
+  onScrollReady,
+}: UseConversationScrollOptions): UseConversationScrollReturn {
+  const lastScrolledConversationRef = useRef<string | undefined>(undefined);
   const prevMessageCountRef = useRef(messageCount);
+  const [isScrollReady, setIsScrollReady] = useState(false);
+  const isInitialMountRef = useRef(true);
 
   // Refs to avoid stale closures - effect deps stay minimal
   const virtualizerRef = useRef(virtualizer);
@@ -39,33 +47,134 @@ export function useConversationScroll({
   groupedRef.current = grouped;
 
   // Scroll to bottom on conversation switch
+  // Only depend on conversationId to minimize re-runs
   useEffect(() => {
-    if (highlightMessageId || !conversationId || messageCount === 0) return;
+    if (!conversationId) return;
 
-    const lastIndex = groupedRef.current.length - 1;
-    if (lastIndex < 0) return;
+    // Only scroll if conversation actually changed
+    const isConversationChanged =
+      lastScrolledConversationRef.current !== conversationId;
 
-    // Skip if already scrolled for this conversation
-    if (lastScrolledConversationRef.current === conversationId) return;
-    lastScrolledConversationRef.current = conversationId;
+    if (!isConversationChanged) {
+      setIsScrollReady(true); // Already scrolled, show content
+      onScrollReady?.(true);
+      isInitialMountRef.current = false;
+      return;
+    }
 
-    // Use double rAF to wait for layout to stabilize after virtualizer measures items
+    // If no messages yet (empty conversation), mark as ready immediately
+    // Check both messageCount and groupedRef for accuracy
+    if (messageCount === 0 || groupedRef.current.length === 0) {
+      lastScrolledConversationRef.current = conversationId;
+      setIsScrollReady(true);
+      onScrollReady?.(true);
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    // On initial mount with messages (first message just sent), don't hide content
+    // The parent component already handled the transition from empty state
+    if (isInitialMountRef.current && messageCount <= 2) {
+      lastScrolledConversationRef.current = conversationId;
+      setIsScrollReady(true);
+      onScrollReady?.(true);
+      isInitialMountRef.current = false;
+
+      // Still scroll to bottom, just don't hide content
+      setTimeout(() => {
+        const currentLastIndex = groupedRef.current.length - 1;
+        if (currentLastIndex >= 0) {
+          virtualizerRef.current?.scrollToIndex(currentLastIndex, {
+            align: "end",
+            behavior: "auto",
+          });
+        }
+      }, 100);
+      return;
+    }
+
+    // Hide content while scrolling to new conversation
+    setIsScrollReady(false);
+    onScrollReady?.(false);
+    isInitialMountRef.current = false;
+
+    // Use virtualizer's scrollToIndex for reliable scrolling with virtual lists
+    let attempts = 0;
+    const maxAttempts = 15;
+    const minAttempts = 5; // Force minimum attempts to handle measurement lag
+    let isScrolling = true;
+
     const scrollToEnd = () => {
-      const container = scrollContainer?.current;
-      if (!container) return;
+      if (!isScrolling) return;
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          container.scrollTop = container.scrollHeight;
-        });
+      const container = scrollContainer?.current;
+      if (!container) {
+        timeoutId = setTimeout(scrollToEnd, 100);
+        return;
+      }
+
+      const currentLastIndex = groupedRef.current.length - 1;
+      if (currentLastIndex < 0) {
+        timeoutId = setTimeout(scrollToEnd, 100);
+        return;
+      }
+
+      // Use virtualizer's totalSize for accurate measurement (not DOM scrollHeight)
+      const virtualizerTotalSize = virtualizerRef.current?.getTotalSize() || 0;
+      const containerHeight = container.clientHeight;
+      const scrollTop = container.scrollTop;
+
+      // Calculate distance using virtualizer's measured total size
+      const distanceFromBottom = Math.max(
+        0,
+        virtualizerTotalSize - scrollTop - containerHeight,
+      );
+      const isAtBottom = distanceFromBottom < 10;
+
+      // Scroll to last item
+      virtualizerRef.current?.scrollToIndex(currentLastIndex, {
+        align: "end",
+        behavior: "auto",
       });
+
+      attempts++;
+
+      // Force minimum attempts to handle virtualizer measurement lag
+      if (attempts < minAttempts) {
+        timeoutId = setTimeout(scrollToEnd, 150);
+        return;
+      }
+
+      // After minimum attempts, stop if at bottom
+      if (isAtBottom) {
+        lastScrolledConversationRef.current = conversationId;
+        isScrolling = false;
+        setIsScrollReady(true); // Show content now that we're scrolled
+        onScrollReady?.(true);
+        return;
+      }
+
+      // Stop if reached max attempts
+      if (attempts >= maxAttempts) {
+        lastScrolledConversationRef.current = conversationId;
+        isScrolling = false;
+        setIsScrollReady(true); // Show content even if not perfectly scrolled
+        onScrollReady?.(true);
+        return;
+      }
+
+      // Continue retrying
+      timeoutId = setTimeout(scrollToEnd, 150);
     };
 
-    // Initial delay for virtualizer to set up, then double rAF for measurement
-    const timeoutId = setTimeout(scrollToEnd, 100);
+    // Start scrolling after delay to let items render
+    let timeoutId = setTimeout(scrollToEnd, 150);
 
-    return () => clearTimeout(timeoutId);
-  }, [conversationId, highlightMessageId, messageCount, scrollContainer]);
+    return () => {
+      isScrolling = false;
+      clearTimeout(timeoutId);
+    };
+  }, [conversationId, scrollContainer]); // Only conversationId - messageCount handled by ref
 
   // Scroll user message to top of viewport on send (ChatGPT-style UX)
   useEffect(() => {
@@ -97,4 +206,6 @@ export function useConversationScroll({
       });
     }
   }, [messages, messageCount]);
+
+  return { isScrollReady };
 }

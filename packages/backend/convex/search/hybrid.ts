@@ -1,10 +1,15 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { api, internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";
 import { mergeMessagesWithRRF } from "../lib/utils/search";
+import { estimateTokens } from "../tokens/counting";
 
 /**
  * Hybrid search using RRF (Reciprocal Rank Fusion)
@@ -57,10 +62,25 @@ export const hybridSearch = action({
     }
 
     try {
+      const tokenCount = estimateTokens(args.query);
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
         value: args.query,
       });
+
+      // Track embedding cost
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordEmbedding,
+        {
+          userId: user._id,
+          model: EMBEDDING_PRICING.model,
+          tokenCount,
+          cost: calculateEmbeddingCost(tokenCount),
+          feature: "chat",
+        },
+      );
 
       // Phase 7: Use native vector index (not manual scoring)
       const vectorResults = await ctx.vectorSearch("messages", "by_embedding", {

@@ -1,12 +1,18 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
 const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
@@ -26,6 +32,7 @@ export const generateEmbedding = internalAction({
       internal.presentations.internal.getPresentationInternal,
       { presentationId: args.presentationId },
     )) as {
+      userId: Id<"users">;
       title: string;
       description?: string;
       currentOutlineVersion?: number;
@@ -69,11 +76,27 @@ export const generateEmbedding = internalAction({
           ? textToEmbed.slice(0, MAX_EMBEDDING_CHARS)
           : textToEmbed;
 
+      const tokenCount = estimateTokens(contentToEmbed);
+
       // Generate embedding
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
         value: contentToEmbed,
       });
+
+      // Track embedding cost
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordEmbedding,
+        {
+          userId: presentation.userId,
+          model: EMBEDDING_PRICING.model,
+          tokenCount,
+          cost: calculateEmbeddingCost(tokenCount),
+          feature: "slides",
+        },
+      );
 
       // Store embedding
       await (ctx.runMutation as any)(

@@ -3,13 +3,16 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
+  calculateEmbeddingCost,
   EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
   MEMORY_PROCESSING_MODEL,
 } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 const rephrasedMemorySchema = z.object({
   content: z.string(),
@@ -99,10 +102,27 @@ Let context guide rephrasing - prioritize clarity for AI consumption.
 Return ONLY the rephrased content, no explanation or additional text.`,
         });
 
+        const tokenCount = estimateTokens(result.object.content);
         const embeddingResult = await embed({
           model: EMBEDDING_MODEL,
           value: result.object.content,
         });
+
+        // Track embedding cost
+        if (user) {
+          await ctx.scheduler.runAfter(
+            0,
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.usage.mutations.recordEmbedding,
+            {
+              userId: user._id,
+              model: EMBEDDING_PRICING.model,
+              tokenCount,
+              cost: calculateEmbeddingCost(tokenCount),
+              feature: "memory",
+            },
+          );
+        }
 
         await ctx.runMutation(internal.memories.updateWithEmbedding, {
           id: memory._id,
@@ -313,10 +333,25 @@ ${cluster
 
         // Create consolidated memories
         for (const consolidated of result.object.memories) {
+          const tokenCount = estimateTokens(consolidated.content);
           const embeddingResult = await embed({
             model: EMBEDDING_MODEL,
             value: consolidated.content,
           });
+
+          // Track embedding cost
+          await ctx.scheduler.runAfter(
+            0,
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.usage.mutations.recordEmbedding,
+            {
+              userId: cluster[0].userId,
+              model: EMBEDDING_PRICING.model,
+              tokenCount,
+              cost: calculateEmbeddingCost(tokenCount),
+              feature: "memory",
+            },
+          );
 
           const expiresAt = cluster.reduce(
             (longest: number | undefined, m) => {

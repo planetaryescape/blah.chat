@@ -268,8 +268,16 @@ function ChatPageContent({
     const currentCount = messages?.length ?? 0;
     prevMessageCountRef.current = currentCount;
 
+    // Check if conversation is empty (check conditions directly, not isEmpty variable)
+    // Don't rely on isEmpty because it depends on !isFirstLoad which may lag
+    const isEmptyConversation =
+      !isLoading &&
+      messages &&
+      messages.length === 0 &&
+      paginationStatus !== "LoadingFirstPage";
+
     // Track when we see the empty state
-    if (!isLoading && isEmpty) {
+    if (isEmptyConversation) {
       wasEmptyRef.current = true;
       setIsScrollReady(true);
       return;
@@ -289,7 +297,7 @@ function ChatPageContent({
       setIsScrollReady(true);
       return;
     }
-  }, [isLoading, isEmpty, messages]);
+  }, [isLoading, messages, paginationStatus]);
 
   // Autofocus input when navigating to conversation (after loading completes)
   useEffect(() => {

@@ -96,16 +96,18 @@ export function useMessageCacheSync({
   // 1. conversationId undefined → accept any cached data (no validation needed)
   //    Note: In production, conversationId is always defined via [conversationId] route
   //    This case exists for hook flexibility/future use cases
-  // 2. Empty array → treat as not loaded (avoid vacuous truth with .every())
+  // 2. Empty array → VALID! Means conversation has no messages (don't return undefined)
   // 3. Non-empty array → validate all messages belong to current conversation
   const validatedMessages =
     conversationId === undefined
       ? cachedMessages // No conversation selected - accept cache as-is
-      : cachedMessages && cachedMessages.length > 0
-        ? cachedMessages.every((m) => m.conversationId === conversationId)
-          ? cachedMessages
-          : undefined // Wrong conversation
-        : undefined; // Empty array - treat as not loaded yet
+      : cachedMessages === undefined
+        ? undefined // Not loaded yet
+        : cachedMessages.length === 0
+          ? cachedMessages // Empty conversation - valid data!
+          : cachedMessages.every((m) => m.conversationId === conversationId)
+            ? cachedMessages // All messages match
+            : undefined; // Wrong conversation
 
   // During conversation switch (including to/from undefined), force return undefined
   // to prevent stale data flash. This ensures clean transitions between conversations.

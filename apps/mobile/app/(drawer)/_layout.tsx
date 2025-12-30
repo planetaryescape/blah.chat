@@ -122,6 +122,13 @@ export default function DrawerLayout() {
           drawerItemStyle: { display: "none" },
         }}
       />
+      <Drawer.Screen
+        name="memories"
+        options={{
+          title: "Memories",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
     </Drawer>
   );
 }

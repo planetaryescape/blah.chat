@@ -287,10 +287,10 @@ export const ChatInput = memo(function ChatInput({
         aria-label="Send message to AI"
         className={cn(
           "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
-          "bg-background/60 backdrop-blur-xl",
-          "border border-white/[0.06] dark:border-white/[0.08]",
+          "bg-background/90 backdrop-blur-xl",
+          "border border-white/15 dark:border-white/10",
           "rounded-3xl",
-          "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.06),0_8px_16px_rgba(0,0,0,0.04)]",
+          "shadow-lg",
           isFocused && [
             "ring-1 ring-primary/20",
             "shadow-[0_0_0_1px_rgba(var(--primary-rgb),0.1),0_2px_8px_rgba(var(--primary-rgb),0.08),0_8px_24px_rgba(var(--primary-rgb),0.06)]",

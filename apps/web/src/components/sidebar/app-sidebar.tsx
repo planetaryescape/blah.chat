@@ -57,6 +57,7 @@ import { BulkActionBar } from "./BulkActionBar";
 import { BulkDeleteDialog } from "./BulkDeleteDialog";
 import { ConversationList } from "./ConversationList";
 import { ConversationListSkeleton } from "./ConversationListSkeleton";
+import { ConversationPrefetcher } from "./ConversationPrefetcher";
 
 const MENU_ITEMS = [
   { icon: Search, label: "Search", href: "/search", featureKey: null },
@@ -110,6 +111,16 @@ export function AppSidebar() {
     () => rawConversations?.filter((c) => c.isPresentation !== true),
     [rawConversations],
   );
+
+  // Prefetch messages for recent conversations (< 7 days) for instant navigation
+  const recentConversationIds = useMemo(() => {
+    if (!conversations) return [];
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return conversations
+      .filter((c) => c.updatedAt > sevenDaysAgo)
+      .slice(0, 20) // Cap at 20 to avoid too many subscriptions
+      .map((c) => c._id);
+  }, [conversations]);
 
   // Bulk actions mutations
   const bulkDelete = useMutation(api.conversations.bulkDelete);
@@ -556,6 +567,11 @@ export function AppSidebar() {
         open={showIncognitoDialog}
         onOpenChange={setShowIncognitoDialog}
       />
+
+      {/* Prefetch recent conversations for instant navigation */}
+      {recentConversationIds.map((id) => (
+        <ConversationPrefetcher key={id} conversationId={id} />
+      ))}
     </Sidebar>
   );
 }

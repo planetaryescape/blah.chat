@@ -5,6 +5,7 @@ import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useMemo } from "react";
 import { BYODSettings } from "@/components/settings/BYODSettings";
+import { BYOKSettings } from "@/components/settings/BYOKSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { KnowledgeBankSettings } from "@/components/settings/KnowledgeBankSettings";
@@ -64,6 +65,11 @@ const SETTINGS_SECTIONS = [
     id: "database",
     label: "Database",
     component: BYODSettings,
+  },
+  {
+    id: "advanced",
+    label: "Advanced",
+    component: BYOKSettings,
   },
 ];
 

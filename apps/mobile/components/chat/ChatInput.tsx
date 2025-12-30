@@ -10,7 +10,7 @@ import {
   Send,
   Square,
 } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
@@ -21,6 +21,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import {
   requestCameraPermission,
   requestMediaLibraryPermission,
@@ -71,6 +76,20 @@ export function ChatInput({
   const [isFocused, setIsFocused] = useState(false);
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Animated focus effects
+  const borderWidth = useSharedValue(1);
+  const glowOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    borderWidth.value = withSpring(isFocused ? 1.5 : 1, { damping: 20 });
+    glowOpacity.value = withSpring(isFocused ? 0.15 : 0, { damping: 20 });
+  }, [isFocused, borderWidth, glowOpacity]);
+
+  const inputAnimatedStyle = useAnimatedStyle(() => ({
+    borderWidth: borderWidth.value,
+    shadowOpacity: glowOpacity.value,
+  }));
 
   const addAttachments = useCallback((newAttachments: LocalAttachment[]) => {
     setAttachments((prev) => {
@@ -295,10 +314,11 @@ export function ChatInput({
           </TouchableOpacity>
         </View>
 
-        <View
+        <Animated.View
           style={[
             styles.inputContainer,
             isFocused && styles.inputContainerFocused,
+            inputAnimatedStyle,
           ]}
         >
           <TextInput
@@ -318,7 +338,7 @@ export function ChatInput({
             onBlur={() => setIsFocused(false)}
             editable={!disabled && !isUploading}
           />
-        </View>
+        </Animated.View>
 
         {/* Mic button or Send/Stop */}
         {isGenerating ? (
@@ -412,6 +432,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
+    // Glow effect base (opacity animated)
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 8,
+    elevation: 0,
   },
   inputContainerFocused: {
     borderColor: colors.ring,

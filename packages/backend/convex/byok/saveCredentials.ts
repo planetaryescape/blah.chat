@@ -118,7 +118,16 @@ export const saveApiKey = action({
     }
 
     // Encrypt the key
-    const encrypted = await encryptCredential(args.apiKey);
+    let encrypted: { encrypted: string; iv: string; authTag: string };
+    try {
+      encrypted = await encryptCredential(args.apiKey);
+    } catch (error) {
+      // Server-side config error (missing encryption key)
+      console.error("BYOK encryption failed:", error);
+      throw new ConvexError(
+        "BYOK is not available right now. Please contact support.",
+      );
+    }
 
     // Get existing config to merge IVs/authTags
     const existing = (await (ctx.runQuery as any)(

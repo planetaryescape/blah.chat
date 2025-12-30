@@ -5,8 +5,6 @@ export function initAnalytics() {
   if (typeof window === "undefined") return;
 
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-  const host =
-    process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://app.posthog.com";
 
   if (!apiKey) {
     console.warn("PostHog API key not configured");
@@ -14,7 +12,8 @@ export function initAnalytics() {
   }
 
   posthog.init(apiKey, {
-    api_host: host,
+    api_host: "/ingest", // Reverse proxy - bypasses ad blockers
+    ui_host: "https://eu.posthog.com",
     person_profiles: "identified_only",
     capture_pageview: false, // We'll manually capture pageviews
     autocapture: {

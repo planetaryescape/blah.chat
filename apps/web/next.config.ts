@@ -11,6 +11,19 @@ const nextConfig: NextConfig = {
   // Re-enable when TanStack Table v8.21+ adds official React Compiler support
   reactCompiler: false,
   serverExternalPackages: ["pino", "pino-pretty"],
+  // PostHog reverse proxy to bypass ad blockers
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://eu-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://eu.i.posthog.com/:path*",
+      },
+    ];
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

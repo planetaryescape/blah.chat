@@ -4,7 +4,7 @@ import { getGatewayOptions } from "@/lib/ai/gateway";
 import { TITLE_GENERATION_MODEL } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
@@ -104,5 +104,32 @@ ${userMessage.content}`,
     }
 
     return results;
+  },
+});
+
+export const triggerAutoRename = action({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return;
+
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.shares.internal.getUserInternal,
+      { clerkId: identity.subject },
+    )) as { _id: Id<"users"> } | null;
+    if (!user) return;
+
+    const conv = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.conversations.getInternal,
+      { id: args.conversationId },
+    )) as { userId: Id<"users"> } | null;
+
+    if (!conv || conv.userId !== user._id) return;
+
+    await ctx.scheduler.runAfter(0, internal.ai.generateTitle.generateTitle, {
+      conversationId: args.conversationId,
+    });
   },
 });

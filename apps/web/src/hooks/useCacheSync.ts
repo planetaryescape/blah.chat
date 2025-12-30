@@ -2,6 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";
@@ -286,4 +287,32 @@ export function useCachedChildBranches(
     [parentMessageId],
     [] as Doc<"conversations">[],
   );
+}
+
+export function usePreferenceCacheSync() {
+  const preferences = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query
+    api.users.getAllUserPreferences,
+  );
+
+  useEffect(() => {
+    if (preferences) {
+      cache.userPreferences
+        .put({ _id: "current", data: preferences })
+        .catch(console.error);
+    }
+  }, [preferences]);
+
+  const cached = useLiveQuery(
+    () => cache.userPreferences.get("current"),
+    [],
+    null,
+  );
+
+  return {
+    preferences: (cached?.data ??
+      preferences ??
+      PREFERENCE_DEFAULTS) as typeof PREFERENCE_DEFAULTS,
+    isLoading: preferences === undefined && !cached,
+  };
 }

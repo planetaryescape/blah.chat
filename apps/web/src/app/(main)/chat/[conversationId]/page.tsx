@@ -244,8 +244,8 @@ function ChatPageContent({
       filteredConversations,
     });
 
-  const isChatWidthLoading = rawChatWidth === undefined;
-  const isLoading = isChatWidthLoading || messages === undefined;
+  // Only wait for messages to load, not preferences (chatWidth has fallback)
+  const isLoading = messages === undefined;
   const showSkeleton = isLoading || !isScrollReady;
   const isEmpty =
     !isLoading &&

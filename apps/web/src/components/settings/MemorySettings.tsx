@@ -3,7 +3,15 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Brain, Eye, EyeOff, Loader2, MoreVertical } from "lucide-react";
+import {
+  Brain,
+  Eye,
+  EyeOff,
+  Loader2,
+  MoreVertical,
+  Search,
+} from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -226,7 +234,7 @@ export function MemorySettings() {
     setIsConsolidating(true);
     try {
       toast.info("Consolidating memories...");
-      const result = await consolidateMemories();
+      const result = await consolidateMemories({});
       if (result.created > 0 || result.deleted > 0) {
         toast.success(
           `Consolidated ${result.original} → ${result.consolidated} memories`,
@@ -324,6 +332,12 @@ export function MemorySettings() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/memories">
+                  <Search className="h-4 w-4 mr-2" />
+                  Manage
+                </Link>
+              </Button>
               <AddMemoryDialog
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}

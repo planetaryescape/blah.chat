@@ -44,7 +44,9 @@ export function useConversationScroll({
   // Scroll to bottom on conversation switch
   // Only depend on conversationId to minimize re-runs
   useEffect(() => {
-    if (!conversationId) return;
+    // Skip if highlighting a specific message (useHighlightScroll handles it)
+    // or no conversation loaded yet
+    if (highlightMessageId || !conversationId) return;
 
     // Only scroll if conversation actually changed
     const isConversationChanged =
@@ -164,7 +166,7 @@ export function useConversationScroll({
       isScrolling = false;
       clearTimeout(timeoutId);
     };
-  }, [conversationId, scrollContainer]); // Only conversationId - messageCount handled by ref
+  }, [conversationId, highlightMessageId, scrollContainer]); // Skip when highlighting specific message
 
   // Scroll user message to top of viewport on send (ChatGPT-style UX)
   useEffect(() => {

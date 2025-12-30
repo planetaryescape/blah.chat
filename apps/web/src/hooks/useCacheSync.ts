@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
-import { usePaginatedQuery, useQuery } from "convex/react";
+import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";
 import { cache } from "@/lib/cache";
@@ -46,6 +46,16 @@ export function useMessageCacheSync({
     syncCache().catch(console.error);
   }, [convexMessages.results, conversationId]);
 
+  // @ts-ignore - Type depth exceeded
+  const triggerAutoRename = useAction(
+    api.conversations.actions.triggerAutoRename,
+  );
+
+  useEffect(() => {
+    if (!conversationId || !convexMessages.results?.length) return;
+    triggerAutoRename({ conversationId }).catch(() => {});
+  }, [conversationId, convexMessages.results?.length, triggerAutoRename]);
+
   // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
   const cachedMessages: Doc<"messages">[] = useLiveQuery(
     () =>
@@ -59,11 +69,38 @@ export function useMessageCacheSync({
     [],
   );
 
+  // Keep previous cached data during transitions (prevents skeleton flash)
+  // Pattern from useStableMessages.ts
+  const prevConversationIdRef = useRef(conversationId);
+  const lastValidCachedRef = useRef<Doc<"messages">[]>([]);
+
+  // Reset cache on conversation change
+  if (conversationId !== prevConversationIdRef.current) {
+    prevConversationIdRef.current = conversationId;
+    lastValidCachedRef.current = [];
+  }
+
+  // Store valid results
+  if (cachedMessages.length > 0) {
+    lastValidCachedRef.current = cachedMessages;
+  }
+
+  // Prefer: cache → previous cache → convex results → empty
+  const results =
+    cachedMessages.length > 0
+      ? cachedMessages
+      : lastValidCachedRef.current.length > 0
+        ? lastValidCachedRef.current
+        : (convexMessages.results ?? []);
+
+  // Show skeleton while loading first page AND we have no messages to display
   const isFirstLoad =
-    convexMessages.results === undefined && cachedMessages.length === 0;
+    (convexMessages.status === "LoadingFirstPage" ||
+      convexMessages.results === undefined) &&
+    results.length === 0;
 
   return {
-    results: cachedMessages,
+    results,
     loadMore: convexMessages.loadMore,
     status: convexMessages.status,
     isLoading: convexMessages.isLoading,
@@ -117,13 +154,26 @@ interface ConversationCacheSyncOptions {
 async function getConversationsByProject(
   projectId: Id<"projects"> | "none" | null | undefined,
 ): Promise<Doc<"conversations">[]> {
+  let conversations: Doc<"conversations">[];
+
   if (projectId && projectId !== "none") {
-    return cache.conversations.where("projectId").equals(projectId).toArray();
+    conversations = await cache.conversations
+      .where("projectId")
+      .equals(projectId)
+      .toArray();
+  } else if (projectId === "none") {
+    conversations = (await cache.conversations.toArray()).filter(
+      (c) => !c.projectId,
+    );
+  } else {
+    conversations = await cache.conversations.toArray();
   }
-  if (projectId === "none") {
-    return (await cache.conversations.toArray()).filter((c) => !c.projectId);
-  }
-  return cache.conversations.toArray();
+
+  // Sort: pinned first, then by lastMessageAt (newest first)
+  return conversations.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return b.lastMessageAt - a.lastMessageAt;
+  });
 }
 
 export function useConversationCacheSync(
@@ -137,22 +187,11 @@ export function useConversationCacheSync(
     { projectId: projectId || undefined },
   );
 
-  // Use ref to prevent React Compiler from tracking individual array elements
-  const conversationsRef = useRef(conversations);
-  conversationsRef.current = conversations;
-
-  // Stable hash for change detection - avoids dependency array size changing
-  const conversationsHash = useMemo(
-    () => conversations?.map((c) => c._id).join(",") ?? "",
-    [conversations],
-  );
-
   useEffect(() => {
-    const convs = conversationsRef.current;
-    if (convs === undefined) return;
+    if (conversations === undefined) return;
 
     const syncCache = async () => {
-      const convexIds = new Set(convs.map((c) => c._id));
+      const convexIds = new Set(conversations.map((c) => c._id));
       const dexieRecords = await getConversationsByProject(projectId);
 
       const orphanIds = dexieRecords
@@ -160,11 +199,12 @@ export function useConversationCacheSync(
         .map((d) => d._id);
 
       if (orphanIds.length > 0) await cache.conversations.bulkDelete(orphanIds);
-      if (convs.length > 0) await cache.conversations.bulkPut(convs);
+      if (conversations.length > 0)
+        await cache.conversations.bulkPut(conversations);
     };
 
     syncCache().catch(console.error);
-  }, [conversationsHash, projectId]);
+  }, [conversations, projectId]);
 
   const cachedConversations = useLiveQuery(
     () => getConversationsByProject(projectId),
@@ -251,6 +291,29 @@ export function useProjectCacheSync() {
   };
 }
 
+export function usePreferenceCacheSync() {
+  const preferences = useQuery(
+    // @ts-ignore - Type depth exceeded with Convex modules
+    api.users.getAllUserPreferences,
+  );
+
+  useEffect(() => {
+    if (preferences) {
+      cache.userPreferences
+        .put({ _id: "current", data: preferences })
+        .catch(console.error);
+    }
+  }, [preferences]);
+
+  const cachedPreferences = useLiveQuery(
+    () => cache.userPreferences.get("current"),
+    [],
+    null,
+  );
+
+  return cachedPreferences?.data ?? preferences ?? PREFERENCE_DEFAULTS;
+}
+
 export function useCachedAttachments(messageId: Id<"messages"> | string) {
   return useLiveQuery(
     () => cache.attachments.where("messageId").equals(messageId).toArray(),
@@ -287,32 +350,4 @@ export function useCachedChildBranches(
     [parentMessageId],
     [] as Doc<"conversations">[],
   );
-}
-
-export function usePreferenceCacheSync() {
-  const preferences = useQuery(
-    // @ts-ignore - Type depth exceeded with complex Convex query
-    api.users.getAllUserPreferences,
-  );
-
-  useEffect(() => {
-    if (preferences) {
-      cache.userPreferences
-        .put({ _id: "current", data: preferences })
-        .catch(console.error);
-    }
-  }, [preferences]);
-
-  const cached = useLiveQuery(
-    () => cache.userPreferences.get("current"),
-    [],
-    null,
-  );
-
-  return {
-    preferences: (cached?.data ??
-      preferences ??
-      PREFERENCE_DEFAULTS) as typeof PREFERENCE_DEFAULTS,
-    isLoading: preferences === undefined && !cached,
-  };
 }

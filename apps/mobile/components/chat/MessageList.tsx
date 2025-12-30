@@ -1,12 +1,13 @@
 import type { Doc, Id } from "@blah-chat/backend";
 import { api } from "@blah-chat/backend/convex/_generated/api";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery } from "convex/react";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { AlertCircle, FileText, Sparkles } from "lucide-react-native";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -24,7 +25,10 @@ import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { formatSize, getFileTypeColor } from "@/lib/utils/fileUtils";
+import { MessageEditMode } from "./MessageEditMode";
 import { MessageInlineActions } from "./MessageInlineActions";
+import { RegenerateModal } from "./RegenerateModal";
+import { ShimmerLoader } from "./ShimmerLoader";
 import {
   ScrollToBottomButton,
   useScrollToBottom,
@@ -147,8 +151,18 @@ const attachmentStyles = StyleSheet.create({
 export function MessageList({ messages, conversationId }: MessageListProps) {
   // @ts-ignore - FlashList ref type
   const listRef = useRef(null);
+  const regenerateModalRef = useRef<BottomSheetModal>(null);
   const { showButton, onScroll } = useScrollToBottom();
   const router = useRouter();
+
+  // Edit mode state
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  // Regenerate modal state
+  const [regenerateMessageId, setRegenerateMessageId] =
+    useState<Id<"messages"> | null>(null);
+  const [regenerateModelId, setRegenerateModelId] = useState<
+    string | undefined
+  >(undefined);
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const deleteMessage = useMutation(api.chat.deleteMessage);
@@ -172,6 +186,11 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
       { title: "Bookmark", systemIcon: "bookmark" },
       { title: "Branch", systemIcon: "arrow.triangle.branch" },
     ];
+
+    // Edit option for user messages only
+    if (isUser) {
+      actions.push({ title: "Edit", systemIcon: "pencil" });
+    }
 
     if (!isUser && isComplete) {
       actions.push(
@@ -215,6 +234,9 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
             console.error("Failed to branch:", error);
           }
           break;
+        case "Edit":
+          setEditingMessageId(msg._id);
+          break;
         case "Read Aloud":
           Alert.alert(
             "Tip",
@@ -222,8 +244,9 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
           );
           break;
         case "Regenerate":
-          // TODO: Open model picker modal
-          Alert.alert("Coming Soon", "Regenerate with model picker");
+          setRegenerateMessageId(msg._id as Id<"messages">);
+          setRegenerateModelId(msg.model);
+          regenerateModalRef.current?.present();
           break;
         case "Save as Note":
           try {
@@ -276,10 +299,11 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     [branchFromMessage, router],
   );
 
-  const handleRegenerateInline = useCallback(() => {
+  const handleRegenerateInline = useCallback((msg: Message) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // TODO: Open model picker modal
-    Alert.alert("Coming Soon", "Regenerate with model picker");
+    setRegenerateMessageId(msg._id as Id<"messages">);
+    setRegenerateModelId(msg.model);
+    regenerateModalRef.current?.present();
   }, []);
 
   const handleScroll = useCallback(
@@ -301,6 +325,7 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     const isGenerating = item.status === "generating";
     const isPending = item.status === "pending";
     const isComplete = item.status === "complete";
+    const isEditing = editingMessageId === item._id;
 
     return (
       <ContextMenu
@@ -337,31 +362,45 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
           {/* Message attachments */}
           <MessageAttachments messageId={item._id as Id<"messages">} />
 
-          {/* Message bubble */}
-          <View
-            style={[
-              styles.bubble,
-              isUser ? styles.userBubble : styles.assistantBubble,
-              isGenerating && styles.generatingBubble,
-            ]}
-          >
-            {isUser ? (
-              <Text style={styles.userText}>{displayContent}</Text>
-            ) : (
-              <Markdown style={markdownStyles}>
-                {displayContent || " "}
-              </Markdown>
-            )}
-          </View>
+          {/* Message bubble or edit mode */}
+          {isEditing && isUser ? (
+            <MessageEditMode
+              messageId={item._id as Id<"messages">}
+              initialContent={displayContent}
+              onCancel={() => setEditingMessageId(null)}
+              onSaved={() => setEditingMessageId(null)}
+            />
+          ) : isPending && !displayContent ? (
+            // Show shimmer for pending messages with no content
+            <ShimmerLoader status="pending" />
+          ) : (
+            <View
+              style={[
+                styles.bubble,
+                isUser ? styles.userBubble : styles.assistantBubble,
+                isGenerating && styles.generatingBubble,
+              ]}
+            >
+              {isUser ? (
+                <Text style={styles.userText}>{displayContent}</Text>
+              ) : (
+                <Markdown style={markdownStyles}>
+                  {displayContent || " "}
+                </Markdown>
+              )}
+            </View>
+          )}
 
-          {/* Inline actions - show for complete AI messages or user messages */}
-          {(isComplete || isUser) && (
+          {/* Inline actions - show for complete AI messages or user messages (not when editing) */}
+          {(isComplete || isUser) && !isEditing && (
             <MessageInlineActions
               content={displayContent}
               isAI={!isUser}
               isComplete={isComplete}
               onBranch={() => handleBranchInline(item)}
-              onRegenerate={!isUser ? handleRegenerateInline : undefined}
+              onRegenerate={
+                !isUser ? () => handleRegenerateInline(item) : undefined
+              }
             />
           )}
 
@@ -398,6 +437,12 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
       {/* @ts-ignore - FlashList inverted prop type issue */}
       <FlashList {...flashListProps} />
       <ScrollToBottomButton showButton={showButton} onPress={scrollToBottom} />
+      <RegenerateModal
+        ref={regenerateModalRef}
+        messageId={regenerateMessageId}
+        currentModelId={regenerateModelId}
+        onRegenerated={() => setRegenerateMessageId(null)}
+      />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 
 type AvailabilityData = {
@@ -21,6 +21,9 @@ type AvailabilityData = {
 export function useApiKeyValidation() {
   // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
   const getAvailability = useAction(api.settings.apiKeys.getApiKeyAvailability);
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const byokConfig = useQuery(api.byok.credentials.getConfig);
+
   const [availability, setAvailability] = useState<AvailabilityData | null>(
     null,
   );
@@ -41,13 +44,66 @@ export function useApiKeyValidation() {
     fetchAvailability();
   }, [getAvailability]);
 
+  // BYOK helper: check if a gateway is disabled due to missing BYOK key
+  const isModelDisabledByByok = (gateway: string): boolean => {
+    if (!byokConfig?.byokEnabled) return false;
+
+    // Map gateway names to BYOK key fields
+    switch (gateway.toLowerCase()) {
+      case "openrouter":
+        return !byokConfig.hasOpenRouterKey;
+      case "groq":
+        return !byokConfig.hasGroqKey;
+      case "vercel":
+      case "vercel-gateway":
+        return !byokConfig.hasVercelGatewayKey;
+      default:
+        // For unrecognized gateways, assume Vercel Gateway handles them
+        return !byokConfig.hasVercelGatewayKey;
+    }
+  };
+
+  // BYOK helper: get disabled message for a gateway
+  const getByokModelDisabledMessage = (gateway: string): string | null => {
+    if (!byokConfig?.byokEnabled) return null;
+
+    switch (gateway.toLowerCase()) {
+      case "openrouter":
+        if (!byokConfig.hasOpenRouterKey) {
+          return "BYOK enabled but OpenRouter API key not configured. Add it in Settings → Advanced.";
+        }
+        break;
+      case "groq":
+        if (!byokConfig.hasGroqKey) {
+          return "BYOK enabled but Groq API key not configured. Add it in Settings → Advanced.";
+        }
+        break;
+      case "vercel":
+      case "vercel-gateway":
+        if (!byokConfig.hasVercelGatewayKey) {
+          return "BYOK enabled but Vercel AI Gateway key not configured. Add it in Settings → Advanced.";
+        }
+        break;
+    }
+    return null;
+  };
+
   if (loading || !availability) {
     return {
       loading: true,
       stt: { enabled: false },
       tts: { enabled: false },
+      byok: {
+        enabled: false,
+        hasVercelKey: false,
+        hasOpenRouterKey: false,
+        hasGroqKey: false,
+        hasDeepgramKey: false,
+      },
       getSTTErrorMessage: () => null,
       getTTSErrorMessage: () => null,
+      isModelDisabledByByok: () => false,
+      getByokModelDisabledMessage: () => null,
     };
   }
 
@@ -67,8 +123,22 @@ export function useApiKeyValidation() {
       enabled: tts.deepgram,
     },
 
+    // BYOK status
+    byok: {
+      enabled: byokConfig?.byokEnabled ?? false,
+      hasVercelKey: byokConfig?.hasVercelGatewayKey ?? false,
+      hasOpenRouterKey: byokConfig?.hasOpenRouterKey ?? false,
+      hasGroqKey: byokConfig?.hasGroqKey ?? false,
+      hasDeepgramKey: byokConfig?.hasDeepgramKey ?? false,
+    },
+
     // Helper functions for error messages
     getSTTErrorMessage: () => {
+      // Check BYOK first
+      if (byokConfig?.byokEnabled && !byokConfig.hasGroqKey) {
+        return "Voice input requires Groq API key. Add it in Settings → Advanced.";
+      }
+
       if (stt.hasCurrentProviderKey) return null;
 
       if (isProduction) {
@@ -79,6 +149,11 @@ export function useApiKeyValidation() {
     },
 
     getTTSErrorMessage: () => {
+      // Check BYOK first
+      if (byokConfig?.byokEnabled && !byokConfig.hasDeepgramKey) {
+        return "Text-to-speech requires Deepgram API key. Add it in Settings → Advanced.";
+      }
+
       if (tts.deepgram) return null;
 
       if (isProduction) {
@@ -87,5 +162,9 @@ export function useApiKeyValidation() {
 
       return "Text-to-speech requires the DEEPGRAM_API_KEY environment variable. Add this API key to your .env.local file to enable this feature.";
     },
+
+    // BYOK-specific helpers
+    isModelDisabledByByok,
+    getByokModelDisabledMessage,
   };
 }

@@ -149,6 +149,7 @@ function ChatPageContent({
   const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
   const [isScrollReady, setIsScrollReady] = useState(false);
   const prevMessageCountRef = useRef(0);
+  const wasEmptyRef = useRef(false); // Track if we've seen empty state (for first message detection)
 
   // Ref for infinite scroll at top of message list
   const messageListTopRef = useRef<HTMLDivElement | null>(null);
@@ -257,6 +258,7 @@ function ChatPageContent({
   useEffect(() => {
     setIsScrollReady(false);
     prevMessageCountRef.current = 0;
+    wasEmptyRef.current = false; // Reset empty state tracker
   }, [conversationId]);
 
   // Set scroll ready when conversation is empty (no messages to scroll to)
@@ -266,21 +268,24 @@ function ChatPageContent({
     const currentCount = messages?.length ?? 0;
     prevMessageCountRef.current = currentCount;
 
+    // Track when we see the empty state
     if (!isLoading && isEmpty) {
+      wasEmptyRef.current = true;
       setIsScrollReady(true);
       return;
     }
 
     // When transitioning from empty (0 msgs) to first message, stay ready (no skeleton flash)
-    // But only if we already had isEmpty = true (was actually empty, not loading)
-    // This prevents triggering on page load when messages go from undefined to loaded
+    // ONLY if we actually saw the empty state (wasEmptyRef.current === true)
+    // This prevents false positives on page refresh with 1-2 messages
     if (
       !isLoading &&
+      wasEmptyRef.current && // Must have been empty before
       prevCount === 0 &&
       currentCount > 0 &&
       currentCount <= 2
     ) {
-      // Only for very first messages (1-2), not when loading existing conversation
+      // True empty-to-first-message transition - no skeleton needed
       setIsScrollReady(true);
       return;
     }

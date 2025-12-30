@@ -40,7 +40,7 @@ const VALIDATION_ENDPOINTS: Record<
 };
 
 /**
- * Validate API key against provider
+ * Validate API key against provider (fail-secure)
  */
 async function validateApiKey(
   keyType: KeyType,
@@ -56,20 +56,30 @@ async function validateApiKey(
       },
     });
 
+    // Only 2xx responses are valid
     if (response.ok) {
       return { valid: true };
     }
 
+    // Auth errors
     if (response.status === 401 || response.status === 403) {
       return { valid: false, error: "Invalid API key" };
     }
 
-    // Other errors (rate limit, etc.) - key might still be valid
-    return { valid: true };
+    // Other 4xx = client error (bad key format, etc.)
+    if (response.status >= 400 && response.status < 500) {
+      return { valid: false, error: "API key rejected by provider" };
+    }
+
+    // 5xx = server error - fail secure
+    return { valid: false, error: "Could not validate key. Try again later." };
   } catch (error) {
-    // Network error - can't validate, assume valid
+    // Network error - fail secure
     console.warn(`Failed to validate ${keyType} key:`, error);
-    return { valid: true };
+    return {
+      valid: false,
+      error: "Could not reach provider. Check your connection.",
+    };
   }
 }
 
@@ -232,10 +242,10 @@ export const removeApiKey = action({
     ivParts[idx] = "";
     authTagParts[idx] = "";
 
-    // Build update - set key to undefined and disable BYOK if removing Vercel key
+    // Build update - set key to empty string and disable BYOK if removing Vercel key
     const updateData: Record<string, unknown> = {
       userId: user._id,
-      [fieldMap[args.keyType]]: undefined,
+      [fieldMap[args.keyType]]: "",
       encryptionIVs: ivParts.join(":"),
       authTags: authTagParts.join(":"),
     };

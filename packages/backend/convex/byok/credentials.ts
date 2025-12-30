@@ -34,13 +34,18 @@ export const getConfig = query({
     if (!config) return null;
 
     // Never return encrypted keys - only return which keys are configured
+    // Check both truthy and non-empty (removal sets to "")
     return {
       _id: config._id,
       byokEnabled: config.byokEnabled,
-      hasVercelGatewayKey: !!config.encryptedVercelGatewayKey,
-      hasOpenRouterKey: !!config.encryptedOpenRouterKey,
-      hasGroqKey: !!config.encryptedGroqKey,
-      hasDeepgramKey: !!config.encryptedDeepgramKey,
+      hasVercelGatewayKey:
+        !!config.encryptedVercelGatewayKey &&
+        config.encryptedVercelGatewayKey !== "",
+      hasOpenRouterKey:
+        !!config.encryptedOpenRouterKey && config.encryptedOpenRouterKey !== "",
+      hasGroqKey: !!config.encryptedGroqKey && config.encryptedGroqKey !== "",
+      hasDeepgramKey:
+        !!config.encryptedDeepgramKey && config.encryptedDeepgramKey !== "",
       lastValidated: config.lastValidated,
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,

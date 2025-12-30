@@ -4,6 +4,7 @@ import { Copy, Download, Maximize2, Minimize2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { fixMermaidSyntax } from "@/lib/utils/mermaidFixer";
 
 interface MermaidRendererProps {
   code: string;
@@ -122,8 +123,31 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         });
 
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        const { svg: renderedSvg } = await mermaid.render(id, code);
-        setSvg(renderedSvg);
+
+        // Auto-fix common LLM-generated syntax errors
+        const fixedCode = fixMermaidSyntax(code);
+
+        try {
+          // Try rendering with fixed code
+          const { svg: renderedSvg } = await mermaid.render(id, fixedCode);
+          setSvg(renderedSvg);
+        } catch (fixedError) {
+          console.error(
+            "[MermaidRenderer] Fixed code failed to render:",
+            fixedError,
+          );
+          // Fallback: try original code if fix caused issues
+          try {
+            const { svg: renderedSvg } = await mermaid.render(id, code);
+            setSvg(renderedSvg);
+          } catch (originalError) {
+            console.error(
+              "[MermaidRenderer] Original code also failed to render:",
+              originalError,
+            );
+            throw originalError;
+          }
+        }
       } catch (err) {
         // Error is caught - show clean error UI (suppressErrorRendering prevents error SVG)
         setError(

@@ -2,6 +2,14 @@ import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import Dexie, { type Table } from "dexie";
 
 /**
+ * Cached user preferences (single record storing all preferences)
+ */
+export interface CachedPreferences {
+  _id: string; // Always 'current'
+  data: Record<string, unknown>;
+}
+
+/**
  * Local IndexedDB cache for instant reads.
  * Synced from Convex subscriptions, enables offline access.
  */
@@ -15,6 +23,7 @@ class BlahChatCache extends Dexie {
   toolCalls!: Table<Doc<"toolCalls">>;
   sources!: Table<Doc<"sources">>;
   pendingMutations!: Table<PendingMutation>;
+  userPreferences!: Table<CachedPreferences>;
 
   constructor() {
     super("blahchat-cache");
@@ -56,6 +65,20 @@ class BlahChatCache extends Dexie {
       toolCalls: "_id, messageId",
       sources: "_id, messageId",
       pendingMutations: "_id, type, createdAt",
+    });
+
+    // v4: Add userPreferences cache for instant reads
+    this.version(4).stores({
+      conversations: "_id, userId, parentMessageId, updatedAt, projectId",
+      messages: "_id, conversationId, createdAt",
+      notes: "_id, userId, projectId, updatedAt",
+      tasks: "_id, userId, projectId, status, deadline, _creationTime",
+      projects: "_id, userId",
+      attachments: "_id, messageId",
+      toolCalls: "_id, messageId",
+      sources: "_id, messageId",
+      pendingMutations: "_id, type, createdAt",
+      userPreferences: "&_id",
     });
   }
 }

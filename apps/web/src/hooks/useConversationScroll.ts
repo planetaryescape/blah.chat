@@ -49,29 +49,20 @@ export function useConversationScroll({
     if (lastScrolledConversationRef.current === conversationId) return;
     lastScrolledConversationRef.current = conversationId;
 
-    // Scroll to bottom with retry - virtualized lists may need multiple scrolls
-    // as items are measured and total size updates
-    let attempts = 0;
-    const maxAttempts = 5;
-
+    // Use double rAF to wait for layout to stabilize after virtualizer measures items
     const scrollToEnd = () => {
       const container = scrollContainer?.current;
       if (!container) return;
 
-      const isAtBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight <
-        50;
-
-      if (isAtBottom || attempts >= maxAttempts) return;
-
-      attempts++;
-      container.scrollTop = container.scrollHeight;
-
-      // Retry after items have time to measure
-      setTimeout(scrollToEnd, 50);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          container.scrollTop = container.scrollHeight;
+        });
+      });
     };
 
-    const timeoutId = setTimeout(scrollToEnd, 50);
+    // Initial delay for virtualizer to set up, then double rAF for measurement
+    const timeoutId = setTimeout(scrollToEnd, 100);
 
     return () => clearTimeout(timeoutId);
   }, [conversationId, highlightMessageId, messageCount, scrollContainer]);

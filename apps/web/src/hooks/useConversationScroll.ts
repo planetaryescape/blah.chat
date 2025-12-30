@@ -96,7 +96,7 @@ export function useConversationScroll({
     const maxAttempts = 15;
     const minAttempts = 5; // Force minimum attempts to handle measurement lag
     let isScrolling = true;
-    let timeoutId: ReturnType<typeof setTimeout>; // Declare before use to prevent scope issues
+    let timeoutId: ReturnType<typeof setTimeout> | undefined; // Explicitly allow undefined for cleanup before first timeout
 
     const scrollToEnd = () => {
       if (!isScrolling) return;

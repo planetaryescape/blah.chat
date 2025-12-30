@@ -1,4 +1,5 @@
 import { embed, generateObject } from "ai";
+import { v } from "convex/values";
 import { z } from "zod";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
@@ -42,7 +43,11 @@ export const migrateUserMemories = action({
 
     const user = await (
       ctx.runQuery as (ref: any, args: any) => Promise<Doc<"users"> | null>
-    )(internal.lib.helpers.getCurrentUser, {});
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getCurrentUser,
+      {},
+    );
     if (!user) throw new Error("User not found");
 
     const memories = await (
@@ -117,8 +122,12 @@ Return ONLY the rephrased content, no explanation or additional text.`,
 });
 
 export const consolidateUserMemories = action({
+  args: {
+    selectedIds: v.optional(v.array(v.id("memories"))),
+  },
   handler: async (
     ctx,
+    args,
   ): Promise<{
     original: number;
     consolidated: number;
@@ -134,53 +143,80 @@ export const consolidateUserMemories = action({
     );
     if (!user) throw new Error("User not found");
 
-    const memories: Doc<"memories">[] = await ctx.runQuery(
-      internal.lib.helpers.listAllMemories,
-      { userId: user._id },
-    );
+    let memories: Doc<"memories">[];
+    let clustersToProcess: Doc<"memories">[][] = [];
 
-    if (memories.length === 0) {
-      return { original: 0, consolidated: 0, deleted: 0, created: 0 };
+    // If selectedIds provided, merge those specific memories (skip vector clustering)
+    if (args.selectedIds && args.selectedIds.length > 0) {
+      memories = (
+        (await ctx.runQuery(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.memories.queries.getMemoriesByIds,
+          { ids: args.selectedIds },
+        )) as Doc<"memories">[]
+      ).filter((m) => m && m.userId === user._id);
+
+      if (memories.length < 2) {
+        return {
+          original: memories.length,
+          consolidated: memories.length,
+          deleted: 0,
+          created: 0,
+        };
+      }
+
+      // Treat all selected as a single cluster to merge
+      clustersToProcess = [memories];
+    } else {
+      // Original behavior: fetch all and cluster by similarity
+      memories = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.helpers.listAllMemories,
+        { userId: user._id },
+      )) as Doc<"memories">[];
+
+      if (memories.length === 0) {
+        return { original: 0, consolidated: 0, deleted: 0, created: 0 };
+      }
+
+      const processedIds = new Set<string>();
+
+      // Group memories by similarity using vector search
+      for (const memory of memories) {
+        if (processedIds.has(memory._id)) continue;
+
+        const similarMemories = await ctx.runAction(
+          internal.memories.searchByEmbedding,
+          {
+            userId: memory.userId,
+            embedding: memory.embedding,
+            limit: 20,
+          },
+        );
+
+        const cluster: Doc<"memories">[] = [memory];
+        processedIds.add(memory._id);
+
+        for (const similar of similarMemories) {
+          if (similar._id === memory._id) continue;
+          if (processedIds.has(similar._id)) continue;
+
+          if (similar._score >= 0.85) {
+            cluster.push(similar);
+            processedIds.add(similar._id);
+          }
+        }
+
+        clustersToProcess.push(cluster);
+      }
     }
 
     const originalCount = memories.length;
     let deletedCount = 0;
     let createdCount = 0;
 
-    const processedIds = new Set<string>();
-    const clustersToProcess: Doc<"memories">[][] = [];
-
-    // Group memories by similarity using vector search
-    for (const memory of memories) {
-      if (processedIds.has(memory._id)) continue;
-
-      const similarMemories = await ctx.runAction(
-        internal.memories.searchByEmbedding,
-        {
-          userId: memory.userId,
-          embedding: memory.embedding,
-          limit: 20,
-        },
-      );
-
-      const cluster: Doc<"memories">[] = [memory];
-      processedIds.add(memory._id);
-
-      for (const similar of similarMemories) {
-        if (similar._id === memory._id) continue;
-        if (processedIds.has(similar._id)) continue;
-
-        if (similar._score >= 0.85) {
-          cluster.push(similar);
-          processedIds.add(similar._id);
-        }
-      }
-
-      clustersToProcess.push(cluster);
-    }
-
     console.log(
-      `Found ${clustersToProcess.length} memories/clusters to process (${processedIds.size} total)`,
+      `Found ${clustersToProcess.length} ${args.selectedIds ? "selected memories to merge" : "clusters to process"}`,
     );
 
     for (const cluster of clustersToProcess) {

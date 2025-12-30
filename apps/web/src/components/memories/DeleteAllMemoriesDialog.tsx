@@ -18,22 +18,29 @@ interface DeleteAllMemoriesDialogProps {
   onOpenChange: (open: boolean) => void;
   memoriesCount: number;
   onConfirm: () => Promise<void>;
+  mode?: "all" | "selected";
 }
 
 /**
- * Confirmation dialog for deleting all memories.
+ * Confirmation dialog for deleting memories.
+ * Supports "all" mode (requires typing DELETE) and "selected" mode (simpler confirmation).
  */
 export function DeleteAllMemoriesDialog({
   open,
   onOpenChange,
   memoriesCount,
   onConfirm,
+  mode = "all",
 }: DeleteAllMemoriesDialogProps) {
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const isAllMode = mode === "all";
+  const requiresTyping = isAllMode || memoriesCount > 10;
+  const canConfirm = requiresTyping ? confirmText === "DELETE" : true;
+
   const handleConfirm = async () => {
-    if (confirmText !== "DELETE") return;
+    if (!canConfirm) return;
     setIsDeleting(true);
     try {
       await onConfirm();
@@ -53,28 +60,33 @@ export function DeleteAllMemoriesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete All Memories?</DialogTitle>
+          <DialogTitle>
+            {isAllMode ? "Delete All Memories?" : "Delete Selected Memories?"}
+          </DialogTitle>
           <DialogDescription>
-            This will permanently delete all {memoriesCount} memories. This
-            action cannot be undone.
+            {isAllMode
+              ? `This will permanently delete all ${memoriesCount} memories. This action cannot be undone.`
+              : `This will permanently delete ${memoriesCount} ${memoriesCount === 1 ? "memory" : "memories"}. This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="confirm">
-              Type <code className="font-mono font-bold">DELETE</code> to
-              confirm
-            </Label>
-            <Input
-              id="confirm"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="DELETE"
-              className="font-mono"
-            />
+        {requiresTyping && (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirm">
+                Type <code className="font-mono font-bold">DELETE</code> to
+                confirm
+              </Label>
+              <Input
+                id="confirm"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="font-mono"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
@@ -83,9 +95,13 @@ export function DeleteAllMemoriesDialog({
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={confirmText !== "DELETE" || isDeleting}
+            disabled={!canConfirm || isDeleting}
           >
-            {isDeleting ? "Deleting..." : "Delete All Memories"}
+            {isDeleting
+              ? "Deleting..."
+              : isAllMode
+                ? "Delete All Memories"
+                : `Delete ${memoriesCount} ${memoriesCount === 1 ? "Memory" : "Memories"}`}
           </Button>
         </DialogFooter>
       </DialogContent>

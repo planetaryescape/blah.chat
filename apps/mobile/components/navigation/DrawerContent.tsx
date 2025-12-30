@@ -1,8 +1,8 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { FlashList } from "@shopify/flash-list";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { usePathname, useRouter } from "expo-router";
 import {
   Bookmark,
@@ -16,8 +16,19 @@ import {
   Sparkles,
   Star,
 } from "lucide-react-native";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback } from "react";
+import {
+  ActionSheetIOS,
+  Alert,
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { haptics } from "@/lib/haptics";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
@@ -33,6 +44,116 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   const conversations = useQuery(api.conversations.list) as
     | Conversation[]
     | undefined;
+
+  // Mutations for conversation actions
+  const togglePin = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+    api.conversations.togglePin,
+  );
+  const toggleStar = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+    api.conversations.toggleStar,
+  );
+  const archiveConversation = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+    api.conversations.archive,
+  );
+  const deleteConversation = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+    api.conversations.deleteConversation,
+  );
+
+  const handleConversationAction = useCallback(
+    (conversation: Conversation) => {
+      haptics.medium();
+
+      const isPinned = conversation.pinned;
+      const isStarred = conversation.starred;
+
+      const options = [
+        isPinned ? "Unpin" : "Pin",
+        isStarred ? "Unstar" : "Star",
+        "Archive",
+        "Delete",
+        "Cancel",
+      ];
+
+      const destructiveButtonIndex = 3;
+      const cancelButtonIndex = 4;
+
+      const handleAction = async (index: number) => {
+        const convId = conversation._id as Id<"conversations">;
+        try {
+          if (index === 0) {
+            await togglePin({ conversationId: convId });
+            haptics.success();
+          } else if (index === 1) {
+            await toggleStar({ conversationId: convId });
+            haptics.success();
+          } else if (index === 2) {
+            // Animate the list before archiving
+            LayoutAnimation.configureNext(
+              LayoutAnimation.Presets.easeInEaseOut,
+            );
+            await archiveConversation({ conversationId: convId });
+            haptics.success();
+          } else if (index === 3) {
+            Alert.alert(
+              "Delete Conversation",
+              "This action cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: async () => {
+                    // Animate the list before deleting
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.Presets.easeInEaseOut,
+                    );
+                    haptics.heavy();
+                    await deleteConversation({ conversationId: convId });
+                    haptics.success();
+                  },
+                },
+              ],
+            );
+          }
+        } catch (error) {
+          console.error("Failed to perform action:", error);
+          haptics.error();
+        }
+      };
+
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            destructiveButtonIndex,
+            cancelButtonIndex,
+            title: conversation.title || "Untitled",
+          },
+          handleAction,
+        );
+      } else {
+        Alert.alert(conversation.title || "Untitled", "Choose an action", [
+          { text: isPinned ? "Unpin" : "Pin", onPress: () => handleAction(0) },
+          {
+            text: isStarred ? "Unstar" : "Star",
+            onPress: () => handleAction(1),
+          },
+          { text: "Archive", onPress: () => handleAction(2) },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => handleAction(3),
+          },
+          { text: "Cancel", style: "cancel" },
+        ]);
+      }
+    },
+    [togglePin, toggleStar, archiveConversation, deleteConversation],
+  );
 
   const handleNewChat = () => {
     router.push("/chat/new");
@@ -84,6 +205,8 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           isActive && styles.conversationItemActive,
         ]}
         onPress={() => handleConversation(item._id)}
+        onLongPress={() => handleConversationAction(item)}
+        delayLongPress={400}
         activeOpacity={0.7}
       >
         <View style={styles.conversationRow}>

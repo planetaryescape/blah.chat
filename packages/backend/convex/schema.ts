@@ -879,6 +879,7 @@ export default defineSchema({
     cost: v.number(),
     messageCount: v.number(),
     warningsSent: v.optional(v.array(v.string())),
+    isByok: v.optional(v.boolean()), // true = user's own API key was used
   })
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"])
@@ -1789,4 +1790,33 @@ export default defineSchema({
     version: v.string(), // Bible version (e.g., "WEB")
     cachedAt: v.number(),
   }).index("by_osis", ["osis"]),
+
+  // BYOK (Bring Your Own Key) - user API keys for AI services
+  userApiKeys: defineTable({
+    userId: v.id("users"),
+    byokEnabled: v.boolean(),
+
+    // Encrypted keys (reuse existing encryption.ts)
+    encryptedVercelGatewayKey: v.optional(v.string()),
+    encryptedOpenRouterKey: v.optional(v.string()),
+    encryptedGroqKey: v.optional(v.string()),
+    encryptedDeepgramKey: v.optional(v.string()),
+
+    // Encryption IVs (colon-separated like BYOD)
+    encryptionIVs: v.optional(v.string()), // "vercel:openrouter:groq:deepgram"
+    authTags: v.optional(v.string()), // "vercel:openrouter:groq:deepgram"
+
+    // Validation timestamps
+    lastValidated: v.optional(
+      v.object({
+        vercelGateway: v.optional(v.number()),
+        openRouter: v.optional(v.number()),
+        groq: v.optional(v.number()),
+        deepgram: v.optional(v.number()),
+      }),
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

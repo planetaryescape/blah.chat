@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { GroupedItem } from "@/hooks/useMessageGrouping";
 
 interface Message {
@@ -20,10 +20,6 @@ interface UseConversationScrollOptions {
   onScrollReady?: (ready: boolean) => void;
 }
 
-interface UseConversationScrollReturn {
-  isScrollReady: boolean;
-}
-
 /** Scrolls to bottom on conversation switch, and to new user message on send */
 export function useConversationScroll({
   conversationId,
@@ -34,10 +30,9 @@ export function useConversationScroll({
   grouped,
   scrollContainer,
   onScrollReady,
-}: UseConversationScrollOptions): UseConversationScrollReturn {
+}: UseConversationScrollOptions): void {
   const lastScrolledConversationRef = useRef<string | undefined>(undefined);
   const prevMessageCountRef = useRef(messageCount);
-  const [isScrollReady, setIsScrollReady] = useState(false);
   const isInitialMountRef = useRef(true);
 
   // Refs to avoid stale closures - effect deps stay minimal
@@ -56,8 +51,7 @@ export function useConversationScroll({
       lastScrolledConversationRef.current !== conversationId;
 
     if (!isConversationChanged) {
-      setIsScrollReady(true); // Already scrolled, show content
-      onScrollReady?.(true);
+      onScrollReady?.(true); // Already scrolled, show content
       isInitialMountRef.current = false;
       return;
     }
@@ -66,7 +60,6 @@ export function useConversationScroll({
     // Check both messageCount and groupedRef for accuracy
     if (messageCount === 0 || groupedRef.current.length === 0) {
       lastScrolledConversationRef.current = conversationId;
-      setIsScrollReady(true);
       onScrollReady?.(true);
       isInitialMountRef.current = false;
       return;
@@ -76,7 +69,6 @@ export function useConversationScroll({
     // The parent component already handled the transition from empty state
     if (isInitialMountRef.current && messageCount <= 2) {
       lastScrolledConversationRef.current = conversationId;
-      setIsScrollReady(true);
       onScrollReady?.(true);
       isInitialMountRef.current = false;
 
@@ -94,7 +86,6 @@ export function useConversationScroll({
     }
 
     // Hide content while scrolling to new conversation
-    setIsScrollReady(false);
     onScrollReady?.(false);
     isInitialMountRef.current = false;
 
@@ -149,8 +140,7 @@ export function useConversationScroll({
       if (isAtBottom) {
         lastScrolledConversationRef.current = conversationId;
         isScrolling = false;
-        setIsScrollReady(true); // Show content now that we're scrolled
-        onScrollReady?.(true);
+        onScrollReady?.(true); // Show content now that we're scrolled
         return;
       }
 
@@ -158,8 +148,7 @@ export function useConversationScroll({
       if (attempts >= maxAttempts) {
         lastScrolledConversationRef.current = conversationId;
         isScrolling = false;
-        setIsScrollReady(true); // Show content even if not perfectly scrolled
-        onScrollReady?.(true);
+        onScrollReady?.(true); // Show content even if not perfectly scrolled
         return;
       }
 
@@ -206,6 +195,4 @@ export function useConversationScroll({
       });
     }
   }, [messages, messageCount]);
-
-  return { isScrollReady };
 }

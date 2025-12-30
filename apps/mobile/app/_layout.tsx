@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
@@ -77,26 +78,28 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-        <ClerkProvider
-          publishableKey={clerkPublishableKey}
-          tokenCache={tokenCache}
-        >
+      <KeyboardProvider>
+        <SafeAreaProvider>
           {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-          <ClerkLoaded>
-            <PersistQueryClientProvider
-              client={queryClient}
-              persistOptions={{ persister }}
-            >
-              <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                <RootLayoutNav />
-                <StatusBar style="light" />
-              </ConvexProviderWithClerk>
-            </PersistQueryClientProvider>
-          </ClerkLoaded>
-        </ClerkProvider>
-      </SafeAreaProvider>
+          <ClerkProvider
+            publishableKey={clerkPublishableKey}
+            tokenCache={tokenCache}
+          >
+            {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
+            <ClerkLoaded>
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{ persister }}
+              >
+                <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+                  <RootLayoutNav />
+                  <StatusBar style="light" />
+                </ConvexProviderWithClerk>
+              </PersistQueryClientProvider>
+            </ClerkLoaded>
+          </ClerkProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

@@ -33,7 +33,6 @@ export function useConversationScroll({
 }: UseConversationScrollOptions): void {
   const lastScrolledConversationRef = useRef<string | undefined>(undefined);
   const prevMessageCountRef = useRef(messageCount);
-  const isInitialMountRef = useRef(true);
 
   // Refs to avoid stale closures - effect deps stay minimal
   const virtualizerRef = useRef(virtualizer);
@@ -54,7 +53,6 @@ export function useConversationScroll({
 
     if (!isConversationChanged) {
       onScrollReady?.(true); // Already scrolled, show content
-      isInitialMountRef.current = false;
       return;
     }
 
@@ -63,33 +61,11 @@ export function useConversationScroll({
     if (messageCount === 0 || groupedRef.current.length === 0) {
       lastScrolledConversationRef.current = conversationId;
       onScrollReady?.(true);
-      isInitialMountRef.current = false;
-      return;
-    }
-
-    // On initial mount with messages (first message just sent), don't hide content
-    // The parent component already handled the transition from empty state
-    if (isInitialMountRef.current && messageCount <= 2) {
-      lastScrolledConversationRef.current = conversationId;
-      onScrollReady?.(true);
-      isInitialMountRef.current = false;
-
-      // Still scroll to bottom, just don't hide content
-      setTimeout(() => {
-        const currentLastIndex = groupedRef.current.length - 1;
-        if (currentLastIndex >= 0) {
-          virtualizerRef.current?.scrollToIndex(currentLastIndex, {
-            align: "end",
-            behavior: "auto",
-          });
-        }
-      }, 100);
       return;
     }
 
     // Hide content while scrolling to new conversation
     onScrollReady?.(false);
-    isInitialMountRef.current = false;
 
     // Use virtualizer's scrollToIndex for reliable scrolling with virtual lists
     let attempts = 0;

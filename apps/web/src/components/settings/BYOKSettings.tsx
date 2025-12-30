@@ -52,28 +52,28 @@ const KEY_CONFIG: Record<
     description: "Required for all AI model access",
     required: true,
     placeholder: "vrcl_...",
-    hint: "Get your key from vercel.com/dashboard",
+    hint: "Create at vercel.com/account/tokens",
   },
   openRouter: {
     label: "OpenRouter",
     description: "Access to 18+ additional models (DeepSeek, Llama, etc.)",
     required: false,
     placeholder: "sk-or-...",
-    hint: "Without this, OpenRouter models will be disabled",
+    hint: "Create at openrouter.ai/keys",
   },
   groq: {
     label: "Groq",
     description: "Fast speech-to-text transcription",
     required: false,
     placeholder: "gsk_...",
-    hint: "Without this, voice input will be disabled",
+    hint: "Create at console.groq.com/keys",
   },
   deepgram: {
     label: "Deepgram",
     description: "Text-to-speech audio generation",
     required: false,
     placeholder: "...",
-    hint: "Without this, text-to-speech will be disabled",
+    hint: "Create at console.deepgram.com",
   },
 };
 
@@ -176,7 +176,11 @@ function ApiKeyCard({
                 </Button>
               </div>
               <Button onClick={handleSave} disabled={!key.trim() || saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Validate & Save"
+                )}
               </Button>
             </div>
             {config.hint && (
@@ -286,8 +290,8 @@ export function BYOKSettings() {
             Bring Your Own API Keys
           </CardTitle>
           <CardDescription>
-            Use your own API keys for AI services. This gives you full control
-            over your usage and costs, billed directly to your accounts.
+            Use your own API keys for AI services. Keys are encrypted with
+            AES-256-GCM before storage and validated before saving.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -14,9 +14,10 @@ import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { uploadToConvex } from "@/lib/upload";
+import type { Attachment } from "@/lib/utils/fileUtils";
 
 interface VoiceRecorderProps {
-  onTranscript: (text: string) => void;
+  onTranscript: (text: string, audioAttachment?: Attachment) => void;
   onCancel: () => void;
   transcribeAudio: (args: {
     storageId: string;
@@ -111,7 +112,13 @@ export function VoiceRecorder({
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onTranscript(transcript);
+      onTranscript(transcript, {
+        type: "audio",
+        name: `voice_${Date.now()}.m4a`,
+        storageId,
+        mimeType: "audio/m4a",
+        size: 0,
+      });
     } catch (error) {
       console.error("Transcription failed:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

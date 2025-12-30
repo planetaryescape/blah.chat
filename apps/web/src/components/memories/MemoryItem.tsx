@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Memory {
   _id: string;
@@ -37,6 +38,8 @@ interface MemoryItemProps {
   showReasoning: boolean;
   onDelete: (id: string) => void;
   onNavigateToSource: (conversationId: string, messageId: string) => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 /**
@@ -60,6 +63,8 @@ export function MemoryItem({
   showReasoning,
   onDelete,
   onNavigateToSource,
+  isSelected,
+  onToggleSelect,
 }: MemoryItemProps) {
   const importance = memory.metadata?.importance || 0;
   const reasoning = memory.metadata?.reasoning;
@@ -70,6 +75,14 @@ export function MemoryItem({
     <div className="group flex items-start justify-between gap-4 p-4 hover:bg-muted/40 transition-colors">
       <div className="flex-1 space-y-2 min-w-0">
         <div className="flex items-start gap-3">
+          {onToggleSelect && (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelect}
+              className="mt-0.5 shrink-0"
+              aria-label={`Select memory: ${memory.content.slice(0, 50)}`}
+            />
+          )}
           <span
             className={`shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-medium ${getImportanceBadge(importance)}`}
             title={`Importance: ${importance}/10`}

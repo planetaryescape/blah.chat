@@ -214,6 +214,39 @@ export const deleteAllMemories = mutation({
   },
 });
 
+export const deleteSelected = mutation({
+  args: {
+    ids: v.array(v.id("memories")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    let deletedCount = 0;
+
+    for (const id of args.ids) {
+      const memory = await ctx.db.get(id);
+      if (memory && memory.userId === user._id) {
+        await ctx.db.delete(id);
+        deletedCount++;
+      }
+    }
+
+    console.log(
+      `Deleted ${deletedCount} selected memories for user ${user._id}`,
+    );
+
+    return { deleted: deletedCount };
+  },
+});
+
 // ===== Extraction Triggers =====
 
 export const triggerExtraction = mutation({

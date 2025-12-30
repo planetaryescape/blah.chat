@@ -80,6 +80,48 @@ export default function DrawerLayout() {
           drawerItemStyle: { display: "none" },
         }}
       />
+      <Drawer.Screen
+        name="projects/index"
+        options={{
+          title: "Projects",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="projects/[id]"
+        options={{
+          title: "Project",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="bookmarks"
+        options={{
+          title: "Bookmarks",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="search"
+        options={{
+          title: "Search",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="notes/index"
+        options={{
+          title: "Notes",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="notes/[id]"
+        options={{
+          title: "Note",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
     </Drawer>
   );
 }

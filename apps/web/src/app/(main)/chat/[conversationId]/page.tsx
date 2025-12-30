@@ -98,11 +98,10 @@ function ChatPageContent({
     serverMessages,
   });
 
-  // Extract chat width preference with loading detection
+  // Extract chat width preference
   const rawChatWidth = useQuery(api.users.getUserPreference, {
     key: "chatWidth",
   });
-  const isChatWidthLoading = rawChatWidth === undefined;
   const chatWidth = (rawChatWidth as ChatWidth | undefined) || "standard";
   const defaultModel = useUserPreference("defaultModel");
   const showModelNamesDuringComparison = useUserPreference(
@@ -249,7 +248,7 @@ function ChatPageContent({
       filteredConversations,
     });
 
-  const isLoading = isFirstLoad || isChatWidthLoading;
+  const isLoading = isFirstLoad;
 
   return (
     <TTSProvider defaultSpeed={ttsSpeed} defaultVoice={ttsVoice}>
@@ -284,6 +283,7 @@ function ChatPageContent({
               {isLoading ? (
                 <motion.div
                   key="skeleton"
+                  className="flex-1 flex flex-col min-h-0"
                   initial={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}

@@ -9,10 +9,15 @@
 
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalAction, internalQuery } from "../../_generated/server";
+import { estimateTokens } from "../../tokens/counting";
 
 /**
  * Get all conversation IDs for a user, optionally filtered by project
@@ -80,10 +85,25 @@ export const queryHistory = internalAction({
     }
 
     // Generate query embedding
+    const tokenCount = estimateTokens(args.query);
     const { embedding: queryEmbedding } = await embed({
       model: EMBEDDING_MODEL,
       value: args.query,
     });
+
+    // Track embedding cost
+    await ctx.scheduler.runAfter(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.usage.mutations.recordEmbedding,
+      {
+        userId: args.userId,
+        model: EMBEDDING_PRICING.model,
+        tokenCount,
+        cost: calculateEmbeddingCost(tokenCount),
+        feature: "chat",
+      },
+    );
 
     // Vector search on message embeddings
     const vectorResults = await ctx.vectorSearch("messages", "by_embedding", {

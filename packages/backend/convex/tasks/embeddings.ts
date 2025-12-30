@@ -1,12 +1,18 @@
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
+import {
+  calculateEmbeddingCost,
+  EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
+} from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
 const MAX_EMBEDDING_CHARS = 28000; // ~7000 tokens
@@ -25,7 +31,11 @@ export const generateEmbedding = internalAction({
       {
         taskId: args.taskId,
       },
-    )) as { title: string; description?: string } | null;
+    )) as {
+      title: string;
+      description?: string;
+      userId: Id<"users">;
+    } | null;
 
     if (!task) {
       console.error("Task not found:", args.taskId);
@@ -54,11 +64,27 @@ export const generateEmbedding = internalAction({
           ? textToEmbed.slice(0, MAX_EMBEDDING_CHARS)
           : textToEmbed;
 
+      const tokenCount = estimateTokens(contentToEmbed);
+
       // Generate embedding
       const { embedding } = await embed({
         model: EMBEDDING_MODEL,
         value: contentToEmbed,
       });
+
+      // Track embedding cost
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordEmbedding,
+        {
+          userId: task.userId,
+          model: EMBEDDING_PRICING.model,
+          tokenCount,
+          cost: calculateEmbeddingCost(tokenCount),
+          feature: "tasks",
+        },
+      );
 
       // Store embedding
       await ctx.runMutation(internal.tasks.embeddings.updateEmbedding, {
@@ -101,7 +127,12 @@ export const generateBatchEmbeddings = internalAction({
         limit: batchSize,
       },
     )) as {
-      tasks: Array<{ _id: string; title: string; description?: string }>;
+      tasks: Array<{
+        _id: string;
+        title: string;
+        description?: string;
+        userId: Id<"users">;
+      }>;
       continueCursor: string | null;
       total: number;
     };
@@ -126,10 +157,26 @@ export const generateBatchEmbeddings = internalAction({
             ? textToEmbed.slice(0, MAX_EMBEDDING_CHARS)
             : textToEmbed;
 
+        const tokenCount = estimateTokens(contentToEmbed);
+
         const { embedding } = await embed({
           model: EMBEDDING_MODEL,
           value: contentToEmbed,
         });
+
+        // Track embedding cost
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.usage.mutations.recordEmbedding,
+          {
+            userId: task.userId,
+            model: EMBEDDING_PRICING.model,
+            tokenCount,
+            cost: calculateEmbeddingCost(tokenCount),
+            feature: "tasks",
+          },
+        );
 
         await ctx.runMutation(internal.tasks.embeddings.updateEmbedding, {
           taskId: task._id as any,

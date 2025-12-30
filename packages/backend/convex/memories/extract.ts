@@ -3,7 +3,9 @@ import { v } from "convex/values";
 import { z } from "zod";
 import { getGatewayOptions } from "@/lib/ai/gateway";
 import {
+  calculateEmbeddingCost,
   EMBEDDING_MODEL,
+  EMBEDDING_PRICING,
   MEMORY_EXTRACTION_MODEL,
 } from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
@@ -16,6 +18,7 @@ import {
   type MemoryExtractionLevel,
 } from "../lib/prompts/operational/memoryExtraction";
 import { isMemoryDuplicate } from "../lib/utils/memory";
+import { estimateTokens } from "../tokens/counting";
 
 // TTL configuration (in milliseconds)
 const EXPIRATION_MS = {
@@ -52,12 +55,13 @@ export const extractMemories = internalAction({
   },
   handler: async (ctx, args): Promise<{ extracted: number }> => {
     // 1. Get conversation with cursor
-    const conversation: Doc<"conversations"> | null = await ctx.runQuery(
+    const conversation = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       internal.lib.helpers.getConversation,
       {
         id: args.conversationId,
       },
-    );
+    )) as Doc<"conversations"> | null;
 
     if (!conversation) {
       throw new Error("Conversation not found");
@@ -188,10 +192,29 @@ export const extractMemories = internalAction({
       }
 
       // 4. Generate embeddings (batch)
+      const factsContent = qualityFacts.map((f) => f.content);
       const embeddingResult = await embedMany({
         model: EMBEDDING_MODEL,
-        values: qualityFacts.map((f) => f.content),
+        values: factsContent,
       });
+
+      // Track embedding cost for batch
+      const totalTokens = factsContent.reduce(
+        (sum, content) => sum + estimateTokens(content),
+        0,
+      );
+      await ctx.scheduler.runAfter(
+        0,
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordEmbedding,
+        {
+          userId: conversation.userId,
+          model: EMBEDDING_PRICING.model,
+          tokenCount: totalTokens,
+          cost: calculateEmbeddingCost(totalTokens),
+          feature: "memory",
+        },
+      );
 
       // 5. Semantic deduplication check and store unique memories
       let storedCount = 0;

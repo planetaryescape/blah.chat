@@ -16,6 +16,7 @@ import { radius, spacing } from "@/lib/theme/spacing";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DELETE_THRESHOLD = -80;
 const SNAP_THRESHOLD = -40;
+const MAX_OVERSCROLL = 20;
 
 interface SwipeableRowProps {
   children: ReactNode;
@@ -40,10 +41,10 @@ export function SwipeableRow({
     .enabled(enabled)
     .activeOffsetX([-10, 10])
     .onUpdate((event) => {
-      // Only allow left swipe (negative values), clamp to max
+      // Only allow left swipe (negative values), clamp to max with slight overscroll
       translateX.value = Math.max(
         Math.min(event.translationX, 0),
-        DELETE_THRESHOLD - 20,
+        DELETE_THRESHOLD - MAX_OVERSCROLL,
       );
 
       // Trigger haptic when crossing threshold

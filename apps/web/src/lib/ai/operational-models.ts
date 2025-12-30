@@ -14,7 +14,7 @@ import { vercel } from "./providers/gateway";
 // DEFAULT MODEL (used for new conversations when no model is specified)
 // ============================================================================
 
-export const DEFAULT_MODEL_ID = "google:gemini-2.5-flash";
+export const DEFAULT_MODEL_ID = "openai:gpt-5-mini";
 export const DEFAULT_MODEL = MODEL_CONFIG[DEFAULT_MODEL_ID];
 
 // ============================================================================
@@ -123,9 +123,26 @@ export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
  * Embedding model for vector search (memories, messages, conversations).
  * Used to generate embeddings for semantic search across the application.
  */
-export const EMBEDDING_MODEL = vercel.embeddingModel(
+export const EMBEDDING_MODEL = vercel.textEmbeddingModel(
   "openai/text-embedding-3-small",
 );
+
+/**
+ * Embedding model pricing (per 1M tokens).
+ * text-embedding-3-small: $0.02/1M tokens
+ * Source: https://vercel.com/ai-gateway/models/text-embedding-3-small
+ */
+export const EMBEDDING_PRICING = {
+  model: "openai/text-embedding-3-small",
+  pricePerMillionTokens: 0.02,
+};
+
+/**
+ * Calculate embedding cost from token count.
+ */
+export function calculateEmbeddingCost(tokenCount: number): number {
+  return (tokenCount / 1_000_000) * EMBEDDING_PRICING.pricePerMillionTokens;
+}
 
 // ============================================================================
 // HELPER EXPORTS

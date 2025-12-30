@@ -93,19 +93,20 @@ export function useMessageCacheSync({
   // Validate that cached messages actually belong to current conversation
   // useLiveQuery can return stale data briefly when dependencies change
   // Handle edge cases:
-  // 1. conversationId undefined → accept any cached data (initial load)
-  // 2. Empty array → only valid if from correct conversation (avoid vacuous truth)
+  // 1. conversationId undefined → accept any cached data (no validation needed)
+  // 2. Empty array → treat as not loaded (avoid vacuous truth with .every())
   // 3. Non-empty array → validate all messages belong to current conversation
   const validatedMessages =
     conversationId === undefined
-      ? cachedMessages // Initial load - accept any cached data
+      ? cachedMessages // No conversation selected - accept cache as-is
       : cachedMessages && cachedMessages.length > 0
         ? cachedMessages.every((m) => m.conversationId === conversationId)
           ? cachedMessages
           : undefined // Wrong conversation
         : undefined; // Empty array - treat as not loaded yet
 
-  // During conversation switch, force return undefined to prevent stale data flash
+  // During conversation switch (including to/from undefined), force return undefined
+  // to prevent stale data flash. This ensures clean transitions between conversations.
   const results = isConversationChanging ? undefined : validatedMessages;
 
   // Determine loading states (compatible with useStableMessages)

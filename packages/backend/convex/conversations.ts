@@ -175,7 +175,7 @@ export const list = query({
 
       return results.sort((a, b) => {
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        return 0;
+        return b.lastMessageAt - a.lastMessageAt;
       });
     }
 

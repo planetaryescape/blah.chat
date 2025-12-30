@@ -24,8 +24,16 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
-  const category = memory.metadata?.category || "other";
-  const importance = memory.metadata?.importance || 0;
+  // Cast for TypeScript - Convex Doc types are generic
+  const metadata = memory.metadata as
+    | { category?: string; importance?: number; confidence?: number }
+    | undefined;
+  const content = memory.content as string;
+  const createdAt = memory.createdAt as number;
+
+  const category = metadata?.category || "other";
+  const importance = metadata?.importance || 0;
+  const confidence = metadata?.confidence;
   const categoryColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
 
   const handleDelete = () => {
@@ -47,15 +55,23 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
         <View style={styles.iconContainer}>
           <Brain size={16} color={categoryColor} />
         </View>
-        <View style={[styles.categoryBadge, { backgroundColor: `${categoryColor}20` }]}>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: `${categoryColor}20` },
+          ]}
+        >
           <Text style={[styles.categoryText, { color: categoryColor }]}>
             {category}
           </Text>
         </View>
         <View style={styles.spacer} />
-        <Text style={styles.date}>{formatDate(memory.createdAt)}</Text>
+        <Text style={styles.date}>{formatDate(createdAt)}</Text>
         <Pressable
-          style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.deleteButton,
+            pressed && styles.pressed,
+          ]}
           onPress={handleDelete}
         >
           <Trash2 size={16} color={colors.error} />
@@ -63,7 +79,7 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
       </View>
 
       <Text style={styles.content} numberOfLines={4}>
-        {memory.content}
+        {content}
       </Text>
 
       <View style={styles.footer}>
@@ -78,9 +94,9 @@ export function MemoryCard({ memory, onDelete }: MemoryCardProps) {
             />
           ))}
         </View>
-        {memory.metadata?.confidence !== undefined && (
+        {confidence !== undefined && (
           <Text style={styles.confidence}>
-            {Math.round(memory.metadata.confidence * 100)}% confident
+            {Math.round(confidence * 100)}% confident
           </Text>
         )}
       </View>

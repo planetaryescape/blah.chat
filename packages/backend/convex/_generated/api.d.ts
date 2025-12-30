@@ -53,6 +53,9 @@ import type * as byod_migrations_001_initial from "../byod/migrations/001_initia
 import type * as byod_migrations_index from "../byod/migrations/index.js";
 import type * as byod_saveCredentials from "../byod/saveCredentials.js";
 import type * as byod_testConnection from "../byod/testConnection.js";
+import type * as byok_credentials from "../byok/credentials.js";
+import type * as byok_helpers from "../byok/helpers.js";
+import type * as byok_saveCredentials from "../byok/saveCredentials.js";
 import type * as canvas_documents from "../canvas/documents.js";
 import type * as canvas_history from "../canvas/history.js";
 import type * as chat from "../chat.js";
@@ -311,6 +314,9 @@ declare const fullApi: ApiFromModules<{
   "byod/migrations/index": typeof byod_migrations_index;
   "byod/saveCredentials": typeof byod_saveCredentials;
   "byod/testConnection": typeof byod_testConnection;
+  "byok/credentials": typeof byok_credentials;
+  "byok/helpers": typeof byok_helpers;
+  "byok/saveCredentials": typeof byok_saveCredentials;
   "canvas/documents": typeof canvas_documents;
   "canvas/history": typeof canvas_history;
   chat: typeof chat;

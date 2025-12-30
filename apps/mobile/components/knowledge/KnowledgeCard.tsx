@@ -49,8 +49,10 @@ export function KnowledgeCard({
   onDelete,
   onRetry,
 }: KnowledgeCardProps) {
-  const typeConfig = TYPE_CONFIG[source.type] || TYPE_CONFIG.file;
-  const statusConfig = STATUS_CONFIG[source.status] || STATUS_CONFIG.pending;
+  const sourceType = source.type as string;
+  const sourceStatus = source.status as string;
+  const typeConfig = TYPE_CONFIG[sourceType] || TYPE_CONFIG.file;
+  const statusConfig = STATUS_CONFIG[sourceStatus] || STATUS_CONFIG.pending;
   const TypeIcon = typeConfig.icon;
   const StatusIcon = statusConfig.icon;
 
@@ -74,6 +76,15 @@ export function KnowledgeCard({
     });
   };
 
+  // Cast for TypeScript - Convex Doc types are generic
+  const title = source.title as string;
+  const size = source.size as number | undefined;
+  const chunkCount = source.chunkCount as number | undefined;
+  const description = source.description as string | undefined;
+  const url = source.url as string | undefined;
+  const error = source.error as string | undefined;
+  const createdAt = source.createdAt as number;
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -87,41 +98,44 @@ export function KnowledgeCard({
         </View>
         <View style={styles.titleContainer}>
           <Text style={styles.title} numberOfLines={1}>
-            {source.title}
+            {title}
           </Text>
           <View style={styles.metaRow}>
             <Text style={styles.typeLabel}>{typeConfig.label}</Text>
-            {source.size && (
+            {size && (
               <>
                 <Text style={styles.dot}>·</Text>
-                <Text style={styles.size}>{formatSize(source.size)}</Text>
+                <Text style={styles.size}>{formatSize(size)}</Text>
               </>
             )}
-            {source.chunkCount && (
+            {chunkCount && (
               <>
                 <Text style={styles.dot}>·</Text>
-                <Text style={styles.chunks}>{source.chunkCount} chunks</Text>
+                <Text style={styles.chunks}>{chunkCount} chunks</Text>
               </>
             )}
           </View>
         </View>
         <Pressable
-          style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.deleteButton,
+            pressed && styles.pressed,
+          ]}
           onPress={handleDelete}
         >
           <Trash2 size={16} color={colors.error} />
         </Pressable>
       </View>
 
-      {source.description && (
+      {description && (
         <Text style={styles.description} numberOfLines={2}>
-          {source.description}
+          {description}
         </Text>
       )}
 
-      {source.url && (
+      {url && (
         <Text style={styles.url} numberOfLines={1}>
-          {source.url}
+          {url}
         </Text>
       )}
 
@@ -133,9 +147,12 @@ export function KnowledgeCard({
           </Text>
         </View>
 
-        {source.status === "failed" && source.error && (
+        {sourceStatus === "failed" && error && (
           <Pressable
-            style={({ pressed }) => [styles.retryButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && styles.pressed,
+            ]}
             onPress={handleRetry}
           >
             <Text style={styles.retryText}>Retry</Text>
@@ -143,12 +160,12 @@ export function KnowledgeCard({
         )}
 
         <View style={styles.spacer} />
-        <Text style={styles.date}>{formatDate(source.createdAt)}</Text>
+        <Text style={styles.date}>{formatDate(createdAt)}</Text>
       </View>
 
-      {source.status === "failed" && source.error && (
+      {sourceStatus === "failed" && error && (
         <Text style={styles.error} numberOfLines={2}>
-          {source.error}
+          {error}
         </Text>
       )}
     </View>

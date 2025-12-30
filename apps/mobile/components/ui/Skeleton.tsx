@@ -1,5 +1,6 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect } from "react";
-import type { ViewStyle } from "react-native";
+import { StyleSheet, View, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,6 +16,8 @@ interface SkeletonProps {
   height?: number;
   borderRadius?: number;
   style?: ViewStyle;
+  /** Enable shimmer effect (default: true) */
+  shimmer?: boolean;
 }
 
 export function Skeleton({
@@ -22,22 +25,38 @@ export function Skeleton({
   height = 16,
   borderRadius = radius.md,
   style,
+  shimmer = true,
 }: SkeletonProps) {
-  const opacity = useSharedValue(0.3);
+  const opacity = useSharedValue(0.4);
+  const shimmerTranslate = useSharedValue(-1);
 
   useEffect(() => {
+    // Base pulse animation
     opacity.value = withRepeat(
       withSequence(
         withTiming(0.7, { duration: 800 }),
-        withTiming(0.3, { duration: 800 }),
+        withTiming(0.4, { duration: 800 }),
       ),
       -1,
       false,
     );
-  }, [opacity]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+    // Shimmer animation - moves across
+    if (shimmer) {
+      shimmerTranslate.value = withRepeat(
+        withTiming(1, { duration: 1200 }),
+        -1,
+        false,
+      );
+    }
+  }, [opacity, shimmerTranslate, shimmer]);
+
+  const containerStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
+  }));
+
+  const shimmerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: `${shimmerTranslate.value * 200}%` }],
   }));
 
   return (
@@ -48,13 +67,45 @@ export function Skeleton({
           height,
           borderRadius,
           backgroundColor: colors.muted,
+          overflow: "hidden",
         },
-        animatedStyle,
+        containerStyle,
         style,
       ]}
-    />
+    >
+      {shimmer && (
+        <Animated.View style={[styles.shimmerContainer, shimmerStyle]}>
+          <LinearGradient
+            colors={[
+              "transparent",
+              `${colors.border}40`,
+              `${colors.border}60`,
+              `${colors.border}40`,
+              "transparent",
+            ]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.shimmerGradient}
+          />
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  shimmerContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "50%",
+  },
+  shimmerGradient: {
+    flex: 1,
+  },
+});
 
 // Convenience variants
 export function SkeletonText({

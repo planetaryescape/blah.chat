@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Brain, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -85,10 +85,33 @@ export function MemoriesClientPage() {
 
   const deleteMemory = useMutation(api.memories.deleteMemory);
   const deleteAllMemories = useMutation(api.memories.deleteAllMemories);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const deleteSelectedMemories = useMutation(api.memories.deleteSelected);
   const consolidateMemories = useAction(api.memories.consolidateUserMemories);
 
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteSelectedDialog, setShowDeleteSelectedDialog] =
+    useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<Id<"memories">>>(
+    new Set(),
+  );
+
+  const toggleSelection = (id: Id<"memories">) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -104,11 +127,41 @@ export function MemoriesClientPage() {
     toast.success(`Deleted ${result.deleted} memories`);
   };
 
+  const handleDeleteSelected = async () => {
+    const ids = Array.from(selectedIds);
+    const result = await deleteSelectedMemories({ ids });
+    toast.success(`Deleted ${result.deleted} memories`);
+    clearSelection();
+  };
+
+  const handleMergeSelected = async () => {
+    if (selectedIds.size < 2) return;
+    setIsConsolidating(true);
+    try {
+      toast.info("Merging selected memories...");
+      const ids = Array.from(selectedIds);
+      const result = await consolidateMemories({ selectedIds: ids });
+      if (result.created > 0) {
+        toast.success(
+          `Merged ${result.deleted} memories into ${result.created}`,
+        );
+      } else {
+        toast.info("No changes made.");
+      }
+      clearSelection();
+    } catch (error) {
+      toast.error("Failed to merge memories");
+      console.error("Merge error:", error);
+    } finally {
+      setIsConsolidating(false);
+    }
+  };
+
   const handleConsolidate = async () => {
     setIsConsolidating(true);
     try {
       toast.info("Consolidating memories...");
-      const result = await consolidateMemories();
+      const result = await consolidateMemories({});
       if (result.created > 0 || result.deleted > 0) {
         toast.success(
           `Consolidated ${result.original} → ${result.consolidated} memories`,
@@ -158,6 +211,10 @@ export function MemoriesClientPage() {
         isConsolidating={isConsolidating}
         onConsolidate={handleConsolidate}
         onShowDeleteDialog={() => setShowDeleteDialog(true)}
+        selectedCount={selectedIds.size}
+        onClearSelection={clearSelection}
+        onDeleteSelected={() => setShowDeleteSelectedDialog(true)}
+        onMergeSelected={handleMergeSelected}
       />
 
       {/* Filters */}
@@ -219,6 +276,8 @@ export function MemoriesClientPage() {
                               showReasoning={showReasoning}
                               onDelete={handleDelete}
                               onNavigateToSource={handleNavigateToSource}
+                              isSelected={selectedIds.has(memory._id)}
+                              onToggleSelect={() => toggleSelection(memory._id)}
                             />
                           ))}
                         </div>
@@ -237,6 +296,14 @@ export function MemoriesClientPage() {
         onOpenChange={setShowDeleteDialog}
         memoriesCount={memories.length}
         onConfirm={handleDeleteAll}
+      />
+
+      <DeleteAllMemoriesDialog
+        open={showDeleteSelectedDialog}
+        onOpenChange={setShowDeleteSelectedDialog}
+        memoriesCount={selectedIds.size}
+        onConfirm={handleDeleteSelected}
+        mode="selected"
       />
     </div>
   );

@@ -399,7 +399,7 @@ function ChatPageContent({
                   ) : (
                     <div className="flex-1 max-h-full min-h-0 min-w-0 relative flex flex-col overflow-hidden">
                       <VirtualizedMessageList
-                        messages={messages || []}
+                        messages={messages ?? []}
                         chatWidth={chatWidth}
                         onVote={handleVote}
                         onConsolidate={handleConsolidate}

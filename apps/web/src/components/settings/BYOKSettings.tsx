@@ -76,7 +76,7 @@ const KEY_CONFIG: Record<
     label: "Deepgram",
     description: "Powers voice responses (text-to-speech)",
     required: false,
-    placeholder: "...",
+    placeholder: "dg_...",
     hint: "Create at console.deepgram.com",
     disabledWarning: "Without this key, text-to-speech will be disabled",
   },

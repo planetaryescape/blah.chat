@@ -272,7 +272,7 @@ export const ChatInput = memo(function ChatInput({
   return (
     <div
       className={cn(
-        "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))]",
+        "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
         getChatWidthClass(chatWidth, false),
       )}
     >

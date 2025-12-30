@@ -284,10 +284,12 @@ export const ChatMessage = memo(
         className={cn(
           "flex w-full mb-10",
           isUser ? "justify-end" : "justify-start",
+          "[content-visibility:auto]",
+          "supports-[content-visibility:auto]:[contain-intrinsic-size:auto_300px]",
         )}
       >
         <div className={wrapperClass}>
-          <div
+          <article
             ref={messageRef}
             id={`message-${message._id}`}
             onFocus={() => setIsFocused(true)}
@@ -477,7 +479,7 @@ export const ChatMessage = memo(
                 )}
               </>
             )}
-          </div>
+          </article>
 
           {/* Model Recommendation Banner - cost optimization */}
           {!readOnly &&

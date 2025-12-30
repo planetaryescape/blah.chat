@@ -35,9 +35,12 @@ export function useOptimisticMessages({
   const currentConversationId = serverMessages?.[0]?.conversationId;
 
   // Clear optimistic messages when conversation changes
+  // This handles all transitions:
+  // - Conversation A → B (clear A's optimistic messages)
+  // - Conversation A → undefined/loading (clear A's optimistic messages)
+  // - undefined → Conversation A (keep empty, no messages to clear)
   useEffect(() => {
     if (
-      currentConversationId &&
       conversationIdRef.current &&
       conversationIdRef.current !== currentConversationId
     ) {

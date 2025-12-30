@@ -227,6 +227,31 @@ export const recordTTS = internalMutation({
   },
 });
 
+export const recordEmbedding = internalMutation({
+  args: {
+    userId: v.id("users"),
+    model: v.string(),
+    tokenCount: v.number(),
+    cost: v.number(),
+    feature: v.optional(featureValidator),
+  },
+  handler: async (ctx, args) => {
+    const date = new Date().toISOString().split("T")[0];
+
+    await ctx.db.insert("usageRecords", {
+      userId: args.userId,
+      date,
+      model: args.model,
+      feature: args.feature ?? "chat",
+      operationType: "embedding",
+      inputTokens: args.tokenCount,
+      outputTokens: 0,
+      cost: args.cost,
+      messageCount: 1,
+    });
+  },
+});
+
 // Track user action button clicks
 export const recordAction = mutation({
   args: {

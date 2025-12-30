@@ -870,6 +870,7 @@ export default defineSchema({
         v.literal("tts"),
         v.literal("stt"),
         v.literal("image"),
+        v.literal("embedding"),
       ),
     ),
     inputTokens: v.number(),

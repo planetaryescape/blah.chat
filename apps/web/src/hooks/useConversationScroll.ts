@@ -101,6 +101,12 @@ export function useConversationScroll({
     const scrollToEnd = () => {
       if (!isScrolling) return;
 
+      // Clear any pending timeout before scheduling a new one
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+
       const container = scrollContainer?.current;
       if (!container) {
         timeoutId = setTimeout(scrollToEnd, 100);
@@ -164,7 +170,9 @@ export function useConversationScroll({
 
     return () => {
       isScrolling = false;
-      clearTimeout(timeoutId);
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [conversationId, highlightMessageId, scrollContainer]); // Skip when highlighting specific message
 

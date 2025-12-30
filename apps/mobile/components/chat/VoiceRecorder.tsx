@@ -15,6 +15,7 @@ import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { uploadToConvex } from "@/lib/upload";
 import type { Attachment } from "@/lib/utils/fileUtils";
+import { VoiceWaveform } from "./VoiceWaveform";
 
 interface VoiceRecorderProps {
   onTranscript: (text: string, audioAttachment?: Attachment) => void;
@@ -36,6 +37,7 @@ export function VoiceRecorder({
 }: VoiceRecorderProps) {
   const [state, setState] = useState<RecordingState>("idle");
   const [duration, setDuration] = useState(0);
+  const [metering, setMetering] = useState(-160);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -59,7 +61,16 @@ export function VoiceRecorder({
       });
 
       const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+          isMeteringEnabled: true,
+        },
+        (status) => {
+          if (status.isRecording && status.metering !== undefined) {
+            setMetering(status.metering);
+          }
+        },
+        100, // Update every 100ms for smooth waveform
       );
 
       recordingRef.current = recording;
@@ -178,10 +189,21 @@ export function VoiceRecorder({
             <X size={20} color={colors.mutedForeground} />
           </TouchableOpacity>
 
-          {/* Recording indicator */}
-          <View style={styles.recordingIndicator}>
-            <View style={styles.recordingDot} />
-            <Text style={styles.durationText}>{formatDuration(duration)}</Text>
+          {/* Center content with waveform */}
+          <View style={styles.centerContent}>
+            {/* Recording indicator */}
+            <View style={styles.recordingIndicator}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.durationText}>
+                {formatDuration(duration)}
+              </Text>
+            </View>
+            {/* Voice waveform */}
+            <VoiceWaveform
+              isRecording={state === "recording"}
+              metering={metering}
+              barCount={20}
+            />
           </View>
 
           {/* Stop button */}
@@ -216,6 +238,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.muted,
     alignItems: "center",
     justifyContent: "center",
+  },
+  centerContent: {
+    flex: 1,
+    alignItems: "center",
   },
   recordingIndicator: {
     flexDirection: "row",

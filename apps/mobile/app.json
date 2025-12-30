@@ -41,7 +41,6 @@
       "expo-router",
       "expo-secure-store",
       "expo-apple-authentication",
-      "expo-blur",
       [
         "expo-image-picker",
         {

@@ -1,6 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAuth, useUser } from "@clerk/clerk-expo";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import {
   Bell,
   ChevronRight,
@@ -8,15 +8,18 @@ import {
   Moon,
   Shield,
   Sparkles,
+  Volume2,
   Wifi,
   WifiOff,
 } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -83,11 +86,35 @@ export default function SettingsScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
   const insets = useSafeAreaInsets();
+  const [ttsEnabled, setTtsEnabled] = useState(true);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversations = useQuery(api.conversations.list);
   const isConvexConnected = conversations !== undefined;
   const conversationCount = conversations?.length ?? 0;
+
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const preferences = useQuery(api.users.getAllUserPreferences) as
+    | { ttsEnabled?: boolean }
+    | undefined;
+
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
+
+  useEffect(() => {
+    if (preferences?.ttsEnabled !== undefined) {
+      setTtsEnabled(preferences.ttsEnabled);
+    }
+  }, [preferences?.ttsEnabled]);
+
+  const handleTtsToggle = async (value: boolean) => {
+    setTtsEnabled(value);
+    await (
+      updatePreferences as (args: { ttsEnabled: boolean }) => Promise<void>
+    )({
+      ttsEnabled: value,
+    });
+  };
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -135,6 +162,22 @@ export default function SettingsScreen() {
           icon={<Bell size={20} color={colors.foreground} />}
           label="Notifications"
         />
+      </SettingsSection>
+
+      {/* Audio */}
+      <SettingsSection title="Audio">
+        <View style={styles.toggleItem}>
+          <View style={styles.iconContainer}>
+            <Volume2 size={20} color={colors.foreground} />
+          </View>
+          <Text style={styles.settingsLabel}>Text-to-Speech</Text>
+          <Switch
+            value={ttsEnabled}
+            onValueChange={handleTtsToggle}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.foreground}
+          />
+        </View>
       </SettingsSection>
 
       {/* Privacy */}
@@ -307,6 +350,12 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md + 36 + spacing.sm,
   },
   connectionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  toggleItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.md,

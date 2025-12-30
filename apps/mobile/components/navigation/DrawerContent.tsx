@@ -5,9 +5,13 @@ import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "convex/react";
 import { usePathname, useRouter } from "expo-router";
 import {
+  Bookmark,
+  FileText,
+  FolderOpen,
   MessageSquare,
   Pin,
   Plus,
+  Search,
   Settings,
   Sparkles,
   Star,
@@ -47,6 +51,26 @@ export function DrawerContent(props: DrawerContentComponentProps) {
 
   const handleHome = () => {
     router.push("/");
+    props.navigation.closeDrawer();
+  };
+
+  const handleProjects = () => {
+    router.push("/projects" as never);
+    props.navigation.closeDrawer();
+  };
+
+  const handleBookmarks = () => {
+    router.push("/bookmarks" as never);
+    props.navigation.closeDrawer();
+  };
+
+  const handleSearch = () => {
+    router.push("/search" as never);
+    props.navigation.closeDrawer();
+  };
+
+  const handleNotes = () => {
+    router.push("/notes" as never);
     props.navigation.closeDrawer();
   };
 
@@ -130,6 +154,80 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         </Text>
       </TouchableOpacity>
 
+      {/* Projects nav item */}
+      <TouchableOpacity
+        style={[
+          styles.navItem,
+          pathname.startsWith("/projects") && styles.navItemActive,
+        ]}
+        onPress={handleProjects}
+        activeOpacity={0.7}
+      >
+        <FolderOpen
+          size={18}
+          color={
+            pathname.startsWith("/projects")
+              ? colors.primary
+              : colors.mutedForeground
+          }
+        />
+        <Text
+          style={[
+            styles.navItemText,
+            pathname.startsWith("/projects") && styles.navItemTextActive,
+          ]}
+        >
+          Projects
+        </Text>
+      </TouchableOpacity>
+
+      {/* Bookmarks nav item */}
+      <TouchableOpacity
+        style={[
+          styles.navItem,
+          pathname === "/bookmarks" && styles.navItemActive,
+        ]}
+        onPress={handleBookmarks}
+        activeOpacity={0.7}
+      >
+        <Bookmark
+          size={18}
+          color={
+            pathname === "/bookmarks" ? colors.primary : colors.mutedForeground
+          }
+        />
+        <Text
+          style={[
+            styles.navItemText,
+            pathname === "/bookmarks" && styles.navItemTextActive,
+          ]}
+        >
+          Bookmarks
+        </Text>
+      </TouchableOpacity>
+
+      {/* Search nav item */}
+      <TouchableOpacity
+        style={[styles.navItem, pathname === "/search" && styles.navItemActive]}
+        onPress={handleSearch}
+        activeOpacity={0.7}
+      >
+        <Search
+          size={18}
+          color={
+            pathname === "/search" ? colors.primary : colors.mutedForeground
+          }
+        />
+        <Text
+          style={[
+            styles.navItemText,
+            pathname === "/search" && styles.navItemTextActive,
+          ]}
+        >
+          Search
+        </Text>
+      </TouchableOpacity>
+
       {/* Conversations list */}
       <View style={styles.conversationsList}>
         <Text style={styles.sectionTitle}>Recent</Text>
@@ -148,10 +246,37 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         )}
       </View>
 
-      {/* Footer with Settings */}
+      {/* Footer with Notes and Settings */}
       <View
         style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}
       >
+        <TouchableOpacity
+          style={[
+            styles.navItem,
+            pathname.startsWith("/notes") && styles.navItemActive,
+          ]}
+          onPress={handleNotes}
+          activeOpacity={0.7}
+        >
+          <FileText
+            size={18}
+            color={
+              pathname.startsWith("/notes")
+                ? colors.primary
+                : colors.mutedForeground
+            }
+          />
+          <Text
+            style={[
+              styles.navItemText,
+              pathname.startsWith("/notes")
+                ? styles.navItemTextActive
+                : styles.navItemTextMuted,
+            ]}
+          >
+            Notes
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.navItem,

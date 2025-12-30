@@ -191,7 +191,7 @@ const VirtualizedItem = memo(function VirtualizedItem({
     >
       <div
         className={cn(
-          "grid gap-4 px-4 py-2 transition-all duration-300 ease-out",
+          "grid gap-4 px-4 py-2 transition-[grid-template-columns] duration-300 ease-out",
           chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
           chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
           chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",

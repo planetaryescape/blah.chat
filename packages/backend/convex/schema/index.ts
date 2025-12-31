@@ -12,7 +12,7 @@ export {
   feedbackTagsTable,
 } from "./admin";
 export { bookmarksTable, snippetsTable } from "./bookmarks";
-export { byodMigrationsTable, userDatabaseConfigTable } from "./byod-config";
+export { byodMigrationsTable, userDatabaseConfigTable } from "./byodConfig";
 export { userApiKeysTable } from "./byok";
 export { cachedBibleVersesTable } from "./cache";
 export { canvasDocumentsTable, canvasHistoryTable } from "./canvas";

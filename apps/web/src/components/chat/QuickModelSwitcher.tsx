@@ -4,7 +4,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
 import { useQuery } from "convex/react";
 import { ChevronRight, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,14 +67,14 @@ export function QuickModelSwitcher({
     (model.pricing?.input ?? 0) >= 5 ||
     (model.pricing?.output ?? 0) >= 15;
 
-  // Check if model is disabled by BYOK (missing OpenRouter key)
-  const isByokDisabled = (model: ModelConfig) =>
+  // Check if model is disabled due to missing BYOK key
+  const isDisabledDueToByok = (model: ModelConfig) =>
     isModelDisabledByByok(model.gateway || "");
 
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>
     (isProModel(model) && proAccess && !proAccess.canUse) ||
-    isByokDisabled(model);
+    isDisabledDueToByok(model);
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -189,20 +189,21 @@ export function QuickModelSwitcher({
     analytics.track("category_filter_changed", { category, mode });
   };
 
-  const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
-    const disabled = isModelDisabled(model);
-    const byokDisabled = isByokDisabled(model);
-
-    const handleDisabledClick = () => {
-      if (byokDisabled) {
-        // Show toast for BYOK-disabled models
+  // Handle click on disabled models (BYOK or pro restriction)
+  const handleDisabledClick = useCallback(
+    (model: ModelConfig) => {
+      if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");
         toast.error(message || "This model requires an API key");
       } else {
-        // Show upgrade dialog for pro models
         setUpgradeDialogOpen(true);
       }
-    };
+    },
+    [isDisabledDueToByok, getByokModelDisabledMessage],
+  );
+
+  const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
+    const disabled = isModelDisabled(model);
 
     return (
       <ModelSelectorItem
@@ -217,7 +218,7 @@ export function QuickModelSwitcher({
         mode={mode}
         showDefaultBadge={showDefaultBadge}
         activeCategory={activeCategory}
-        onSelect={disabled ? handleDisabledClick : handleSelect}
+        onSelect={disabled ? () => handleDisabledClick(model) : handleSelect}
         onToggleFavorite={toggleFavorite}
         isPro={isProModel(model)}
         proAccessRemaining={

@@ -5,6 +5,14 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 import { encryptCredential } from "../lib/encryption";
+import {
+  FIELD_MAP,
+  KEY_INDEX,
+  type KeyType,
+  MIN_API_KEY_LENGTH,
+  PROVIDER_NAMES,
+  parseParts,
+} from "./constants";
 
 // Key type union
 const keyTypeValidator = v.union(
@@ -13,8 +21,6 @@ const keyTypeValidator = v.union(
   v.literal("groq"),
   v.literal("deepgram"),
 );
-
-type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
 
 // Validation endpoints for each provider
 const VALIDATION_ENDPOINTS: Record<
@@ -104,9 +110,9 @@ export const saveApiKey = action({
     if (!user) throw new ConvexError("Please sign in to continue");
 
     // Basic format validation
-    if (!args.apiKey || args.apiKey.trim().length < 10) {
+    if (!args.apiKey || args.apiKey.trim().length < MIN_API_KEY_LENGTH) {
       throw new ConvexError(
-        "API key must be at least 10 characters. Please check you've copied the full key.",
+        `API key must be at least ${MIN_API_KEY_LENGTH} characters. Please check you've copied the full key.`,
       );
     }
 
@@ -114,15 +120,9 @@ export const saveApiKey = action({
     if (!args.skipValidation) {
       const validation = await validateApiKey(args.keyType, args.apiKey);
       if (!validation.valid) {
-        const providerNames: Record<KeyType, string> = {
-          vercelGateway: "Vercel AI Gateway",
-          openRouter: "OpenRouter",
-          groq: "Groq",
-          deepgram: "Deepgram",
-        };
         throw new ConvexError(
           validation.error ||
-            `Invalid ${providerNames[args.keyType]} API key. Please check the key is correct.`,
+            `Invalid ${PROVIDER_NAMES[args.keyType]} API key. Please check the key is correct.`,
         );
       }
     }
@@ -147,33 +147,17 @@ export const saveApiKey = action({
     )) as Doc<"userApiKeys"> | null;
 
     // Parse existing IVs and authTags (format: "vercel:openrouter:groq:deepgram")
-    const ivParts = existing?.encryptionIVs?.split(":") || ["", "", "", ""];
-    const authTagParts = existing?.authTags?.split(":") || ["", "", "", ""];
+    const ivParts = parseParts(existing?.encryptionIVs);
+    const authTagParts = parseParts(existing?.authTags);
 
-    // Map key type to index
-    const keyIndex: Record<KeyType, number> = {
-      vercelGateway: 0,
-      openRouter: 1,
-      groq: 2,
-      deepgram: 3,
-    };
-
-    const idx = keyIndex[args.keyType];
+    const idx = KEY_INDEX[args.keyType];
     ivParts[idx] = encrypted.iv;
     authTagParts[idx] = encrypted.authTag;
-
-    // Map key type to field name
-    const fieldMap: Record<KeyType, string> = {
-      vercelGateway: "encryptedVercelGatewayKey",
-      openRouter: "encryptedOpenRouterKey",
-      groq: "encryptedGroqKey",
-      deepgram: "encryptedDeepgramKey",
-    };
 
     // Build update object
     const updateData: Record<string, unknown> = {
       userId: user._id,
-      [fieldMap[args.keyType]]: encrypted.encrypted,
+      [FIELD_MAP[args.keyType]]: encrypted.encrypted,
       encryptionIVs: ivParts.join(":"),
       authTags: authTagParts.join(":"),
       lastValidated: {
@@ -219,33 +203,18 @@ export const removeApiKey = action({
 
     if (!existing) return { success: true };
 
-    // Map key type to field name
-    const fieldMap: Record<KeyType, string> = {
-      vercelGateway: "encryptedVercelGatewayKey",
-      openRouter: "encryptedOpenRouterKey",
-      groq: "encryptedGroqKey",
-      deepgram: "encryptedDeepgramKey",
-    };
-
     // Clear the IV and authTag for this key
-    const ivParts = existing.encryptionIVs?.split(":") || ["", "", "", ""];
-    const authTagParts = existing.authTags?.split(":") || ["", "", "", ""];
+    const ivParts = parseParts(existing.encryptionIVs);
+    const authTagParts = parseParts(existing.authTags);
 
-    const keyIndex: Record<KeyType, number> = {
-      vercelGateway: 0,
-      openRouter: 1,
-      groq: 2,
-      deepgram: 3,
-    };
-
-    const idx = keyIndex[args.keyType];
+    const idx = KEY_INDEX[args.keyType];
     ivParts[idx] = "";
     authTagParts[idx] = "";
 
     // Build update - set key to empty string and disable BYOK if removing Vercel key
     const updateData: Record<string, unknown> = {
       userId: user._id,
-      [fieldMap[args.keyType]]: "",
+      [FIELD_MAP[args.keyType]]: "",
       encryptionIVs: ivParts.join(":"),
       authTags: authTagParts.join(":"),
     };
@@ -294,41 +263,15 @@ export const revalidateKey = action({
     // Get the encrypted key and decrypt it
     const { decryptCredential } = await import("../lib/encryption");
 
-    // Map key type to field and index
-    const fieldMap: Record<
-      KeyType,
-      | "encryptedVercelGatewayKey"
-      | "encryptedOpenRouterKey"
-      | "encryptedGroqKey"
-      | "encryptedDeepgramKey"
-    > = {
-      vercelGateway: "encryptedVercelGatewayKey",
-      openRouter: "encryptedOpenRouterKey",
-      groq: "encryptedGroqKey",
-      deepgram: "encryptedDeepgramKey",
-    };
-
-    const keyIndex: Record<KeyType, number> = {
-      vercelGateway: 0,
-      openRouter: 1,
-      groq: 2,
-      deepgram: 3,
-    };
-
-    const providerNames: Record<KeyType, string> = {
-      vercelGateway: "Vercel AI Gateway",
-      openRouter: "OpenRouter",
-      groq: "Groq",
-      deepgram: "Deepgram",
-    };
-
-    const encryptedKey = existing[fieldMap[args.keyType]];
+    const encryptedKey = existing[FIELD_MAP[args.keyType]];
     if (!encryptedKey)
-      throw new ConvexError(`No ${providerNames[args.keyType]} key configured`);
+      throw new ConvexError(
+        `No ${PROVIDER_NAMES[args.keyType]} key configured`,
+      );
 
-    const ivParts = existing.encryptionIVs?.split(":") || [];
-    const authTagParts = existing.authTags?.split(":") || [];
-    const idx = keyIndex[args.keyType];
+    const ivParts = parseParts(existing.encryptionIVs);
+    const authTagParts = parseParts(existing.authTags);
+    const idx = KEY_INDEX[args.keyType];
 
     const iv = ivParts[idx];
     const authTag = authTagParts[idx];
@@ -343,7 +286,7 @@ export const revalidateKey = action({
     if (!validation.valid) {
       throw new ConvexError(
         validation.error ||
-          `${providerNames[args.keyType]} API key is no longer valid`,
+          `${PROVIDER_NAMES[args.keyType]} API key is no longer valid`,
       );
     }
 

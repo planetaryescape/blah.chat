@@ -28,6 +28,8 @@ jobs:
         run: bun run lint
 
       - name: Verify BYOD schema in sync
+        # --check: Regenerates schema without version bump to verify it matches committed files.
+        # If drift detected, run 'bun run byod:sync --force' locally to regenerate.
         run: |
           bun run byod:sync --check
           if ! git diff --exit-code packages/byod-schema/; then

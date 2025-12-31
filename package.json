@@ -19,7 +19,8 @@
     "test:e2e": "turbo test:e2e",
     "convex": "bun --filter @blah-chat/backend run dev",
     "convex:deploy": "bun --filter @blah-chat/backend run deploy",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "byod:sync": "bun run scripts/sync-byod-schema.ts"
   },
   "devDependencies": {
     "lefthook": "^2.0.12",

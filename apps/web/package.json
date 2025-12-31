@@ -26,6 +26,8 @@
     "@ai-sdk/openai": "^3.0.1",
     "@anthropic-ai/sdk": "^0.71.2",
     "@blah-chat/backend": "workspace:*",
+    "@blah-chat/byod-schema": "workspace:*",
+    "@blah-chat/shared": "workspace:*",
     "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/nextjs": "^6.36.5",
     "@clerk/themes": "^2.4.46",

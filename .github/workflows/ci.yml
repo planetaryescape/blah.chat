@@ -27,6 +27,14 @@ jobs:
       - name: Run Biome check (lint + format)
         run: bun run lint
 
+      - name: Verify BYOD schema in sync
+        run: |
+          bun run byod:sync --check
+          if ! git diff --exit-code packages/byod-schema/; then
+            echo "::error::BYOD schema is out of sync! Run 'bun run byod:sync --force' to regenerate."
+            exit 1
+          fi
+
       - name: Convex typecheck
         run: bun run deploy -- --dry-run --typecheck enable
         working-directory: packages/backend

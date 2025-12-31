@@ -1,12 +1,9 @@
 #!/usr/bin/env bun
 /**
- * Automated BYOD schema sync
+ * BYOD Schema Sync
  *
- * Triggered by pre-commit hook when BYOD schema files change.
- * 1. Detects if schema-affecting files changed
- * 2. Increments BYOD_SCHEMA_VERSION
- * 3. Regenerates packages/byod-schema/
- * 4. Stages all changes (hook's stage_fixed handles this)
+ * Generates packages/byod-schema/ from modular table definitions.
+ * Triggered by pre-commit hook or manual: bun run byod:sync
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -15,24 +12,86 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
+const VERSION_PATH = join(ROOT, "apps/web/src/lib/byod/version.ts");
 
-// Files that trigger schema regeneration
 const SCHEMA_TRIGGER_FILES = [
-  "apps/web/src/lib/byod/schemaGenerator.ts",
-  "apps/web/src/lib/byod/downloadProject.ts",
-  "apps/web/src/lib/byod/router.ts",
+  "packages/backend/convex/schema.ts",
+  "packages/shared/src/byod/tables.ts",
+  "packages/shared/src/byod/excluded-fields.ts",
   "apps/web/src/lib/byod/version.ts",
 ];
-const SCHEMA_TRIGGER_DIRS = ["apps/web/src/lib/byod/schema/"];
+const SCHEMA_TRIGGER_DIRS = ["packages/backend/convex/schema/"];
 
-// Check if any trigger files are staged
+const TABLE_MODULES: Record<string, { module: string; export: string }> = {
+  conversations: { module: "conversations", export: "conversationsTable" },
+  conversationParticipants: { module: "conversations", export: "conversationParticipantsTable" },
+  conversationTokenUsage: { module: "conversations", export: "conversationTokenUsageTable" },
+  messages: { module: "messages", export: "messagesTable" },
+  attachments: { module: "messages", export: "attachmentsTable" },
+  toolCalls: { module: "messages", export: "toolCallsTable" },
+  sourceMetadata: { module: "messages", export: "sourceMetadataTable" },
+  sources: { module: "messages", export: "sourcesTable" },
+  memories: { module: "memories", export: "memoriesTable" },
+  files: { module: "files", export: "filesTable" },
+  fileChunks: { module: "files", export: "fileChunksTable" },
+  knowledgeSources: { module: "files", export: "knowledgeSourcesTable" },
+  knowledgeChunks: { module: "files", export: "knowledgeChunksTable" },
+  projects: { module: "projects", export: "projectsTable" },
+  projectConversations: { module: "projects", export: "projectConversationsTable" },
+  projectNotes: { module: "projects", export: "projectNotesTable" },
+  projectFiles: { module: "projects", export: "projectFilesTable" },
+  tasks: { module: "tasks", export: "tasksTable" },
+  notes: { module: "notes", export: "notesTable" },
+  bookmarks: { module: "bookmarks", export: "bookmarksTable" },
+  snippets: { module: "bookmarks", export: "snippetsTable" },
+  tags: { module: "tags", export: "tagsTable" },
+  bookmarkTags: { module: "tags", export: "bookmarkTagsTable" },
+  snippetTags: { module: "tags", export: "snippetTagsTable" },
+  noteTags: { module: "tags", export: "noteTagsTable" },
+  taskTags: { module: "tags", export: "taskTagsTable" },
+  shares: { module: "shares", export: "sharesTable" },
+  scheduledPrompts: { module: "shares", export: "scheduledPromptsTable" },
+  usageRecords: { module: "usage", export: "usageRecordsTable" },
+  ttsCache: { module: "usage", export: "ttsCacheTable" },
+  templates: { module: "templates", export: "templatesTable" },
+  votes: { module: "templates", export: "votesTable" },
+  presentations: { module: "presentations", export: "presentationsTable" },
+  slides: { module: "presentations", export: "slidesTable" },
+  outlineItems: { module: "presentations", export: "outlineItemsTable" },
+  designTemplates: { module: "presentations", export: "designTemplatesTable" },
+  presentationSessions: { module: "presentations", export: "presentationSessionsTable" },
+  activityEvents: { module: "activity", export: "activityEventsTable" },
+  canvasDocuments: { module: "canvas", export: "canvasDocumentsTable" },
+  canvasHistory: { module: "canvas", export: "canvasHistoryTable" },
+  notifications: { module: "notifications", export: "notificationsTable" },
+};
+
+// Derive unique modules from TABLE_MODULES
+const MODULE_FILES = [...new Set(Object.values(TABLE_MODULES).map((m) => m.module))];
+
+// --- Helpers ---
+
+function parseVersion(): number {
+  const content = readFileSync(VERSION_PATH, "utf-8");
+  const match = content.match(/export const BYOD_SCHEMA_VERSION = (\d+);/);
+  if (!match) throw new Error("Could not find BYOD_SCHEMA_VERSION in version.ts");
+  return Number.parseInt(match[1], 10);
+}
+
+function buildSchemaEntries(tables: readonly string[]): string[] {
+  return tables
+    .filter((t) => TABLE_MODULES[t])
+    .map((t) => `  ${t}: ${TABLE_MODULES[t].export},`);
+}
+
 function getStagedFiles(): string[] {
   try {
-    const output = execFileSync("git", ["diff", "--cached", "--name-only"], {
+    return execFileSync("git", ["diff", "--cached", "--name-only"], {
       encoding: "utf-8",
       cwd: ROOT,
-    });
-    return output.split("\n").filter(Boolean);
+    })
+      .split("\n")
+      .filter(Boolean);
   } catch {
     return [];
   }
@@ -40,93 +99,113 @@ function getStagedFiles(): string[] {
 
 function shouldTriggerSync(stagedFiles: string[]): boolean {
   return stagedFiles.some(
-    (file) =>
-      SCHEMA_TRIGGER_FILES.includes(file) ||
-      SCHEMA_TRIGGER_DIRS.some((dir) => file.startsWith(dir)),
+    (f) => SCHEMA_TRIGGER_FILES.includes(f) || SCHEMA_TRIGGER_DIRS.some((d) => f.startsWith(d))
   );
 }
 
-// Read and increment version
 function incrementVersion(): number {
-  const versionPath = join(ROOT, "apps/web/src/lib/byod/version.ts");
-  const content = readFileSync(versionPath, "utf-8");
+  const current = parseVersion();
+  const next = current + 1;
+  const content = readFileSync(VERSION_PATH, "utf-8");
+  writeFileSync(
+    VERSION_PATH,
+    content.replace(/export const BYOD_SCHEMA_VERSION = \d+;/, `export const BYOD_SCHEMA_VERSION = ${next};`)
+  );
+  console.log(`📦 Incremented BYOD_SCHEMA_VERSION: ${current} → ${next}`);
+  return next;
+}
 
-  const match = content.match(/export const BYOD_SCHEMA_VERSION = (\d+);/);
-  if (!match) {
-    throw new Error("Could not find BYOD_SCHEMA_VERSION in version.ts");
+// --- Schema Generation ---
+
+async function generateBYODSchemaContent(version: number): Promise<string> {
+  const { BYOD_TABLES } = await import(join(ROOT, "packages/shared/src/byod/tables.ts"));
+
+  const moduleImports = new Map<string, string[]>();
+  for (const table of BYOD_TABLES) {
+    const mapping = TABLE_MODULES[table];
+    if (!mapping) {
+      console.warn(`⚠️  Unknown table in BYOD_TABLES: ${table}`);
+      continue;
+    }
+    const existing = moduleImports.get(mapping.module) || [];
+    existing.push(mapping.export);
+    moduleImports.set(mapping.module, existing);
   }
 
-  const currentVersion = Number.parseInt(match[1], 10);
-  const newVersion = currentVersion + 1;
-
-  // Update version file
-  const newContent = content.replace(
-    /export const BYOD_SCHEMA_VERSION = \d+;/,
-    `export const BYOD_SCHEMA_VERSION = ${newVersion};`,
+  const imports = [...moduleImports.entries()].map(
+    ([mod, exports]) => `import {\n  ${exports.join(",\n  ")},\n} from "../../backend/convex/schema/${mod}";`
   );
 
-  writeFileSync(versionPath, newContent);
-  console.log(
-    `📦 Incremented BYOD_SCHEMA_VERSION: ${currentVersion} → ${newVersion}`,
-  );
+  return `// Auto-generated BYOD schema v${version}
+// DO NOT EDIT - Generated by scripts/sync-byod-schema.ts
 
-  return newVersion;
+import { defineSchema } from "convex/server";
+
+${imports.join("\n\n")}
+
+export default defineSchema({
+${buildSchemaEntries(BYOD_TABLES).join("\n")}
+});
+`;
 }
 
-// Generate schema files
+async function generateBundledSchemaContent(version: number): Promise<string> {
+  const { BYOD_TABLES } = await import(join(ROOT, "packages/shared/src/byod/tables.ts"));
+
+  let moduleContents = "";
+  for (const mod of MODULE_FILES) {
+    const modPath = join(ROOT, "packages/backend/convex/schema", `${mod}.ts`);
+    const content = readFileSync(modPath, "utf-8");
+    const cleaned = content
+      .replace(/^import.*$/gm, "")
+      .replace(/^\/\*\*[\s\S]*?\*\/\s*/m, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    if (cleaned) moduleContents += `// === ${mod.toUpperCase()} ===\n${cleaned}\n\n`;
+  }
+
+  return `// Auto-generated BYOD schema v${version}
+// DO NOT EDIT - Self-contained schema for standalone deployment
+
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+${moduleContents}
+
+export default defineSchema({
+${buildSchemaEntries(BYOD_TABLES).join("\n")}
+});
+`;
+}
+
 async function generateSchemaFiles(version: number) {
   const OUTPUT_DIR = join(ROOT, "packages/byod-schema");
+  mkdirSync(join(OUTPUT_DIR, "convex"), { recursive: true });
 
-  // Import the schema generator (bun can run TS directly)
-  const schemaGenModule = await import(
-    join(ROOT, "apps/web/src/lib/byod/schemaGenerator.ts")
-  );
+  const schemaContent = await generateBYODSchemaContent(version);
+  const bundledSchemaContent = await generateBundledSchemaContent(version);
 
-  // The generator uses the version from its import, which is now updated
-  // But since we already modified the file, we need to invalidate the cache
-  // Bun doesn't cache dynamic imports the same way, so this should work
-
-  // Generate schema content with updated version in header
-  let schemaContent = schemaGenModule.generateSchemaFile() as string;
-  // Update the version comment in case it was cached
-  schemaContent = schemaContent.replace(
-    /Auto-generated BYOD schema v\d+/,
-    `Auto-generated BYOD schema v${version}`,
-  );
-
-  // Generate functions content
-  const generatedFunctionsContent = `// BYOD Functions v${version}
-// Auto-generated by blah.chat - DO NOT EDIT
-
+  const functionsContent = `// BYOD Functions v${version} - DO NOT EDIT
 import { query } from "./_generated/server";
 
-// Health check - used to verify connection
 export const ping = query({
   args: {},
-  handler: async () => {
-    return { status: "ok", version: ${version}, timestamp: Date.now() };
-  },
+  handler: async () => ({ status: "ok", version: ${version}, timestamp: Date.now() }),
 });
 
-// System info - returns schema version
 export const getSystemInfo = query({
   args: {},
-  handler: async () => {
-    return {
-      schemaVersion: ${version},
-      provider: "blah.chat",
-      type: "byod",
-    };
-  },
+  handler: async () => ({ schemaVersion: ${version}, provider: "blah.chat", type: "byod" }),
 });
 `;
 
-  // Ensure directories exist
-  mkdirSync(join(OUTPUT_DIR, "convex"), { recursive: true });
-
-  // Write files
   writeFileSync(join(OUTPUT_DIR, "convex/schema.ts"), schemaContent);
-  writeFileSync(join(OUTPUT_DIR, "convex/functions.ts"), generatedFunctionsContent);
+  writeFileSync(join(OUTPUT_DIR, "convex/bundled-schema.ts"), bundledSchemaContent);
+  writeFileSync(
+    join(OUTPUT_DIR, "schema-string.ts"),
+    `// Auto-generated - DO NOT EDIT\nexport const BUNDLED_SCHEMA_CONTENT = ${JSON.stringify(bundledSchemaContent)};\n`
+  );
+  writeFileSync(join(OUTPUT_DIR, "convex/functions.ts"), functionsContent);
   writeFileSync(
     join(OUTPUT_DIR, "package.json"),
     JSON.stringify(
@@ -134,80 +213,69 @@ export const getSystemInfo = query({
         name: "@blah-chat/byod-schema",
         version: "1.0.0",
         private: true,
+        exports: { ".": "./convex/schema.ts", "./bundled": "./convex/bundled-schema.ts", "./schema-string": "./schema-string.ts" },
         dependencies: { convex: "^1.17.0" },
       },
       null,
-      2,
-    ),
+      2
+    )
   );
-  writeFileSync(
-    join(OUTPUT_DIR, "convex.json"),
-    JSON.stringify({ functions: "convex/" }, null, 2),
-  );
+  writeFileSync(join(OUTPUT_DIR, "convex.json"), JSON.stringify({ functions: "convex/" }, null, 2));
   writeFileSync(
     join(OUTPUT_DIR, "tsconfig.json"),
     JSON.stringify(
-      {
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-          moduleResolution: "bundler",
-          strict: true,
-          skipLibCheck: true,
-        },
-        include: ["convex/**/*"],
-      },
+      { compilerOptions: { target: "ESNext", module: "ESNext", moduleResolution: "bundler", strict: true, skipLibCheck: true }, include: ["convex/**/*"] },
       null,
-      2,
-    ),
+      2
+    )
   );
 
   console.log(`✅ Generated BYOD schema v${version} in packages/byod-schema/`);
 }
 
-// Stage generated files
 function stageGeneratedFiles() {
-  execFileSync("git", ["add", "apps/web/src/lib/byod/version.ts"], {
-    cwd: ROOT,
-  });
+  execFileSync("git", ["add", VERSION_PATH], { cwd: ROOT });
   execFileSync("git", ["add", "packages/byod-schema/"], { cwd: ROOT });
   console.log("📝 Staged version.ts and packages/byod-schema/");
 }
 
-// Main
+// --- Main ---
+
 async function main() {
+  const args = process.argv.slice(2);
+
+  if (args.includes("--check")) {
+    console.log("🔍 Checking BYOD schema sync status...");
+    await generateSchemaFiles(parseVersion());
+    console.log("✅ BYOD schema check complete");
+    return;
+  }
+
+  if (args.includes("--force")) {
+    console.log("🔄 Force regenerating BYOD schema...");
+    const version = incrementVersion();
+    await generateSchemaFiles(version);
+    stageGeneratedFiles();
+    console.log("✅ BYOD schema sync complete!");
+    return;
+  }
+
   const stagedFiles = getStagedFiles();
+  const nonVersionChanges = stagedFiles.filter((f) => f !== "apps/web/src/lib/byod/version.ts");
 
-  // Check if version.ts is the ONLY changed file (avoid double-increment)
-  const nonVersionChanges = stagedFiles.filter(
-    (f) => f !== "apps/web/src/lib/byod/version.ts",
-  );
-  const hasSchemaChanges = shouldTriggerSync(nonVersionChanges);
-
-  if (!hasSchemaChanges) {
+  if (!shouldTriggerSync(nonVersionChanges)) {
     console.log("ℹ️  No BYOD schema changes detected, skipping sync");
     process.exit(0);
   }
 
   console.log("🔄 BYOD schema changes detected, syncing...");
-
-  // Check if packages/byod-schema exists (first run message)
-  const schemaExists = existsSync(
-    join(ROOT, "packages/byod-schema/convex/schema.ts"),
-  );
-  if (!schemaExists) {
+  if (!existsSync(join(ROOT, "packages/byod-schema/convex/schema.ts"))) {
     console.log("📁 First run: creating packages/byod-schema/");
   }
 
-  // Increment version
-  const newVersion = incrementVersion();
-
-  // Generate files
-  await generateSchemaFiles(newVersion);
-
-  // Stage files
+  const version = incrementVersion();
+  await generateSchemaFiles(version);
   stageGeneratedFiles();
-
   console.log("✅ BYOD schema sync complete!");
 }
 

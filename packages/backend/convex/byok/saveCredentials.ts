@@ -4,7 +4,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";
-import { encryptCredential } from "../lib/encryption";
+import { decryptCredential, encryptCredential } from "../lib/encryption";
 import {
   FIELD_MAP,
   KEY_INDEX,
@@ -259,9 +259,6 @@ export const revalidateKey = action({
     )) as Doc<"userApiKeys"> | null;
 
     if (!existing) throw new ConvexError("No API keys configured yet");
-
-    // Get the encrypted key and decrypt it
-    const { decryptCredential } = await import("../lib/encryption");
 
     const encryptedKey = existing[FIELD_MAP[args.keyType]];
     if (!encryptedKey)

@@ -6,7 +6,7 @@ import { formatDateToISO, getLastNDays } from "@blah-chat/shared/utils";
 /** Get validated date range from localStorage, reset if stale (browser-only) */
 export function getValidatedDateRange(
   storageKey: string,
-  defaultDays = 30
+  defaultDays = 30,
 ): { startDate: string; endDate: string } {
   const freshRange = getLastNDays(defaultDays);
   if (typeof window === "undefined") return freshRange;

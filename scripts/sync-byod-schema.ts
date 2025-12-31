@@ -131,7 +131,7 @@ export const getSystemInfo = query({
     join(OUTPUT_DIR, "package.json"),
     JSON.stringify(
       {
-        name: "blah-chat-byod-schema",
+        name: "@blah-chat/byod-schema",
         version: "1.0.0",
         private: true,
         dependencies: { convex: "^1.17.0" },

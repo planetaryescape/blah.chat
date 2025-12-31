@@ -18,6 +18,27 @@ type AvailabilityData = {
   isProduction: boolean;
 };
 
+// Gateway to BYOK key field mapping
+const GATEWAY_KEY_MAP: Record<
+  string,
+  "hasVercelGatewayKey" | "hasOpenRouterKey" | "hasGroqKey"
+> = {
+  openrouter: "hasOpenRouterKey",
+  groq: "hasGroqKey",
+  vercel: "hasVercelGatewayKey",
+  "vercel-gateway": "hasVercelGatewayKey",
+};
+
+const GATEWAY_MESSAGES: Record<string, string> = {
+  openrouter:
+    "BYOK enabled but OpenRouter API key not configured. Add it in Settings → Advanced.",
+  groq: "BYOK enabled but Groq API key not configured. Add it in Settings → Advanced.",
+  vercel:
+    "BYOK enabled but Vercel AI Gateway key not configured. Add it in Settings → Advanced.",
+  "vercel-gateway":
+    "BYOK enabled but Vercel AI Gateway key not configured. Add it in Settings → Advanced.",
+};
+
 export function useApiKeyValidation() {
   // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
   const getAvailability = useAction(api.settings.apiKeys.getApiKeyAvailability);
@@ -47,43 +68,18 @@ export function useApiKeyValidation() {
   // BYOK helper: check if a gateway is disabled due to missing BYOK key
   const isModelDisabledByByok = (gateway: string): boolean => {
     if (!byokConfig?.byokEnabled) return false;
-
-    // Map gateway names to BYOK key fields
-    switch (gateway.toLowerCase()) {
-      case "openrouter":
-        return !byokConfig.hasOpenRouterKey;
-      case "groq":
-        return !byokConfig.hasGroqKey;
-      case "vercel":
-      case "vercel-gateway":
-        return !byokConfig.hasVercelGatewayKey;
-      default:
-        // For unrecognized gateways, assume Vercel Gateway handles them
-        return !byokConfig.hasVercelGatewayKey;
-    }
+    const keyField =
+      GATEWAY_KEY_MAP[gateway.toLowerCase()] ?? "hasVercelGatewayKey";
+    return !byokConfig[keyField];
   };
 
   // BYOK helper: get disabled message for a gateway
   const getByokModelDisabledMessage = (gateway: string): string | null => {
     if (!byokConfig?.byokEnabled) return null;
-
-    switch (gateway.toLowerCase()) {
-      case "openrouter":
-        if (!byokConfig.hasOpenRouterKey) {
-          return "BYOK enabled but OpenRouter API key not configured. Add it in Settings → Advanced.";
-        }
-        break;
-      case "groq":
-        if (!byokConfig.hasGroqKey) {
-          return "BYOK enabled but Groq API key not configured. Add it in Settings → Advanced.";
-        }
-        break;
-      case "vercel":
-      case "vercel-gateway":
-        if (!byokConfig.hasVercelGatewayKey) {
-          return "BYOK enabled but Vercel AI Gateway key not configured. Add it in Settings → Advanced.";
-        }
-        break;
+    const keyField =
+      GATEWAY_KEY_MAP[gateway.toLowerCase()] ?? "hasVercelGatewayKey";
+    if (!byokConfig[keyField]) {
+      return GATEWAY_MESSAGES[gateway.toLowerCase()] ?? GATEWAY_MESSAGES.vercel;
     }
     return null;
   };

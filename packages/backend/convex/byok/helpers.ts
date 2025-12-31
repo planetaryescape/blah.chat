@@ -11,7 +11,7 @@ import {
 
 /**
  * Decrypt a specific API key from BYOK config
- * Returns undefined if key not configured
+ * Returns undefined if key not configured or decryption fails
  */
 export async function decryptByokKey(
   config: Doc<"userApiKeys">,
@@ -29,7 +29,12 @@ export async function decryptByokKey(
 
   if (!iv || !authTag) return undefined;
 
-  return decryptCredential(encryptedKey, iv, authTag);
+  try {
+    return await decryptCredential(encryptedKey, iv, authTag);
+  } catch (error) {
+    console.error(`Failed to decrypt ${gateway} key:`, error);
+    return undefined;
+  }
 }
 
 /**

@@ -37,6 +37,12 @@ import { Switch } from "@/components/ui/switch";
 
 type KeyType = "vercelGateway" | "openRouter" | "groq" | "deepgram";
 
+/** Extract error message from ConvexError or regular Error */
+function getErrorMessage(error: unknown, fallback: string): string {
+  const errorObj = error as { data?: string; message?: string };
+  return errorObj.data || errorObj.message || fallback;
+}
+
 const KEY_CONFIG: Record<
   KeyType,
   {
@@ -109,10 +115,7 @@ function ApiKeyCard({
       setKey("");
       toast.success(`${config.label} key saved and validated`);
     } catch (error: unknown) {
-      // Handle ConvexError (has data property) vs regular Error
-      const errorObj = error as { data?: string; message?: string };
-      const message = errorObj.data || errorObj.message || "Failed to save key";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Failed to save key"));
     } finally {
       setSaving(false);
     }
@@ -124,10 +127,7 @@ function ApiKeyCard({
       await onRemove();
       toast.success(`${config.label} key removed`);
     } catch (error: unknown) {
-      const errorObj = error as { data?: string; message?: string };
-      const message =
-        errorObj.data || errorObj.message || "Failed to remove key";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Failed to remove key"));
     } finally {
       setRemoving(false);
     }
@@ -255,10 +255,7 @@ export function BYOKSettings() {
         await enableByok();
         toast.success("BYOK enabled! Using your own API keys now.");
       } catch (error: unknown) {
-        const errorObj = error as { data?: string; message?: string };
-        const message =
-          errorObj.data || errorObj.message || "Failed to enable BYOK";
-        toast.error(message);
+        toast.error(getErrorMessage(error, "Failed to enable BYOK"));
       }
     } else {
       setShowDisableDialog(true);
@@ -270,10 +267,7 @@ export function BYOKSettings() {
       await disableByok();
       toast.success("BYOK disabled. Using platform keys now.");
     } catch (error: unknown) {
-      const errorObj = error as { data?: string; message?: string };
-      const message =
-        errorObj.data || errorObj.message || "Failed to disable BYOK";
-      toast.error(message);
+      toast.error(getErrorMessage(error, "Failed to disable BYOK"));
     }
     setShowDisableDialog(false);
   };

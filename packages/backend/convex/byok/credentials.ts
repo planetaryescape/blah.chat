@@ -6,6 +6,7 @@ import {
   mutation,
   query,
 } from "../_generated/server";
+import { FIELD_MAP } from "./constants";
 
 // ===== Public Queries =====
 
@@ -151,26 +152,18 @@ export const removeKey = mutation({
 
     if (!config) return { success: true };
 
-    // Map key type to field name
-    const fieldMap = {
-      vercelGateway: "encryptedVercelGatewayKey",
-      openRouter: "encryptedOpenRouterKey",
-      groq: "encryptedGroqKey",
-      deepgram: "encryptedDeepgramKey",
-    } as const;
-
-    const field = fieldMap[args.keyType];
+    const field = FIELD_MAP[args.keyType];
 
     // If removing Vercel key and BYOK is enabled, disable BYOK first
     if (args.keyType === "vercelGateway" && config.byokEnabled) {
       await ctx.db.patch(config._id, {
         byokEnabled: false,
-        [field]: undefined,
+        [field]: "",
         updatedAt: Date.now(),
       });
     } else {
       await ctx.db.patch(config._id, {
-        [field]: undefined,
+        [field]: "",
         updatedAt: Date.now(),
       });
     }

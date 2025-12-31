@@ -19,29 +19,6 @@ export function getLastNDays(days = 30): { startDate: string; endDate: string } 
   return { startDate: formatDateToISO(subDays(end, days)), endDate: formatDateToISO(end) };
 }
 
-/** Get validated date range from localStorage, reset if stale */
-export function getValidatedDateRange(
-  storageKey: string,
-  defaultDays = 30
-): { startDate: string; endDate: string } {
-  const freshRange = getLastNDays(defaultDays);
-  if (typeof window === "undefined") return freshRange;
-
-  try {
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return freshRange;
-
-    const parsed = JSON.parse(stored) as { startDate: string; endDate: string };
-    if (parsed.endDate < formatDateToISO(new Date())) {
-      localStorage.removeItem(storageKey);
-      return freshRange;
-    }
-    return parsed;
-  } catch {
-    return freshRange;
-  }
-}
-
 /** Get current month range (1st to today) */
 export function getCurrentMonthRange(): { startDate: string; endDate: string } {
   const now = new Date();

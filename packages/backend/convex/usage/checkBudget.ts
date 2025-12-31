@@ -31,8 +31,9 @@ export const checkBudget = query({
 
     const records = await ctx.db
       .query("usageRecords")
-      .withIndex("by_user_date", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.gte(q.field("date"), monthStart))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).gte("date", monthStart),
+      )
       .collect();
 
     const totalSpend = records.reduce((sum, r) => sum + r.cost, 0);

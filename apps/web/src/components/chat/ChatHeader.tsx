@@ -11,6 +11,7 @@ import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserPreference } from "@/hooks/useUserPreference";
 
 interface ChatHeaderProps {
@@ -76,7 +77,11 @@ export function ChatHeader({
 
       <div className="flex items-center gap-1 flex-1 min-w-0">
         <h1 className="text-lg font-semibold truncate">
-          {conversation?.title || "New Chat"}
+          {conversation === undefined ? (
+            <Skeleton className="h-6 w-32" />
+          ) : (
+            conversation?.title || "New Chat"
+          )}
         </h1>
       </div>
 

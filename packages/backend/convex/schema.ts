@@ -19,7 +19,7 @@ import { bookmarksTable, snippetsTable } from "./schema/bookmarks";
 import {
   byodMigrationsTable,
   userDatabaseConfigTable,
-} from "./schema/byod-config";
+} from "./schema/byodConfig";
 import { userApiKeysTable } from "./schema/byok";
 import { cachedBibleVersesTable } from "./schema/cache";
 import { canvasDocumentsTable, canvasHistoryTable } from "./schema/canvas";

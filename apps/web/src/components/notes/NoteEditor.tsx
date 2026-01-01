@@ -172,8 +172,13 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
 
   // Auto-tag handler
   const handleAutoTag = useCallback(async () => {
-    if (!note?.content || note.content.length < MIN_CONTENT_LENGTH_FOR_AUTO_TAG) {
-      toast.error(`Note content must be at least ${MIN_CONTENT_LENGTH_FOR_AUTO_TAG} characters for AI tagging`);
+    if (
+      !note?.content ||
+      note.content.length < MIN_CONTENT_LENGTH_FOR_AUTO_TAG
+    ) {
+      toast.error(
+        `Note content must be at least ${MIN_CONTENT_LENGTH_FOR_AUTO_TAG} characters for AI tagging`,
+      );
       return;
     }
     setIsAutoTagging(true);

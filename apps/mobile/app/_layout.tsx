@@ -3,6 +3,7 @@ import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Font from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -81,26 +82,34 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
-          {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-          <ClerkProvider
-            publishableKey={clerkPublishableKey}
-            tokenCache={tokenCache}
+          {/* Global Nebula Background */}
+          <LinearGradient
+            colors={["#0c0a14", "#1a1625", "#0c0a14"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
           >
             {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-            <ClerkLoaded>
-              <PersistQueryClientProvider
-                client={queryClient}
-                persistOptions={{ persister }}
-              >
-                <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                  <BottomSheetModalProvider>
-                    <RootLayoutNav />
-                    <StatusBar style="light" />
-                  </BottomSheetModalProvider>
-                </ConvexProviderWithClerk>
-              </PersistQueryClientProvider>
-            </ClerkLoaded>
-          </ClerkProvider>
+            <ClerkProvider
+              publishableKey={clerkPublishableKey}
+              tokenCache={tokenCache}
+            >
+              {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
+              <ClerkLoaded>
+                <PersistQueryClientProvider
+                  client={queryClient}
+                  persistOptions={{ persister }}
+                >
+                  <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+                    <BottomSheetModalProvider>
+                      <RootLayoutNav />
+                      <StatusBar style="light" />
+                    </BottomSheetModalProvider>
+                  </ConvexProviderWithClerk>
+                </PersistQueryClientProvider>
+              </ClerkLoaded>
+            </ClerkProvider>
+          </LinearGradient>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

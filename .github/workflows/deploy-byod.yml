@@ -1,0 +1,98 @@
+name: Deploy BYOD Instances
+
+on:
+  workflow_run:
+    workflows: ["Deploy Convex"]
+    types: [completed]
+    branches: [prod]
+
+jobs:
+  deploy-byod:
+    name: Deploy to BYOD Instances
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: packages/byod-schema
+
+      - name: Fetch BYOD credentials
+        id: fetch-creds
+        env:
+          BYOD_DEPLOY_SECRET: ${{ secrets.BYOD_DEPLOY_SECRET }}
+          CONVEX_HTTP_URL: ${{ secrets.CONVEX_HTTP_URL }}
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "X-Deploy-Secret: $BYOD_DEPLOY_SECRET" \
+            -H "Content-Type: application/json" \
+            "$CONVEX_HTTP_URL/api/byod/credentials-for-deploy")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to fetch credentials: HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          # Save to file (will be cleaned up with runner)
+          echo "$BODY" > /tmp/byod-creds.json
+          COUNT=$(echo "$BODY" | jq -r '.count')
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "::notice::Found $COUNT BYOD instances to deploy"
+
+      - name: Deploy to each instance
+        if: steps.fetch-creds.outputs.count != '0'
+        run: |
+          TOTAL=0
+          SUCCEEDED=0
+          FAILED=0
+          FAILED_USERS=""
+
+          # Read credentials and deploy
+          while IFS= read -r cred; do
+            USER_ID=$(echo "$cred" | jq -r '.userId')
+            DEPLOY_URL=$(echo "$cred" | jq -r '.deploymentUrl')
+            DEPLOY_KEY=$(echo "$cred" | jq -r '.deployKey')
+
+            # Mask the deploy key immediately
+            echo "::add-mask::$DEPLOY_KEY"
+
+            echo "Deploying to user $USER_ID..."
+            TOTAL=$((TOTAL + 1))
+
+            # Run deployment
+            if CONVEX_DEPLOY_KEY="$DEPLOY_KEY" bunx convex deploy --url "$DEPLOY_URL" --yes 2>&1; then
+              echo "::notice::Successfully deployed to $USER_ID"
+              SUCCEEDED=$((SUCCEEDED + 1))
+            else
+              echo "::warning::Failed to deploy to $USER_ID"
+              FAILED=$((FAILED + 1))
+              FAILED_USERS="$FAILED_USERS $USER_ID"
+            fi
+          done < <(jq -c '.credentials[]' /tmp/byod-creds.json)
+
+          echo "::notice::BYOD Deploy complete: $SUCCEEDED/$TOTAL succeeded, $FAILED failed"
+
+          # Clean up credentials file
+          rm -f /tmp/byod-creds.json
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::Failed deployments:$FAILED_USERS"
+            exit 1
+          fi
+        working-directory: packages/byod-schema
+
+      - name: Skip if no instances
+        if: steps.fetch-creds.outputs.count == '0'
+        run: echo "::notice::No BYOD instances to deploy"

@@ -5,8 +5,10 @@ import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery } from "convex/react";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { AlertCircle, FileText, Sparkles } from "lucide-react-native";
+import { MotiView } from "moti";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -21,7 +23,9 @@ import {
 } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import Markdown from "react-native-markdown-display";
+import { GlassPane } from "@/components/ui/GlassPane";
 import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { formatSize, getFileTypeColor } from "@/lib/utils/fileUtils";
@@ -419,21 +423,38 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
             // Show shimmer for pending messages with no content
             <ShimmerLoader status="pending" />
           ) : (
-            <View
-              style={[
-                styles.bubble,
-                isUser ? styles.userBubble : styles.assistantBubble,
-                isGenerating && styles.generatingBubble,
-              ]}
+            <MotiView
+              from={{ opacity: 0, scale: 0.95, translateY: 10 }}
+              animate={{ opacity: 1, scale: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 300 }}
             >
               {isUser ? (
-                <Text style={styles.userText}>{displayContent}</Text>
+                <LinearGradient
+                  colors={[palette.roseQuartz, "#E0C8C3"]}
+                  style={[styles.bubble, styles.userBubble]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.userText}>{displayContent}</Text>
+                </LinearGradient>
               ) : (
-                <Markdown style={markdownStyles}>
-                  {displayContent || " "}
-                </Markdown>
+                <GlassPane
+                  intensity={20}
+                  tint="systemUltraThinMaterialDark"
+                  style={
+                    [
+                      styles.bubble,
+                      styles.assistantBubble,
+                      isGenerating && styles.generatingBubble,
+                    ] as any
+                  }
+                >
+                  <Markdown style={markdownStyles}>
+                    {displayContent || " "}
+                  </Markdown>
+                </GlassPane>
               )}
-            </View>
+            </MotiView>
           )}
 
           {/* Inline actions - show for complete AI messages or user messages (not when editing) */}
@@ -610,7 +631,7 @@ const styles = StyleSheet.create({
 
 const markdownStyles = {
   body: {
-    color: colors.aiBubbleText,
+    color: colors.foreground, // aiBubbleText replaced
     fontFamily: fonts.body,
     fontSize: 16,
     lineHeight: 24,
@@ -620,7 +641,7 @@ const markdownStyles = {
     marginBottom: spacing.sm,
   },
   code_inline: {
-    backgroundColor: colors.codeBackground,
+    backgroundColor: colors.muted,
     color: colors.primary,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     fontSize: 14,
@@ -629,7 +650,7 @@ const markdownStyles = {
     borderRadius: 4,
   },
   code_block: {
-    backgroundColor: colors.codeBackground,
+    backgroundColor: colors.muted,
     color: colors.foreground,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     fontSize: 13,
@@ -638,7 +659,7 @@ const markdownStyles = {
     marginVertical: spacing.sm,
   },
   fence: {
-    backgroundColor: colors.codeBackground,
+    backgroundColor: colors.muted,
     color: colors.foreground,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     fontSize: 13,
@@ -677,11 +698,11 @@ const markdownStyles = {
     marginVertical: 2,
   },
   link: {
-    color: colors.link,
+    color: palette.indigo,
     textDecorationLine: "underline" as const,
   },
   blockquote: {
-    backgroundColor: colors.codeBackground,
+    backgroundColor: colors.muted,
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
     paddingLeft: spacing.md,

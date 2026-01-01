@@ -22,6 +22,7 @@ import {
   Folder,
   GitBranch,
   Image,
+  Key,
   Loader2,
   MessageSquare,
   Presentation,
@@ -145,6 +146,11 @@ function UsagePageContent() {
   const actionStats = useQuery(api.usage.queries.getActionStats);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const presentationStats = useQuery(api.usage.queries.getPresentationStats, {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const byokBreakdown = useQuery(api.usage.queries.getByokBreakdown, {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
   });
@@ -281,6 +287,45 @@ function UsagePageContent() {
                     </div>
                   </div>
                 </div>
+
+                {/* BYOK breakdown - only show if there's any BYOK usage */}
+                {byokBreakdown && byokBreakdown.byok.requests > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-3">
+                      <Key className="h-4 w-4" />
+                      API Key Usage Breakdown
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-lg border p-4">
+                        <div className="text-sm text-muted-foreground">
+                          Platform Keys
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(byokBreakdown.platform.cost)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {byokBreakdown.platform.requests} requests •{" "}
+                          {formatCompactNumber(byokBreakdown.platform.tokens)}{" "}
+                          tokens
+                        </div>
+                      </div>
+                      <div className="rounded-lg border p-4 border-primary/30 bg-primary/5">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Key className="h-3 w-3" />
+                          Your API Keys
+                        </div>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(byokBreakdown.byok.cost)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {byokBreakdown.byok.requests} requests •{" "}
+                          {formatCompactNumber(byokBreakdown.byok.tokens)}{" "}
+                          tokens
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
 

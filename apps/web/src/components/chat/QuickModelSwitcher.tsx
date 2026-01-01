@@ -4,7 +4,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
 import { useQuery } from "convex/react";
 import { ChevronRight, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import { MODEL_CATEGORIES } from "@/lib/ai/categories";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
+import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
@@ -56,15 +57,24 @@ export function QuickModelSwitcher({
 
   const prefDefaultModel = useUserPreference("defaultModel");
 
+  // BYOK check for OpenRouter models
+  const { isModelDisabledByByok, getByokModelDisabledMessage } =
+    useApiKeyValidation();
+
   // Pro model detection (explicit flag OR price threshold)
   const isProModel = (model: ModelConfig) =>
     model.isPro === true ||
     (model.pricing?.input ?? 0) >= 5 ||
     (model.pricing?.output ?? 0) >= 15;
 
+  // Check if model is disabled due to missing BYOK key
+  const isDisabledDueToByok = (model: ModelConfig) =>
+    isModelDisabledByByok(model.gateway || "");
+
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>
-    isProModel(model) && proAccess && !proAccess.canUse;
+    (isProModel(model) && proAccess && !proAccess.canUse) ||
+    isDisabledDueToByok(model);
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -179,8 +189,22 @@ export function QuickModelSwitcher({
     analytics.track("category_filter_changed", { category, mode });
   };
 
+  // Handle click on disabled models (BYOK or pro restriction)
+  const handleDisabledClick = useCallback(
+    (model: ModelConfig) => {
+      if (isDisabledDueToByok(model)) {
+        const message = getByokModelDisabledMessage(model.gateway || "");
+        toast.error(message || "This model requires an API key");
+      } else {
+        setUpgradeDialogOpen(true);
+      }
+    },
+    [isDisabledDueToByok, getByokModelDisabledMessage],
+  );
+
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
     const disabled = isModelDisabled(model);
+
     return (
       <ModelSelectorItem
         key={model.id}
@@ -194,7 +218,7 @@ export function QuickModelSwitcher({
         mode={mode}
         showDefaultBadge={showDefaultBadge}
         activeCategory={activeCategory}
-        onSelect={disabled ? () => setUpgradeDialogOpen(true) : handleSelect}
+        onSelect={disabled ? () => handleDisabledClick(model) : handleSelect}
         onToggleFavorite={toggleFavorite}
         isPro={isProModel(model)}
         proAccessRemaining={

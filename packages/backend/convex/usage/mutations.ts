@@ -27,6 +27,7 @@ export const recordTranscription = internalMutation({
     cost: v.number(),
     conversationId: v.optional(v.id("conversations")),
     feature: v.optional(featureValidator),
+    isByok: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
@@ -42,6 +43,7 @@ export const recordTranscription = internalMutation({
       outputTokens: 0,
       cost: args.cost,
       messageCount: 1,
+      isByok: args.isByok,
     });
   },
 });
@@ -110,6 +112,7 @@ export const recordTextGeneration = internalMutation({
     reasoningTokens: v.optional(v.number()),
     cost: v.number(),
     feature: v.optional(featureValidator),
+    isByok: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
@@ -146,6 +149,7 @@ export const recordTextGeneration = internalMutation({
         reasoningTokens: args.reasoningTokens,
         cost: args.cost,
         messageCount: 1,
+        isByok: args.isByok,
       });
     }
 
@@ -208,6 +212,7 @@ export const recordTTS = internalMutation({
     cost: v.number(),
     conversationId: v.optional(v.id("conversations")),
     feature: v.optional(featureValidator),
+    isByok: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const date = new Date().toISOString().split("T")[0];
@@ -223,6 +228,7 @@ export const recordTTS = internalMutation({
       outputTokens: args.characterCount, // Track chars as "output tokens"
       cost: args.cost,
       messageCount: 1,
+      isByok: args.isByok,
     });
   },
 });

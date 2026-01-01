@@ -386,9 +386,7 @@ export function AppSidebar() {
           </Button>
           <Button
             onClick={() => setShowIncognitoDialog(true)}
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 border border-sidebar-border text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
+            className="h-9 w-9 p-0 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border border-sidebar-border shadow-sm transition-all duration-200 cursor-pointer "
             title="New Incognito Chat (Shift+Alt+N)"
           >
             <Ghost className="h-4 w-4" />

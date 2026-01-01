@@ -40,7 +40,8 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    // Transparent to show global nebula background
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },

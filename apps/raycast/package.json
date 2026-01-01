@@ -1,0 +1,108 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "blah-chat",
+  "title": "blah.chat",
+  "description": "AI chat assistant with access to all models",
+  "icon": "icon.png",
+  "author": "bhekanik",
+  "categories": ["Productivity", "Developer Tools"],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "ask",
+      "title": "Ask blah",
+      "subtitle": "blah.chat",
+      "description": "Ask a quick question",
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "query",
+          "placeholder": "Ask anything...",
+          "type": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "continue",
+      "title": "Continue Chat",
+      "subtitle": "blah.chat",
+      "description": "Continue an existing conversation",
+      "mode": "view"
+    },
+    {
+      "name": "recent",
+      "title": "Recent Chats",
+      "subtitle": "blah.chat",
+      "description": "View recent conversations",
+      "mode": "view"
+    },
+    {
+      "name": "search",
+      "title": "Search Conversations",
+      "subtitle": "blah.chat",
+      "description": "Search your chat history",
+      "mode": "view"
+    },
+    {
+      "name": "memories",
+      "title": "Memories",
+      "subtitle": "blah.chat",
+      "description": "Browse your AI memories",
+      "mode": "view"
+    },
+    {
+      "name": "projects",
+      "title": "Projects",
+      "subtitle": "blah.chat",
+      "description": "Browse your projects",
+      "mode": "view"
+    },
+    {
+      "name": "bookmarks",
+      "title": "Bookmarks",
+      "subtitle": "blah.chat",
+      "description": "Browse bookmarked messages",
+      "mode": "view"
+    },
+    {
+      "name": "templates",
+      "title": "Templates",
+      "subtitle": "blah.chat",
+      "description": "Browse prompt templates",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiKey",
+      "title": "API Key",
+      "description": "Your blah.chat API key (get from Settings > CLI API Keys)",
+      "type": "password",
+      "required": true
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.87.0",
+    "@raycast/utils": "^1.18.0",
+    "@blah-chat/backend": "workspace:*",
+    "convex": "^1.17.0"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^1.0.11",
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.2",
+    "eslint": "^8.57.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "build": "ray build --skip-types -e dist -o dist",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "typecheck": "echo 'Raycast typecheck disabled - backend path aliases do not resolve. Build succeeds with --skip-types.'",
+    "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}

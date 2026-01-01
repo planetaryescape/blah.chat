@@ -1,5 +1,6 @@
 import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import * as Font from "expo-font";
@@ -92,8 +93,10 @@ export default function RootLayout() {
                 persistOptions={{ persister }}
               >
                 <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                  <RootLayoutNav />
-                  <StatusBar style="light" />
+                  <BottomSheetModalProvider>
+                    <RootLayoutNav />
+                    <StatusBar style="light" />
+                  </BottomSheetModalProvider>
                 </ConvexProviderWithClerk>
               </PersistQueryClientProvider>
             </ClerkLoaded>

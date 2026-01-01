@@ -155,6 +155,20 @@ export default function DrawerLayout() {
           drawerItemStyle: { display: "none" },
         }}
       />
+      <Drawer.Screen
+        name="tasks/index"
+        options={{
+          title: "Tasks",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
+      <Drawer.Screen
+        name="tasks/[id]"
+        options={{
+          title: "Task",
+          drawerItemStyle: { display: "none" },
+        }}
+      />
     </Drawer>
   );
 }

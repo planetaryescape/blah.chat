@@ -101,7 +101,7 @@ export const generateImage = internalAction({
       let reasoningBuffer = "";
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
-      const UPDATE_INTERVAL = 200; // Throttle DB updates
+      const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming
 
       for await (const chunk of result.fullStream) {
         const now = Date.now();

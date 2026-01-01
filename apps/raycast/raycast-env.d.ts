@@ -9,7 +9,9 @@
 
 type ExtensionPreferences = {
   /** API Key - Your blah.chat API key (get from Settings > CLI API Keys) */
-  "apiKey": string
+  "apiKey": string,
+  /** Convex URL - Convex deployment URL (leave empty for default production) */
+  "convexUrl"?: string
 }
 
 /** Preferences accessible in all the extension's commands */

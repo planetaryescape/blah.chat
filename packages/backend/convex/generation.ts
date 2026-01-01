@@ -65,20 +65,53 @@ export const generateResponse = internalAction({
     const generationStartTime = Date.now();
     let firstTokenTime: number | undefined;
 
-    try {
-      // Check message status to detect resilient generation (resumed after refresh)
-      const message = (await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.messages.get,
-        {
-          messageId: args.assistantMessageId,
-        },
-      )) as Doc<"messages"> | null;
-      const wasAlreadyGenerating = message?.status === "generating";
-      const isResumedAfterRefresh =
-        wasAlreadyGenerating && message?.partialContent;
+    // Track analytics info for deferred tracking (after first token)
+    let isResumedAfterRefresh = false;
+    let partialContentLengthForAnalytics = 0;
 
-      // 1. Mark generation started
+    try {
+      // PARALLEL QUERIES: Batch all initial queries for faster TTFT
+      const [message, messages, presentationForOutline, conversation, memoryExtractionLevelRaw] = await Promise.all([
+        // Check message status (for resume detection)
+        (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.get,
+          { messageId: args.assistantMessageId },
+        ) as Promise<Doc<"messages"> | null>,
+        // Get conversation history (slowest query, 200-800ms)
+        ctx.runQuery(internal.messages.listInternal, {
+          conversationId: args.conversationId,
+        }),
+        // Check if presentation generation (for outline parsing)
+        ctx.runQuery(
+          // @ts-ignore
+          internal.presentations.internal.getPresentationByConversation,
+          { conversationId: args.conversationId },
+        ) as Promise<Doc<"presentations"> | null>,
+        // Get conversation for tool filtering
+        ctx.runQuery(internal.conversations.getInternal, {
+          id: args.conversationId,
+        }),
+        // Get user memory preference
+        (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.users.getUserPreferenceByUserId,
+          { userId: args.userId, key: "memoryExtractionLevel" },
+        ) as Promise<string | null>,
+      ]);
+
+      const wasAlreadyGenerating = message?.status === "generating";
+      isResumedAfterRefresh = wasAlreadyGenerating && !!message?.partialContent;
+      partialContentLengthForAnalytics = message?.partialContent?.length || 0;
+
+      const isOutlineGeneration =
+        presentationForOutline &&
+        (presentationForOutline.status === "outline_generating" ||
+          presentationForOutline.status === "outline_pending");
+
+      const memoryExtractionLevel = (memoryExtractionLevelRaw ?? "moderate") as MemoryExtractionLevel;
+
+      // 1. Mark generation started (required for UI to show streaming state)
       await ctx.runMutation(internal.messages.updatePartialContent, {
         messageId: args.assistantMessageId,
         partialContent: "",
@@ -89,46 +122,6 @@ export const generateResponse = internalAction({
         messageId: args.assistantMessageId,
         status: "generating",
         generationStartedAt: generationStartTime,
-      });
-
-      // Track streaming started or resumed
-      if (isResumedAfterRefresh) {
-        await trackServerEvent(
-          "generation_resumed_after_refresh",
-          {
-            model: args.modelId,
-            messageId: args.assistantMessageId,
-            conversationId: args.conversationId,
-            partialContentLength: message.partialContent?.length || 0,
-          },
-          args.userId,
-        );
-      } else {
-        await trackServerEvent(
-          "message_streaming_started",
-          {
-            model: args.modelId,
-            messageId: args.assistantMessageId,
-            conversationId: args.conversationId,
-          },
-          args.userId,
-        );
-      }
-
-      // 1.5 Check if this is a presentation generation (for incremental outline parsing)
-      const presentationForOutline = (await ctx.runQuery(
-        // @ts-ignore
-        internal.presentations.internal.getPresentationByConversation,
-        { conversationId: args.conversationId },
-      )) as Doc<"presentations"> | null;
-      const isOutlineGeneration =
-        presentationForOutline &&
-        (presentationForOutline.status === "outline_generating" ||
-          presentationForOutline.status === "outline_pending");
-
-      // 2. Get conversation history
-      const messages = await ctx.runQuery(internal.messages.listInternal, {
-        conversationId: args.conversationId,
       });
 
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
@@ -178,13 +171,6 @@ export const generateResponse = internalAction({
       const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
       const hasFunctionCalling =
         modelConfig.capabilities?.includes("function-calling") ?? false;
-
-      // 5b. Get user's memory extraction level preference
-      const memoryExtractionLevel = ((await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        api.users.getUserPreferenceByUserId,
-        { userId: args.userId, key: "memoryExtractionLevel" },
-      )) ?? "moderate") as MemoryExtractionLevel;
 
       // 6. Pre-fetch contextual memories for NON-TOOL models only
       // Tool-capable models use searchMemories/searchAll tools instead
@@ -329,12 +315,15 @@ export const generateResponse = internalAction({
               { type: "text", text: `${m.content || ""}\n\n${attachmentInfo}` },
             ];
 
-            for (const attachment of attachments) {
-              const base64 = await downloadAttachment(
-                ctx,
-                attachment.storageId,
-              );
+            // PARALLEL: Download all attachments concurrently (saves 100ms+ per attachment)
+            const downloadResults = await Promise.all(
+              attachments.map(async (attachment) => ({
+                attachment,
+                base64: await downloadAttachment(ctx, attachment.storageId),
+              })),
+            );
 
+            for (const { attachment, base64 } of downloadResults) {
               if (attachment.type === "image") {
                 contentParts.push({
                   type: "image",
@@ -416,14 +405,6 @@ export const generateResponse = internalAction({
         providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
       };
 
-      // Fetch conversation to check for project-specific tools
-      const conversation = await ctx.runQuery(
-        internal.conversations.getInternal,
-        {
-          id: args.conversationId,
-        },
-      );
-
       // Only add tools for capable models
       // Note: Gemini Flash Lite has tool schema compatibility issues with Vercel AI SDK 4.0.34+
       // See: https://github.com/vercel/ai/issues - optional arrays/enums in tool schemas cause 400 errors
@@ -501,7 +482,7 @@ export const generateResponse = internalAction({
       let lastReasoningUpdate = Date.now();
       let lastOutlineUpdate = Date.now();
       let lastParsedItemCount = 0;
-      const UPDATE_INTERVAL = 200; // ms
+      const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming at high TPS
 
       for await (const chunk of result.fullStream) {
         const now = Date.now();
@@ -591,7 +572,7 @@ export const generateResponse = internalAction({
 
         // Handle text chunks
         if (chunk.type === "text-delta") {
-          // Capture first token timestamp
+          // Capture first token timestamp and track analytics (deferred from before streaming)
           if (!firstTokenTime && chunk.text.length > 0) {
             firstTokenTime = now;
 
@@ -600,6 +581,33 @@ export const generateResponse = internalAction({
               messageId: args.assistantMessageId,
               firstTokenAt: firstTokenTime,
             });
+
+            // DEFERRED ANALYTICS: Track streaming started/resumed after first token arrives
+            // This moves ~15ms of analytics work out of the critical path to TTFT
+            if (isResumedAfterRefresh) {
+              trackServerEvent(
+                "generation_resumed_after_refresh",
+                {
+                  model: args.modelId,
+                  messageId: args.assistantMessageId,
+                  conversationId: args.conversationId,
+                  partialContentLength: partialContentLengthForAnalytics,
+                  firstTokenLatencyMs: firstTokenTime - generationStartTime,
+                },
+                args.userId,
+              ).catch(() => {}); // Fire-and-forget, don't block streaming
+            } else {
+              trackServerEvent(
+                "message_streaming_started",
+                {
+                  model: args.modelId,
+                  messageId: args.assistantMessageId,
+                  conversationId: args.conversationId,
+                  firstTokenLatencyMs: firstTokenTime - generationStartTime,
+                },
+                args.userId,
+              ).catch(() => {}); // Fire-and-forget, don't block streaming
+            }
           }
 
           accumulated += chunk.text;
@@ -696,12 +704,15 @@ export const generateResponse = internalAction({
         reasoningTokens,
       });
 
-      // Calculate TPS (tokens per second)
+      // Calculate TPS (tokens per second) - measure from first token, not action start
+      // This excludes setup time (memory fetch, prompt building) for accurate speed display
       const endTime = Date.now();
-      const durationSeconds = (endTime - generationStartTime) / 1000;
+      const generationDuration = firstTokenTime
+        ? endTime - firstTokenTime
+        : endTime - generationStartTime; // Fallback if no tokens generated
       const tokensPerSecond =
-        outputTokens && durationSeconds > 0
-          ? outputTokens / durationSeconds
+        outputTokens && generationDuration > 0
+          ? outputTokens / (generationDuration / 1000)
           : undefined;
 
       // Extract all tool calls from result.steps
@@ -965,10 +976,13 @@ export const generateResponse = internalAction({
         );
       }
 
-      // 11. Calculate and update token usage
-      const allMessagesForCounting = await ctx.runQuery(
-        internal.messages.listInternal,
-        { conversationId: args.conversationId },
+      // 11. POST-STREAMING CLEANUP (parallelized for speed)
+      // These operations don't need to block action completion - run in parallel
+
+      // Get conversation for title check (needed for conditional title gen)
+      const conversationForTitle = await ctx.runQuery(
+        internal.conversations.getInternal,
+        { id: args.conversationId },
       );
 
       // System prompts (tool-based memory retrieval tokens counted separately by AI SDK)
@@ -978,71 +992,64 @@ export const generateResponse = internalAction({
           : JSON.stringify(msg.content),
       );
 
-      const tokenUsage = await calculateConversationTokensAsync(
-        systemPromptStrings,
-        memoryContentForTracking ? [memoryContentForTracking] : [],
-        allMessagesForCounting,
-        modelConfig.contextWindow,
-        args.modelId,
-      );
-
-      // Legacy conversation-level token usage (Phase 6: keep for backward compat)
-      await ctx.runMutation(internal.conversations.updateTokenUsage, {
-        conversationId: args.conversationId,
-        tokenUsage,
-      });
-
-      // Phase 6: Per-model token tracking (new normalized table)
-      (await (ctx.runMutation as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.conversations.updateConversationTokenUsage,
-        {
-          conversationId: args.conversationId,
-          model: args.modelId,
-          inputTokens,
-          outputTokens,
-          reasoningTokens: reasoningTokens || 0,
-        },
-      )) as Promise<void>;
-
-      // 12. Auto-name if conversation still has default title
-      const conversationForTitle = await ctx.runQuery(
-        internal.conversations.getInternal,
-        {
-          id: args.conversationId,
-        },
-      );
-
-      if (conversationForTitle && conversationForTitle.title === "New Chat") {
-        // Still has default title, schedule title generation
-        await ctx.scheduler.runAfter(
-          0,
-          internal.ai.generateTitle.generateTitle,
-          {
-            conversationId: args.conversationId,
-          },
-        );
-      }
-
-      // 13. Trigger model triage analysis for cost optimization
-      // Runs async in background, analyzes if cheaper model would work
+      // Get last user message for model triage
       const lastUserMsgForTriage = messages
         .filter((m: Doc<"messages">) => m.role === "user")
         .sort(
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
 
-      if (lastUserMsgForTriage) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.ai.modelTriage.analyzeModelFit,
-          {
-            conversationId: args.conversationId,
-            userMessage: lastUserMsgForTriage.content,
-            currentModelId: args.modelId,
-          },
-        );
-      }
+      // PARALLEL: Run all post-streaming work concurrently
+      await Promise.all([
+        // Token counting and updates
+        (async () => {
+          const allMessagesForCounting = await ctx.runQuery(
+            internal.messages.listInternal,
+            { conversationId: args.conversationId },
+          );
+          const tokenUsage = await calculateConversationTokensAsync(
+            systemPromptStrings,
+            memoryContentForTracking ? [memoryContentForTracking] : [],
+            allMessagesForCounting,
+            modelConfig.contextWindow,
+            args.modelId,
+          );
+          // Run both token updates in parallel
+          await Promise.all([
+            ctx.runMutation(internal.conversations.updateTokenUsage, {
+              conversationId: args.conversationId,
+              tokenUsage,
+            }),
+            (ctx.runMutation as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.conversations.updateConversationTokenUsage,
+              {
+                conversationId: args.conversationId,
+                model: args.modelId,
+                inputTokens,
+                outputTokens,
+                reasoningTokens: reasoningTokens || 0,
+              },
+            ),
+          ]);
+        })(),
+
+        // Auto-name if conversation still has default title
+        conversationForTitle?.title === "New Chat"
+          ? ctx.scheduler.runAfter(0, internal.ai.generateTitle.generateTitle, {
+              conversationId: args.conversationId,
+            })
+          : Promise.resolve(),
+
+        // Model triage analysis
+        lastUserMsgForTriage
+          ? ctx.scheduler.runAfter(0, internal.ai.modelTriage.analyzeModelFit, {
+              conversationId: args.conversationId,
+              userMessage: lastUserMsgForTriage.content,
+              currentModelId: args.modelId,
+            })
+          : Promise.resolve(),
+      ]);
     } catch (error) {
       // Enhanced error logging to capture full gateway error details
       console.error("[Generation] Error:", error);

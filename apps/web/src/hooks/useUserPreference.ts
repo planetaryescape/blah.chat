@@ -10,10 +10,17 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
 import { useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useEffect } from "react";
 import { cache } from "@/lib/cache";
 
 /**
  * Get a single user preference by key
+ *
+ * Cache strategy:
+ * 1. Return cached value for instant UI (no flash)
+ * 2. Convex query runs in background
+ * 3. When Convex returns, sync to cache
+ * 4. useLiveQuery triggers re-render with fresh value
  *
  * @param key - Preference key (e.g., "theme", "defaultModel")
  * @returns Preference value or default if not set
@@ -28,17 +35,58 @@ export function useUserPreference<K extends keyof typeof PREFERENCE_DEFAULTS>(
   // @ts-ignore - Type depth exceeded with Convex modules
   const convexValue = useQuery(api.users.getUserPreference, { key });
 
+  // Read from Dexie cache (reactive via useLiveQuery)
   const cachedPreferences = useLiveQuery(
     () => cache.userPreferences.get("current"),
     [],
     null,
   );
 
-  // Prefer cached, fall back to convex, then defaults
+  // Sync Convex → Dexie when Convex value changes
+  useEffect(() => {
+    if (convexValue === undefined) return; // Still loading
+
+    const syncToCache = async () => {
+      const current = await cache.userPreferences.get("current");
+      const existingData = current?.data ?? {};
+
+      // Only update if value actually changed
+      if (existingData[key] !== convexValue) {
+        await cache.userPreferences.put({
+          _id: "current",
+          data: { ...existingData, [key]: convexValue },
+        });
+      }
+    };
+
+    syncToCache().catch(console.error);
+  }, [convexValue, key]);
+
+  // Priority: cached (instant) → convex (reactive) → defaults
   if (cachedPreferences?.data?.[key] !== undefined) {
     return cachedPreferences.data[key] as (typeof PREFERENCE_DEFAULTS)[K];
   }
   return convexValue ?? PREFERENCE_DEFAULTS[key];
+}
+
+/**
+ * Update preference cache optimistically.
+ * Call this immediately when updating preferences for instant UI response.
+ *
+ * @example
+ * await updatePreferenceCache("showMessageStatistics", true);
+ * await updatePreferences({ preferences: { showMessageStatistics: true } });
+ */
+export async function updatePreferenceCache(
+  key: string,
+  value: unknown,
+): Promise<void> {
+  const current = await cache.userPreferences.get("current");
+  const existingData = current?.data ?? {};
+  await cache.userPreferences.put({
+    _id: "current",
+    data: { ...existingData, [key]: value },
+  });
 }
 
 /**

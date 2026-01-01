@@ -102,47 +102,68 @@ export function isLoggedIn(): boolean {
  */
 export async function startOAuthFlow(): Promise<Credentials> {
   return new Promise((resolve, reject) => {
+    let credentials: Credentials | null = null;
+
     const server = http.createServer(async (req, res) => {
       const url = new URL(req.url!, `http://localhost:${CALLBACK_PORT}`);
 
-      if (url.pathname !== CALLBACK_PATH) {
-        res.writeHead(404);
-        res.end("Not found");
+      // Serve fragment extractor page - credentials are in the URL fragment
+      // (fragments are never sent to server, so we serve JS to extract them)
+      if (url.pathname === CALLBACK_PATH && req.method === "GET") {
+        sendFragmentExtractorPage(res);
         return;
       }
 
-      // Handle OAuth callback
-      const apiKey = url.searchParams.get("api_key");
-      const keyPrefix = url.searchParams.get("key_prefix");
-      const email = url.searchParams.get("email");
-      const name = url.searchParams.get("name");
-      const error = url.searchParams.get("error");
+      // Receive credentials via POST (from fragment extractor page)
+      if (
+        url.pathname === `${CALLBACK_PATH}/complete` &&
+        req.method === "POST"
+      ) {
+        let body = "";
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", () => {
+          try {
+            const data = JSON.parse(body);
+            const { api_key, key_prefix, email, name, error } = data;
 
-      if (error) {
-        sendErrorPage(res, error);
-        server.close();
-        reject(new Error(error));
+            if (error) {
+              sendErrorPage(res, error);
+              server.close();
+              reject(new Error(error));
+              return;
+            }
+
+            if (!api_key || !key_prefix || !email) {
+              sendErrorPage(res, "Missing required parameters");
+              server.close();
+              reject(new Error("Missing required parameters from callback"));
+              return;
+            }
+
+            credentials = {
+              apiKey: api_key,
+              keyPrefix: key_prefix,
+              email,
+              name: name || email.split("@")[0],
+              createdAt: Date.now(),
+            };
+
+            sendSuccessPage(res, credentials.name);
+            server.close();
+            resolve(credentials);
+          } catch {
+            sendErrorPage(res, "Invalid callback data");
+            server.close();
+            reject(new Error("Invalid callback data"));
+          }
+        });
         return;
       }
 
-      if (!apiKey || !keyPrefix || !email) {
-        sendErrorPage(res, "Missing required parameters");
-        server.close();
-        reject(new Error("Missing required parameters from callback"));
-        return;
-      }
-
-      const credentials: Credentials = {
-        apiKey,
-        keyPrefix,
-        email,
-        name: name || email.split("@")[0],
-        createdAt: Date.now(),
-      };
-
-      sendSuccessPage(res, credentials.name);
-      server.close();
-      resolve(credentials);
+      res.writeHead(404);
+      res.end("Not found");
     });
 
     server.on("error", (err) => {
@@ -173,6 +194,106 @@ export async function startOAuthFlow(): Promise<Credentials> {
 // ─────────────────────────────────────────────────────────────────────────────
 // HTML Responses
 // ─────────────────────────────────────────────────────────────────────────────
+
+function sendFragmentExtractorPage(res: http.ServerResponse): void {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  res.end(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>blah.chat CLI - Authenticating</title>
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #1a1625;
+            color: #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+          }
+          .container { text-align: center; padding: 40px; }
+          h1 { color: #F4E0DC; margin-bottom: 16px; }
+          p { color: #a1a1aa; margin: 8px 0; }
+          .error h1 { color: #ef4444; }
+          .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #333;
+            border-top-color: #F4E0DC;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          .hidden { display: none; }
+        </style>
+      </head>
+      <body>
+        <div class="container" id="loading">
+          <div class="spinner"></div>
+          <h1>Completing authentication...</h1>
+          <p>Please wait while we verify your credentials.</p>
+        </div>
+        <div class="container hidden" id="success">
+          <h1>&#10003; Authentication Successful</h1>
+          <p>Welcome, <span id="userName"></span>!</p>
+          <p>You can close this window and return to the terminal.</p>
+        </div>
+        <div class="container error hidden" id="error">
+          <h1>&#10007; Error</h1>
+          <p id="errorMsg"></p>
+        </div>
+        <script>
+          (function() {
+            var loading = document.getElementById('loading');
+            var success = document.getElementById('success');
+            var error = document.getElementById('error');
+
+            function showSuccess(name) {
+              loading.classList.add('hidden');
+              document.getElementById('userName').textContent = name;
+              success.classList.remove('hidden');
+              setTimeout(function() { window.close(); }, 3000);
+            }
+
+            function showError(msg) {
+              loading.classList.add('hidden');
+              document.getElementById('errorMsg').textContent = msg;
+              error.classList.remove('hidden');
+            }
+
+            // Extract credentials from URL fragment (safer than query params)
+            var fragment = window.location.hash.substring(1);
+            var params = new URLSearchParams(fragment);
+            var data = {
+              api_key: params.get('api_key'),
+              key_prefix: params.get('key_prefix'),
+              email: params.get('email'),
+              name: params.get('name')
+            };
+
+            // POST to complete endpoint
+            fetch('/oauth/callback/complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            }).then(function(response) {
+              if (response.ok) {
+                showSuccess(data.name || data.email || 'User');
+              } else {
+                throw new Error('Authentication failed');
+              }
+            }).catch(function(err) {
+              showError(err.message);
+            });
+          })();
+        </script>
+      </body>
+    </html>
+  `);
+}
 
 function sendSuccessPage(res: http.ServerResponse, name: string): void {
   res.writeHead(200, { "Content-Type": "text/html" });

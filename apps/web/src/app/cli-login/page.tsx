@@ -19,6 +19,7 @@ function CLILoginContent() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const createCliKey = useMutation(api.cliAuth.create);
   const hasRun = useRef(false);
 
@@ -64,12 +65,16 @@ function CLILoginContent() {
 
         const { key, keyPrefix, email, name } = await createCliKey();
 
-        // Build callback URL with API key credentials
+        // Build callback URL with credentials in fragment (not query params)
+        // Fragments are never sent to server, only accessible client-side
         const redirectUrl = new URL(callbackUrl);
-        redirectUrl.searchParams.set("api_key", key);
-        redirectUrl.searchParams.set("key_prefix", keyPrefix);
-        redirectUrl.searchParams.set("email", email || "");
-        redirectUrl.searchParams.set("name", name || "");
+        const fragment = new URLSearchParams({
+          api_key: key,
+          key_prefix: keyPrefix,
+          email: email || "",
+          name: name || "",
+        });
+        redirectUrl.hash = fragment.toString();
 
         // Redirect to CLI callback
         window.location.href = redirectUrl.toString();

@@ -963,6 +963,37 @@ export const getPublicNote = query({
 });
 
 /**
+ * Trigger AI auto-tagging for a note
+ * Reuses existing extractAndApplyTags logic
+ */
+export const triggerAutoTag = action({
+  args: { noteId: v.id("notes") },
+  handler: async (ctx, { noteId }) => {
+    // Verify ownership
+    const note = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getNote,
+      { noteId },
+    )) as { _id: string; userId: string; content: string } | null;
+    if (!note) throw new Error("Note not found");
+
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getCurrentUser,
+      {},
+    )) as { _id: string } | null;
+    if (!user || note.userId !== user._id) throw new Error("Not authorized");
+
+    // Trigger auto-tagging
+    return (await (ctx.runAction as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.notes.tags.extractAndApplyTags,
+      { noteId },
+    )) as { appliedTags: string[] };
+  },
+});
+
+/**
  * Create a share for a note
  */
 export const createShare = action({

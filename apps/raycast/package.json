@@ -71,6 +71,20 @@
       "subtitle": "blah.chat",
       "description": "Browse prompt templates",
       "mode": "view"
+    },
+    {
+      "name": "tasks",
+      "title": "Tasks",
+      "subtitle": "blah.chat",
+      "description": "Manage your tasks",
+      "mode": "view"
+    },
+    {
+      "name": "notes",
+      "title": "Notes",
+      "subtitle": "blah.chat",
+      "description": "View and create notes",
+      "mode": "view"
     }
   ],
   "preferences": [

@@ -21,6 +21,7 @@
     "@expo/metro-runtime": "~6.1.2",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@react-native-clipboard/clipboard": "^1.15.0",
+    "@react-native-community/datetimepicker": "^8.5.1",
     "@react-navigation/drawer": "^7.3.0",
     "@shopify/flash-list": "^2.2.0",
     "@tanstack/query-sync-storage-persister": "^5.90.14",

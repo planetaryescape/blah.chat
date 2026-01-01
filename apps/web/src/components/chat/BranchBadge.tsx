@@ -19,9 +19,17 @@ interface BranchBadgeProps {
 
 export function BranchBadge({ conversationId }: BranchBadgeProps) {
   const router = useRouter();
-  const childBranches = useQuery(api.conversations.getChildBranches, {
-    conversationId,
-  });
+
+  // Validate conversationId (could be string "undefined" from bad routing)
+  const validId =
+    conversationId && String(conversationId) !== "undefined"
+      ? conversationId
+      : null;
+
+  const childBranches = useQuery(
+    api.conversations.getChildBranches,
+    validId ? { conversationId: validId } : "skip",
+  );
 
   if (!childBranches || childBranches.length === 0) {
     return null;

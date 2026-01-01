@@ -60,16 +60,20 @@ function ChatPageContent({
   const { filteredConversations } = useConversationContext();
   const { documentId, setDocumentId } = useCanvasContext();
 
+  // Validate conversationId is a real ID (not string "undefined" from bad routing)
+  const validConversationId =
+    conversationId && conversationId !== "undefined" ? conversationId : null;
+
   const activeCanvasDocument = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.canvas.documents.getByConversation,
-    conversationId ? { conversationId } : "skip",
+    validConversationId ? { conversationId: validConversationId } : "skip",
   );
 
   const conversation = useQuery(
     // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
     api.conversations.get,
-    conversationId ? { conversationId } : "skip",
+    validConversationId ? { conversationId: validConversationId } : "skip",
   );
   // Local-first: Convex syncs to Dexie, reads from cache (instant)
   const {
@@ -78,7 +82,7 @@ function ChatPageContent({
     loadMore,
     isFirstLoad,
   } = useMessageCacheSync({
-    conversationId,
+    conversationId: validConversationId ?? undefined,
     initialNumItems: 50,
   });
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -87,7 +91,7 @@ function ChatPageContent({
   // Canvas auto-sync with conversation mode and navigation
   const isDocumentMode = conversation?.mode === "document";
   const { handleClose: handleCanvasClose } = useCanvasAutoSync({
-    conversationId,
+    conversationId: validConversationId ?? undefined,
     isDocumentMode,
     documentId,
     activeCanvasDocumentId: activeCanvasDocument?._id,
@@ -120,7 +124,7 @@ function ChatPageContent({
   // Model selection with optimistic updates
   const { selectedModel, displayModel, modelLoading, handleModelChange } =
     useChatModelSelection({
-      conversationId,
+      conversationId: validConversationId ?? undefined,
       conversation,
       user,
       defaultModel,
@@ -160,7 +164,7 @@ function ChatPageContent({
 
   // Comparison voting and consolidation handlers
   const { handleVote, handleConsolidate } = useComparisonHandlers({
-    conversationId,
+    conversationId: validConversationId ?? undefined,
     messages,
   });
 
@@ -240,7 +244,7 @@ function ChatPageContent({
   // Navigation between conversations
   const { isFirst, isLast, navigateToPrevious, navigateToNext } =
     useConversationNavigation({
-      conversationId,
+      conversationId: validConversationId ?? undefined,
       filteredConversations,
     });
 
@@ -322,7 +326,7 @@ function ChatPageContent({
           <div className="flex flex-col h-full">
             <ChatHeader
               conversation={conversation}
-              conversationId={conversationId}
+              conversationId={validConversationId!}
               selectedModel={displayModel}
               modelLoading={modelLoading}
               hasMessages={hasMessages}
@@ -427,7 +431,7 @@ function ChatPageContent({
                     !conversation.modelRecommendation.dismissed && (
                       <ModelRecommendationBanner
                         recommendation={conversation.modelRecommendation}
-                        conversationId={conversationId}
+                        conversationId={validConversationId}
                         onSwitch={modelRecommendation.handleSwitchModel}
                         onPreview={modelRecommendation.handlePreviewModel}
                       />
@@ -442,7 +446,7 @@ function ChatPageContent({
                           MODEL_CONFIG[modelRecommendation.switchedModelId]
                             ?.name ?? modelRecommendation.switchedModelId
                         }
-                        conversationId={conversationId}
+                        conversationId={validConversationId}
                         onSetDefault={modelRecommendation.handleSetAsDefault}
                         onDismiss={modelRecommendation.dismissSetDefaultPrompt}
                       />
@@ -464,7 +468,7 @@ function ChatPageContent({
                             ?.content ?? ""
                         }
                         onSwitch={modelRecommendation.handleSwitchModel}
-                        conversationId={conversationId}
+                        conversationId={validConversationId}
                         userMessage={
                           messages?.find((m) => m.role === "user")?.content ??
                           ""
@@ -496,7 +500,7 @@ function ChatPageContent({
               {/* ChatInput - always rendered to preserve focus and input state during navigation */}
               <div className="flex shrink-0">
                 <ChatInput
-                  conversationId={conversationId}
+                  conversationId={validConversationId!}
                   chatWidth={chatWidth}
                   isGenerating={isGenerating}
                   selectedModel={displayModel}

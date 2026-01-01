@@ -148,10 +148,14 @@ function NotesPageContent() {
     return notes.find((n: { _id: string }) => n._id === selectedNoteId);
   }, [selectedNoteId, notes]);
 
-  // Clear invalid selection from URL
+  // Clear invalid selection from URL (debounced to allow cache sync)
   useEffect(() => {
     if (selectedNoteId && notes && !selectedNote) {
-      setSelectedNoteId(null);
+      // Debounce to allow Convex → Dexie sync after note creation
+      const timeout = setTimeout(() => {
+        setSelectedNoteId(null);
+      }, 200);
+      return () => clearTimeout(timeout);
     }
   }, [selectedNoteId, notes, selectedNote, setSelectedNoteId]);
 
@@ -159,8 +163,8 @@ function NotesPageContent() {
   const createNewNote = useCallback(async () => {
     try {
       const noteId = await createNote({
-        content: "# New Note\n\nStart writing...",
-        title: "New Note",
+        content: "",
+        title: "",
         projectId: projectId || undefined,
       });
       setSelectedNoteId(noteId);

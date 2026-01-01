@@ -24,8 +24,8 @@ export const generateTitle = action({
 
     const user = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.lib.helpers.getUserByClerkId,
-      { clerkId: identity.subject },
+      internal.lib.helpers.getCurrentUser,
+      {},
     )) as { _id: string } | null;
 
     // Truncate content if too long (first 500 chars should be enough for title generation)

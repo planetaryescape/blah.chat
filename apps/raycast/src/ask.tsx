@@ -39,7 +39,6 @@ export default function AskCommand(
   const [view, setView] = useState<View>(query?.trim() ? "response" : "form");
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
-  const [defaultModel, setDefaultModel] = useState<string>("openai:gpt-4o");
   const [selectedModel, setSelectedModel] = useState<string>("openai:gpt-4o");
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [response, setResponse] = useState<string>("");
@@ -65,7 +64,6 @@ export default function AskCommand(
         if (modelList) {
           setModels(modelList);
         }
-        setDefaultModel(userDefault);
         setSelectedModel(userDefault);
         setModelsLoaded(true);
       } catch (error) {

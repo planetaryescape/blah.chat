@@ -300,7 +300,12 @@ export async function listTasks(
   client: ConvexHttpClient,
   apiKey: string,
   options: {
-    status?: "suggested" | "confirmed" | "in_progress" | "completed" | "cancelled";
+    status?:
+      | "suggested"
+      | "confirmed"
+      | "in_progress"
+      | "completed"
+      | "cancelled";
     limit?: number;
   } = {},
 ): Promise<Task[] | null> {
@@ -341,7 +346,12 @@ export async function updateTask(
     taskId: Id<"tasks">;
     title?: string;
     description?: string;
-    status?: "suggested" | "confirmed" | "in_progress" | "completed" | "cancelled";
+    status?:
+      | "suggested"
+      | "confirmed"
+      | "in_progress"
+      | "completed"
+      | "cancelled";
     urgency?: "low" | "medium" | "high" | "urgent";
     deadline?: number;
   },

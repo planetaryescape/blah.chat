@@ -4,7 +4,7 @@ import {
   Detail,
   Form,
   Icon,
-  LaunchProps,
+  type LaunchProps,
   showToast,
   Toast,
   Clipboard,
@@ -17,10 +17,13 @@ import {
   getUserDefaultModel,
   sendMessage,
   createConversation,
+  createNote,
+  createBookmark,
   type Message,
   type Model,
 } from "./lib/api";
 import { getApiKey, getClient } from "./lib/client";
+import { ModelPicker } from "./components/ModelPicker";
 
 interface Arguments {
   query?: string;
@@ -37,9 +40,14 @@ export default function AskCommand(
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [defaultModel, setDefaultModel] = useState<string>("openai:gpt-4o");
+  const [selectedModel, setSelectedModel] = useState<string>("openai:gpt-4o");
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [response, setResponse] = useState<string>("");
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [userMessage, setUserMessage] = useState<string>("");
+  const [lastAssistantMessageId, setLastAssistantMessageId] = useState<
+    string | null
+  >(null);
   const hasAutoSubmitted = useRef(false);
 
   // Load models on mount
@@ -58,6 +66,7 @@ export default function AskCommand(
           setModels(modelList);
         }
         setDefaultModel(userDefault);
+        setSelectedModel(userDefault);
         setModelsLoaded(true);
       } catch (error) {
         console.error("Failed to load models:", error);
@@ -87,14 +96,14 @@ export default function AskCommand(
       const { conversationId: newConvoId } = await createConversation(
         client,
         apiKey,
-        { model: defaultModel },
+        { model: selectedModel },
       );
       setConversationId(newConvoId);
 
       await sendMessage(client, apiKey, {
         conversationId: newConvoId,
         content: message,
-        modelId: defaultModel,
+        modelId: selectedModel,
       });
 
       await pollForCompletion(newConvoId);
@@ -219,6 +228,7 @@ export default function AskCommand(
           );
         } else {
           setResponse(content);
+          setLastAssistantMessageId(assistantMessage._id);
         }
         return;
       }
@@ -292,6 +302,17 @@ export default function AskCommand(
         actions={
           <ActionPanel>
             <Action.SubmitForm title="Ask" onSubmit={handleFormSubmit} />
+            <Action.Push
+              title="Change Model"
+              icon={Icon.Switch}
+              shortcut={{ modifiers: ["cmd"], key: "p" }}
+              target={
+                <ModelPicker
+                  current={selectedModel}
+                  onSelect={setSelectedModel}
+                />
+              }
+            />
           </ActionPanel>
         }
       >
@@ -353,6 +374,59 @@ export default function AskCommand(
     );
   }
 
+  // Handler for saving as note
+  async function handleAddAsNote() {
+    if (!response || !conversationId) return;
+
+    try {
+      const client = getClient();
+      const apiKey = getApiKey();
+      await createNote(client, apiKey, {
+        content: response,
+        title: userMessage.slice(0, 50) || "Chat response",
+        // @ts-expect-error - Id type
+        sourceConversationId: conversationId,
+      });
+      showToast({ style: Toast.Style.Success, title: "Saved as note" });
+    } catch (e) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to save note",
+        message: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
+  // Handler for adding bookmark
+  async function handleAddBookmark() {
+    if (!conversationId || !lastAssistantMessageId) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "No message to bookmark",
+      });
+      return;
+    }
+
+    try {
+      const client = getClient();
+      const apiKey = getApiKey();
+      await createBookmark(client, apiKey, {
+        // @ts-expect-error - Id type
+        messageId: lastAssistantMessageId,
+        // @ts-expect-error - Id type
+        conversationId: conversationId,
+        note: userMessage.slice(0, 100) || undefined,
+      });
+      showToast({ style: Toast.Style.Success, title: "Bookmarked" });
+    } catch (e) {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to bookmark",
+        message: e instanceof Error ? e.message : undefined,
+      });
+    }
+  }
+
   // Response view
   return (
     <Detail
@@ -360,40 +434,74 @@ export default function AskCommand(
       markdown={response}
       actions={
         <ActionPanel>
-          <Action
-            title="Reply"
-            icon={Icon.Reply}
-            shortcut={{ modifiers: ["cmd"], key: "r" }}
-            onAction={() => setView("reply")}
-          />
-          <Action
-            title="Copy Response"
-            icon={Icon.Clipboard}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
-            onAction={() => {
-              Clipboard.copy(response);
-              showToast({ style: Toast.Style.Success, title: "Copied!" });
-            }}
-          />
-          <Action
-            title="New Question"
-            icon={Icon.Plus}
-            shortcut={{ modifiers: ["cmd"], key: "n" }}
-            onAction={() => {
-              setView("form");
-              setResponse("");
-              setConversationId(null);
-              setUserMessage("");
-              hasAutoSubmitted.current = false;
-            }}
-          />
-          {conversationId && (
+          <ActionPanel.Section>
             <Action
-              title="Open in Browser"
-              icon={Icon.Globe}
-              shortcut={{ modifiers: ["cmd"], key: "o" }}
-              onAction={() => open(`https://blah.chat/chat/${conversationId}`)}
+              title="Reply"
+              icon={Icon.Reply}
+              shortcut={{ modifiers: ["cmd"], key: "r" }}
+              onAction={() => setView("reply")}
             />
+            <Action
+              title="Copy Response"
+              icon={Icon.Clipboard}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+              onAction={() => {
+                Clipboard.copy(response);
+                showToast({ style: Toast.Style.Success, title: "Copied!" });
+              }}
+            />
+          </ActionPanel.Section>
+          <ActionPanel.Section>
+            <Action
+              title="Save as Note"
+              icon={Icon.Document}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "n" }}
+              onAction={handleAddAsNote}
+            />
+            <Action
+              title="Add Bookmark"
+              icon={Icon.Bookmark}
+              shortcut={{ modifiers: ["cmd"], key: "b" }}
+              onAction={handleAddBookmark}
+            />
+          </ActionPanel.Section>
+          <ActionPanel.Section>
+            <Action.Push
+              title="Change Model"
+              icon={Icon.Switch}
+              shortcut={{ modifiers: ["cmd"], key: "p" }}
+              target={
+                <ModelPicker
+                  current={selectedModel}
+                  onSelect={setSelectedModel}
+                />
+              }
+            />
+            <Action
+              title="New Question"
+              icon={Icon.Plus}
+              shortcut={{ modifiers: ["cmd"], key: "n" }}
+              onAction={() => {
+                setView("form");
+                setResponse("");
+                setConversationId(null);
+                setUserMessage("");
+                setLastAssistantMessageId(null);
+                hasAutoSubmitted.current = false;
+              }}
+            />
+          </ActionPanel.Section>
+          {conversationId && (
+            <ActionPanel.Section>
+              <Action
+                title="Open in Browser"
+                icon={Icon.Globe}
+                shortcut={{ modifiers: ["cmd"], key: "o" }}
+                onAction={() =>
+                  open(`https://blah.chat/chat/${conversationId}`)
+                }
+              />
+            </ActionPanel.Section>
           )}
         </ActionPanel>
       }

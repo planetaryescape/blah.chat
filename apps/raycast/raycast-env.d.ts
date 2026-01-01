@@ -32,6 +32,10 @@ declare namespace Preferences {
   export type Bookmarks = ExtensionPreferences & {}
   /** Preferences accessible in the `templates` command */
   export type Templates = ExtensionPreferences & {}
+  /** Preferences accessible in the `tasks` command */
+  export type Tasks = ExtensionPreferences & {}
+  /** Preferences accessible in the `notes` command */
+  export type Notes = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -54,5 +58,9 @@ declare namespace Arguments {
   export type Bookmarks = {}
   /** Arguments passed to the `templates` command */
   export type Templates = {}
+  /** Arguments passed to the `tasks` command */
+  export type Tasks = {}
+  /** Arguments passed to the `notes` command */
+  export type Notes = {}
 }
 

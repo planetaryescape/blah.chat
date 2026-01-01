@@ -322,7 +322,7 @@ export default function AskCommand(
           placeholder="Ask anything..."
           autoFocus
         />
-        <Form.Dropdown id="model" title="Model" defaultValue={defaultModel}>
+        <Form.Dropdown id="model" title="Model" defaultValue={selectedModel}>
           {models.map((model) => (
             <Form.Dropdown.Item
               key={model.id}
@@ -346,6 +346,17 @@ export default function AskCommand(
               title="Send Reply"
               onSubmit={handleReplySubmit}
             />
+            <Action.Push
+              title="Change Model"
+              icon={Icon.Switch}
+              shortcut={{ modifiers: ["cmd"], key: "p" }}
+              target={
+                <ModelPicker
+                  current={selectedModel}
+                  onSelect={setSelectedModel}
+                />
+              }
+            />
             <Action
               title="Back to Response"
               icon={Icon.ArrowLeft}
@@ -361,7 +372,7 @@ export default function AskCommand(
           placeholder="Continue the conversation..."
           autoFocus
         />
-        <Form.Dropdown id="model" title="Model" defaultValue={defaultModel}>
+        <Form.Dropdown id="model" title="Model" defaultValue={selectedModel}>
           {models.map((model) => (
             <Form.Dropdown.Item
               key={model.id}

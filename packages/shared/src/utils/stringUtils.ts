@@ -15,7 +15,11 @@ export function levenshteinDistance(a: string, b: string): number {
       matrix[i][j] =
         b.charAt(i - 1) === a.charAt(j - 1)
           ? matrix[i - 1][j - 1]
-          : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+          : Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1,
+            );
     }
   }
 

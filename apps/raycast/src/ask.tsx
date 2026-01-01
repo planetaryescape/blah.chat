@@ -1,29 +1,29 @@
 import {
   Action,
   ActionPanel,
+  Clipboard,
   Detail,
   Form,
   Icon,
   type LaunchProps,
+  open,
   showToast,
   Toast,
-  Clipboard,
-  open,
 } from "@raycast/api";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ModelPicker } from "./components/ModelPicker";
 import {
-  listMessages,
-  listModels,
-  getUserDefaultModel,
-  sendMessage,
+  createBookmark,
   createConversation,
   createNote,
-  createBookmark,
+  getUserDefaultModel,
+  listMessages,
+  listModels,
   type Message,
   type Model,
+  sendMessage,
 } from "./lib/api";
 import { getApiKey, getClient } from "./lib/client";
-import { ModelPicker } from "./components/ModelPicker";
 
 interface Arguments {
   query?: string;

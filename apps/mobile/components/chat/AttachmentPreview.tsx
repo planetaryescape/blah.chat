@@ -1,11 +1,11 @@
-import { X, Mic } from "lucide-react-native";
+import { Mic, X } from "lucide-react-native";
 import {
   Image,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
-  Text,
 } from "react-native";
 import { colors } from "@/lib/theme/colors";
 import { radius, spacing } from "@/lib/theme/spacing";

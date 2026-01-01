@@ -5,8 +5,10 @@ import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery } from "convex/react";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { AlertCircle, FileText, Sparkles } from "lucide-react-native";
+import { MotiView } from "moti";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -21,13 +23,11 @@ import {
 } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import Markdown from "react-native-markdown-display";
+import { GlassPane } from "@/components/ui/GlassPane";
 import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
-import { palette, layout, typography } from "@/lib/theme/designSystem";
-import { GlassPane } from "@/components/ui/GlassPane";
-import { MotiView } from "moti";
-import { LinearGradient } from "expo-linear-gradient";
 import { formatSize, getFileTypeColor } from "@/lib/utils/fileUtils";
 import { ComparisonView } from "./ComparisonView";
 import { MessageEditMode } from "./MessageEditMode";

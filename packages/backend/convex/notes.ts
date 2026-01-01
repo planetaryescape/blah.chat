@@ -968,7 +968,7 @@ export const getPublicNote = query({
  */
 export const triggerAutoTag = action({
   args: { noteId: v.id("notes") },
-  handler: async (ctx, { noteId }) => {
+  handler: async (ctx, { noteId }): Promise<{ appliedTags: string[] }> => {
     // Verify ownership
     const note = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

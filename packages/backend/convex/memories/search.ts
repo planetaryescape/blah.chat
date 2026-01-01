@@ -238,11 +238,15 @@ export const hybridSearch = internalAction({
       ]);
 
       // 3. Merge with RRF
-      const merged = applyRRF(textResults, vectorResults, 60);
+      const merged = applyRRF(
+        textResults,
+        vectorResults,
+        60,
+      ) as (Doc<"memories"> & { score: number })[];
 
       // 4. Filter by quality (confidence, expiration, superseded)
       const now = Date.now();
-      const filtered = merged.filter((m: Doc<"memories">) => {
+      const filtered = merged.filter((m) => {
         // Skip low confidence
         if (m.metadata?.confidence && m.metadata.confidence < MIN_CONFIDENCE) {
           return false;

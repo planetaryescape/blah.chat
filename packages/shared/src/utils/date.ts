@@ -14,15 +14,24 @@ export function formatDateToISO(date: Date): string {
 }
 
 /** Get date range for last N days */
-export function getLastNDays(days = 30): { startDate: string; endDate: string } {
+export function getLastNDays(days = 30): {
+  startDate: string;
+  endDate: string;
+} {
   const end = new Date();
-  return { startDate: formatDateToISO(subDays(end, days)), endDate: formatDateToISO(end) };
+  return {
+    startDate: formatDateToISO(subDays(end, days)),
+    endDate: formatDateToISO(end),
+  };
 }
 
 /** Get current month range (1st to today) */
 export function getCurrentMonthRange(): { startDate: string; endDate: string } {
   const now = new Date();
-  return { startDate: formatDateToISO(startOfMonth(now)), endDate: formatDateToISO(now) };
+  return {
+    startDate: formatDateToISO(startOfMonth(now)),
+    endDate: formatDateToISO(now),
+  };
 }
 
 /** Format number with K/M/B suffixes */

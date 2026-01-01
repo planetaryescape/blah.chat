@@ -10,7 +10,7 @@ import {
   Send,
   Square,
 } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
@@ -24,21 +24,20 @@ import {
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { GlassPane } from "@/components/ui/GlassPane";
 import {
   requestCameraPermission,
   requestMediaLibraryPermission,
 } from "@/lib/permissions";
 import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
-import { palette } from "@/lib/theme/designSystem";
 import { uploadToConvex } from "@/lib/upload";
 import { type Attachment, getAttachmentType } from "@/lib/utils/fileUtils";
 import { AttachmentPreview, type LocalAttachment } from "./AttachmentPreview";
-import { GlassPane } from "@/components/ui/GlassPane";
 
 const MAX_ATTACHMENTS = 10;
 
@@ -76,7 +75,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [height, setHeight] = useState(44);
-  const [isFocused, setIsFocused] = useState(false);
+  const [_isFocused, setIsFocused] = useState(false);
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -402,9 +401,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     gap: spacing.sm,
-    // We remove the solid background from container so the global gradient shows through if desired,
-    // but typically the helper area might need some background or be transparent.
-    // For floating bar, we usually want transparent container here.
+    // Container is transparent so the global gradient shows through behind the floating glass bar
   },
   modelPill: {
     flexDirection: "row",

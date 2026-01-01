@@ -506,18 +506,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       "State-of-the-art agentic coding. Explores codebases and orchestrates multi-file changes.",
     bestFor: "Code generation, agentic coding tasks, large codebases",
   },
-  "openrouter:gpt-oss-120b": {
-    id: "openrouter:gpt-oss-120b",
-    provider: "openai",
-    name: "GPT-OSS 120B",
-    description: "117B MoE model with configurable reasoning.",
-    contextWindow: 131072,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["thinking", "function-calling"],
-    userFriendlyDescription:
-      "Large open-source model with reasoning. 117B params, 5.1B active per pass.",
-    bestFor: "Reasoning tasks, complex analysis, cost-conscious users",
-  },
   "openrouter:gemini-2.0-flash-exp": {
     id: "openrouter:gemini-2.0-flash-exp",
     provider: "google",

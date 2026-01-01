@@ -5,31 +5,39 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0a",
-        foreground: "#fafafa",
+        background: "#0c0a14", // Void
+        foreground: "#fafafa", // Starlight
+
         primary: {
-          DEFAULT: "#fafafa",
-          foreground: "#0a0a0a",
+          DEFAULT: "#F4E0DC", // Rose Quartz
+          foreground: "#0c0a14", // Void
         },
         secondary: {
-          DEFAULT: "#262626",
+          DEFAULT: "#1a1625", // Nebula
           foreground: "#fafafa",
         },
         muted: {
-          DEFAULT: "#262626",
-          foreground: "#a1a1aa",
+          DEFAULT: "#1a1625", // Nebula
+          foreground: "rgba(250, 250, 250, 0.6)", // Starlight Dim
         },
         accent: {
-          DEFAULT: "#262626",
+          DEFAULT: "rgba(255, 255, 255, 0.05)", // Glass Low
           foreground: "#fafafa",
         },
         destructive: {
           DEFAULT: "#ef4444",
           foreground: "#fafafa",
         },
-        border: "#262626",
-        input: "#262626",
-        ring: "#d4d4d8",
+        border: "rgba(255, 255, 255, 0.08)", // Glass Border
+        input: "rgba(255, 255, 255, 0.05)", // Glass Low
+        ring: "#F4E0DC",
+      },
+      fontFamily: {
+        display: ["Syne_700Bold"],
+        heading: ["Syne_600SemiBold"],
+        body: ["Manrope_400Regular"],
+        medium: ["Manrope_500Medium"],
+        bold: ["Manrope_700Bold"],
       },
     },
   },

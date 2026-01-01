@@ -67,8 +67,8 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             </View>
             <View>
               <Text style={styles.greeting}>Welcome back,</Text>
-              {/* TODO: Replace with actual username from user context when available */}
-              <Text style={styles.username}>Explorer</Text>
+              {/* TODO: Replace with actual username from user profile/context when available */}
+              <Text style={styles.username}>User</Text>
             </View>
           </View>
           <View style={styles.brandTag}>

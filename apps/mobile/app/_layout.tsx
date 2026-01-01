@@ -17,6 +17,7 @@ import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
 import { convex } from "@/lib/convex";
 import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 
 // Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync();
@@ -84,7 +85,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           {/* Global Nebula Background */}
           <LinearGradient
-            colors={["#0c0a14", "#1a1625", "#0c0a14"]}
+            colors={[palette.void, palette.nebula, palette.void]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ flex: 1 }}

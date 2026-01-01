@@ -331,7 +331,7 @@ export function MarkdownContent({
     processedContent,
     isStreaming,
     {
-      charsPerSecond: 500, // Increased from 200 for faster visual response at high TPS
+      charsPerSecond: 200, // Conservative default for comfortable reading speed
       minTokenSize: 3,
       adaptiveThreshold: 2000, // Lower threshold - speed up earlier when buffer grows
     },

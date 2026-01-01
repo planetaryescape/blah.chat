@@ -543,7 +543,10 @@ export const ChatMessage = memo(
       prev.nextMessage?.status === next.nextMessage?.status &&
       prev.isCollaborative === next.isCollaborative &&
       prev.senderUser?.name === next.senderUser?.name &&
-      prev.showMessageStats === next.showMessageStats
+      prev.showMessageStats === next.showMessageStats &&
+      prev.conversation?._id === next.conversation?._id &&
+      prev.conversation?.modelRecommendation?.dismissed ===
+        next.conversation?.modelRecommendation?.dismissed
     );
   },
 );

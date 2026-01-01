@@ -136,10 +136,14 @@ export function useStreamBuffer(
         );
 
         if (nextChunk.length > 0) {
-          // Use startTransition for non-blocking updates - doesn't block user interactions
-          startTransition(() => {
+          // Use startTransition only when buffer is large to avoid UI lag under heavy load
+          if (bufferRef.current.length > adaptiveThreshold) {
+            startTransition(() => {
+              setDisplayContent((prev) => prev + nextChunk);
+            });
+          } else {
             setDisplayContent((prev) => prev + nextChunk);
-          });
+          }
           bufferRef.current = bufferRef.current.slice(nextChunk.length);
           lastTickRef.current = now;
         }

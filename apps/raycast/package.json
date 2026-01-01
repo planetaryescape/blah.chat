@@ -94,6 +94,14 @@
       "description": "Your blah.chat API key (get from Settings > CLI API Keys)",
       "type": "password",
       "required": true
+    },
+    {
+      "name": "convexUrl",
+      "title": "Convex URL",
+      "description": "Convex deployment URL (leave empty for default production)",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "https://your-deployment.convex.cloud"
     }
   ],
   "dependencies": {

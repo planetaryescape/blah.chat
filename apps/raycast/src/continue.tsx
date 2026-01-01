@@ -1,23 +1,23 @@
 import {
   Action,
   ActionPanel,
+  Clipboard,
   Detail,
   Form,
   List,
+  open,
   showToast,
   Toast,
-  Clipboard,
-  open,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
+  type Conversation,
   listConversations,
   listMessages,
   listModels,
-  sendMessage,
-  type Conversation,
   type Message,
   type Model,
+  sendMessage,
 } from "./lib/api";
 import { getApiKey, getClient } from "./lib/client";
 

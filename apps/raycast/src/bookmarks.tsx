@@ -2,10 +2,10 @@
  * Bookmarks Command - Browse bookmarked messages
  */
 
-import { List, ActionPanel, Action, Icon, Color, open } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { getClient, getApiKey } from "./lib/client";
-import { listBookmarks, type Bookmark } from "./lib/api";
+import { Action, ActionPanel, Color, Icon, List, open } from "@raycast/api";
+import { useEffect, useState } from "react";
+import { type Bookmark, listBookmarks } from "./lib/api";
+import { getApiKey, getClient } from "./lib/client";
 
 export default function Command() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);

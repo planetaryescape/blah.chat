@@ -3,30 +3,30 @@
  */
 
 import {
-  List,
-  ActionPanel,
   Action,
-  Icon,
+  ActionPanel,
+  Alert,
   Color,
+  confirmAlert,
+  Detail,
+  Form,
+  Icon,
+  List,
   open,
   showToast,
   Toast,
-  Form,
   useNavigation,
-  Detail,
-  confirmAlert,
-  Alert,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { getClient, getApiKey } from "./lib/client";
+import { useEffect, useState } from "react";
 import {
-  listTasks,
-  createTask,
   completeTask,
+  createTask,
   deleteTask,
-  updateTask,
+  listTasks,
   type Task,
+  updateTask,
 } from "./lib/api";
+import { getApiKey, getClient } from "./lib/client";
 
 type StatusFilter = "all" | "active" | "completed";
 

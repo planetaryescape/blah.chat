@@ -1,7 +1,7 @@
-import { Pressable, Text, StyleSheet } from "react-native";
-import { MotiView } from "moti";
-import { palette, layout, typography } from "@/lib/theme/designSystem";
 import * as Haptics from "expo-haptics";
+import { MotiView } from "moti";
+import { Pressable, StyleSheet, Text } from "react-native";
+import { layout, palette, typography } from "@/lib/theme/designSystem";
 
 interface FluidButtonProps {
   onPress?: () => void;

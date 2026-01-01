@@ -3,30 +3,30 @@
  */
 
 import {
-  List,
-  ActionPanel,
   Action,
-  Icon,
+  ActionPanel,
+  Alert,
+  Clipboard,
   Color,
+  confirmAlert,
+  Detail,
+  Form,
+  Icon,
+  List,
   open,
   showToast,
   Toast,
-  Form,
   useNavigation,
-  Detail,
-  confirmAlert,
-  Alert,
-  Clipboard,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { getClient, getApiKey } from "./lib/client";
+import { useEffect, useState } from "react";
 import {
-  listNotes,
   createNote,
-  updateNote,
   deleteNote,
+  listNotes,
   type Note,
+  updateNote,
 } from "./lib/api";
+import { getApiKey, getClient } from "./lib/client";
 
 export default function Command() {
   const [notes, setNotes] = useState<Note[]>([]);

@@ -5,9 +5,9 @@
  * Avoids ESM/CJS conflicts by not importing from CLI package.
  */
 
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { ConvexHttpClient } from "convex/browser";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (same as CLI)

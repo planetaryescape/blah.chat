@@ -1,7 +1,9 @@
 "use client";
 
+import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useQuery } from "convex/react";
 import { ArrowDown } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import {
   type GroupedItem,
   useMessageGrouping,
 } from "@/hooks/useMessageGrouping";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";
@@ -52,6 +55,16 @@ export function VirtualizedMessageList({
 
   const conversationId = messages?.[0]?.conversationId;
   const grouped = useMessageGrouping(messages ?? []);
+
+  // Lift conversation query here to avoid N subscriptions in ChatMessage children
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const conversation = useQuery(
+    api.conversations.get,
+    conversationId ? { conversationId } : "skip",
+  );
+
+  // Lift preference here to avoid memo blocking updates in ChatMessage
+  const showMessageStats = useUserPreference("showMessageStatistics");
 
   // Batch sync message metadata (attachments, toolCalls, sources) to local cache
   const messageIds = useMemo(
@@ -120,10 +133,12 @@ export function VirtualizedMessageList({
               chatWidth={chatWidth}
               isCollaborative={isCollaborative}
               showModelNames={showModelNames}
+              showMessageStats={showMessageStats}
               onVote={onVote}
               onConsolidate={onConsolidate}
               onToggleModelNames={onToggleModelNames}
               measureElement={virtualizer.measureElement}
+              conversation={conversation}
             />
           ))}
         </div>
@@ -151,10 +166,12 @@ interface VirtualizedItemProps {
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
   showModelNames: boolean;
+  showMessageStats: boolean;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
   measureElement: (node: Element | null) => void;
+  conversation?: Doc<"conversations"> | null;
 }
 
 const VirtualizedItem = memo(function VirtualizedItem({
@@ -163,10 +180,12 @@ const VirtualizedItem = memo(function VirtualizedItem({
   chatWidth,
   isCollaborative,
   showModelNames,
+  showMessageStats,
   onVote,
   onConsolidate,
   onToggleModelNames,
   measureElement,
+  conversation,
 }: VirtualizedItemProps) {
   const item = grouped[virtualItem.index];
   const isMessage = item.type === "message";
@@ -206,6 +225,8 @@ const VirtualizedItem = memo(function VirtualizedItem({
               nextMessage={getNextMessage()}
               isCollaborative={isCollaborative}
               senderUser={item.data.senderUser}
+              conversation={conversation}
+              showMessageStats={showMessageStats}
             />
           </div>
         ) : (
@@ -215,6 +236,8 @@ const VirtualizedItem = memo(function VirtualizedItem({
                 message={item.userMessage}
                 isCollaborative={isCollaborative}
                 senderUser={item.userMessage.senderUser}
+                conversation={conversation}
+                showMessageStats={showMessageStats}
               />
             </div>
             <div className="col-span-full mt-4">

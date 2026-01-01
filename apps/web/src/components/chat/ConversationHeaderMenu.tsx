@@ -44,7 +44,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useConversationActions } from "@/hooks/useConversationActions";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
-import { useUserPreference } from "@/hooks/useUserPreference";
+import {
+  updatePreferenceCache,
+  useUserPreference,
+} from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
 import { exportConversationToMarkdown } from "@/lib/export/markdown";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
@@ -158,6 +161,9 @@ export function ConversationHeaderMenu({
   };
 
   const handleToggleMessageStats = async (checked: boolean) => {
+    // Optimistic update - instant UI response
+    await updatePreferenceCache("showMessageStatistics", checked);
+
     try {
       await updatePreferences({
         preferences: { showMessageStatistics: checked },
@@ -169,6 +175,8 @@ export function ConversationHeaderMenu({
         source: "header_menu",
       });
     } catch (error) {
+      // Rollback on error
+      await updatePreferenceCache("showMessageStatistics", !checked);
       console.error(
         "[ConversationHeaderMenu] Failed to update message statistics:",
         error,
@@ -180,6 +188,9 @@ export function ConversationHeaderMenu({
   };
 
   const handleToggleComparisonStats = async (checked: boolean) => {
+    // Optimistic update - instant UI response
+    await updatePreferenceCache("showComparisonStatistics", checked);
+
     try {
       await updatePreferences({
         preferences: { showComparisonStatistics: checked },
@@ -193,6 +204,8 @@ export function ConversationHeaderMenu({
         source: "header_menu",
       });
     } catch (error) {
+      // Rollback on error
+      await updatePreferenceCache("showComparisonStatistics", !checked);
       console.error(
         "[ConversationHeaderMenu] Failed to update comparison statistics:",
         error,

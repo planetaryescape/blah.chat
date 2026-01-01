@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { usePathname, useRouter } from "expo-router";
 import {
   Bookmark,
+  CheckSquare,
   FileText,
   FolderOpen,
   MessageSquare,
@@ -195,6 +196,11 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     props.navigation.closeDrawer();
   };
 
+  const handleTasks = () => {
+    router.push("/tasks" as never);
+    props.navigation.closeDrawer();
+  };
+
   const renderConversation = ({ item }: { item: Conversation }) => {
     const isActive = pathname === `/chat/${item._id}`;
 
@@ -301,6 +307,33 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           ]}
         >
           Projects
+        </Text>
+      </TouchableOpacity>
+
+      {/* Tasks nav item */}
+      <TouchableOpacity
+        style={[
+          styles.navItem,
+          pathname.startsWith("/tasks") && styles.navItemActive,
+        ]}
+        onPress={handleTasks}
+        activeOpacity={0.7}
+      >
+        <CheckSquare
+          size={18}
+          color={
+            pathname.startsWith("/tasks")
+              ? colors.primary
+              : colors.mutedForeground
+          }
+        />
+        <Text
+          style={[
+            styles.navItemText,
+            pathname.startsWith("/tasks") && styles.navItemTextActive,
+          ]}
+        >
+          Tasks
         </Text>
       </TouchableOpacity>
 

@@ -2,7 +2,13 @@
 
 import { Loader2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTTSPlayer } from "@/contexts/TTSContext";
+import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { cn } from "@/lib/utils";
 
 interface TTSButtonProps {
@@ -13,9 +19,14 @@ interface TTSButtonProps {
 
 export function TTSButton({ text, messageId, className }: TTSButtonProps) {
   const { state, playFromText, pause, resume, seekTo } = useTTSPlayer();
+  const { byok, getTTSErrorMessage } = useApiKeyValidation();
+
   const isCurrent = state.sourceMessageId === messageId;
   const isLoading = state.isLoading && isCurrent;
   const isPlaying = state.isPlaying && isCurrent;
+
+  // BYOK check for Deepgram key
+  const isByokDeepgramMissing = byok.enabled && !byok.hasDeepgramKey;
 
   const handlePlay = async () => {
     if (!text.trim()) return;
@@ -38,12 +49,12 @@ export function TTSButton({ text, messageId, className }: TTSButtonProps) {
     await playFromText({ text, messageId });
   };
 
-  return (
+  const button = (
     <Button
       variant="ghost"
       size="sm"
       onClick={handlePlay}
-      disabled={isLoading || !text.trim()}
+      disabled={isLoading || !text.trim() || isByokDeepgramMissing}
       className={cn(
         "h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground",
         className,
@@ -62,4 +73,19 @@ export function TTSButton({ text, messageId, className }: TTSButtonProps) {
       </span>
     </Button>
   );
+
+  // Show tooltip when BYOK enabled but Deepgram key missing
+  if (isByokDeepgramMissing) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>
+          {getTTSErrorMessage() ||
+            "Add Deepgram API key in Settings → Advanced"}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return button;
 }

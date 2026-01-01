@@ -12,6 +12,10 @@ pre-commit:
     typecheck:
       glob: "*.{ts,tsx}"
       run: bun run typecheck
+    byod-schema-sync:
+      glob: "{apps/web/src/lib/byod,packages/backend/convex/schema,packages/shared/src/byod}/**/*.ts"
+      run: bun run byod:sync
+      stage_fixed: true
 
 # Pre-push: Run full build to ensure it doesn't break
 pre-push:

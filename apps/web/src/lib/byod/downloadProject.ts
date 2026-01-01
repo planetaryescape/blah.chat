@@ -1,5 +1,5 @@
+import { BUNDLED_SCHEMA_CONTENT } from "@blah-chat/byod-schema/schema-string";
 import JSZip from "jszip";
-import { generateSchemaFile } from "./schemaGenerator";
 import { BYOD_SCHEMA_VERSION } from "./version";
 
 /**
@@ -64,8 +64,8 @@ export async function generateDownloadableProject(): Promise<Blob> {
   // Add convex directory
   const convex = zip.folder("convex");
 
-  // Add schema
-  convex?.file("schema.ts", generateSchemaFile());
+  // Add schema (bundled self-contained version)
+  convex?.file("schema.ts", BUNDLED_SCHEMA_CONTENT);
 
   // Add functions
   convex?.file("functions.ts", generateFunctionsContent());

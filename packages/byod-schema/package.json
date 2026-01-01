@@ -1,0 +1,13 @@
+{
+  "name": "@blah-chat/byod-schema",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    ".": "./convex/schema.ts",
+    "./bundled": "./convex/bundled-schema.ts",
+    "./schema-string": "./schema-string.ts"
+  },
+  "dependencies": {
+    "convex": "^1.17.0"
+  }
+}

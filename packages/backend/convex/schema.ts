@@ -707,7 +707,8 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_message", ["messageId"])
     .index("by_conversation", ["conversationId"])
-    .index("by_user_created", ["userId", "createdAt"]), // Phase 7: Sorted recent bookmarks
+    .index("by_user_created", ["userId", "createdAt"]) // Phase 7: Sorted recent bookmarks
+    .index("by_user_message", ["userId", "messageId"]),
 
   snippets: defineTable({
     userId: v.id("users"),
@@ -879,6 +880,7 @@ export default defineSchema({
     cost: v.number(),
     messageCount: v.number(),
     warningsSent: v.optional(v.array(v.string())),
+    isByok: v.optional(v.boolean()), // true = user's own API key was used
   })
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"])
@@ -1789,4 +1791,46 @@ export default defineSchema({
     version: v.string(), // Bible version (e.g., "WEB")
     cachedAt: v.number(),
   }).index("by_osis", ["osis"]),
+
+  // BYOK (Bring Your Own Key) - user API keys for AI services
+  userApiKeys: defineTable({
+    userId: v.id("users"),
+    byokEnabled: v.boolean(),
+
+    // Encrypted keys (reuse existing encryption.ts)
+    encryptedVercelGatewayKey: v.optional(v.string()),
+    encryptedOpenRouterKey: v.optional(v.string()),
+    encryptedGroqKey: v.optional(v.string()),
+    encryptedDeepgramKey: v.optional(v.string()),
+
+    // Encryption IVs (colon-separated like BYOD)
+    encryptionIVs: v.optional(v.string()), // "vercel:openrouter:groq:deepgram"
+    authTags: v.optional(v.string()), // "vercel:openrouter:groq:deepgram"
+
+    // Validation timestamps
+    lastValidated: v.optional(
+      v.object({
+        vercelGateway: v.optional(v.number()),
+        openRouter: v.optional(v.number()),
+        groq: v.optional(v.number()),
+        deepgram: v.optional(v.number()),
+      }),
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // CLI API Keys - authentication for CLI app
+  cliApiKeys: defineTable({
+    userId: v.id("users"),
+    keyHash: v.string(), // SHA-256 hash (plaintext never stored)
+    keyPrefix: v.string(), // First 12 chars for display: "blah_abc1..."
+    name: v.string(), // Auto: "CLI Login - Dec 31, 2025"
+    lastUsedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_key_hash", ["keyHash"]),
 });

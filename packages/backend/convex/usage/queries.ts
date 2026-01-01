@@ -210,11 +210,12 @@ export const getUsageSummary = query({
   args: {
     startDate: v.string(),
     endDate: v.string(),
+    isByok: v.optional(v.boolean()), // Filter by BYOK status
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
 
-    const records = await ctx.db
+    let records = await ctx.db
       .query("usageRecords")
       .withIndex("by_user_date", (q) => q.eq("userId", user._id))
       .filter((q) =>
@@ -224,6 +225,11 @@ export const getUsageSummary = query({
         ),
       )
       .collect();
+
+    // Filter by BYOK status if specified
+    if (args.isByok !== undefined) {
+      records = records.filter((r) => (r.isByok ?? false) === args.isByok);
+    }
 
     const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
     const totalInputTokens = records.reduce((sum, r) => sum + r.inputTokens, 0);
@@ -247,6 +253,40 @@ export const getUsageSummary = query({
       avgCostPerRequest: totalRequests > 0 ? totalCost / totalRequests : 0,
       messageCount,
     };
+  },
+});
+
+// BYOK breakdown: platform vs user keys usage
+export const getByokBreakdown = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    const records = await ctx.db
+      .query("usageRecords")
+      .withIndex("by_user_date", (q) => q.eq("userId", user._id))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("date"), args.startDate),
+          q.lte(q.field("date"), args.endDate),
+        ),
+      )
+      .collect();
+
+    const platform = { cost: 0, tokens: 0, requests: 0 };
+    const byok = { cost: 0, tokens: 0, requests: 0 };
+
+    for (const record of records) {
+      const target = record.isByok ? byok : platform;
+      target.cost += record.cost;
+      target.tokens += record.inputTokens + record.outputTokens;
+      target.requests += 1;
+    }
+
+    return { platform, byok };
   },
 });
 

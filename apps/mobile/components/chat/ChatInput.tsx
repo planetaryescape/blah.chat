@@ -10,7 +10,7 @@ import {
   Send,
   Square,
 } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
@@ -24,13 +24,15 @@ import {
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withTiming,
 } from "react-native-reanimated";
+import { GlassPane } from "@/components/ui/GlassPane";
 import {
   requestCameraPermission,
   requestMediaLibraryPermission,
 } from "@/lib/permissions";
 import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
 import { uploadToConvex } from "@/lib/upload";
@@ -73,23 +75,31 @@ export function ChatInput({
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [height, setHeight] = useState(44);
-  const [isFocused, setIsFocused] = useState(false);
+  const [_isFocused, setIsFocused] = useState(false);
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Animated focus effects
-  const borderWidth = useSharedValue(1);
   const glowOpacity = useSharedValue(0);
 
-  useEffect(() => {
-    borderWidth.value = withSpring(isFocused ? 1.5 : 1, { damping: 20 });
-    glowOpacity.value = withSpring(isFocused ? 0.15 : 0, { damping: 20 });
-  }, [isFocused, borderWidth, glowOpacity]);
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    return {
+      shadowColor: palette.roseQuartz,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: glowOpacity.value,
+      shadowRadius: 10,
+    };
+  });
 
-  const inputAnimatedStyle = useAnimatedStyle(() => ({
-    borderWidth: borderWidth.value,
-    shadowOpacity: glowOpacity.value,
-  }));
+  const handleFocus = () => {
+    setIsFocused(true);
+    glowOpacity.value = withTiming(0.5, { duration: 300 });
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    glowOpacity.value = withTiming(0, { duration: 300 });
+  };
 
   const addAttachments = useCallback((newAttachments: LocalAttachment[]) => {
     setAttachments((prev) => {
@@ -227,7 +237,7 @@ export function ChatInput({
               type: att.type,
               name: att.name,
               storageId,
-              mimeType: att.mimeType,
+              mimeType: att.mimeType || "application/octet-stream",
               size: att.size || 0,
             };
           }),
@@ -293,102 +303,105 @@ export function ChatInput({
         </TouchableOpacity>
       )}
 
-      <View style={styles.inputRow}>
-        {/* Attachment buttons */}
-        <View style={styles.attachmentButtons}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={showImageOptions}
-            disabled={disabled || isUploading}
-            activeOpacity={0.7}
-          >
-            <ImageIcon size={20} color={colors.mutedForeground} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={handleDocument}
-            disabled={disabled || isUploading}
-            activeOpacity={0.7}
-          >
-            <Paperclip size={20} color={colors.mutedForeground} />
-          </TouchableOpacity>
-        </View>
-
-        <Animated.View
-          style={[
-            styles.inputContainer,
-            isFocused && styles.inputContainerFocused,
-            inputAnimatedStyle,
-          ]}
+      {/* Floating Glass Bar */}
+      <Animated.View style={[styles.glassWrapper, animatedContainerStyle]}>
+        <GlassPane
+          intensity={30}
+          tint="systemUltraThinMaterialDark"
+          style={styles.innerGlass}
         >
-          <TextInput
-            style={[
-              styles.input,
-              { height: Math.max(44, Math.min(height, 120)) },
-            ]}
-            placeholder="Message..."
-            placeholderTextColor={colors.mutedForeground}
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            onContentSizeChange={(e) => {
-              setHeight(e.nativeEvent.contentSize.height + 20);
-            }}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            editable={!disabled && !isUploading}
-          />
-        </Animated.View>
+          <View style={styles.inputRow}>
+            {/* Attachment buttons */}
+            <View style={styles.attachmentButtons}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={showImageOptions}
+                disabled={disabled || isUploading}
+                activeOpacity={0.7}
+              >
+                <ImageIcon size={20} color={colors.mutedForeground} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleDocument}
+                disabled={disabled || isUploading}
+                activeOpacity={0.7}
+              >
+                <Paperclip size={20} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
 
-        {/* Mic button or Send/Stop */}
-        {isGenerating ? (
-          <TouchableOpacity
-            style={styles.stopButton}
-            onPress={handleStop}
-            activeOpacity={0.8}
-          >
-            <Square size={16} color="#fff" fill="#fff" />
-          </TouchableOpacity>
-        ) : hasContent ? (
-          <TouchableOpacity
-            style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!canSend}
-            activeOpacity={0.8}
-          >
-            <Send size={18} color={colors.primaryForeground} />
-          </TouchableOpacity>
-        ) : onStartRecording ? (
-          <TouchableOpacity
-            style={styles.micButton}
-            onPress={handleMicPress}
-            disabled={disabled}
-            activeOpacity={0.8}
-          >
-            <Mic size={20} color={colors.foreground} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.sendButton, styles.sendButtonDisabled]}
-            disabled
-            activeOpacity={0.8}
-          >
-            <Send size={18} color={colors.primaryForeground} />
-          </TouchableOpacity>
-        )}
-      </View>
+            {/* Text Input */}
+            <TextInput
+              style={[
+                styles.input,
+                { height: Math.max(44, Math.min(height, 120)) },
+              ]}
+              placeholder="Message..."
+              placeholderTextColor={colors.mutedForeground}
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              onContentSizeChange={(e) => {
+                setHeight(e.nativeEvent.contentSize.height + 20);
+              }}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              editable={!disabled && !isUploading}
+            />
+
+            {/* Mic button or Send/Stop */}
+            {isGenerating ? (
+              <TouchableOpacity
+                style={styles.stopButton}
+                onPress={handleStop}
+                activeOpacity={0.8}
+              >
+                <Square size={16} color="#fff" fill="#fff" />
+              </TouchableOpacity>
+            ) : hasContent ? (
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  !canSend && styles.sendButtonDisabled,
+                ]}
+                onPress={handleSend}
+                disabled={!canSend}
+                activeOpacity={0.8}
+              >
+                <Send size={18} color={colors.primaryForeground} />
+              </TouchableOpacity>
+            ) : onStartRecording ? (
+              <TouchableOpacity
+                style={styles.micButton}
+                onPress={handleMicPress}
+                disabled={disabled}
+                activeOpacity={0.8}
+              >
+                <Mic size={20} color={colors.foreground} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.sendButton, styles.sendButtonDisabled]}
+                disabled
+                activeOpacity={0.8}
+              >
+                <Send size={18} color={colors.primaryForeground} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </GlassPane>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     gap: spacing.sm,
+    // Container is transparent so the global gradient shows through behind the floating glass bar
   },
   modelPill: {
     flexDirection: "row",
@@ -398,9 +411,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.secondary,
+    backgroundColor: "rgba(45, 38, 64, 0.4)", // Slight transparent bg for pill
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "rgba(255,255,255,0.1)",
+    marginBottom: 4,
   },
   modelPillDisabled: {
     opacity: 0.5,
@@ -411,14 +425,26 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     maxWidth: 160,
   },
+  glassWrapper: {
+    borderRadius: 30,
+    overflow: "hidden",
+    // Remove border from wrapper, let GlassPane handle it or inner logic
+  },
+  innerGlass: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 4,
+    borderRadius: 30, // Match wrapper
+    borderWidth: 1,
+    borderColor: "rgba(244, 224, 220, 0.15)", // Subtle rose quartz hint
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: spacing.sm,
+    gap: 4,
   },
   attachmentButtons: {
     flexDirection: "row",
-    gap: 4,
+    marginBottom: 4, // align with input bottom?
   },
   iconButton: {
     width: 36,
@@ -426,54 +452,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  inputContainer: {
-    flex: 1,
-    backgroundColor: colors.input,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    // Glow effect base (opacity animated)
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 8,
-    elevation: 0,
-  },
-  inputContainerFocused: {
-    borderColor: colors.ring,
-  },
   input: {
+    flex: 1,
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.foreground,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     paddingTop: 12,
+    paddingBottom: 12,
   },
   sendButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
-    backgroundColor: colors.primary,
+    backgroundColor: palette.roseQuartz,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 2,
+    marginRight: 2,
   },
   sendButtonDisabled: {
     opacity: 0.3,
+    backgroundColor: colors.muted,
   },
   stopButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
     backgroundColor: colors.error,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 2,
+    marginRight: 2,
   },
   micButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.full,
-    backgroundColor: colors.muted,
+    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 2,
+    marginRight: 2,
   },
 });

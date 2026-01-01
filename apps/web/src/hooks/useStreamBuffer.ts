@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { getNextCompleteToken } from "@/lib/utils/markdownTokens";
 
 export interface StreamBufferOptions {
@@ -136,7 +136,14 @@ export function useStreamBuffer(
         );
 
         if (nextChunk.length > 0) {
-          setDisplayContent((prev) => prev + nextChunk);
+          // Use startTransition only when buffer is large to avoid UI lag under heavy load
+          if (bufferRef.current.length > adaptiveThreshold) {
+            startTransition(() => {
+              setDisplayContent((prev) => prev + nextChunk);
+            });
+          } else {
+            setDisplayContent((prev) => prev + nextChunk);
+          }
           bufferRef.current = bufferRef.current.slice(nextChunk.length);
           lastTickRef.current = now;
         }

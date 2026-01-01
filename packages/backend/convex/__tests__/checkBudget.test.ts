@@ -166,7 +166,9 @@ describe("convex/usage/checkBudget", () => {
 
       const today = new Date().toISOString().split("T")[0];
       // Last month's usage (should not count)
+      // Use day 1 to avoid month rollover issues (e.g., Dec 31 -> Nov 31 -> Dec 1)
       const lastMonth = new Date();
+      lastMonth.setDate(1); // Set to first day first to avoid rollover
       lastMonth.setMonth(lastMonth.getMonth() - 1);
       const lastMonthDate = lastMonth.toISOString().split("T")[0];
 

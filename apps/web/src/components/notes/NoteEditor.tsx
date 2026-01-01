@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import {
   ArrowUpRight,
@@ -13,6 +13,7 @@ import {
   MessageSquare,
   MoreHorizontal,
   Pin,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
@@ -62,14 +63,18 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   const updateNote = useMutation(api.notes.updateNote);
   const _togglePin = useMutation(api.notes.togglePin);
   const deleteNote = useMutation(api.notes.deleteNote);
+  // @ts-ignore - Type depth exceeded
+  const triggerAutoTag = useAction(api.notes.triggerAutoTag);
 
   const [title, setTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isAutoTagging, setIsAutoTagging] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialLoad = useRef(true);
   const lastServerTitle = useRef<string | null>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
 
   // Initialize editor with SSR-safe config
   const editor = useEditor({
@@ -109,6 +114,12 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
       editor.commands.setContent(note.content || "", {
         contentType: "markdown",
       });
+
+      // Focus title for newly created blank notes
+      // Backend sets title to "Untitled Note" when empty, so check for that too
+      if (!note.content && (!note.title || note.title === "Untitled Note")) {
+        setTimeout(() => titleRef.current?.focus(), 0);
+      }
 
       // Reset initial load flag after a small delay
       setTimeout(() => {
@@ -155,6 +166,28 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
     },
     [noteId, updateNote],
   );
+
+  // Auto-tag handler
+  const handleAutoTag = useCallback(async () => {
+    if (!note?.content || note.content.length < 50) {
+      toast.error("Need at least 50 characters to auto-tag");
+      return;
+    }
+    setIsAutoTagging(true);
+    try {
+      const result = await triggerAutoTag({ noteId });
+      if (result.appliedTags?.length) {
+        toast.success(`Added ${result.appliedTags.length} tag(s)`);
+      } else {
+        toast.info("No tags generated");
+      }
+    } catch (error) {
+      console.error("Failed to auto-tag:", error);
+      toast.error("Failed to auto-tag");
+    } finally {
+      setIsAutoTagging(false);
+    }
+  }, [note?.content, noteId, triggerAutoTag]);
 
   // Manual save (Cmd+S)
   useEffect(() => {
@@ -307,6 +340,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
           {/* Title Area */}
           <div className="px-8 pt-10 pb-4">
             <TextareaAutosize
+              ref={titleRef}
               value={title}
               onChange={handleTitleChange}
               placeholder="Note title"
@@ -365,13 +399,31 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
               {/* Metadata Separator */}
               <div className="h-4 w-px bg-border/50" />
 
-              {/* Tag Input */}
-              <div className="flex-1 min-w-[200px]">
-                <MinimalTagInput
-                  noteId={noteId}
-                  tags={note.tags || []}
-                  suggestedTags={note.suggestedTags || []}
-                />
+              {/* Tag Input with Auto-Tag */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-[200px]">
+                  <MinimalTagInput
+                    noteId={noteId}
+                    tags={note.tags || []}
+                    suggestedTags={note.suggestedTags || []}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleAutoTag}
+                  disabled={
+                    isAutoTagging || !note?.content || note.content.length < 50
+                  }
+                  title="Generate tags using AI"
+                  className="h-7 w-7 p-0"
+                >
+                  {isAutoTagging ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                </Button>
               </div>
             </div>
           </div>

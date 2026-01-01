@@ -170,7 +170,7 @@ export function NoteEditor({ noteId }: NoteEditorProps) {
   // Auto-tag handler
   const handleAutoTag = useCallback(async () => {
     if (!note?.content || note.content.length < 50) {
-      toast.error("Need at least 50 characters to auto-tag");
+      toast.error("Note content must be at least 50 characters for AI tagging");
       return;
     }
     setIsAutoTagging(true);

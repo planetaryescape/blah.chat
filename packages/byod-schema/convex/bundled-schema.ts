@@ -122,11 +122,7 @@ export const conversationTokenUsageTable = defineTable({
 export const messagesTable = defineTable({
   conversationId: v.id("conversations"),
   userId: v.optional(v.id("users")),
-  role: v.union(
-    v.literal("user"),
-    v.literal("assistant"),
-    v.literal("system"),
-  ),
+  role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
   content: v.string(),
   partialContent: v.optional(v.string()),
   status: v.union(
@@ -1169,8 +1165,6 @@ export const notificationsTable = defineTable({
   .index("by_user", ["userId"])
   .index("by_user_unread", ["userId", "read"])
   .index("by_created", ["createdAt"]);
-
-
 
 export default defineSchema({
   conversations: conversationsTable,

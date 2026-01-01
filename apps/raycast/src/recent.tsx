@@ -2,12 +2,12 @@ import {
   Action,
   ActionPanel,
   List,
+  open,
   showToast,
   Toast,
-  open,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { listConversations, type Conversation } from "./lib/api";
+import { useEffect, useState } from "react";
+import { type Conversation, listConversations } from "./lib/api";
 import { getApiKey, getClient } from "./lib/client";
 
 export default function RecentCommand() {

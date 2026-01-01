@@ -1,7 +1,6 @@
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, View, ViewStyle, Platform } from "react-native";
-import { palette, layout } from "@/lib/theme/designSystem";
+import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
 
 interface GlassPaneProps {
   children?: React.ReactNode;
@@ -23,15 +22,14 @@ export function GlassPane({
   tint = "systemUltraThinMaterialDark",
   borderOpacity = 0.1,
 }: GlassPaneProps) {
-  // Android fallback for BlurView if needed (some older devices don't handle it well,
-  // but we'll try to use it since it's standard now).
-  // If platform is android, we might want to lower intensity or use a solid fallback color
-  // if performance is an issue, but for now we stick to the plan.
+  // Android: reduce blur intensity since some devices render strong blur poorly
+  const effectiveIntensity =
+    Platform.OS === "android" ? Math.min(intensity, 15) : intensity;
 
   return (
     <View style={[styles.container, style]}>
       <BlurView
-        intensity={intensity}
+        intensity={effectiveIntensity}
         tint={tint}
         style={StyleSheet.absoluteFill}
       />
@@ -59,8 +57,5 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1,
     borderColor: "transparent",
-    // ^ We use the gradient as a background for the border effect basically?
-    // Actually standard generic border approach:
-    borderRadius: "inherit" as any,
   },
 });

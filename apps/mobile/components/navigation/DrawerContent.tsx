@@ -67,6 +67,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             </View>
             <View>
               <Text style={styles.greeting}>Welcome back,</Text>
+              {/* TODO: Replace with actual username from user context when available */}
               <Text style={styles.username}>Explorer</Text>
             </View>
           </View>

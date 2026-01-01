@@ -2,10 +2,10 @@
  * Templates Command - Browse prompt templates
  */
 
-import { List, ActionPanel, Action, Icon, Color, open } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { getClient, getApiKey } from "./lib/client";
+import { Action, ActionPanel, Color, Icon, List, open } from "@raycast/api";
+import { useEffect, useState } from "react";
 import { listTemplates, type Template } from "./lib/api";
+import { getApiKey, getClient } from "./lib/client";
 
 export default function Command() {
   const [templates, setTemplates] = useState<Template[]>([]);

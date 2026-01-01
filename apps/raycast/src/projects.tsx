@@ -2,10 +2,10 @@
  * Projects Command - Browse projects
  */
 
-import { List, ActionPanel, Action, Icon, open } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { getClient, getApiKey } from "./lib/client";
+import { Action, ActionPanel, Icon, List, open } from "@raycast/api";
+import { useEffect, useState } from "react";
 import { listProjects, type Project } from "./lib/api";
+import { getApiKey, getClient } from "./lib/client";
 
 export default function Command() {
   const [projects, setProjects] = useState<Project[]>([]);

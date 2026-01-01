@@ -968,9 +968,13 @@ export const createTask = mutation({
 
     // Schedule embedding generation
     // @ts-ignore - Type depth exceeded
-    await ctx.scheduler.runAfter(0, internal.tasks.embeddings.generateEmbedding, {
-      taskId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.tasks.embeddings.generateEmbedding,
+      {
+        taskId,
+      },
+    );
 
     return { taskId };
   },
@@ -1172,9 +1176,13 @@ export const createCliNote = mutation({
 
     // Schedule embedding generation
     // @ts-ignore - Type depth exceeded
-    await ctx.scheduler.runAfter(0, internal.notes.embeddings.generateEmbedding, {
-      noteId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.notes.embeddings.generateEmbedding,
+      {
+        noteId,
+      },
+    );
 
     return { noteId };
   },
@@ -1217,9 +1225,13 @@ export const updateCliNote = mutation({
     // Regenerate embedding if content changed
     if (updates.content) {
       // @ts-ignore - Type depth exceeded
-      await ctx.scheduler.runAfter(0, internal.notes.embeddings.generateEmbedding, {
-        noteId,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notes.embeddings.generateEmbedding,
+        {
+          noteId,
+        },
+      );
     }
   },
 });
@@ -1262,5 +1274,10 @@ function extractTitleFromContent(content: string): string {
 
   const firstLine = lines[0];
   // Remove markdown heading syntax
-  return firstLine.replace(/^#+\s*/, "").trim().slice(0, 100) || "Untitled Note";
+  return (
+    firstLine
+      .replace(/^#+\s*/, "")
+      .trim()
+      .slice(0, 100) || "Untitled Note"
+  );
 }

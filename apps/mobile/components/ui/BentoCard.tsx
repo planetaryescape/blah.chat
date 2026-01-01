@@ -1,13 +1,13 @@
+import { MotiView } from "moti";
 import {
   StyleSheet,
   Text,
-  View,
-  ViewStyle,
   TouchableOpacity,
+  View,
+  type ViewStyle,
 } from "react-native";
+import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { GlassPane } from "./GlassPane";
-import { layout, spacing, typography, palette } from "@/lib/theme/designSystem";
-import { MotiView } from "moti";
 
 interface BentoCardProps {
   title?: string;

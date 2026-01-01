@@ -11,7 +11,6 @@
 export const BYOD_EXCLUDED_FIELDS = [
   // Internal processing/admin fields (if any)
   // Currently none - all BYOD table fields are user-facing
-
   // Example exclusions (uncomment if needed):
   // "messages.internalProcessingId",
   // "conversations.adminNotes",
@@ -22,10 +21,7 @@ export type BYODExcludedField = (typeof BYOD_EXCLUDED_FIELDS)[number];
 /**
  * Check if a field should be excluded from BYOD schema
  */
-export function isBYODExcludedField(
-  table: string,
-  field: string
-): boolean {
+export function isBYODExcludedField(table: string, field: string): boolean {
   const key = `${table}.${field}` as BYODExcludedField;
   return BYOD_EXCLUDED_FIELDS.includes(key);
 }

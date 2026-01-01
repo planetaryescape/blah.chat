@@ -3,17 +3,17 @@
  */
 
 import {
-  List,
-  ActionPanel,
   Action,
-  Icon,
+  ActionPanel,
   Color,
+  Icon,
+  List,
   showToast,
   Toast,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { getClient, getApiKey } from "../lib/client";
+import { useEffect, useState } from "react";
 import { listModels, type Model } from "../lib/api";
+import { getApiKey, getClient } from "../lib/client";
 
 interface ModelPickerProps {
   current: string;

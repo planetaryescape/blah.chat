@@ -2,12 +2,12 @@ import {
   Action,
   ActionPanel,
   List,
+  open,
   showToast,
   Toast,
-  open,
 } from "@raycast/api";
-import { useState, useCallback } from "react";
-import { searchConversations, type Conversation } from "./lib/api";
+import { useCallback, useState } from "react";
+import { type Conversation, searchConversations } from "./lib/api";
 import { getApiKey, getClient } from "./lib/client";
 
 export default function SearchCommand() {

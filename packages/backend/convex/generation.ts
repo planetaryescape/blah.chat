@@ -71,7 +71,13 @@ export const generateResponse = internalAction({
 
     try {
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
-      const [message, messages, presentationForOutline, conversation, memoryExtractionLevelRaw] = await Promise.all([
+      const [
+        message,
+        messages,
+        presentationForOutline,
+        conversation,
+        memoryExtractionLevelRaw,
+      ] = await Promise.all([
         // Check message status (for resume detection)
         (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -101,7 +107,8 @@ export const generateResponse = internalAction({
       ]);
 
       const wasAlreadyGenerating = message?.status === "generating";
-      isResumedAfterRefresh = wasAlreadyGenerating && !!message?.partialContent;
+      isResumedAfterRefresh =
+        wasAlreadyGenerating && Boolean(message?.partialContent);
       partialContentLengthForAnalytics = message?.partialContent?.length || 0;
 
       const isOutlineGeneration =
@@ -109,7 +116,8 @@ export const generateResponse = internalAction({
         (presentationForOutline.status === "outline_generating" ||
           presentationForOutline.status === "outline_pending");
 
-      const memoryExtractionLevel = (memoryExtractionLevelRaw ?? "moderate") as MemoryExtractionLevel;
+      const memoryExtractionLevel = (memoryExtractionLevelRaw ??
+        "moderate") as MemoryExtractionLevel;
 
       // 1. Mark generation started (required for UI to show streaming state)
       await ctx.runMutation(internal.messages.updatePartialContent, {
@@ -317,7 +325,7 @@ export const generateResponse = internalAction({
 
             // PARALLEL: Download all attachments concurrently (saves 100ms+ per attachment)
             const downloadResults = await Promise.all(
-              attachments.map(async (attachment) => ({
+              attachments.map(async (attachment: Doc<"attachments">) => ({
                 attachment,
                 base64: await downloadAttachment(ctx, attachment.storageId),
               })),

@@ -5,7 +5,10 @@
   "description": "AI chat assistant with access to all models",
   "icon": "icon.png",
   "author": "bhekanik",
-  "categories": ["Productivity", "Developer Tools"],
+  "categories": [
+    "Productivity",
+    "Developer Tools"
+  ],
   "license": "MIT",
   "commands": [
     {

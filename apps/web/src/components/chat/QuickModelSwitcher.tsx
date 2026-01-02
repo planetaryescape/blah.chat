@@ -207,7 +207,7 @@ export function QuickModelSwitcher({
     (model: ModelConfig) => {
       if (isContextExceeded(model)) {
         toast.error(
-          `Current context (${formatTokens(currentTokenUsage!)}) exceeds ${model.name}'s limit (${formatTokens(model.contextWindow)})`,
+          `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${model.name}'s limit (${formatTokens(model.contextWindow ?? DEFAULT_CONTEXT_WINDOW)})`,
         );
       } else if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");

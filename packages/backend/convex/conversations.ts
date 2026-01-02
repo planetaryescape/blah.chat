@@ -11,6 +11,7 @@ export * as branching from "./conversations/branching";
 export { canAccessConversation } from "./conversations/branching";
 export * as bulk from "./conversations/bulk";
 export * as compact from "./conversations/compact";
+export { MIN_MESSAGES_FOR_COMPACTION } from "./conversations/compact";
 export * as consolidation from "./conversations/consolidation";
 export * as hybridSearch from "./conversations/hybridSearch";
 export * as internal from "./conversations/internal";

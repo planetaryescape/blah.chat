@@ -16,8 +16,8 @@ import {
 
 /**
  * Minimum messages required for compaction.
- * Need at least: 1 user message + 1 assistant response + 1 more exchange
- * to have meaningful context worth summarizing.
+ * Need at least 3 messages (e.g., a user message, an assistant response,
+ * and one additional message) to have meaningful context worth summarizing.
  */
 const MIN_MESSAGES_FOR_COMPACTION = 3;
 

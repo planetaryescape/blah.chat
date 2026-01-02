@@ -3,13 +3,7 @@
 import { useMemo } from "react";
 import { getModelConfig } from "@/lib/ai/utils";
 import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
-
-interface TokenUsage {
-  totalTokens: number;
-  systemTokens?: number;
-  messagesTokens?: number;
-  memoriesTokens?: number;
-}
+import type { TokenUsage } from "@/types/tokenUsage";
 
 interface UseContextLimitEnforcementOptions {
   tokenUsage: TokenUsage | null | undefined;

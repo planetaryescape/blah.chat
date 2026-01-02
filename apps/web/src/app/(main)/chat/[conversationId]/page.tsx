@@ -239,10 +239,11 @@ function ChatPageContent({
         conversationId: validConversationId,
         targetModel: conversation?.model,
       });
+      toast.success("Conversation compacted");
       setShowCompactModal(false);
       router.push(`/chat/${newConversationId}`);
     } catch (_error) {
-      // Error handled by toast in action
+      toast.error("Failed to compact conversation");
     } finally {
       setIsCompacting(false);
     }
@@ -656,10 +657,11 @@ function ChatPageContent({
                             conversationId: validConversationId,
                             targetModel: blockedModel.modelId,
                           });
+                        toast.success("Conversation compacted");
                         setBlockedModel(null);
                         router.push(`/chat/${newConversationId}`);
                       } catch (_error) {
-                        // Error handled by toast
+                        toast.error("Failed to compact conversation");
                       } finally {
                         setIsCompacting(false);
                       }

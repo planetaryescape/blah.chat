@@ -23,7 +23,10 @@ import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
-import { formatTokens } from "@/lib/utils/formatMetrics";
+import {
+  DEFAULT_CONTEXT_WINDOW,
+  formatTokens,
+} from "@/lib/utils/formatMetrics";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
@@ -77,7 +80,8 @@ export function QuickModelSwitcher({
 
   // Check if current context exceeds model's context window
   const isContextExceeded = (model: ModelConfig) =>
-    currentTokenUsage !== undefined && currentTokenUsage > model.contextWindow;
+    currentTokenUsage !== undefined &&
+    currentTokenUsage > (model.contextWindow ?? DEFAULT_CONTEXT_WINDOW);
 
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>

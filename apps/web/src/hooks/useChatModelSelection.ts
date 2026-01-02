@@ -8,17 +8,13 @@ import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 
-interface TokenUsage {
-  totalTokens: number;
-}
-
 interface UseChatModelSelectionOptions {
   conversationId: Id<"conversations">;
   conversation: Doc<"conversations"> | null | undefined;
   user: Doc<"users"> | null | undefined;
   defaultModel: string | undefined;
   /** Token usage for context limit checking */
-  tokenUsage?: TokenUsage | null;
+  tokenUsage?: { totalTokens: number } | null;
   /** Callback when model switch is blocked due to context exceeding target model's limit */
   onModelBlocked?: (targetModelId: string, targetContextWindow: number) => void;
 }

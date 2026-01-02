@@ -202,8 +202,10 @@ function ChatPageContent({
       });
       toast.success("Conversation compacted");
       router.push(`/chat/${newConversationId}`);
-    } catch (_error) {
-      toast.error("Failed to auto-compress conversation");
+    } catch (error) {
+      toast.error(
+        `Failed to auto-compress: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
       autoCompressTriggeredRef.current = false; // Allow retry on error
     } finally {
       setIsCompacting(false);
@@ -242,8 +244,10 @@ function ChatPageContent({
       toast.success("Conversation compacted");
       setShowCompactModal(false);
       router.push(`/chat/${newConversationId}`);
-    } catch (_error) {
-      toast.error("Failed to compact conversation");
+    } catch (error) {
+      toast.error(
+        `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     } finally {
       setIsCompacting(false);
     }
@@ -660,8 +664,10 @@ function ChatPageContent({
                         toast.success("Conversation compacted");
                         setBlockedModel(null);
                         router.push(`/chat/${newConversationId}`);
-                      } catch (_error) {
-                        toast.error("Failed to compact conversation");
+                      } catch (error) {
+                        toast.error(
+                          `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
+                        );
                       } finally {
                         setIsCompacting(false);
                       }

@@ -39,10 +39,10 @@ export function useContextLimitEnforcement({
     const contextLimit = modelConfig?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
     const totalTokens = tokenUsage?.totalTokens ?? 0;
 
-    const percentage = Math.min(
-      100,
-      Math.round((totalTokens / contextLimit) * 100),
-    );
+    const percentage =
+      contextLimit > 0
+        ? Math.min(100, Math.round((totalTokens / contextLimit) * 100))
+        : 0;
 
     const shouldBlockSend = percentage >= 95;
     const shouldAutoCompress = percentage >= 75;

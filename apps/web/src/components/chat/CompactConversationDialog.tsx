@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { formatTokens } from "@/lib/utils/formatMetrics";
 
 interface CompactConversationDialogProps {
   open: boolean;
@@ -44,16 +45,6 @@ export function CompactConversationDialog({
   isCompacting,
 }: CompactConversationDialogProps) {
   const isThreshold = trigger === "threshold";
-
-  const formatTokens = (tokens: number) => {
-    if (tokens >= 1000000) {
-      return `${(tokens / 1000000).toFixed(1)}M`;
-    }
-    if (tokens >= 1000) {
-      return `${(tokens / 1000).toFixed(0)}K`;
-    }
-    return tokens.toString();
-  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

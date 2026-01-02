@@ -1,7 +1,8 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 /**
  * Hook for managing document version history
@@ -67,19 +68,47 @@ export function useCanvasHistory(
     });
   }, [documentId, currentVersion, history, updateContentMutation]);
 
+  const [isRestoring, setIsRestoring] = useState(false);
+
   const jumpToVersion = useCallback(
     async (targetVersion: number) => {
-      if (!documentId || !history) return;
+      if (!documentId || !history) {
+        toast.error("Cannot restore: document or history not available");
+        return;
+      }
 
       const targetEntry = history.find((h) => h.version === targetVersion);
-      if (!targetEntry) return;
+      if (!targetEntry) {
+        toast.error(`Version ${targetVersion} not found`);
+        console.error(
+          "[useCanvasHistory] Version not found. Available:",
+          history.map((h) => h.version),
+        );
+        return;
+      }
 
-      await updateContentMutation({
-        documentId,
-        content: targetEntry.content,
-        source: "user_edit",
-        diff: `Restore v${targetVersion}`,
-      });
+      if (!targetEntry.content) {
+        toast.error("Version has no content saved");
+        return;
+      }
+
+      setIsRestoring(true);
+      try {
+        await updateContentMutation({
+          documentId,
+          content: targetEntry.content,
+          source: "user_edit",
+          diff: `Restore v${targetVersion}`,
+        });
+        toast.success(`Restored to v${targetVersion}`);
+      } catch (error) {
+        console.error("[useCanvasHistory] Restore failed:", error);
+        toast.error(
+          `Restore failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      } finally {
+        setIsRestoring(false);
+      }
     },
     [documentId, history, updateContentMutation],
   );
@@ -91,6 +120,7 @@ export function useCanvasHistory(
     isViewingOldVersion,
     canUndo,
     canRedo,
+    isRestoring,
     undo,
     redo,
     jumpToVersion,

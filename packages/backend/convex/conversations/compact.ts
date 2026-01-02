@@ -15,6 +15,19 @@ import {
 } from "../lib/prompts/operational/conversationCompaction";
 
 /**
+ * Minimum messages required for compaction.
+ * Need at least: 1 user message + 1 assistant response + 1 more exchange
+ * to have meaningful context worth summarizing.
+ */
+const MIN_MESSAGES_FOR_COMPACTION = 3;
+
+/**
+ * Maximum transcript length for summarization.
+ * Matches title generation limit - enough context without overwhelming the model.
+ */
+const MAX_TRANSCRIPT_CHARS = 16000;
+
+/**
  * Compact a conversation by summarizing it and creating a new conversation
  * with the summary as the first assistant message.
  */
@@ -55,7 +68,7 @@ export const compact = action({
         { conversationId: args.conversationId },
       )) as Doc<"messages">[]) || [];
 
-    if (messages.length < 3) {
+    if (messages.length < MIN_MESSAGES_FOR_COMPACTION) {
       throw new Error("Conversation too short to compact");
     }
 
@@ -67,8 +80,7 @@ export const compact = action({
       .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
       .join("\n\n");
 
-    // Truncate if too long (16k chars like title generation)
-    const truncatedTranscript = transcript.slice(0, 16000);
+    const truncatedTranscript = transcript.slice(0, MAX_TRANSCRIPT_CHARS);
 
     // Generate summary using LLM
     const result = await generateText({

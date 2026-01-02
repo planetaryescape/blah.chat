@@ -6,6 +6,7 @@ import { useMutation } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
+import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 
 interface TokenUsage {
   totalTokens: number;
@@ -92,7 +93,8 @@ export function useChatModelSelection({
       // Check if context would exceed target model's limit
       if (tokenUsage && onModelBlocked) {
         const targetConfig = getModelConfig(modelId);
-        const targetContextWindow = targetConfig?.contextWindow ?? 128000;
+        const targetContextWindow =
+          targetConfig?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
         if (tokenUsage.totalTokens > targetContextWindow) {
           onModelBlocked(modelId, targetContextWindow);
           return; // Block the switch

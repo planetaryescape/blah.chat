@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { use, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { CanvasPanel } from "@/components/canvas/CanvasPanel";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -190,6 +191,25 @@ function ChatPageContent({
   }, [conversationId]);
 
   // Auto-compress at 75% when setting is enabled
+  const triggerAutoCompress = useCallback(async () => {
+    if (!validConversationId || !conversation?.model) return;
+
+    setIsCompacting(true);
+    try {
+      const { conversationId: newConversationId } = await compactConversation({
+        conversationId: validConversationId,
+        targetModel: conversation.model,
+      });
+      toast.success("Conversation compacted");
+      router.push(`/chat/${newConversationId}`);
+    } catch (_error) {
+      toast.error("Failed to auto-compress conversation");
+      autoCompressTriggeredRef.current = false; // Allow retry on error
+    } finally {
+      setIsCompacting(false);
+    }
+  }, [validConversationId, conversation?.model, compactConversation, router]);
+
   useEffect(() => {
     if (
       autoCompressContext &&
@@ -200,22 +220,7 @@ function ChatPageContent({
       conversation?.model
     ) {
       autoCompressTriggeredRef.current = true;
-      (async () => {
-        setIsCompacting(true);
-        try {
-          const { conversationId: newConversationId } =
-            await compactConversation({
-              conversationId: validConversationId,
-              targetModel: conversation.model,
-            });
-          router.push(`/chat/${newConversationId}`);
-        } catch (_error) {
-          // Error handled by toast in action
-          autoCompressTriggeredRef.current = false; // Allow retry on error
-        } finally {
-          setIsCompacting(false);
-        }
-      })();
+      triggerAutoCompress();
     }
   }, [
     autoCompressContext,
@@ -223,8 +228,7 @@ function ChatPageContent({
     isCompacting,
     validConversationId,
     conversation?.model,
-    compactConversation,
-    router,
+    triggerAutoCompress,
   ]);
 
   const handleCompact = async () => {

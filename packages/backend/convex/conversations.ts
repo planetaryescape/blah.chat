@@ -10,6 +10,7 @@ export * as branching from "./conversations/branching";
 // Re-export canAccessConversation helper for use in other modules
 export { canAccessConversation } from "./conversations/branching";
 export * as bulk from "./conversations/bulk";
+export * as compact from "./conversations/compact";
 export * as consolidation from "./conversations/consolidation";
 export * as hybridSearch from "./conversations/hybridSearch";
 export * as internal from "./conversations/internal";

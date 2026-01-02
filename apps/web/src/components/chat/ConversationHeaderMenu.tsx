@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/backend/convex/conversations";
+import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/backend/convex/constants";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Archive,

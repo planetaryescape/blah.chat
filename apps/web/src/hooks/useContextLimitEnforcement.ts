@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { getModelConfig } from "@/lib/ai/utils";
+import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 
 interface TokenUsage {
   totalTokens: number;
@@ -41,7 +42,7 @@ export function useContextLimitEnforcement({
 }: UseContextLimitEnforcementOptions): UseContextLimitEnforcementReturn {
   return useMemo(() => {
     const modelConfig = getModelConfig(modelId);
-    const contextLimit = modelConfig?.contextWindow ?? 128000;
+    const contextLimit = modelConfig?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
     const totalTokens = tokenUsage?.totalTokens ?? 0;
 
     const percentage = Math.min(
@@ -80,7 +81,7 @@ export function wouldExceedContextLimit(
   targetModelId: string,
 ): { exceeded: boolean; targetLimit: number } {
   const targetConfig = getModelConfig(targetModelId);
-  const targetLimit = targetConfig?.contextWindow ?? 128000;
+  const targetLimit = targetConfig?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
 
   return {
     exceeded: currentTokens > targetLimit,

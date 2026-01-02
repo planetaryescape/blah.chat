@@ -16,6 +16,7 @@ interface ReasoningSettings {
 
 export interface UISettingsState {
   alwaysShowMessageActions: boolean;
+  autoCompressContext: boolean;
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
@@ -34,6 +35,7 @@ export interface UISettingsState {
 
 export interface UISettingsHandlers {
   handleAlwaysShowActionsChange: (checked: boolean) => Promise<void>;
+  handleAutoCompressContextChange: (checked: boolean) => Promise<void>;
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
@@ -62,6 +64,7 @@ export function useUISettingsState() {
 
   // Get preference values from hooks
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
+  const prefAutoCompressContext = useUserPreference("autoCompressContext");
   const prefShowModelNames = useUserPreference(
     "showModelNamesDuringComparison",
   );
@@ -80,6 +83,9 @@ export function useUISettingsState() {
   // Local state for optimistic updates
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
     useState<boolean>(prefAlwaysShowActions);
+  const [autoCompressContext, setAutoCompressContext] = useState<boolean>(
+    prefAutoCompressContext,
+  );
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState<boolean>(prefShowModelNames);
   const [showMessageStats, setShowMessageStats] =
@@ -116,6 +122,10 @@ export function useUISettingsState() {
   useEffect(
     () => setAlwaysShowMessageActions(prefAlwaysShowActions),
     [prefAlwaysShowActions],
+  );
+  useEffect(
+    () => setAutoCompressContext(prefAutoCompressContext),
+    [prefAutoCompressContext],
   );
   useEffect(
     () => setShowModelNamesDuringComparison(prefShowModelNames),
@@ -232,6 +242,12 @@ export function useUISettingsState() {
       "always_show_message_actions",
       "UI settings saved!",
     ),
+    handleAutoCompressContextChange: createBooleanHandler(
+      "autoCompressContext",
+      setAutoCompressContext,
+      "auto_compress_context",
+      "Auto-compress setting saved!",
+    ),
     handleShowModelNamesChange: createBooleanHandler(
       "showModelNamesDuringComparison",
       setShowModelNamesDuringComparison,
@@ -297,6 +313,7 @@ export function useUISettingsState() {
 
   const state: UISettingsState = {
     alwaysShowMessageActions,
+    autoCompressContext,
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,

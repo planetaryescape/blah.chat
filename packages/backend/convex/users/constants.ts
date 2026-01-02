@@ -26,6 +26,7 @@ export const PREFERENCE_DEFAULTS = {
   enableHybridSearch: false,
   showModelNamesDuringComparison: false,
   showModelProvider: false,
+  autoCompressContext: false,
 
   // Audio
   sttEnabled: true,
@@ -87,6 +88,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
   showModelProvider: "chat",
+  autoCompressContext: "chat",
 
   // Audio
   sttEnabled: "audio",

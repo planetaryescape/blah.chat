@@ -418,6 +418,81 @@ Combine full-text + semantic (vector) search:
 - Vector index for meaning
 - Merge with RRF (Reciprocal Rank Fusion)
 
+### Dexie Caching Layer (Local-First)
+
+**Purpose**: IndexedDB cache via Dexie for instant UI + auto-sync from Convex subscriptions.
+
+**Architecture**:
+```
+Convex DB → useQuery subscription → useEffect → cache.bulkPut → Dexie → useLiveQuery → Component
+```
+
+**Key Files**:
+- `src/lib/cache/db.ts` - Dexie schema (BlahChatCache class, 10 tables)
+- `src/lib/cache/cleanup.ts` - Data retention (30-day cleanup)
+- `src/hooks/useCacheSync.ts` - Sync hooks (messages, conversations, notes, tasks, projects)
+- `src/hooks/useUserPreference.ts` - Preference caching
+- `src/lib/offline/messageQueue.ts` - Offline mutation queue
+
+**Tables**:
+- `conversations`, `messages`, `notes`, `tasks`, `projects`
+- `attachments`, `toolCalls`, `sources` (message metadata)
+- `pendingMutations` (offline queue)
+- `userPreferences` (single "current" record)
+
+**Sync Hooks** (from `useCacheSync.ts`):
+```typescript
+// Write to cache on Convex data change
+const { conversations } = useConversationCacheSync({ projectId });
+const { results: messages } = useMessageCacheSync({ conversationId });
+const { notes } = useNoteCacheSync();
+const { tasks } = useTaskCacheSync();
+const { projects } = useProjectCacheSync();
+
+// Read-only from cache (instant)
+const attachments = useCachedAttachments(messageId);
+const toolCalls = useCachedToolCalls(messageId);
+const sources = useCachedSources(messageId);
+```
+
+**Sync Pattern**:
+1. Convex subscription returns data
+2. `useEffect` detects change, calls `cache.table.bulkPut()`
+3. `useLiveQuery()` from `dexie-react-hooks` reactively reads cache
+4. Component renders instantly from cache
+
+**Orphan Detection**:
+- Track IDs from Convex response
+- Delete from Dexie if not in latest results
+- Prevents stale data after server-side deletes
+
+**Cascade Deletes** (manual):
+```typescript
+await Promise.all([
+  cache.messages.delete(messageId),
+  cache.attachments.where("messageId").equals(messageId).delete(),
+  cache.toolCalls.where("messageId").equals(messageId).delete(),
+  cache.sources.where("messageId").equals(messageId).delete(),
+]);
+```
+
+**Offline Support**:
+- `pendingMutations` table queues mutations when offline
+- Exponential backoff retry (2s → 4s → 8s, max 3 retries)
+- Auto-retry on reconnect
+
+**Provider Chain** (`convex-clerk-provider.tsx`):
+```
+ConvexQueryCacheProvider (60s expiration, 100 max idle entries)
+  ↓
+CacheProvider (runs cleanup on mount)
+```
+
+**CRITICAL**:
+- Always use sync hooks, not raw Convex queries, for cached tables
+- Cascade delete from cache when deleting messages
+- Run cleanup on app start (non-blocking)
+
 ### Cost Tracking
 
 Per-message: `inputTokens`, `outputTokens`, `cost` (USD)

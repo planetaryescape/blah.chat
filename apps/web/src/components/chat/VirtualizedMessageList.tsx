@@ -81,6 +81,7 @@ export function VirtualizedMessageList({
     getScrollElement: () => containerRef.current,
     estimateSize: () => 800, // Increased for long messages - reduces re-measurements
     overscan: 5, // Reduced - height reservations prevent layout shift
+    scrollPaddingStart: 80, // Account for header height (~5rem) when scrolling to messages
   });
 
   const virtualItems = virtualizer.getVirtualItems();

@@ -97,7 +97,11 @@ export function CompactConversationDialog({
               Start Fresh
             </Button>
           )}
-          <AlertDialogAction onClick={onCompact} disabled={isCompacting}>
+          <AlertDialogAction
+            onClick={onCompact}
+            disabled={isCompacting}
+            aria-busy={isCompacting}
+          >
             {isCompacting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

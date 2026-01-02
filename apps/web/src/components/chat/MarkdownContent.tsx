@@ -7,7 +7,14 @@ import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import { Component, memo, type ReactNode, useRef } from "react";
+import {
+  Component,
+  memo,
+  type ReactNode,
+  useDeferredValue,
+  useMemo,
+  useRef,
+} from "react";
 import { Streamdown } from "streamdown";
 import { BibleVerseLink } from "./BibleVerseLink";
 import { CodeBlock } from "./CodeBlock";
@@ -304,27 +311,34 @@ export function MarkdownContent({
   // Create markdown components (including theme-aware Mermaid)
   const markdownComponents = createMarkdownComponents();
 
-  // Normalize LaTeX delimiters before other processing
-  // AI models often output \(...\) but Streamdown expects $$...$$
-  const normalizedContent = normalizeLatexDelimiters(content);
+  // MEMOIZED: Expensive O(n) regex processing - only recompute when content changes
+  // This prevents redundant processing during RAF-based streaming (~60 renders/sec)
+  const processedContent = useMemo(() => {
+    // Normalize LaTeX delimiters before other processing
+    // AI models often output \(...\) but Streamdown expects $$...$$
+    const normalizedContent = normalizeLatexDelimiters(content);
 
-  // Process citations and Bible verses before buffering
-  // This ensures the buffer sees the "final" linkified version
-  // If a [1] appears, the processed content will change non-monotonically
-  // prompting useStreamBuffer to reset buffer and show the new content immediately
-  const withCitations = processCitations(normalizedContent);
-  const processedContent = processBibleVerses(withCitations);
+    // Process citations and Bible verses before buffering
+    // This ensures the buffer sees the "final" linkified version
+    // If a [1] appears, the processed content will change non-monotonically
+    // prompting useStreamBuffer to reset buffer and show the new content immediately
+    const withCitations = processCitations(normalizedContent);
+    return processBibleVerses(withCitations);
+  }, [content]);
 
   // Buffer hook smoothly reveals characters from server chunks
   const { displayContent, hasBufferedContent } = useStreamBuffer(
     processedContent,
     isStreaming,
     {
-      charsPerSecond: 200,
+      charsPerSecond: 200, // Conservative default for comfortable reading speed
       minTokenSize: 3,
-      adaptiveThreshold: 5000,
+      adaptiveThreshold: 2000, // Lower threshold - speed up earlier when buffer grows
     },
   );
+
+  // DEFERRED: Lower priority for markdown parsing - doesn't block interactions
+  const deferredDisplayContent = useDeferredValue(displayContent);
 
   // Phase 4A: Lazy rendering for mobile performance
   const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
@@ -342,9 +356,10 @@ export function MarkdownContent({
   // Show cursor while streaming OR buffer is draining
   const showCursor = isStreaming || hasBufferedContent;
 
-  // Detect if content has math (simple heuristic)
+  // Detect if content has math (simple heuristic) - use deferred for consistency
   const hasMath =
-    displayContent.includes("$$") || displayContent.includes("\\(");
+    deferredDisplayContent.includes("$$") ||
+    deferredDisplayContent.includes("\\(");
 
   // Show skeleton on mobile while waiting for intersection
   if (isMobile && hasMath && !isRendered) {
@@ -369,7 +384,7 @@ export function MarkdownContent({
             mermaid: false, // We handle mermaid controls via custom MermaidRenderer
           }}
         >
-          {displayContent}
+          {deferredDisplayContent}
         </Streamdown>
       </MathErrorBoundary>
       {showCursor && <span className="streaming-cursor" aria-hidden="true" />}

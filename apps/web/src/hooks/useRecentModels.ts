@@ -13,9 +13,11 @@ export function useRecentModels() {
 
   const [localRecents, setLocalRecents] = useState<string[]>([]);
 
-  // Sync from Convex on load
+  // Sync from Convex on load (ensure always array)
   useEffect(() => {
-    setLocalRecents(recentModels);
+    if (Array.isArray(recentModels)) {
+      setLocalRecents(recentModels);
+    }
   }, [recentModels]);
 
   const addRecent = async (modelId: string) => {

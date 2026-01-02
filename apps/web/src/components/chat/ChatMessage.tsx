@@ -67,6 +67,10 @@ interface ChatMessageProps {
   readOnly?: boolean;
   isCollaborative?: boolean;
   senderUser?: { name?: string; imageUrl?: string } | null;
+  // Lifted from child to reduce N subscription to 1
+  conversation?: Doc<"conversations"> | null;
+  // Lifted preference to avoid memo blocking updates
+  showMessageStats?: boolean;
 }
 
 export const ChatMessage = memo(
@@ -76,6 +80,8 @@ export const ChatMessage = memo(
     readOnly,
     isCollaborative,
     senderUser,
+    conversation,
+    showMessageStats,
   }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -100,10 +106,10 @@ export const ChatMessage = memo(
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
-    const prefShowStats = useUserPreference("showMessageStatistics");
 
     const alwaysShow = prefAlwaysShowActions;
-    const showStats = prefShowStats;
+    // showMessageStats is now passed as prop from VirtualizedMessageList (avoids memo blocking)
+    const showStats = showMessageStats ?? false;
     const features = useFeatureToggles();
 
     // Query for original responses if this is a consolidated message
@@ -114,10 +120,7 @@ export const ChatMessage = memo(
         : "skip",
     );
 
-    // Query conversation for model recommendation (cost optimization)
-    const conversation = useQuery(api.conversations.get, {
-      conversationId: message.conversationId,
-    });
+    // conversation is now passed as prop from VirtualizedMessageList (reduces N→1 subscriptions)
 
     const displayContent = message.partialContent || message.content || "";
 
@@ -539,7 +542,11 @@ export const ChatMessage = memo(
       prev.message.isConsolidation === next.message.isConsolidation &&
       prev.nextMessage?.status === next.nextMessage?.status &&
       prev.isCollaborative === next.isCollaborative &&
-      prev.senderUser?.name === next.senderUser?.name
+      prev.senderUser?.name === next.senderUser?.name &&
+      prev.showMessageStats === next.showMessageStats &&
+      prev.conversation?._id === next.conversation?._id &&
+      prev.conversation?.modelRecommendation?.dismissed ===
+        next.conversation?.modelRecommendation?.dismissed
     );
   },
 );

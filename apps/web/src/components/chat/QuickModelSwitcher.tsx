@@ -37,6 +37,8 @@ interface QuickModelSwitcherProps {
   selectedModels?: string[];
   onSelectedModelsChange?: (models: string[]) => void;
   showTrigger?: boolean;
+  /** Current token usage for context limit checking */
+  currentTokenUsage?: number;
 }
 
 export function QuickModelSwitcher({
@@ -48,6 +50,7 @@ export function QuickModelSwitcher({
   selectedModels = [],
   onSelectedModelsChange,
   showTrigger = false,
+  currentTokenUsage,
 }: QuickModelSwitcherProps) {
   const modelsByProvider = getModelsByProvider();
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
@@ -71,10 +74,15 @@ export function QuickModelSwitcher({
   const isDisabledDueToByok = (model: ModelConfig) =>
     isModelDisabledByByok(model.gateway || "");
 
+  // Check if current context exceeds model's context window
+  const isContextExceeded = (model: ModelConfig) =>
+    currentTokenUsage !== undefined && currentTokenUsage > model.contextWindow;
+
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>
     (isProModel(model) && proAccess && !proAccess.canUse) ||
-    isDisabledDueToByok(model);
+    isDisabledDueToByok(model) ||
+    isContextExceeded(model);
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -189,17 +197,33 @@ export function QuickModelSwitcher({
     analytics.track("category_filter_changed", { category, mode });
   };
 
-  // Handle click on disabled models (BYOK or pro restriction)
+  // Format tokens for display
+  const formatTokens = (tokens: number) => {
+    if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
+    if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
+    return tokens.toString();
+  };
+
+  // Handle click on disabled models (BYOK, pro restriction, or context exceeded)
   const handleDisabledClick = useCallback(
     (model: ModelConfig) => {
-      if (isDisabledDueToByok(model)) {
+      if (isContextExceeded(model)) {
+        toast.error(
+          `Current context (${formatTokens(currentTokenUsage!)}) exceeds ${model.name}'s limit (${formatTokens(model.contextWindow)})`,
+        );
+      } else if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");
         toast.error(message || "This model requires an API key");
       } else {
         setUpgradeDialogOpen(true);
       }
     },
-    [isDisabledDueToByok, getByokModelDisabledMessage],
+    [
+      isContextExceeded,
+      currentTokenUsage,
+      isDisabledDueToByok,
+      getByokModelDisabledMessage,
+    ],
   );
 
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {

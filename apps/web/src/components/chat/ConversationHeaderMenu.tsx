@@ -2,6 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/backend/convex/conversations";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Archive,
@@ -325,7 +326,10 @@ export function ConversationHeaderMenu({
               e.stopPropagation();
               handleCompactConversation();
             }}
-            disabled={isCompacting || (conversation.messageCount ?? 0) < 3}
+            disabled={
+              isCompacting ||
+              (conversation.messageCount ?? 0) < MIN_MESSAGES_FOR_COMPACTION
+            }
           >
             {isCompacting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

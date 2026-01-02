@@ -19,11 +19,15 @@ import {
  * Need at least 3 messages (e.g., a user message, an assistant response,
  * and one additional message) to have meaningful context worth summarizing.
  */
-const MIN_MESSAGES_FOR_COMPACTION = 3;
+export const MIN_MESSAGES_FOR_COMPACTION = 3;
 
 /**
- * Maximum transcript length for summarization.
- * Matches title generation limit - enough context without overwhelming the model.
+ * Maximum transcript length (in characters) to include in the summarization prompt.
+ *
+ * This intentionally reuses the same character limit as title generation so that both
+ * features operate over a comparable amount of context. The value is chosen to provide
+ * substantial conversation history while keeping the input well below typical model
+ * context limits and avoiding excessive latency/cost from very large prompts.
  */
 const MAX_TRANSCRIPT_CHARS = 16000;
 

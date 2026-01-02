@@ -23,6 +23,7 @@ import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
+import { formatTokens } from "@/lib/utils/formatMetrics";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
@@ -195,13 +196,6 @@ export function QuickModelSwitcher({
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
     analytics.track("category_filter_changed", { category, mode });
-  };
-
-  // Format tokens for display
-  const formatTokens = (tokens: number) => {
-    if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-    if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
-    return tokens.toString();
   };
 
   // Handle click on disabled models (BYOK, pro restriction, or context exceeded)

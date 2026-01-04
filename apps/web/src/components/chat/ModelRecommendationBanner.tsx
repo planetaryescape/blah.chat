@@ -23,16 +23,14 @@ export function ModelRecommendationBanner({
   onSwitch,
   onPreview,
 }: Props) {
-  // Early returns before hooks - pure prop/import checks
-  if (recommendation.dismissed) return null;
-  const suggestedModel = MODEL_CONFIG[recommendation.suggestedModelId];
-  if (!suggestedModel) return null;
-
+  // All hooks must be called before any conditional returns
   const dismiss = useMutation(api.conversations.dismissModelRecommendation);
   const updatePreferences = useMutation(api.users.updatePreferences);
+  const suggestedModel = MODEL_CONFIG[recommendation.suggestedModelId];
 
-  // Track when banner shows
+  // Track when banner shows (only if visible)
   useEffect(() => {
+    if (recommendation.dismissed || !suggestedModel) return;
     analytics.track("recommendation_shown", {
       conversationId,
       currentModel: recommendation.currentModelId,
@@ -40,7 +38,11 @@ export function ModelRecommendationBanner({
       percentSaved: recommendation.estimatedSavings.percentSaved,
       timestamp: Date.now(),
     });
-  }, [conversationId, recommendation]);
+  }, [conversationId, recommendation, suggestedModel]);
+
+  // Early returns after all hooks
+  if (recommendation.dismissed) return null;
+  if (!suggestedModel) return null;
 
   const handleDismiss = () => {
     analytics.track("recommendation_dismissed", {

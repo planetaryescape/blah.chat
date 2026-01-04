@@ -46,6 +46,16 @@ function BookmarksPageContent() {
     });
   }, [bookmarks, searchQuery]);
 
+  // Handler defined alongside hooks (uses removeBookmark from hook)
+  const handleRemove = async (id: string) => {
+    try {
+      await removeBookmark({ bookmarkId: id as any });
+      toast.success("Bookmark removed");
+    } catch (_error) {
+      toast.error("Failed to remove bookmark");
+    }
+  };
+
   // Show loading while preferences are being fetched
   if (isLoading) {
     return <FeatureLoadingScreen />;
@@ -70,15 +80,6 @@ function BookmarksPageContent() {
       </div>
     );
   }
-
-  const handleRemove = async (id: string) => {
-    try {
-      await removeBookmark({ bookmarkId: id as any });
-      toast.success("Bookmark removed");
-    } catch (_error) {
-      toast.error("Failed to remove bookmark");
-    }
-  };
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">

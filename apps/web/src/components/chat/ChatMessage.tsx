@@ -11,7 +11,6 @@ import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -101,7 +100,7 @@ export const ChatMessage = memo(
     const editMessage = useMutation(api.chat.editMessage);
 
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-    const updateModel = useMutation(api.conversations.updateModel);
+    const _updateModel = useMutation(api.conversations.updateModel);
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");

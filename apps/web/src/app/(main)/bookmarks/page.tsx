@@ -17,24 +17,11 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 export const dynamic = "force-dynamic";
 
 function BookmarksPageContent() {
+  // All hooks MUST be at the top, before any early returns
   const { showBookmarks, isLoading } = useFeatureToggles();
-
-  // Show loading while preferences are being fetched
-  if (isLoading) {
-    return <FeatureLoadingScreen />;
-  }
-
-  // Route guard: show disabled page if bookmarks feature is off
-  if (!showBookmarks) {
-    return (
-      <DisabledFeaturePage featureName="Bookmarks" settingKey="showBookmarks" />
-    );
-  }
-
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const bookmarks = useQuery(api.bookmarks.list);
   const removeBookmark = useMutation(api.bookmarks.remove);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
@@ -59,14 +46,17 @@ function BookmarksPageContent() {
     });
   }, [bookmarks, searchQuery]);
 
-  const handleRemove = async (id: string) => {
-    try {
-      await removeBookmark({ bookmarkId: id as any });
-      toast.success("Bookmark removed");
-    } catch (_error) {
-      toast.error("Failed to remove bookmark");
-    }
-  };
+  // Show loading while preferences are being fetched
+  if (isLoading) {
+    return <FeatureLoadingScreen />;
+  }
+
+  // Route guard: show disabled page if bookmarks feature is off
+  if (!showBookmarks) {
+    return (
+      <DisabledFeaturePage featureName="Bookmarks" settingKey="showBookmarks" />
+    );
+  }
 
   if (bookmarks === undefined) {
     return (
@@ -80,6 +70,15 @@ function BookmarksPageContent() {
       </div>
     );
   }
+
+  const handleRemove = async (id: string) => {
+    try {
+      await removeBookmark({ bookmarkId: id as any });
+      toast.success("Bookmark removed");
+    } catch (_error) {
+      toast.error("Failed to remove bookmark");
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">

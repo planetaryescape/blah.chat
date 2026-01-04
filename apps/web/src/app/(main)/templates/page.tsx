@@ -26,33 +26,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
 export default function TemplatesPage() {
+  // All hooks MUST be at the top, before any early returns
   const { showTemplates, isLoading } = useFeatureToggles();
-
-  // Show loading while preferences are being fetched
-  if (isLoading) {
-    return <FeatureLoadingScreen />;
-  }
-
-  // Route guard: show disabled page if templates feature is off
-  if (!showTemplates) {
-    return (
-      <DisabledFeaturePage featureName="Templates" settingKey="showTemplates" />
-    );
-  }
-
   const searchParams = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasSeeded, setHasSeeded] = useState(false);
-
-  // Handle ?action=new query param from command palette
-  useEffect(() => {
-    if (searchParams.get("action") === "new") {
-      setIsCreateOpen(true);
-      // Clean URL to avoid reopening on refresh
-      window.history.replaceState({}, "", "/templates");
-    }
-  }, [searchParams]);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const templates: Doc<"templates">[] | undefined = useQuery(
@@ -62,6 +41,15 @@ export default function TemplatesPage() {
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const seedBuiltIn = useMutation(api.templates.builtIn.seedBuiltInTemplates);
+
+  // Handle ?action=new query param from command palette
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setIsCreateOpen(true);
+      // Clean URL to avoid reopening on refresh
+      window.history.replaceState({}, "", "/templates");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const checkAndSeed = async () => {
@@ -77,6 +65,18 @@ export default function TemplatesPage() {
     };
     checkAndSeed();
   }, [templates, hasSeeded, seedBuiltIn]);
+
+  // Show loading while preferences are being fetched
+  if (isLoading) {
+    return <FeatureLoadingScreen />;
+  }
+
+  // Route guard: show disabled page if templates feature is off
+  if (!showTemplates) {
+    return (
+      <DisabledFeaturePage featureName="Templates" settingKey="showTemplates" />
+    );
+  }
 
   const builtInTemplates = templates?.filter((t: any) => t.isBuiltIn) || [];
   const userTemplates = templates?.filter((t: any) => !t.isBuiltIn) || [];

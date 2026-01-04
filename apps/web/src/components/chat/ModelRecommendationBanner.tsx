@@ -23,6 +23,11 @@ export function ModelRecommendationBanner({
   onSwitch,
   onPreview,
 }: Props) {
+  // Early returns before hooks - pure prop/import checks
+  if (recommendation.dismissed) return null;
+  const suggestedModel = MODEL_CONFIG[recommendation.suggestedModelId];
+  if (!suggestedModel) return null;
+
   const dismiss = useMutation(api.conversations.dismissModelRecommendation);
   const updatePreferences = useMutation(api.users.updatePreferences);
 
@@ -36,11 +41,6 @@ export function ModelRecommendationBanner({
       timestamp: Date.now(),
     });
   }, [conversationId, recommendation]);
-
-  if (recommendation.dismissed) return null;
-
-  const suggestedModel = MODEL_CONFIG[recommendation.suggestedModelId];
-  if (!suggestedModel) return null;
 
   const handleDismiss = () => {
     analytics.track("recommendation_dismissed", {
@@ -105,56 +105,47 @@ export function ModelRecommendationBanner({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="mx-auto mb-4 max-w-3xl rounded-xl border border-border bg-card p-6 shadow-sm"
+        className="mx-auto mb-3 max-w-3xl rounded-lg border border-border/50 bg-card px-4 py-3 shadow-sm"
       >
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-blue-500/10 p-2">
-                <Lightbulb className="h-5 w-5 text-blue-500" />
-              </div>
-              <h3 className="font-semibold">Model Recommendation</h3>
+        <div className="space-y-2">
+          {/* Header: Model names + dismiss */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-blue-500 shrink-0" />
+              <span className="text-sm font-medium">
+                Try {suggestedModel.name}
+              </span>
+              <span className="text-xs font-medium text-green-500">
+                {recommendation.estimatedSavings.percentSaved}% cheaper
+              </span>
             </div>
             <Button
               variant="ghost"
               size="icon"
+              className="h-6 w-6"
               onClick={handleDismiss}
-              className="h-8 w-8"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          {/* Content */}
-          <div className="space-y-2">
-            <p className="text-base leading-relaxed">
-              {recommendation.reasoning}
-            </p>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                {recommendation.estimatedSavings.costReduction}
-              </p>
-              <span className="text-xs font-semibold text-green-500">
-                {recommendation.estimatedSavings.percentSaved}% less
-              </span>
-            </div>
-          </div>
+          {/* Reasoning - educational text */}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {recommendation.reasoning}
+          </p>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex items-center gap-2 pt-1">
             <Button
               variant="outline"
+              size="sm"
               onClick={handlePreview}
-              className="flex-1 justify-center border-border/60 hover:border-border"
+              className="h-7 text-xs"
             >
-              <Eye className="h-4 w-4 mr-2" />
-              Preview Comparison
+              <Eye className="h-3 w-3 mr-1" />
+              Compare
             </Button>
-            <Button
-              onClick={handleSwitch}
-              className="flex-1 justify-center bg-primary/90 hover:bg-primary text-primary-foreground"
-            >
+            <Button size="sm" onClick={handleSwitch} className="h-7 text-xs">
               Switch to {suggestedModel.name}
             </Button>
           </div>

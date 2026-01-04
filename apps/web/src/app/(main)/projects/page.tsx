@@ -39,20 +39,8 @@ import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { analytics } from "@/lib/analytics";
 
 export default function ProjectsPage() {
+  // All hooks MUST be at the top, before any early returns
   const { showProjects, isLoading } = useFeatureToggles();
-
-  // Show loading while preferences are being fetched
-  if (isLoading) {
-    return <FeatureLoadingScreen />;
-  }
-
-  // Route guard
-  if (!showProjects) {
-    return (
-      <DisabledFeaturePage featureName="Projects" settingKey="showProjects" />
-    );
-  }
-
   const { projects, isLoading: projectsLoading } = useProjectCacheSync();
 
   // Dialog States
@@ -71,6 +59,18 @@ export default function ProjectsPage() {
   // Mutations
   // @ts-ignore
   const deleteProject = useMutation(api.projects.deleteProject);
+
+  // Show loading while preferences are being fetched
+  if (isLoading) {
+    return <FeatureLoadingScreen />;
+  }
+
+  // Route guard
+  if (!showProjects) {
+    return (
+      <DisabledFeaturePage featureName="Projects" settingKey="showProjects" />
+    );
+  }
 
   const handleEdit = (project: any) => {
     setSelectedProject(project);

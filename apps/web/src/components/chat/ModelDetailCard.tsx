@@ -17,15 +17,18 @@ export function ModelDetailCard({
   modelId,
   variant = "popover",
 }: ModelDetailCardProps) {
-  const config = getModelConfig(modelId);
+  // All hooks must be called before any conditional returns
   const showModelProvider = useUserPreference("showModelProvider");
+  const config = getModelConfig(modelId);
+  const metrics = useMemo(
+    () => (config ? getModelMetrics(config.id) : null),
+    [config],
+  );
+
   if (!config) return null;
 
   const ProviderIcon = getProviderIcon(config.provider);
   const contextDisplay = formatContextWindow(config.contextWindow);
-
-  // Compute metrics for visual comparison
-  const metrics = useMemo(() => getModelMetrics(config.id), [config.id]);
 
   return (
     <div className="space-y-4 text-sm">

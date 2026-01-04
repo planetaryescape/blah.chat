@@ -59,3 +59,21 @@ export function formatDuration(milliseconds: number): string {
 export function isCachedResponse(ttft: number): boolean {
   return ttft < 50; // <50ms indicates cached
 }
+
+/**
+ * Default context window size for models without explicit configuration.
+ * 128K is standard for most modern LLMs (GPT-4, Claude 3, etc).
+ */
+export const DEFAULT_CONTEXT_WINDOW = 128000;
+
+/**
+ * Format token count for display
+ * <1000: "500"
+ * <1M: "128K"
+ * >=1M: "1.5M"
+ */
+export function formatTokens(tokens: number): string {
+  if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
+  return tokens.toString();
+}

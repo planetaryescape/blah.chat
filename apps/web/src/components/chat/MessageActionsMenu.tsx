@@ -27,6 +27,12 @@ interface MessageActionsMenuProps {
 }
 
 export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
+  // Check if this is a temporary optimistic message (not yet persisted)
+  // Early return before hooks - isTempMessage is pure prop computation
+  const isTempMessage =
+    typeof message._id === "string" && message._id.startsWith("temp-");
+  if (isTempMessage) return null;
+
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMsg = useMutation(api.chat.deleteMessage);
 

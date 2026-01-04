@@ -2,7 +2,7 @@
 
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { formatDistanceToNow } from "date-fns";
-import { Bot, Clock, Undo2, User, X } from "lucide-react";
+import { Bot, Clock, Loader2, Undo2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCanvasContext } from "@/contexts/CanvasContext";
@@ -15,7 +15,7 @@ interface VersionHistoryPanelProps {
 
 export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
   const { setShowHistoryPanel } = useCanvasContext();
-  const { history, currentVersion, jumpToVersion } =
+  const { history, currentVersion, jumpToVersion, isRestoring } =
     useCanvasHistory(documentId);
 
   if (!history) {
@@ -82,9 +82,14 @@ export function VersionHistoryPanel({ documentId }: VersionHistoryPanelProps) {
                     size="icon"
                     className="h-6 w-6 shrink-0"
                     onClick={() => jumpToVersion(entry.version)}
+                    disabled={isRestoring}
                     title={`Restore v${entry.version}`}
                   >
-                    <Undo2 className="w-4 h-4" />
+                    {isRestoring ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Undo2 className="w-4 h-4" />
+                    )}
                   </Button>
                 )}
               </div>

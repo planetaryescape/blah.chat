@@ -2,14 +2,17 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { use, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { CanvasPanel } from "@/components/canvas/CanvasPanel";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { CompactConversationDialog } from "@/components/chat/CompactConversationDialog";
 import { EmptyScreen } from "@/components/chat/EmptyScreen";
 import { MessageListSkeleton } from "@/components/chat/MessageListSkeleton";
 import { ModelPreviewModal } from "@/components/chat/ModelPreviewModal";
@@ -35,6 +38,7 @@ import { useChatKeyboardShortcuts } from "@/hooks/useChatKeyboardShortcuts";
 import { useChatModelSelection } from "@/hooks/useChatModelSelection";
 import { useComparisonHandlers } from "@/hooks/useComparisonHandlers";
 import { useComparisonMode } from "@/hooks/useComparisonMode";
+import { useContextLimitEnforcement } from "@/hooks/useContextLimitEnforcement";
 import { useConversationNavigation } from "@/hooks/useConversationNavigation";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
@@ -117,18 +121,142 @@ function ChatPageContent({
   const customInstructions = useUserPreference("customInstructions");
   const nickname =
     (customInstructions as { nickname?: string } | undefined)?.nickname || "";
+  const autoCompressContext = useUserPreference("autoCompressContext");
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
 
-  // Model selection with optimistic updates
+  // Token usage query (needed before model selection for blocking)
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const tokenUsage = useConvexQuery(
+    api.conversations.getTokenUsage,
+    validConversationId ? { conversationId: validConversationId } : "skip",
+  );
+
+  // State for model switch blocking
+  const [blockedModel, setBlockedModel] = useState<{
+    modelId: string;
+    contextWindow: number;
+  } | null>(null);
+
+  const handleModelBlocked = useCallback(
+    (modelId: string, contextWindow: number) => {
+      setBlockedModel({ modelId, contextWindow });
+    },
+    [],
+  );
+
+  // Model selection with optimistic updates and context limit checking
   const { selectedModel, displayModel, modelLoading, handleModelChange } =
     useChatModelSelection({
       conversationId: validConversationId ?? undefined,
       conversation,
       user,
       defaultModel,
+      tokenUsage,
+      onModelBlocked: handleModelBlocked,
     });
+
+  // Context limit enforcement (uses displayModel for accurate percentage)
+  const { shouldBlockSend, shouldAutoCompress, percentage, totalTokens } =
+    useContextLimitEnforcement({
+      tokenUsage,
+      modelId: displayModel,
+    });
+
+  // Compact conversation action and state
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const compactConversation = useAction(api.conversations.compact.compact);
+  const [showCompactModal, setShowCompactModal] = useState(false);
+  const [isCompacting, setIsCompacting] = useState(false);
+  const compactModalShownRef = useRef(false);
+  const autoCompressTriggeredRef = useRef(false);
+
+  // Show modal when context limit is reached (95%)
+  useEffect(() => {
+    if (
+      shouldBlockSend &&
+      !compactModalShownRef.current &&
+      validConversationId
+    ) {
+      compactModalShownRef.current = true;
+      setShowCompactModal(true);
+    }
+  }, [shouldBlockSend, validConversationId]);
+
+  // Reset flags when conversation changes
+  useEffect(() => {
+    compactModalShownRef.current = false;
+    autoCompressTriggeredRef.current = false;
+  }, [conversationId]);
+
+  // Auto-compress at 75% when setting is enabled
+  const triggerAutoCompress = useCallback(async () => {
+    if (!validConversationId || !conversation?.model) return;
+
+    setIsCompacting(true);
+    try {
+      const { conversationId: newConversationId } = await compactConversation({
+        conversationId: validConversationId,
+        targetModel: conversation.model,
+      });
+      toast.success("Conversation compacted");
+      router.push(`/chat/${newConversationId}`);
+    } catch (error) {
+      toast.error(
+        `Failed to auto-compress: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      autoCompressTriggeredRef.current = false; // Allow retry on error
+    } finally {
+      setIsCompacting(false);
+    }
+  }, [validConversationId, conversation?.model, compactConversation, router]);
+
+  useEffect(() => {
+    if (
+      autoCompressContext &&
+      shouldAutoCompress &&
+      !autoCompressTriggeredRef.current &&
+      !isCompacting &&
+      validConversationId &&
+      conversation?.model
+    ) {
+      autoCompressTriggeredRef.current = true;
+      triggerAutoCompress();
+    }
+  }, [
+    autoCompressContext,
+    shouldAutoCompress,
+    isCompacting,
+    validConversationId,
+    conversation?.model,
+    triggerAutoCompress,
+  ]);
+
+  const handleCompact = async () => {
+    if (!validConversationId) return;
+    setIsCompacting(true);
+    try {
+      const { conversationId: newConversationId } = await compactConversation({
+        conversationId: validConversationId,
+        targetModel: conversation?.model,
+      });
+      toast.success("Conversation compacted");
+      setShowCompactModal(false);
+      router.push(`/chat/${newConversationId}`);
+    } catch (error) {
+      toast.error(
+        `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setIsCompacting(false);
+    }
+  };
+
+  const handleStartFresh = () => {
+    setShowCompactModal(false);
+    router.push("/chat");
+  };
 
   const [thinkingEffort, setThinkingEffort] = useState<ThinkingEffort>("none");
   const [attachments, setAttachments] = useState<
@@ -481,6 +609,7 @@ function ChatPageContent({
                     onOpenChange={setQuickSwitcherOpen}
                     currentModel={selectedModel}
                     onSelectModel={handleModelChange}
+                    currentTokenUsage={totalTokens}
                   />
 
                   <QuickTemplateSwitcher
@@ -493,6 +622,57 @@ function ChatPageContent({
                         new CustomEvent("insert-prompt", { detail: prompt }),
                       );
                     }}
+                  />
+
+                  <CompactConversationDialog
+                    open={showCompactModal}
+                    onOpenChange={setShowCompactModal}
+                    trigger="threshold"
+                    currentPercentage={percentage}
+                    onStartFresh={handleStartFresh}
+                    onCompact={handleCompact}
+                    isCompacting={isCompacting}
+                  />
+
+                  {/* Model switch blocked dialog */}
+                  <CompactConversationDialog
+                    open={blockedModel !== null}
+                    onOpenChange={(open) => !open && setBlockedModel(null)}
+                    trigger="model-switch"
+                    targetModel={
+                      blockedModel
+                        ? {
+                            id: blockedModel.modelId,
+                            name:
+                              MODEL_CONFIG[blockedModel.modelId]?.name ??
+                              blockedModel.modelId,
+                            contextWindow: blockedModel.contextWindow,
+                          }
+                        : undefined
+                    }
+                    currentTokens={totalTokens}
+                    onStartFresh={handleStartFresh}
+                    onCompact={async () => {
+                      if (!validConversationId || !blockedModel) return;
+                      setIsCompacting(true);
+                      try {
+                        const { conversationId: newConversationId } =
+                          await compactConversation({
+                            conversationId: validConversationId,
+                            targetModel: blockedModel.modelId,
+                          });
+                        toast.success("Conversation compacted");
+                        setBlockedModel(null);
+                        router.push(`/chat/${newConversationId}`);
+                      } catch (error) {
+                        toast.error(
+                          `Failed to compact: ${error instanceof Error ? error.message : "Unknown error"}`,
+                        );
+                      } finally {
+                        setIsCompacting(false);
+                      }
+                    }}
+                    isCompacting={isCompacting}
                   />
                 </motion.div>
               )}

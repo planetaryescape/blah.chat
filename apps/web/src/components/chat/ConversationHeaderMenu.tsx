@@ -2,7 +2,8 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { MIN_MESSAGES_FOR_COMPACTION } from "@blah-chat/backend/convex/constants";
+import { useAction, useMutation, useQuery } from "convex/react";
 import {
   Archive,
   BarChart3,
@@ -15,6 +16,7 @@ import {
   MoreHorizontal,
   Pin,
   Presentation,
+  Shrink,
   Sparkles,
   Star,
   Trash2,
@@ -65,12 +67,15 @@ export function ConversationHeaderMenu({
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isCompacting, setIsCompacting] = useState(false);
   const [copied, setCopied] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
   const { showSlides } = useFeatureToggles();
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const triggerExtraction = useMutation(api.memories.triggerExtraction);
+  // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
+  const compactConversation = useAction(api.conversations.compact.compact);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const messages = useQuery(api.messages.list, {
     conversationId: conversation._id,
@@ -97,6 +102,26 @@ export function ConversationHeaderMenu({
       toast.error("Failed to start extraction");
     } finally {
       setTimeout(() => setIsExtracting(false), 3000);
+    }
+  };
+
+  const handleCompactConversation = async () => {
+    setIsCompacting(true);
+    try {
+      const { conversationId } = await compactConversation({
+        conversationId: conversation._id,
+        targetModel: conversation.model,
+      });
+      toast.success("Conversation compacted!");
+      analytics.track("conversation_compacted", {
+        source: "manual",
+        conversationId: conversation._id,
+      });
+      router.push(`/chat/${conversationId}`);
+    } catch (_error) {
+      toast.error("Failed to compact conversation");
+    } finally {
+      setIsCompacting(false);
     }
   };
 
@@ -294,6 +319,24 @@ export function ConversationHeaderMenu({
               <Copy className="mr-2 h-4 w-4" />
             )}
             {copied ? "Copied!" : "Copy conversation"}
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCompactConversation();
+            }}
+            disabled={
+              isCompacting ||
+              (conversation.messageCount ?? 0) < MIN_MESSAGES_FOR_COMPACTION
+            }
+          >
+            {isCompacting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Shrink className="mr-2 h-4 w-4" />
+            )}
+            {isCompacting ? "Compacting..." : "Compact conversation"}
           </DropdownMenuItem>
 
           {showSlides && (

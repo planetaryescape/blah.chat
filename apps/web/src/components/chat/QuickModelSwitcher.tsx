@@ -23,6 +23,10 @@ import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
+import {
+  DEFAULT_CONTEXT_WINDOW,
+  formatTokens,
+} from "@/lib/utils/formatMetrics";
 import { CategorySidebar } from "./CategorySidebar";
 import { ModelSelectorItem } from "./ModelSelectorItem";
 import { SelectedModelsChips } from "./SelectedModelsChips";
@@ -37,6 +41,8 @@ interface QuickModelSwitcherProps {
   selectedModels?: string[];
   onSelectedModelsChange?: (models: string[]) => void;
   showTrigger?: boolean;
+  /** Current token usage for context limit checking */
+  currentTokenUsage?: number;
 }
 
 export function QuickModelSwitcher({
@@ -48,6 +54,7 @@ export function QuickModelSwitcher({
   selectedModels = [],
   onSelectedModelsChange,
   showTrigger = false,
+  currentTokenUsage,
 }: QuickModelSwitcherProps) {
   const modelsByProvider = getModelsByProvider();
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
@@ -71,10 +78,15 @@ export function QuickModelSwitcher({
   const isDisabledDueToByok = (model: ModelConfig) =>
     isModelDisabledByByok(model.gateway || "");
 
+  // Check if current context exceeds model's context window
+  const isContextExceeded = (model: ModelConfig) =>
+    currentTokenUsage !== undefined &&
+    currentTokenUsage > (model.contextWindow ?? DEFAULT_CONTEXT_WINDOW);
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>
     (isProModel(model) && proAccess && !proAccess.canUse) ||
-    isDisabledDueToByok(model);
+    isDisabledDueToByok(model) ||
+    isContextExceeded(model);
 
   // Multi-select state
   const [internalSelected, setInternalSelected] = useState<string[]>([]);
@@ -189,17 +201,26 @@ export function QuickModelSwitcher({
     analytics.track("category_filter_changed", { category, mode });
   };
 
-  // Handle click on disabled models (BYOK or pro restriction)
+  // Handle click on disabled models (BYOK, pro restriction, or context exceeded)
   const handleDisabledClick = useCallback(
     (model: ModelConfig) => {
-      if (isDisabledDueToByok(model)) {
+      if (isContextExceeded(model)) {
+        toast.error(
+          `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${model.name}'s limit (${formatTokens(model.contextWindow ?? DEFAULT_CONTEXT_WINDOW)})`,
+        );
+      } else if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");
         toast.error(message || "This model requires an API key");
       } else {
         setUpgradeDialogOpen(true);
       }
     },
-    [isDisabledDueToByok, getByokModelDisabledMessage],
+    [
+      isContextExceeded,
+      currentTokenUsage,
+      isDisabledDueToByok,
+      getByokModelDisabledMessage,
+    ],
   );
 
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {

@@ -66,7 +66,10 @@ export function useConversationScroll({
 
     // If this is initial mount (ref undefined) with only 1-2 messages,
     // it's the first message transition - already visible, no scroll needed
-    if (lastScrolledConversationRef.current === undefined && messageCount <= 2) {
+    if (
+      lastScrolledConversationRef.current === undefined &&
+      messageCount <= 2
+    ) {
       lastScrolledConversationRef.current = conversationId;
       onScrollReady?.(true);
       return;

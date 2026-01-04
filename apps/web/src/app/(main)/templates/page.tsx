@@ -2,7 +2,7 @@
 
 import { FileText, Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateForm } from "@/components/templates/TemplateForm";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import { FeatureLoadingScreen } from "@/components/FeatureLoadingScreen";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 
-export default function TemplatesPage() {
+function TemplatesPageContent() {
   // All hooks MUST be at the top, before any early returns
   const { showTemplates, isLoading } = useFeatureToggles();
   const searchParams = useSearchParams();
@@ -183,5 +183,13 @@ export default function TemplatesPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={<FeatureLoadingScreen />}>
+      <TemplatesPageContent />
+    </Suspense>
   );
 }

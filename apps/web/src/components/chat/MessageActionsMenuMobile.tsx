@@ -60,7 +60,12 @@ export function MessageActionsMenuMobile({
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const branchFromMessage = useMutation(api.chat.branchFromMessage);
 
+  // Check if this is a temporary optimistic message (not yet persisted)
+  const isTempMessage =
+    typeof message._id === "string" && message._id.startsWith("temp-");
+
   const handleRegenerate = async (modelId?: string) => {
+    if (isTempMessage) return;
     try {
       await regenerate({
         messageId: message._id as Id<"messages">,
@@ -72,6 +77,8 @@ export function MessageActionsMenuMobile({
   };
 
   const handleBranch = async () => {
+    if (isTempMessage) return;
+
     try {
       const newConversationId = await branchFromMessage({
         messageId: message._id as Id<"messages">,
@@ -83,6 +90,8 @@ export function MessageActionsMenuMobile({
   };
 
   const handleDelete = async () => {
+    if (isTempMessage) return;
+
     try {
       const messageId = message._id as Id<"messages">;
       await deleteMsg({ messageId });
@@ -156,8 +165,8 @@ export function MessageActionsMenuMobile({
             <DropdownMenuSeparator />
           )}
 
-          {/* Regenerate - only for assistant messages when not generating */}
-          {!isUser && !isGenerating && (
+          {/* Regenerate - only for assistant messages when not generating and not temp */}
+          {!isUser && !isGenerating && !isTempMessage && (
             <>
               <DropdownMenuItem onClick={() => setModelSelectorOpen(true)}>
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -167,22 +176,26 @@ export function MessageActionsMenuMobile({
             </>
           )}
 
-          {/* Branch */}
-          <DropdownMenuItem onClick={handleBranch}>
-            <GitBranch className="mr-2 h-4 w-4" />
-            <span>Branch conversation</span>
-          </DropdownMenuItem>
+          {/* Branch - only for persisted messages */}
+          {!isTempMessage && (
+            <>
+              <DropdownMenuItem onClick={handleBranch}>
+                <GitBranch className="mr-2 h-4 w-4" />
+                <span>Branch conversation</span>
+              </DropdownMenuItem>
 
-          <DropdownMenuSeparator />
+              <DropdownMenuSeparator />
 
-          {/* Delete */}
-          <DropdownMenuItem
-            onClick={handleDelete}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            <span>Delete</span>
-          </DropdownMenuItem>
+              {/* Delete */}
+              <DropdownMenuItem
+                onClick={handleDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Delete</span>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

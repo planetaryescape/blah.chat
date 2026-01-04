@@ -62,6 +62,7 @@ import type * as canvas_documents from "../canvas/documents.js";
 import type * as canvas_history from "../canvas/history.js";
 import type * as chat from "../chat.js";
 import type * as cliAuth from "../cliAuth.js";
+import type * as constants from "../constants.js";
 import type * as conversations from "../conversations.js";
 import type * as conversations_actions from "../conversations/actions.js";
 import type * as conversations_branching from "../conversations/branching.js";
@@ -352,6 +353,7 @@ declare const fullApi: ApiFromModules<{
   "canvas/history": typeof canvas_history;
   chat: typeof chat;
   cliAuth: typeof cliAuth;
+  constants: typeof constants;
   conversations: typeof conversations;
   "conversations/actions": typeof conversations_actions;
   "conversations/branching": typeof conversations_branching;

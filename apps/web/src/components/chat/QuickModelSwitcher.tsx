@@ -82,7 +82,6 @@ export function QuickModelSwitcher({
   const isContextExceeded = (model: ModelConfig) =>
     currentTokenUsage !== undefined &&
     currentTokenUsage > (model.contextWindow ?? DEFAULT_CONTEXT_WINDOW);
-
   // Check if a pro model is disabled (user can't use it)
   const isModelDisabled = (model: ModelConfig) =>
     (isProModel(model) && proAccess && !proAccess.canUse) ||

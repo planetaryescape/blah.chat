@@ -11,7 +11,6 @@ import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -27,7 +26,6 @@ import { MessageEditMode } from "./MessageEditMode";
 import { MessageLoadingState } from "./MessageLoadingState";
 import { MessageNotesIndicator } from "./MessageNotesIndicator";
 import { MessageStatsBadges } from "./MessageStatsBadges";
-import { ModelRecommendationBanner } from "./ModelRecommendationBanner";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
 
@@ -102,7 +100,7 @@ export const ChatMessage = memo(
     const editMessage = useMutation(api.chat.editMessage);
 
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-    const updateModel = useMutation(api.conversations.updateModel);
+    const _updateModel = useMutation(api.conversations.updateModel);
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
@@ -193,28 +191,6 @@ export const ChatMessage = memo(
       (tc) => tc.isPartial,
     ) as any[];
 
-    // Model recommendation handlers
-    const handleModelSwitch = async (modelId: string) => {
-      try {
-        await updateModel({
-          conversationId: message.conversationId,
-          model: modelId,
-        });
-        toast.success(`Switched to ${MODEL_CONFIG[modelId]?.name || modelId}`);
-      } catch (error) {
-        toast.error("Failed to switch model");
-        console.error("[ChatMessage] Model switch error:", error);
-      }
-    };
-
-    const handleModelPreview = (modelId: string) => {
-      // Dispatch event for page-level modal (ModelPreviewModal is at page level)
-      const event = new CustomEvent("open-model-preview", {
-        detail: { modelId },
-      });
-      window.dispatchEvent(event);
-    };
-
     // Edit handlers
     const handleEdit = () => {
       setEditedContent(message.content || "");
@@ -240,7 +216,7 @@ export const ChatMessage = memo(
       setEditedContent("");
     };
 
-    // Keyboard shortcuts for focused messages
+    // Keyboard shortcuts for focused messages (disabled for temp/optimistic messages)
     useMessageKeyboardShortcuts({
       messageId: message._id as Id<"messages">,
       conversationId: message.conversationId,
@@ -248,7 +224,7 @@ export const ChatMessage = memo(
       isFocused,
       isUser,
       isGenerating,
-      readOnly,
+      readOnly: readOnly || isTempMessage,
       messageRef,
     });
 
@@ -483,22 +459,6 @@ export const ChatMessage = memo(
               </>
             )}
           </article>
-
-          {/* Model Recommendation Banner - cost optimization */}
-          {!readOnly &&
-            !isUser &&
-            message.status === "complete" &&
-            conversation?.modelRecommendation &&
-            !conversation.modelRecommendation.dismissed && (
-              <div className="mt-4">
-                <ModelRecommendationBanner
-                  recommendation={conversation.modelRecommendation}
-                  conversationId={message.conversationId}
-                  onSwitch={handleModelSwitch}
-                  onPreview={handleModelPreview}
-                />
-              </div>
-            )}
 
           {/* Action buttons - absolutely positioned, no layout shift */}
           {!isGenerating && (

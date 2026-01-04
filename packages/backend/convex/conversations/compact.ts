@@ -9,17 +9,14 @@ import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+import { MIN_MESSAGES_FOR_COMPACTION } from "../constants";
 import {
   buildCompactionPrompt,
   CONVERSATION_COMPACTION_PROMPT,
 } from "../lib/prompts/operational/conversationCompaction";
 
-/**
- * Minimum messages required for compaction.
- * Need at least 3 messages (e.g., a user message, an assistant response,
- * and one additional message) to have meaningful context worth summarizing.
- */
-export const MIN_MESSAGES_FOR_COMPACTION = 3;
+// Re-export for backward compatibility with existing imports
+export { MIN_MESSAGES_FOR_COMPACTION };
 
 /**
  * Maximum transcript length (in characters) to include in the summarization prompt.

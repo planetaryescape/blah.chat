@@ -64,6 +64,17 @@ export function useConversationScroll({
       return;
     }
 
+    // If this is initial mount (ref undefined) with only 1-2 messages,
+    // it's the first message transition - already visible, no scroll needed
+    if (
+      lastScrolledConversationRef.current === undefined &&
+      messageCount <= 2
+    ) {
+      lastScrolledConversationRef.current = conversationId;
+      onScrollReady?.(true);
+      return;
+    }
+
     // Hide content while scrolling to new conversation
     onScrollReady?.(false);
 
@@ -173,13 +184,13 @@ export function useConversationScroll({
           item.userMessage._id === newUserMessage._id),
     );
 
-    if (userMsgIndex !== -1) {
-      requestAnimationFrame(() => {
-        virtualizerRef.current.scrollToIndex(userMsgIndex, {
-          align: "start",
-          behavior: "smooth",
-        });
+    if (userMsgIndex === -1 || userMsgIndex === 0) return;
+
+    requestAnimationFrame(() => {
+      virtualizerRef.current.scrollToIndex(userMsgIndex, {
+        align: "end",
+        behavior: "smooth",
       });
-    }
+    });
   }, [messages, messageCount]);
 }

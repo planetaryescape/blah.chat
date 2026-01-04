@@ -4,7 +4,14 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Brain, type LucideIcon, Quote, Search, Sparkles } from "lucide-react";
+import {
+  Brain,
+  Copy,
+  type LucideIcon,
+  Quote,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -122,6 +129,12 @@ export function SelectionContextMenu() {
     }
   }, [selection.isActive, showSummarizePopover]);
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(selection.text);
+    toast.success("Copied to clipboard");
+    clearSelection();
+  };
+
   const handleQuote = () => {
     window.dispatchEvent(
       new CustomEvent("quote-selection", {
@@ -215,6 +228,13 @@ export function SelectionContextMenu() {
   };
 
   const actions: MenuAction[] = [
+    {
+      id: "copy",
+      label: "Copy",
+      icon: Copy,
+      shortcut: "C",
+      action: handleCopy,
+    },
     {
       id: "quote",
       label: "Quote",

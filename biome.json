@@ -16,7 +16,8 @@
       "!**/convex/_generated",
       "!.claude",
       "!**/.turbo",
-      "!**/raycast-env.d.ts"
+      "!**/raycast-env.d.ts",
+      "!**/*.css"
     ]
   },
   "formatter": {

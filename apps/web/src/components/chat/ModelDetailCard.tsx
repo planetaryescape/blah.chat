@@ -17,12 +17,15 @@ export function ModelDetailCard({
   modelId,
   variant = "popover",
 }: ModelDetailCardProps) {
-  // Early return before hooks - pure computation on prop
-  const config = getModelConfig(modelId);
-  if (!config) return null;
-
+  // All hooks must be called before any conditional returns
   const showModelProvider = useUserPreference("showModelProvider");
-  const metrics = useMemo(() => getModelMetrics(config.id), [config.id]);
+  const config = getModelConfig(modelId);
+  const metrics = useMemo(
+    () => (config ? getModelMetrics(config.id) : null),
+    [config],
+  );
+
+  if (!config) return null;
 
   const ProviderIcon = getProviderIcon(config.provider);
   const contextDisplay = formatContextWindow(config.contextWindow);

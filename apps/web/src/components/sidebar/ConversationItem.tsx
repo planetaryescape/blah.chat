@@ -293,7 +293,7 @@ export function ConversationItem({
 
             {/* Quick actions overlay on hover */}
             {!isSelectionMode && (
-              <div className="absolute top-2 bottom-2 sm:top-[2.5px] sm:bottom-[2.5px] right-2 flex items-center gap-0 opacity-0 group-hover/item:opacity-100 transition-opacity bg-linear-to-l from-sidebar-accent via-sidebar-accent/80 to-transparent pl-8 pr-1">
+              <div className="absolute top-0 bottom-0 right-0 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity bg-gradient-to-l from-sidebar-accent from-60% via-sidebar-accent/95 to-transparent pl-6 pr-2 rounded-r-md">
                 {/* Pin button */}
                 {conversation.messageCount !== undefined &&
                   conversation.messageCount > 0 && (
@@ -302,7 +302,7 @@ export function ConversationItem({
                         <Button
                           onClick={handlePinClick}
                           variant="ghost"
-                          className="h-6 w-6 p-0 rounded-md cursor-pointer"
+                          className="h-6 w-6 p-0 rounded-md cursor-pointer hover:bg-sidebar-accent-foreground/10"
                           disabled={
                             !conversation.pinned &&
                             conversation.messageCount === 0
@@ -313,7 +313,7 @@ export function ConversationItem({
                         >
                           <Pin
                             className={cn(
-                              "w-2.5 h-2.5",
+                              "w-3 h-3",
                               conversation.pinned &&
                                 "text-primary fill-primary",
                             )}
@@ -342,10 +342,10 @@ export function ConversationItem({
                       >
                         <Button
                           variant="ghost"
-                          className="h-6 w-6 rounded-md cursor-pointer"
+                          className="h-6 w-6 p-0 rounded-md cursor-pointer hover:bg-sidebar-accent-foreground/10"
                           aria-label="Options"
                         >
-                          <MoreVertical className="w-2.5 h-2.5" />
+                          <MoreVertical className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
                     </TooltipTrigger>

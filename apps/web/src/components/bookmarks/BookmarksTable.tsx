@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { stripMarkdown } from "@/lib/utils/markdown";
 
 interface BookmarkTableProps {
   bookmarks: any[];
@@ -88,12 +89,13 @@ export function BookmarksTable({ bookmarks, onRemove }: BookmarkTableProps) {
       header: "Message",
       cell: ({ row }) => {
         const content = row.original.message?.content || "";
+        const stripped = stripMarkdown(content);
         const preview =
-          content.length > 80 ? `${content.slice(0, 80)}...` : content;
+          stripped.length > 100 ? `${stripped.slice(0, 100)}...` : stripped;
         return (
           <span
-            className="text-sm text-muted-foreground line-clamp-1"
-            title={content}
+            className="text-sm text-muted-foreground line-clamp-2 max-w-[400px]"
+            title={stripped}
           >
             {preview}
           </span>

@@ -181,7 +181,8 @@ export const processDocument = internalAction({
 
           const officeparserModule = await import("officeparser");
           const officeparser = officeparserModule.default || officeparserModule;
-          content = await officeparser.parseOfficeAsync(buffer);
+          const result = await officeparser.parseOffice(buffer);
+          content = result.toText();
           metadata = {
             type: "presentation",
             note: "Images not extracted (fallback mode)",

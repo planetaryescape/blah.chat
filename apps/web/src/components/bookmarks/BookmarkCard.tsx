@@ -103,9 +103,9 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
         {/* Note */}
         {bookmark.note && (
           <div className="mb-3 text-xs bg-muted/50 p-2.5 rounded-md border border-border/40 text-muted-foreground">
-            <span className="opacity-60">&ldquo;</span>
+            <span className="opacity-60">"</span>
             <span className="italic">{bookmark.note}</span>
-            <span className="opacity-60">&rdquo;</span>
+            <span className="opacity-60">"</span>
           </div>
         )}
 

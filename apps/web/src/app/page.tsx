@@ -406,7 +406,7 @@ export default function LandingPage() {
       {/* Section 5: CTA */}
       <section
         ref={section5Ref}
-        className="h-screen sticky top-0 flex items-center justify-center bg-zinc-950 text-zinc-50 z-40 px-4"
+        className="h-screen sticky top-0 flex items-center justify-center bg-zinc-950 text-zinc-50 z-40"
       >
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(800px,90vw)] h-[min(800px,90vw)] bg-primary/20 rounded-full blur-[120px] opacity-50 animate-pulse" />
@@ -422,7 +422,7 @@ export default function LandingPage() {
             <div className="flex justify-center mb-6 md:mb-8 scale-100 md:scale-150">
               <Logo />
             </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-light text-zinc-400 mb-8 md:mb-12 max-w-3xl mx-auto px-4">
+            <p className="text-xl md:text-2xl lg:text-3xl font-light text-zinc-400 mb-8 md:mb-12 max-w-3xl mx-auto">
               Give it a shot. <br />
               You'll understand why.
             </p>

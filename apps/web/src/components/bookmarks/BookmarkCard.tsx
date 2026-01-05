@@ -7,11 +7,11 @@ import { format } from "date-fns";
 import { MessageSquare, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import removeMarkdown from "remove-markdown";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { stripMarkdown } from "@/lib/utils/markdown";
 
 interface BookmarkCardProps {
   bookmark: Doc<"bookmarks"> & {
@@ -51,7 +51,7 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
 
   // Always strip markdown for card preview - clean and concise
   const plainTextPreview = useMemo(() => {
-    const stripped = stripMarkdown(messageContent);
+    const stripped = removeMarkdown(messageContent);
     return stripped.length > 300 ? `${stripped.slice(0, 300)}...` : stripped;
   }, [messageContent]);
 

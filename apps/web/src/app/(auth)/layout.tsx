@@ -1,8 +1,8 @@
 "use client";
 
-import { Logo } from "@/components/brand/Logo";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Logo } from "@/components/brand/Logo";
 
 export default function AuthLayout({
   children,

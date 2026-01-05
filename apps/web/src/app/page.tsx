@@ -13,17 +13,58 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 
 // Note: Auth redirect is handled server-side in middleware.ts for better LCP
 export default function LandingPage() {
   const containerRef = useRef(null);
+  const section1Ref = useRef<HTMLElement>(null);
+  const section2Ref = useRef<HTMLElement>(null);
+  const section3Ref = useRef<HTMLElement>(null);
+  const section4Ref = useRef<HTMLElement>(null);
+  const section5Ref = useRef<HTMLElement>(null);
+  const [isDarkSection, setIsDarkSection] = useState(false);
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
+
+  // Scroll-based section detection for consistent navigation styling
+  useEffect(() => {
+    const sections = [
+      { ref: section1Ref, isDark: false }, // bg-background (light)
+      { ref: section2Ref, isDark: true }, // bg-foreground (dark)
+      { ref: section3Ref, isDark: false }, // bg-background (light)
+      { ref: section4Ref, isDark: true }, // bg-zinc-950 (dark)
+      { ref: section5Ref, isDark: true }, // bg-zinc-950 (dark)
+    ];
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 100; // Offset for nav height
+
+      // Find which section the navigation is currently over
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = sections[i];
+        if (section.ref.current) {
+          const { offsetTop } = section.ref.current;
+          if (scrollPosition >= offsetTop) {
+            setIsDarkSection(section.isDark);
+            break;
+          }
+        }
+      }
+    };
+
+    // Initial check
+    handleScroll();
+
+    // Listen to scroll events
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div
@@ -31,21 +72,32 @@ export default function LandingPage() {
       className="min-h-[400vh] bg-background text-foreground font-sans selection:bg-primary/30"
     >
       {/* Sticky Navigation */}
-      <nav className="fixed top-0 w-full z-50 mix-blend-difference text-white p-6 flex justify-between items-center">
+      <nav
+        className={`fixed top-0 w-full z-50 p-6 flex justify-between items-center transition-colors duration-300 ${
+          isDarkSection ? "text-white" : "text-foreground"
+        }`}
+      >
         <div className="scale-75 origin-left">
           <Logo />
         </div>
         <Button
           asChild
           variant="outline"
-          className="rounded-full border-white/20 hover:bg-white/10 hover:text-white text-white bg-transparent backdrop-blur-sm"
+          className={`rounded-full backdrop-blur-sm transition-colors duration-300 ${
+            isDarkSection
+              ? "border-white/20 bg-transparent hover:bg-white/10 hover:text-white text-white"
+              : "border-foreground/20 bg-transparent hover:bg-foreground/10"
+          }`}
         >
           <Link href="/sign-up">Get Started</Link>
         </Button>
       </nav>
 
       {/* Section 1: The Hook */}
-      <section className="h-screen sticky top-0 flex items-center justify-center overflow-hidden">
+      <section
+        ref={section1Ref}
+        className="h-screen sticky top-0 flex items-center justify-center overflow-hidden"
+      >
         <div className="container px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 100 }}
@@ -90,7 +142,10 @@ export default function LandingPage() {
       </section>
 
       {/* Section 2: The Fragmentation (Scroll driven) */}
-      <section className="min-h-screen sticky top-0 flex items-center justify-center bg-foreground text-background z-20 py-12 md:py-0">
+      <section
+        ref={section2Ref}
+        className="min-h-screen sticky top-0 flex items-center justify-center bg-foreground text-background z-20 py-12 md:py-0"
+      >
         <div className="container px-4 max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div className="order-2 md:order-1">
@@ -138,7 +193,10 @@ export default function LandingPage() {
       </section>
 
       {/* Section 3: The Solution (Control & Unification) */}
-      <section className="min-h-screen sticky top-0 flex items-center justify-center bg-background z-30 py-12 md:py-0">
+      <section
+        ref={section3Ref}
+        className="min-h-screen sticky top-0 flex items-center justify-center bg-background z-30 py-12 md:py-0"
+      >
         <div className="container px-4 max-w-6xl">
           <div className="grid gap-12 md:gap-24">
             <div className="space-y-4">
@@ -150,7 +208,7 @@ export default function LandingPage() {
                 One Interface.
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
-                I built this to bring everything I love into one place. <br />
+                Everything you need, unified in one place. <br />
                 Stop paying for the same thing 5 times. <br />
                 <strong>
                   One subscription. All the models. All the features.
@@ -162,7 +220,10 @@ export default function LandingPage() {
       </section>
 
       {/* Section 4: The Gallery (Creative Toolkit - Dense & Compact) */}
-      <section className="h-screen sticky top-0 bg-zinc-950 text-zinc-50 z-35 flex flex-col justify-center py-4 md:py-8 overflow-hidden">
+      <section
+        ref={section4Ref}
+        className="h-screen sticky top-0 bg-zinc-950 text-zinc-50 z-35 flex flex-col justify-center py-4 md:py-8 overflow-hidden"
+      >
         <div className="container px-4 max-w-[1400px] h-full flex flex-col">
           <div className="mb-4 md:mb-8 text-center shrink-0">
             <h2 className="font-syne text-3xl md:text-6xl font-bold mb-2 md:mb-4 tracking-tighter">
@@ -343,31 +404,38 @@ export default function LandingPage() {
       </section>
 
       {/* Section 5: CTA */}
-      <section className="h-screen sticky top-0 flex items-center justify-center bg-zinc-950 text-zinc-50 z-40">
+      <section
+        ref={section5Ref}
+        className="h-screen sticky top-0 flex items-center justify-center bg-zinc-950 text-zinc-50 z-40 px-4"
+      >
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[120px] opacity-50 animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(800px,90vw)] h-[min(800px,90vw)] bg-primary/20 rounded-full blur-[120px] opacity-50 animate-pulse" />
         </div>
 
-        <div className="container px-4 relative z-10 text-center">
+        <div className="container px-4 relative z-10 text-center max-w-4xl">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8 }}
+            className="flex flex-col items-center"
           >
-            <div className="flex justify-center mb-8 scale-150">
+            <div className="flex justify-center mb-6 md:mb-8 scale-100 md:scale-150">
               <Logo />
             </div>
-            <p className="text-2xl md:text-3xl font-light text-zinc-400 mb-12 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl lg:text-3xl font-light text-zinc-400 mb-8 md:mb-12 max-w-3xl mx-auto px-4">
               Give it a shot. <br />
               You'll understand why.
             </p>
             <Button
               asChild
               size="lg"
-              className="h-16 px-12 rounded-full text-xl font-bold bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105"
+              className="h-12 md:h-16 px-8 md:px-12 rounded-full text-base md:text-xl font-bold bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105 w-full max-w-xs md:w-auto"
             >
-              <Link href="/sign-up">
-                Start Chatting <ArrowRight className="ml-2 w-6 h-6" />
+              <Link
+                href="/sign-up"
+                className="flex items-center justify-center gap-2"
+              >
+                Start Chatting <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
               </Link>
             </Button>
           </motion.div>

@@ -37,19 +37,25 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+            PR: ${{ github.repository }}#${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Review for CRITICAL issues only:
+            - Bugs that break functionality
+            - Security vulnerabilities
+            - Breaking API/behavior changes
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            SKIP (handled by Biome/linters):
+            - Style, formatting, naming
+            - Refactoring suggestions
+            - Performance unless blocking
+            - Test coverage gaps
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            Format:
+            - 1-2 lines per issue, include line number
+            - If nothing critical: say "LGTM" only
+            - No verbose explanations
+
+            Use `gh pr comment` to post feedback.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options

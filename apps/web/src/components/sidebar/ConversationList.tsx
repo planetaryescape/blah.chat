@@ -30,6 +30,7 @@ export function ConversationList({
       aria-label="Conversations"
       aria-activedescendant={selectedId ? `conv-${selectedId}` : undefined}
       tabIndex={0}
+      className="py-2 space-y-0.5"
     >
       {conversations.map((conversation: any) => (
         <ConversationItem

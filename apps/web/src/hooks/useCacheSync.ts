@@ -257,9 +257,26 @@ export function useNoteCacheSync() {
   );
 
   useEffect(() => {
-    if (notes?.length) {
-      cache.notes.bulkPut(notes).catch(console.error);
-    }
+    if (notes === undefined) return;
+
+    const syncCache = async () => {
+      const convexIds = new Set(notes.map((n) => n._id));
+      const dexieRecords = await cache.notes.toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) {
+        await cache.notes.bulkDelete(orphanIds);
+      }
+
+      if (notes.length > 0) {
+        await cache.notes.bulkPut(notes);
+      }
+    };
+
+    syncCache().catch(console.error);
   }, [notes]);
 
   const cachedNotes = useLiveQuery(
@@ -282,9 +299,26 @@ export function useTaskCacheSync() {
   );
 
   useEffect(() => {
-    if (tasks?.length) {
-      cache.tasks.bulkPut(tasks).catch(console.error);
-    }
+    if (tasks === undefined) return;
+
+    const syncCache = async () => {
+      const convexIds = new Set(tasks.map((t) => t._id));
+      const dexieRecords = await cache.tasks.toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) {
+        await cache.tasks.bulkDelete(orphanIds);
+      }
+
+      if (tasks.length > 0) {
+        await cache.tasks.bulkPut(tasks);
+      }
+    };
+
+    syncCache().catch(console.error);
   }, [tasks]);
 
   const cachedTasks = useLiveQuery(
@@ -306,9 +340,26 @@ export function useProjectCacheSync() {
   );
 
   useEffect(() => {
-    if (projects?.length) {
-      cache.projects.bulkPut(projects).catch(console.error);
-    }
+    if (projects === undefined) return;
+
+    const syncCache = async () => {
+      const convexIds = new Set(projects.map((p) => p._id));
+      const dexieRecords = await cache.projects.toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) {
+        await cache.projects.bulkDelete(orphanIds);
+      }
+
+      if (projects.length > 0) {
+        await cache.projects.bulkPut(projects);
+      }
+    };
+
+    syncCache().catch(console.error);
   }, [projects]);
 
   const cachedProjects = useLiveQuery(

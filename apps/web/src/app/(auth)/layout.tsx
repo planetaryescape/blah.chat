@@ -1,3 +1,7 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 
 export default function AuthLayout({
@@ -5,8 +9,11 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isSignUp = pathname?.includes("sign-up");
+
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background">
       {/* Gradient background - using global theme vars */}
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-background" />
 
@@ -23,31 +30,54 @@ export default function AuthLayout({
         }}
       />
 
-      {/* Content */}
-      <div className="relative z-10 w-full max-w-md px-4 flex flex-col items-center">
-        {/* Logo and branding */}
-        <div className="text-center mb-8 scale-125">
+      {/* Fixed Header - Logo and Title (always at top, never moves) */}
+      <div className="relative z-10 w-full flex flex-col items-center pt-16 pb-6 px-4">
+        {/* Logo and branding - fixed position with link to homepage */}
+        <Link
+          href="/"
+          className="text-center mb-8 scale-125 transition-opacity hover:opacity-80"
+        >
           <Logo size="lg" />
-        </div>
+        </Link>
 
-        {/* Auth card - using glassmorphism utility */}
-        <div className="surface-glass rounded-2xl p-6 shadow-2xl w-full border border-white/10 relative overflow-hidden flex flex-col items-center">
-          {/* Glass Highlight */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-
-          <div className="relative z-10 w-full flex justify-center">
-            {children}
-          </div>
-        </div>
-
-        {/* Footer text */}
-        <div className="mt-8 flex flex-col items-center gap-2 text-center">
-          <p className="text-xs text-muted-foreground">
-            By continuing, you agree to our Terms of Service and Privacy Policy.
+        {/* Title - fixed position */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {isSignUp ? "Create your account" : "Welcome back"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isSignUp
+              ? "Get started with blah.chat in seconds"
+              : "Sign in to continue to blah.chat"}
           </p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
-            <span>Powered by</span>
-            <span className="font-semibold text-foreground/80">blah.chat</span>
+        </div>
+      </div>
+
+      {/* Scrollable Content Area */}
+      <div className="relative z-10 flex-1 flex flex-col items-center overflow-y-auto px-4">
+        <div className="w-full max-w-md">
+          {/* Auth card - content changes here, header stays above */}
+          <div className="w-full relative overflow-hidden flex flex-col items-center">
+            {/* Glass Highlight */}
+            <div className="absolute inset-0 pointer-events-none" />
+
+            <div className="relative z-10 w-full flex justify-center">
+              {children}
+            </div>
+          </div>
+
+          {/* Footer text */}
+          <div className="mt-8 mb-8 flex flex-col items-center gap-2 text-center">
+            <p className="text-xs text-muted-foreground">
+              By continuing, you agree to our Terms of Service and Privacy
+              Policy.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+              <span>Powered by</span>
+              <span className="font-semibold text-foreground/80">
+                blah.chat
+              </span>
+            </div>
           </div>
         </div>
       </div>

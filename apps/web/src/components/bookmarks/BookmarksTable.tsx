@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import removeMarkdown from "remove-markdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +38,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { stripMarkdown } from "@/lib/utils/markdown";
 
 interface BookmarkTableProps {
   bookmarks: any[];
@@ -89,7 +89,7 @@ export function BookmarksTable({ bookmarks, onRemove }: BookmarkTableProps) {
       header: "Message",
       cell: ({ row }) => {
         const content = row.original.message?.content || "";
-        const stripped = stripMarkdown(content);
+        const stripped = removeMarkdown(content);
         const preview =
           stripped.length > 100 ? `${stripped.slice(0, 100)}...` : stripped;
         return (

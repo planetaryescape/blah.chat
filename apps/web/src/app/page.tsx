@@ -43,14 +43,17 @@ export default function LandingPage() {
     ];
 
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 100; // Offset for nav height
+      const scrollPosition = window.scrollY + window.innerHeight / 2; // Center of viewport
 
-      // Find which section the navigation is currently over
+      // Find which section the center of the viewport is currently in
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i];
         if (section.ref.current) {
-          const { offsetTop } = section.ref.current;
-          if (scrollPosition >= offsetTop) {
+          const { offsetTop, offsetHeight } = section.ref.current;
+          const sectionBottom = offsetTop + offsetHeight;
+
+          // Check if center of viewport is within this section
+          if (scrollPosition >= offsetTop && scrollPosition < sectionBottom) {
             setIsDarkSection(section.isDark);
             break;
           }

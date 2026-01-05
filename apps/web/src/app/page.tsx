@@ -25,47 +25,44 @@ export default function LandingPage() {
   const section3Ref = useRef<HTMLElement>(null);
   const section4Ref = useRef<HTMLElement>(null);
   const section5Ref = useRef<HTMLElement>(null);
-  const [isDarkSection, setIsDarkSection] = useState(false);
+  const [isDarkSection, setIsDarkSection] = useState(true);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
 
-  // Scroll-based section detection for consistent navigation styling
+  // Simple scroll-based section detection
   useEffect(() => {
     const sections = [
-      { ref: section1Ref, isDark: false }, // bg-background (light)
-      { ref: section2Ref, isDark: true }, // bg-foreground (dark)
-      { ref: section3Ref, isDark: false }, // bg-background (light)
+      { ref: section1Ref, isDark: true }, // bg-background (dark)
+      { ref: section2Ref, isDark: false }, // bg-foreground (light)
+      { ref: section3Ref, isDark: true }, // bg-background (light)
       { ref: section4Ref, isDark: true }, // bg-zinc-950 (dark)
       { ref: section5Ref, isDark: true }, // bg-zinc-950 (dark)
     ];
 
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + window.innerHeight / 2; // Center of viewport
+      const scrollPosition = window.scrollY + 10; // Small offset to avoid edge cases
 
-      // Find which section the center of the viewport is currently in
+      // Loop through sections from last to first to find which one we're in
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i];
         if (section.ref.current) {
-          const { offsetTop, offsetHeight } = section.ref.current;
-          const sectionBottom = offsetTop + offsetHeight;
+          const sectionTop = section.ref.current.offsetTop;
 
-          // Check if center of viewport is within this section
-          if (scrollPosition >= offsetTop && scrollPosition < sectionBottom) {
+          if (scrollPosition >= sectionTop) {
             setIsDarkSection(section.isDark);
-            break;
+            return;
           }
         }
       }
     };
 
-    // Initial check
+    // Initial check and scroll listener
     handleScroll();
-
-    // Listen to scroll events
     window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -78,7 +75,7 @@ export default function LandingPage() {
       <nav
         aria-label="Main navigation"
         className={`fixed top-0 w-full z-50 p-6 flex justify-between items-center transition-colors duration-300 ${
-          isDarkSection ? "text-white" : "text-foreground"
+          isDarkSection ? "text-white" : "text-black"
         }`}
       >
         <div className="scale-75 origin-left">

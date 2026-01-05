@@ -233,7 +233,16 @@ export default function ProjectsPage() {
 
       {/* Dialogs */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
+        <DialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            // Delay focus to ensure Radix Dialog's focus trap has completed
+            setTimeout(() => {
+              const input = document.getElementById("project-name-input");
+              input?.focus();
+            }, 100);
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
           </DialogHeader>
@@ -242,7 +251,16 @@ export default function ProjectsPage() {
       </Dialog>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            // Delay focus to ensure Radix Dialog's focus trap has completed
+            setTimeout(() => {
+              const input = document.getElementById("project-name-input");
+              input?.focus();
+            }, 100);
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Edit Project</DialogTitle>
           </DialogHeader>

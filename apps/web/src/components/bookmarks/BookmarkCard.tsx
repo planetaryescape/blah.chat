@@ -6,7 +6,6 @@ import { useMutation } from "convex/react";
 import { format } from "date-fns";
 import { MessageSquare, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
 import removeMarkdown from "remove-markdown";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -50,10 +49,9 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
   const messageContent = bookmark.message.content;
 
   // Always strip markdown for card preview - clean and concise
-  const plainTextPreview = useMemo(() => {
-    const stripped = removeMarkdown(messageContent);
-    return stripped.length > 300 ? `${stripped.slice(0, 300)}...` : stripped;
-  }, [messageContent]);
+  const stripped = removeMarkdown(messageContent);
+  const plainTextPreview =
+    stripped.length > 300 ? `${stripped.slice(0, 300)}...` : stripped;
 
   return (
     <Card

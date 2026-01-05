@@ -395,7 +395,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="flex flex-col gap-0">
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0 py-0">
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
 
           {/* Project filter - Fixed */}

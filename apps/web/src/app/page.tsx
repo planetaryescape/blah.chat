@@ -13,19 +13,21 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 
 // Note: Auth redirect is handled server-side in middleware.ts for better LCP
 export default function LandingPage() {
+  const { resolvedTheme } = useTheme();
   const containerRef = useRef(null);
   const section1Ref = useRef<HTMLElement>(null);
   const section2Ref = useRef<HTMLElement>(null);
   const section3Ref = useRef<HTMLElement>(null);
   const section4Ref = useRef<HTMLElement>(null);
   const section5Ref = useRef<HTMLElement>(null);
-  const [isDarkSection, setIsDarkSection] = useState(true);
+  const [isDarkSection, setIsDarkSection] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -34,12 +36,14 @@ export default function LandingPage() {
 
   // Simple scroll-based section detection
   useEffect(() => {
+    const isLightMode = resolvedTheme === "light";
+
     const sections = [
-      { ref: section1Ref, isDark: true }, // bg-background (dark)
-      { ref: section2Ref, isDark: false }, // bg-foreground (light)
-      { ref: section3Ref, isDark: true }, // bg-background (light)
-      { ref: section4Ref, isDark: true }, // bg-zinc-950 (dark)
-      { ref: section5Ref, isDark: true }, // bg-zinc-950 (dark)
+      { ref: section1Ref, isDark: isLightMode ? false : true }, // bg-background
+      { ref: section2Ref, isDark: isLightMode ? true : false }, // bg-foreground
+      { ref: section3Ref, isDark: isLightMode ? false : true }, // bg-background
+      { ref: section4Ref, isDark: true }, // bg-zinc-950 (always dark)
+      { ref: section5Ref, isDark: true }, // bg-zinc-950 (always dark)
     ];
 
     const handleScroll = () => {
@@ -64,7 +68,7 @@ export default function LandingPage() {
     window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [resolvedTheme]);
 
   return (
     <div

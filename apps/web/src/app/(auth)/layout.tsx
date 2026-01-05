@@ -35,7 +35,7 @@ export default function AuthLayout({
         {/* Logo and branding - fixed position with link to homepage */}
         <Link
           href="/"
-          className="text-center mb-8 scale-125 transition-opacity hover:opacity-80 cursor-pointer"
+          className="text-center mb-8 scale-125 transition-opacity hover:opacity-80"
         >
           <Logo size="lg" />
         </Link>
@@ -54,12 +54,12 @@ export default function AuthLayout({
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="relative z-10 flex-1 flex flex-col items-center overflow-y-auto">
+      <div className="relative z-10 flex-1 flex flex-col items-center overflow-y-auto px-4">
         <div className="w-full max-w-md">
           {/* Auth card - content changes here, header stays above */}
           <div className="w-full relative overflow-hidden flex flex-col items-center">
             {/* Glass Highlight */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 pointer-events-none" />
 
             <div className="relative z-10 w-full flex justify-center">
               {children}

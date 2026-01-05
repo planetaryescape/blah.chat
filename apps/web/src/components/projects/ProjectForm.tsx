@@ -104,7 +104,7 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
             Name *
           </Label>
           <Input
-            id="name"
+            id="project-name-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My Project"

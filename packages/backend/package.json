@@ -43,7 +43,7 @@
     "marked": "^17.0.1",
     "mathjs": "^15.1.0",
     "nanoid": "^5.1.6",
-    "officeparser": "^5.2.2",
+    "officeparser": "^6.0.1",
     "pdf-lib": "^1.17.1",
     "posthog-node": "^5.18.0",
     "pptx-content-extractor": "^1.0.3",

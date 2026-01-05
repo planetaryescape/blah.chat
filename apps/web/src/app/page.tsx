@@ -73,6 +73,7 @@ export default function LandingPage() {
     >
       {/* Sticky Navigation */}
       <nav
+        aria-label="Main navigation"
         className={`fixed top-0 w-full z-50 p-6 flex justify-between items-center transition-colors duration-300 ${
           isDarkSection ? "text-white" : "text-foreground"
         }`}

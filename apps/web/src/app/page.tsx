@@ -39,9 +39,9 @@ export default function LandingPage() {
     const isLightMode = resolvedTheme === "light";
 
     const sections = [
-      { ref: section1Ref, isDark: isLightMode ? false : true }, // bg-background
-      { ref: section2Ref, isDark: isLightMode ? true : false }, // bg-foreground
-      { ref: section3Ref, isDark: isLightMode ? false : true }, // bg-background
+      { ref: section1Ref, isDark: !isLightMode }, // bg-background
+      { ref: section2Ref, isDark: isLightMode }, // bg-foreground
+      { ref: section3Ref, isDark: !isLightMode }, // bg-background
       { ref: section4Ref, isDark: true }, // bg-zinc-950 (always dark)
       { ref: section5Ref, isDark: true }, // bg-zinc-950 (always dark)
     ];

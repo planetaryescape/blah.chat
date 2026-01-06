@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
 import { useQuery } from "convex/react";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

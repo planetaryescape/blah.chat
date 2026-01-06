@@ -231,7 +231,7 @@ export const ChatMessage = memo(
     // User message styling: Very subtle, transparent, glassmorphic
     const userMessageClass = cn(
       "relative rounded-[2rem] rounded-tr-sm",
-      "px-5 py-3 sm:px-6 sm:py-4 text-sm sm:text-base leading-relaxed",
+      "px-5 py-3 sm:py-4 text-sm sm:text-base leading-relaxed",
       "bg-primary/10 text-foreground backdrop-blur-sm",
       "border border-primary/20",
       "shadow-sm hover:shadow-md",
@@ -243,7 +243,7 @@ export const ChatMessage = memo(
     // Assistant message styling: Glassmorphic, clean, distinct
     const assistantMessageClass = cn(
       "relative rounded-[2rem] rounded-tl-sm",
-      "px-5 py-3 sm:px-6 sm:py-4 text-sm sm:text-base leading-relaxed",
+      "md:px-5 py-3 sm:py-4 text-sm sm:text-base leading-relaxed",
       "bg-surface-glass border border-surface-glass-border backdrop-blur-xl",
       "shadow-sm hover:shadow-md hover:border-primary/20",
       "transition-all duration-300",
@@ -254,8 +254,8 @@ export const ChatMessage = memo(
     const wrapperClass = cn(
       "relative group",
       isUser
-        ? "ml-auto mr-4 max-w-[90%] sm:max-w-[75%]"
-        : "mr-auto ml-4 max-w-[95%] sm:max-w-[85%]",
+        ? "ml-auto md:mr-4 max-w-[90%] sm:max-w-[75%]"
+        : "mr-auto md:ml-4 max-w-[100%] sm:max-w-[100%]",
     );
 
     return (

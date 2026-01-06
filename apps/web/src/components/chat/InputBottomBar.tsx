@@ -64,7 +64,7 @@ export function InputBottomBar({
   hasContent,
 }: InputBottomBarProps) {
   return (
-    <div className="flex items-center justify-between gap-2 px-3 pb-2">
+    <div className="flex items-center justify-between gap-2">
       {/* Left group: Primary actions (Model + Thinking) */}
       <div className="flex items-center gap-1.5">
         {isComparisonMode && onExitComparison ? (

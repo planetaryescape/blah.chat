@@ -111,7 +111,7 @@ function ChatPageContent({
   const rawChatWidth = useQuery(api.users.getUserPreference, {
     key: "chatWidth",
   });
-  const chatWidth = (rawChatWidth as ChatWidth | undefined) || "standard";
+  const chatWidth = (rawChatWidth as ChatWidth | undefined) || "full";
   const defaultModel = useUserPreference("defaultModel");
   const showModelNamesDuringComparison = useUserPreference(
     "showModelNamesDuringComparison",
@@ -400,36 +400,22 @@ function ChatPageContent({
     const currentCount = messages?.length ?? 0;
     prevMessageCountRef.current = currentCount;
 
-    // Check if conversation is empty (check conditions directly, not isEmpty variable)
-    // Don't rely on isEmpty because it depends on !isFirstLoad which may lag
-    const isEmptyConversation =
-      !isLoading &&
-      messages &&
-      messages.length === 0 &&
-      paginationStatus !== "LoadingFirstPage";
-
-    // Track when we see the empty state
-    if (isEmptyConversation) {
-      wasEmptyRef.current = true;
-      setIsScrollReady(true);
-      return;
-    }
-
     // When transitioning from empty (0 msgs) to first message, stay ready (no skeleton flash)
     // ONLY if we actually saw the empty state (wasEmptyRef.current === true)
     // This prevents false positives on page refresh with 1-2 messages
     if (
       !isLoading &&
-      wasEmptyRef.current && // Must have been empty before
-      prevCount === 0 &&
-      currentCount > 0 &&
-      currentCount <= 2
+      ((wasEmptyRef.current && // Must have been empty before
+        prevCount === 0 &&
+        currentCount > 0 &&
+        currentCount <= 2) ||
+        isEmpty)
     ) {
       // True empty-to-first-message transition - no skeleton needed
       setIsScrollReady(true);
       return;
     }
-  }, [isLoading, messages, paginationStatus]);
+  }, [isLoading, messages, paginationStatus, isEmpty]);
 
   // Autofocus input when navigating to conversation (after loading completes)
   useEffect(() => {

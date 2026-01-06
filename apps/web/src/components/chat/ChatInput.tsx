@@ -89,7 +89,7 @@ export const ChatInput = memo(function ChatInput({
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStream, setRecordingStream] = useState<MediaStream | null>(
-    null
+    null,
   );
   const [_isTranscribing, setIsTranscribing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -192,7 +192,7 @@ export const ChatInput = memo(function ChatInput({
             setShowRateLimitDialog(true);
           }
         },
-      }
+      },
     );
 
     setInput("");
@@ -273,7 +273,7 @@ export const ChatInput = memo(function ChatInput({
     <div
       className={cn(
         "w-full mx-auto px-2 sm:px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
-        getChatWidthClass(chatWidth, false)
+        getChatWidthClass(chatWidth, false),
       )}
     >
       <form
@@ -297,7 +297,7 @@ export const ChatInput = memo(function ChatInput({
             "border-primary/20",
           ],
           !isFocused &&
-            "hover:border-white/[0.1] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.08),0_12px_24px_rgba(0,0,0,0.06)]"
+            "hover:border-white/[0.1] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.08),0_12px_24px_rgba(0,0,0,0.06)]",
         )}
       >
         {/* Drop zone overlay */}
@@ -470,7 +470,7 @@ export const ChatInput = memo(function ChatInput({
                           }
                         } else {
                           setInput((prev) =>
-                            prev.trim() ? `${prev} ${text}` : text
+                            prev.trim() ? `${prev} ${text}` : text,
                           );
                         }
                       }}
@@ -537,16 +537,16 @@ export const ChatInput = memo(function ChatInput({
                     isGenerating
                       ? handleStop
                       : isRecording
-                      ? () => voiceInputRef.current?.stopRecording("send")
-                      : undefined
+                        ? () => voiceInputRef.current?.stopRecording("send")
+                        : undefined
                   }
                   data-testid="send-button"
                   aria-label={
                     isGenerating
                       ? "Stop generating response"
                       : isRecording
-                      ? "Stop recording and send"
-                      : "Send message"
+                        ? "Stop recording and send"
+                        : "Send message"
                   }
                   className={cn(
                     "h-10 w-10 rounded-full transition-all duration-200",
@@ -556,7 +556,7 @@ export const ChatInput = memo(function ChatInput({
                           "bg-primary text-primary-foreground",
                           "shadow-[0_2px_8px_rgba(var(--primary-rgb),0.25)]",
                           "hover:shadow-[0_4px_16px_rgba(var(--primary-rgb),0.35)]",
-                        ]
+                        ],
                   )}
                   disabled={!canSend}
                 >

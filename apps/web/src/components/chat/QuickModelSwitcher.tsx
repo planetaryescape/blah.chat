@@ -142,13 +142,16 @@ export function QuickModelSwitcher({
     };
   }, [activeCategory, defaultModel, favModels, recentModels, rest]);
 
-  const restByProvider = filteredModels.rest.reduce((acc, model) => {
-    // Use model.provider (actual vendor) instead of gateway prefix
-    const provider = model.provider;
-    if (!acc[provider]) acc[provider] = [];
-    acc[provider].push(model);
-    return acc;
-  }, {} as Record<string, ModelConfig[]>);
+  const restByProvider = filteredModels.rest.reduce(
+    (acc, model) => {
+      // Use model.provider (actual vendor) instead of gateway prefix
+      const provider = model.provider;
+      if (!acc[provider]) acc[provider] = [];
+      acc[provider].push(model);
+      return acc;
+    },
+    {} as Record<string, ModelConfig[]>,
+  );
 
   const handleSelect = (modelId: string) => {
     if (mode === "multiple") {
@@ -206,8 +209,8 @@ export function QuickModelSwitcher({
           `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${
             model.name
           }'s limit (${formatTokens(
-            model.contextWindow ?? DEFAULT_CONTEXT_WINDOW
-          )})`
+            model.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+          )})`,
         );
       } else if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");
@@ -221,7 +224,7 @@ export function QuickModelSwitcher({
       currentTokenUsage,
       isDisabledDueToByok,
       getByokModelDisabledMessage,
-    ]
+    ],
   );
 
   const renderModelItem = (model: ModelConfig, showDefaultBadge = false) => {
@@ -245,7 +248,7 @@ export function QuickModelSwitcher({
         isPro={isProModel(model)}
         proAccessRemaining={
           isProModel(model) && proAccess
-            ? proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null
+            ? (proAccess.remainingDaily ?? proAccess.remainingMonthly ?? null)
             : null
         }
         isDisabled={disabled}
@@ -322,7 +325,7 @@ export function QuickModelSwitcher({
               {filteredModels.favorites.length > 0 && (
                 <CommandGroup heading="Favorites">
                   {filteredModels.favorites.map((model) =>
-                    renderModelItem(model)
+                    renderModelItem(model),
                   )}
                 </CommandGroup>
               )}
@@ -330,7 +333,7 @@ export function QuickModelSwitcher({
               {filteredModels.recents.length > 0 && (
                 <CommandGroup heading="Recent">
                   {filteredModels.recents.map((model) =>
-                    renderModelItem(model)
+                    renderModelItem(model),
                   )}
                 </CommandGroup>
               )}

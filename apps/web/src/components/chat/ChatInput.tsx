@@ -286,10 +286,10 @@ export const ChatInput = memo(function ChatInput({
         role="search"
         aria-label="Send message to AI"
         className={cn(
-          "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
+          "relative flex flex-col gap-2 p-2 sm:p-4 transition-all duration-300 ease-out",
           "bg-background/90 backdrop-blur-xl",
           "border border-white/15 dark:border-white/10",
-          "rounded-3xl",
+          "rounded-xl",
           "shadow-lg",
           isFocused && [
             "ring-1 ring-primary/20",
@@ -348,9 +348,9 @@ export const ChatInput = memo(function ChatInput({
         )}
 
         {/* Main input row - ChatGPT style: [+] [textarea] [mic/send] */}
-        <div className="flex items-end gap-2 px-2">
+        <div className="flex items-start gap-2">
           {/* Plus button - LEFT, bottom-aligned */}
-          <div className="pb-1.5 flex-shrink-0">
+          <div className="flex-shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
@@ -430,7 +430,7 @@ export const ChatInput = memo(function ChatInput({
           </div>
 
           {/* Right button(s) - bottom-aligned */}
-          <div className="pb-1.5 flex-shrink-0 flex items-center gap-1">
+          <div className="flex items-center flex-shrink-0 gap-1">
             {/* VoiceInput always rendered (hidden when !showMic) to preserve ref during recording */}
             <div className={cn(showMic ? "block" : "hidden")}>
               <Tooltip>

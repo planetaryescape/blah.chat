@@ -109,7 +109,7 @@ export function AppSidebar() {
   // Filter out presentation conversations (they have their own UI in /slides)
   const conversations = useMemo(
     () => rawConversations?.filter((c) => c.isPresentation !== true),
-    [rawConversations]
+    [rawConversations],
   );
 
   // Prefetch messages for recent conversations (< 7 days) for instant navigation
@@ -238,7 +238,7 @@ export function AppSidebar() {
   // Bulk action handlers - wrapped in useCallback to prevent infinite re-renders
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   }, []);
 
@@ -511,7 +511,7 @@ export function AppSidebar() {
                           className={cn(
                             "flex items-center gap-2 cursor-pointer",
                             isActive &&
-                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
                           )}
                         >
                           <item.icon className="w-4 h-4 text-muted-foreground" />

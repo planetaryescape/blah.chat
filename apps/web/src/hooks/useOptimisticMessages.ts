@@ -31,7 +31,7 @@ interface UseOptimisticMessagesReturn {
  * - MATCH_PAST_WINDOW_MS:
  *   We allow the server message to be created slightly *before* the
  *   optimistic timestamp. This is only to handle small clock skew and
-  *   client / server time rounding differences. Keeping this to 1s
+ *   client / server time rounding differences. Keeping this to 1s
  *   minimizes the risk of accidentally matching legitimately older
  *   messages in the history, which would incorrectly hide them.
  *
@@ -78,20 +78,8 @@ function mergeWithOptimisticMessages(
   for (const opt of sortedOptimistic) {
     const candidates = serverByRole[opt.role] || [];
     const matchIndex = candidates.findIndex((serverMsg) => {
-      // Assistant messages: prioritize model matching (timing-independent)
-      // Fixes dual-loader bug caused by clock skew or action scheduler delay
-      if (opt.role === "assistant") {
-        // If both have models, match by model (most reliable)
-        if (opt.model && serverMsg.model) {
-          return opt.model === serverMsg.model;
-        }
-        // Fallback to timestamp if no model info
-      }
-
-      // User messages (and assistant fallback): use timestamp matching
+      // Time window check first - prevents matching old messages from same model
       const timeDiff = serverMsg.createdAt - opt.createdAt;
-
-      // Only match messages created slightly before (clock skew) or after the optimistic one
       if (
         timeDiff < -MATCH_PAST_WINDOW_MS ||
         timeDiff > MATCH_FUTURE_WINDOW_MS
@@ -99,6 +87,13 @@ function mergeWithOptimisticMessages(
         return false;
       }
 
+      // Assistant messages: also verify model matches within time window
+      // Prevents matching wrong assistant response if multiple models in flight
+      if (opt.role === "assistant" && opt.model && serverMsg.model) {
+        return opt.model === serverMsg.model;
+      }
+
+      // User messages (or assistant without model): time window alone is sufficient
       return true;
     });
 

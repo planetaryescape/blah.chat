@@ -54,7 +54,7 @@ export function VirtualizedMessageList({
   });
 
   const conversationId = messages?.[0]?.conversationId;
-  const grouped = useMessageGrouping(messages ?? []);
+  const grouped = useMessageGrouping(messages ?? [], conversationId);
 
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -117,10 +117,6 @@ export function VirtualizedMessageList({
         aria-label="Chat message history"
         aria-atomic="false"
         className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
-        {/* Explicitly keep scroll anchoring enabled for this virtualized list.
-          This works with useConversationScroll/useAutoScroll to avoid unexpected
-          scroll jumps when messages are inserted or remeasured during perf
-          optimizations (e.g. react-virtual height adjustments). */}
         style={{ contain: "layout style paint", overflowAnchor: "auto" }}
       >
         <div

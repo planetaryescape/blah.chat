@@ -33,9 +33,10 @@ function useTypewriter(text: string, speed = 50, delay = 500) {
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
     const timeout = setTimeout(() => {
       let i = 0;
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         if (i < text.length) {
           setDisplayText(text.slice(0, i + 1));
           i++;
@@ -44,9 +45,12 @@ function useTypewriter(text: string, speed = 50, delay = 500) {
           setIsComplete(true);
         }
       }, speed);
-      return () => clearInterval(interval);
     }, delay);
-    return () => clearTimeout(timeout);
+
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
   }, [text, speed, delay]);
 
   return { displayText, isComplete };

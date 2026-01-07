@@ -217,6 +217,8 @@ const VirtualizedItem = memo(function VirtualizedItem({
         transform: `translateY(${virtualItem.start}px)`,
       }}
     >
+      {/* Note: transition classes are intentionally omitted here to prevent layout thrashing
+          during virtualization remeasures of the grid. */}
       <div
         className={cn(
           "grid gap-4 px-4 py-2",

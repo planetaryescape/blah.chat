@@ -16,7 +16,7 @@ interface UseOptimisticMessagesReturn {
   addOptimisticMessages: (msgs: OptimisticMessage[]) => void;
 }
 
-const MATCH_FUTURE_WINDOW_MS = 30_000; // Allow up to 30s for Convex action scheduling delays
+const MATCH_FUTURE_WINDOW_MS = 10_000; // Allow up to 10s for Convex action scheduling delays
 const MATCH_PAST_WINDOW_MS = 1_000; // Small buffer for clock skew without matching older messages
 
 function mergeWithOptimisticMessages(

@@ -190,34 +190,23 @@ function FeatureCard({
   title,
   description,
   large = false,
-  index,
 }: {
   icon: React.ElementType;
   title: string;
   description: string;
   large?: boolean;
-  index: number;
+  index?: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ delay: index * 0.05, duration: 0.4 }}
-      whileHover={{ scale: 1.02 }}
-      className={`relative p-5 md:p-6 rounded-xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm hover:border-primary/30 hover:bg-zinc-900/80 transition-all duration-300 group ${
-        large ? "col-span-2 row-span-2" : ""
+    <div
+      className={`relative p-5 md:p-6 rounded-xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm hover:border-primary/30 hover:bg-zinc-900/80 transition-all duration-300 group hover:scale-[1.02] ${
+        large ? "col-span-2 md:row-span-2" : ""
       }`}
     >
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Icon className="w-6 h-6 text-primary mb-3 relative z-10" />
-      <h3 className="font-syne font-bold text-lg mb-1 relative z-10">
-        {title}
-      </h3>
-      <p className="text-zinc-400 text-sm leading-relaxed relative z-10">
-        {description}
-      </p>
-    </motion.div>
+      <Icon className="w-6 h-6 text-primary mb-3" />
+      <h3 className="font-syne font-bold text-lg text-white mb-1">{title}</h3>
+      <p className="text-zinc-400 text-sm leading-relaxed">{description}</p>
+    </div>
   );
 }
 

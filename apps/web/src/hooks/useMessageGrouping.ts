@@ -1,7 +1,7 @@
 "use client";
 
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
@@ -20,7 +20,9 @@ export type GroupedItem =
 
 /** Groups messages by comparisonGroupId, filtering out consolidated ones */
 export function useMessageGrouping(messages: MessageWithUser[]): GroupedItem[] {
-  return useMemo(() => {
+  const prevResultRef = useRef<GroupedItem[]>([]);
+
+  const result = useMemo(() => {
     const visibleMessages = messages.filter(
       (m) => !(m.role === "assistant" && m.consolidatedMessageId),
     );
@@ -65,4 +67,11 @@ export function useMessageGrouping(messages: MessageWithUser[]): GroupedItem[] {
 
     return items;
   }, [messages]);
+
+  // Keep previous data during brief empty states (prevents flash during pagination)
+  if (result.length > 0) {
+    prevResultRef.current = result;
+    return result;
+  }
+  return prevResultRef.current;
 }

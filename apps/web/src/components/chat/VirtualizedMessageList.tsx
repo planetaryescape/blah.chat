@@ -117,6 +117,10 @@ export function VirtualizedMessageList({
         aria-label="Chat message history"
         aria-atomic="false"
         className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
+        {/* Explicitly keep scroll anchoring enabled for this virtualized list.
+          This works with useConversationScroll/useAutoScroll to avoid unexpected
+          scroll jumps when messages are inserted or remeasured during perf
+          optimizations (e.g. react-virtual height adjustments). */}
         style={{ contain: "layout style paint", overflowAnchor: "auto" }}
       >
         <div

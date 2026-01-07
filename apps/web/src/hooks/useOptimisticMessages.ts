@@ -16,8 +16,37 @@ interface UseOptimisticMessagesReturn {
   addOptimisticMessages: (msgs: OptimisticMessage[]) => void;
 }
 
-const MATCH_FUTURE_WINDOW_MS = 10_000; // Allow up to 10s for Convex action scheduling delays
-const MATCH_PAST_WINDOW_MS = 1_000; // Small buffer for clock skew without matching older messages
+/**
+ * Time windows used when matching optimistic messages to server-confirmed ones
+ * using createdAt timestamps (see timeDiff check below).
+ *
+ * - MATCH_FUTURE_WINDOW_MS:
+ *   We allow a server message to be created up to this much *after* the
+ *   optimistic message timestamp and still be considered the same logical
+ *   message. This primarily covers Convex action scheduling / delivery
+ *   delays that we've observed can be several seconds in the worst case;
+ *   10s is a conservative upper bound to avoid spurious duplicates while
+ *   still eventually reconciling most delayed messages.
+ *
+ * - MATCH_PAST_WINDOW_MS:
+ *   We allow the server message to be created slightly *before* the
+ *   optimistic timestamp. This is only to handle small clock skew and
+  *   client / server time rounding differences. Keeping this to 1s
+ *   minimizes the risk of accidentally matching legitimately older
+ *   messages in the history, which would incorrectly hide them.
+ *
+ * When the absolute time difference falls outside both windows
+ * (i.e. timeDiff < -MATCH_PAST_WINDOW_MS or timeDiff > MATCH_FUTURE_WINDOW_MS),
+ * we do **not** match the server message to the optimistic one. In that case
+ * the optimistic message is left in place, and the server message is treated
+ * as a separate entry. This means that:
+ *   - Excessive scheduler delays beyond 10s can manifest as temporary
+ *     duplicates (optimistic + server copy).
+ *   - Significant clock skew in distributed deployments (>> 1s) can prevent
+ *     matching and likewise produce duplicates rather than hiding real data.
+ */
+const MATCH_FUTURE_WINDOW_MS = 10_000;
+const MATCH_PAST_WINDOW_MS = 1_000;
 
 function mergeWithOptimisticMessages(
   serverMessages: MessageWithOptimistic[],

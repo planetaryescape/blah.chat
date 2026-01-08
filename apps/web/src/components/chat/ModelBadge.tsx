@@ -30,7 +30,7 @@ export function ModelBadge({
         title="Manage comparison models"
         className={cn(
           "gap-2 h-7 text-xs border-primary/20 bg-primary/2 hover:bg-primary/10 px-3 rounded-md transition-colors min-w-0 w-auto font-medium text-primary/80 hover:text-primary/80 cursor-pointer",
-          className
+          className,
         )}
       >
         <Grid className="w-3 h-3" />
@@ -57,7 +57,7 @@ export function ModelBadge({
       title="Change AI model (⌘J)"
       className={cn(
         "gap-2 h-7 text-xs border-primary/20 bg-primary/2 hover:bg-primary/10 px-3 rounded-md transition-colors min-w-0 w-auto font-medium text-primary/80 hover:text-primary/80 cursor-pointer",
-        className
+        className,
       )}
     >
       <Icon className="w-3 h-3" />

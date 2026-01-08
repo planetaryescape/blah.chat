@@ -16,6 +16,77 @@ interface UseOptimisticMessagesReturn {
   addOptimisticMessages: (msgs: OptimisticMessage[]) => void;
 }
 
+const MATCH_FUTURE_WINDOW_MS = 30_000; // Allow up to 30s for Convex action scheduling delays
+const MATCH_PAST_WINDOW_MS = 1_000; // Small buffer for clock skew without matching older messages
+
+function mergeWithOptimisticMessages(
+  serverMessages: MessageWithOptimistic[],
+  optimisticMessages: OptimisticMessage[],
+): MessageWithOptimistic[] {
+  if (optimisticMessages.length === 0) return serverMessages;
+
+  // Copy server messages by role so we can consume matches without mutating the original array
+  const serverByRole: Record<"user" | "assistant", MessageWithOptimistic[]> = {
+    user: [],
+    assistant: [],
+  };
+
+  for (const msg of serverMessages) {
+    if (msg.role === "user" || msg.role === "assistant") {
+      serverByRole[msg.role].push(msg);
+    }
+  }
+
+  // Ensure deterministic matching order
+  serverByRole.user.sort((a, b) => a.createdAt - b.createdAt);
+  serverByRole.assistant.sort((a, b) => a.createdAt - b.createdAt);
+
+  const remainingOptimistic: OptimisticMessage[] = [];
+  const sortedOptimistic = [...optimisticMessages].sort(
+    (a, b) => a.createdAt - b.createdAt,
+  );
+
+  for (const opt of sortedOptimistic) {
+    const candidates = serverByRole[opt.role] || [];
+    const matchIndex = candidates.findIndex((serverMsg) => {
+      // Assistant messages: prioritize model matching (timing-independent)
+      // Fixes dual-loader bug caused by clock skew or action scheduler delay
+      if (opt.role === "assistant") {
+        // If both have models, match by model (most reliable)
+        if (opt.model && serverMsg.model) {
+          return opt.model === serverMsg.model;
+        }
+        // Fallback to timestamp if no model info
+      }
+
+      // User messages (and assistant fallback): use timestamp matching
+      const timeDiff = serverMsg.createdAt - opt.createdAt;
+
+      // Only match messages created slightly before (clock skew) or after the optimistic one
+      if (
+        timeDiff < -MATCH_PAST_WINDOW_MS ||
+        timeDiff > MATCH_FUTURE_WINDOW_MS
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (matchIndex === -1) {
+      remainingOptimistic.push(opt);
+      continue;
+    }
+
+    // Consume matched server message so it can't be reused for another optimistic entry
+    candidates.splice(matchIndex, 1);
+  }
+
+  return [...serverMessages, ...remainingOptimistic].sort(
+    (a, b) => a.createdAt - b.createdAt,
+  );
+}
+
 /**
  * Manages optimistic UI for messages - overlay local optimistic messages
  * on top of server state with deduplication when server confirms.
@@ -57,42 +128,24 @@ export function useOptimisticMessages({
     [],
   );
 
+  // Keep previous data during brief undefined states (prevents flash during pagination)
+  const prevMessagesRef = useRef<MessageWithOptimistic[] | undefined>(
+    undefined,
+  );
+
   // Merge server messages with optimistic messages, deduplicating confirmed ones
   const messages = useMemo<MessageWithOptimistic[] | undefined>(() => {
-    // If server messages are undefined (loading), return undefined
+    // If server messages are undefined (loading), keep previous data
     if (serverMessages === undefined) {
-      return undefined;
+      return prevMessagesRef.current ?? undefined;
     }
 
-    const server = serverMessages as MessageWithOptimistic[];
-
-    if (optimisticMessages.length === 0) {
-      return server;
-    }
-
-    // Filter out optimistic messages that have been confirmed by server
-    // Match by role + timestamp within 5s window (handles slow networks)
-    // For assistant messages, also match by model (prevents comparison mode collisions)
-    const pendingOptimistic = optimisticMessages.filter((opt) => {
-      const hasServerVersion = server.some((m) => {
-        // Basic check: role and timestamp within 5s
-        if (m.role !== opt.role) return false;
-        if (Math.abs(m.createdAt - opt.createdAt) >= 5000) return false;
-
-        // For assistant messages, also check model (comparison mode dedup)
-        if (opt.role === "assistant" && opt.model && m.model !== opt.model) {
-          return false;
-        }
-
-        return true;
-      });
-      return !hasServerVersion;
-    });
-
-    // Merge and sort chronologically
-    return [...server, ...pendingOptimistic].sort(
-      (a, b) => a.createdAt - b.createdAt,
+    const merged = mergeWithOptimisticMessages(
+      serverMessages as MessageWithOptimistic[],
+      optimisticMessages,
     );
+    prevMessagesRef.current = merged;
+    return merged;
   }, [serverMessages, optimisticMessages]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state

@@ -80,6 +80,10 @@ export const conversationsTable = defineTable({
   // Document mode (Canvas)
   mode: v.optional(v.union(v.literal("document"), v.literal("normal"))),
   modeActivatedAt: v.optional(v.number()),
+  // Cached system prompt (built in background on creation/input changes)
+  cachedSystemPrompt: v.optional(v.string()),
+  promptInputHash: v.optional(v.string()),
+  promptBuiltAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
 })

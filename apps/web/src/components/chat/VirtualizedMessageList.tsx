@@ -5,7 +5,7 @@ import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useQuery } from "convex/react";
 import { ArrowDown } from "lucide-react";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useMetadataCacheSync } from "@/hooks/useCacheSync";
@@ -117,7 +117,7 @@ export function VirtualizedMessageList({
         aria-label="Chat message history"
         aria-atomic="false"
         className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
-        style={{ contain: "layout style paint" }}
+        style={{ contain: "layout style paint", overflowAnchor: "auto" }}
       >
         <div
           style={{
@@ -191,11 +191,15 @@ const VirtualizedItem = memo(function VirtualizedItem({
   const item = grouped[virtualItem.index];
   const isMessage = item.type === "message";
 
+  // Use ref to avoid recreating callback when grouped changes - prevents memo break
+  const groupedRef = useRef(grouped);
+  groupedRef.current = grouped;
+
   const getNextMessage = useCallback(() => {
-    if (virtualItem.index + 1 >= grouped.length) return undefined;
-    const nextItem = grouped[virtualItem.index + 1];
+    if (virtualItem.index + 1 >= groupedRef.current.length) return undefined;
+    const nextItem = groupedRef.current[virtualItem.index + 1];
     return nextItem.type === "message" ? nextItem.data : undefined;
-  }, [virtualItem.index, grouped]);
+  }, [virtualItem.index]);
 
   return (
     <div
@@ -211,7 +215,7 @@ const VirtualizedItem = memo(function VirtualizedItem({
     >
       <div
         className={cn(
-          "grid gap-4 px-4 py-2 transition-[grid-template-columns] duration-300 ease-out",
+          "grid gap-4 px-4 py-2",
           chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
           chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
           chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",

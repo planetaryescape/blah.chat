@@ -127,6 +127,10 @@ export default defineSchema({
     // Document mode (Canvas)
     mode: v.optional(v.union(v.literal("document"), v.literal("normal"))),
     modeActivatedAt: v.optional(v.number()),
+    // Cached system prompt (built in background on creation/input changes)
+    cachedSystemPrompt: v.optional(v.string()),
+    promptInputHash: v.optional(v.string()),
+    promptBuiltAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -219,6 +223,8 @@ export default defineSchema({
     ),
     generationStartedAt: v.optional(v.number()),
     generationCompletedAt: v.optional(v.number()),
+    // API call timing (for latency tracking)
+    apiCallStartedAt: v.optional(v.number()),
     // Performance metrics
     firstTokenAt: v.optional(v.number()), // When first token received
     tokensPerSecond: v.optional(v.number()), // Calculated TPS

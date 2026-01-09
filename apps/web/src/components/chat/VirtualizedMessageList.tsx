@@ -2,14 +2,11 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { useQuery } from "convex/react";
 import { ArrowDown } from "lucide-react";
-import { memo, useCallback, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { useMetadataCacheSync } from "@/hooks/useCacheSync";
-import { useConversationScroll } from "@/hooks/useConversationScroll";
 import { useHighlightScroll } from "@/hooks/useHighlightScroll";
 import {
   type GroupedItem,
@@ -49,19 +46,20 @@ export function VirtualizedMessageList({
   isCollaborative,
   onScrollReady,
 }: VirtualizedMessageListProps) {
-  const { containerRef, scrollToBottom, showScrollButton } = useAutoScroll({
-    threshold: 100,
-  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const lastConversationIdRef = useRef<string | undefined>(undefined);
 
   const conversationId = messages?.[0]?.conversationId;
   const grouped = useMessageGrouping(messages ?? [], conversationId);
 
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const conversation = useQuery(
-    api.conversations.get,
-    conversationId ? { conversationId } : "skip",
-  );
+  const conversation =
+    // @ts-expect-error - Type depth exceeded with complex Convex query (85+ modules)
+    useQuery(
+      api.conversations.get,
+      conversationId ? { conversationId } : "skip",
+    );
 
   // Lift preference here to avoid memo blocking updates in ChatMessage
   const showMessageStats = useUserPreference("showMessageStatistics");
@@ -76,34 +74,65 @@ export function VirtualizedMessageList({
   );
   useMetadataCacheSync(messageIds);
 
-  const virtualizer = useVirtualizer({
-    count: grouped.length,
-    getScrollElement: () => containerRef.current,
-    estimateSize: () => 800, // Increased for long messages - reduces re-measurements
-    overscan: 5, // Reduced - height reservations prevent layout shift
-    scrollPaddingStart: 80, // Account for header height (~5rem) when scrolling to messages
-  });
+  // Scroll to bottom on conversation switch (only)
+  useEffect(() => {
+    if (conversationId !== lastConversationIdRef.current) {
+      lastConversationIdRef.current = conversationId;
+      // Scroll to bottom when switching conversations
+      requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
+        onScrollReady?.(true);
+      });
+    }
+  }, [conversationId, onScrollReady]);
 
-  const virtualItems = virtualizer.getVirtualItems();
+  // Track scroll position for "scroll to bottom" button
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setShowScrollButton(distanceFromBottom > 100);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Handle highlight scroll (for ?messageId= URL param)
   useHighlightScroll({
     highlightMessageId,
     grouped,
-    virtualizer,
-  });
-  useConversationScroll({
-    conversationId,
-    messageCount: messages?.length ?? 0,
-    highlightMessageId,
-    messages: messages ?? [],
-    virtualizer,
-    grouped,
-    scrollContainer: containerRef,
-    onScrollReady,
+    virtualizer: containerRef.current
+      ? {
+          scrollToIndex: (
+            index: number,
+            options?: { align?: string; behavior?: string },
+          ) => {
+            const element = document.getElementById(`message-group-${index}`);
+            if (element) {
+              element.scrollIntoView({
+                behavior: options?.behavior === "smooth" ? "smooth" : "auto",
+                block: options?.align === "start" ? "start" : "end",
+              });
+            }
+          },
+        }
+      : null,
   });
 
-  // VirtualizedMessageList should only render when there are messages
-  // Empty state (including undefined/loading) is handled by parent component
+  const scrollToBottom = useCallback(() => {
+    containerRef.current?.scrollTo({
+      top: containerRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, []);
+
+  // Empty state handled by parent
   if (!messages || messages.length === 0) {
     return null;
   }
@@ -116,20 +145,14 @@ export function VirtualizedMessageList({
         aria-live="polite"
         aria-label="Chat message history"
         aria-atomic="false"
-        className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative"
-        style={{ contain: "layout style paint", overflowAnchor: "auto" }}
+        className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
       >
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {virtualItems.map((virtualItem) => (
-            <VirtualizedItem
-              key={virtualItem.key}
-              virtualItem={virtualItem}
+        <div className="flex flex-col">
+          {grouped.map((item, index) => (
+            <MessageItemContent
+              key={item.type === "comparison" ? item.id : String(item.data._id)}
+              item={item}
+              index={index}
               grouped={grouped}
               chatWidth={chatWidth}
               isCollaborative={isCollaborative}
@@ -138,7 +161,6 @@ export function VirtualizedMessageList({
               onVote={onVote}
               onConsolidate={onConsolidate}
               onToggleModelNames={onToggleModelNames}
-              measureElement={virtualizer.measureElement}
               conversation={conversation}
             />
           ))}
@@ -149,7 +171,7 @@ export function VirtualizedMessageList({
           variant="outline"
           size="sm"
           className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg transition-all duration-200 z-10 gap-1"
-          onClick={() => scrollToBottom("smooth")}
+          onClick={scrollToBottom}
           aria-label="Scroll to bottom"
         >
           Scroll to bottom
@@ -160,9 +182,10 @@ export function VirtualizedMessageList({
   );
 }
 
-// Memoized virtual item to prevent unnecessary re-renders
-interface VirtualizedItemProps {
-  virtualItem: { key: string | number | bigint; index: number; start: number };
+// Memoized item content to prevent unnecessary re-renders
+interface MessageItemContentProps {
+  item: GroupedItem;
+  index: number;
   grouped: GroupedItem[];
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
@@ -171,12 +194,12 @@ interface VirtualizedItemProps {
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
-  measureElement: (node: Element | null) => void;
   conversation?: Doc<"conversations"> | null;
 }
 
-const VirtualizedItem = memo(function VirtualizedItem({
-  virtualItem,
+const MessageItemContent = memo(function MessageItemContent({
+  item,
+  index,
   grouped,
   chatWidth,
   isCollaborative,
@@ -185,81 +208,62 @@ const VirtualizedItem = memo(function VirtualizedItem({
   onVote,
   onConsolidate,
   onToggleModelNames,
-  measureElement,
   conversation,
-}: VirtualizedItemProps) {
-  const item = grouped[virtualItem.index];
+}: MessageItemContentProps) {
   const isMessage = item.type === "message";
 
-  // Use ref to avoid recreating callback when grouped changes - prevents memo break
-  const groupedRef = useRef(grouped);
-  groupedRef.current = grouped;
-
   const getNextMessage = useCallback(() => {
-    if (virtualItem.index + 1 >= groupedRef.current.length) return undefined;
-    const nextItem = groupedRef.current[virtualItem.index + 1];
+    if (index + 1 >= grouped.length) return undefined;
+    const nextItem = grouped[index + 1];
     return nextItem.type === "message" ? nextItem.data : undefined;
-  }, [virtualItem.index]);
+  }, [index, grouped]);
 
   return (
     <div
-      data-index={virtualItem.index}
-      ref={measureElement}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        transform: `translateY(${virtualItem.start}px)`,
-      }}
+      id={`message-group-${index}`}
+      className={cn(
+        "grid gap-4 px-4 py-2",
+        chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
+        chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+        chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
+        chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
+        !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
+      )}
     >
-      {/* Note: transition classes are intentionally omitted here to prevent layout thrashing
-          during virtualization remeasures of the grid. */}
-      <div
-        className={cn(
-          "grid gap-4 px-4 py-2",
-          chatWidth === "narrow" && "grid-cols-[1fr_min(42rem,100%)_1fr]",
-          chatWidth === "standard" && "grid-cols-[1fr_min(56rem,100%)_1fr]",
-          chatWidth === "wide" && "grid-cols-[1fr_min(72rem,100%)_1fr]",
-          chatWidth === "full" && "grid-cols-[1fr_min(92%,100%)_1fr]",
-          !chatWidth && "grid-cols-[1fr_min(56rem,100%)_1fr]",
-        )}
-      >
-        {isMessage ? (
+      {isMessage ? (
+        <div className="col-start-2">
+          <ChatMessage
+            message={item.data}
+            nextMessage={getNextMessage()}
+            isCollaborative={isCollaborative}
+            senderUser={item.data.senderUser}
+            conversation={conversation}
+            showMessageStats={showMessageStats}
+          />
+        </div>
+      ) : (
+        <>
           <div className="col-start-2">
             <ChatMessage
-              message={item.data}
-              nextMessage={getNextMessage()}
+              message={item.userMessage}
               isCollaborative={isCollaborative}
-              senderUser={item.data.senderUser}
+              senderUser={item.userMessage.senderUser}
               conversation={conversation}
               showMessageStats={showMessageStats}
             />
           </div>
-        ) : (
-          <>
-            <div className="col-start-2">
-              <ChatMessage
-                message={item.userMessage}
-                isCollaborative={isCollaborative}
-                senderUser={item.userMessage.senderUser}
-                conversation={conversation}
-                showMessageStats={showMessageStats}
-              />
-            </div>
-            <div className="col-span-full mt-4">
-              <ComparisonView
-                assistantMessages={item.assistantMessages}
-                comparisonGroupId={item.id}
-                showModelNames={showModelNames}
-                onVote={onVote || (() => {})}
-                onConsolidate={onConsolidate || (() => {})}
-                onToggleModelNames={onToggleModelNames || (() => {})}
-              />
-            </div>
-          </>
-        )}
-      </div>
+          <div className="col-span-full mt-4">
+            <ComparisonView
+              assistantMessages={item.assistantMessages}
+              comparisonGroupId={item.id}
+              showModelNames={showModelNames}
+              onVote={onVote || (() => {})}
+              onConsolidate={onConsolidate || (() => {})}
+              onToggleModelNames={onToggleModelNames || (() => {})}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 });

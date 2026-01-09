@@ -279,9 +279,7 @@ function ChatPageContent({
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [quickSwitcherOpen, setQuickSwitcherOpen] = useState(false);
   const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
-  const [isScrollReady, setIsScrollReady] = useState(false);
-  const prevMessageCountRef = useRef(0);
-  const wasEmptyRef = useRef(false); // Track if we've seen empty state (for first message detection)
+  const [, setIsScrollReady] = useState(true); // Used by VirtualizedMessageList callback
 
   // Ref for infinite scroll at top of message list
   const messageListTopRef = useRef<HTMLDivElement | null>(null);
@@ -376,60 +374,15 @@ function ChatPageContent({
       filteredConversations,
     });
 
-  // Only wait for messages to load, not preferences (chatWidth has fallback)
+  // Only wait for messages to load - Virtuoso handles scroll positioning natively
   const isLoading = messages === undefined;
-  const showSkeleton = isLoading || !isScrollReady;
+  const showSkeleton = isLoading;
   const isEmpty =
     !isLoading &&
     !isFirstLoad &&
     messages &&
     messages.length === 0 &&
     paginationStatus !== "LoadingFirstPage"; // Don't show empty during initial pagination load
-
-  // Reset scroll ready state when conversation changes
-  useEffect(() => {
-    setIsScrollReady(false);
-    prevMessageCountRef.current = 0;
-    wasEmptyRef.current = false; // Reset empty state tracker
-  }, [conversationId]);
-
-  // Set scroll ready when conversation is empty (no messages to scroll to)
-  // Also keep it ready when transitioning from empty to first message (no need to hide)
-  useEffect(() => {
-    const prevCount = prevMessageCountRef.current;
-    const currentCount = messages?.length ?? 0;
-    prevMessageCountRef.current = currentCount;
-
-    // Check if conversation is empty (check conditions directly, not isEmpty variable)
-    // Don't rely on isEmpty because it depends on !isFirstLoad which may lag
-    const isEmptyConversation =
-      !isLoading &&
-      messages &&
-      messages.length === 0 &&
-      paginationStatus !== "LoadingFirstPage";
-
-    // Track when we see the empty state
-    if (isEmptyConversation) {
-      wasEmptyRef.current = true;
-      setIsScrollReady(true);
-      return;
-    }
-
-    // When transitioning from empty (0 msgs) to first message, stay ready (no skeleton flash)
-    // ONLY if we actually saw the empty state (wasEmptyRef.current === true)
-    // This prevents false positives on page refresh with 1-2 messages
-    if (
-      !isLoading &&
-      wasEmptyRef.current && // Must have been empty before
-      prevCount === 0 &&
-      currentCount > 0 &&
-      currentCount <= 2
-    ) {
-      // True empty-to-first-message transition - no skeleton needed
-      setIsScrollReady(true);
-      return;
-    }
-  }, [isLoading, messages, paginationStatus]);
 
   // Autofocus input when navigating to conversation (after loading completes)
   useEffect(() => {

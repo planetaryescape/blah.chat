@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import {
   getAllUserPreferences as getAllUserPreferencesHelper,
@@ -121,6 +122,7 @@ export const updatePreferences = mutation({
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
       alwaysShowMessageActions: v.optional(v.boolean()),
+      minimalAssistantStyle: v.optional(v.boolean()),
       sttEnabled: v.optional(v.boolean()),
       sttProvider: v.optional(
         v.union(
@@ -261,6 +263,11 @@ export const updateCustomInstructions = mutation({
       "customInstructions",
       updated,
     );
+
+    // Rebuild cached system prompts for all recent conversations (background, non-blocking)
+    await ctx.scheduler.runAfter(0, internal.prompts.cache.rebuildUserPrompts, {
+      userId: user._id,
+    });
   },
 });
 

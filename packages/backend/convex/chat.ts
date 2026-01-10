@@ -44,6 +44,13 @@ const attachmentValidator = v.object({
   size: v.number(),
 });
 
+// Minimal message shape for fast inference (client sends, server skips DB fetch)
+const _inferenceMessageValidator = v.object({
+  role: v.union(v.literal("user"), v.literal("assistant")),
+  content: v.string(),
+  model: v.optional(v.string()),
+});
+
 /**
  * Check if model is expensive enough to warrant triage analysis
  * Threshold: $5/M average cost catches truly expensive models
@@ -77,8 +84,8 @@ export const sendMessage = mutation({
     args,
   ): Promise<{
     conversationId: Id<"conversations">;
-    messageId?: Id<"messages">; // Single mode
-    assistantMessageIds?: Id<"messages">[]; // Comparison mode
+    userMessageId: Id<"messages">;
+    assistantMessageIds: Id<"messages">[];
     comparisonGroupId?: string;
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -168,7 +175,7 @@ export const sendMessage = mutation({
     }
 
     // 4. Insert user message (single)
-    await ctx.runMutation(internal.messages.create, {
+    const userMessageId = (await ctx.runMutation(internal.messages.create, {
       conversationId,
       userId: user._id,
       role: "user",
@@ -176,29 +183,36 @@ export const sendMessage = mutation({
       attachments: args.attachments,
       status: "complete",
       comparisonGroupId, // Link to comparison group if multi-model
-    });
+    })) as Id<"messages">;
 
-    // 5. Insert N pending assistant messages
+    // 5. Create assistant messages upfront with status: "pending"
+    // This eliminates client-side optimistic messages and deduplication
     const assistantMessageIds: Id<"messages">[] = [];
-
     for (const model of modelsToUse) {
-      const msgId = await ctx.runMutation(internal.messages.create, {
-        conversationId,
-        userId: user._id,
-        role: "assistant",
-        status: "pending",
-        model,
-        comparisonGroupId, // Link all responses
-      });
-      assistantMessageIds.push(msgId);
+      const assistantMessageId = (await ctx.runMutation(
+        internal.messages.create,
+        {
+          conversationId,
+          userId: user._id,
+          role: "assistant",
+          content: "",
+          status: "pending",
+          model,
+          comparisonGroupId,
+        },
+      )) as Id<"messages">;
+      assistantMessageIds.push(assistantMessageId);
+    }
 
-      // 6. Schedule generation action (non-blocking)
+    // 6. Schedule generation actions with existing message IDs
+    for (let i = 0; i < modelsToUse.length; i++) {
       await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
         conversationId,
-        assistantMessageId: msgId,
-        modelId: model,
+        existingMessageId: assistantMessageIds[i],
+        modelId: modelsToUse[i],
         userId: user._id,
         thinkingEffort: args.thinkingEffort as any,
+        comparisonGroupId,
       });
     }
 
@@ -223,12 +237,11 @@ export const sendMessage = mutation({
       conversationId: conversationId!,
     });
 
-    // 11. Return immediately
+    // 11. Return immediately with all message IDs
     return {
       conversationId: conversationId!,
-      messageId: modelsToUse.length === 1 ? assistantMessageIds[0] : undefined,
-      assistantMessageIds:
-        modelsToUse.length > 1 ? assistantMessageIds : undefined,
+      userMessageId,
+      assistantMessageIds,
       comparisonGroupId,
     };
   },
@@ -379,10 +392,10 @@ export const regenerate = mutation({
       await ctx.db.delete(src._id);
     }
 
-    // Schedule generation
+    // Schedule generation (reuse existing message)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: message.conversationId,
-      assistantMessageId: args.messageId,
+      existingMessageId: args.messageId,
       modelId,
       userId: conversation.userId,
     });
@@ -562,22 +575,9 @@ export const retryMessage = mutation({
       userDefaultModel2 ||
       "openai:gpt-oss-20b";
 
-    // Create new pending assistant message
-    const newMessageId: Id<"messages"> = await ctx.runMutation(
-      internal.messages.create,
-      {
-        conversationId: userMessage.conversationId,
-        userId: conversation.userId,
-        role: "assistant",
-        status: "pending",
-        model: modelId,
-      },
-    );
-
-    // Schedule generation
+    // Schedule generation (action creates message)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: userMessage.conversationId,
-      assistantMessageId: newMessageId,
       modelId,
       userId: conversation.userId,
     });
@@ -587,7 +587,8 @@ export const retryMessage = mutation({
       conversationId: userMessage.conversationId,
     });
 
-    return newMessageId;
+    // Note: message ID not available here - created in action
+    return userMessage._id; // Return user message ID as reference
   },
 });
 

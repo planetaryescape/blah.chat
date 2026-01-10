@@ -162,3 +162,23 @@ export const getToolCalls = query({
     return getMessageToolCalls(ctx, messageId, includePartial);
   },
 });
+
+export const getToolCallCountByConversation = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const toolCalls = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_conversation", (q: any) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .filter((q: any) => q.eq(q.field("isPartial"), false))
+      .collect();
+
+    const breakdown: Record<string, number> = {};
+    for (const tc of toolCalls) {
+      breakdown[tc.toolName] = (breakdown[tc.toolName] || 0) + 1;
+    }
+
+    return { total: toolCalls.length, breakdown };
+  },
+});

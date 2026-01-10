@@ -54,8 +54,6 @@ export const messagesTable = defineTable({
   ),
   generationStartedAt: v.optional(v.number()),
   generationCompletedAt: v.optional(v.number()),
-  // API call timing (for latency tracking)
-  apiCallStartedAt: v.optional(v.number()),
   // Performance metrics
   apiCallStartedAt: v.optional(v.number()), // When LLM API call made (for true TTFT)
   firstTokenAt: v.optional(v.number()),

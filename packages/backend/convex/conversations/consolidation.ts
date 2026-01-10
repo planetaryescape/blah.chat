@@ -90,23 +90,10 @@ export const createConsolidationConversation = mutation({
       updatedAt: Date.now(),
     });
 
-    // 6. Insert pending assistant message
-    const assistantMessageId = await ctx.db.insert("messages", {
-      conversationId,
-      userId: user._id,
-      role: "assistant",
-      content: "",
-      status: "pending",
-      model: args.consolidationModel,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
-    // 7. Schedule generation
+    // 6. Schedule generation (action creates assistant message)
     // @ts-ignore - Type depth exceeded with complex Convex action (94+ modules)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId,
-      assistantMessageId,
       modelId: args.consolidationModel,
       userId: user._id,
     });
@@ -179,10 +166,10 @@ export const consolidateInSameChat = mutation({
       lastMessageAt: Date.now(),
     });
 
-    // 7. Schedule generation with consolidation prompt as system context
+    // 7. Schedule generation with consolidation prompt as system context (reuse existing message)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: args.conversationId,
-      assistantMessageId: consolidatedMessageId,
+      existingMessageId: consolidatedMessageId,
       modelId: args.consolidationModel,
       userId: user._id,
       systemPromptOverride: consolidationPrompt,

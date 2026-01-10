@@ -250,18 +250,21 @@ export const updateEmbeddingStatus = internalMutation({
   },
 });
 
+// Backfill query: intentional full scan - runs infrequently during embedding migrations
 export const getTasksWithoutEmbeddings = internalQuery({
   args: {
     cursor: v.optional(v.string()),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
+    // Note: Full table scan is acceptable here - this is a backfill operation
+    // that runs infrequently and needs to find all tasks without embeddings
     const result = await ctx.db
       .query("tasks")
       .filter((q) => q.eq(q.field("embedding"), undefined))
       .paginate({ cursor: args.cursor || null, numItems: args.limit });
 
-    // Get total count
+    // Get total count (full scan for backfill progress tracking)
     const total = await ctx.db
       .query("tasks")
       .filter((q) => q.eq(q.field("embedding"), undefined))

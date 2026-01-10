@@ -156,7 +156,7 @@ async function rerankSearchResults(
           inputTokens,
           outputTokens,
           cost,
-          feature: "search-rerank",
+          feature: "chat", // Search reranking is part of chat flow
         },
       );
     }
@@ -234,7 +234,7 @@ One query per line, no numbering.`;
           inputTokens,
           outputTokens,
           cost,
-          feature: "search-expansion",
+          feature: "chat", // Search expansion is part of chat flow
         },
       );
     }

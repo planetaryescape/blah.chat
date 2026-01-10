@@ -46,7 +46,7 @@ export function ModelPicker({ current, onSelect }: ModelPickerProps) {
         if (result) {
           setModels(result);
         }
-      } catch (e) {
+      } catch (_e) {
         showToast({
           style: Toast.Style.Failure,
           title: "Failed to load models",

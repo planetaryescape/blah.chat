@@ -37,27 +37,63 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            PR: ${{ github.repository }}#${{ github.event.pull_request.number }}
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Review for CRITICAL issues only:
-            - Bugs that break functionality
-            - Security vulnerabilities
-            - Breaking API/behavior changes
+            Review this PR for REAL ISSUES and AI CODE SMELLS:
 
-            SKIP (handled by Biome/linters):
-            - Style, formatting, naming
-            - Refactoring suggestions
-            - Performance unless blocking
-            - Test coverage gaps
+            ## 1. REAL BUGS (must fix)
+            - Logic errors, off-by-one, null/undefined access, race conditions
+            - Runtime failures: unhandled errors, missing awaits, incorrect async
+            - Security: injection, auth bypasses, data exposure
+            - Data loss: incorrect mutations, missing boundary validations
+            - Breaking changes: API contracts, backwards compatibility
 
-            Format:
-            - 1-2 lines per issue, include line number
-            - If nothing critical: say "LGTM" only
-            - No verbose explanations
+            ## 2. DEAD CODE (important)
+            - Unused functions/vars/imports not cleaned up after changes
+            - Commented-out code blocks without explanation why kept
+            - Old implementations left after refactoring
+            - Remnants from removed features
 
-            Use `gh pr comment` to post feedback.
+            ## 3. AI TELLTALE SIGNS (flag these)
+            Comments:
+            - Narrating obvious code behavior ("// loop through array")
+            - Repeating what code already says ("// increment counter" above i++)
+            - Explaining standard language features
+
+            Over-engineering:
+            - Unnecessary abstractions for one-time operations
+            - Complex solutions for simple problems
+            - Multiple attempts/patches left in code instead of cohesive refactor
+
+            TypeScript smells:
+            - Lazy `any` without checking existing types first
+            - Unnecessary `as` casting when proper typing works
+            - Over-annotated types TS would infer
+            - Not using existing library types (@types/*)
+
+            Code style smells:
+            - Overly defensive null checks everywhere (when types guarantee)
+            - Verbose if/else instead of ternary for simple cases
+            - Old for loops instead of forEach/map/filter
+            - Not using optional chaining (?.) or nullish coalescing (??)
+            - Intermediate variables for simple one-liner operations
+            - Not using destructuring/spread when cleaner
+
+            ## IGNORE (linting catches)
+            - Style, formatting, naming conventions
+            - Import order
+            - "Could be cleaner" without concrete problem
+
+            ## OUTPUT
+            - Real bugs: file:line, what's wrong, severity
+            - Dead code: file:line, what's unused
+            - AI smells: file:line, pattern name, suggestion
+            - If nothing found: just "LGTM"
+            - No filler, no praise, no vague suggestions
+
+            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
           claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
-

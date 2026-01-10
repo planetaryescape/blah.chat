@@ -3,10 +3,32 @@ import type { GatewayName } from "./providers";
 import type { ReasoningConfig } from "./reasoning/types";
 import type { BenchmarkScores, ComputedMetrics, SpeedTier } from "./types";
 
+/**
+ * AUTO_MODEL - Special "auto" mode for intelligent model routing.
+ * When selected, the system classifies the task and routes to optimal model.
+ */
+export const AUTO_MODEL = {
+  id: "auto",
+  provider: "auto" as const,
+  name: "Auto",
+  description: "Intelligently routes to optimal model based on your task",
+  contextWindow: 0, // N/A - depends on selected model
+  pricing: { input: 0, output: 0 }, // Variable - depends on selected model
+  capabilities: [],
+  userFriendlyDescription:
+    "Let blah.chat pick the best model for each message. Analyzes your task and routes to the optimal model.",
+  bestFor:
+    "When you want the best model for each task without manual selection",
+};
+
+/** Check if a model ID is the auto router */
+export const isAutoModel = (modelId: string): boolean => modelId === "auto";
+
 export interface ModelConfig {
   id: string;
   /** Model creator/vendor (OpenAI, Anthropic, etc.) - used for grouping and icons */
   provider:
+    | "auto"
     | "openai"
     | "anthropic"
     | "google"
@@ -64,6 +86,9 @@ export interface ModelConfig {
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
+  // Auto Router (special model that routes to optimal model)
+  auto: AUTO_MODEL,
+
   // OpenAI
 
   // GPT-5 Series (Size Variants)

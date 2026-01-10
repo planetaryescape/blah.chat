@@ -90,18 +90,35 @@ export const getIdentityMemories = internalQuery({
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
-    const identityCategories = ["identity", "preference", "relationship"];
     const now = Date.now();
 
-    // Fetch all memories for user, then filter in JavaScript
-    // (Convex FilterBuilder doesn't support isNull checks)
-    const allMemories = await ctx.db
-      .query("memories")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
+    // OPTIMIZATION: Use indexed queries for each identity category (O(1) vs O(n))
+    // Parallel fetch from compound index by_user_category
+    const [identity, preference, relationship] = await Promise.all([
+      ctx.db
+        .query("memories")
+        .withIndex("by_user_category", (q) =>
+          q.eq("userId", args.userId).eq("metadata.category", "identity"),
+        )
+        .collect(),
+      ctx.db
+        .query("memories")
+        .withIndex("by_user_category", (q) =>
+          q.eq("userId", args.userId).eq("metadata.category", "preference"),
+        )
+        .collect(),
+      ctx.db
+        .query("memories")
+        .withIndex("by_user_category", (q) =>
+          q.eq("userId", args.userId).eq("metadata.category", "relationship"),
+        )
+        .collect(),
+    ]);
 
-    // Filter by quality and category
-    const filtered = allMemories.filter((m) => {
+    const allIdentityMemories = [...identity, ...preference, ...relationship];
+
+    // Filter by quality (confidence, expiration, superseded) - minimal JS filtering
+    const filtered = allIdentityMemories.filter((m) => {
       // Skip low confidence
       if (m.metadata?.confidence && m.metadata.confidence < MIN_CONFIDENCE) {
         return false;
@@ -114,14 +131,6 @@ export const getIdentityMemories = internalQuery({
 
       // Skip superseded
       if (m.metadata?.supersededBy) {
-        return false;
-      }
-
-      // Only identity categories
-      if (
-        !m.metadata?.category ||
-        !identityCategories.includes(m.metadata.category)
-      ) {
         return false;
       }
 

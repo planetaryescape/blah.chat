@@ -13,15 +13,15 @@ import { internalMutation } from "../_generated/server";
  * TODO: Implement actual caching logic
  */
 export const buildAndCachePrompt = internalMutation({
-	args: {
-		conversationId: v.id("conversations"),
-		userId: v.id("users"),
-		modelId: v.string(),
-	},
-	handler: async (_ctx, _args) => {
-		// Stub - no-op for now
-		console.log("[PromptCache] buildAndCachePrompt called (stub)");
-	},
+  args: {
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    modelId: v.string(),
+  },
+  handler: async (_ctx, _args) => {
+    // Stub - no-op for now
+    console.log("[PromptCache] buildAndCachePrompt called (stub)");
+  },
 });
 
 /**
@@ -29,11 +29,11 @@ export const buildAndCachePrompt = internalMutation({
  * TODO: Implement actual rebuild logic
  */
 export const rebuildUserPrompts = internalMutation({
-	args: {
-		userId: v.id("users"),
-	},
-	handler: async (_ctx, _args) => {
-		// Stub - no-op for now
-		console.log("[PromptCache] rebuildUserPrompts called (stub)");
-	},
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (_ctx, _args) => {
+    // Stub - no-op for now
+    console.log("[PromptCache] rebuildUserPrompts called (stub)");
+  },
 });

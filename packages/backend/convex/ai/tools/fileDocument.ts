@@ -13,6 +13,10 @@ export function createFileDocumentTool(
     storageId: string;
     mimeType: string;
     size: number;
+    // Pre-extracted text (populated at upload time)
+    extractedText?: string;
+    extractedAt?: number;
+    extractionError?: string;
   }>,
 ) {
   return tool({
@@ -68,6 +72,7 @@ export function createFileDocumentTool(
         mimeType: attachment.mimeType,
         size: attachment.size,
         storageId: attachment.storageId,
+        hasExtractedText: !!attachment.extractedText,
       });
 
       // Only process file types (not images/audio)
@@ -81,8 +86,40 @@ export function createFileDocumentTool(
         };
       }
 
+      // Check for pre-extracted text (populated at upload time)
+      if (attachment.extractedText) {
+        console.log(
+          `[Tool:fileDocument] ✅ Using cached extraction for: ${attachment.name}`,
+        );
+        const wordCount = attachment.extractedText
+          .split(/\s+/)
+          .filter((w) => w.length > 0).length;
+        return {
+          success: true,
+          fileName: attachment.name,
+          mimeType: attachment.mimeType,
+          action,
+          content: attachment.extractedText,
+          wordCount,
+          characterCount: attachment.extractedText.length,
+          truncated: false, // Already truncated at extraction time
+          cached: true, // Indicate this was from cache
+        };
+      }
+
+      // Check if extraction failed
+      if (attachment.extractionError) {
+        console.warn(
+          `[Tool:fileDocument] ⚠️ Extraction previously failed: ${attachment.extractionError}`,
+        );
+        // Fall through to try again on-demand
+      }
+
       try {
-        // Process the document
+        // Fallback: Process the document on-demand (extraction not yet complete or failed)
+        console.log(
+          `[Tool:fileDocument] Processing on-demand: ${attachment.name}`,
+        );
         const result = await ctx.runAction(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.tools.fileDocument.processDocument,

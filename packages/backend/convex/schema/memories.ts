@@ -42,6 +42,7 @@ export const memoriesTable = defineTable({
   updatedAt: v.number(),
 })
   .index("by_user", ["userId"])
+  .index("by_user_category", ["userId", "metadata.category"])
   .index("by_importance", ["userId", "metadata.importance"])
   .index("by_conversation", ["conversationId"])
   .vectorIndex("by_embedding", {

@@ -136,6 +136,8 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_user_archived", ["userId", "archived"])
+    .index("by_user_lastMessageAt", ["userId", "lastMessageAt"])
     .index("by_projectId", ["projectId"])
     .index("by_parent_conversation", ["parentConversationId"])
     .searchIndex("search_title", {
@@ -231,6 +233,22 @@ export default defineSchema({
     // Memory extraction tracking
     memoryExtracted: v.optional(v.boolean()),
     memoryExtractedAt: v.optional(v.number()),
+    // Auto router decision (when user selected "auto" model)
+    routingDecision: v.optional(
+      v.object({
+        selectedModelId: v.string(),
+        classification: v.object({
+          primaryCategory: v.string(),
+          secondaryCategory: v.optional(v.string()),
+          complexity: v.string(),
+          requiresVision: v.boolean(),
+          requiresLongContext: v.boolean(),
+          requiresReasoning: v.boolean(),
+          confidence: v.number(),
+        }),
+        reasoning: v.string(),
+      }),
+    ),
     // DEPRECATED (Phase 2): Source citations migrated to normalized tables
     // Fields kept for backward compatibility with existing messages in database
     // NO LONGER WRITTEN TO - see convex/sources/* for new implementation
@@ -276,6 +294,8 @@ export default defineSchema({
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
+    .index("by_conversation_status", ["conversationId", "status"]) // Find generating messages
+    .index("by_user_created", ["userId", "createdAt"]) // User's recent messages
     .index("by_parent", ["parentMessageId"])
     .index("by_comparison_group", ["comparisonGroupId"])
     .index("by_consolidated_message", ["consolidatedMessageId"])
@@ -315,11 +335,16 @@ export default defineSchema({
         generationTime: v.optional(v.number()),
       }),
     ),
+    // Text extraction for searchability
+    extractedText: v.optional(v.string()),
+    extractedAt: v.optional(v.number()),
+    extractionError: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_message", ["messageId"])
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]) // user's recent attachments
     .index("by_storage", ["storageId"]), // Find which messages use a file
 
   // Phase 1: Normalized tool calls (consolidates toolCalls[] + partialToolCalls[])
@@ -430,6 +455,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_category", ["userId", "metadata.category"])
     .index("by_importance", ["userId", "metadata.importance"]) // Query by importance
     .index("by_conversation", ["conversationId"]) // Phase 7: Query memories by conversation
     .vectorIndex("by_embedding", {
@@ -518,8 +544,11 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_user_deadline", ["userId", "deadline"])
+    .index("by_user_urgency", ["userId", "urgency"]) // filter by urgency
+    .index("by_user_created", ["userId", "createdAt"]) // recent tasks
     .index("by_project", ["projectId"])
     .index("by_user_project", ["userId", "projectId"])
+    .index("by_user_project_status", ["userId", "projectId", "status"]) // project tasks by status
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "status", "projectId"],
@@ -586,6 +615,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]) // recent files
     .index("by_conversation", ["conversationId"]),
 
   // Smart Manager Phase 1: Document chunks for RAG
@@ -667,6 +697,7 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_user_type", ["userId", "type"])
     .index("by_user_project", ["userId", "projectId"])
+    .index("by_user_status", ["userId", "status"]) // user's sources by status
     .index("by_status", ["status"]),
 
   // Knowledge chunks (vectorized content from sources)
@@ -776,9 +807,11 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_updated", ["userId", "updatedAt"]) // for recent notes sorting
+    .index("by_user_pinned", ["userId", "isPinned"]) // pinned notes at top
     .index("by_source_message", ["sourceMessageId"]) // optional cleanup
     .index("by_share_id", ["shareId"]) // for public access
     .index("by_projectId", ["projectId"]) // for project stats and filtering
+    .index("by_user_project", ["userId", "projectId"]) // user's notes in project
     .searchIndex("search_notes", {
       searchField: "content",
       filterFields: ["userId"],
@@ -891,6 +924,8 @@ export default defineSchema({
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"])
     .index("by_user_date_model", ["userId", "date", "model"])
+    .index("by_date", ["date"]) // admin analytics
+    .index("by_date_model", ["date", "model"]) // admin model usage
     .index("by_conversation", ["conversationId"])
     .index("by_presentation", ["presentationId"])
     .index("by_user_feature", ["userId", "feature"]),
@@ -1202,6 +1237,7 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"])
+    .index("by_user_created", ["userId", "createdAt"]) // sorted notifications
     .index("by_created", ["createdAt"]), // For cleanup cron
 
   // Admin Settings (global platform settings)
@@ -1473,6 +1509,8 @@ export default defineSchema({
     .index("by_conversation", ["conversationId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_user_created", ["userId", "createdAt"]) // recent presentations
+    .index("by_user_updated", ["userId", "updatedAt"]) // recently updated
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId"],
@@ -1538,6 +1576,7 @@ export default defineSchema({
     .index("by_presentation", ["presentationId"])
     .index("by_presentation_position", ["presentationId", "position"])
     .index("by_presentation_type", ["presentationId", "slideType"])
+    .index("by_presentation_imageStatus", ["presentationId", "imageStatus"]) // pending images in presentation
     .index("by_user", ["userId"])
     .index("by_image_status", ["imageStatus"]),
 

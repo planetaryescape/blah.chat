@@ -68,6 +68,7 @@ Instead of full document replacement, LLM sends targeted operations:
 ```
 
 **Why structured diffs over unified diff format:**
+
 - Line numbers explicit (no context matching needed)
 - Operations atomic (can apply individually)
 - Works well with Monaco's `executeEdits()` API
@@ -92,6 +93,7 @@ Document Mode (LLM activates):
 ```
 
 **Why modes?**
+
 - Wasted context: Document tools consume ~500 tokens even when unused
 - Confusion prevention: LLM might use `createDocument` for simple code snippets
 - Cleaner prompts: Tool descriptions don't clutter the system prompt
@@ -184,11 +186,13 @@ conversations: {
 ### When LLM Should Use Document Mode
 
 **Use for:**
+
 - Content > 20 lines or needs iteration/refinement
 - "Write me a...", "create a...", "draft a..."
 - Scripts, components, articles, essays
 
 **Stay in normal mode for:**
+
 - Quick answers, short code snippets
 - Questions about existing code
 - General discussion
@@ -208,6 +212,7 @@ conversations: {
 ### Monaco Editor Choice
 
 Why Monaco over CodeMirror or Tiptap:
+
 - **Line numbers**: Native support (critical for diff positioning)
 - **Programmatic edits**: `executeEdits()` API for applying diffs
 - **Diff visualization**: Built-in
@@ -246,6 +251,7 @@ Queries and mutations called directly in components using `useQuery`/`useMutatio
 ### 3. Version Snapshots (Not Incremental)
 
 History stores full content snapshots rather than incremental diffs:
+
 - Simpler to implement and reason about
 - Any version can be restored directly
 - Trade-off: More storage, but documents rarely huge
@@ -253,6 +259,7 @@ History stores full content snapshots rather than incremental diffs:
 ### 4. LLM-Driven Mode Detection
 
 System doesn't auto-detect document intent. LLM explicitly calls `enterDocumentMode`.
+
 - More reliable than heuristics
 - LLM can explain why it's switching modes
 - Graceful fallback if LLM forgets (document tools still work)
@@ -392,6 +399,7 @@ When enhancing Canvas:
 ### Modifying Diff System
 
 The diff system (`src/lib/canvas/diff.ts`) is the core of Canvas efficiency:
+
 - `computeDiff()`: Used for tracking user edits
 - `applyDiffOperations()`: Used for LLM changes
 - `validateDiffOperations()`: Prevents invalid diffs
@@ -401,6 +409,7 @@ Always test with edge cases: empty documents, single line, very long documents.
 ### Debugging Mode Issues
 
 If mode doesn't switch properly:
+
 1. Check `conversations.mode` in database
 2. Verify `useCanvasMode` hook is called in chat page
 3. Check `getMode` query returns expected value

@@ -70,7 +70,7 @@ export default function ContinueCommand() {
       // @ts-expect-error - Id type
       const msgs = await listMessages(client, apiKey, convo._id);
       if (msgs) setMessages(msgs);
-    } catch (error) {
+    } catch (_error) {
       showToast({
         style: Toast.Style.Failure,
         title: "Failed to load messages",

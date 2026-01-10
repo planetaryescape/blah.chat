@@ -263,8 +263,6 @@ export const ChatMessage = memo(
         className={cn(
           "flex w-full mb-10",
           isUser ? "justify-end" : "justify-start",
-          // Reserve viewport space for generating assistant messages - pushes user message to top
-          !isUser && isGenerating && "min-h-[60vh]",
         )}
       >
         <div className={wrapperClass}>
@@ -454,6 +452,11 @@ export const ChatMessage = memo(
                           outputTokens={message.outputTokens}
                           status={message.status}
                           showStats={showStats}
+                          routingReasoning={
+                            "routingDecision" in message
+                              ? message.routingDecision?.reasoning
+                              : undefined
+                          }
                         />
                       )}
                   </div>

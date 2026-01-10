@@ -5,9 +5,9 @@ import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { ArrowDown } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { Button } from "@/components/ui/button";
 import { useMetadataCacheSync } from "@/hooks/useCacheSync";
-import { useHighlightScroll } from "@/hooks/useHighlightScroll";
 import {
   type GroupedItem,
   useMessageGrouping,
@@ -19,12 +19,15 @@ import type { OptimisticMessage } from "@/types/optimistic";
 import { ChatMessage } from "./ChatMessage";
 import { ComparisonView } from "./ComparisonView";
 
+const VIRTUALIZATION_THRESHOLD = 500;
+
 type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
+  conversationId: Id<"conversations">;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -37,6 +40,7 @@ interface VirtualizedMessageListProps {
 
 export function VirtualizedMessageList({
   messages,
+  conversationId,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -46,12 +50,12 @@ export function VirtualizedMessageList({
   isCollaborative,
   onScrollReady,
 }: VirtualizedMessageListProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const lastConversationIdRef = useRef<string | undefined>(undefined);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const [atBottom, setAtBottom] = useState(true);
 
-  const conversationId = messages?.[0]?.conversationId;
   const grouped = useMessageGrouping(messages ?? [], conversationId);
+  const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
 
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
   const conversation =
@@ -74,80 +78,124 @@ export function VirtualizedMessageList({
   );
   useMetadataCacheSync(messageIds);
 
-  // Scroll to bottom on conversation switch (only)
+  // Track which conversation we've scrolled for
+  const scrolledForConversationRef = useRef<string | undefined>(undefined);
+
+  // Scroll to bottom when conversation changes or on initial load
   useEffect(() => {
-    if (conversationId !== lastConversationIdRef.current) {
-      lastConversationIdRef.current = conversationId;
-      // Scroll to bottom when switching conversations
-      requestAnimationFrame(() => {
-        if (containerRef.current) {
-          containerRef.current.scrollTop = containerRef.current.scrollHeight;
-        }
-        onScrollReady?.(true);
-      });
+    // Skip if no messages yet
+    if (grouped.length === 0) return;
+
+    // Skip if we've already scrolled for this conversation
+    if (scrolledForConversationRef.current === conversationId) return;
+
+    // Mark as scrolled for this conversation
+    scrolledForConversationRef.current = conversationId;
+
+    if (!useVirtualization && scrollContainerRef.current) {
+      // Simple mode: use native scroll with multiple attempts
+      const container = scrollContainerRef.current;
+      const scrollToEnd = () => {
+        container.scrollTop = container.scrollHeight;
+      };
+      // Multiple attempts to ensure DOM is fully rendered
+      scrollToEnd();
+      requestAnimationFrame(scrollToEnd);
+      setTimeout(scrollToEnd, 50);
+      setTimeout(scrollToEnd, 150);
+    } else if (useVirtualization) {
+      // Virtualized mode with multiple attempts
+      const scrollToEnd = () => {
+        virtuosoRef.current?.scrollToIndex({
+          index: grouped.length - 1,
+          align: "end",
+          behavior: "auto",
+        });
+      };
+      scrollToEnd();
+      requestAnimationFrame(scrollToEnd);
+      setTimeout(scrollToEnd, 50);
+      setTimeout(scrollToEnd, 150);
     }
-  }, [conversationId, onScrollReady]);
 
-  // Track scroll position for "scroll to bottom" button
+    onScrollReady?.(true);
+  }, [conversationId, grouped.length, useVirtualization, onScrollReady]);
+
+  // Track scroll position for "scroll to bottom" button (simple mode)
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (useVirtualization || !scrollContainerRef.current) return;
 
+    const container = scrollContainerRef.current;
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      setShowScrollButton(distanceFromBottom > 100);
+      const isAtBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        100;
+      setAtBottom(isAtBottom);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
     return () => container.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [useVirtualization]);
 
-  // Handle highlight scroll (for ?messageId= URL param)
-  useHighlightScroll({
-    highlightMessageId,
-    grouped,
-    virtualizer: containerRef.current
-      ? {
-          scrollToIndex: (
-            index: number,
-            options?: { align?: string; behavior?: string },
-          ) => {
-            const element = document.getElementById(`message-group-${index}`);
-            if (element) {
-              element.scrollIntoView({
-                behavior: options?.behavior === "smooth" ? "smooth" : "auto",
-                block: options?.align === "start" ? "start" : "end",
-              });
-            }
-          },
-        }
-      : null,
-  });
+  // Highlight message scroll
+  useEffect(() => {
+    if (!highlightMessageId || grouped.length === 0) return;
+
+    const index = grouped.findIndex((item) => {
+      if (item.type === "message") {
+        return String(item.data._id) === highlightMessageId;
+      }
+      return (
+        String(item.userMessage._id) === highlightMessageId ||
+        item.assistantMessages.some((m) => String(m._id) === highlightMessageId)
+      );
+    });
+
+    if (index === -1) return;
+
+    if (useVirtualization) {
+      virtuosoRef.current?.scrollToIndex({
+        index,
+        align: "start",
+        behavior: "smooth",
+      });
+    } else if (scrollContainerRef.current) {
+      const element = document.getElementById(`message-group-${index}`);
+      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [highlightMessageId, grouped, useVirtualization]);
 
   const scrollToBottom = useCallback(() => {
-    containerRef.current?.scrollTo({
-      top: containerRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, []);
+    if (useVirtualization) {
+      virtuosoRef.current?.scrollToIndex({
+        index: grouped.length - 1,
+        align: "end",
+        behavior: "smooth",
+      });
+    } else if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [grouped.length, useVirtualization]);
 
   // Empty state handled by parent
   if (!messages || messages.length === 0) {
     return null;
   }
 
-  return (
-    <>
-      <div
-        ref={containerRef}
-        role="log"
-        aria-live="polite"
-        aria-label="Chat message history"
-        aria-atomic="false"
-        className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
-      >
-        <div className="flex flex-col">
+  // Simple rendering for small conversations
+  if (!useVirtualization) {
+    return (
+      <>
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
+          role="log"
+          aria-live="polite"
+          aria-label="Chat message history"
+        >
           {grouped.map((item, index) => (
             <MessageItemContent
               key={item.type === "comparison" ? item.id : String(item.data._id)}
@@ -165,8 +213,55 @@ export function VirtualizedMessageList({
             />
           ))}
         </div>
-      </div>
-      {showScrollButton && (
+        {!atBottom && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg transition-all duration-200 z-10 gap-1"
+            onClick={scrollToBottom}
+            aria-label="Scroll to bottom"
+          >
+            Scroll to bottom
+            <ArrowDown className="w-3 h-3" aria-hidden="true" />
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  // Virtualized rendering for large conversations
+  return (
+    <>
+      <Virtuoso
+        ref={virtuosoRef}
+        data={grouped}
+        initialTopMostItemIndex={grouped.length - 1}
+        alignToBottom
+        followOutput="auto"
+        atBottomStateChange={setAtBottom}
+        atBottomThreshold={100}
+        className="flex-1 w-full min-w-0 min-h-0"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat message history"
+        itemContent={(index, item) => (
+          <MessageItemContent
+            key={item.type === "comparison" ? item.id : String(item.data._id)}
+            item={item}
+            index={index}
+            grouped={grouped}
+            chatWidth={chatWidth}
+            isCollaborative={isCollaborative}
+            showModelNames={showModelNames}
+            showMessageStats={showMessageStats}
+            onVote={onVote}
+            onConsolidate={onConsolidate}
+            onToggleModelNames={onToggleModelNames}
+            conversation={conversation}
+          />
+        )}
+      />
+      {!atBottom && (
         <Button
           variant="outline"
           size="sm"

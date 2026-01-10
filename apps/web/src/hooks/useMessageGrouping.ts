@@ -77,7 +77,7 @@ export function useMessageGrouping(
   // Reset cache when conversation changes to prevent data leakage
   if (conversationId !== prevConversationIdRef.current) {
     prevConversationIdRef.current = conversationId;
-    prevResultRef.current = result;
+    prevResultRef.current = []; // Clear cache, don't store potentially stale data
     return result;
   }
 

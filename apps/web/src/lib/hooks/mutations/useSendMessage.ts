@@ -93,34 +93,12 @@ export function useSendMessage(
         _optimistic: true,
       };
 
-      // Create optimistic assistant message(s) for comparison mode
-      const models = variables.models || [variables.modelId];
-      const optimisticAssistantMsgs: OptimisticMessage[] = models
-        .filter((m): m is string => !!m)
-        .map((modelId, idx) => ({
-          _id: `temp-assistant-${Date.now()}-${idx}` as `temp-${string}`,
-          conversationId: variables.conversationId,
-          userId: user?._id,
-          role: "assistant" as const,
-          content: "",
-          status: "pending" as const,
-          model: modelId,
-          comparisonGroupId:
-            models.length > 1 ? `temp-comparison-${Date.now()}` : undefined,
-          createdAt: Date.now() + idx + 1,
-          updatedAt: Date.now() + idx + 1,
-          _creationTime: Date.now() + idx + 1,
-          _optimistic: true,
-        }));
-
-      // Add to optimistic state
-      onOptimisticUpdate?.([optimisticUserMsg, ...optimisticAssistantMsgs]);
+      // Server creates assistant messages synchronously (convex/chat.ts:188-205)
+      // Only user message needs optimistic update for instant feedback
+      onOptimisticUpdate?.([optimisticUserMsg]);
 
       return {
-        optimisticIds: [
-          optimisticUserMsg._id,
-          ...optimisticAssistantMsgs.map((m) => m._id),
-        ],
+        optimisticIds: [optimisticUserMsg._id],
       };
     },
 

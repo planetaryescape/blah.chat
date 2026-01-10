@@ -65,62 +65,62 @@ Return a JSON object with:
  * Generates educational explanations to help users learn model selection.
  */
 export const ROUTER_REASONING_TEMPLATE = (
-	taskCategory: string,
-	complexity: string,
-	modelName: string,
-	categoryScore: number,
-	pricing: { input: number; output: number },
-	preferences: { costBias: number; speedBias: number },
+  taskCategory: string,
+  complexity: string,
+  modelName: string,
+  categoryScore: number,
+  pricing: { input: number; output: number },
+  preferences: { costBias: number; speedBias: number },
 ): string => {
-	// Category descriptions for education
-	const categoryDescriptions: Record<string, string> = {
-		coding: "code generation, debugging, and technical programming",
-		reasoning: "complex multi-step problems and logical analysis",
-		creative: "creative writing, brainstorming, and artistic content",
-		factual: "factual questions and knowledge retrieval",
-		analysis: "document analysis, summarization, and comparison",
-		conversation: "casual chat and general discussion",
-		multimodal: "image understanding and visual content",
-		research: "web search and current information",
-	};
+  // Category descriptions for education
+  const categoryDescriptions: Record<string, string> = {
+    coding: "code generation, debugging, and technical programming",
+    reasoning: "complex multi-step problems and logical analysis",
+    creative: "creative writing, brainstorming, and artistic content",
+    factual: "factual questions and knowledge retrieval",
+    analysis: "document analysis, summarization, and comparison",
+    conversation: "casual chat and general discussion",
+    multimodal: "image understanding and visual content",
+    research: "web search and current information",
+  };
 
-	// Complexity explanations
-	const complexityExplanations: Record<string, string> = {
-		simple: "straightforward question that needs a quick, focused answer",
-		moderate: "multi-part question requiring structured thinking",
-		complex: "detailed task needing thorough analysis and long-form output",
-	};
+  // Complexity explanations
+  const complexityExplanations: Record<string, string> = {
+    simple: "straightforward question that needs a quick, focused answer",
+    moderate: "multi-part question requiring structured thinking",
+    complex: "detailed task needing thorough analysis and long-form output",
+  };
 
-	// Pricing tier descriptions
-	const getPricingTier = (input: number): string => {
-		if (input < 0.2) return "very cost-effective";
-		if (input < 1.0) return "cost-efficient";
-		if (input < 5.0) return "mid-range";
-		return "premium";
-	};
+  // Pricing tier descriptions
+  const getPricingTier = (input: number): string => {
+    if (input < 0.2) return "very cost-effective";
+    if (input < 1.0) return "cost-efficient";
+    if (input < 5.0) return "mid-range";
+    return "premium";
+  };
 
-	// Build the educational explanation
-	const categoryDesc = categoryDescriptions[taskCategory] || taskCategory;
-	const complexityDesc = complexityExplanations[complexity] || complexity;
-	const pricingTier = getPricingTier(pricing.input);
+  // Build the educational explanation
+  const categoryDesc = categoryDescriptions[taskCategory] || taskCategory;
+  const complexityDesc = complexityExplanations[complexity] || complexity;
+  const pricingTier = getPricingTier(pricing.input);
 
-	// Score interpretation
-	const scoreDesc =
-		categoryScore >= 90
-			? "excels at"
-			: categoryScore >= 80
-				? "is strong at"
-				: categoryScore >= 70
-					? "handles well"
-					: "can handle";
+  // Score interpretation
+  const scoreDesc =
+    categoryScore >= 90
+      ? "excels at"
+      : categoryScore >= 80
+        ? "is strong at"
+        : categoryScore >= 70
+          ? "handles well"
+          : "can handle";
 
-	// Cost preference influence
-	const costInfluence =
-		preferences.costBias > 70
-			? " Your cost-optimized settings prioritized efficiency."
-			: preferences.costBias < 30
-				? " Your quality-focused settings prioritized capability."
-				: "";
+  // Cost preference influence
+  const costInfluence =
+    preferences.costBias > 70
+      ? " Your cost-optimized settings prioritized efficiency."
+      : preferences.costBias < 30
+        ? " Your quality-focused settings prioritized capability."
+        : "";
 
-	return `${modelName} ${scoreDesc} ${categoryDesc} (${categoryScore}/100). This is a ${complexityDesc}, so a ${pricingTier} model provides good value without overkill.${costInfluence}`;
+  return `${modelName} ${scoreDesc} ${categoryDesc} (${categoryScore}/100). This is a ${complexityDesc}, so a ${pricingTier} model provides good value without overkill.${costInfluence}`;
 };

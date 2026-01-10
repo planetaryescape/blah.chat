@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -19,10 +20,12 @@ import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CATEGORIES } from "@/lib/ai/categories";
+import { AUTO_MODEL, isAutoModel } from "@/lib/ai/models";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
+import { cn } from "@/lib/utils";
 import {
   DEFAULT_CONTEXT_WINDOW,
   formatTokens,
@@ -315,6 +318,44 @@ export function QuickModelSwitcher({
 
             <CommandList className="max-h-[600px] overflow-y-auto p-2">
               <CommandEmpty>No models found.</CommandEmpty>
+
+              {/* Auto Router - Smart Model Selection */}
+              {mode === "single" && activeCategory === "all" && (
+                <CommandGroup heading="Smart Routing">
+                  <div
+                    className={cn(
+                      "relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all min-w-0",
+                      "hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10",
+                      isAutoModel(currentModel) &&
+                        "bg-gradient-to-r from-primary/15 to-secondary/15 ring-1 ring-primary/30",
+                    )}
+                    onClick={() => handleSelect("auto")}
+                    onKeyDown={(e) => e.key === "Enter" && handleSelect("auto")}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm text-primary">
+                          {AUTO_MODEL.name}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0"
+                        >
+                          NEW
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {AUTO_MODEL.description}
+                      </p>
+                    </div>
+                    {isAutoModel(currentModel) && (
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </div>
+                </CommandGroup>
+              )}
 
               {filteredModels.defaultModel && (
                 <CommandGroup heading="Default">

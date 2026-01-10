@@ -17,33 +17,14 @@ interface UseOptimisticMessagesReturn {
 }
 
 /**
- * Time windows used when matching optimistic messages to server-confirmed ones
- * using createdAt timestamps (see timeDiff check below).
+ * Time windows for matching optimistic user messages to server-confirmed ones.
  *
- * - MATCH_FUTURE_WINDOW_MS:
- *   We allow a server message to be created up to this much *after* the
- *   optimistic message timestamp and still be considered the same logical
- *   message. This primarily covers Convex action scheduling / delivery
- *   delays that we've observed can be several seconds in the worst case;
- *   10s is a conservative upper bound to avoid spurious duplicates while
- *   still eventually reconciling most delayed messages.
+ * NOTE: Only USER messages are optimistic. Server creates assistant messages
+ * synchronously (convex/chat.ts:188-205) so no client-side optimistic assistant
+ * messages exist.
  *
- * - MATCH_PAST_WINDOW_MS:
- *   We allow the server message to be created slightly *before* the
- *   optimistic timestamp. This is only to handle small clock skew and
- *   client / server time rounding differences. Keeping this to 1s
- *   minimizes the risk of accidentally matching legitimately older
- *   messages in the history, which would incorrectly hide them.
- *
- * When the absolute time difference falls outside both windows
- * (i.e. timeDiff < -MATCH_PAST_WINDOW_MS or timeDiff > MATCH_FUTURE_WINDOW_MS),
- * we do **not** match the server message to the optimistic one. In that case
- * the optimistic message is left in place, and the server message is treated
- * as a separate entry. This means that:
- *   - Excessive scheduler delays beyond 10s can manifest as temporary
- *     duplicates (optimistic + server copy).
- *   - Significant clock skew in distributed deployments (>> 1s) can prevent
- *     matching and likewise produce duplicates rather than hiding real data.
+ * - MATCH_FUTURE_WINDOW_MS (10s): Allow server message to arrive after optimistic
+ * - MATCH_PAST_WINDOW_MS (1s): Handle small clock skew
  */
 const MATCH_FUTURE_WINDOW_MS = 10_000;
 const MATCH_PAST_WINDOW_MS = 1_000;
@@ -54,21 +35,14 @@ function mergeWithOptimisticMessages(
 ): MessageWithOptimistic[] {
   if (optimisticMessages.length === 0) return serverMessages;
 
-  // Copy server messages by role so we can consume matches without mutating the original array
+  // Group server messages by role for matching (only user messages are optimistic)
   const serverByRole: Record<"user" | "assistant", MessageWithOptimistic[]> = {
-    user: [],
-    assistant: [],
+    user: serverMessages.filter((m) => m.role === "user"),
+    assistant: [], // Not used - assistant messages come from server only
   };
 
-  for (const msg of serverMessages) {
-    if (msg.role === "user" || msg.role === "assistant") {
-      serverByRole[msg.role].push(msg);
-    }
-  }
-
-  // Ensure deterministic matching order
+  // Sort for deterministic matching
   serverByRole.user.sort((a, b) => a.createdAt - b.createdAt);
-  serverByRole.assistant.sort((a, b) => a.createdAt - b.createdAt);
 
   const remainingOptimistic: OptimisticMessage[] = [];
   const sortedOptimistic = [...optimisticMessages].sort(
@@ -76,25 +50,14 @@ function mergeWithOptimisticMessages(
   );
 
   for (const opt of sortedOptimistic) {
+    // Only user messages are optimistic (server creates assistant messages)
     const candidates = serverByRole[opt.role] || [];
     const matchIndex = candidates.findIndex((serverMsg) => {
-      // Time window check first - prevents matching old messages from same model
+      // Time window check - match if server message arrived within window
       const timeDiff = serverMsg.createdAt - opt.createdAt;
-      if (
-        timeDiff < -MATCH_PAST_WINDOW_MS ||
-        timeDiff > MATCH_FUTURE_WINDOW_MS
-      ) {
-        return false;
-      }
-
-      // Assistant messages: also verify model matches within time window
-      // Prevents matching wrong assistant response if multiple models in flight
-      if (opt.role === "assistant" && opt.model && serverMsg.model) {
-        return opt.model === serverMsg.model;
-      }
-
-      // User messages (or assistant without model): time window alone is sufficient
-      return true;
+      return (
+        timeDiff >= -MATCH_PAST_WINDOW_MS && timeDiff <= MATCH_FUTURE_WINDOW_MS
+      );
     });
 
     if (matchIndex === -1) {
@@ -156,12 +119,19 @@ export function useOptimisticMessages({
   const prevMessagesRef = useRef<MessageWithOptimistic[] | undefined>(
     undefined,
   );
+  const prevConversationIdRef = useRef<string | undefined>(undefined);
 
   // Merge server messages with optimistic messages, deduplicating confirmed ones
   const messages = useMemo<MessageWithOptimistic[] | undefined>(() => {
-    // If server messages are undefined (loading), keep previous data
+    // If server messages are undefined (loading), only return cached if same conversation
     if (serverMessages === undefined) {
-      return prevMessagesRef.current ?? undefined;
+      if (
+        prevConversationIdRef.current &&
+        prevConversationIdRef.current === currentConversationId
+      ) {
+        return prevMessagesRef.current ?? undefined;
+      }
+      return undefined;
     }
 
     const merged = mergeWithOptimisticMessages(
@@ -169,8 +139,9 @@ export function useOptimisticMessages({
       optimisticMessages,
     );
     prevMessagesRef.current = merged;
+    prevConversationIdRef.current = currentConversationId;
     return merged;
-  }, [serverMessages, optimisticMessages]);
+  }, [serverMessages, optimisticMessages, currentConversationId]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state
   // The useMemo already filters them out visually when server confirms.

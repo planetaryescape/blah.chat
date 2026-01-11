@@ -20,11 +20,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `convex/generation.ts` | Main generation action - streaming, tools, error handling | 1294 |
-| `convex/messages.ts` | Message mutations, status updates, partial content | 17k |
-| `convex/chat.ts` | Send message mutation, triggers generation | 21k |
-| `src/lib/ai/models.ts` | 46 model configs with pricing/capabilities | 865 |
-| `src/lib/ai/registry.ts` | Model instantiation via Gateway | - |
+| `packages/backend/convex/generation.ts` | Main generation action - streaming, tools, error handling | ~1450 |
+| `packages/backend/convex/messages.ts` | Message mutations, status updates, partial content | ~730 |
+| `packages/backend/convex/chat.ts` | Send message mutation, triggers generation | ~650 |
+| `packages/ai/src/models.ts` | Shared model configs (source of truth) | ~575 |
+| `apps/web/src/lib/ai/models.ts` | Web-specific model extensions + AUTO_MODEL | ~1050 |
+| `apps/web/src/lib/ai/registry.ts` | Model instantiation via Gateway | - |
 
 ### Dependencies
 - Vercel AI Gateway (all models)
@@ -112,12 +113,11 @@ See `docs/testing/` for implementation phases.
 
 ### Auth Architecture (Defense-in-Depth)
 
-**CRITICAL**: Do NOT add redirect logic or role checks to middleware.
-
-**Layer 1 - Middleware** (`apps/web/src/middleware.ts`):
-- Only calls `auth.protect()` for non-public routes
-- Only convenience redirect: `/` → `/app`
-- NO role checks, NO complex redirects
+**Layer 1 - Middleware** (`apps/web/src/proxy.ts`):
+- Uses Clerk's `clerkMiddleware` for authentication
+- Convenience redirect: `/` → `/app` for authenticated users
+- Admin route protection: checks `sessionClaims.publicMetadata.isAdmin`
+- Calls `auth.protect()` for non-public routes
 
 **Layer 2 - Pages/Layouts**:
 - Check auth state (`useAuth`, `useConvexAuth`)
@@ -607,4 +607,26 @@ const result = streamText({
 
 Full spec: `docs/spec.md`
 Implementation phases: `docs/implementation/*.md`
+
+---
+
+## Codebase Health (2026-01-11)
+
+**Monorepo Structure**:
+- apps/: web (Next.js), cli, mobile, raycast
+- packages/: ai (shared), backend (Convex), byod-schema, config, shared
+
+**Stats**: ~44k TS/TSX files, 84 Convex modules, 822 test files
+
+**Money Feature Health**: GOOD
+- generation.ts, chat.ts, messages.ts all present and functional
+- E2E tests cover resilient generation flow
+
+**Known Tech Debt**:
+- 13 TODO/FIXME markers in backend
+- 415 console.log calls (should use structured logging)
+- 551 @ts-ignore (known Convex type recursion - documented workaround)
+- Backend test coverage: 8 test files for 84 modules
+
+**Open Issues**: #127 (BYOK), #124 (mobile layout), #122 (signout bug), #31 (roadmap)
 

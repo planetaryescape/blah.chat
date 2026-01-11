@@ -49,7 +49,12 @@ export async function trackServerEvent(
     // Ensure events are sent before action completes
     await client.shutdown();
   } catch (error) {
-    console.error("Failed to track server event:", error);
+    const { logger } = await import("./logger");
+    logger.error("Failed to track server event", {
+      tag: "Analytics",
+      eventName,
+      error: String(error),
+    });
     // Don't throw - analytics failures shouldn't break operations
   }
 }
@@ -72,7 +77,12 @@ export async function identifyUser(
 
     await client.shutdown();
   } catch (error) {
-    console.error("Failed to identify user:", error);
+    const { logger } = await import("./logger");
+    logger.error("Failed to identify user", {
+      tag: "Analytics",
+      userId,
+      error: String(error),
+    });
   }
 }
 
@@ -96,7 +106,12 @@ export async function setUserProperties(
 
     await client.shutdown();
   } catch (error) {
-    console.error("Failed to set user properties:", error);
+    const { logger } = await import("./logger");
+    logger.error("Failed to set user properties", {
+      tag: "Analytics",
+      userId,
+      error: String(error),
+    });
   }
 }
 
@@ -117,7 +132,13 @@ export async function isFeatureEnabled(
 
     return isEnabled ?? false;
   } catch (error) {
-    console.error("Failed to check feature flag:", error);
+    const { logger } = await import("./logger");
+    logger.error("Failed to check feature flag", {
+      tag: "Analytics",
+      userId,
+      flagKey,
+      error: String(error),
+    });
     return false;
   }
 }
@@ -138,7 +159,13 @@ export async function getFeatureFlagPayload(
 
     return payload;
   } catch (error) {
-    console.error("Failed to get feature flag payload:", error);
+    const { logger } = await import("./logger");
+    logger.error("Failed to get feature flag payload", {
+      tag: "Analytics",
+      userId,
+      flagKey,
+      error: String(error),
+    });
     return null;
   }
 }

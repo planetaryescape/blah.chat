@@ -18,6 +18,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 const MIGRATION_ID = "012_rechunk_knowledge";
 const MIGRATION_NAME = "Re-chunk Knowledge with Optimal Size";
@@ -118,10 +119,12 @@ export const backfillBatch = internalMutation({
  */
 export const migrate = internalAction({
   handler: async (ctx) => {
-    console.log(`🚀 Starting ${MIGRATION_NAME}...`);
-    console.log(`   Migration ID: ${MIGRATION_ID}`);
-    console.log(`   New chunk size: 500 tokens (~2000 chars)`);
-    console.log(`   New overlap: 75 tokens (~300 chars)`);
+    logger.info(`Starting ${MIGRATION_NAME}`, {
+      tag: "Migration",
+      migrationId: MIGRATION_ID,
+      newChunkSize: "500 tokens (~2000 chars)",
+      newOverlap: "75 tokens (~300 chars)",
+    });
 
     const startTime = Date.now();
 
@@ -138,12 +141,12 @@ export const migrate = internalAction({
         internal.migrations["012_rechunk_knowledge"].initializeMigration,
         {},
       )) as Doc<"migrations">;
-      console.log("✅ Migration initialized");
+      logger.info("Migration initialized", { tag: "Migration" });
     } else if (migration.status === "completed") {
-      console.log("⚠️  Migration already completed");
+      logger.warn("Migration already completed", { tag: "Migration" });
       return;
     } else {
-      console.log(`🔄 Resuming migration from cursor...`);
+      logger.info("Resuming migration from cursor", { tag: "Migration" });
     }
 
     // Run backfill in batches
@@ -175,9 +178,14 @@ export const migrate = internalAction({
       totalSkipped += result.skipped;
       batchCount++;
 
-      console.log(
-        `   Batch ${batchCount}: ${result.processed} sources (${result.sourcesQueued} queued, ${result.chunksDeleted} chunks deleted, ${result.skipped} skipped)`,
-      );
+      logger.info("Batch processed", {
+        tag: "Migration",
+        batchCount,
+        processed: result.processed,
+        sourcesQueued: result.sourcesQueued,
+        chunksDeleted: result.chunksDeleted,
+        skipped: result.skipped,
+      });
 
       if (result.done) {
         await (ctx.runMutation as any)(
@@ -190,15 +198,15 @@ export const migrate = internalAction({
     } while (cursor);
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`\n🎉 Migration queued!`);
-    console.log(`   Sources processed: ${totalProcessed}`);
-    console.log(`   Re-processing queued: ${totalQueued}`);
-    console.log(`   Old chunks deleted: ${totalChunksDeleted}`);
-    console.log(`   Skipped: ${totalSkipped}`);
-    console.log(`   Duration: ${duration}s`);
-    console.log(
-      `\n⏳ Note: Re-processing is running in background. Check source statuses.`,
-    );
+    logger.info("Migration queued", {
+      tag: "Migration",
+      sourcesProcessed: totalProcessed,
+      reprocessingQueued: totalQueued,
+      oldChunksDeleted: totalChunksDeleted,
+      skipped: totalSkipped,
+      durationSec: duration,
+      note: "Re-processing is running in background. Check source statuses.",
+    });
   },
 });
 

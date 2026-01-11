@@ -275,7 +275,7 @@ function TaskDetail({ task, onUpdate }: { task: Task; onUpdate: () => void }) {
       showToast({ style: Toast.Style.Success, title: "Task completed" });
       onUpdate();
       pop();
-    } catch (e) {
+    } catch (_e) {
       showToast({
         style: Toast.Style.Failure,
         title: "Failed to complete task",

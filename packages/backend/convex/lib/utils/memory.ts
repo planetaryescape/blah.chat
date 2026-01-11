@@ -35,7 +35,12 @@ export async function isMemoryDuplicate(
 
     return { isDuplicate: false };
   } catch (error) {
-    console.error("Error checking duplicate:", error);
+    const { logger } = await import("../logger");
+    logger.error("Error checking duplicate", {
+      tag: "Memory",
+      userId,
+      error: String(error),
+    });
     return { isDuplicate: false };
   }
 }

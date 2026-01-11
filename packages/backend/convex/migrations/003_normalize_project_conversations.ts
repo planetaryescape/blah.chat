@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Backfill junction table from existing project.conversationIds arrays
@@ -38,9 +39,11 @@ export const backfillBatch = internalMutation({
         // Verify conversation exists and belongs to same user
         const conversation = await ctx.db.get(conversationId);
         if (!conversation || conversation.userId !== project.userId) {
-          console.warn(
-            `Skipping invalid conversation ${conversationId} in project ${project._id}`,
-          );
+          logger.warn("Skipping invalid conversation", {
+            tag: "Migration",
+            conversationId,
+            projectId: project._id,
+          });
           errors++;
           continue;
         }
@@ -143,8 +146,8 @@ export const verifyMigration = internalQuery({
       errors: errors.slice(0, 10), // Only show first 10 errors
       recommendation:
         mismatches === 0
-          ? "✅ Migration verified - ready for Deploy 2"
-          : `⚠️  Found ${mismatches} mismatches - investigate before proceeding`,
+          ? "Migration verified - ready for Deploy 2"
+          : `Found ${mismatches} mismatches - investigate before proceeding`,
     };
   },
 });

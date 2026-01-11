@@ -11,6 +11,7 @@ import {
   internalQuery,
   mutation,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import {
   buildFeedbackPrompt,
   OUTLINE_FEEDBACK_SYSTEM_PROMPT,
@@ -479,7 +480,10 @@ export const parseOutlineMessage = mutation({
     // Check for minimum content
     const content = message.content?.trim() || "";
     if (content.length < 50) {
-      console.warn("Message content too short to parse:", content);
+      logger.warn("Message content too short to parse", {
+        tag: "Outline",
+        contentLength: content.length,
+      });
       return { itemCount: 0, alreadyParsed: false, error: "Content too short" };
     }
 
@@ -487,10 +491,10 @@ export const parseOutlineMessage = mutation({
     const parsedSlides = parseOutlineMarkdown(content);
 
     if (parsedSlides.length === 0) {
-      console.error(
-        "Failed to parse outline. Content preview:",
-        content.substring(0, 500),
-      );
+      logger.error("Failed to parse outline", {
+        tag: "Outline",
+        contentPreview: content.substring(0, 500),
+      });
       // Return gracefully instead of throwing - allow retry
       return {
         itemCount: 0,
@@ -544,9 +548,10 @@ export const parseOutlineMessageInternal = internalMutation({
     const presentation = await ctx.db.get(args.presentationId);
 
     if (!presentation || presentation.userId !== args.userId) {
-      console.error(
-        "[parseOutlineMessageInternal] Presentation not found or user mismatch",
-      );
+      logger.error("Presentation not found or user mismatch", {
+        tag: "parseOutlineMessageInternal",
+        presentationId: args.presentationId,
+      });
       return { itemCount: 0, error: "Presentation not found" };
     }
 
@@ -560,9 +565,9 @@ export const parseOutlineMessageInternal = internalMutation({
 
     if (existingItems) {
       // Items already exist (from streaming), still need to update status and trigger design gen
-      console.log(
-        "[parseOutlineMessageInternal] Items already exist, updating status",
-      );
+      logger.info("Items already exist, updating status", {
+        tag: "parseOutlineMessageInternal",
+      });
 
       // Get all items for count
       const allItems = await ctx.db
@@ -623,7 +628,8 @@ export const parseOutlineMessageInternal = internalMutation({
       message.role !== "assistant" ||
       message.status !== "complete"
     ) {
-      console.error("[parseOutlineMessageInternal] Invalid message:", {
+      logger.error("Invalid message", {
+        tag: "parseOutlineMessageInternal",
         exists: !!message,
         role: message?.role,
         status: message?.status,
@@ -634,10 +640,10 @@ export const parseOutlineMessageInternal = internalMutation({
     // Check for minimum content
     const content = message.content?.trim() || "";
     if (content.length < 50) {
-      console.warn(
-        "[parseOutlineMessageInternal] Content too short:",
-        content.length,
-      );
+      logger.warn("Content too short", {
+        tag: "parseOutlineMessageInternal",
+        contentLength: content.length,
+      });
       return { itemCount: 0, alreadyParsed: false, error: "Content too short" };
     }
 
@@ -645,10 +651,10 @@ export const parseOutlineMessageInternal = internalMutation({
     const parsedSlides = parseOutlineMarkdown(content);
 
     if (parsedSlides.length === 0) {
-      console.error(
-        "[parseOutlineMessageInternal] Failed to parse outline. Content preview:",
-        content.substring(0, 500),
-      );
+      logger.error("Failed to parse outline", {
+        tag: "parseOutlineMessageInternal",
+        contentPreview: content.substring(0, 500),
+      });
       return {
         itemCount: 0,
         alreadyParsed: false,
@@ -711,10 +717,12 @@ export const parseOutlineMessageInternal = internalMutation({
       { presentationId: args.presentationId },
     );
 
-    console.log(
-      "[parseOutlineMessageInternal] Successfully parsed",
-      parsedSlides.length,
-      "slides, triggered design system generation",
+    logger.info(
+      "Successfully parsed slides, triggered design system generation",
+      {
+        tag: "parseOutlineMessageInternal",
+        slideCount: parsedSlides.length,
+      },
     );
     return { itemCount: parsedSlides.length, alreadyParsed: false };
   },
@@ -966,7 +974,7 @@ export const regenerateOutlineAction = internalAction({
         },
       );
     } catch (error) {
-      console.error("Outline regeneration failed:", error);
+      logger.error("Outline regeneration failed", { error: String(error) });
 
       // Update status to indicate error
       await (ctx.runMutation as any)(

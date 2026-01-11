@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 
 /**
  * Create document tool for Canvas.
@@ -69,7 +70,10 @@ export function createDocumentTool(
           lineCount: content.split("\n").length,
         };
       } catch (error) {
-        console.error("[Tool] Create document failed:", error);
+        logger.error("Create document failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           error:

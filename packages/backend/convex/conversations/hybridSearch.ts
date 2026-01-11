@@ -8,6 +8,7 @@ import {
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 /**
@@ -120,12 +121,12 @@ export const hybridSearch = action({
         error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
 
-      console.error("Semantic search failed, using keyword fallback", {
+      logger.error("Semantic search failed, using keyword fallback", {
+        tag: "HybridSearch",
         error: errorMessage,
         stack,
         userId: user._id,
         query: args.query.slice(0, 100),
-        timestamp: Date.now(),
         projectFilter: args.projectId,
       });
 

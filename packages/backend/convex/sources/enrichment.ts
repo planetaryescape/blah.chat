@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Update sourceMetadata records with enriched OpenGraph data
@@ -43,9 +44,10 @@ export const updateSourceMetadataBatch = internalMutation({
           enrichmentError: data.error,
         });
       } else {
-        console.warn(
-          `[Enrichment] sourceMetadata not found for urlHash ${data.urlHash}`,
-        );
+        logger.warn("sourceMetadata not found for urlHash", {
+          tag: "Enrichment",
+          urlHash: data.urlHash,
+        });
       }
     }
   },

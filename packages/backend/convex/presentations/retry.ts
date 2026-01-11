@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, mutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { getCurrentUser, getCurrentUserOrCreate } from "../lib/userSync";
 
 // ===== Public Mutations =====
@@ -62,7 +63,7 @@ export const regenerateSlideImage = mutation({
       try {
         await ctx.storage.delete(presentation.pptxStorageId);
       } catch (e) {
-        console.error("Failed to delete cached PPTX:", e);
+        logger.error("Failed to delete cached PPTX", { error: String(e) });
       }
       await ctx.db.patch(presentation._id, {
         pptxStorageId: undefined,
@@ -528,7 +529,7 @@ export const updatePptxInternal = internalMutation({
       try {
         await ctx.storage.delete(presentation.pptxStorageId);
       } catch (e) {
-        console.error("Failed to delete old PPTX:", e);
+        logger.error("Failed to delete old PPTX", { error: String(e) });
       }
     }
 
@@ -556,7 +557,7 @@ export const updatePdfInternal = internalMutation({
       try {
         await ctx.storage.delete(presentation.pdfStorageId);
       } catch (e) {
-        console.error("Failed to delete old PDF:", e);
+        logger.error("Failed to delete old PDF", { error: String(e) });
       }
     }
 
@@ -584,7 +585,7 @@ export const updateImagesZipInternal = internalMutation({
       try {
         await ctx.storage.delete(presentation.imagesZipStorageId);
       } catch (e) {
-        console.error("Failed to delete old images ZIP:", e);
+        logger.error("Failed to delete old images ZIP", { error: String(e) });
       }
     }
 

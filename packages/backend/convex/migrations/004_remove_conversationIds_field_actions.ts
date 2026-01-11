@@ -2,6 +2,7 @@
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Orchestrator: Remove conversationIds field from all projects
@@ -11,7 +12,7 @@ export const runCleanup = internalAction({
     let totalUpdated = 0;
     let batches = 0;
 
-    console.log("🚀 Starting conversationIds field removal...");
+    logger.info("Starting conversationIds field removal", { tag: "Migration" });
 
     // Check initial state
     const initial = (await (ctx.runQuery as any)(
@@ -21,9 +22,11 @@ export const runCleanup = internalAction({
       {},
     )) as { total: number; withField: number; percentage: string };
 
-    console.log(
-      `Found ${initial.withField} projects with conversationIds field (${initial.percentage}%)`,
-    );
+    logger.info("Found projects with conversationIds field", {
+      tag: "Migration",
+      withField: initial.withField,
+      percentage: initial.percentage,
+    });
 
     // Run in batches
     while (true) {
@@ -37,9 +40,12 @@ export const runCleanup = internalAction({
       totalUpdated += result.updated;
       batches++;
 
-      console.log(
-        `✅ Batch ${batches}: cleaned ${result.updated} projects, ${result.remaining} remaining`,
-      );
+      logger.info("Batch processed", {
+        tag: "Migration",
+        batch: batches,
+        cleaned: result.updated,
+        remaining: result.remaining,
+      });
 
       if (result.updated === 0) break; // No more to clean
     }
@@ -52,17 +58,22 @@ export const runCleanup = internalAction({
       {},
     )) as { total: number; withField: number; percentage: string };
 
-    console.log(`\n🎉 Cleanup complete!`);
-    console.log(`   Projects cleaned: ${totalUpdated}`);
-    console.log(`   Batches: ${batches}`);
-    console.log(`   Remaining with field: ${final.withField}`);
+    logger.info("Cleanup complete", {
+      tag: "Migration",
+      projectsCleaned: totalUpdated,
+      batches,
+      remainingWithField: final.withField,
+    });
 
     if (final.withField > 0) {
-      console.warn(
-        `⚠️  Warning: ${final.withField} projects still have conversationIds field`,
-      );
+      logger.warn("Projects still have conversationIds field", {
+        tag: "Migration",
+        count: final.withField,
+      });
     } else {
-      console.log("✅ All projects cleaned - safe to update schema");
+      logger.info("All projects cleaned - safe to update schema", {
+        tag: "Migration",
+      });
     }
 
     return { totalUpdated, batches, remaining: final.withField };

@@ -4,6 +4,7 @@ import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { api, internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { getCurrentUser } from "../lib/userSync";
 import { applyRRF } from "../lib/utils/search";
 
@@ -108,7 +109,10 @@ export const hybridSearch = action({
         .slice(0, limit)
         .map(({ score, ...item }) => item as Doc<"presentations">);
     } catch (error) {
-      console.error("Vector search failed, falling back to text-only:", error);
+      logger.error("Vector search failed, falling back to text-only", {
+        tag: "PresentationSearch",
+        error: String(error),
+      });
       return textResults.slice(0, limit);
     }
   },

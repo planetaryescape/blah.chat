@@ -12,14 +12,19 @@ export const PREFERENCE_DEFAULTS = {
   chatWidth: "standard" as const,
 
   // Models
-  defaultModel: "zai:glm-4.6v-flash",
+  defaultModel: "auto",
   favoriteModels: [] as string[],
   recentModels: [] as string[],
   newChatModelSelection: "recent" as const,
 
+  // Auto Router
+  autoRouterCostBias: 50, // 0=quality focus, 100=cheapest possible
+  autoRouterSpeedBias: 50, // 0=quality focus, 100=fastest possible
+
   // Chat
   sendOnEnter: true,
   alwaysShowMessageActions: true,
+  minimalAssistantStyle: false,
   showMessageStatistics: true,
   showComparisonStatistics: true,
   showSlideStatistics: true,
@@ -79,9 +84,14 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   recentModels: "models",
   newChatModelSelection: "models",
 
+  // Auto Router
+  autoRouterCostBias: "models",
+  autoRouterSpeedBias: "models",
+
   // Chat
   sendOnEnter: "chat",
   alwaysShowMessageActions: "chat",
+  minimalAssistantStyle: "chat",
   showMessageStatistics: "chat",
   showComparisonStatistics: "chat",
   showSlideStatistics: "chat",

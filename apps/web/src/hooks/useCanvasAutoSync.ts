@@ -2,7 +2,7 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useCallback, useEffect, useRef } from "react";
 
 interface UseCanvasAutoSyncOptions {
-  conversationId: Id<"conversations">;
+  conversationId: Id<"conversations"> | undefined;
   isDocumentMode: boolean;
   documentId: Id<"canvasDocuments"> | null;
   activeCanvasDocumentId: Id<"canvasDocuments"> | undefined;

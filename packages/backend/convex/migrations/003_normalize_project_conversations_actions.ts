@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Orchestrator: batch processing with cursor pagination
@@ -20,7 +21,7 @@ export const runBackfill = internalAction({
     let cursor: string | null = null;
     let batches = 0;
 
-    console.log("🚀 Starting project-conversation backfill...");
+    logger.info("Starting project-conversation backfill", { tag: "Migration" });
 
     do {
       // Fetch batch
@@ -54,16 +55,22 @@ export const runBackfill = internalAction({
       batches++;
       cursor = batch.nextCursor;
 
-      console.log(
-        `✅ Batch ${batches}: created ${result.created}, skipped ${result.skipped}, errors ${result.errors}`,
-      );
+      logger.info("Batch processed", {
+        tag: "Migration",
+        batch: batches,
+        created: result.created,
+        skipped: result.skipped,
+        errors: result.errors,
+      });
     } while (cursor !== null);
 
-    console.log(`\n🎉 Backfill complete!`);
-    console.log(`   Batches: ${batches}`);
-    console.log(`   Created: ${totalCreated}`);
-    console.log(`   Skipped: ${totalSkipped}`);
-    console.log(`   Errors: ${totalErrors}`);
+    logger.info("Backfill complete", {
+      tag: "Migration",
+      batches,
+      created: totalCreated,
+      skipped: totalSkipped,
+      errors: totalErrors,
+    });
 
     return { totalCreated, totalSkipped, totalErrors, batches };
   },

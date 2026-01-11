@@ -22,11 +22,12 @@ export const getTagMetrics = query({
       throw new Error("Admin access required");
     }
 
-    // Get all tags
+    // Admin analytics: full scan acceptable for tags (typically small table)
     const allTags = await ctx.db.query("tags").collect();
 
-    // Get all notes with tags
-    const allNotes = await ctx.db.query("notes").collect();
+    // Admin analytics: limited scan for notes (can grow large)
+    // Note: For production scale, consider sampling or paginated aggregation
+    const allNotes = await ctx.db.query("notes").take(10000);
     const notesWithTags = allNotes.filter((n) => n.tags && n.tags.length > 0);
 
     // Calculate tag statistics
@@ -187,6 +188,7 @@ export const getSystemHealth = query({
       throw new Error("Admin access required");
     }
 
+    // Admin analytics: full scan acceptable for tags (typically small table)
     const allTags = await ctx.db.query("tags").collect();
     const embeddingCoverage =
       allTags.length > 0
@@ -195,7 +197,8 @@ export const getSystemHealth = query({
           100
         : 0;
 
-    const allNotes = await ctx.db.query("notes").collect();
+    // Admin analytics: limited scan for notes (can grow large)
+    const allNotes = await ctx.db.query("notes").take(10000);
     const notesWithTags = allNotes.filter((n) => n.tags && n.tags.length > 0);
     const taggedNotesRate =
       allNotes.length > 0 ? (notesWithTags.length / allNotes.length) * 100 : 0;

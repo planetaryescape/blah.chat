@@ -29,6 +29,7 @@ import {
   detectCreditsError,
   estimateWastedCost,
 } from "./lib/errorTracking";
+import { logger } from "./lib/logger";
 import type { MemoryExtractionLevel } from "./lib/prompts/operational/memoryExtraction";
 import {
   buildSummarizationPrompt,
@@ -117,6 +118,25 @@ export const generateResponse = internalAction({
         .pop();
       const userMessageContent = lastUserMessage?.content ?? "";
 
+      // Check if conversation has any attachments (for routing decision)
+      const recentMessages = await ctx.runQuery(
+        internal.messages.listInternal,
+        { conversationId: args.conversationId, limit: 10 },
+      );
+      const recentMessageIds = recentMessages.map(
+        (m: { _id: string }) => m._id,
+      );
+      const attachments =
+        recentMessageIds.length > 0
+          ? await ctx.runQuery(
+              internal.lib.helpers.getAttachmentsByMessageIds,
+              {
+                messageIds: recentMessageIds,
+              },
+            )
+          : [];
+      const hasAttachments = attachments.length > 0;
+
       // Route the message
       const routerResult = (await ctx.runAction(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -125,7 +145,7 @@ export const generateResponse = internalAction({
           userMessage: userMessageContent,
           conversationId: args.conversationId,
           userId: args.userId,
-          hasAttachments: false, // TODO: detect from passedMessages
+          hasAttachments,
           currentContextTokens: 0, // Will be calculated from messages
           preferences: {
             costBias: costBias ?? 50,
@@ -155,7 +175,7 @@ export const generateResponse = internalAction({
         reasoning: routerResult.reasoning,
       };
 
-      console.log("Auto router selected model", {
+      logger.info("Auto router selected model", {
         conversationId: args.conversationId,
         selectedModel: modelId,
         classification: routerResult.classification.primaryCategory,
@@ -297,13 +317,14 @@ export const generateResponse = internalAction({
             messages: cachedMessages,
             memoryContent: null, // Not tracked for cached prompts
           };
-          console.log(
-            `[Generation] Using cached system prompt (${cachedMessages.length} messages)`,
-          );
+          logger.info("Using cached system prompt", {
+            tag: "Generation",
+            messageCount: cachedMessages.length,
+          });
         } catch (_e) {
-          console.error(
-            "[Generation] Failed to parse cached prompt, falling back",
-          );
+          logger.error("Failed to parse cached prompt, falling back", {
+            tag: "Generation",
+          });
           // Fall through to buildSystemPrompts
           systemPromptsResult = await buildSystemPrompts(ctx, {
             userId: args.userId,
@@ -318,7 +339,9 @@ export const generateResponse = internalAction({
         }
       } else {
         // Cold start fallback: build synchronously (first message or cache miss)
-        console.log("[Generation] No cached prompt, building synchronously");
+        logger.info("No cached prompt, building synchronously", {
+          tag: "Generation",
+        });
         systemPromptsResult = await buildSystemPrompts(ctx, {
           userId: args.userId,
           conversationId: args.conversationId,
@@ -741,8 +764,11 @@ export const generateResponse = internalAction({
         {};
 
       if (hasToolCalls && hasNoText) {
-        console.log(
-          "[Generation] Tool calls completed but no text, requesting continuation...",
+        logger.info(
+          "Tool calls completed but no text, requesting continuation",
+          {
+            tag: "Generation",
+          },
         );
 
         // Build tool call/result messages from buffer
@@ -791,14 +817,15 @@ export const generateResponse = internalAction({
               partialContent: accumulated,
             });
 
-            console.log(
-              `[Generation] Continuation successful, got ${accumulated.length} chars`,
-            );
+            logger.info("Continuation successful", {
+              tag: "Generation",
+              charCount: accumulated.length,
+            });
           } catch (continuationError) {
-            console.error(
-              "[Generation] Continuation failed, using fallback:",
-              continuationError,
-            );
+            logger.error("Continuation failed, using fallback", {
+              tag: "Generation",
+              error: String(continuationError),
+            });
             // Fallback: generate summary from tool results
             const toolSummaries = completedToolCalls.map((tc) => {
               try {
@@ -918,29 +945,36 @@ export const generateResponse = internalAction({
             publishedDate: undefined,
           }));
 
-          console.log(
-            `[Sources] Extracted ${sources.length} sources from result.sources (Perplexity)`,
-          );
+          logger.info("Extracted sources from result.sources (Perplexity)", {
+            tag: "Sources",
+            count: sources.length,
+          });
         } else {
-          console.log(
-            "[Sources] result.sources was empty or undefined, trying providerMetadata",
+          logger.info(
+            "result.sources was empty or undefined, trying providerMetadata",
+            {
+              tag: "Sources",
+            },
           );
         }
       } catch (_error) {
-        console.log(
-          "[Sources] result.sources not available, trying providerMetadata",
-        );
+        logger.info("result.sources not available, trying providerMetadata", {
+          tag: "Sources",
+        });
       }
 
       // Priority 2: Fall back to extracting from providerMetadata (OpenRouter, etc.)
       if (!sources) {
         sources = extractSources(providerMetadata);
         if (sources) {
-          console.log(
-            `[Sources] Extracted ${sources.length} sources from providerMetadata`,
-          );
+          logger.info("Extracted sources from providerMetadata", {
+            tag: "Sources",
+            count: sources.length,
+          });
         } else {
-          console.log("[Sources] No sources found in providerMetadata either");
+          logger.info("No sources found in providerMetadata either", {
+            tag: "Sources",
+          });
         }
       }
 
@@ -958,9 +992,12 @@ export const generateResponse = internalAction({
       ];
 
       if (allSources.length > 0) {
-        console.log(
-          `[Sources] Total: ${allSources.length} (Perplexity: ${perplexitySourceCount}, WebSearch: ${webSearchSources.length})`,
-        );
+        logger.info("Total sources", {
+          tag: "Sources",
+          total: allSources.length,
+          perplexity: perplexitySourceCount,
+          webSearch: webSearchSources.length,
+        });
       }
 
       // Handle image generation (files in result)
@@ -968,7 +1005,10 @@ export const generateResponse = internalAction({
       try {
         const files = await result.files;
         if (files && files.length > 0) {
-          console.log("[Generation] Processing generated files:", files.length);
+          logger.info("Processing generated files", {
+            tag: "Generation",
+            count: files.length,
+          });
 
           for (const file of files) {
             let imageBytes: Uint8Array;
@@ -986,7 +1026,10 @@ export const generateResponse = internalAction({
                 imageBytes[i] = binaryString.charCodeAt(i);
               }
             } else {
-              console.warn("[Generation] Unknown file format:", file);
+              logger.warn("Unknown file format", {
+                tag: "Generation",
+                file: JSON.stringify(file),
+              });
               continue;
             }
 
@@ -1014,7 +1057,10 @@ export const generateResponse = internalAction({
           }
         }
       } catch (error) {
-        console.error("[Generation] Error processing generated files:", error);
+        logger.error("Error processing generated files", {
+          tag: "Generation",
+          error: String(error),
+        });
       }
 
       // 9. Finalize tool calls (Phase 1: mark partials as complete)
@@ -1112,10 +1158,10 @@ export const generateResponse = internalAction({
         (presentation.status === "outline_generating" ||
           presentation.status === "outline_pending")
       ) {
-        console.log(
-          "[Generation] Triggering outline parsing for presentation:",
-          presentation._id,
-        );
+        logger.info("Triggering outline parsing for presentation", {
+          tag: "Generation",
+          presentationId: presentation._id,
+        });
         await ctx.runMutation(
           // @ts-ignore
           internal.presentations.outline.parseOutlineMessageInternal,
@@ -1203,24 +1249,28 @@ export const generateResponse = internalAction({
       ]);
     } catch (error) {
       // Enhanced error logging to capture full gateway error details
-      console.error("[Generation] Error:", error);
+      logger.error("Generation error", {
+        tag: "Generation",
+        error: String(error),
+      });
 
       // Extract and log full responseBody from gateway errors for debugging
       const causeObj = (error as any)?.cause || {};
       if (causeObj.responseBody) {
         try {
           const parsedBody = JSON.parse(causeObj.responseBody);
-          console.error("[Generation] Full gateway error:", {
+          logger.error("Full gateway error", {
+            tag: "Generation",
             statusCode: causeObj.statusCode || (error as any).statusCode,
             model: args.modelId,
             errorMessage: parsedBody?.error?.message,
             fullResponse: parsedBody,
           });
         } catch {
-          console.error(
-            "[Generation] Raw gateway responseBody:",
-            causeObj.responseBody,
-          );
+          logger.error("Raw gateway responseBody", {
+            tag: "Generation",
+            responseBody: causeObj.responseBody,
+          });
         }
       }
 
@@ -1384,7 +1434,10 @@ export const generateResponse = internalAction({
         }
       }
 
-      console.error("[Generation] Error:", error);
+      logger.error("Generation error", {
+        tag: "Generation",
+        error: String(error),
+      });
 
       await ctx.runMutation(internal.messages.markError, {
         messageId: assistantMessageId,

@@ -8,6 +8,7 @@ import { getCurrentUser } from "./lib/userSync";
 export * as attachments from "./messages/attachments";
 // ===== Re-exports from submodules =====
 export * as embeddings from "./messages/embeddings";
+export * as recovery from "./messages/recovery";
 export * as thinking from "./messages/thinking";
 export * as toolCalls from "./messages/toolCalls";
 
@@ -61,6 +62,21 @@ export const create = internalMutation({
         }),
       ),
     ),
+    routingDecision: v.optional(
+      v.object({
+        selectedModelId: v.string(),
+        classification: v.object({
+          primaryCategory: v.string(),
+          secondaryCategory: v.optional(v.string()),
+          complexity: v.string(),
+          requiresVision: v.boolean(),
+          requiresLongContext: v.boolean(),
+          requiresReasoning: v.boolean(),
+          confidence: v.number(),
+        }),
+        reasoning: v.string(),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     if (args.role === "assistant" && !args.model) {
@@ -78,6 +94,7 @@ export const create = internalMutation({
       parentMessageId: args.parentMessageId,
       branchIndex: args.branchIndex,
       branchLabel: args.branchLabel,
+      routingDecision: args.routingDecision,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -159,6 +176,37 @@ export const create = internalMutation({
     }
 
     return messageId;
+  },
+});
+
+/**
+ * Update message with routing decision after auto router selects a model.
+ * Called from generation.ts when a pre-created message needs routing info.
+ */
+export const updateRoutingDecision = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    model: v.string(),
+    routingDecision: v.object({
+      selectedModelId: v.string(),
+      classification: v.object({
+        primaryCategory: v.string(),
+        secondaryCategory: v.optional(v.string()),
+        complexity: v.string(),
+        requiresVision: v.boolean(),
+        requiresLongContext: v.boolean(),
+        requiresReasoning: v.boolean(),
+        confidence: v.number(),
+      }),
+      reasoning: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      model: args.model,
+      routingDecision: args.routingDecision,
+      updatedAt: Date.now(),
+    });
   },
 });
 
@@ -273,10 +321,9 @@ export const listPaginated = query({
 
     return await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) =>
+      .withIndex("by_conversation_created", (q) =>
         q.eq("conversationId", args.conversationId),
       )
-      .order("asc")
       .paginate({
         ...args.paginationOpts,
         cursor: args.paginationOpts.cursor ?? null,
@@ -285,15 +332,21 @@ export const listPaginated = query({
 });
 
 export const listInternal = internalQuery({
-  args: { conversationId: v.id("conversations") },
+  args: {
+    conversationId: v.id("conversations"),
+    limit: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
         q.eq("conversationId", args.conversationId),
       )
-      .order("asc")
-      .collect();
+      .order("desc") // Get most recent first
+      .take(args.limit ?? 1000); // Default to 1000 if no limit
+
+    // Return in chronological order (asc)
+    return messages.reverse();
   },
 });
 
@@ -337,11 +390,13 @@ export const updatePartialContent = internalMutation({
 export const updateMetrics = internalMutation({
   args: {
     messageId: v.id("messages"),
+    apiCallStartedAt: v.optional(v.number()),
     firstTokenAt: v.optional(v.number()),
     tokensPerSecond: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, {
+      apiCallStartedAt: args.apiCallStartedAt,
       firstTokenAt: args.firstTokenAt,
       tokensPerSecond: args.tokensPerSecond,
       updatedAt: Date.now(),
@@ -671,6 +726,7 @@ export {
 export {
   addToolCalls,
   finalizeToolCalls,
+  getToolCallCountByConversation,
   getToolCalls,
   updatePartialToolCalls,
   upsertToolCall,

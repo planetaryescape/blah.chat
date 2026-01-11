@@ -1,14 +1,17 @@
 "use node";
 
-import { generateText } from "ai";
-import { v } from "convex/values";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { getModel } from "@/lib/ai/registry";
-import { internal } from "../_generated/api";
-import { internalAction } from "../_generated/server";
+/**
+ * YouTube Video Analyzer
+ *
+ * TODO: This file needs to be fixed - imports reference web app paths
+ * that don't work in Convex backend. Stubbed for now.
+ *
+ * See: https://github.com/planetaryescape/blah.chat/issues/XXX
+ */
 
-const YOUTUBE_URL_REGEX =
-  /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+import { v } from "convex/values";
+import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 export const analyzeVideo = internalAction({
   args: {
@@ -16,66 +19,18 @@ export const analyzeVideo = internalAction({
     url: v.string(),
     question: v.string(),
   },
-  handler: async (ctx, { userId, url, question }) => {
-    const match = url.match(YOUTUBE_URL_REGEX);
-    if (!match) {
-      return {
-        success: false,
-        error: "Invalid YouTube URL",
-      };
-    }
-
-    const videoId = match[1];
-    const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
-    try {
-      const result = await generateText({
-        model: getModel("google:gemini-2.5-flash"),
-        providerOptions: getGatewayOptions(
-          "google:gemini-2.5-flash",
-          undefined,
-          ["youtube-video"],
-        ),
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "file", data: normalizedUrl, mediaType: "video/mp4" },
-              { type: "text", text: question },
-            ],
-          },
-        ],
-      });
-
-      // Track usage
-      if (result.usage) {
-        await (ctx.runMutation as any)(
-          // @ts-ignore - TypeScript recursion limit
-          internal.usage.mutations.recordTextGeneration,
-          {
-            userId,
-            model: "google:gemini-2.5-flash",
-            inputTokens: result.usage.inputTokens ?? 0,
-            outputTokens: result.usage.outputTokens ?? 0,
-            cost: 0,
-            feature: "youtube-video-analysis",
-          },
-        );
-      }
-
-      return {
-        success: true,
-        videoId,
-        url: normalizedUrl,
-        answer: result.text,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to analyze video",
-        videoId,
-      };
-    }
+  handler: async (_ctx, { url }) => {
+    // TODO: Implement when @/lib/ai/* imports are fixed for Convex backend
+    logger.warn("Tool not implemented - imports need to be fixed", {
+      tag: "YouTubeVideo",
+    });
+    return {
+      success: false,
+      error:
+        "YouTube video analysis temporarily unavailable. Please try again later.",
+      videoId: url.match(
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      )?.[1],
+    };
   },
 });

@@ -4,8 +4,9 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { format } from "date-fns";
-import { Trash2 } from "lucide-react";
+import { MessageSquare, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import removeMarkdown from "remove-markdown";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,63 +46,87 @@ export function BookmarkCard({ bookmark }: BookmarkCardProps) {
     return null;
   }
 
-  const messagePreview =
-    bookmark.message.content.length > 150
-      ? `${bookmark.message.content.slice(0, 150)}...`
-      : bookmark.message.content;
+  const messageContent = bookmark.message.content;
+
+  // Always strip markdown for card preview - clean and concise
+  const stripped = removeMarkdown(messageContent);
+  const plainTextPreview =
+    stripped.length > 300 ? `${stripped.slice(0, 300)}...` : stripped;
 
   return (
     <Card
-      className="group relative overflow-hidden hover:bg-muted/30 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+      className="group relative overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 cursor-pointer border-border/40 bg-card/50 backdrop-blur-sm h-full flex flex-col"
       onClick={handleNavigate}
     >
-      <CardHeader className="p-4 pb-2 space-y-0">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0 pr-3">
-            <div className="flex items-center gap-2 mb-1.5 text-xs text-muted-foreground">
-              <span className="font-medium text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded">
+      <CardHeader className="p-4 pb-3 space-y-0 flex-none">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {/* Conversation title with icon */}
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-3.5 w-3.5 text-primary/60 flex-shrink-0" />
+              <span className="font-semibold text-sm text-foreground truncate">
                 {bookmark.conversation.title}
               </span>
-              <span>•</span>
-              <span>{format(bookmark.createdAt, "MMM d")}</span>
             </div>
-            <div className="text-sm text-foreground/90 line-clamp-3 leading-relaxed">
-              {messagePreview}
+
+            {/* Date */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <time dateTime={new Date(bookmark.createdAt).toISOString()}>
+                {format(bookmark.createdAt, "MMM d, yyyy")}
+              </time>
             </div>
           </div>
 
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1 -mr-2 -mt-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={handleDelete}
-              title="Delete bookmark"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          {/* Delete button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 -mr-1 -mt-1"
+            onClick={handleDelete}
+            title="Delete bookmark"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-2">
+      <CardContent className="p-4 pt-0 flex-1 flex flex-col">
+        {/* Message content */}
+        <div className="flex-1 mb-3">
+          <p className="text-sm text-foreground/90 leading-relaxed line-clamp-6">
+            {plainTextPreview}
+          </p>
+        </div>
+
+        {/* Note */}
         {bookmark.note && (
-          <div className="mt-2 text-xs bg-muted/40 p-2 rounded border border-border/40 text-muted-foreground italic">
-            "{bookmark.note}"
+          <div className="mb-3 text-xs bg-muted/50 p-2.5 rounded-md border border-border/40 text-muted-foreground">
+            <span className="opacity-60">"</span>
+            <span className="italic">{bookmark.note}</span>
+            <span className="opacity-60">"</span>
           </div>
         )}
 
+        {/* Tags */}
         {bookmark.tags && bookmark.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/30">
-            {bookmark.tags.map((tag: any) => (
+          <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/30">
+            {bookmark.tags.slice(0, 4).map((tag: any, index: number) => (
               <Badge
-                key={tag}
+                key={`${tag}-${index}`}
                 variant="secondary"
-                className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 text-muted-foreground border-border/30"
+                className="text-xs px-2 py-0.5 bg-primary/5 text-primary/80 border-primary/10 hover:bg-primary/10 transition-colors"
               >
                 {tag}
               </Badge>
             ))}
+            {bookmark.tags.length > 4 && (
+              <Badge
+                variant="secondary"
+                className="text-xs px-2 py-0.5 bg-muted/50 text-muted-foreground border-border/30"
+              >
+                +{bookmark.tags.length - 4}
+              </Badge>
+            )}
           </div>
         )}
       </CardContent>

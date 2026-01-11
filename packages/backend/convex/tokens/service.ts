@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { TiktokenModel } from "@dqbd/tiktoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { ModelMessage } from "ai";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "./counting";
 
 // Lazy import tiktoken to avoid WASM initialization errors
@@ -74,8 +75,9 @@ class OpenAITokenCounter implements TokenCountService {
       // Mark tiktoken as unavailable to avoid repeated attempts
       if (this.tiktokenAvailable === null) {
         this.tiktokenAvailable = false;
-        console.warn(
-          `OpenAI token counting unavailable (tiktoken WASM not supported), using estimation`,
+        logger.warn(
+          "OpenAI token counting unavailable (tiktoken WASM not supported), using estimation",
+          { tag: "TokenService" },
         );
       }
       return estimateTokens(text);
@@ -141,10 +143,11 @@ class AnthropicTokenCounter implements TokenCountService {
     } catch (error) {
       if (!this.errorLogged) {
         this.errorLogged = true;
-        console.warn(
-          `Anthropic token counting failed for ${this.model}:`,
-          error instanceof Error ? error.message : error,
-        );
+        logger.warn("Anthropic token counting failed", {
+          tag: "TokenService",
+          model: this.model,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return estimateTokens(text);
     }
@@ -171,10 +174,11 @@ class AnthropicTokenCounter implements TokenCountService {
     } catch (error) {
       if (!this.errorLogged) {
         this.errorLogged = true;
-        console.warn(
-          `Anthropic token counting failed for ${this.model}:`,
-          error instanceof Error ? error.message : error,
-        );
+        logger.warn("Anthropic token counting failed", {
+          tag: "TokenService",
+          model: this.model,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       // Fallback to estimation
       return messages.reduce((total, msg) => {
@@ -212,10 +216,11 @@ class GoogleTokenCounter implements TokenCountService {
     } catch (error) {
       if (!this.errorLogged) {
         this.errorLogged = true;
-        console.warn(
-          `Google token counting failed for ${this.model}:`,
-          error instanceof Error ? error.message : error,
-        );
+        logger.warn("Google token counting failed", {
+          tag: "TokenService",
+          model: this.model,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       return estimateTokens(text);
     }
@@ -243,10 +248,11 @@ class GoogleTokenCounter implements TokenCountService {
     } catch (error) {
       if (!this.errorLogged) {
         this.errorLogged = true;
-        console.warn(
-          `Google token counting failed for ${this.model}:`,
-          error instanceof Error ? error.message : error,
-        );
+        logger.warn("Google token counting failed", {
+          tag: "TokenService",
+          model: this.model,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       // Fallback to estimation
       return messages.reduce((total, msg) => {
@@ -310,9 +316,10 @@ export async function getTokenCounter(
       return new OpenAITokenCounter(modelId);
     default:
       // OpenRouter, xAI, Perplexity, unknown providers
-      console.warn(
-        `Unknown provider ${provider}, using fallback token counter`,
-      );
+      logger.warn("Unknown provider, using fallback token counter", {
+        tag: "TokenService",
+        provider,
+      });
       return new FallbackTokenCounter();
   }
 }

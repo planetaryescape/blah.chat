@@ -6,6 +6,7 @@ import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useDebouncedCallback } from "use-debounce";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -35,14 +36,16 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
 
   const isEditing = !!project;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Core submission logic
+  const executeSubmission = async () => {
+    setIsSubmitting(true);
+
     if (!name.trim()) {
       toast.error("Project name is required");
+      setIsSubmitting(false);
       return;
     }
 
-    setIsSubmitting(true);
     try {
       if (isEditing) {
         await updateProject({
@@ -53,7 +56,6 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
         });
         toast.success("Project updated");
 
-        // Track project update
         analytics.track("project_updated", {
           hasDescription: !!description.trim(),
           hasSystemPrompt: !!systemPrompt.trim(),
@@ -67,7 +69,6 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
         });
         toast.success(isTemplate ? "Template created" : "Project created");
 
-        // Track project creation
         analytics.track("project_created", {
           hasDescription: !!description.trim(),
           hasSystemPrompt: !!systemPrompt.trim(),
@@ -83,78 +84,102 @@ export function ProjectForm({ project, onSuccess }: ProjectFormProps) {
     }
   };
 
+  // Debounced wrapper - prevents rapid double-clicks
+  const debouncedSubmit = useDebouncedCallback(executeSubmission, 500, {
+    leading: true,
+    trailing: false,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    debouncedSubmit();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Name *</Label>
-        <Input
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="My Project"
-          maxLength={100}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="What is this project about?"
-          maxLength={500}
-          rows={3}
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          {description.length}/500 characters
-        </p>
-      </div>
-
-      <div>
-        <Label htmlFor="systemPrompt">System Prompt</Label>
-        <Textarea
-          id="systemPrompt"
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
-          placeholder="Instructions for AI when working on this project..."
-          maxLength={3000}
-          rows={6}
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          {systemPrompt.length}/3000 characters
-        </p>
-      </div>
-
-      {!isEditing && (
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="isTemplate"
-            checked={isTemplate}
-            onCheckedChange={(checked) => setIsTemplate(checked as boolean)}
-          />
-          <Label
-            htmlFor="isTemplate"
-            className="text-sm font-normal cursor-pointer"
-          >
-            Save as template (reusable configuration)
+      <fieldset disabled={isSubmitting} className="space-y-4">
+        <div>
+          <Label htmlFor="name" className="mb-2">
+            Name *
           </Label>
+          <Input
+            id="project-name-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="My Project"
+            maxLength={100}
+            required
+          />
         </div>
-      )}
 
-      <div className="flex gap-2 justify-end">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {isEditing ? "Updating..." : "Creating..."}
-            </>
-          ) : (
-            <>{isEditing ? "Update" : "Create"} Project</>
-          )}
-        </Button>
-      </div>
+        <div>
+          <Label htmlFor="description" className="mb-2">
+            Description
+          </Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What is this project about?"
+            maxLength={500}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {description.length}/500 characters
+          </p>
+        </div>
+
+        <div>
+          <Label htmlFor="systemPrompt" className="mb-2">
+            System Prompt
+          </Label>
+          <Textarea
+            id="systemPrompt"
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            placeholder="Instructions for AI when working on this project..."
+            maxLength={3000}
+            rows={6}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {systemPrompt.length}/3000 characters
+          </p>
+        </div>
+
+        {!isEditing && (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isTemplate"
+              checked={isTemplate}
+              onCheckedChange={(checked) => setIsTemplate(checked as boolean)}
+            />
+            <Label
+              htmlFor="isTemplate"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Save as template (reusable configuration)
+            </Label>
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className={isSubmitting ? "pointer-events-none" : ""}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {isEditing ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              <>{isEditing ? "Update" : "Create"} Project</>
+            )}
+          </Button>
+        </div>
+      </fieldset>
     </form>
   );
 }

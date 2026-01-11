@@ -8,6 +8,7 @@ import {
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 /**
@@ -47,7 +48,7 @@ export const deleteFromTool = internalAction({
             matches = [memory];
           }
         } catch (error) {
-          console.error("Error fetching memory by ID:", error);
+          logger.error("Error fetching memory by ID", { error: String(error) });
           return {
             success: false,
             message: `Memory with ID "${args.value}" not found`,
@@ -112,7 +113,7 @@ export const deleteFromTool = internalAction({
             (m): m is Doc<"memories"> => m !== null,
           );
         } catch (error) {
-          console.error("Error in semantic search:", error);
+          logger.error("Error in semantic search", { error: String(error) });
           return {
             success: false,
             message: `Semantic search failed: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -131,7 +132,7 @@ export const deleteFromTool = internalAction({
             (m) => m.metadata.category === args.value,
           );
         } catch (error) {
-          console.error("Error filtering by category:", error);
+          logger.error("Error filtering by category", { error: String(error) });
           return {
             success: false,
             message: `Failed to find memories in category "${args.value}"`,
@@ -168,7 +169,9 @@ export const deleteFromTool = internalAction({
             },
           };
         } catch (error) {
-          console.error("Error deleting single memory:", error);
+          logger.error("Error deleting single memory", {
+            error: String(error),
+          });
           return {
             success: false,
             message: `Failed to delete memory: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -198,7 +201,9 @@ export const deleteFromTool = internalAction({
         matchIds: matches.map((m) => m._id),
       };
     } catch (error) {
-      console.error("Unexpected error in deleteFromTool:", error);
+      logger.error("Unexpected error in deleteFromTool", {
+        error: String(error),
+      });
       return {
         success: false,
         message: `Unexpected error: ${error instanceof Error ? error.message : "Unknown error"}`,

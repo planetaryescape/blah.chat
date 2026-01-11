@@ -363,7 +363,7 @@ export function AppSidebar() {
           <div className="sm:hidden">
             <PrefetchableLink
               href="/app"
-              className="hover:opacity-80 transition-opacity"
+              className="transition-opacity hover:opacity-80"
             >
               <Logo size="sm" />
             </PrefetchableLink>
@@ -386,16 +386,16 @@ export function AppSidebar() {
           </Button>
           <Button
             onClick={() => setShowIncognitoDialog(true)}
-            className="h-9 w-9 p-0 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border border-sidebar-border shadow-sm transition-all duration-200 cursor-pointer "
+            className="p-0 transition-all duration-200 border shadow-sm cursor-pointer h-9 w-9 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border-sidebar-border "
             title="New Incognito Chat (Shift+Alt+N)"
           >
-            <Ghost className="h-4 w-4" />
+            <Ghost className="w-4 h-4" />
           </Button>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="flex flex-col gap-0">
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0 py-0">
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
 
           {/* Project filter - Fixed */}
@@ -414,7 +414,7 @@ export function AppSidebar() {
                 <>
                   {/* Bulk Action Bar - Top Position */}
                   {selectedIds.length > 0 ? (
-                    <div className="px-2 pb-2 sticky top-0 bg-sidebar z-10">
+                    <div className="sticky top-0 z-10 px-2 pb-2 bg-sidebar">
                       <BulkActionBar
                         selectedCount={selectedIds.length}
                         onClearSelection={handleClearSelection}
@@ -545,12 +545,30 @@ export function AppSidebar() {
         </SidebarMenu>
         <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden min-h-10">
           <div className="flex items-center justify-between">
-            {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
+            {isAuthLoaded && (
+              <UserButton
+                afterSignOutUrl="/sign-in"
+                appearance={{
+                  elements: {
+                    userButtonPopoverCard: { pointerEvents: "initial" },
+                  },
+                }}
+              />
+            )}
             <ThemeSwitcher />
           </div>
         </div>
         <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
-          {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
+          {isAuthLoaded && (
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  userButtonPopoverCard: { pointerEvents: "initial" },
+                },
+              }}
+            />
+          )}
         </div>
       </SidebarFooter>
 

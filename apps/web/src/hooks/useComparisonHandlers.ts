@@ -12,7 +12,7 @@ type MessageWithOptimistic = ServerMessage | OptimisticMessage;
 type ConsolidationMode = "same-chat" | "new-chat";
 
 interface UseComparisonHandlersOptions {
-  conversationId: Id<"conversations">;
+  conversationId: Id<"conversations"> | undefined;
   messages: MessageWithOptimistic[] | undefined;
 }
 
@@ -72,15 +72,16 @@ export function useComparisonHandlers({
 
       if (mode === "same-chat") {
         // Consolidate in place - no navigation
+        if (!conversationId) return;
         await consolidateInPlace({
-          conversationId: conversationId,
+          conversationId,
           comparisonGroupId: msg.comparisonGroupId,
           consolidationModel: model,
         });
 
         // Update conversation model to match consolidation choice
         await updateModelMutation({
-          conversationId: conversationId,
+          conversationId,
           model: model,
         });
       } else {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMockIdentity,
   createTestConversationData,
@@ -9,6 +9,15 @@ import { api } from "../_generated/api";
 import schema from "../schema";
 
 describe("convex/conversations", () => {
+  // Use fake timers to prevent scheduled functions from running
+  // create mutation schedules buildAndCachePrompt which runs async
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   describe("list query", () => {
     it("returns empty array when no conversations", async () => {
       const t = convexTest(schema);

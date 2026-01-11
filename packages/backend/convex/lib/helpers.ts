@@ -187,6 +187,27 @@ export const getMessageAttachments = internalQuery({
 });
 
 /**
+ * Get attachments for multiple messages (batch operation)
+ * Optimizes O(n) queries to O(n) parallel fetches in single query call
+ * Returns all attachments for all message IDs (caller groups by messageId)
+ */
+export const getAttachmentsByMessageIds = internalQuery({
+  args: { messageIds: v.array(v.id("messages")) },
+  handler: async (ctx, args): Promise<Doc<"attachments">[]> => {
+    // Parallel fetch for each message (still O(n) but in parallel, single round-trip)
+    const results = await Promise.all(
+      args.messageIds.map((messageId) =>
+        ctx.db
+          .query("attachments")
+          .withIndex("by_message", (q) => q.eq("messageId", messageId))
+          .collect(),
+      ),
+    );
+    return results.flat();
+  },
+});
+
+/**
  * Get task by ID (Smart Manager Phase 2)
  * Replaces: ctx.runQuery(internal.tasks.getInternal, { taskId })
  */
@@ -263,5 +284,23 @@ export const getApiKeyAvailability = internalQuery({
       },
       isProduction,
     };
+  },
+});
+
+/**
+ * Get recent conversations for a user (for batch prompt rebuilds)
+ * Used by prompts/cache.ts for rebuilding cached prompts
+ */
+export const getRecentConversations = internalQuery({
+  args: {
+    userId: v.id("users"),
+    since: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("conversations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.gte(q.field("lastMessageAt"), args.since))
+      .collect();
   },
 });

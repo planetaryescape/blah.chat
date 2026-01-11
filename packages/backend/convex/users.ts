@@ -1,5 +1,13 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+  action,
+  internalAction,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
+import { cascadeDeleteUserData } from "./lib/utils/cascade";
 import {
   getAllUserPreferences as getAllUserPreferencesHelper,
   getUserPreference as getUserPreferenceHelper,
@@ -121,6 +129,7 @@ export const updatePreferences = mutation({
       codeTheme: v.optional(v.string()),
       fontSize: v.optional(v.string()),
       alwaysShowMessageActions: v.optional(v.boolean()),
+      minimalAssistantStyle: v.optional(v.boolean()),
       sttEnabled: v.optional(v.boolean()),
       sttProvider: v.optional(
         v.union(
@@ -159,6 +168,9 @@ export const updatePreferences = mutation({
       showProjects: v.optional(v.boolean()),
       showBookmarks: v.optional(v.boolean()),
       showSlides: v.optional(v.boolean()),
+      autoCompressContext: v.optional(v.boolean()),
+      autoRouterCostBias: v.optional(v.number()),
+      autoRouterSpeedBias: v.optional(v.number()),
       memoryExtractionLevel: v.optional(
         v.union(
           v.literal("none"),
@@ -260,6 +272,14 @@ export const updateCustomInstructions = mutation({
       user._id,
       "customInstructions",
       updated,
+    );
+
+    // Rebuild cached system prompts for all recent conversations (background, non-blocking)
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.prompts.cache.rebuildUserPrompts,
+      { userId: user._id },
     );
   },
 });
@@ -382,5 +402,277 @@ export const getUserPreferenceByUserId = query({
   args: { userId: v.id("users"), key: v.string() },
   handler: async (ctx, { userId, key }) => {
     return await getUserPreferenceHelper(ctx, userId, key as any);
+  },
+});
+
+// ========================================
+// GDPR: Data Export & Deletion
+// ========================================
+
+/**
+ * Internal query to get all user data for export
+ */
+export const _getAllUserDataForExport = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const [
+      user,
+      conversations,
+      messages,
+      memories,
+      notes,
+      tasks,
+      projects,
+      bookmarks,
+      snippets,
+      files,
+      preferences,
+    ] = await Promise.all([
+      ctx.db.get(userId),
+      ctx.db
+        .query("conversations")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("messages")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("memories")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("notes")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("tasks")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("projects")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("bookmarks")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("snippets")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("files")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+      ctx.db
+        .query("userPreferences")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+    ]);
+
+    return {
+      user: user
+        ? { email: user.email, name: user.name, createdAt: user.createdAt }
+        : null,
+      conversations: conversations.map((c) => ({
+        id: c._id,
+        title: c.title,
+        model: c.model,
+        createdAt: c._creationTime,
+      })),
+      messages: messages.map((m) => ({
+        id: m._id,
+        conversationId: m.conversationId,
+        role: m.role,
+        content: m.content,
+        model: m.model,
+        createdAt: m._creationTime,
+      })),
+      memories: memories.map((m) => ({
+        id: m._id,
+        content: m.content,
+        category: m.metadata.category,
+        createdAt: m._creationTime,
+      })),
+      notes: notes.map((n) => ({
+        id: n._id,
+        title: n.title,
+        content: n.content,
+        createdAt: n._creationTime,
+      })),
+      tasks: tasks.map((t) => ({
+        id: t._id,
+        title: t.title,
+        description: t.description,
+        status: t.status,
+        createdAt: t._creationTime,
+      })),
+      projects: projects.map((p) => ({
+        id: p._id,
+        name: p.name,
+        description: p.description,
+        createdAt: p._creationTime,
+      })),
+      bookmarks: bookmarks.map((b) => ({
+        id: b._id,
+        messageId: b.messageId,
+        note: b.note,
+        createdAt: b._creationTime,
+      })),
+      snippets: snippets.map((s) => ({
+        id: s._id,
+        text: s.text,
+        note: s.note,
+        tags: s.tags,
+        createdAt: s._creationTime,
+      })),
+      files: files.map((f) => ({
+        id: f._id,
+        name: f.name,
+        mimeType: f.mimeType,
+        size: f.size,
+        createdAt: f._creationTime,
+      })),
+      preferences: preferences.reduce(
+        (acc, p) => {
+          acc[p.key] = p.value;
+          return acc;
+        },
+        {} as Record<string, unknown>,
+      ),
+    };
+  },
+});
+
+/**
+ * Export all user data as JSON (GDPR right to portability)
+ */
+export const exportMyData = action({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // Get user by clerk ID
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.users._getUserByClerkIdInternal,
+      { clerkId: identity.subject },
+    )) as { _id: string } | null;
+
+    if (!user) throw new Error("User not found");
+
+    // Get all user data
+    const data = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit
+      internal.users._getAllUserDataForExport,
+      { userId: user._id },
+    )) as Record<string, unknown>;
+
+    return {
+      exportedAt: new Date().toISOString(),
+      ...data,
+    };
+  },
+});
+
+/**
+ * Internal query to get user by clerk ID
+ */
+export const _getUserByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, { clerkId }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .first();
+  },
+});
+
+/**
+ * Delete all user data but keep account (GDPR delete my data)
+ */
+export const deleteMyData = mutation({
+  args: { confirmationText: v.string() },
+  handler: async (ctx, { confirmationText }) => {
+    if (confirmationText !== "DELETE MY DATA") {
+      throw new Error('Please type "DELETE MY DATA" to confirm');
+    }
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    await cascadeDeleteUserData(ctx, user._id);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Delete account and all data (GDPR delete my account)
+ */
+export const deleteMyAccount = mutation({
+  args: { confirmationText: v.string() },
+  handler: async (ctx, { confirmationText }) => {
+    if (confirmationText !== "DELETE MY ACCOUNT") {
+      throw new Error('Please type "DELETE MY ACCOUNT" to confirm');
+    }
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) throw new Error("User not found");
+
+    // Delete all user data
+    await cascadeDeleteUserData(ctx, user._id);
+
+    // Delete user record
+    await ctx.db.delete(user._id);
+
+    // Schedule Clerk user deletion
+    await ctx.scheduler.runAfter(0, internal.users._deleteClerkUser, {
+      clerkId: user.clerkId,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Internal action to delete user from Clerk
+ */
+export const _deleteClerkUser = internalAction({
+  args: { clerkId: v.string() },
+  handler: async (_ctx, { clerkId }) => {
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    if (!clerkSecretKey) {
+      console.error("CLERK_SECRET_KEY not configured, skipping Clerk deletion");
+      return;
+    }
+
+    const response = await fetch(`https://api.clerk.com/v1/users/${clerkId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${clerkSecretKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      console.error("Failed to delete Clerk user:", await response.text());
+    }
   },
 });

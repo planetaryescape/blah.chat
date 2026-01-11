@@ -289,6 +289,10 @@ interface AnalyticsEvent {
   };
 
   // === CONVERSATIONS (15 events) ===
+  conversation_compacted: {
+    source: "manual" | "auto";
+    conversationId: string;
+  };
   conversation_created: {
     initialModel: string;
     reusedEmpty: boolean;
@@ -509,6 +513,12 @@ interface AnalyticsEvent {
   };
 
   // === SETTINGS (12 events) ===
+  auto_router_cost_bias_changed: {
+    value: number;
+  };
+  auto_router_speed_bias_changed: {
+    value: number;
+  };
   theme_toggled: {
     newTheme: string;
   };

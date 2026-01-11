@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { logger } from "./lib/logger";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 /**
@@ -56,13 +57,16 @@ export const saveFile = mutation({
           fileId,
         },
       );
-      console.log(
-        `[FileUpload] ✓ Scheduled embedding generation for: ${args.name}`,
-      );
+      logger.info("Scheduled embedding generation", {
+        tag: "FileUpload",
+        fileName: args.name,
+      });
     } else {
-      console.log(
-        `[FileUpload] ⊘ Skipping embeddings (unsupported type): ${args.name} (${args.mimeType})`,
-      );
+      logger.info("Skipping embeddings (unsupported type)", {
+        tag: "FileUpload",
+        fileName: args.name,
+        mimeType: args.mimeType,
+      });
     }
 
     return fileId;

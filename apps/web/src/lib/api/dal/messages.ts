@@ -78,7 +78,7 @@ export const messagesDAL = {
       },
       data: {
         conversationId,
-        messageId: result.messageId, // User message ID
+        messageId: result.userMessageId, // User message ID
         assistantMessageId: result.assistantMessageIds?.[0], // First assistant message
         status: "pending",
         pollUrl: `/api/v1/messages/${result.assistantMessageIds?.[0]}`,

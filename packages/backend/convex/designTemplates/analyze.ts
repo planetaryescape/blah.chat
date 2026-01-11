@@ -9,6 +9,7 @@ import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { convertPptxToPdf } from "../lib/pdf/convertToPdf";
 import {
   buildTemplateAnalysisPrompt,
@@ -148,7 +149,10 @@ export const analyzeTemplate = internalAction({
       for (const file of sourceFiles) {
         const url = await ctx.storage.getUrl(file.storageId as any);
         if (!url) {
-          console.warn(`Could not get URL for file: ${file.name}`);
+          logger.warn("Could not get URL for file", {
+            tag: "DesignTemplates",
+            filename: file.name,
+          });
           continue;
         }
 
@@ -173,7 +177,10 @@ export const analyzeTemplate = internalAction({
           });
         } else if (file.type === "pptx") {
           // 1. Convert PPTX to PDF for visual layout analysis
-          console.log(`Converting PPTX to PDF: ${file.name}`);
+          logger.info("Converting PPTX to PDF", {
+            tag: "DesignTemplates",
+            filename: file.name,
+          });
           try {
             const pdfBase64 = await convertPptxToPdf(base64);
             contentParts.push({
@@ -182,9 +189,16 @@ export const analyzeTemplate = internalAction({
               mediaType: "application/pdf",
               filename: file.name.replace(/\.pptx$/i, ".pdf"),
             });
-            console.log(`PPTX converted to PDF successfully: ${file.name}`);
+            logger.info("PPTX converted to PDF successfully", {
+              tag: "DesignTemplates",
+              filename: file.name,
+            });
           } catch (conversionError) {
-            console.warn(`PPTX to PDF conversion failed: ${conversionError}`);
+            logger.warn("PPTX to PDF conversion failed", {
+              tag: "DesignTemplates",
+              filename: file.name,
+              error: String(conversionError),
+            });
             // Fall back to sending PPTX as binary
             contentParts.push({
               type: "file",
@@ -195,13 +209,18 @@ export const analyzeTemplate = internalAction({
           }
 
           // 2. Extract assets from PPTX for logo detection
-          console.log(`Extracting assets from PPTX: ${file.name}`);
+          logger.info("Extracting assets from PPTX", {
+            tag: "DesignTemplates",
+            filename: file.name,
+          });
           const pptxImages = await extractPptxImages(arrayBuffer);
 
           if (pptxImages.length > 0) {
-            console.log(
-              `Extracted ${pptxImages.length} assets from ${file.name}`,
-            );
+            logger.info("Extracted assets from file", {
+              tag: "DesignTemplates",
+              filename: file.name,
+              assetCount: pptxImages.length,
+            });
 
             // 3. Find logo candidate (filename contains "logo", or first SVG, or largest image)
             const logoCandidate =
@@ -213,13 +232,19 @@ export const analyzeTemplate = internalAction({
 
             if (logoCandidate && !logoStorageId) {
               // Store logo in Convex storage
-              console.log(`Storing logo: ${logoCandidate.name}`);
+              logger.info("Storing logo", {
+                tag: "DesignTemplates",
+                logoName: logoCandidate.name,
+              });
               const logoBlob = new Blob(
                 [Buffer.from(logoCandidate.data, "base64")],
                 { type: logoCandidate.mimeType },
               );
               logoStorageId = await ctx.storage.store(logoBlob);
-              console.log(`Logo stored with ID: ${logoStorageId}`);
+              logger.info("Logo stored", {
+                tag: "DesignTemplates",
+                logoStorageId,
+              });
             }
 
             // Also send extracted images to help with analysis
@@ -264,7 +289,10 @@ export const analyzeTemplate = internalAction({
         const jsonText = jsonMatch ? jsonMatch[1].trim() : responseText;
         extractedDesign = JSON.parse(jsonText);
       } catch (_parseError) {
-        console.error("Failed to parse template analysis:", result.text);
+        logger.error("Failed to parse template analysis", {
+          tag: "DesignTemplates",
+          responseText: result.text,
+        });
         throw new Error("Invalid JSON response from template analysis");
       }
 
@@ -286,7 +314,11 @@ export const analyzeTemplate = internalAction({
 
       return { success: true, design: extractedDesign };
     } catch (error) {
-      console.error("Template analysis failed:", error);
+      logger.error("Template analysis failed", {
+        tag: "DesignTemplates",
+        templateId: args.templateId,
+        error: String(error),
+      });
 
       // Update status to error
       await (ctx.runMutation as any)(

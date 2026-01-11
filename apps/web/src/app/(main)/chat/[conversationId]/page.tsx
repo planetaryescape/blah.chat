@@ -662,8 +662,8 @@ function ChatPageContent({
           </div>
         </ResizablePanel>
 
-        {/* Canvas Panel - conditionally rendered */}
-        {documentId && (
+        {/* Canvas Panel - hidden on mobile */}
+        {documentId && !isMobile && (
           <>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={55} minSize={25}>

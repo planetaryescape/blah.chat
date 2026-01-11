@@ -347,7 +347,7 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("tags")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
       .query("scheduledPrompts")

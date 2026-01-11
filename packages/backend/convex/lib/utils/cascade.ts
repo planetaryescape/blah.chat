@@ -183,15 +183,15 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("projectConversations")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
       .query("projectNotes")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
       .query("projectFiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
   ]);
 
@@ -243,15 +243,15 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("outlineItems")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
       .query("knowledgeChunks")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
       .query("fileChunks")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
   ]);
 
@@ -450,7 +450,7 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("byodMigrations")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
   ]);
 

@@ -51,13 +51,25 @@ export const recoverStuckMessages = internalMutation({
     });
 
     // Mark each stuck message as error
+    let recoveredCount = 0;
     for (const message of allStuck) {
+      // Re-check status to avoid race condition with active generation
+      const current = await ctx.db.get(message._id);
+      if (
+        !current ||
+        (current.status !== "pending" && current.status !== "generating")
+      ) {
+        // Message was completed/updated since our query - skip it
+        continue;
+      }
+
       await ctx.db.patch(message._id, {
         status: "error",
         error:
           "Generation timed out. The AI took too long to respond. Please try again.",
         generationCompletedAt: now,
       });
+      recoveredCount++;
 
       logger.info("Recovered stuck message", {
         tag: "MessageRecovery",
@@ -68,7 +80,7 @@ export const recoverStuckMessages = internalMutation({
       });
     }
 
-    return { recovered: allStuck.length };
+    return { recovered: recoveredCount };
   },
 });
 

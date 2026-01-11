@@ -33,6 +33,34 @@ import { RateLimitDialog } from "./RateLimitDialog";
 import type { ThinkingEffort } from "./ThinkingEffortSelector";
 import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
 
+/**
+ * Tooltip wrapper that skips rendering tooltip on touch devices.
+ * Prevents focus stealing on mobile.
+ */
+function MobileAwareTooltip({
+  children,
+  content,
+  side = "top",
+  isTouchDevice,
+}: {
+  children: React.ReactNode;
+  content: string;
+  side?: "top" | "bottom" | "left" | "right";
+  isTouchDevice: boolean;
+}) {
+  if (isTouchDevice) {
+    return <>{children}</>;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side}>
+        <p>{content}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 interface Attachment {
   type: "file" | "image" | "audio";
   name: string;
@@ -351,23 +379,22 @@ export const ChatInput = memo(function ChatInput({
         <div className="flex items-start gap-2">
           {/* Plus button - LEFT, bottom-aligned */}
           <div className="flex-shrink-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <FileUpload
-                    conversationId={conversationId}
-                    attachments={attachments}
-                    onAttachmentsChange={onAttachmentsChange}
-                    onUploadComplete={() => textareaRef.current?.focus()}
-                    uploading={uploading}
-                    setUploading={setUploading}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>Attach files</p>
-              </TooltipContent>
-            </Tooltip>
+            <MobileAwareTooltip
+              content="Attach files"
+              side="top"
+              isTouchDevice={isTouchDevice}
+            >
+              <div>
+                <FileUpload
+                  conversationId={conversationId}
+                  attachments={attachments}
+                  onAttachmentsChange={onAttachmentsChange}
+                  onUploadComplete={() => textareaRef.current?.focus()}
+                  uploading={uploading}
+                  setUploading={setUploading}
+                />
+              </div>
+            </MobileAwareTooltip>
           </div>
 
           {/* Textarea container - grows upward, takes remaining space */}
@@ -403,23 +430,22 @@ export const ChatInput = memo(function ChatInput({
                 />
                 {/* Expand button for long text */}
                 {showExpandButton && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowExpandedInput(true)}
-                        className="absolute w-6 h-6 top-2 right-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
-                        aria-label="Expand input"
-                      >
-                        <Expand className="w-3.5 h-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Expand editor</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <MobileAwareTooltip
+                    content="Expand editor"
+                    side="top"
+                    isTouchDevice={isTouchDevice}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowExpandedInput(true)}
+                      className="absolute w-6 h-6 top-2 right-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
+                      aria-label="Expand input"
+                    >
+                      <Expand className="w-3.5 h-3.5" />
+                    </Button>
+                  </MobileAwareTooltip>
                 )}
               </>
             )}
@@ -433,92 +459,86 @@ export const ChatInput = memo(function ChatInput({
           <div className="flex items-center flex-shrink-0 gap-1">
             {/* VoiceInput always rendered (hidden when !showMic) to preserve ref during recording */}
             <div className={cn(showMic ? "block" : "hidden")}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <VoiceInput
-                      ref={voiceInputRef}
-                      onTranscript={async (text, autoSend) => {
-                        setIsTranscribing(false);
-                        if (autoSend && text.trim()) {
-                          setIsSending(true);
-                          try {
-                            await sendMessage({
-                              conversationId,
-                              content: text.trim(),
-                              ...(isComparisonMode
-                                ? { models: selectedModels }
-                                : { modelId: selectedModel }),
-                              thinkingEffort,
-                              attachments:
-                                attachments.length > 0
-                                  ? attachments
-                                  : undefined,
-                            });
-                            onAttachmentsChange([]);
-                          } catch (error) {
-                            if (
-                              error instanceof Error &&
-                              error.message.includes("Daily message limit")
-                            ) {
-                              setShowRateLimitDialog(true);
-                            } else {
-                              console.error("Failed to send message:", error);
-                            }
-                          } finally {
-                            setIsSending(false);
+              <MobileAwareTooltip
+                content="Voice input"
+                isTouchDevice={isTouchDevice}
+              >
+                <div>
+                  <VoiceInput
+                    ref={voiceInputRef}
+                    onTranscript={async (text, autoSend) => {
+                      setIsTranscribing(false);
+                      if (autoSend && text.trim()) {
+                        setIsSending(true);
+                        try {
+                          await sendMessage({
+                            conversationId,
+                            content: text.trim(),
+                            ...(isComparisonMode
+                              ? { models: selectedModels }
+                              : { modelId: selectedModel }),
+                            thinkingEffort,
+                            attachments:
+                              attachments.length > 0 ? attachments : undefined,
+                          });
+                          onAttachmentsChange([]);
+                        } catch (error) {
+                          if (
+                            error instanceof Error &&
+                            error.message.includes("Daily message limit")
+                          ) {
+                            setShowRateLimitDialog(true);
+                          } else {
+                            console.error("Failed to send message:", error);
                           }
-                        } else {
-                          setInput((prev) =>
-                            prev.trim() ? `${prev} ${text}` : text,
-                          );
+                        } finally {
+                          setIsSending(false);
                         }
-                      }}
-                      onRecordingStateChange={(recording, stream) => {
-                        setIsRecording(recording);
-                        setRecordingStream(stream || null);
-                        if (!recording && stream) setIsTranscribing(true);
-                      }}
-                      isDisabled={isSending || uploading}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Voice input</p>
-                </TooltipContent>
-              </Tooltip>
+                      } else {
+                        setInput((prev) =>
+                          prev.trim() ? `${prev} ${text}` : text,
+                        );
+                      }
+                    }}
+                    onRecordingStateChange={(recording, stream) => {
+                      setIsRecording(recording);
+                      setRecordingStream(stream || null);
+                      if (!recording && stream) setIsTranscribing(true);
+                    }}
+                    isDisabled={isSending || uploading}
+                  />
+                </div>
+              </MobileAwareTooltip>
             </div>
 
             {/* Stop recording button (preview mode) - appears during recording */}
             {isRecording && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              <MobileAwareTooltip
+                content="Stop & edit"
+                isTouchDevice={isTouchDevice}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={() =>
+                      voiceInputRef.current?.stopRecording("preview")
+                    }
+                    aria-label="Stop recording and edit"
+                    className="w-10 h-10 rounded-full"
                   >
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() =>
-                        voiceInputRef.current?.stopRecording("preview")
-                      }
-                      aria-label="Stop recording and edit"
-                      className="w-10 h-10 rounded-full"
-                    >
-                      <Square
-                        className="w-4 h-4 fill-current"
-                        aria-hidden="true"
-                      />
-                    </Button>
-                  </motion.div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Stop & edit</p>
-                </TooltipContent>
-              </Tooltip>
+                    <Square
+                      className="w-4 h-4 fill-current"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </motion.div>
+              </MobileAwareTooltip>
             )}
 
             {/* Show send/stop button when not showing mic */}

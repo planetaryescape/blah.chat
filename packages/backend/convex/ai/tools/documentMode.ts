@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 
 export function createEnterDocumentModeTool(
   ctx: ActionCtx,
@@ -40,7 +41,10 @@ export function createEnterDocumentModeTool(
           reason,
         };
       } catch (error) {
-        console.error("[Tool] Enter document mode failed:", error);
+        logger.error("Enter document mode failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           error:
@@ -82,7 +86,10 @@ export function createExitDocumentModeTool(
           reason,
         };
       } catch (error) {
-        console.error("[Tool] Exit document mode failed:", error);
+        logger.error("Exit document mode failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           error: error instanceof Error ? error.message : "Failed to exit mode",

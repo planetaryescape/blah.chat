@@ -7,6 +7,7 @@ import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 type Message = Doc<"messages">;
@@ -163,7 +164,10 @@ ${conversationText}`,
         title: title.trim(),
       });
     } catch (error) {
-      console.error("Title generation failed:", error);
+      logger.error("Title generation failed", {
+        tag: "TitleGeneration",
+        error: String(error),
+      });
       // Keep default title on failure
     }
   },

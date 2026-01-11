@@ -8,7 +8,7 @@ import { getCurrentUser } from "./lib/userSync";
 export * as attachments from "./messages/attachments";
 // ===== Re-exports from submodules =====
 export * as embeddings from "./messages/embeddings";
-// export * as recovery from "./messages/recovery"; // TODO: File doesn't exist - re-enable when created
+export * as recovery from "./messages/recovery";
 export * as thinking from "./messages/thinking";
 export * as toolCalls from "./messages/toolCalls";
 

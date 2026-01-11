@@ -20,6 +20,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 // Batch size for embedding generation (API rate limits)
@@ -81,9 +82,11 @@ export const generateFileEmbeddings = internalAction({
         };
       }>;
 
-      console.log(
-        `[FileEmbedding] Processing ${chunks.length} chunks in batches of ${EMBEDDING_BATCH_SIZE}`,
-      );
+      logger.info("Processing chunks", {
+        tag: "FileEmbedding",
+        chunkCount: chunks.length,
+        batchSize: EMBEDDING_BATCH_SIZE,
+      });
 
       // 4. Generate embeddings in batches
       let _processedCount = 0;
@@ -135,9 +138,12 @@ export const generateFileEmbeddings = internalAction({
 
         _processedCount += batchChunks.length;
         const batchDuration = Date.now() - batchStart;
-        console.log(
-          `[FileEmbedding] Batch ${Math.floor(i / EMBEDDING_BATCH_SIZE) + 1}: ${batchChunks.length} chunks (${batchDuration}ms)`,
-        );
+        logger.info("Batch processed", {
+          tag: "FileEmbedding",
+          batchNumber: Math.floor(i / EMBEDDING_BATCH_SIZE) + 1,
+          chunkCount: batchChunks.length,
+          durationMs: batchDuration,
+        });
       }
 
       // 5. Update file status to "completed"
@@ -153,12 +159,12 @@ export const generateFileEmbeddings = internalAction({
       )) as Promise<void>;
 
       const totalDuration = Date.now() - startTime;
-      console.log(
-        `[FileEmbedding] ✓ Complete: ${chunks.length} chunks embedded (${totalDuration}ms)`,
-      );
-      console.log(
-        `  Avg: ${Math.round(totalDuration / chunks.length)}ms/chunk`,
-      );
+      logger.info("Embedding complete", {
+        tag: "FileEmbedding",
+        chunkCount: chunks.length,
+        totalDurationMs: totalDuration,
+        avgMsPerChunk: Math.round(totalDuration / chunks.length),
+      });
 
       return {
         success: true,
@@ -166,7 +172,10 @@ export const generateFileEmbeddings = internalAction({
         duration: totalDuration,
       };
     } catch (error: any) {
-      console.error("[FileEmbedding] Error:", error);
+      logger.error("Embedding failed", {
+        tag: "FileEmbedding",
+        error: String(error),
+      });
 
       // Update file status to "failed"
       (await (ctx.runMutation as any)(

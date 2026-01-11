@@ -12,6 +12,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
@@ -39,7 +40,10 @@ export const generateEmbedding = internalAction({
     } | null;
 
     if (!presentation) {
-      console.error("Presentation not found:", args.presentationId);
+      logger.error("Presentation not found", {
+        tag: "Embeddings",
+        presentationId: args.presentationId,
+      });
       return;
     }
 
@@ -108,11 +112,11 @@ export const generateEmbedding = internalAction({
         },
       );
     } catch (error) {
-      console.error(
-        "Failed to generate embedding for presentation:",
-        args.presentationId,
-        error,
-      );
+      logger.error("Failed to generate embedding for presentation", {
+        tag: "Embeddings",
+        presentationId: args.presentationId,
+        error: String(error),
+      });
     }
   },
 });
@@ -159,7 +163,11 @@ export const generateBatchEmbeddings = internalAction({
           { presentationId: presentation._id },
         );
       } catch (error) {
-        console.error("Failed to embed presentation:", presentation._id, error);
+        logger.error("Failed to embed presentation", {
+          tag: "Embeddings",
+          presentationId: presentation._id,
+          error: String(error),
+        });
       }
     }
 

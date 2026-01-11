@@ -7,6 +7,7 @@ import {
 } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 export const updateMemory = mutation({
@@ -83,9 +84,11 @@ export const updateMemory = mutation({
       },
     });
 
-    console.log(
-      `[Memory] Updated: v${existing.metadata?.version || 1} → v${(existing.metadata?.version || 1) + 1}`,
-    );
+    logger.info("Memory updated", {
+      tag: "Memory",
+      oldVersion: existing.metadata?.version || 1,
+      newVersion: (existing.metadata?.version || 1) + 1,
+    });
 
     return newMemoryId;
   },

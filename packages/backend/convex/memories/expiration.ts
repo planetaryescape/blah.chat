@@ -1,4 +1,5 @@
 import { internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 export const markExpired = internalMutation({
   handler: async (ctx) => {
@@ -17,9 +18,11 @@ export const markExpired = internalMutation({
       }
     }
 
-    console.log(
-      `[Cron] Deleted ${deletedCount} expired memories (>90 days old)`,
-    );
+    logger.info("Deleted expired memories", {
+      tag: "Cron",
+      deletedCount,
+      threshold: ">90 days old",
+    });
     return { deletedCount };
   },
 });

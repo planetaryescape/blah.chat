@@ -8,6 +8,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import {
   buildDesignSystemPrompt,
   type TemplateConstraints,
@@ -253,10 +254,10 @@ export const generateDesignSystem = internalAction({
       try {
         designSystem = parseDesignSystemResponse(responseText);
       } catch {
-        console.error(
-          "Failed to parse design system JSON:",
-          responseText.substring(0, 500),
-        );
+        logger.error("Failed to parse design system JSON", {
+          tag: "DesignSystem",
+          responsePreview: responseText.substring(0, 500),
+        });
         throw new Error("Invalid design system format from AI");
       }
 
@@ -289,7 +290,7 @@ export const generateDesignSystem = internalAction({
 
       return { success: true, theme: designSystem.theme };
     } catch (error) {
-      console.error("Design system generation failed:", error);
+      logger.error("Design system generation failed", { error: String(error) });
 
       try {
         await (ctx.runMutation as any)(
@@ -301,7 +302,7 @@ export const generateDesignSystem = internalAction({
           },
         );
       } catch (e) {
-        console.error("Failed to update error status:", e);
+        logger.error("Failed to update error status", { error: String(e) });
       }
 
       return { success: false, error: String(error) };
@@ -431,10 +432,10 @@ export const generateDesignSystemFromOutline = internalAction({
       try {
         designSystem = parseDesignSystemResponse(responseText);
       } catch {
-        console.error(
-          "Failed to parse design system JSON:",
-          responseText.substring(0, 500),
-        );
+        logger.error("Failed to parse design system JSON", {
+          tag: "DesignSystem",
+          responsePreview: responseText.substring(0, 500),
+        });
         throw new Error("Invalid design system format from AI");
       }
 
@@ -539,7 +540,9 @@ export const generateDesignSystemFromOutline = internalAction({
             );
           }
         } catch (e) {
-          console.error("Failed to parse visual directions:", e);
+          logger.error("Failed to parse visual directions", {
+            error: String(e),
+          });
           // Non-fatal - continue without visual directions
         }
       }
@@ -556,7 +559,9 @@ export const generateDesignSystemFromOutline = internalAction({
 
       return { success: true, theme: designSystem.theme };
     } catch (error) {
-      console.error("Design system generation from outline failed:", error);
+      logger.error("Design system generation from outline failed", {
+        error: String(error),
+      });
 
       try {
         // Revert to outline_complete so user can still approve
@@ -569,7 +574,7 @@ export const generateDesignSystemFromOutline = internalAction({
           },
         );
       } catch (e) {
-        console.error("Failed to update status:", e);
+        logger.error("Failed to update status", { error: String(e) });
       }
 
       return { success: false, error: String(error) };

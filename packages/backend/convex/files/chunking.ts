@@ -16,6 +16,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // Chunk configuration (optimized based on RAG research)
 export const CHARS_PER_TOKEN = 4; // Approximate (actual varies by model)
@@ -113,12 +114,13 @@ export const chunkFile = action({
     const chunks = chunkText(args.content);
 
     const duration = Date.now() - startTime;
-    console.log(
-      `[FileChunking] ✓ ${file.name}: ${chunks.length} chunks (${duration}ms)`,
-    );
-    console.log(
-      `  Avg chunk size: ${Math.round(args.content.length / chunks.length)} chars`,
-    );
+    logger.info("File chunked", {
+      tag: "FileChunking",
+      fileName: file.name,
+      chunkCount: chunks.length,
+      durationMs: duration,
+      avgChunkSize: Math.round(args.content.length / chunks.length),
+    });
 
     return chunks;
   },
@@ -159,9 +161,11 @@ export const extractFileText = action({
       throw new Error("File is empty or contains no text");
     }
 
-    console.log(
-      `[FileExtraction] ✓ ${file.name}: ${text.length} chars extracted`,
-    );
+    logger.info("File text extracted", {
+      tag: "FileExtraction",
+      fileName: file.name,
+      charCount: text.length,
+    });
 
     return text;
   },

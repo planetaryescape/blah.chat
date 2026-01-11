@@ -193,7 +193,12 @@ export const remove = mutation({
       try {
         await ctx.storage.delete(file.storageId);
       } catch (e) {
-        console.error("Failed to delete template file:", e);
+        const { logger } = await import("./lib/logger");
+        logger.error("Failed to delete template file", {
+          tag: "DesignTemplates",
+          storageId: file.storageId,
+          error: String(e),
+        });
       }
     }
 

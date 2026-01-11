@@ -9,7 +9,7 @@ import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 
 interface UseChatModelSelectionOptions {
-  conversationId: Id<"conversations">;
+  conversationId: Id<"conversations"> | undefined;
   conversation: Doc<"conversations"> | null | undefined;
   user: Doc<"users"> | null | undefined;
   defaultModel: string | undefined;

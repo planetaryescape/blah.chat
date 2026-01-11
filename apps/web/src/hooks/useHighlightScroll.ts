@@ -1,13 +1,19 @@
 "use client";
 
-import type { Virtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
 import type { GroupedItem } from "@/hooks/useMessageGrouping";
+
+interface VirtualizerLike {
+  scrollToIndex: (
+    index: number,
+    options?: { align?: string; behavior?: string },
+  ) => void;
+}
 
 interface UseHighlightScrollOptions {
   highlightMessageId?: string;
   grouped: GroupedItem[];
-  virtualizer: Virtualizer<any, any>;
+  virtualizer: VirtualizerLike | null;
 }
 
 const SCROLL_DELAY = 300;
@@ -22,7 +28,8 @@ export function useHighlightScroll({
   const scrolledToHighlight = useRef(false);
 
   useEffect(() => {
-    if (!highlightMessageId || scrolledToHighlight.current) return;
+    if (!highlightMessageId || scrolledToHighlight.current || !virtualizer)
+      return;
 
     const targetIndex = grouped.findIndex((item) => {
       if (item.type === "message") return item.data._id === highlightMessageId;

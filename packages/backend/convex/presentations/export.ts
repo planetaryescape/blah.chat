@@ -6,6 +6,7 @@ import { PDFDocument } from "pdf-lib";
 import PptxGenJS from "pptxgenjs";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 interface SlideData {
   _id: string;
@@ -43,9 +44,10 @@ export const generatePPTX = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      console.log(
-        `[PPTX Export] Starting generation for ${args.presentationId}`,
-      );
+      logger.info("Starting PPTX generation", {
+        tag: "PPTX Export",
+        presentationId: args.presentationId,
+      });
 
       // Fetch presentation
       const presentation = (await (ctx.runQuery as any)(
@@ -73,10 +75,11 @@ export const generatePPTX = internalAction({
         throw new Error("No slides found");
       }
 
-      console.log(`[PPTX Export] Found ${slides.length} slides`);
-      console.log(
-        `[PPTX Export] Slides with images: ${slides.filter((s) => s.imageStorageId).length}`,
-      );
+      logger.info("Found slides for PPTX", {
+        tag: "PPTX Export",
+        slideCount: slides.length,
+        slidesWithImages: slides.filter((s) => s.imageStorageId).length,
+      });
 
       // Initialize PptxGenJS
       const pptx = new PptxGenJS();
@@ -138,21 +141,24 @@ export const generatePPTX = internalAction({
               slide.background = {
                 data: `data:image/png;base64,${imageBase64}`,
               };
-              console.log(
-                `[PPTX Export] Added background image for slide ${slideData.position}`,
-              );
+              logger.info("Added background image for slide", {
+                tag: "PPTX Export",
+                position: slideData.position,
+              });
             }
           } catch (error) {
-            console.error(
-              `[PPTX Export] Failed to add background for slide ${slideData.position}:`,
-              error,
-            );
+            logger.error("Failed to add background for slide", {
+              tag: "PPTX Export",
+              position: slideData.position,
+              error: String(error),
+            });
             // Continue without background
           }
         } else {
-          console.log(
-            `[PPTX Export] No imageStorageId for slide ${slideData.position}`,
-          );
+          logger.info("No imageStorageId for slide", {
+            tag: "PPTX Export",
+            position: slideData.position,
+          });
         }
 
         // ===== SPEAKER NOTES =====
@@ -162,13 +168,13 @@ export const generatePPTX = internalAction({
       }
 
       // ===== GENERATE PPTX BUFFER =====
-      console.log("[PPTX Export] Generating PPTX buffer...");
+      logger.info("Generating PPTX buffer", { tag: "PPTX Export" });
       const pptxBuffer = (await pptx.write({
         outputType: "nodebuffer",
       })) as Buffer;
 
       // ===== STORE IN CONVEX STORAGE =====
-      console.log("[PPTX Export] Storing PPTX in Convex storage...");
+      logger.info("Storing PPTX in Convex storage", { tag: "PPTX Export" });
       const blob = new Blob([new Uint8Array(pptxBuffer)], {
         type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       });
@@ -185,11 +191,17 @@ export const generatePPTX = internalAction({
         },
       );
 
-      console.log(`[PPTX Export] Successfully generated PPTX: ${storageId}`);
+      logger.info("Successfully generated PPTX", {
+        tag: "PPTX Export",
+        storageId,
+      });
 
       return { success: true, storageId };
     } catch (error) {
-      console.error("[PPTX Export] Generation error:", error);
+      logger.error("PPTX generation error", {
+        tag: "PPTX Export",
+        error: String(error),
+      });
       throw error;
     }
   },
@@ -209,9 +221,10 @@ export const generatePDF = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      console.log(
-        `[PDF Export] Starting generation for ${args.presentationId}`,
-      );
+      logger.info("Starting PDF generation", {
+        tag: "PDF Export",
+        presentationId: args.presentationId,
+      });
 
       // Fetch presentation
       const presentation = (await (ctx.runQuery as any)(
@@ -239,7 +252,10 @@ export const generatePDF = internalAction({
         throw new Error("No slides found");
       }
 
-      console.log(`[PDF Export] Found ${slides.length} slides`);
+      logger.info("Found slides for PDF", {
+        tag: "PDF Export",
+        slideCount: slides.length,
+      });
 
       // Get page dimensions based on aspect ratio
       const aspectRatio = presentation.aspectRatio || "16:9";
@@ -286,15 +302,17 @@ export const generatePDF = internalAction({
                 height: dims.height,
               });
 
-              console.log(
-                `[PDF Export] Added image for slide ${slideData.position}`,
-              );
+              logger.info("Added image for slide", {
+                tag: "PDF Export",
+                position: slideData.position,
+              });
             }
           } catch (error) {
-            console.error(
-              `[PDF Export] Failed to add image for slide ${slideData.position}:`,
-              error,
-            );
+            logger.error("Failed to add image for slide", {
+              tag: "PDF Export",
+              position: slideData.position,
+              error: String(error),
+            });
             // Add blank page on error
             pdfDoc.addPage([dims.width, dims.height]);
           }
@@ -305,11 +323,11 @@ export const generatePDF = internalAction({
       }
 
       // Generate PDF buffer
-      console.log("[PDF Export] Generating PDF buffer...");
+      logger.info("Generating PDF buffer", { tag: "PDF Export" });
       const pdfBytes = await pdfDoc.save();
 
       // Store in Convex storage
-      console.log("[PDF Export] Storing PDF in Convex storage...");
+      logger.info("Storing PDF in Convex storage", { tag: "PDF Export" });
       const blob = new Blob([new Uint8Array(pdfBytes)], {
         type: "application/pdf",
       });
@@ -326,11 +344,17 @@ export const generatePDF = internalAction({
         },
       );
 
-      console.log(`[PDF Export] Successfully generated PDF: ${storageId}`);
+      logger.info("Successfully generated PDF", {
+        tag: "PDF Export",
+        storageId,
+      });
 
       return { success: true, storageId };
     } catch (error) {
-      console.error("[PDF Export] Generation error:", error);
+      logger.error("PDF generation error", {
+        tag: "PDF Export",
+        error: String(error),
+      });
       throw error;
     }
   },
@@ -342,9 +366,10 @@ export const generateImagesZip = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      console.log(
-        `[ZIP Export] Starting generation for ${args.presentationId}`,
-      );
+      logger.info("Starting ZIP generation", {
+        tag: "ZIP Export",
+        presentationId: args.presentationId,
+      });
 
       // Fetch presentation
       const presentation = (await (ctx.runQuery as any)(
@@ -372,7 +397,10 @@ export const generateImagesZip = internalAction({
         throw new Error("No slides found");
       }
 
-      console.log(`[ZIP Export] Found ${slides.length} slides`);
+      logger.info("Found slides for ZIP", {
+        tag: "ZIP Export",
+        slideCount: slides.length,
+      });
 
       // Sort slides by position
       const sortedSlides = [...slides].sort((a, b) => a.position - b.position);
@@ -398,13 +426,17 @@ export const generateImagesZip = internalAction({
               const filename = `slide-${String(slideData.position + 1).padStart(2, "0")}.png`;
               zip.file(filename, imageData);
 
-              console.log(`[ZIP Export] Added ${filename}`);
+              logger.info("Added file to ZIP", {
+                tag: "ZIP Export",
+                filename,
+              });
             }
           } catch (error) {
-            console.error(
-              `[ZIP Export] Failed to add slide ${slideData.position}:`,
-              error,
-            );
+            logger.error("Failed to add slide to ZIP", {
+              tag: "ZIP Export",
+              position: slideData.position,
+              error: String(error),
+            });
           }
         }
       }
@@ -415,10 +447,13 @@ export const generateImagesZip = internalAction({
         compression: "DEFLATE",
       });
 
-      console.log(`[ZIP Export] Generated ZIP buffer: ${zipData.length} bytes`);
+      logger.info("Generated ZIP buffer", {
+        tag: "ZIP Export",
+        bytes: zipData.length,
+      });
 
       // Store in Convex storage
-      console.log("[ZIP Export] Storing ZIP in Convex storage...");
+      logger.info("Storing ZIP in Convex storage", { tag: "ZIP Export" });
       const blob = new Blob([new Uint8Array(zipData)], {
         type: "application/zip",
       });
@@ -435,11 +470,17 @@ export const generateImagesZip = internalAction({
         },
       );
 
-      console.log(`[ZIP Export] Successfully generated ZIP: ${storageId}`);
+      logger.info("Successfully generated ZIP", {
+        tag: "ZIP Export",
+        storageId,
+      });
 
       return { success: true, storageId };
     } catch (error) {
-      console.error("[ZIP Export] Generation error:", error);
+      logger.error("ZIP generation error", {
+        tag: "ZIP Export",
+        error: String(error),
+      });
       throw error;
     }
   },

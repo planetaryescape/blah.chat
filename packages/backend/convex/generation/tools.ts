@@ -90,13 +90,11 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
     !isIncognito || incognitoSettings?.enableReadTools !== false;
 
   // Memory tool settings based on extraction level
-  // none = no memory tools, passive = save only, moderate+ = all tools
+  // none = no memory tools, passive+ = search tool available
   const enableMemoryWriteTools =
     !isIncognito && memoryExtractionLevel !== "none";
   const enableMemoryReadTools =
-    enableReadTools &&
-    memoryExtractionLevel !== "none" &&
-    memoryExtractionLevel !== "passive";
+    enableReadTools && memoryExtractionLevel !== "none";
 
   // Capability tools: ALWAYS available (stateless, no persistent writes)
   const calculatorTool = createCalculatorTool();

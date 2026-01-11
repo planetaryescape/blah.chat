@@ -154,7 +154,12 @@ Provide your triage assessment:`,
         },
       };
     } catch (error) {
-      console.error("Auto-triage failed:", error);
+      const { logger } = await import("../lib/logger");
+      logger.error("Auto-triage failed", {
+        tag: "FeedbackTriage",
+        feedbackId,
+        error: String(error),
+      });
 
       // Send email even without AI triage (best-effort notification)
       try {
@@ -164,7 +169,11 @@ Provide your triage assessment:`,
           { feedbackId },
         );
       } catch (emailError) {
-        console.error("Failed to send feedback email:", emailError);
+        logger.error("Failed to send feedback email", {
+          tag: "FeedbackTriage",
+          feedbackId,
+          error: String(emailError),
+        });
         // Don't throw - just log the error
       }
 

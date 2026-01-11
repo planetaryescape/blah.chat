@@ -2,6 +2,7 @@
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Orchestrator: Backfill model field for all messages
@@ -11,7 +12,7 @@ export const runBackfill = internalAction({
     let totalUpdated = 0;
     let batches = 0;
 
-    console.log("🚀 Starting message model backfill...");
+    logger.info("Starting message model backfill", { tag: "Migration" });
 
     // Check initial state
     const initial = (await (ctx.runQuery as any)(
@@ -25,14 +26,18 @@ export const runBackfill = internalAction({
       percentage: string;
     };
 
-    console.log(`Total messages: ${initial.total}`);
-    console.log(`Assistant messages: ${initial.assistantMessages}`);
-    console.log(
-      `Missing model: ${initial.withoutModel} (${initial.percentage}%)`,
-    );
+    logger.info("Initial state", {
+      tag: "Migration",
+      total: initial.total,
+      assistantMessages: initial.assistantMessages,
+      missingModel: initial.withoutModel,
+      percentage: initial.percentage,
+    });
 
     if (initial.withoutModel === 0) {
-      console.log("✅ All messages already have model field");
+      logger.info("All messages already have model field", {
+        tag: "Migration",
+      });
       return { totalUpdated: 0, batches: 0 };
     }
 
@@ -47,7 +52,11 @@ export const runBackfill = internalAction({
       totalUpdated += result.updated;
       batches++;
 
-      console.log(`✅ Batch ${batches}: updated ${result.updated} messages`);
+      logger.info("Batch processed", {
+        tag: "Migration",
+        batch: batches,
+        updated: result.updated,
+      });
 
       if (result.updated === 0) break; // No more to update
     }
@@ -64,16 +73,22 @@ export const runBackfill = internalAction({
       percentage: string;
     };
 
-    console.log(`\n🎉 Backfill complete!`);
-    console.log(`   Updated ${totalUpdated} messages in ${batches} batches`);
-    console.log(`   Remaining without model: ${final.withoutModel}`);
+    logger.info("Backfill complete", {
+      tag: "Migration",
+      updated: totalUpdated,
+      batches,
+      remainingWithoutModel: final.withoutModel,
+    });
 
     if (final.withoutModel > 0) {
-      console.warn(
-        `⚠️  Warning: ${final.withoutModel} messages still missing model`,
-      );
+      logger.warn("Messages still missing model", {
+        tag: "Migration",
+        count: final.withoutModel,
+      });
     } else {
-      console.log("✅ All messages have model - safe to make field required");
+      logger.info("All messages have model - safe to make field required", {
+        tag: "Migration",
+      });
     }
 
     return { totalUpdated, batches, remaining: final.withoutModel };

@@ -31,6 +31,9 @@ export interface UISettingsState {
   showProjects: boolean;
   showBookmarks: boolean;
   showSlides: boolean;
+  // Auto Router
+  autoRouterCostBias: number;
+  autoRouterSpeedBias: number;
 }
 
 export interface UISettingsHandlers {
@@ -50,6 +53,9 @@ export interface UISettingsHandlers {
   handleShowProjectsChange: (checked: boolean) => Promise<void>;
   handleShowBookmarksChange: (checked: boolean) => Promise<void>;
   handleShowSlidesChange: (checked: boolean) => Promise<void>;
+  // Auto Router
+  handleCostBiasChange: (value: number) => Promise<void>;
+  handleSpeedBiasChange: (value: number) => Promise<void>;
 }
 
 /**
@@ -79,6 +85,8 @@ export function useUISettingsState() {
   const prefShowProjects = useUserPreference("showProjects");
   const prefShowBookmarks = useUserPreference("showBookmarks");
   const prefShowSlides = useUserPreference("showSlides");
+  const prefCostBias = useUserPreference("autoRouterCostBias");
+  const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
 
   // Local state for optimistic updates
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
@@ -117,6 +125,10 @@ export function useUISettingsState() {
   const [showBookmarks, setShowBookmarks] =
     useState<boolean>(prefShowBookmarks);
   const [showSlides, setShowSlides] = useState<boolean>(prefShowSlides);
+  const [autoRouterCostBias, setAutoRouterCostBias] =
+    useState<number>(prefCostBias);
+  const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
+    useState<number>(prefSpeedBias);
 
   // Sync local state when hook values change
   useEffect(
@@ -162,6 +174,8 @@ export function useUISettingsState() {
   useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
   useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
   useEffect(() => setShowSlides(prefShowSlides), [prefShowSlides]);
+  useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
+  useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
 
   // Generic handler for simple boolean preferences
   const createBooleanHandler = (
@@ -232,6 +246,36 @@ export function useUISettingsState() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setChatWidth(previousWidth);
+    }
+  };
+
+  const handleCostBiasChange = async (value: number) => {
+    const previous = autoRouterCostBias;
+    setAutoRouterCostBias(value);
+    try {
+      await updatePreferences({
+        preferences: { autoRouterCostBias: value },
+      });
+      toast.success("Cost preference updated!");
+      analytics.track("auto_router_cost_bias_changed", { value });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setAutoRouterCostBias(previous);
+    }
+  };
+
+  const handleSpeedBiasChange = async (value: number) => {
+    const previous = autoRouterSpeedBias;
+    setAutoRouterSpeedBias(value);
+    try {
+      await updatePreferences({
+        preferences: { autoRouterSpeedBias: value },
+      });
+      toast.success("Speed preference updated!");
+      analytics.track("auto_router_speed_bias_changed", { value });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setAutoRouterSpeedBias(previous);
     }
   };
 
@@ -309,6 +353,9 @@ export function useUISettingsState() {
       setShowSlides,
       "show_slides",
     ),
+    // Auto Router
+    handleCostBiasChange,
+    handleSpeedBiasChange,
   };
 
   const state: UISettingsState = {
@@ -328,6 +375,9 @@ export function useUISettingsState() {
     showProjects,
     showBookmarks,
     showSlides,
+    // Auto Router
+    autoRouterCostBias,
+    autoRouterSpeedBias,
   };
 
   return {

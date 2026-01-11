@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx } from "../../../_generated/server";
+import { logger } from "../../../lib/logger";
 
 /**
  * Memory deletion tool factory
@@ -76,7 +77,10 @@ When to use:
         );
         return result;
       } catch (error) {
-        console.error("[Tool] Memory deletion failed:", error);
+        logger.error("Memory deletion failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           message: `Failed to delete memory: ${error instanceof Error ? error.message : "Unknown error"}`,

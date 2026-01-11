@@ -32,7 +32,12 @@ export async function decryptByokKey(
   try {
     return await decryptCredential(encryptedKey, iv, authTag);
   } catch (error) {
-    console.error(`Failed to decrypt ${gateway} key:`, error);
+    const { logger } = await import("../lib/logger");
+    logger.error("Failed to decrypt key", {
+      tag: "BYOK",
+      gateway,
+      error: String(error),
+    });
     return undefined;
   }
 }

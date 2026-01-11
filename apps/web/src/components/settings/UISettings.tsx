@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useUISettingsState } from "@/hooks/useUISettingsState";
 import {
+  AutoRouterSection,
   ComparisonSettingsSection,
   DisplayLayoutSection,
   MessageBehaviorSection,
@@ -48,6 +49,9 @@ const SETTING_TO_SECTION: Record<string, string> = {
   showDuringStreaming: "reasoning",
   // Comparison
   showModelNamesDuringComparison: "comparison",
+  // Auto Router
+  autoRouterCostBias: "auto-router",
+  autoRouterSpeedBias: "auto-router",
 };
 
 const DEFAULT_EXPANDED = [
@@ -57,6 +61,7 @@ const DEFAULT_EXPANDED = [
   "reasoning",
   "comparison",
   "sidebar-features",
+  "auto-router",
 ];
 
 interface UISettingsProps {
@@ -179,6 +184,13 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             onShowProjectsChange={handlers.handleShowProjectsChange}
             onShowBookmarksChange={handlers.handleShowBookmarksChange}
             onShowSlidesChange={handlers.handleShowSlidesChange}
+          />
+
+          <AutoRouterSection
+            costBias={state.autoRouterCostBias}
+            speedBias={state.autoRouterSpeedBias}
+            onCostBiasChange={handlers.handleCostBiasChange}
+            onSpeedBiasChange={handlers.handleSpeedBiasChange}
           />
         </Accordion>
 

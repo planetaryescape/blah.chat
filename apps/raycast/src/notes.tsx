@@ -92,7 +92,7 @@ export default function Command() {
         title: note.isPinned ? "Unpinned" : "Pinned",
       });
       loadNotes();
-    } catch (e) {
+    } catch (_e) {
       showToast({
         style: Toast.Style.Failure,
         title: "Failed to update note",

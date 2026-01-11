@@ -46,7 +46,7 @@ export function ThinkingEffortSelector({
     >
       <SelectTrigger
         className={cn(
-          "h-7 text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 rounded-full transition-colors min-w-0 w-auto font-medium gap-1",
+          "h-7! text-xs border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary px-3 transition-colors min-w-0 w-auto font-medium gap-1",
           className,
         )}
       >

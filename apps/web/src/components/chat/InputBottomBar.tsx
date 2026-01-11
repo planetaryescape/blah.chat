@@ -64,7 +64,7 @@ export function InputBottomBar({
   hasContent,
 }: InputBottomBarProps) {
   return (
-    <div className="px-3 pb-2 flex justify-between items-center gap-2">
+    <div className="flex items-center justify-between gap-2">
       {/* Left group: Primary actions (Model + Thinking) */}
       <div className="flex items-center gap-1.5">
         {isComparisonMode && onExitComparison ? (
@@ -77,7 +77,7 @@ export function InputBottomBar({
             <Button
               size="icon"
               variant="ghost"
-              className="h-4 w-4 p-0 hover:bg-muted/50 rounded-full"
+              className="w-4 h-4 p-0 rounded-full hover:bg-muted/50"
               onClick={onExitComparison}
               aria-label="Exit comparison mode"
             >
@@ -106,21 +106,25 @@ export function InputBottomBar({
           )}
       </div>
 
-      {/* Right group: Secondary actions (Compare + Keyboard + Info) */}
+      {/* Right group: Secondary actions - hidden on mobile except comparison trigger */}
       <div className="flex items-center gap-0.5">
         {onStartComparison && (
-          <ComparisonTrigger
-            onStartComparison={onStartComparison}
-            isActive={isComparisonMode}
-            selectedModels={selectedModels}
-            open={comparisonDialogOpen}
-            onOpenChange={onComparisonDialogOpenChange}
-          />
+          <div className="hidden sm:block">
+            <ComparisonTrigger
+              onStartComparison={onStartComparison}
+              isActive={isComparisonMode}
+              selectedModels={selectedModels}
+              open={comparisonDialogOpen}
+              onOpenChange={onComparisonDialogOpenChange}
+            />
+          </div>
         )}
 
         <KeyboardHints isEmpty={isEmpty} hasContent={hasContent} />
 
-        <AIInfoTooltip />
+        <div className="hidden sm:block">
+          <AIInfoTooltip />
+        </div>
       </div>
     </div>
   );
@@ -148,7 +152,7 @@ function AIInfoTooltip() {
           AI can make mistakes.{" "}
           <Link
             href="/ai-info"
-            className="underline hover:text-foreground transition-colors"
+            className="underline transition-colors hover:text-foreground"
           >
             Verify important info
           </Link>

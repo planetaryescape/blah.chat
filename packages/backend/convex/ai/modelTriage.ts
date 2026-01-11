@@ -13,6 +13,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Cost threshold for triggering triage analysis
@@ -66,7 +67,10 @@ export const analyzeModelFit = internalAction({
       // 2. Get current model + validate it's expensive
       const currentModel = MODEL_CONFIG[args.currentModelId];
       if (!currentModel) {
-        console.warn(`Model not found: ${args.currentModelId}`);
+        logger.warn("Model not found", {
+          tag: "ModelTriage",
+          modelId: args.currentModelId,
+        });
         return;
       }
 
@@ -78,7 +82,8 @@ export const analyzeModelFit = internalAction({
       }
 
       // Track analysis started
-      console.log("Model triage analysis started", {
+      logger.info("Analysis started", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         currentModel: args.currentModelId,
         avgCost,
@@ -88,7 +93,8 @@ export const analyzeModelFit = internalAction({
       // 3. Find cheaper alternatives (50%+ cheaper, matching capabilities)
       const alternatives = getCheaperAlternatives(currentModel);
       if (alternatives.length === 0) {
-        console.log("No cheaper alternatives found", {
+        logger.info("No cheaper alternatives found", {
+          tag: "ModelTriage",
           currentModel: args.currentModelId,
         });
         return;
@@ -100,7 +106,9 @@ export const analyzeModelFit = internalAction({
         | undefined;
 
       if (!conversationUserId) {
-        console.warn("No userId found in conversation for cost tracking");
+        logger.warn("No userId found in conversation for cost tracking", {
+          tag: "ModelTriage",
+        });
         return;
       }
 
@@ -115,7 +123,8 @@ export const analyzeModelFit = internalAction({
 
       if (!analysis.shouldRecommend) {
         // Track when expensive model is justified
-        console.log("Expensive model justified", {
+        logger.info("Expensive model justified", {
+          tag: "ModelTriage",
           conversationId: args.conversationId,
           currentModel: args.currentModelId,
           reasoning: analysis.reasoning,
@@ -124,15 +133,18 @@ export const analyzeModelFit = internalAction({
       }
 
       if (!analysis.recommendedModel) {
-        console.warn("Analysis recommended switch but no model specified");
+        logger.warn("Analysis recommended switch but no model specified", {
+          tag: "ModelTriage",
+        });
         return;
       }
 
       // Validate model is in alternatives list (prevent hallucination)
       if (!alternatives.includes(analysis.recommendedModel)) {
-        console.error("LLM recommended model outside alternatives list", {
+        logger.error("LLM recommended model outside alternatives list", {
+          tag: "ModelTriage",
           recommended: analysis.recommendedModel,
-          validAlternatives: alternatives,
+          validAlternatives: alternatives.join(", "),
           conversationId: args.conversationId,
         });
         return;
@@ -141,9 +153,10 @@ export const analyzeModelFit = internalAction({
       // 5. Calculate savings
       const recommendedModel = MODEL_CONFIG[analysis.recommendedModel];
       if (!recommendedModel) {
-        console.warn(
-          `Recommended model not found: ${analysis.recommendedModel}`,
-        );
+        logger.warn("Recommended model not found", {
+          tag: "ModelTriage",
+          modelId: analysis.recommendedModel,
+        });
         return;
       }
 
@@ -167,7 +180,8 @@ export const analyzeModelFit = internalAction({
       )) as Promise<void>;
 
       // Track successful recommendation generation
-      console.log("Model recommendation generated", {
+      logger.info("Model recommendation generated", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         currentModel: args.currentModelId,
         suggestedModel: analysis.recommendedModel,
@@ -176,7 +190,10 @@ export const analyzeModelFit = internalAction({
         analysisTimeMs: Date.now() - startTime,
       });
     } catch (error) {
-      console.error("Error in model triage analysis:", error);
+      logger.error("Error in model triage analysis", {
+        tag: "ModelTriage",
+        error: String(error),
+      });
       // Don't throw - this is a nice-to-have feature, shouldn't break chat
     }
   },
@@ -207,7 +224,8 @@ export const generatePreview = action({
     )) as { _id: Id<"users"> } | null;
 
     try {
-      console.log("Preview generation started", {
+      logger.info("Preview generation started", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         suggestedModel: args.suggestedModelId,
       });
@@ -231,7 +249,8 @@ export const generatePreview = action({
         throw new Error("No messages found for conversation");
       }
 
-      console.log("Fetched messages for preview", {
+      logger.info("Fetched messages for preview", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         messageCount: messages.length,
         hasSystemPrompt: !!conversation?.systemPrompt,
@@ -304,7 +323,8 @@ export const generatePreview = action({
         );
       }
 
-      console.log("Preview generation completed", {
+      logger.info("Preview generation completed", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         suggestedModel: args.suggestedModelId,
         generationTimeMs: Date.now() - startTime,
@@ -313,7 +333,10 @@ export const generatePreview = action({
 
       return { content: response.text };
     } catch (error) {
-      console.error("Error generating preview:", error);
+      logger.error("Error generating preview", {
+        tag: "ModelTriage",
+        error: String(error),
+      });
       throw error instanceof Error
         ? new Error(`Preview generation failed: ${error.message}`, {
             cause: error,
@@ -445,7 +468,10 @@ ${alternatives
 
     return response.object as AnalysisResult;
   } catch (error) {
-    console.error("Error in prompt complexity analysis:", error);
+    logger.error("Error in prompt complexity analysis", {
+      tag: "ModelTriage",
+      error: String(error),
+    });
     // Conservative fallback - don't recommend if analysis fails
     return {
       shouldRecommend: false,

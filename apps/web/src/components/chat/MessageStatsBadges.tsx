@@ -20,6 +20,8 @@ interface MessageStatsBadgesProps {
   outputTokens?: number;
   status: string;
   showStats: boolean;
+  /** If auto-routed, shows "auto → model" with reasoning tooltip */
+  routingReasoning?: string;
 }
 
 /**
@@ -35,16 +37,42 @@ export function MessageStatsBadges({
   outputTokens,
   status,
   showStats,
+  routingReasoning,
 }: MessageStatsBadgesProps) {
+  const isAutoRouted = !!routingReasoning;
+
   return (
     <div className="mt-3 pt-3 border-t border-border/10 flex flex-wrap items-center gap-2 transition-opacity duration-300">
-      {/* Model name - ALWAYS visible */}
-      <Badge
-        variant="outline"
-        className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
-      >
-        {modelName}
-      </Badge>
+      {/* Model name - ALWAYS visible, with auto routing indicator if applicable */}
+      {isAutoRouted ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground cursor-help"
+              >
+                auto → {modelName}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <div className="text-xs">
+                <div className="font-semibold">Auto-Routed</div>
+                <div className="text-muted-foreground mt-1">
+                  {routingReasoning}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <Badge
+          variant="outline"
+          className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground"
+        >
+          {modelName}
+        </Badge>
+      )}
 
       {/* Stopped indicator */}
       {status === "stopped" && (

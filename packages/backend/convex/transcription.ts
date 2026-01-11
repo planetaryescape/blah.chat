@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
+import { logger } from "./lib/logger";
 
 /**
  * Wrap promise with timeout to prevent infinite hangs
@@ -33,12 +34,11 @@ export const transcribeAudio = action({
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log(
-      "[Transcription] Starting transcription, storageId:",
-      args.storageId,
-      "mimeType:",
-      args.mimeType,
-    );
+    logger.info("Starting transcription", {
+      tag: "Transcription",
+      storageId: args.storageId,
+      mimeType: args.mimeType,
+    });
 
     // Get current user
     const user = await (
@@ -49,11 +49,11 @@ export const transcribeAudio = action({
       {},
     );
     if (!user) {
-      console.error("[Transcription] Unauthorized - no user found");
+      logger.error("Unauthorized - no user found", { tag: "Transcription" });
       throw new Error("Unauthorized");
     }
 
-    console.log("[Transcription] User authorized:", user._id);
+    logger.info("User authorized", { tag: "Transcription", userId: user._id });
 
     // Phase 4: Get STT enabled preference from user
     const sttEnabled = await (
@@ -66,7 +66,7 @@ export const transcribeAudio = action({
 
     // Check if STT is enabled
     if (sttEnabled === false) {
-      console.error("[Transcription] STT disabled in settings");
+      logger.error("STT disabled in settings", { tag: "Transcription" });
       throw new Error("Voice input disabled in settings");
     }
 
@@ -81,34 +81,32 @@ export const transcribeAudio = action({
 
     const provider = adminSettings?.transcriptProvider ?? "groq";
     const costPerMinute = adminSettings?.transcriptCostPerMinute ?? 0.0067;
-    console.log(
-      "[Transcription] Using admin provider:",
+    logger.info("Using admin provider", {
+      tag: "Transcription",
       provider,
-      "cost/min:",
       costPerMinute,
-    );
+    });
 
     // Fetch audio from Convex storage
-    console.log("[Transcription] Fetching audio from storage...");
+    logger.info("Fetching audio from storage", { tag: "Transcription" });
     const audioBlob = await ctx.storage.get(args.storageId);
     if (!audioBlob) {
-      console.error("[Transcription] Audio file not found in storage");
+      logger.error("Audio file not found in storage", { tag: "Transcription" });
       throw new Error("Audio file not found in storage");
     }
-    console.log(
-      "[Transcription] Audio blob retrieved, size:",
-      audioBlob.size,
-      "bytes",
-    );
+    logger.info("Audio blob retrieved", {
+      tag: "Transcription",
+      size: audioBlob.size,
+    });
 
     // Convert blob to array buffer then Uint8Array
-    console.log("[Transcription] Converting blob to array buffer...");
+    logger.info("Converting blob to array buffer", { tag: "Transcription" });
     const arrayBuffer = await audioBlob.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    console.log(
-      "[Transcription] Conversion complete, bytes length:",
-      bytes.length,
-    );
+    logger.info("Conversion complete", {
+      tag: "Transcription",
+      bytesLength: bytes.length,
+    });
 
     const audioFile = new File([bytes], "audio.webm", {
       type: args.mimeType,
@@ -118,14 +116,16 @@ export const transcribeAudio = action({
     const fileSizeMB = bytes.length / (1024 * 1024);
     const MAX_FILE_SIZE_MB = 24; // Under Whisper's 25MB limit
 
-    console.log("[Transcription] File size:", fileSizeMB.toFixed(2), "MB");
+    logger.info("File size check", {
+      tag: "Transcription",
+      fileSizeMB: fileSizeMB.toFixed(2),
+    });
 
     if (fileSizeMB > MAX_FILE_SIZE_MB) {
-      console.error(
-        "[Transcription] File too large:",
-        fileSizeMB.toFixed(1),
-        "MB",
-      );
+      logger.error("File too large", {
+        tag: "Transcription",
+        fileSizeMB: fileSizeMB.toFixed(1),
+      });
       throw new Error(
         `Audio file too large (${fileSizeMB.toFixed(1)}MB). Maximum size is ${MAX_FILE_SIZE_MB}MB. Try compressing or splitting the file.`,
       );
@@ -133,9 +133,10 @@ export const transcribeAudio = action({
 
     // Log warning for large files
     if (fileSizeMB > 15) {
-      console.warn(
-        `[Transcription] Large audio file: ${fileSizeMB.toFixed(1)}MB - may take 60-90s`,
-      );
+      logger.warn("Large audio file - may take 60-90s", {
+        tag: "Transcription",
+        fileSizeMB: fileSizeMB.toFixed(1),
+      });
     }
 
     let text: string;
@@ -147,21 +148,23 @@ export const transcribeAudio = action({
 
     switch (provider) {
       case "openai": {
-        console.log("[Transcription] Using OpenAI Whisper");
+        logger.info("Using OpenAI Whisper", { tag: "Transcription" });
         // OpenAI Whisper via API with AbortController
         const formData = new FormData();
         formData.append("file", audioFile);
         formData.append("model", "whisper-1");
-        console.log("[Transcription] FormData prepared");
+        logger.info("FormData prepared", { tag: "Transcription" });
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
-          console.error(
-            "[Transcription] Backend timeout reached (90s), aborting request",
-          );
+          logger.error("Backend timeout reached (90s), aborting request", {
+            tag: "Transcription",
+          });
           controller.abort();
         }, TRANSCRIPTION_TIMEOUT_MS);
-        console.log("[Transcription] Timeout configured, starting API call...");
+        logger.info("Timeout configured, starting API call", {
+          tag: "Transcription",
+        });
 
         try {
           const fetchStartTime = Date.now();
@@ -178,40 +181,41 @@ export const transcribeAudio = action({
           );
 
           const fetchDuration = Date.now() - fetchStartTime;
-          console.log(
-            "[Transcription] API call completed in",
-            fetchDuration,
-            "ms",
-          );
+          logger.info("API call completed", {
+            tag: "Transcription",
+            durationMs: fetchDuration,
+          });
           clearTimeout(timeoutId);
 
           if (!response.ok) {
             const error = await response.text();
-            console.error(
-              "[Transcription] API returned error:",
-              response.status,
+            logger.error("API returned error", {
+              tag: "Transcription",
+              status: response.status,
               error,
-            );
+            });
             throw new Error(`OpenAI Whisper failed: ${error}`);
           }
 
-          console.log("[Transcription] Parsing response JSON...");
+          logger.info("Parsing response JSON", { tag: "Transcription" });
           const result = (await response.json()) as { text: string };
           text = result.text;
           cost = durationMinutes * costPerMinute;
-          console.log(
-            "[Transcription] Transcription successful, text length:",
-            text.length,
-            "chars",
-          );
+          logger.info("Transcription successful", {
+            tag: "Transcription",
+            textLength: text.length,
+          });
         } catch (err: any) {
-          console.error("[Transcription] Error in OpenAI call:", err);
-          console.error("[Transcription] Error name:", err?.name);
-          console.error("[Transcription] Error message:", err?.message);
+          logger.error("Error in OpenAI call", {
+            tag: "Transcription",
+            error: String(err),
+            errorName: err?.name,
+            errorMessage: err?.message,
+          });
           clearTimeout(timeoutId);
 
           if (err.name === "AbortError") {
-            console.error("[Transcription] Aborted due to timeout");
+            logger.error("Aborted due to timeout", { tag: "Transcription" });
             throw new Error(
               "Transcription timed out after 90 seconds. Try a shorter audio file or compress it.",
             );
@@ -282,7 +286,7 @@ export const transcribeAudio = action({
     }
 
     // Track cost
-    console.log("[Transcription] Recording usage...");
+    logger.info("Recording usage", { tag: "Transcription" });
     await (ctx.runMutation as (ref: any, args: any) => Promise<void>)(
       internal.usage.mutations.recordTranscription,
       {
@@ -294,7 +298,9 @@ export const transcribeAudio = action({
       },
     );
 
-    console.log("[Transcription] Transcription complete, returning text");
+    logger.info("Transcription complete, returning text", {
+      tag: "Transcription",
+    });
     return text;
   },
 });

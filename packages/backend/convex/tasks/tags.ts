@@ -7,6 +7,7 @@ import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { buildAutoTagPrompt } from "../lib/prompts/operational/tagExtraction";
 import { findSimilarTag } from "../tags/matching";
 
@@ -124,14 +125,16 @@ export const extractAndApplyTaskTags = internalAction({
             100
           : 0;
 
-      console.log(
-        `[TaskAutoTag] ✓ ${finalTags.length} tags | ${totalTime}ms total`,
-        `(LLM: ${llmTime}ms, Match: ${matchingTime}ms, Apply: ${applyTime}ms)`,
-      );
-      console.log(
-        `[TaskAutoTag] Matches: exact=${matchStats.exact}, fuzzy=${matchStats.fuzzy}, semantic=${matchStats.semantic}, new=${matchStats.new}`,
-        `| Reuse rate: ${tagReuseRate.toFixed(0)}%`,
-      );
+      logger.info("task auto-tagging complete", {
+        tag: "TaskAutoTag",
+        tagsCount: finalTags.length,
+        totalTime,
+        llmTime,
+        matchingTime,
+        applyTime,
+        matchStats,
+        tagReuseRate: `${tagReuseRate.toFixed(0)}%`,
+      });
 
       return {
         appliedTags: finalTags,
@@ -145,7 +148,10 @@ export const extractAndApplyTaskTags = internalAction({
         },
       };
     } catch (error) {
-      console.error("Failed to auto-tag task:", error);
+      logger.error("failed to auto-tag task", {
+        tag: "TaskAutoTag",
+        error: String(error),
+      });
       return { appliedTags: [] };
     }
   },

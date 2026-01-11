@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 interface Slide {
   _id: string;
@@ -86,9 +87,10 @@ export const generateSlides = internalAction({
           logoStorageId = template.logoStorageId;
           logoGuidelines = template.extractedDesign?.logoGuidelines;
           if (logoStorageId) {
-            console.log(
-              `Logo found in template, position: ${logoGuidelines?.position ?? "default"}`,
-            );
+            logger.info("Logo found in template", {
+              tag: "SlideGeneration",
+              position: logoGuidelines?.position ?? "default",
+            });
           }
         }
       }
@@ -113,13 +115,19 @@ export const generateSlides = internalAction({
       const sectionSlides = allSlides.filter((s) => s.slideType === "section");
       const contentSlides = allSlides.filter((s) => s.slideType === "content");
 
-      console.log(
-        `Generating ${allSlides.length} slides: ${titleSlides.length} title, ${sectionSlides.length} section, ${contentSlides.length} content`,
-      );
+      logger.info("Generating slides", {
+        tag: "SlideGeneration",
+        totalSlides: allSlides.length,
+        titleSlides: titleSlides.length,
+        sectionSlides: sectionSlides.length,
+        contentSlides: contentSlides.length,
+      });
 
       // BATCH 1: Title slide (no context)
       if (titleSlides.length > 0) {
-        console.log("Batch 1: Generating title slide...");
+        logger.info("Batch 1: Generating title slide", {
+          tag: "SlideGeneration",
+        });
         const titleSlide = titleSlides[0];
 
         try {
@@ -139,9 +147,12 @@ export const generateSlides = internalAction({
               imageStyle,
             },
           );
-          console.log("Title slide complete");
+          logger.info("Title slide complete", { tag: "SlideGeneration" });
         } catch (error) {
-          console.warn("Title slide failed, continuing...", error);
+          logger.warn("Title slide failed, continuing", {
+            tag: "SlideGeneration",
+            error: String(error),
+          });
         }
 
         await (ctx.runMutation as any)(
@@ -152,16 +163,19 @@ export const generateSlides = internalAction({
 
         // Check if stopped after title slide
         if (await checkIfStopped(ctx, args.presentationId)) {
-          console.log("Generation stopped by user after title slide");
+          logger.info("Generation stopped by user after title slide", {
+            tag: "SlideGeneration",
+          });
           return { success: false, stopped: true };
         }
       }
 
       // BATCH 2: Section slides (parallel, context: title)
       if (sectionSlides.length > 0) {
-        console.log(
-          `Batch 2: Generating ${sectionSlides.length} section slides in parallel...`,
-        );
+        logger.info("Batch 2: Generating section slides in parallel", {
+          tag: "SlideGeneration",
+          count: sectionSlides.length,
+        });
 
         const titleContext =
           titleSlides.length > 0
@@ -192,9 +206,11 @@ export const generateSlides = internalAction({
           (r) => r.status === "rejected",
         );
         if (sectionFailures.length > 0) {
-          console.warn(
-            `${sectionFailures.length}/${sectionSlides.length} section slides failed, continuing...`,
-          );
+          logger.warn("Some section slides failed, continuing", {
+            tag: "SlideGeneration",
+            failed: sectionFailures.length,
+            total: sectionSlides.length,
+          });
         }
 
         // Increment progress for all attempted slides (not just successful ones)
@@ -206,20 +222,23 @@ export const generateSlides = internalAction({
           );
         }
 
-        console.log("Section slides complete");
+        logger.info("Section slides complete", { tag: "SlideGeneration" });
 
         // Check if stopped after section slides
         if (await checkIfStopped(ctx, args.presentationId)) {
-          console.log("Generation stopped by user after section slides");
+          logger.info("Generation stopped by user after section slides", {
+            tag: "SlideGeneration",
+          });
           return { success: false, stopped: true };
         }
       }
 
       // BATCH 3: Content slides (parallel with sub-batching)
       if (contentSlides.length > 0) {
-        console.log(
-          `Batch 3: Generating ${contentSlides.length} content slides...`,
-        );
+        logger.info("Batch 3: Generating content slides", {
+          tag: "SlideGeneration",
+          count: contentSlides.length,
+        });
 
         // Context: title + first 3 sections
         const contentContext = [
@@ -239,9 +258,12 @@ export const generateSlides = internalAction({
 
         for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
           const batch = batches[batchIndex];
-          console.log(
-            `  Sub-batch ${batchIndex + 1}/${batches.length}: ${batch.length} slides`,
-          );
+          logger.info("Processing sub-batch", {
+            tag: "SlideGeneration",
+            batchIndex: batchIndex + 1,
+            totalBatches: batches.length,
+            slideCount: batch.length,
+          });
 
           const batchPromises = batch.map((slide) =>
             (ctx.runAction as any)(
@@ -267,9 +289,12 @@ export const generateSlides = internalAction({
             (r) => r.status === "rejected",
           );
           if (batchFailures.length > 0) {
-            console.warn(
-              `${batchFailures.length}/${batch.length} content slides failed in batch ${batchIndex + 1}, continuing...`,
-            );
+            logger.warn("Some content slides failed in batch, continuing", {
+              tag: "SlideGeneration",
+              batchIndex: batchIndex + 1,
+              failed: batchFailures.length,
+              total: batch.length,
+            });
           }
 
           // Increment progress for all attempted slides
@@ -283,14 +308,15 @@ export const generateSlides = internalAction({
 
           // Check if stopped after each sub-batch
           if (await checkIfStopped(ctx, args.presentationId)) {
-            console.log(
-              `Generation stopped by user after content sub-batch ${batchIndex + 1}`,
-            );
+            logger.info("Generation stopped by user after content sub-batch", {
+              tag: "SlideGeneration",
+              batchIndex: batchIndex + 1,
+            });
             return { success: false, stopped: true };
           }
         }
 
-        console.log("Content slides complete");
+        logger.info("Content slides complete", { tag: "SlideGeneration" });
       }
 
       // Check if all slides completed successfully and update status accordingly
@@ -300,11 +326,17 @@ export const generateSlides = internalAction({
         { presentationId: args.presentationId },
       );
 
-      console.log(`Presentation ${args.presentationId} generation attempted!`);
+      logger.info("Presentation generation attempted", {
+        tag: "SlideGeneration",
+        presentationId: args.presentationId,
+      });
 
       return { success: true };
     } catch (error) {
-      console.error("Slide generation orchestration error:", error);
+      logger.error("Slide generation orchestration error", {
+        tag: "SlideGeneration",
+        error: String(error),
+      });
 
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

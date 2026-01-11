@@ -6,6 +6,7 @@
  * This migration verifies the deployment was successful.
  */
 
+import { logger } from "../../lib/logger";
 import type { Migration } from "./index";
 
 export const migration001: Migration = {
@@ -15,9 +16,10 @@ export const migration001: Migration = {
   description: "Deploy initial BYOD schema with all content tables",
 
   up: async (ctx) => {
-    console.log(
-      `Migration 001: Verifying initial schema for user ${ctx.userId}`,
-    );
+    logger.info("Verifying initial schema for user", {
+      tag: "Migration001",
+      userId: ctx.userId,
+    });
 
     // Verify deployment by pinging the user's instance
     const response = await fetch(`${ctx.deploymentUrl}/api/run_function`, {
@@ -46,9 +48,11 @@ export const migration001: Migration = {
       throw new Error(`Unexpected ping response: ${JSON.stringify(result)}`);
     }
 
-    console.log(
-      `Migration 001: Verified schema v${result.version} for user ${ctx.userId}`,
-    );
+    logger.info("Verified schema for user", {
+      tag: "Migration001",
+      version: result.version,
+      userId: ctx.userId,
+    });
   },
 
   down: async (_ctx) => {

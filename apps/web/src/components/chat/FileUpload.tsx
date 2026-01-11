@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -103,7 +103,9 @@ export function FileUpload({
 
         onAttachmentsChange([...attachments, ...newAttachments]);
         toast.success(
-          `Uploaded ${newAttachments.length} file${newAttachments.length === 1 ? "" : "s"}`,
+          `Uploaded ${newAttachments.length} file${
+            newAttachments.length === 1 ? "" : "s"
+          }`,
         );
         // Focus input after successful upload
         onUploadComplete?.();
@@ -142,13 +144,13 @@ export function FileUpload({
       {...getRootProps()}
       disabled={uploading}
       title="Attach files"
-      className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+      className="w-8 h-8 transition-colors rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50"
     >
       <input {...getInputProps()} />
       {uploading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : (
-        <Plus className="w-5 h-5" />
+        <Paperclip className="w-5 h-5" />
       )}
       <span className="sr-only">Attach files</span>
     </Button>

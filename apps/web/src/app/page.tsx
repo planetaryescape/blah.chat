@@ -1,463 +1,837 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
-  ChevronDown,
+  Brain,
+  Cloud,
   Code2,
-  Eye,
+  Database,
+  DollarSign,
+  ExternalLink,
+  FileText,
+  FolderKanban,
+  Github,
+  Key,
+  ListTodo,
   Mic,
-  ShieldCheck,
-  Users,
-  Webhook,
+  Search,
+  Server,
+  Sparkles,
+  Split,
+  WifiOff,
+  Zap,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 
-// Note: Auth redirect is handled server-side in middleware.ts for better LCP
+// Typewriter hook for hero
+function useTypewriter(text: string, speed = 50, delay = 500) {
+  const [displayText, setDisplayText] = useState("");
+  const [isComplete, setIsComplete] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      let i = 0;
+      intervalRef.current = setInterval(() => {
+        if (i < text.length) {
+          setDisplayText(text.slice(0, i + 1));
+          i++;
+        } else {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          setIsComplete(true);
+        }
+      }, speed);
+    }, delay);
+
+    return () => {
+      clearTimeout(timeout);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [text, speed, delay]);
+
+  return { displayText, isComplete };
+}
+
+// Subscription item component for Problem section
+function SubscriptionItem({
+  name,
+  price,
+  reason,
+  index,
+  isVisible,
+}: {
+  name: string;
+  price: string;
+  reason: string;
+  index: number;
+  isVisible: boolean;
+}) {
+  const [showStrike, setShowStrike] = useState(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => setShowStrike(true), 300 + index * 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, index]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={isVisible ? { opacity: 1, x: 0 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.4 }}
+      className="flex items-center justify-between py-3 border-b border-foreground/10 text-sm md:text-base"
+    >
+      <div className={`flex-1 ${showStrike ? "text-muted-foreground" : ""}`}>
+        <span className="relative font-mono">
+          {name}
+          {showStrike && (
+            <motion.span
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 0.3 }}
+              className="absolute left-0 top-1/2 h-[2px] bg-destructive"
+            />
+          )}
+        </span>
+        <span className="text-background/50 text-xs md:text-sm ml-2">
+          — {reason}
+        </span>
+      </div>
+      <span
+        className={`font-mono font-bold ${showStrike ? "text-muted-foreground" : ""}`}
+      >
+        {price}
+      </span>
+    </motion.div>
+  );
+}
+
+// Feature Pill component
+function FeaturePill({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <motion.span
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.4, type: "spring" }}
+      whileHover={{ scale: 1.05, y: -2 }}
+      className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium backdrop-blur-sm hover:bg-primary/15 hover:border-primary/30 transition-colors cursor-default"
+    >
+      {children}
+    </motion.span>
+  );
+}
+
+// Deployment Card component
+function DeploymentCard({
+  icon: Icon,
+  title,
+  description,
+  badge,
+  badgeColor,
+  isTerminal = false,
+  index,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  badge?: string;
+  badgeColor?: string;
+  isTerminal?: boolean;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.1, duration: 0.5 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      className={`relative p-6 rounded-xl border transition-all duration-300 ${
+        isTerminal
+          ? "bg-[oklch(15%_0.03_145_/_0.3)] border-[var(--terminal-green,oklch(75%_0.15_145))]/30 hover:border-[var(--terminal-green)]/50"
+          : "bg-card/50 border-border/50 hover:border-primary/30 hover:bg-card/70"
+      }`}
+    >
+      {badge && (
+        <span
+          className={`absolute top-4 right-4 px-2 py-0.5 text-xs font-mono rounded ${badgeColor}`}
+        >
+          {badge}
+        </span>
+      )}
+      <Icon
+        className={`w-8 h-8 mb-4 ${isTerminal ? "text-[var(--terminal-green,oklch(75%_0.15_145))]" : "text-primary"}`}
+      />
+      <h3
+        className={`font-syne font-bold text-xl mb-2 ${isTerminal ? "text-[var(--terminal-green)]" : ""}`}
+      >
+        {title}
+      </h3>
+      <p className="text-muted-foreground text-sm">{description}</p>
+    </motion.div>
+  );
+}
+
+// Feature Card component for bento grid
+function FeatureCard({
+  icon: Icon,
+  title,
+  description,
+  large = false,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  large?: boolean;
+  index?: number;
+}) {
+  return (
+    <div
+      className={`relative p-5 md:p-6 rounded-xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm hover:border-primary/30 hover:bg-zinc-900/80 transition-all duration-300 group hover:scale-[1.02] ${
+        large ? "col-span-2 md:row-span-2" : ""
+      }`}
+    >
+      <Icon className="w-6 h-6 text-primary mb-3" />
+      <h3 className="font-syne font-bold text-lg text-white mb-1">{title}</h3>
+      <p className="text-zinc-400 text-sm leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+// Trust Block component
+function TrustBlock({
+  icon: Icon,
+  title,
+  children,
+  index,
+}: {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.15, duration: 0.5 }}
+      className="p-6 rounded-xl bg-zinc-900/40 border border-[var(--terminal-green,oklch(75%_0.15_145))]/20"
+    >
+      <Icon className="w-6 h-6 text-[var(--terminal-green)] mb-4" />
+      <h3 className="font-mono text-[var(--terminal-green)] font-bold mb-3">
+        {title}
+      </h3>
+      <div className="text-zinc-400 text-sm">{children}</div>
+    </motion.div>
+  );
+}
+
 export default function LandingPage() {
-  const { resolvedTheme } = useTheme();
   const containerRef = useRef(null);
-  const section1Ref = useRef<HTMLElement>(null);
-  const section2Ref = useRef<HTMLElement>(null);
-  const section3Ref = useRef<HTMLElement>(null);
-  const section4Ref = useRef<HTMLElement>(null);
-  const section5Ref = useRef<HTMLElement>(null);
-  const [isDarkSection, setIsDarkSection] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
+  const problemRef = useRef<HTMLDivElement>(null);
+  const problemInView = useInView(problemRef, { once: true, margin: "-100px" });
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
 
-  // Simple scroll-based section detection
-  useEffect(() => {
-    const isLightMode = resolvedTheme === "light";
+  const { displayText, isComplete } = useTypewriter(
+    "One interface. Every model.",
+    40,
+    300,
+  );
 
-    const sections = [
-      { ref: section1Ref, isDark: isLightMode ? false : true }, // bg-background
-      { ref: section2Ref, isDark: isLightMode ? true : false }, // bg-foreground
-      { ref: section3Ref, isDark: isLightMode ? false : true }, // bg-background
-      { ref: section4Ref, isDark: true }, // bg-zinc-950 (always dark)
-      { ref: section5Ref, isDark: true }, // bg-zinc-950 (always dark)
-    ];
+  // Parallax transforms
+  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -100]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
 
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 10; // Small offset to avoid edge cases
+  const subscriptions = [
+    {
+      name: "ChatGPT Pro",
+      price: "$20/mo",
+      reason: "memory + GPT-5 for reasoning",
+    },
+    {
+      name: "Claude Pro",
+      price: "$20/mo",
+      reason: "artifacts + best for code",
+    },
+    { name: "Perplexity Pro", price: "$20/mo", reason: "real-time web search" },
+    {
+      name: "Gemini Advanced",
+      price: "$20/mo",
+      reason: "long context + Google integration",
+    },
+    { name: "Grok", price: "$16/mo", reason: "unfiltered + real-time X data" },
+  ];
 
-      // Loop through sections from last to first to find which one we're in
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i];
-        if (section.ref.current) {
-          const sectionTop = section.ref.current.offsetTop;
-
-          if (scrollPosition >= sectionTop) {
-            setIsDarkSection(section.isDark);
-            return;
-          }
-        }
-      }
-    };
-
-    // Initial check and scroll listener
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [resolvedTheme]);
+  const features = [
+    "50+ models",
+    "Memory",
+    "Projects",
+    "Notes",
+    "Tasks",
+    "Web Search",
+    "Code Execution",
+    "Cost Tracking",
+    "Knowledge Bank",
+    "Voice Input",
+  ];
 
   return (
     <div
       ref={containerRef}
-      className="min-h-[400vh] bg-background text-foreground font-sans selection:bg-primary/30"
+      className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30"
     >
-      {/* Sticky Navigation */}
-      <nav
-        aria-label="Main navigation"
-        className={`fixed top-0 w-full z-50 p-6 flex justify-between items-center transition-colors duration-300 ${
-          isDarkSection ? "text-white" : "text-black"
-        }`}
-      >
-        <div className="scale-75 origin-left">
-          <Logo />
+      {/* Fixed Navigation */}
+      <nav className="fixed top-0 w-full z-50 px-4 md:px-8 py-4 flex justify-between items-center backdrop-blur-md bg-background/80 border-b border-border/50">
+        <Logo size="sm" />
+        <div className="flex items-center gap-3">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="hidden md:inline-flex"
+          >
+            <Link
+              href="https://github.com/planetaryescape/blah.chat"
+              target="_blank"
+            >
+              <Github className="w-4 h-4 mr-1.5" />
+              GitHub
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="rounded-full">
+            <Link href="/sign-up">Get Started</Link>
+          </Button>
         </div>
-        <Button
-          asChild
-          variant="outline"
-          className={`rounded-full backdrop-blur-sm transition-colors duration-300 ${
-            isDarkSection
-              ? "border-white/20 bg-transparent hover:bg-white/10 hover:text-white text-white"
-              : "border-foreground/20 bg-transparent hover:bg-foreground/10"
-          }`}
-        >
-          <Link href="/sign-up">Get Started</Link>
-        </Button>
       </nav>
 
-      {/* Section 1: The Hook */}
+      {/* ===== SECTION 1: HERO ===== */}
       <section
-        ref={section1Ref}
-        className="h-screen sticky top-0 flex items-center justify-center overflow-hidden"
+        ref={heroRef}
+        className="min-h-screen flex flex-col items-center justify-center px-4 pt-20 pb-12 relative overflow-hidden"
       >
-        <div className="container px-4 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "circOut" }}
-            className="max-w-4xl mx-auto text-center"
-          >
-            <h1 className="font-syne text-[12vw] leading-[0.8] font-black tracking-tighter mb-8 mix-blend-overlay opacity-90">
-              WHY?
-            </h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 1 }}
-              className="text-2xl md:text-4xl font-light tracking-tight text-muted-foreground"
-            >
-              Another chat app. Really?
-            </motion.p>
-          </motion.div>
-        </div>
-
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 1 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50"
+          style={{ y: heroY, opacity: heroOpacity }}
+          className="max-w-5xl mx-auto text-center relative z-10"
         >
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+          {/* Main headline with typewriter */}
+          <h1 className="font-syne text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter mb-6 leading-[0.9]">
+            <span className="inline-block">
+              {displayText}
+              <span
+                className={`inline-block w-[3px] md:w-[4px] h-[0.9em] bg-primary ml-1 align-middle ${isComplete ? "cursor-blink" : ""}`}
+              />
+            </span>
+          </h1>
+
+          {/* Subhead */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2, duration: 0.6 }}
+            className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto mb-10 font-light"
           >
-            <ChevronDown className="w-10 h-10 text-foreground" />
-          </motion.div>
-        </motion.div>
+            GPT, Claude, Gemini, Grok, GLM, MiniMax, Kimi, and more.{" "}
+            <span className="text-foreground font-medium">
+              Switch mid-chat. Compare responses.
+            </span>{" "}
+            Own your data.
+          </motion.p>
 
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-background pointer-events-none" />
-        <BackgroundGrid />
-      </section>
-
-      {/* Section 2: The Fragmentation (Scroll driven) */}
-      <section
-        ref={section2Ref}
-        className="min-h-screen sticky top-0 flex items-center justify-center bg-foreground text-background z-20 py-12 md:py-0"
-      >
-        <div className="container px-4 max-w-5xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="order-2 md:order-1">
-              <h2 className="font-syne text-4xl md:text-6xl lg:text-8xl font-bold leading-none mb-6 md:mb-8">
-                The <br />
-                <span className="text-background/50 italic">Mess.</span>
-              </h2>
-              <p className="text-lg md:text-xl lg:text-2xl font-medium leading-relaxed opacity-80 mb-6 md:mb-8">
-                ChatGPT for personalization & memories. <br />
-                Perplexity for web search & latest info. <br />
-                Gemini for Google Workspace, video & voice. <br />
-                Grok for speed. <br />
-                Nano Banana for images.
-              </p>
-              <p className="text-base md:text-lg text-background/60 font-medium border-l-2 border-background/20 pl-4">
-                5 Subscriptions. 5x the Cost. <br />
-                Paying for repeated functionality just to get one feature from
-                each.
-              </p>
-            </div>
-            <div className="relative aspect-square order-1 md:order-2 max-w-[300px] md:max-w-none mx-auto">
-              {/* Abstract representation of scattered tools */}
-              <motion.div
-                style={{
-                  rotate: useTransform(scrollYProgress, [0, 0.25], [0, 45]),
-                }}
-                className="absolute inset-0 border-4 border-background/20 rounded-full"
-              />
-              <motion.div
-                style={{
-                  rotate: useTransform(scrollYProgress, [0, 0.25], [0, -45]),
-                  scale: 0.8,
-                }}
-                className="absolute inset-0 border-4 border-background/20 rounded-full"
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-center font-syne text-xl md:text-3xl font-bold">
-                  Why are your superpowers <br />
-                  scattered?
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 3: The Solution (Control & Unification) */}
-      <section
-        ref={section3Ref}
-        className="min-h-screen sticky top-0 flex items-center justify-center bg-background z-30 py-12 md:py-0"
-      >
-        <div className="container px-4 max-w-6xl">
-          <div className="grid gap-12 md:gap-24">
-            <div className="space-y-4">
-              <h3 className="text-xs md:text-sm font-mono uppercase tracking-widest text-primary">
-                The Philosophy
-              </h3>
-              <h2 className="font-syne text-4xl md:text-5xl lg:text-7xl font-bold">
-                Total Control. <br />
-                One Interface.
-              </h2>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
-                Everything you need, unified in one place. <br />
-                Stop paying for the same thing 5 times. <br />
-                <strong>
-                  One subscription. All the models. All the features.
-                </strong>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 4: The Gallery (Creative Toolkit - Dense & Compact) */}
-      <section
-        ref={section4Ref}
-        className="h-screen sticky top-0 bg-zinc-950 text-zinc-50 z-35 flex flex-col justify-center py-4 md:py-8 overflow-hidden"
-      >
-        <div className="container px-4 max-w-[1400px] h-full flex flex-col">
-          <div className="mb-4 md:mb-8 text-center shrink-0">
-            <h2 className="font-syne text-3xl md:text-6xl font-bold mb-2 md:mb-4 tracking-tighter">
-              The Toolkit.
-            </h2>
-            <p className="text-sm md:text-lg text-zinc-400 max-w-2xl mx-auto">
-              A dense, powerful grid of tools. Everything you need.
-            </p>
-          </div>
-
-          <div className="flex-1 grid grid-cols-2 grid-rows-6 md:grid-cols-4 md:grid-rows-4 gap-2 md:gap-3 min-h-0">
-            {/* 1. The Brain (Large) - Mobile: Row 1 (Col 1-2), Desktop: Row 1-2 (Col 1-2) */}
-            <div className="col-span-2 row-span-1 md:row-span-2 relative rounded-xl md:rounded-2xl overflow-hidden group border border-white/10">
-              <Image
-                src="/assets/landing/neural_glass_abstract_1764891914296.png"
-                alt="Neural Glass"
-                fill
-                priority
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDAAQRBRIhBhMiMUFR/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAZEQACAwEAAAAAAAAAAAAAAAABAgADESH/2gAMAwEAAhEDEQA/ANF0zqC+0+yhtoLVZI4wFVy5G4fT4UVb/9k="
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-              <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6 max-w-md">
-                <h3 className="font-syne text-lg md:text-2xl font-bold mb-0.5 md:mb-1">
-                  The Brain
-                </h3>
-                <p className="text-zinc-300 text-[10px] md:text-sm leading-tight line-clamp-2 md:line-clamp-none">
-                  OpenAI, Google, Anthropic, Perplexity. All models. Switch
-                  mid-chat. Universal access.
-                </p>
-              </div>
-            </div>
-
-            {/* 2. Voice Mode (Small) - Mobile: Row 2 (Col 1), Desktop: Row 1 (Col 3) */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
-              <Mic className="w-4 h-4 md:w-6 md:h-6 text-white" />
-              <div>
-                <h4 className="font-bold text-sm md:text-lg leading-none mb-0.5 md:mb-1">
-                  Voice
-                </h4>
-                <p className="text-[10px] md:text-xs text-zinc-400 leading-tight">
-                  Hands-free.
-                </p>
-              </div>
-            </div>
-
-            {/* 3. Vision (Small) - Mobile: Row 2 (Col 2), Desktop: Row 1 (Col 4) */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
-              <Eye className="w-4 h-4 md:w-6 md:h-6 text-white" />
-              <div>
-                <h4 className="font-bold text-sm md:text-lg leading-none mb-0.5 md:mb-1">
-                  Vision
-                </h4>
-                <p className="text-[10px] md:text-xs text-zinc-400 leading-tight">
-                  Analyze images.
-                </p>
-              </div>
-            </div>
-
-            {/* 4. The Structure (Large Vertical -> Small Mobile) - Mobile: Row 3 (Col 1), Desktop: Row 2-3 (Col 3) */}
-            <div className="col-span-1 row-span-1 md:row-span-2 relative rounded-xl md:rounded-2xl overflow-hidden group border border-white/10">
-              <Image
-                src="/assets/landing/abstract_flow_branching_1764891937677.png"
-                alt="Abstract Flow"
-                fill
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDAAQRBRIhBhMiMUFR/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAZEQACAwEAAAAAAAAAAAAAAAABAgADESH/2gAMAwEAAhEDEQA/ANF0zqC+0+yhtoLVZI4wFVy5G4fT4UVb/9k="
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-              <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6">
-                <h3 className="font-syne text-sm md:text-xl font-bold mb-0.5 md:mb-1">
-                  The Flow
-                </h3>
-                <p className="text-zinc-300 text-[10px] md:text-xs leading-tight">
-                  Branch conversations anytime. Explore multiple paths.
-                </p>
-              </div>
-            </div>
-
-            {/* 5. Code Artifacts (Small) - Mobile: Row 3 (Col 2), Desktop: Row 2 (Col 4) */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
-              <Code2 className="w-4 h-4 md:w-6 md:h-6 text-white" />
-              <div>
-                <h4 className="font-bold text-sm md:text-lg leading-none mb-0.5 md:mb-1">
-                  Code
-                </h4>
-                <p className="text-[10px] md:text-xs text-zinc-400 leading-tight">
-                  Run code.
-                </p>
-              </div>
-            </div>
-
-            {/* 6. Privacy (Small) - Mobile: Row 4 (Col 1), Desktop: Row 3 (Col 4) */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
-              <ShieldCheck className="w-4 h-4 md:w-6 md:h-6 text-white" />
-              <div>
-                <h4 className="font-bold text-sm md:text-lg leading-none mb-0.5 md:mb-1">
-                  Privacy
-                </h4>
-                <p className="text-[10px] md:text-xs text-zinc-400 leading-tight">
-                  Local storage.
-                </p>
-              </div>
-            </div>
-
-            {/* 7. The Library (Wide -> Small Mobile) - Mobile: Row 4 (Col 2), Desktop: Row 3 (Col 1-2) */}
-            <div className="col-span-1 md:col-span-2 row-span-1 relative rounded-xl md:rounded-2xl overflow-hidden group border border-white/10">
-              <Image
-                src="/assets/landing/structured_light_abstract_1764891925820.png"
-                alt="Structured Light"
-                fill
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDAAQRBRIhBhMiMUFR/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAZEQACAwEAAAAAAAAAAAAAAAABAgADESH/2gAMAwEAAhEDEQA/ANF0zqC+0+yhtoLVZI4wFVy5G4fT4UVb/9k="
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
-              <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6 max-w-sm">
-                <h3 className="font-syne text-sm md:text-xl font-bold mb-0.5 md:mb-1">
-                  The Library
-                </h3>
-                <p className="text-zinc-300 text-[10px] md:text-xs leading-tight">
-                  Hybrid Search. Projects. Bookmarks. Find anything, instantly.
-                </p>
-              </div>
-            </div>
-
-            {/* 8. Team Spaces (Small) - Mobile: Row 5 (Col 1), Desktop: Row 4 (Col 1) */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
-              <Users className="w-4 h-4 md:w-6 md:h-6 text-white" />
-              <div>
-                <h4 className="font-bold text-sm md:text-lg leading-none mb-0.5 md:mb-1">
-                  Teams
-                </h4>
-                <p className="text-[10px] md:text-xs text-zinc-400 leading-tight">
-                  Collaborate.
-                </p>
-              </div>
-            </div>
-
-            {/* 9. API Access (Small) - Mobile: Row 5 (Col 2), Desktop: Row 4 (Col 2) */}
-            <div className="col-span-1 row-span-1 bg-zinc-900/50 rounded-xl md:rounded-2xl p-3 md:p-5 border border-white/10 flex flex-col justify-between hover:bg-zinc-900/80 transition-colors">
-              <Webhook className="w-4 h-4 md:w-6 md:h-6 text-white" />
-              <div>
-                <h4 className="font-bold text-sm md:text-lg leading-none mb-0.5 md:mb-1">
-                  API
-                </h4>
-                <p className="text-[10px] md:text-xs text-zinc-400 leading-tight">
-                  Your keys.
-                </p>
-              </div>
-            </div>
-
-            {/* 10. The Control (Wide) - Mobile: Row 6 (Col 1-2), Desktop: Row 4 (Col 3-4) */}
-            <div className="col-span-2 row-span-1 relative rounded-xl md:rounded-2xl overflow-hidden group border border-white/10">
-              <Image
-                src="/assets/landing/control_interface_abstract_1764891952530.png"
-                alt="Control Interface"
-                fill
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUH/8QAIhAAAgEDAwUBAAAAAAAAAAAAAQIDAAQRBRIhBhMiMUFR/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAZEQACAwEAAAAAAAAAAAAAAAABAgADESH/2gAMAwEAAhEDEQA/ANF0zqC+0+yhtoLVZI4wFVy5G4fT4UVb/9k="
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-              <div className="absolute bottom-3 left-3 md:bottom-6 md:left-6">
-                <h3 className="font-syne text-lg md:text-xl font-bold mb-0.5 md:mb-1">
-                  The Control
-                </h3>
-                <p className="text-zinc-300 text-[10px] md:text-xs leading-tight">
-                  Transparent Cost Tracking. Know exactly what you pay. NOTES &
-                  SHARING.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 5: CTA */}
-      <section
-        ref={section5Ref}
-        className="h-screen sticky top-0 flex items-center justify-center bg-zinc-950 text-zinc-50 z-40"
-      >
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(800px,90vw)] h-[min(800px,90vw)] bg-primary/20 rounded-full blur-[120px] opacity-50 animate-pulse" />
-        </div>
-
-        <div className="container px-4 relative z-10 text-center max-w-4xl">
+          {/* CTAs */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="flex flex-col items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.3, duration: 0.6 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <div className="flex justify-center mb-6 md:mb-8 scale-100 md:scale-150">
-              <Logo />
-            </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-light text-zinc-400 mb-8 md:mb-12 max-w-3xl mx-auto">
-              Give it a shot. <br />
-              You'll understand why.
-            </p>
+            <Button asChild size="lg" className="rounded-full px-8 text-base">
+              <Link href="/sign-up">
+                Start chatting
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+            </Button>
             <Button
               asChild
+              variant="outline"
               size="lg"
-              className="h-12 md:h-16 px-8 md:px-12 rounded-full text-base md:text-xl font-bold bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105 w-full max-w-xs md:w-auto"
+              className="rounded-full px-8 text-base"
             >
               <Link
-                href="/sign-up"
-                className="flex items-center justify-center gap-2"
+                href="https://github.com/planetaryescape/blah.chat"
+                target="_blank"
               >
-                Start Chatting <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
+                <Github className="w-4 h-4 mr-2" />
+                Self-host
               </Link>
             </Button>
           </motion.div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 3, duration: 0.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        >
+          <span className="font-mono text-muted-foreground text-sm">
+            scroll<span className="cursor-blink">_</span>
+          </span>
+        </motion.div>
+
+        {/* Background grid */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)`,
+            backgroundSize: "60px 60px",
+          }}
+        />
+      </section>
+
+      {/* ===== SECTION 2: THE PROBLEM ===== */}
+      <section className="py-20 md:py-32 bg-foreground text-background relative">
+        <div ref={problemRef} className="container px-4 max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={problemInView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="font-syne text-3xl md:text-5xl lg:text-6xl font-bold mb-4">
+              The subscription sprawl.
+            </h2>
+            <p className="text-background/60 text-lg mb-12">Sound familiar?</p>
+
+            {/* Subscription list */}
+            <div className="mb-8">
+              {subscriptions.map((sub, i) => (
+                <SubscriptionItem
+                  key={sub.name}
+                  name={sub.name}
+                  price={sub.price}
+                  reason={sub.reason}
+                  index={i}
+                  isVisible={problemInView}
+                />
+              ))}
+            </div>
+
+            {/* Total */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={problemInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 1.5, duration: 0.5 }}
+              className="flex items-center justify-between py-4 border-t-2 border-background/20"
+            >
+              <span className="font-mono text-xl font-bold">TOTAL</span>
+              <span className="font-mono text-2xl md:text-3xl font-black text-destructive">
+                $96+/mo
+              </span>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={problemInView ? { opacity: 1 } : {}}
+              transition={{ delay: 1.8, duration: 0.5 }}
+              className="mt-8 text-background/50 text-center italic"
+            >
+              ...for scattered superpowers you can barely remember to use.
+            </motion.p>
+          </motion.div>
         </div>
       </section>
-    </div>
-  );
-}
 
-function BackgroundGrid() {
-  return (
-    <div
-      className="absolute inset-0 z-0 opacity-[0.03]"
-      style={{
-        backgroundImage: `linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)`,
-        backgroundSize: "40px 40px",
-      }}
-    />
+      {/* ===== SECTION 3: THE SOLUTION ===== */}
+      <section className="py-20 md:py-32 relative overflow-hidden">
+        <div className="container px-4 max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="font-syne text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
+              Everything. <span className="text-primary">One place.</span>
+            </h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto mb-12">
+              Access every model. Switch mid-conversation. Keep context forever.
+              Pay once.
+            </p>
+          </motion.div>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
+            {features.map((feature, i) => (
+              <FeaturePill key={feature} delay={0.1 + i * 0.05}>
+                {feature}
+              </FeaturePill>
+            ))}
+          </div>
+        </div>
+
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
+      </section>
+
+      {/* ===== SECTION 4: DEPLOYMENT SPECTRUM ===== */}
+      <section className="py-20 md:py-32 bg-zinc-950">
+        <div className="container px-4 max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="font-syne text-3xl md:text-5xl font-bold text-white mb-4">
+              Your way.
+            </h2>
+            <p className="text-zinc-400 text-lg max-w-xl mx-auto">
+              From fully managed to fully yours. Pick your level of control.
+            </p>
+          </motion.div>
+
+          {/* Spectrum line */}
+          <div className="relative mb-8 hidden md:block">
+            <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-primary/50 via-zinc-700 to-[var(--terminal-green,oklch(75%_0.15_145))]/50" />
+            <div className="flex justify-between">
+              {["Easiest", "", "", "Full control"].map((label, i) => (
+                <span key={i} className="text-xs text-zinc-500 font-mono">
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <DeploymentCard
+              icon={Cloud}
+              title="Cloud"
+              description="We handle everything. Sign up, chat. Zero config."
+              index={0}
+            />
+            <DeploymentCard
+              icon={Key}
+              title="BYOK"
+              description="Your API keys, your inference costs. We handle the rest."
+              badge="Live"
+              badgeColor="bg-primary/20 text-primary"
+              index={1}
+            />
+            <DeploymentCard
+              icon={Database}
+              title="BYOD"
+              description="Your Convex database. Your data stays yours."
+              badge="Coming Soon"
+              badgeColor="bg-zinc-700 text-zinc-300"
+              index={2}
+            />
+            <DeploymentCard
+              icon={Server}
+              title="Self-host"
+              description="Run it yourself. Fork it. Modify it. Own it."
+              badge="AGPLv3"
+              badgeColor="bg-[var(--terminal-green,oklch(75%_0.15_145))]/20 text-[var(--terminal-green)]"
+              isTerminal
+              index={3}
+            />
+          </div>
+
+          {/* GitHub link */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="mt-8 text-center"
+          >
+            <Link
+              href="https://github.com/planetaryescape/blah.chat"
+              target="_blank"
+              className="inline-flex items-center gap-2 text-zinc-400 hover:text-white font-mono text-sm transition-colors"
+            >
+              <Github className="w-4 h-4" />
+              github.com/planetaryescape/blah.chat
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 5: FEATURES GRID ===== */}
+      <section className="py-20 md:py-32 bg-zinc-950">
+        <div className="container px-4 max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-12"
+          >
+            <h2 className="font-syne text-3xl md:text-5xl font-bold text-white mb-4">
+              The toolkit.
+            </h2>
+            <p className="text-zinc-400 text-lg">
+              Everything you need. Nothing you don't.
+            </p>
+          </motion.div>
+
+          {/* Bento grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {/* Large: All Models */}
+            <FeatureCard
+              icon={Sparkles}
+              title="All Models"
+              description="OpenAI, Anthropic, Google, Perplexity, Groq, xAI, and more. 50+ models, one interface."
+              large
+              index={0}
+            />
+
+            {/* Regular cards - Row 1 */}
+            <FeatureCard
+              icon={Zap}
+              title="Mid-chat Switch"
+              description="Change models without losing context."
+              index={1}
+            />
+            <FeatureCard
+              icon={Brain}
+              title="Memory"
+              description="Remembers you across conversations."
+              index={2}
+            />
+
+            {/* Regular cards - Row 2 */}
+            <FeatureCard
+              icon={FolderKanban}
+              title="Projects"
+              description="Isolated contexts for different work."
+              index={3}
+            />
+            <FeatureCard
+              icon={FileText}
+              title="Notes"
+              description="Save, tag, search. Semantic retrieval."
+              index={4}
+            />
+            <FeatureCard
+              icon={ListTodo}
+              title="Tasks"
+              description="AI extracts tasks from conversations."
+              index={5}
+            />
+            <FeatureCard
+              icon={Search}
+              title="Knowledge Bank"
+              description="PDFs, URLs, YouTube. All searchable."
+              index={6}
+            />
+
+            {/* Large: Tools */}
+            <FeatureCard
+              icon={Code2}
+              title="20+ Tools"
+              description="Web search, code execution, calculator, weather, URL reader, and more. Every model gets superpowers."
+              large
+              index={7}
+            />
+
+            {/* Regular cards - Row 3 */}
+            <FeatureCard
+              icon={DollarSign}
+              title="Cost Tracking"
+              description="Per-message transparency. No surprises."
+              index={8}
+            />
+            <FeatureCard
+              icon={WifiOff}
+              title="Offline"
+              description="Works without connection."
+              index={9}
+            />
+            <FeatureCard
+              icon={Mic}
+              title="Voice"
+              description="Talk to any model."
+              index={10}
+            />
+            <FeatureCard
+              icon={Split}
+              title="Branching"
+              description="Fork conversations. Explore paths."
+              index={11}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 6: TRUST ===== */}
+      <section className="py-20 md:py-32 bg-zinc-950 border-t border-zinc-900">
+        <div className="container px-4 max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="font-syne text-3xl md:text-5xl font-bold text-white mb-4">
+              Open & transparent.
+            </h2>
+            <p className="text-zinc-400 text-lg">
+              No black boxes. No hidden costs. No data hostage.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <TrustBlock icon={Github} title="// CODE_IS_PUBLIC" index={0}>
+              <div className="font-mono bg-black/50 rounded-lg p-3 mb-4 text-xs overflow-x-auto">
+                <span className="text-zinc-500">$</span>{" "}
+                <span className="text-[var(--terminal-green)]">git clone</span>{" "}
+                github.com/planetaryescape/blah.chat
+              </div>
+              <p>Fork it. Audit it. Improve it. AGPLv3 licensed.</p>
+            </TrustBlock>
+
+            <TrustBlock icon={DollarSign} title="// COSTS_VISIBLE" index={1}>
+              <div className="font-mono bg-black/50 rounded-lg p-3 mb-4 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">input:</span>
+                  <span>1,247 tokens</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">output:</span>
+                  <span>892 tokens</span>
+                </div>
+                <div className="flex justify-between border-t border-zinc-800 mt-2 pt-2">
+                  <span className="text-zinc-500">cost:</span>
+                  <span className="text-[var(--terminal-green)]">$0.0043</span>
+                </div>
+              </div>
+              <p>Every message. Every token. Every cent.</p>
+            </TrustBlock>
+
+            <TrustBlock icon={Database} title="// DATA_IS_YOURS" index={2}>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-[var(--terminal-green)]" />
+                  <span>BYOD: Your database</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-[var(--terminal-green)]" />
+                  <span>Export anytime</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-[var(--terminal-green)]" />
+                  <span>Delete anytime</span>
+                </div>
+              </div>
+              <p>No lock-in. No hostage data. Your stuff.</p>
+            </TrustBlock>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SECTION 7: CTA ===== */}
+      <section className="py-24 md:py-40 bg-zinc-950 relative overflow-hidden">
+        <div className="container px-4 max-w-2xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="mb-8 flex justify-center">
+              <Logo size="lg" />
+            </div>
+
+            <h2 className="font-syne text-2xl md:text-4xl font-bold text-white mb-4">
+              Ready to unify?
+            </h2>
+            <p className="text-zinc-400 mb-10 text-lg">
+              One interface. All models. Your way.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                asChild
+                size="lg"
+                className="rounded-full px-10 text-base w-full sm:w-auto"
+              >
+                <Link href="/sign-up">
+                  Start chatting
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="rounded-full px-8 text-base w-full sm:w-auto"
+              >
+                <Link
+                  href="https://github.com/planetaryescape/blah.chat"
+                  target="_blank"
+                >
+                  <Github className="w-4 h-4 mr-2" />
+                  View on GitHub
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/15 rounded-full blur-[150px] pointer-events-none" />
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 bg-zinc-950 border-t border-zinc-900">
+        <div className="container px-4 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-zinc-500 text-sm">
+            <div className="flex items-center gap-2">
+              <Logo size="sm" />
+            </div>
+            <div className="flex items-center gap-6 font-mono text-xs">
+              <Link
+                href="https://github.com/planetaryescape/blah.chat"
+                target="_blank"
+                className="hover:text-white transition-colors"
+              >
+                GitHub
+              </Link>
+              <Link
+                href="/privacy"
+                className="hover:text-white transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="hover:text-white transition-colors"
+              >
+                Terms
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

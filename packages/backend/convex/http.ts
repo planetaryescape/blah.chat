@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
+import { logger } from "./lib/logger";
 
 const http = httpRouter();
 
@@ -42,7 +43,10 @@ http.route({
         },
       });
     } catch (error) {
-      console.error("[StoreCodeExecutionImage] Error:", error);
+      logger.error("Store code execution image failed", {
+        tag: "StoreCodeExecutionImage",
+        error: String(error),
+      });
       return new Response(
         JSON.stringify({
           error: error instanceof Error ? error.message : "Storage failed",
@@ -196,7 +200,10 @@ http.route({
         },
       );
     } catch (error) {
-      console.error("[BYOD Credentials] Error:", error);
+      logger.error("BYOD credentials fetch failed", {
+        tag: "BYODCredentials",
+        error: String(error),
+      });
       return new Response(
         JSON.stringify({ error: "Failed to fetch credentials" }),
         { status: 500, headers: { "Content-Type": "application/json" } },

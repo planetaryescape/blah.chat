@@ -6,6 +6,7 @@ import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
 
 export const generateImage = internalAction({
@@ -273,7 +274,10 @@ export const generateImage = internalAction({
         generationTime: totalTime,
       };
     } catch (error) {
-      console.error("Image generation error:", error);
+      logger.error("Image generation error", {
+        tag: "ImageGeneration",
+        error: String(error),
+      });
 
       // Use markError to properly set status="error" and clear state
       await ctx.runMutation(internal.messages.markError, {

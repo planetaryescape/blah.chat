@@ -3,9 +3,10 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
 import { useQuery } from "convex/react";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
@@ -19,10 +20,12 @@ import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CATEGORIES } from "@/lib/ai/categories";
+import { AUTO_MODEL, isAutoModel } from "@/lib/ai/models";
 import { sortModels } from "@/lib/ai/sortModels";
 import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
+import { cn } from "@/lib/utils";
 import {
   DEFAULT_CONTEXT_WINDOW,
   formatTokens,
@@ -206,7 +209,11 @@ export function QuickModelSwitcher({
     (model: ModelConfig) => {
       if (isContextExceeded(model)) {
         toast.error(
-          `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${model.name}'s limit (${formatTokens(model.contextWindow ?? DEFAULT_CONTEXT_WINDOW)})`,
+          `Current context (${formatTokens(currentTokenUsage ?? 0)}) exceeds ${
+            model.name
+          }'s limit (${formatTokens(
+            model.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+          )})`,
         );
       } else if (isDisabledDueToByok(model)) {
         const message = getByokModelDisabledMessage(model.gateway || "");
@@ -267,7 +274,7 @@ export function QuickModelSwitcher({
                 "Select model"
               : `${internalSelected.length} models`}
           </span>
-          <ChevronRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-muted-foreground rotate-90 transition-all" />
+          <ChevronRight className="w-3 h-3 transition-all rotate-90 text-muted-foreground/40 group-hover:text-muted-foreground" />
         </Button>
       )}
 
@@ -282,11 +289,12 @@ export function QuickModelSwitcher({
         }}
         className="max-w-[95vw] md:max-w-4xl h-[85vh] md:h-[600px] p-0 gap-0 overflow-hidden bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl"
       >
-        <div className="flex items-center border-b px-4 py-3 shrink-0">
-          <Search className="w-4 h-4 mr-2 text-muted-foreground" />
+        <div className="flex items-center px-4 py-3 border-b shrink-0">
           <CommandInput
-            placeholder={`Search ${activeCategory === "all" ? "" : `${activeCategory} `}models...`}
-            className="flex-1 h-9 bg-transparent border-0 ring-0 focus:ring-0 text-sm"
+            placeholder={`Search ${
+              activeCategory === "all" ? "" : `${activeCategory} `
+            }models...`}
+            className="flex-1 text-sm bg-transparent border-0 h-9 ring-0 focus:ring-0"
           />
         </div>
 
@@ -297,7 +305,7 @@ export function QuickModelSwitcher({
             allModels={allModels}
           />
 
-          <div className="flex-1 flex flex-col min-w-0 bg-background/50">
+          <div className="flex flex-col flex-1 min-w-0 bg-background/50">
             {mode === "multiple" && (
               <SelectedModelsChips
                 selectedIds={internalSelected}
@@ -310,6 +318,44 @@ export function QuickModelSwitcher({
 
             <CommandList className="max-h-[600px] overflow-y-auto p-2">
               <CommandEmpty>No models found.</CommandEmpty>
+
+              {/* Auto Router - Smart Model Selection */}
+              {mode === "single" && activeCategory === "all" && (
+                <CommandGroup heading="Smart Routing">
+                  <div
+                    className={cn(
+                      "relative flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all min-w-0",
+                      "hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10",
+                      isAutoModel(currentModel) &&
+                        "bg-gradient-to-r from-primary/15 to-secondary/15 ring-1 ring-primary/30",
+                    )}
+                    onClick={() => handleSelect("auto")}
+                    onKeyDown={(e) => e.key === "Enter" && handleSelect("auto")}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm text-primary">
+                          {AUTO_MODEL.name}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] h-4 px-1.5 bg-primary/10 text-primary border-0"
+                        >
+                          NEW
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {AUTO_MODEL.description}
+                      </p>
+                    </div>
+                    {isAutoModel(currentModel) && (
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </div>
+                </CommandGroup>
+              )}
 
               {filteredModels.defaultModel && (
                 <CommandGroup heading="Default">
@@ -349,7 +395,7 @@ export function QuickModelSwitcher({
             </CommandList>
 
             {proAccess && !proAccess.canUse && (
-              <div className="p-3 border-t text-center">
+              <div className="p-3 text-center border-t">
                 <button
                   type="button"
                   onClick={() => setUpgradeDialogOpen(true)}
@@ -363,7 +409,7 @@ export function QuickModelSwitcher({
         </div>
 
         {mode === "multiple" && (
-          <div className="border-t p-3 flex justify-between items-center">
+          <div className="flex items-center justify-between p-3 border-t">
             <span className="text-sm text-muted-foreground">
               {internalSelected.length}/4 selected
             </span>

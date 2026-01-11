@@ -33,6 +33,34 @@ import { RateLimitDialog } from "./RateLimitDialog";
 import type { ThinkingEffort } from "./ThinkingEffortSelector";
 import { VoiceInput, type VoiceInputRef } from "./VoiceInput";
 
+/**
+ * Tooltip wrapper that skips rendering tooltip on touch devices.
+ * Prevents focus stealing on mobile.
+ */
+function MobileAwareTooltip({
+  children,
+  content,
+  side = "top",
+  isTouchDevice,
+}: {
+  children: React.ReactNode;
+  content: string;
+  side?: "top" | "bottom" | "left" | "right";
+  isTouchDevice: boolean;
+}) {
+  if (isTouchDevice) {
+    return <>{children}</>;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side}>
+        <p>{content}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 interface Attachment {
   type: "file" | "image" | "audio";
   name: string;
@@ -272,7 +300,7 @@ export const ChatInput = memo(function ChatInput({
   return (
     <div
       className={cn(
-        "w-full mx-auto px-2 sm:px-4 pb-4 sm:pb-6 !pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
+        "w-full mx-auto px-2 sm:px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] transition-[max-width] duration-300 ease-out",
         getChatWidthClass(chatWidth, false),
       )}
     >
@@ -286,10 +314,10 @@ export const ChatInput = memo(function ChatInput({
         role="search"
         aria-label="Send message to AI"
         className={cn(
-          "relative flex flex-col gap-2 p-2 transition-all duration-300 ease-out",
+          "relative flex flex-col gap-2 p-2 sm:p-4 transition-all duration-300 ease-out",
           "bg-background/90 backdrop-blur-xl",
           "border border-white/15 dark:border-white/10",
-          "rounded-3xl",
+          "rounded-xl",
           "shadow-lg",
           isFocused && [
             "ring-1 ring-primary/20",
@@ -308,17 +336,17 @@ export const ChatInput = memo(function ChatInput({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="absolute inset-0 z-10 rounded-3xl overflow-hidden pointer-events-none"
+              className="absolute inset-0 z-10 overflow-hidden pointer-events-none rounded-3xl"
             >
               <div className="absolute inset-0 border-2 border-dashed border-primary/50 rounded-3xl animate-pulse" />
-              <div className="absolute inset-0 bg-primary/5 backdrop-blur-sm flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/5 backdrop-blur-sm">
                 <motion.div
                   initial={{ y: 4, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.05 }}
                   className="flex flex-col items-center gap-2"
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
                     <Upload className="w-6 h-6 text-primary" />
                   </div>
                   <span className="text-sm font-medium text-primary">
@@ -348,30 +376,29 @@ export const ChatInput = memo(function ChatInput({
         )}
 
         {/* Main input row - ChatGPT style: [+] [textarea] [mic/send] */}
-        <div className="flex gap-2 items-end px-2">
+        <div className="flex items-start gap-2">
           {/* Plus button - LEFT, bottom-aligned */}
-          <div className="pb-1.5 flex-shrink-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <FileUpload
-                    conversationId={conversationId}
-                    attachments={attachments}
-                    onAttachmentsChange={onAttachmentsChange}
-                    onUploadComplete={() => textareaRef.current?.focus()}
-                    uploading={uploading}
-                    setUploading={setUploading}
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>Attach files</p>
-              </TooltipContent>
-            </Tooltip>
+          <div className="flex-shrink-0">
+            <MobileAwareTooltip
+              content="Attach files"
+              side="top"
+              isTouchDevice={isTouchDevice}
+            >
+              <div>
+                <FileUpload
+                  conversationId={conversationId}
+                  attachments={attachments}
+                  onAttachmentsChange={onAttachmentsChange}
+                  onUploadComplete={() => textareaRef.current?.focus()}
+                  uploading={uploading}
+                  setUploading={setUploading}
+                />
+              </div>
+            </MobileAwareTooltip>
           </div>
 
           {/* Textarea container - grows upward, takes remaining space */}
-          <div className="flex-1 min-w-0 relative">
+          <div className="relative flex-1 min-w-0">
             {isRecording ? (
               <div className="relative min-h-[50px] flex items-center justify-center rounded-xl overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse" />
@@ -403,23 +430,22 @@ export const ChatInput = memo(function ChatInput({
                 />
                 {/* Expand button for long text */}
                 {showExpandButton && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowExpandedInput(true)}
-                        className="absolute top-2 right-1 h-6 w-6 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
-                        aria-label="Expand input"
-                      >
-                        <Expand className="w-3.5 h-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Expand editor</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <MobileAwareTooltip
+                    content="Expand editor"
+                    side="top"
+                    isTouchDevice={isTouchDevice}
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowExpandedInput(true)}
+                      className="absolute w-6 h-6 top-2 right-1 text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
+                      aria-label="Expand input"
+                    >
+                      <Expand className="w-3.5 h-3.5" />
+                    </Button>
+                  </MobileAwareTooltip>
                 )}
               </>
             )}
@@ -430,95 +456,89 @@ export const ChatInput = memo(function ChatInput({
           </div>
 
           {/* Right button(s) - bottom-aligned */}
-          <div className="pb-1.5 flex-shrink-0 flex items-center gap-1">
+          <div className="flex items-center flex-shrink-0 gap-1">
             {/* VoiceInput always rendered (hidden when !showMic) to preserve ref during recording */}
             <div className={cn(showMic ? "block" : "hidden")}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <VoiceInput
-                      ref={voiceInputRef}
-                      onTranscript={async (text, autoSend) => {
-                        setIsTranscribing(false);
-                        if (autoSend && text.trim()) {
-                          setIsSending(true);
-                          try {
-                            await sendMessage({
-                              conversationId,
-                              content: text.trim(),
-                              ...(isComparisonMode
-                                ? { models: selectedModels }
-                                : { modelId: selectedModel }),
-                              thinkingEffort,
-                              attachments:
-                                attachments.length > 0
-                                  ? attachments
-                                  : undefined,
-                            });
-                            onAttachmentsChange([]);
-                          } catch (error) {
-                            if (
-                              error instanceof Error &&
-                              error.message.includes("Daily message limit")
-                            ) {
-                              setShowRateLimitDialog(true);
-                            } else {
-                              console.error("Failed to send message:", error);
-                            }
-                          } finally {
-                            setIsSending(false);
+              <MobileAwareTooltip
+                content="Voice input"
+                isTouchDevice={isTouchDevice}
+              >
+                <div>
+                  <VoiceInput
+                    ref={voiceInputRef}
+                    onTranscript={async (text, autoSend) => {
+                      setIsTranscribing(false);
+                      if (autoSend && text.trim()) {
+                        setIsSending(true);
+                        try {
+                          await sendMessage({
+                            conversationId,
+                            content: text.trim(),
+                            ...(isComparisonMode
+                              ? { models: selectedModels }
+                              : { modelId: selectedModel }),
+                            thinkingEffort,
+                            attachments:
+                              attachments.length > 0 ? attachments : undefined,
+                          });
+                          onAttachmentsChange([]);
+                        } catch (error) {
+                          if (
+                            error instanceof Error &&
+                            error.message.includes("Daily message limit")
+                          ) {
+                            setShowRateLimitDialog(true);
+                          } else {
+                            console.error("Failed to send message:", error);
                           }
-                        } else {
-                          setInput((prev) =>
-                            prev.trim() ? `${prev} ${text}` : text,
-                          );
+                        } finally {
+                          setIsSending(false);
                         }
-                      }}
-                      onRecordingStateChange={(recording, stream) => {
-                        setIsRecording(recording);
-                        setRecordingStream(stream || null);
-                        if (!recording && stream) setIsTranscribing(true);
-                      }}
-                      isDisabled={isSending || uploading}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Voice input</p>
-                </TooltipContent>
-              </Tooltip>
+                      } else {
+                        setInput((prev) =>
+                          prev.trim() ? `${prev} ${text}` : text,
+                        );
+                      }
+                    }}
+                    onRecordingStateChange={(recording, stream) => {
+                      setIsRecording(recording);
+                      setRecordingStream(stream || null);
+                      if (!recording && stream) setIsTranscribing(true);
+                    }}
+                    isDisabled={isSending || uploading}
+                  />
+                </div>
+              </MobileAwareTooltip>
             </div>
 
             {/* Stop recording button (preview mode) - appears during recording */}
             {isRecording && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              <MobileAwareTooltip
+                content="Stop & edit"
+                isTouchDevice={isTouchDevice}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={() =>
+                      voiceInputRef.current?.stopRecording("preview")
+                    }
+                    aria-label="Stop recording and edit"
+                    className="w-10 h-10 rounded-full"
                   >
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() =>
-                        voiceInputRef.current?.stopRecording("preview")
-                      }
-                      aria-label="Stop recording and edit"
-                      className="h-10 w-10 rounded-full"
-                    >
-                      <Square
-                        className="w-4 h-4 fill-current"
-                        aria-hidden="true"
-                      />
-                    </Button>
-                  </motion.div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Stop & edit</p>
-                </TooltipContent>
-              </Tooltip>
+                    <Square
+                      className="w-4 h-4 fill-current"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </motion.div>
+              </MobileAwareTooltip>
             )}
 
             {/* Show send/stop button when not showing mic */}

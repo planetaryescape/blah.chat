@@ -27,7 +27,12 @@ export async function convertPptxToPdf(pptxBase64: string): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[ConvertAPI] Failed:", response.status, errorText);
+    const { logger } = await import("../logger");
+    logger.error("ConvertAPI failed", {
+      tag: "ConvertAPI",
+      status: response.status,
+      errorText,
+    });
     throw new Error(`ConvertAPI failed: ${response.status} - ${errorText}`);
   }
 
@@ -36,7 +41,11 @@ export async function convertPptxToPdf(pptxBase64: string): Promise<string> {
   };
 
   if (!result.Files?.[0]?.FileData) {
-    console.error("[ConvertAPI] Unexpected response:", result);
+    const { logger } = await import("../logger");
+    logger.error("ConvertAPI unexpected response", {
+      tag: "ConvertAPI",
+      result,
+    });
     throw new Error("ConvertAPI returned no file data");
   }
 

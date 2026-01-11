@@ -9,6 +9,7 @@
 
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Orchestrator: Run full backfill in batches
@@ -21,7 +22,7 @@ export const runBackfill = internalAction({
     let batches = 0;
     const startTime = Date.now();
 
-    console.log("🚀 Starting user preferences backfill...");
+    logger.info("Starting user preferences backfill", { tag: "Migration" });
 
     // Check initial state
     const initial = (await (ctx.runQuery as any)(
@@ -35,15 +36,16 @@ export const runBackfill = internalAction({
       percentage: string;
     };
 
-    console.log(`📊 Initial state:`);
-    console.log(`   Total users: ${initial.totalUsers}`);
-    console.log(`   Already backfilled: ${initial.usersWithPrefs}`);
-    console.log(
-      `   Remaining: ${initial.remaining} (${100 - Number.parseFloat(initial.percentage)}%)`,
-    );
+    logger.info("Initial state", {
+      tag: "Migration",
+      totalUsers: initial.totalUsers,
+      alreadyBackfilled: initial.usersWithPrefs,
+      remaining: initial.remaining,
+      percentageRemaining: `${100 - Number.parseFloat(initial.percentage)}%`,
+    });
 
     if (initial.remaining === 0) {
-      console.log("✅ All users already backfilled");
+      logger.info("All users already backfilled", { tag: "Migration" });
       return { totalProcessed: 0, totalInserted: 0, batches: 0 };
     }
 
@@ -60,9 +62,13 @@ export const runBackfill = internalAction({
       totalSkipped += result.skipped;
       batches++;
 
-      console.log(
-        `✅ Batch ${batches}: processed ${result.processed} users, inserted ${result.inserted} preferences, skipped ${result.skipped}`,
-      );
+      logger.info("Batch processed", {
+        tag: "Migration",
+        batch: batches,
+        processed: result.processed,
+        inserted: result.inserted,
+        skipped: result.skipped,
+      });
 
       // Stop if no users processed (all backfilled)
       if (result.processed === 0 || result.skipped === result.processed) {
@@ -84,18 +90,23 @@ export const runBackfill = internalAction({
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    console.log(`\n🎉 Backfill complete!`);
-    console.log(`   Duration: ${duration}s`);
-    console.log(`   Batches: ${batches}`);
-    console.log(`   Users processed: ${totalProcessed}`);
-    console.log(`   Preferences inserted: ${totalInserted}`);
-    console.log(`   Users skipped: ${totalSkipped}`);
-    console.log(`   Final coverage: ${final.percentage}%`);
+    logger.info("Backfill complete", {
+      tag: "Migration",
+      durationSec: duration,
+      batches,
+      usersProcessed: totalProcessed,
+      preferencesInserted: totalInserted,
+      usersSkipped: totalSkipped,
+      finalCoverage: `${final.percentage}%`,
+    });
 
     if (final.remaining > 0) {
-      console.warn(`⚠️  Warning: ${final.remaining} users still need backfill`);
+      logger.warn("Users still need backfill", {
+        tag: "Migration",
+        remaining: final.remaining,
+      });
     } else {
-      console.log("✅ All users backfilled successfully");
+      logger.info("All users backfilled successfully", { tag: "Migration" });
     }
 
     return {
@@ -115,7 +126,7 @@ export const runBackfill = internalAction({
 export const verifyMigration = internalAction({
   args: {},
   handler: async (ctx) => {
-    console.log("🔍 Verifying migration data integrity...");
+    logger.info("Verifying migration data integrity", { tag: "Migration" });
 
     const status = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit
@@ -128,19 +139,23 @@ export const verifyMigration = internalAction({
       percentage: string;
     };
 
-    console.log(`📊 Coverage: ${status.percentage}%`);
-    console.log(`   Total users: ${status.totalUsers}`);
-    console.log(`   With preferences: ${status.usersWithPrefs}`);
-    console.log(`   Remaining: ${status.remaining}`);
+    logger.info("Coverage status", {
+      tag: "Migration",
+      coverage: `${status.percentage}%`,
+      totalUsers: status.totalUsers,
+      withPreferences: status.usersWithPrefs,
+      remaining: status.remaining,
+    });
 
     if (status.remaining === 0) {
-      console.log("✅ Migration verified: 100% coverage");
+      logger.info("Migration verified: 100% coverage", { tag: "Migration" });
       return { status: "success", coverage: 100 };
     }
 
-    console.warn(
-      `⚠️  Migration incomplete: ${status.remaining} users remaining`,
-    );
+    logger.warn("Migration incomplete", {
+      tag: "Migration",
+      remaining: status.remaining,
+    });
     return {
       status: "incomplete",
       coverage: Number.parseFloat(status.percentage),

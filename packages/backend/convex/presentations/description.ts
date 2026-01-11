@@ -10,6 +10,7 @@ import {
   internalMutation,
   mutation,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import {
   buildDescriptionPrompt,
   DESCRIPTION_SYSTEM_PROMPT,
@@ -53,7 +54,10 @@ export const generateDescriptionAction = internalAction({
     } | null;
 
     if (!presentation) {
-      console.error("Presentation not found for description generation");
+      logger.error("Presentation not found for description generation", {
+        tag: "Description",
+        presentationId: args.presentationId,
+      });
       return;
     }
 
@@ -66,7 +70,10 @@ export const generateDescriptionAction = internalAction({
     )) as Array<{ title: string; content: string }> | null;
 
     if (!outlineItems || outlineItems.length === 0) {
-      console.log("No outline items found for description generation");
+      logger.info("No outline items found for description generation", {
+        tag: "Description",
+        presentationId: args.presentationId,
+      });
       return;
     }
 
@@ -122,7 +129,7 @@ export const generateDescriptionAction = internalAction({
         );
       }
     } catch (error) {
-      console.error("Failed to generate description:", error);
+      logger.error("Failed to generate description", { error: String(error) });
       // Don't throw - description is optional enhancement
     }
   },

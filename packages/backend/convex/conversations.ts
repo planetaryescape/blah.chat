@@ -1,7 +1,9 @@
 // @ts-nocheck
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { canAccessConversation } from "./conversations/branching";
+import { logger } from "./lib/logger";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 import { cascadeDeleteConversation } from "./lib/utils/cascade";
 
@@ -93,6 +95,18 @@ export const create = mutation({
         lastUpdated: Date.now(),
       });
     }
+
+    // Schedule background system prompt build (non-blocking)
+    // By the time user types their first message, prompt will be cached
+    await ctx.scheduler.runAfter(
+      0,
+      internal.prompts.cache.buildAndCachePrompt,
+      {
+        conversationId,
+        userId: user._id,
+        modelId: args.model,
+      },
+    );
 
     return conversationId;
   },
@@ -225,13 +239,10 @@ export const list = query({
       }
     }
 
-    // Merge and dedupe
-    const allConversations = [...owned];
-    for (const collab of filteredCollab) {
-      if (!allConversations.find((c) => c._id === collab._id)) {
-        allConversations.push(collab);
-      }
-    }
+    // Merge and dedupe with O(n) Set lookup instead of O(n²) find
+    const ownedIds = new Set(owned.map((c) => c._id));
+    const uniqueCollab = filteredCollab.filter((c) => !ownedIds.has(c._id));
+    const allConversations = [...owned, ...uniqueCollab];
 
     // Sort: pinned first, then by lastMessageAt
     const sorted = allConversations.sort((a, b) => {
@@ -333,6 +344,17 @@ export const updateModel = mutation({
       model: args.model,
       updatedAt: Date.now(),
     });
+
+    // Rebuild cached system prompt for new model (background, non-blocking)
+    await ctx.scheduler.runAfter(
+      0,
+      internal.prompts.cache.buildAndCachePrompt,
+      {
+        conversationId: args.conversationId,
+        userId: user._id,
+        modelId: args.model,
+      },
+    );
   },
 });
 
@@ -364,10 +386,12 @@ export const cleanupEmptyConversations = mutation({
       const actualMessageCount = messages.length;
 
       if (conv.messageCount !== actualMessageCount) {
-        console.warn(
-          `messageCount mismatch for conversation ${conv._id}: ` +
-            `cached=${conv.messageCount}, actual=${actualMessageCount}`,
-        );
+        logger.warn("messageCount mismatch for conversation", {
+          tag: "Conversations",
+          conversationId: conv._id,
+          cached: conv.messageCount,
+          actual: actualMessageCount,
+        });
         await ctx.db.patch(conv._id, { messageCount: actualMessageCount });
       }
 

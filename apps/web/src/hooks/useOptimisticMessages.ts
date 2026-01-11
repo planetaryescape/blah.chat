@@ -16,8 +16,18 @@ interface UseOptimisticMessagesReturn {
   addOptimisticMessages: (msgs: OptimisticMessage[]) => void;
 }
 
-const MATCH_FUTURE_WINDOW_MS = 30_000; // Allow up to 30s for Convex action scheduling delays
-const MATCH_PAST_WINDOW_MS = 1_000; // Small buffer for clock skew without matching older messages
+/**
+ * Time windows for matching optimistic user messages to server-confirmed ones.
+ *
+ * NOTE: Only USER messages are optimistic. Server creates assistant messages
+ * synchronously (convex/chat.ts:188-205) so no client-side optimistic assistant
+ * messages exist.
+ *
+ * - MATCH_FUTURE_WINDOW_MS (10s): Allow server message to arrive after optimistic
+ * - MATCH_PAST_WINDOW_MS (1s): Handle small clock skew
+ */
+const MATCH_FUTURE_WINDOW_MS = 10_000;
+const MATCH_PAST_WINDOW_MS = 1_000;
 
 function mergeWithOptimisticMessages(
   serverMessages: MessageWithOptimistic[],
@@ -25,21 +35,14 @@ function mergeWithOptimisticMessages(
 ): MessageWithOptimistic[] {
   if (optimisticMessages.length === 0) return serverMessages;
 
-  // Copy server messages by role so we can consume matches without mutating the original array
+  // Group server messages by role for matching (only user messages are optimistic)
   const serverByRole: Record<"user" | "assistant", MessageWithOptimistic[]> = {
-    user: [],
-    assistant: [],
+    user: serverMessages.filter((m) => m.role === "user"),
+    assistant: [], // Not used - assistant messages come from server only
   };
 
-  for (const msg of serverMessages) {
-    if (msg.role === "user" || msg.role === "assistant") {
-      serverByRole[msg.role].push(msg);
-    }
-  }
-
-  // Ensure deterministic matching order
+  // Sort for deterministic matching
   serverByRole.user.sort((a, b) => a.createdAt - b.createdAt);
-  serverByRole.assistant.sort((a, b) => a.createdAt - b.createdAt);
 
   const remainingOptimistic: OptimisticMessage[] = [];
   const sortedOptimistic = [...optimisticMessages].sort(
@@ -47,30 +50,14 @@ function mergeWithOptimisticMessages(
   );
 
   for (const opt of sortedOptimistic) {
+    // Only user messages are optimistic (server creates assistant messages)
     const candidates = serverByRole[opt.role] || [];
     const matchIndex = candidates.findIndex((serverMsg) => {
-      // Assistant messages: prioritize model matching (timing-independent)
-      // Fixes dual-loader bug caused by clock skew or action scheduler delay
-      if (opt.role === "assistant") {
-        // If both have models, match by model (most reliable)
-        if (opt.model && serverMsg.model) {
-          return opt.model === serverMsg.model;
-        }
-        // Fallback to timestamp if no model info
-      }
-
-      // User messages (and assistant fallback): use timestamp matching
+      // Time window check - match if server message arrived within window
       const timeDiff = serverMsg.createdAt - opt.createdAt;
-
-      // Only match messages created slightly before (clock skew) or after the optimistic one
-      if (
-        timeDiff < -MATCH_PAST_WINDOW_MS ||
-        timeDiff > MATCH_FUTURE_WINDOW_MS
-      ) {
-        return false;
-      }
-
-      return true;
+      return (
+        timeDiff >= -MATCH_PAST_WINDOW_MS && timeDiff <= MATCH_FUTURE_WINDOW_MS
+      );
     });
 
     if (matchIndex === -1) {
@@ -132,12 +119,19 @@ export function useOptimisticMessages({
   const prevMessagesRef = useRef<MessageWithOptimistic[] | undefined>(
     undefined,
   );
+  const prevConversationIdRef = useRef<string | undefined>(undefined);
 
   // Merge server messages with optimistic messages, deduplicating confirmed ones
   const messages = useMemo<MessageWithOptimistic[] | undefined>(() => {
-    // If server messages are undefined (loading), keep previous data
+    // If server messages are undefined (loading), only return cached if same conversation
     if (serverMessages === undefined) {
-      return prevMessagesRef.current ?? undefined;
+      if (
+        prevConversationIdRef.current &&
+        prevConversationIdRef.current === currentConversationId
+      ) {
+        return prevMessagesRef.current ?? undefined;
+      }
+      return undefined;
     }
 
     const merged = mergeWithOptimisticMessages(
@@ -145,8 +139,9 @@ export function useOptimisticMessages({
       optimisticMessages,
     );
     prevMessagesRef.current = merged;
+    prevConversationIdRef.current = currentConversationId;
     return merged;
-  }, [serverMessages, optimisticMessages]);
+  }, [serverMessages, optimisticMessages, currentConversationId]);
 
   // NOTE: We intentionally don't clean up optimistic messages from state
   // The useMemo already filters them out visually when server confirms.

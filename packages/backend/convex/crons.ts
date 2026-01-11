@@ -67,4 +67,12 @@ crons.daily(
   internal.usage.rankings.calculateAllUserRankings as any,
 );
 
+// Recover stuck messages every 2 minutes
+crons.interval(
+  "recover-stuck-messages",
+  { minutes: 2 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.messages.recovery.recoverStuckMessages as any,
+);
+
 export default crons;

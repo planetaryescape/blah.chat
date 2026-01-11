@@ -7,15 +7,16 @@
  * Change models here - no need to hunt through the codebase!
  */
 
-import { MODEL_CONFIG, type ModelConfig } from "./models";
+import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "./models";
 import { vercel } from "./providers/gateway";
 
 // ============================================================================
 // DEFAULT MODEL (used for new conversations when no model is specified)
 // ============================================================================
 
-export const DEFAULT_MODEL_ID = "openai:gpt-5-mini";
-export const DEFAULT_MODEL = MODEL_CONFIG[DEFAULT_MODEL_ID];
+export const DEFAULT_MODEL_ID = "auto";
+export const DEFAULT_MODEL =
+  DEFAULT_MODEL_ID === "auto" ? AUTO_MODEL : MODEL_CONFIG[DEFAULT_MODEL_ID];
 
 // ============================================================================
 // OPERATIONAL TASK MODELS

@@ -6,6 +6,34 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
+// Mock Dexie cache - IndexedDB not available in jsdom
+vi.mock("@/lib/cache", () => ({
+  cache: {
+    pendingMutations: {
+      add: vi.fn(),
+      get: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      clear: vi.fn(),
+      where: vi.fn(() => ({
+        equals: vi.fn(() => ({
+          toArray: vi.fn(() => []),
+          count: vi.fn(() => 0),
+        })),
+      })),
+    },
+    messages: { bulkPut: vi.fn(), where: vi.fn() },
+    conversations: { bulkPut: vi.fn(), where: vi.fn() },
+    notes: { bulkPut: vi.fn(), where: vi.fn() },
+    tasks: { bulkPut: vi.fn(), where: vi.fn() },
+    projects: { bulkPut: vi.fn(), where: vi.fn() },
+    attachments: { bulkPut: vi.fn(), where: vi.fn() },
+    toolCalls: { bulkPut: vi.fn(), where: vi.fn() },
+    sources: { bulkPut: vi.fn(), where: vi.fn() },
+    userPreferences: { bulkPut: vi.fn(), where: vi.fn() },
+  },
+}));
+
 // Mock Radix UI Tooltip - requires TooltipProvider context
 vi.mock("@radix-ui/react-tooltip", () => ({
   Root: ({ children }: { children: unknown }) => children,

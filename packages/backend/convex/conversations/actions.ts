@@ -6,6 +6,7 @@ import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { CONVERSATION_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 export const bulkAutoRename = action({
@@ -58,10 +59,10 @@ ${userMessage.content}`,
           // Handle undefined result - use optional chaining for safety
           const rawText = result?.text;
           if (!rawText) {
-            console.error(
-              "AI Gateway returned no text for conversation",
+            logger.error("AI Gateway returned no text for conversation", {
+              tag: "TitleGeneration",
               conversationId,
-            );
+            });
             return {
               id: conversationId,
               success: false,
@@ -82,18 +83,20 @@ ${userMessage.content}`,
 
           return { id: conversationId, success: true, title };
         } catch (error) {
-          console.error(
-            `Failed to rename conversation ${conversationId}:`,
-            error,
-          );
+          logger.error("Failed to rename conversation", {
+            tag: "TitleGeneration",
+            conversationId,
+            error: String(error),
+          });
           // Log additional debug info for undefined text issue
           if (
             error instanceof Error &&
             error.message.includes("Cannot read properties of undefined")
           ) {
-            console.error(
-              "Debug info - result undefined error in title generation",
-            );
+            logger.error("Result undefined error in title generation", {
+              tag: "TitleGeneration",
+              conversationId,
+            });
           }
           return { id: conversationId, success: false, error: String(error) };
         }

@@ -8,6 +8,7 @@ import {
 import { api, internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { mergeMessagesWithRRF } from "../lib/utils/search";
 import { estimateTokens } from "../tokens/counting";
 
@@ -120,7 +121,10 @@ export const hybridSearch = action({
         limit,
       );
     } catch (error) {
-      console.error("Vector search failed, falling back to text-only:", error);
+      logger.error("Vector search failed, falling back to text-only", {
+        tag: "HybridSearch",
+        error: String(error),
+      });
       return textResults.slice(0, limit);
     }
   },

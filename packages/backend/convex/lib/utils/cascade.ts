@@ -183,7 +183,7 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("projectConversations")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .filter((q) => q.eq(q.field("addedBy"), userId))
       .collect(),
     ctx.db
       .query("projectNotes")
@@ -235,7 +235,7 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("canvasHistory")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
       .query("slides")
@@ -311,7 +311,6 @@ export async function cascadeDeleteUserData(
     notifications,
     feedback,
     conversationParticipants,
-    conversationTokenUsage,
     designTemplates,
   ] = await Promise.all([
     ctx.db
@@ -371,10 +370,6 @@ export async function cascadeDeleteUserData(
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
     ctx.db
-      .query("conversationTokenUsage")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect(),
-    ctx.db
       .query("designTemplates")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
@@ -395,7 +390,6 @@ export async function cascadeDeleteUserData(
     ...notifications.map((r) => ctx.db.delete(r._id)),
     ...feedback.map((r) => ctx.db.delete(r._id)),
     ...conversationParticipants.map((r) => ctx.db.delete(r._id)),
-    ...conversationTokenUsage.map((r) => ctx.db.delete(r._id)),
     ...designTemplates.map((r) => ctx.db.delete(r._id)),
   ]);
 

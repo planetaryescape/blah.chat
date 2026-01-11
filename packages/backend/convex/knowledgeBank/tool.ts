@@ -9,6 +9,7 @@ import { z } from "zod";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import { logger } from "../lib/logger";
 import type { KnowledgeSearchResult } from "./search";
 
 /**
@@ -82,7 +83,10 @@ export function createSearchKnowledgeBankTool(
           message: `Found ${results.length} relevant result(s) from the user's knowledge bank.`,
         };
       } catch (error) {
-        console.error("[searchKnowledgeBank] Error:", error);
+        logger.error("Search error", {
+          tag: "searchKnowledgeBank",
+          error: String(error),
+        });
         return {
           found: 0,
           results: [],

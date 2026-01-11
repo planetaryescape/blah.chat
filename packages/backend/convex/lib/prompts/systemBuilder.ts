@@ -122,7 +122,12 @@ export async function buildSystemPrompts(
         }
       }
     } catch (error) {
-      console.error("[Identity] Failed to load identity memories:", error);
+      const { logger } = await import("../logger");
+      logger.error("Failed to load identity memories", {
+        tag: "Identity",
+        userId: args.userId,
+        error: String(error),
+      });
       // Continue without memories (graceful degradation)
     }
   }
@@ -170,7 +175,12 @@ export async function buildSystemPrompts(
         });
       }
     } catch (error) {
-      console.error("[KnowledgeBank] Failed to check knowledge bank:", error);
+      const { logger } = await import("../logger");
+      logger.error("Failed to check knowledge bank", {
+        tag: "KnowledgeBank",
+        userId: args.userId,
+        error: String(error),
+      });
       // Continue without KB prompt (graceful degradation)
     }
   }

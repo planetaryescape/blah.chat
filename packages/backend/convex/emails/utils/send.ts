@@ -4,6 +4,7 @@ import { render } from "@react-email/render";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 import {
   ApiCreditsExhaustedEmail,
   BudgetWarningEmail,
@@ -32,7 +33,10 @@ export const sendBudgetAlert = internalAction({
       { type },
     );
     if (!canSend) {
-      console.log(`[Email] Skipping ${type} - sent within last hour`);
+      logger.info("Skipping email - sent within last hour", {
+        tag: "Email",
+        type,
+      });
       return;
     }
 
@@ -72,7 +76,7 @@ export const sendBudgetAlert = internalAction({
       },
     });
 
-    console.log(`[Email] Sent ${type} to ${recipientEmail}`);
+    logger.info("Sent email", { tag: "Email", type, recipientEmail });
   },
 });
 
@@ -91,7 +95,10 @@ export const sendApiCreditsAlert = internalAction({
       { type },
     );
     if (!canSend) {
-      console.log(`[Email] Skipping ${type} - sent within last hour`);
+      logger.info("Skipping email - sent within last hour", {
+        tag: "Email",
+        type,
+      });
       return;
     }
 
@@ -128,7 +135,7 @@ export const sendApiCreditsAlert = internalAction({
       },
     });
 
-    console.log(`[Email] Sent ${type} to ${recipientEmail}`);
+    logger.info("Sent email", { tag: "Email", type, recipientEmail });
   },
 });
 
@@ -168,7 +175,10 @@ export const sendFeedbackNotification = internalAction({
     });
 
     if (!feedback) {
-      console.error(`[Email] Feedback ${args.feedbackId} not found`);
+      logger.error("Feedback not found", {
+        tag: "Email",
+        feedbackId: args.feedbackId,
+      });
       return;
     }
 
@@ -178,10 +188,11 @@ export const sendFeedbackNotification = internalAction({
       try {
         screenshotUrl = await ctx.storage.getUrl(feedback.screenshotStorageId);
       } catch (error) {
-        console.warn(
-          `[Email] Screenshot URL fetch failed for ${args.feedbackId}:`,
-          error,
-        );
+        logger.warn("Screenshot URL fetch failed", {
+          tag: "Email",
+          feedbackId: args.feedbackId,
+          error: String(error),
+        });
         // Continue without screenshot
       }
     }
@@ -217,14 +228,17 @@ export const sendFeedbackNotification = internalAction({
         html,
       });
 
-      console.log(
-        `[Email] Sent feedback notification for ${args.feedbackId} to ${recipientEmail}`,
-      );
+      logger.info("Sent feedback notification", {
+        tag: "Email",
+        feedbackId: args.feedbackId,
+        recipientEmail,
+      });
     } catch (error) {
-      console.error(
-        `[Email] Feedback notification failed for ${args.feedbackId}:`,
-        error,
-      );
+      logger.error("Feedback notification failed", {
+        tag: "Email",
+        feedbackId: args.feedbackId,
+        error: String(error),
+      });
       // Don't throw - feedback is already saved, email is best-effort
     }
   },
@@ -247,9 +261,11 @@ export const sendBYODUpdateNotification = internalAction({
       { type, userId: args.userId },
     );
     if (!canSend) {
-      console.log(
-        `[Email] Skipping ${type} for user ${args.userId} - already sent`,
-      );
+      logger.info("Skipping email - already sent", {
+        tag: "Email",
+        type,
+        userId: args.userId,
+      });
       return;
     }
 
@@ -281,14 +297,18 @@ export const sendBYODUpdateNotification = internalAction({
         },
       });
 
-      console.log(
-        `[Email] Sent BYOD update notification to ${args.userEmail} (v${args.currentVersion} → v${args.latestVersion})`,
-      );
+      logger.info("Sent BYOD update notification", {
+        tag: "Email",
+        userEmail: args.userEmail,
+        currentVersion: args.currentVersion,
+        latestVersion: args.latestVersion,
+      });
     } catch (error) {
-      console.error(
-        `[Email] BYOD update notification failed for ${args.userId}:`,
-        error,
-      );
+      logger.error("BYOD update notification failed", {
+        tag: "Email",
+        userId: args.userId,
+        error: String(error),
+      });
     }
   },
 });

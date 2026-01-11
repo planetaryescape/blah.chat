@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 
 export function createFileDocumentTool(
   ctx: ActionCtx,
@@ -37,17 +38,18 @@ export function createFileDocumentTool(
         ),
     }),
     execute: async ({ fileIndex, action }) => {
-      console.log(
-        `[Tool:fileDocument] Executing with fileIndex=${fileIndex}, action=${action}`,
-      );
-      console.log(
-        `[Tool:fileDocument] Attachments available:`,
-        messageAttachments?.length ?? 0,
-      );
+      logger.info("Executing", {
+        tag: "Tool:fileDocument",
+        fileIndex,
+        action,
+        attachmentsAvailable: messageAttachments?.length ?? 0,
+      });
 
       // Check if attachments exist
       if (!messageAttachments || messageAttachments.length === 0) {
-        console.error("[Tool:fileDocument] ❌ No attachments found in message");
+        logger.error("No attachments found in message", {
+          tag: "Tool:fileDocument",
+        });
         return {
           success: false,
           error: "No files attached to this message",
@@ -56,9 +58,11 @@ export function createFileDocumentTool(
 
       // Validate file index
       if (fileIndex >= messageAttachments.length) {
-        console.error(
-          `[Tool:fileDocument] ❌ File index ${fileIndex} out of range (${messageAttachments.length} files)`,
-        );
+        logger.error("File index out of range", {
+          tag: "Tool:fileDocument",
+          fileIndex,
+          totalFiles: messageAttachments.length,
+        });
         return {
           success: false,
           error: `File index ${fileIndex} out of range. ${messageAttachments.length} file(s) attached.`,
@@ -66,7 +70,8 @@ export function createFileDocumentTool(
       }
 
       const attachment = messageAttachments[fileIndex];
-      console.log(`[Tool:fileDocument] Processing:`, {
+      logger.info("Processing attachment", {
+        tag: "Tool:fileDocument",
         name: attachment.name,
         type: attachment.type,
         mimeType: attachment.mimeType,
@@ -77,9 +82,10 @@ export function createFileDocumentTool(
 
       // Only process file types (not images/audio)
       if (attachment.type !== "file") {
-        console.error(
-          `[Tool:fileDocument] ❌ Wrong attachment type: ${attachment.type}`,
-        );
+        logger.error("Wrong attachment type", {
+          tag: "Tool:fileDocument",
+          type: attachment.type,
+        });
         return {
           success: false,
           error: `Cannot process ${attachment.type} attachments. Only file documents are supported.`,
@@ -88,9 +94,10 @@ export function createFileDocumentTool(
 
       // Check for pre-extracted text (populated at upload time)
       if (attachment.extractedText) {
-        console.log(
-          `[Tool:fileDocument] ✅ Using cached extraction for: ${attachment.name}`,
-        );
+        logger.info("Using cached extraction", {
+          tag: "Tool:fileDocument",
+          fileName: attachment.name,
+        });
         const wordCount = attachment.extractedText
           .split(/\s+/)
           .filter((w) => w.length > 0).length;
@@ -109,17 +116,19 @@ export function createFileDocumentTool(
 
       // Check if extraction failed
       if (attachment.extractionError) {
-        console.warn(
-          `[Tool:fileDocument] ⚠️ Extraction previously failed: ${attachment.extractionError}`,
-        );
+        logger.warn("Extraction previously failed", {
+          tag: "Tool:fileDocument",
+          error: attachment.extractionError,
+        });
         // Fall through to try again on-demand
       }
 
       try {
         // Fallback: Process the document on-demand (extraction not yet complete or failed)
-        console.log(
-          `[Tool:fileDocument] Processing on-demand: ${attachment.name}`,
-        );
+        logger.info("Processing on-demand", {
+          tag: "Tool:fileDocument",
+          fileName: attachment.name,
+        });
         const result = await ctx.runAction(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
           internal.tools.fileDocument.processDocument,
@@ -132,24 +141,26 @@ export function createFileDocumentTool(
         );
 
         if (result.success) {
-          console.log(
-            `[Tool:fileDocument] ✅ Success: ${attachment.name} (${result.wordCount} words)`,
-          );
+          logger.info("Processing succeeded", {
+            tag: "Tool:fileDocument",
+            fileName: attachment.name,
+            wordCount: result.wordCount,
+          });
         } else {
-          console.error(
-            `[Tool:fileDocument] ❌ Processing failed:`,
-            result.error,
-          );
+          logger.error("Processing failed", {
+            tag: "Tool:fileDocument",
+            error: result.error,
+          });
         }
 
         return result;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
-        console.error(`[Tool:fileDocument] ❌ Exception during processing:`, {
+        logger.error("Exception during processing", {
+          tag: "Tool:fileDocument",
           fileName: attachment.name,
           error: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
         });
         return {
           success: false,

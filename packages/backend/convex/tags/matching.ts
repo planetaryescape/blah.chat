@@ -18,6 +18,7 @@ import { normalizeTagSlug } from "@/lib/utils/tagUtils";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 import { cosineSimilarity } from "./embeddings";
 
@@ -131,9 +132,10 @@ export async function findSimilarTag(
             tagEmbed = updatedTag.embedding;
           } else {
             // Embedding generation failed, skip this tag
-            console.warn(
-              `[Matching] Failed to get embedding for tag "${tag.displayName}"`,
-            );
+            logger.warn("failed to get embedding for tag", {
+              tag: "Matching",
+              displayName: tag.displayName,
+            });
             continue;
           }
         }
@@ -154,7 +156,10 @@ export async function findSimilarTag(
       }
     }
   } catch (error) {
-    console.error("[Matching] Semantic matching failed:", error);
+    logger.error("semantic matching failed", {
+      tag: "Matching",
+      error: String(error),
+    });
     // Fall through to "none" - don't block on embedding errors
   }
 

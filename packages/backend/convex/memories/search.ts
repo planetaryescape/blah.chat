@@ -11,6 +11,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { buildMemoryRerankPrompt } from "../lib/prompts/operational/memoryRerank";
 import { applyRRF } from "../lib/utils/search";
 
@@ -68,16 +69,19 @@ async function rerankMemories(
 
     // Fallback to original order if parsing fails
     if (indices.length === 0) {
-      console.log(
-        "[Rerank] Failed to parse LLM response, using original order",
-      );
+      logger.warn("Failed to parse LLM response, using original order", {
+        tag: "Rerank",
+      });
       return candidates;
     }
 
     const reranked = indices.map((i) => candidates[i]);
     return reranked;
   } catch (error) {
-    console.error("[Rerank] Failed, using original order:", error);
+    logger.error("Rerank failed, using original order", {
+      tag: "Rerank",
+      error: String(error),
+    });
     return candidates;
   }
 }
@@ -204,7 +208,10 @@ export const vectorSearch = internalAction({
 
       return memories;
     } catch (error) {
-      console.error("[VectorSearch] Failed, falling back to empty:", error);
+      logger.error("VectorSearch failed, falling back to empty", {
+        tag: "VectorSearch",
+        error: String(error),
+      });
       // Fallback: return empty (graceful degradation)
       return [];
     }
@@ -274,9 +281,11 @@ export const hybridSearch = internalAction({
         return true;
       });
 
-      console.log(
-        `[Memory] Filtered ${merged.length - filtered.length} memories (confidence/expiration/superseded)`,
-      );
+      logger.info("Filtered memories", {
+        tag: "Memory",
+        filteredCount: merged.length - filtered.length,
+        reason: "confidence/expiration/superseded",
+      });
 
       // 5. Take top 20 candidates for reranking
       const candidates = filtered.slice(0, 20);
@@ -292,7 +301,7 @@ export const hybridSearch = internalAction({
       // 7. Return top N after reranking
       return reranked.slice(0, limit);
     } catch (error) {
-      console.error("Hybrid search failed:", error);
+      logger.error("Hybrid search failed", { error: String(error) });
       // Fallback to empty results on error
       return [];
     }

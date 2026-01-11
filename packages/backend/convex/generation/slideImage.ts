@@ -8,6 +8,7 @@ import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { buildSlideImagePrompt } from "../lib/prompts/operational/slideImage";
 
 interface SlideData {
@@ -50,10 +51,13 @@ async function withRetry<T>(
     } catch (error) {
       if (attempt === maxRetries) throw error;
       const delay = baseDelayMs * 2 ** attempt;
-      console.warn(
-        `Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
-        error,
-      );
+      logger.warn("Retry attempt", {
+        tag: "SlideImage",
+        attempt: attempt + 1,
+        maxRetries,
+        delayMs: delay,
+        error: String(error),
+      });
       await new Promise((r) => setTimeout(r, delay));
     }
   }
@@ -129,10 +133,15 @@ export const generateSlideImage = internalAction({
           if (imageBlob) {
             const arrayBuffer = await imageBlob.arrayBuffer();
             referenceImageBase64 = Buffer.from(arrayBuffer).toString("base64");
-            console.log("Loaded reference image for regeneration");
+            logger.info("Loaded reference image for regeneration", {
+              tag: "SlideImage",
+            });
           }
         } catch (e) {
-          console.warn("Failed to load reference image:", e);
+          logger.warn("Failed to load reference image", {
+            tag: "SlideImage",
+            error: String(e),
+          });
         }
       }
 
@@ -144,10 +153,15 @@ export const generateSlideImage = internalAction({
           if (logoBlob) {
             const arrayBuffer = await logoBlob.arrayBuffer();
             logoImageBase64 = Buffer.from(arrayBuffer).toString("base64");
-            console.log("Loaded logo image for slide generation");
+            logger.info("Loaded logo image for slide generation", {
+              tag: "SlideImage",
+            });
           }
         } catch (e) {
-          console.warn("Failed to load logo image:", e);
+          logger.warn("Failed to load logo image", {
+            tag: "SlideImage",
+            error: String(e),
+          });
         }
       }
 
@@ -209,7 +223,9 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
 
         // Add logo image first (so model sees it before reference)
         if (logoImageBase64) {
-          console.log("Including logo image in generation");
+          logger.info("Including logo image in generation", {
+            tag: "SlideImage",
+          });
           contentParts.push({
             type: "image",
             image: `data:image/png;base64,${logoImageBase64}`,
@@ -222,7 +238,9 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
 
         // Add reference image if present
         if (referenceImageBase64) {
-          console.log("Including reference image for regeneration");
+          logger.info("Including reference image for regeneration", {
+            tag: "SlideImage",
+          });
           contentParts.push({
             type: "image",
             image: `data:image/png;base64,${referenceImageBase64}`,
@@ -365,7 +383,10 @@ IMPORTANT: Make ONLY the changes requested above. Preserve all other aspects of 
         generationTime,
       };
     } catch (error) {
-      console.error("Slide image generation error:", error);
+      logger.error("Slide image generation error", {
+        tag: "SlideImage",
+        error: String(error),
+      });
 
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

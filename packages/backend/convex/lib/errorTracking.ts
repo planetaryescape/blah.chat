@@ -68,14 +68,24 @@ export async function captureException(
     await client.shutdown();
 
     // Also log to console for Convex dashboard
-    console.error(
-      `[ErrorTracking] ${error.name}: ${error.message}`,
-      context || {},
-    );
+    const { logger } = await import("./logger");
+    logger.error(`${error.name}: ${error.message}`, {
+      tag: "ErrorTracking",
+      ...context,
+    });
   } catch (captureError) {
-    console.error("Failed to capture exception in PostHog:", captureError);
+    const { logger } = await import("./logger");
+    logger.error("Failed to capture exception in PostHog", {
+      tag: "ErrorTracking",
+      captureError: String(captureError),
+    });
     // Still log the original error
-    console.error("Original error:", error, context);
+    logger.error("Original error", {
+      tag: "ErrorTracking",
+      errorName: error.name,
+      errorMessage: error.message,
+      ...context,
+    });
   }
 }
 

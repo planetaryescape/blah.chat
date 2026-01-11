@@ -25,6 +25,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // Usage tracking context
 interface UsageContext {
@@ -166,9 +167,11 @@ export const extractText = internalAction({
     ) {
       // Direct text extraction - no LLM needed
       const text = await blob.text();
-      console.log(
-        `[Extraction] Direct text: ${file.name} (${text.length} chars)`,
-      );
+      logger.info("Direct text extraction", {
+        tag: "Extraction",
+        fileName: file.name,
+        charCount: text.length,
+      });
       return text;
     }
 
@@ -186,9 +189,11 @@ export const extractText = internalAction({
     try {
       const text = await blob.text();
       if (text && text.trim().length > 0) {
-        console.log(
-          `[Extraction] Fallback text: ${file.name} (${text.length} chars)`,
-        );
+        logger.info("Fallback text extraction", {
+          tag: "Extraction",
+          fileName: file.name,
+          charCount: text.length,
+        });
         return text;
       }
     } catch {
@@ -233,9 +238,11 @@ export const extractTextFromStorage = internalAction({
       )
     ) {
       const text = await blob.text();
-      console.log(
-        `[Extraction] Direct text: ${args.fileName} (${text.length} chars)`,
-      );
+      logger.info("Direct text extraction", {
+        tag: "Extraction",
+        fileName: args.fileName,
+        charCount: text.length,
+      });
       return text;
     }
 
@@ -251,9 +258,11 @@ export const extractTextFromStorage = internalAction({
     try {
       const text = await blob.text();
       if (text && text.trim().length > 0) {
-        console.log(
-          `[Extraction] Fallback text: ${args.fileName} (${text.length} chars)`,
-        );
+        logger.info("Fallback text extraction", {
+          tag: "Extraction",
+          fileName: args.fileName,
+          charCount: text.length,
+        });
         return text;
       }
     } catch {
@@ -283,7 +292,11 @@ async function extractPdfWithLlm(
   const estimatedPages = Math.max(1, Math.ceil(arrayBuffer.byteLength / 50000));
   const maxPages = Math.min(estimatedPages, 100); // Cap at 100 pages
 
-  console.log(`[Extraction] PDF: ${fileName} (~${maxPages} pages estimated)`);
+  logger.info("PDF extraction started", {
+    tag: "Extraction",
+    fileName,
+    estimatedPages: maxPages,
+  });
 
   const extractedPages: string[] = [];
 
@@ -325,7 +338,10 @@ async function extractPdfWithLlm(
       if (pageText === "[BLANK PAGE]" || pageText.length < 10) {
         if (extractedPages.length > 0) {
           // Likely reached end of document
-          console.log(`[Extraction] PDF ended at page ${pageNum - 1}`);
+          logger.info("PDF ended early", {
+            tag: "Extraction",
+            lastPage: pageNum - 1,
+          });
           break;
         }
       }
@@ -334,10 +350,18 @@ async function extractPdfWithLlm(
 
       // Log progress every 5 pages
       if (pageNum % 5 === 0) {
-        console.log(`[Extraction] PDF progress: ${pageNum}/${maxPages} pages`);
+        logger.info("PDF extraction progress", {
+          tag: "Extraction",
+          currentPage: pageNum,
+          totalPages: maxPages,
+        });
       }
     } catch (error: any) {
-      console.error(`[Extraction] PDF page ${pageNum} error:`, error.message);
+      logger.error("PDF page extraction error", {
+        tag: "Extraction",
+        pageNum,
+        error: String(error.message),
+      });
       // Continue with next page on error
       if (extractedPages.length === 0) {
         throw new Error(`Failed to extract PDF: ${error.message}`);
@@ -348,9 +372,13 @@ async function extractPdfWithLlm(
 
   const fullText = extractedPages.join("\n\n");
   const duration = Date.now() - startTime;
-  console.log(
-    `[Extraction] PDF complete: ${fileName} - ${extractedPages.length} pages, ${fullText.length} chars (${duration}ms)`,
-  );
+  logger.info("PDF extraction complete", {
+    tag: "Extraction",
+    fileName,
+    pageCount: extractedPages.length,
+    charCount: fullText.length,
+    durationMs: duration,
+  });
 
   return fullText;
 }
@@ -369,7 +397,7 @@ async function extractDocWithLlm(
   const mimeType =
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-  console.log(`[Extraction] DOCX: ${fileName}`);
+  logger.info("DOCX extraction started", { tag: "Extraction", fileName });
 
   const result = await generateText({
     model: getModel(DOCUMENT_EXTRACTION_MODEL.id),
@@ -402,9 +430,12 @@ async function extractDocWithLlm(
 
   const text = result.text.trim();
   const duration = Date.now() - startTime;
-  console.log(
-    `[Extraction] DOCX complete: ${fileName} - ${text.length} chars (${duration}ms)`,
-  );
+  logger.info("DOCX extraction complete", {
+    tag: "Extraction",
+    fileName,
+    charCount: text.length,
+    durationMs: duration,
+  });
 
   return text;
 }
@@ -422,7 +453,11 @@ async function extractGenericWithLlm(
   const arrayBuffer = await blob.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-  console.log(`[Extraction] Generic: ${fileName} (${mimeType})`);
+  logger.info("Generic extraction started", {
+    tag: "Extraction",
+    fileName,
+    mimeType,
+  });
 
   const result = await generateText({
     model: getModel(DOCUMENT_EXTRACTION_MODEL.id),
@@ -455,9 +490,12 @@ async function extractGenericWithLlm(
 
   const text = result.text.trim();
   const duration = Date.now() - startTime;
-  console.log(
-    `[Extraction] Generic complete: ${fileName} - ${text.length} chars (${duration}ms)`,
-  );
+  logger.info("Generic extraction complete", {
+    tag: "Extraction",
+    fileName,
+    charCount: text.length,
+    durationMs: duration,
+  });
 
   return text;
 }

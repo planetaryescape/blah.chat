@@ -15,6 +15,7 @@ import {
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 /**
@@ -32,7 +33,7 @@ export const generateTagEmbedding = internalAction({
     )) as Doc<"tags"> | null;
 
     if (!tag) {
-      console.warn(`[Embeddings] Tag ${tagId} not found`);
+      logger.warn("tag not found", { tag: "Embeddings", tagId });
       return;
     }
 
@@ -75,11 +76,17 @@ export const generateTagEmbedding = internalAction({
         { tagId, embedding },
       )) as Promise<void>;
 
-      console.log(
-        `[Embeddings] Generated for tag "${tag.displayName}" (${tagId})`,
-      );
+      logger.info("generated embedding for tag", {
+        tag: "Embeddings",
+        displayName: tag.displayName,
+        tagId,
+      });
     } catch (error) {
-      console.error(`[Embeddings] Failed to generate for tag ${tagId}:`, error);
+      logger.error("failed to generate embedding for tag", {
+        tag: "Embeddings",
+        tagId,
+        error: String(error),
+      });
     }
   },
 });

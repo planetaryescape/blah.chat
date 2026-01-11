@@ -14,6 +14,7 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
+import { logger } from "./lib/logger";
 
 /**
  * Schedule deletion after a delay (for inactivity timeout)
@@ -68,10 +69,10 @@ export const executeDelete = internalMutation({
 
     // Only delete incognito conversations via this path
     if (!conv.isIncognito) {
-      console.warn(
-        "[Incognito] Attempted to delete non-incognito conversation:",
-        args.conversationId,
-      );
+      logger.warn("Attempted to delete non-incognito conversation", {
+        tag: "Incognito",
+        conversationId: args.conversationId,
+      });
       return;
     }
 
@@ -157,7 +158,10 @@ export const executeDelete = internalMutation({
     // 8. Delete conversation
     await ctx.db.delete(args.conversationId);
 
-    console.log("[Incognito] Deleted conversation:", args.conversationId);
+    logger.info("Deleted incognito conversation", {
+      tag: "Incognito",
+      conversationId: args.conversationId,
+    });
   },
 });
 
@@ -228,13 +232,16 @@ export const cleanupStale = internalAction({
     })) as string[];
 
     if (staleIds.length === 0) {
-      console.log("[Incognito Cleanup] No stale conversations found");
+      logger.info("No stale incognito conversations found", {
+        tag: "IncognitoCleanup",
+      });
       return;
     }
 
-    console.log(
-      `[Incognito Cleanup] Deleting ${staleIds.length} stale conversations`,
-    );
+    logger.info("Deleting stale incognito conversations", {
+      tag: "IncognitoCleanup",
+      count: staleIds.length,
+    });
 
     for (const convId of staleIds) {
       await ctx.runMutation(internal.incognito.executeDelete, {

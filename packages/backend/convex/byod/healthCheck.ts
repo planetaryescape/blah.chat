@@ -186,10 +186,12 @@ export const checkAllHealth = internalAction({
               results.emailsSent++;
             }
           } catch (error) {
-            console.error(
-              `[BYOD] Failed to send update email to user ${config.userId}:`,
-              error,
-            );
+            const { logger } = await import("../lib/logger");
+            logger.error("Failed to send update email to user", {
+              tag: "BYOD",
+              userId: config.userId,
+              error: String(error),
+            });
           }
         }
       } else {

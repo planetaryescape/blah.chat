@@ -8,6 +8,7 @@ import {
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { isMemoryDuplicate } from "../lib/utils/memory";
 import { estimateTokens } from "../tokens/counting";
 
@@ -85,9 +86,11 @@ export const saveFromTool = internalAction({
         },
       });
 
-      console.log(
-        `[Memory] Saved via tool: "${args.content.slice(0, 50)}..." (${args.category})`,
-      );
+      logger.info("Saved via tool", {
+        tag: "Memory",
+        content: args.content.slice(0, 50),
+        category: args.category,
+      });
 
       return {
         success: true,
@@ -95,7 +98,7 @@ export const saveFromTool = internalAction({
         memoryId,
       };
     } catch (error) {
-      console.error("[Memory] Tool save failed:", error);
+      logger.error("Tool save failed", { tag: "Memory", error: String(error) });
       return {
         success: false,
         message: `Failed to save memory: ${error instanceof Error ? error.message : "Unknown error"}`,

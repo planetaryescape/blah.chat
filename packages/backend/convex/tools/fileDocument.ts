@@ -3,6 +3,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action, internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 export const processDocument = internalAction({
   args: {
@@ -174,8 +175,9 @@ export const processDocument = internalAction({
           }
         } catch (_pptxError) {
           // Fallback: use officeparser for robust text extraction
-          console.log(
-            `[Tool:fileDocument] pptx-content-extractor failed, falling back to officeparser`,
+          logger.info(
+            "pptx-content-extractor failed, falling back to officeparser",
+            { tag: "Tool:fileDocument" },
           );
           usedFallback = true;
 
@@ -217,7 +219,8 @@ export const processDocument = internalAction({
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to process file";
-      console.error(`[Tool:fileDocument] ❌ Failed to process "${fileName}":`, {
+      logger.error(`Failed to process "${fileName}"`, {
+        tag: "Tool:fileDocument",
         storageId,
         mimeType,
         action,

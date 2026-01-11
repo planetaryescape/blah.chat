@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, query } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // MIME types that support text extraction
 const EXTRACTABLE_MIME_TYPES = [
@@ -139,7 +140,10 @@ export const extractText = internalAction({
         );
       }
     } catch (error) {
-      console.error("[Attachment Extraction] Failed:", error);
+      logger.error("Attachment extraction failed", {
+        tag: "Attachment Extraction",
+        error: String(error),
+      });
       await ctx.runMutation(
         // @ts-ignore - Type depth exceeded
         internal.messages.attachments.updateExtractedText,

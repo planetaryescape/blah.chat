@@ -9,6 +9,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // ===== Validators =====
 
@@ -127,9 +128,11 @@ export const checkAndCompletePresentation = internalMutation({
         generatedSlideCount: slides.length,
         updatedAt: Date.now(),
       });
-      console.log(
-        `Presentation ${args.presentationId} auto-completed: all ${slides.length} slides done`,
-      );
+      logger.info("Presentation auto-completed", {
+        tag: "Presentations",
+        presentationId: args.presentationId,
+        slideCount: slides.length,
+      });
     }
   },
 });
@@ -192,7 +195,9 @@ Output only the title, no quotes or punctuation at the end.`,
         );
       }
     } catch (error) {
-      console.error("Presentation title generation failed:", error);
+      logger.error("Presentation title generation failed", {
+        error: String(error),
+      });
       // Keep "Untitled Presentation" on failure
     }
   },

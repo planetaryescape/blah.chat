@@ -511,7 +511,8 @@ function ChatPageContent({
 
                   {/* Model Recommendation Banner */}
                   {conversation?.modelRecommendation &&
-                    !conversation.modelRecommendation.dismissed && (
+                    !conversation.modelRecommendation.dismissed &&
+                    validConversationId && (
                       <ModelRecommendationBanner
                         recommendation={conversation.modelRecommendation}
                         conversationId={validConversationId}
@@ -522,7 +523,8 @@ function ChatPageContent({
 
                   {/* Set Default Model Prompt (shows after successful generation) */}
                   {modelRecommendation.showSetDefaultPrompt &&
-                    modelRecommendation.switchedModelId && (
+                    modelRecommendation.switchedModelId &&
+                    validConversationId && (
                       <SetDefaultModelPrompt
                         modelId={modelRecommendation.switchedModelId}
                         modelName={
@@ -538,7 +540,8 @@ function ChatPageContent({
                   {/* Preview Modal */}
                   {modelRecommendation.previewModalOpen &&
                     modelRecommendation.previewModelId &&
-                    conversation?.modelRecommendation && (
+                    conversation?.modelRecommendation &&
+                    validConversationId && (
                       <ModelPreviewModal
                         open={modelRecommendation.previewModalOpen}
                         onOpenChange={modelRecommendation.setPreviewModalOpen}

@@ -58,12 +58,11 @@ export function VirtualizedMessageList({
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
 
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
-  const conversation =
-    // @ts-expect-error - Type depth exceeded with complex Convex query (85+ modules)
-    useQuery(
-      api.conversations.get,
-      conversationId ? { conversationId } : "skip",
-    );
+  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+  const conversation = useQuery(
+    api.conversations.get,
+    conversationId ? { conversationId } : "skip",
+  );
 
   // Lift preference here to avoid memo blocking updates in ChatMessage
   const showMessageStats = useUserPreference("showMessageStatistics");

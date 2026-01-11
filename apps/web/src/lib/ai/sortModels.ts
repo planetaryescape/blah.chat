@@ -6,29 +6,33 @@ export function sortModels(
   favoriteIds: string[],
   recentIds: string[] = [],
 ) {
+  // Ensure arrays are never null/undefined
+  const safeFavoriteIds = favoriteIds || [];
+  const safeRecentIds = recentIds || [];
+
   const defaultModel = models.find((m) => m.id === defaultModelId);
 
   const favorites = models
-    .filter((m) => favoriteIds.includes(m.id) && m.id !== defaultModelId)
+    .filter((m) => safeFavoriteIds.includes(m.id) && m.id !== defaultModelId)
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const recents = models
     .filter(
       (m) =>
-        recentIds.includes(m.id) &&
+        safeRecentIds.includes(m.id) &&
         m.id !== defaultModelId &&
-        !favoriteIds.includes(m.id),
+        !safeFavoriteIds.includes(m.id),
     )
     .sort((a, b) => {
       // Sort by index in recentIds to maintain recency order
-      return recentIds.indexOf(a.id) - recentIds.indexOf(b.id);
+      return safeRecentIds.indexOf(a.id) - safeRecentIds.indexOf(b.id);
     });
 
   const rest = models.filter(
     (m) =>
       m.id !== defaultModelId &&
-      !favoriteIds.includes(m.id) &&
-      !recentIds.includes(m.id),
+      !safeFavoriteIds.includes(m.id) &&
+      !safeRecentIds.includes(m.id),
   );
 
   return { defaultModel, favorites, recents, rest };

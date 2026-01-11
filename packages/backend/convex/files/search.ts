@@ -11,7 +11,8 @@ import { v } from "convex/values";
 import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { action } from "../_generated/server";
+import { action, internalAction, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 export interface FileChunkResult {
   chunk: Doc<"fileChunks">;
@@ -52,7 +53,7 @@ export const searchFileChunks = action({
       fileIds = fileJunctions.map((j) => j.fileId);
 
       if (fileIds.length === 0) {
-        console.log("[FileSearch] No files in project");
+        logger.info("No files in project", { tag: "FileSearch" });
         return [];
       }
     }
@@ -93,20 +94,18 @@ export const searchFileChunks = action({
     }));
 
     const duration = Date.now() - startTime;
-    console.log(
-      `[FileSearch] ✓ Query: "${args.query.slice(0, 50)}..." → ${results.length} chunks (${duration}ms)`,
-    );
-    if (results.length > 0) {
-      console.log(
-        `  Top score: ${results[0].score.toFixed(3)} | ${results[0].file?.name || "unknown"}`,
-      );
-    }
+    logger.info("File search complete", {
+      tag: "FileSearch",
+      query: args.query.slice(0, 50),
+      resultCount: results.length,
+      durationMs: duration,
+      topScore: results.length > 0 ? results[0].score : undefined,
+      topFile: results.length > 0 ? results[0].file?.name : undefined,
+    });
 
     return results;
   },
 });
-
-import { internalQuery } from "../_generated/server";
 
 /**
  * Internal query to get file IDs for a project
@@ -120,8 +119,6 @@ export const getProjectFileIds = internalQuery({
       .collect();
   },
 });
-
-import { internalAction } from "../_generated/server";
 
 /**
  * Internal action for vector search on file chunks
@@ -170,7 +167,10 @@ export const vectorSearchChunks = internalAction({
 
       return scored;
     } catch (error) {
-      console.error("[FileVectorSearch] Error:", error);
+      logger.error("Vector search error", {
+        tag: "FileVectorSearch",
+        error: String(error),
+      });
       return [];
     }
   },

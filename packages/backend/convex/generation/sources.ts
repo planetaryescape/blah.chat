@@ -5,6 +5,8 @@
  * and webSearch tool results for unified source numbering.
  */
 
+import { logger } from "../lib/logger";
+
 export interface Source {
   position: number;
   title: string;
@@ -126,7 +128,10 @@ export function extractSources(providerMetadata: any): Source[] | undefined {
       snippet: s.snippet,
     }));
   } catch (error) {
-    console.warn("[Sources] Failed to extract sources:", error);
+    logger.warn("Failed to extract sources", {
+      tag: "Sources",
+      error: String(error),
+    });
     return undefined;
   }
 }
@@ -178,10 +183,11 @@ export function extractWebSearchSources(
         });
       }
     } catch (e) {
-      console.warn(
-        `[WebSearch] Failed to parse result for tool call ${tc.id}:`,
-        e,
-      );
+      logger.warn("Failed to parse webSearch result", {
+        tag: "WebSearch",
+        toolCallId: tc.id,
+        error: String(e),
+      });
       // Continue processing other tool calls
     }
   }

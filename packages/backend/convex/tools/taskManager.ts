@@ -15,6 +15,7 @@ import { DEADLINE_PARSING_PROMPT } from "@/lib/prompts/taskExtraction";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // Status and urgency types
 type TaskStatus =
@@ -198,7 +199,10 @@ async function parseDeadline(deadlineText: string): Promise<number | null> {
     }
     return null;
   } catch (error) {
-    console.error("[TaskManager] Error parsing deadline:", error);
+    logger.error("Error parsing deadline", {
+      tag: "TaskManager",
+      error: String(error),
+    });
     return null;
   }
 }
@@ -313,7 +317,10 @@ export const execute = internalAction({
           };
       }
     } catch (error) {
-      console.error(`[TaskManager] ${operation} failed:`, error);
+      logger.error(`${operation} failed`, {
+        tag: "TaskManager",
+        error: String(error),
+      });
       return {
         success: false,
         operation,

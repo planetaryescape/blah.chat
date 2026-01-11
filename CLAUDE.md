@@ -20,11 +20,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `convex/generation.ts` | Main generation action - streaming, tools, error handling | 1294 |
-| `convex/messages.ts` | Message mutations, status updates, partial content | 17k |
-| `convex/chat.ts` | Send message mutation, triggers generation | 21k |
-| `src/lib/ai/models.ts` | 46 model configs with pricing/capabilities | 865 |
-| `src/lib/ai/registry.ts` | Model instantiation via Gateway | - |
+| `packages/backend/convex/generation.ts` | Main generation action - streaming, tools, error handling | ~1450 |
+| `packages/backend/convex/messages.ts` | Message mutations, status updates, partial content | ~730 |
+| `packages/backend/convex/chat.ts` | Send message mutation, triggers generation | ~650 |
+| `packages/ai/src/models.ts` | Shared model configs (source of truth) | ~575 |
+| `apps/web/src/lib/ai/models.ts` | Web-specific model extensions + AUTO_MODEL | ~1050 |
+| `apps/web/src/lib/ai/registry.ts` | Model instantiation via Gateway | - |
 
 ### Dependencies
 - Vercel AI Gateway (all models)
@@ -110,6 +111,28 @@ See `docs/testing/` for implementation phases.
 
 ## Key Architecture Patterns
 
+### Auth Architecture (Defense-in-Depth)
+
+**Layer 1 - Middleware** (`apps/web/src/proxy.ts`):
+- Uses Clerk's `clerkMiddleware` for authentication
+- Convenience redirect: `/` → `/app` for authenticated users
+- Admin route protection: checks `sessionClaims.publicMetadata.isAdmin`
+- Calls `auth.protect()` for non-public routes
+
+**Layer 2 - Pages/Layouts**:
+- Check auth state (`useAuth`, `useConvexAuth`)
+- Handle redirects based on role/state
+- Examples: auth layout redirects signed-in users, admin layout checks `isCurrentUserAdmin`
+
+**Layer 3 - DAL (Convex)** - The true security boundary:
+- Every query/mutation verifies auth via `getCurrentUser(ctx)`
+- Role checks in functions (e.g., `user.isAdmin !== true`)
+- API routes use `withAuth()` wrapper
+
+**Why**: CVE-2025-29927 showed middleware can be bypassed. Defense-in-depth ensures security even if one layer fails.
+
+See `docs/architecture/authentication.md` for full details.
+
 ### Resilient Generation (Critical Feature)
 
 Message generation **must survive page refresh/tab close**. Never lose responses.
@@ -160,107 +183,14 @@ Frontend: **always unwrap `.data`** before using.
 
 Key tables: `users`, `conversations`, `messages`, `memories`, `projects`, `bookmarks`, `shares`, `scheduledPrompts`, `usageRecords`
 
-### API Architecture (Hybrid Approach)
+### API Architecture (Hybrid)
 
-bl ah.chat uses **dual architecture** for maximum compatibility:
+**Web**: Convex client SDK (real-time WebSocket)
+**Mobile**: REST API + React Query (HTTP + SSE)
 
-1. **Web**: Convex client SDK (real-time WebSocket subscriptions)
-   - Instant updates (<100ms latency)
-   - Reactive queries (automatic re-renders)
-   - Best for web apps
+Key files: `src/lib/api/dal/*`, `src/lib/hooks/mutations/*`, `src/lib/hooks/queries/*`, `src/app/api/v1/*`
 
-2. **Mobile**: REST API + React Query (HTTP polling + SSE)
-   - React Native compatible
-   - Standard HTTP caching
-   - Best for mobile apps
-
-**Why hybrid?**
-- Convex SDK: Superior web UX (instant updates)
-- REST API: Mobile compatibility (React Native, iOS, Android)
-
-#### API Patterns
-
-**1. Envelope Format** (all responses):
-```typescript
-{
-  status: "success" | "error",
-  sys: { entity, id?, timestamps },
-  data: T,        // On success
-  error: string   // On error
-}
-```
-
-**2. Authentication** (Clerk JWT):
-```typescript
-const token = await getToken();
-fetch("/api/v1/endpoint", {
-  headers: { Authorization: `Bearer ${token}` },
-});
-```
-
-**3. Mutations** (write operations):
-```typescript
-// React Query mutation
-const { mutate } = useMutation({
-  mutationFn: (data) => apiClient.post("/conversations", data),
-  onMutate: (data) => {
-    // Optimistic update
-    queryClient.setQueryData(["conversations"], (old) => [...old, data]);
-  },
-  onError: (err, data, context) => {
-    // Rollback on error
-    queryClient.setQueryData(["conversations"], context.previous);
-  },
-});
-```
-
-**4. Queries** (read operations):
-```typescript
-// Hybrid query (Convex for web, API for mobile)
-const { data } = useConversations(); // Auto-detects platform
-```
-
-**5. Real-Time** (SSE for mobile):
-```typescript
-const { messages } = useMessagesSSE(conversationId);
-// Streams message updates via Server-Sent Events
-```
-
-#### Migration Context
-
-**Phase 0-8 Complete** (as of 2025-12-17):
-- Phase 0: Foundation (auth, DAL, envelope)
-- Phase 1: Mutations (POST/PATCH/DELETE endpoints)
-- Phase 2: React Query (useMutation hooks)
-- Phase 3: Queries (GET endpoints, polling)
-- Phase 4: Actions (long-running operations)
-- Phase 5: Real-Time (SSE streaming, optimistic UI)
-- Phase 6: Validation (manual testing checklist)
-- Phase 7: Performance (caching, optimization, monitoring)
-- Phase 8: Documentation (API reference, mobile guide)
-
-**Key Files**:
-- `src/lib/api/dal/*` - Data Access Layer
-- `src/lib/hooks/mutations/*` - React Query mutations
-- `src/lib/hooks/queries/*` - Hybrid queries
-- `src/app/api/v1/*` - REST endpoints
-- `docs/api/*` - API documentation
-
-**Resilient Generation** (unchanged):
-- Still uses Convex actions (10min timeout)
-- partialContent updates every ~100ms
-- Survives page refresh, tab close, browser crash
-
-#### Mobile Considerations
-
-When building mobile features:
-1. **Use API endpoints** (not Convex SDK)
-2. **Add to React Query hooks** (mutations/queries)
-3. **Test platform detection** (isPlatformMobile)
-4. **Validate offline behavior** (queue mutations)
-5. **Monitor battery drain** (reduce polling)
-
-See `docs/api/mobile-integration.md` for full guide.
+Mobile: Use API endpoints (not Convex SDK), add to React Query hooks. See `docs/api/mobile-integration.md`.
 
 ### Schema Design Principles
 
@@ -420,110 +350,45 @@ Combine full-text + semantic (vector) search:
 
 ### Dexie Caching Layer (Local-First)
 
-**Purpose**: IndexedDB cache via Dexie for instant UI + auto-sync from Convex subscriptions.
-
-**Architecture**:
-```
-Convex DB → useQuery subscription → useEffect → cache.bulkPut → Dexie → useLiveQuery → Component
-```
+**Flow**: `Convex → useQuery → useEffect → cache.bulkPut → Dexie → useLiveQuery → Component`
 
 **Key Files**:
-- `src/lib/cache/db.ts` - Dexie schema (BlahChatCache class, 10 tables)
-- `src/lib/cache/cleanup.ts` - Data retention (30-day cleanup)
-- `src/hooks/useCacheSync.ts` - Sync hooks (messages, conversations, notes, tasks, projects)
-- `src/hooks/useUserPreference.ts` - Preference caching
-- `src/lib/offline/messageQueue.ts` - Offline mutation queue
+- `src/lib/cache/db.ts` - Schema (10 tables)
+- `src/hooks/useCacheSync.ts` - Sync hooks
+- `src/hooks/useOptimisticMessages.ts` - Optimistic UI (React state only)
+- `src/lib/offline/messageQueue.ts` - Offline queue
 
-**Tables**:
-- `conversations`, `messages`, `notes`, `tasks`, `projects`
-- `attachments`, `toolCalls`, `sources` (message metadata)
-- `pendingMutations` (offline queue)
-- `userPreferences` (single "current" record)
+**Tables**: conversations, messages, notes, tasks, projects, attachments, toolCalls, sources, pendingMutations, userPreferences
 
-**Sync Hooks** (from `useCacheSync.ts`):
-```typescript
-// Write to cache on Convex data change
-const { conversations } = useConversationCacheSync({ projectId });
-const { results: messages } = useMessageCacheSync({ conversationId });
-const { notes } = useNoteCacheSync();
-const { tasks } = useTaskCacheSync();
-const { projects } = useProjectCacheSync();
+**Sync Hooks**: useMessageCacheSync, useConversationCacheSync, useNoteCacheSync, useTaskCacheSync, useProjectCacheSync, useMetadataCacheSync, usePreferenceCacheSync
 
-// Read-only from cache (instant)
-const attachments = useCachedAttachments(messageId);
-const toolCalls = useCachedToolCalls(messageId);
-const sources = useCachedSources(messageId);
-```
+**CRITICAL Rules**:
 
-**Sync Pattern**:
-1. Convex subscription returns data
-2. `useEffect` detects change, calls `cache.table.bulkPut()`
-3. `useLiveQuery()` from `dexie-react-hooks` reactively reads cache
-4. Component renders instantly from cache
+1. **Optimistic messages NEVER touch Dexie** - React state only, dedup'd by role+timestamp(5s)+model
+2. **Cascade delete messages**: Always delete attachments/toolCalls/sources with message
+   ```typescript
+   await Promise.all([
+     cache.messages.delete(messageId),
+     cache.attachments.where("messageId").equals(messageId).delete(),
+     cache.toolCalls.where("messageId").equals(messageId).delete(),
+     cache.sources.where("messageId").equals(messageId).delete(),
+   ]);
+   ```
+3. **SSR safety**: Only use cache in "use client" components
+4. **Use sync hooks**: Not raw Convex queries for cached tables
+5. **Orphan detection**: Handled by sync hooks for messages/conversations
 
-**Orphan Detection**:
-- Track IDs from Convex response
-- Delete from Dexie if not in latest results
-- Prevents stale data after server-side deletes
+**Offline**: pendingMutations queued, exponential backoff (2s→4s→8s), auto-retry on reconnect
 
-**Cascade Deletes** (manual):
-```typescript
-await Promise.all([
-  cache.messages.delete(messageId),
-  cache.attachments.where("messageId").equals(messageId).delete(),
-  cache.toolCalls.where("messageId").equals(messageId).delete(),
-  cache.sources.where("messageId").equals(messageId).delete(),
-]);
-```
+**Cleanup**: 30 days messages/notes, 90 days completed tasks, runs on app start
 
-**Offline Support**:
-- `pendingMutations` table queues mutations when offline
-- Exponential backoff retry (2s → 4s → 8s, max 3 retries)
-- Auto-retry on reconnect
-
-**Provider Chain** (`convex-clerk-provider.tsx`):
-```
-ConvexQueryCacheProvider (60s expiration, 100 max idle entries)
-  ↓
-CacheProvider (runs cleanup on mount)
-```
-
-**CRITICAL**:
-- Always use sync hooks, not raw Convex queries, for cached tables
-- Cascade delete from cache when deleting messages
-- Run cleanup on app start (non-blocking)
+**Limitations**: Notes/tasks/projects lack orphan detection, metadata cleaned via cascade or time
 
 ### Cost Tracking
 
 Per-message: `inputTokens`, `outputTokens`, `cost` (USD)
 Daily aggregates: `usageRecords` table
 Model pricing: config file (easy updates)
-
-### TypeScript Type Depth Workarounds (Convex)
-
-With 85+ Convex modules, TypeScript hits recursion limits on complex API types. **Two patterns** depending on context:
-
-**Backend (Convex actions) - Complex Cast:**
-```typescript
-const result = ((await (ctx.runQuery as any)(
-  // @ts-ignore - TypeScript recursion limit with 85+ Convex modules
-  internal.path.to.query,
-  { args },
-)) as ReturnType);
-```
-
-**Frontend (React hooks) - Direct @ts-ignore:**
-```typescript
-// @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-const myMutation = useMutation(api.path.to.mutation);
-```
-
-**CRITICAL**:
-- Frontend: DON'T add manual type casts - let TypeScript infer naturally
-- Frontend: Ensure `Id` type imported: `import type { Doc, Id } from "@/convex/_generated/dataModel"`
-- Use `@ts-ignore` (not `@ts-expect-error`) for frontend hooks
-
-See `docs/architecture/typescript-workarounds.md` for full details.
 
 ### Dependency Management
 
@@ -617,23 +482,6 @@ All AI model definitions and configuration must live in `src/lib/ai/models.ts`.
 
 ---
 
-## Phased Implementation
-
-See `docs/implementation/README.md` for full plan.
-
-**Phase 0**: Design system (foundation)
-**Phase 1**: Auth + Convex setup
-**Phase 2A**: **Resilient chat** (CRITICAL - test refresh mid-generation)
-**Phase 2B**: Chat UX polish
-**Phase 2C**: Conversations sidebar
-**Phase 3**: Multi-model support (10+ models)
-**Phase 4-7**: Files, voice, RAG memory, search, cost tracking
-**Phase 8-11**: Advanced features, sharing, export/import, polish
-
-Current status: Phase 0 setup complete, ready for implementation.
-
----
-
 ## Critical Rules
 
 1. **Resilient generation**: MUST survive page refresh - use Convex actions
@@ -645,6 +493,57 @@ Current status: Phase 0 setup complete, ready for implementation.
 7. **Cost tracking**: Log tokens/cost on every LLM call
 8. **Pino logging**: Structured JSON logs in API routes
 9. **Testing**: Follow user-centric philosophy in `docs/testing/testing-philosophy.md`
+10. **One component per file**: Unless tightly coupled helper only used by parent. Layout components in `components/layout/`, feature components in feature directories.
+
+---
+
+## AI Code Anti-Patterns (AVOID)
+
+**CRITICAL**: These patterns slow development. Prevent them upfront.
+
+### Comments
+- ❌ NO comments explaining standard features or self-documenting code
+- ❌ NO comments restating what code does (`// increment counter` before `count++`)
+- ✅ ONLY comment complex logic, workarounds, gotchas, non-obvious decisions
+
+### TypeScript
+- ❌ NO lazy `any` - check existing types/library types first
+- ❌ NO unnecessary `as` casting - use proper typing or type guards
+- ❌ NO duplicate type definitions - search codebase before creating
+- ❌ NO over-annotating inferred types - let TS infer when obvious
+- ✅ USE library types (React.FC, Express types, etc.)
+- ✅ USE utility types (Partial, Pick, Omit, ReturnType)
+
+### Code Style
+- ❌ NO verbose if/else when ternary works
+- ❌ NO intermediate variables for simple operations
+- ❌ NO old-style for loops - use forEach/map/filter
+- ❌ NO explicit null checks when optional chaining works (`foo?.bar`)
+- ❌ NO overly defensive null checks everywhere
+- ✅ USE destructuring and spread operators
+- ✅ USE existing utils from codebase before writing new ones
+
+### Structure
+- ❌ NO over-engineering simple problems
+- ❌ NO unnecessary abstractions for one-time operations
+- ❌ NO excessive validation for impossible scenarios
+- ❌ NO multiple implementation attempts left in code
+- ❌ NO patches on patches - refactor cohesively
+- ✅ KEEP functions focused (SRP) - extract if >200 lines
+- ✅ DRY - parameterize similar logic, don't copy-paste
+
+### Dead Code
+- ❌ NO leaving unused functions/variables/imports
+- ❌ NO commented-out code blocks
+- ❌ NO orphaned handlers/endpoints/configs
+- ✅ DELETE what's not used
+
+### Incomplete Work
+- ❌ NO half-implemented features
+- ❌ NO mixed old/new patterns from partial migrations
+- ❌ NO frontend expecting data backend doesn't provide
+- ✅ COMPLETE the feature or don't start it
+- ✅ TRACE data flows end-to-end: UI → API → DB → Response → UI
 
 ---
 
@@ -661,21 +560,6 @@ AI_GATEWAY_API_KEY=  # Vercel AI Gateway (replaces individual provider keys)
 ```
 
 Optional: Ollama (for local models), PostHog, TTS providers.
-
----
-
-## Testing Checklist
-
-**After Phase 2A (MVP)**:
-- [ ] Send message → works
-- [ ] Responses stream in
-- [ ] **Refresh mid-generation → response completes** (CRITICAL)
-- [ ] Cost tracked per message
-
-**After Phase 3**:
-- [ ] 10+ models working
-- [ ] Switch models mid-conversation
-- [ ] Model-specific features (thinking effort)
 
 ---
 
@@ -726,25 +610,23 @@ Implementation phases: `docs/implementation/*.md`
 
 ---
 
-## Codebase Health (Last analyzed: 2025-12-22)
+## Codebase Health (2026-01-11)
 
-### Stats
-- **TypeScript files**: ~16k
-- **Tests**: 361 passing (37 test files)
-- **Models**: 46 AI models configured
-- **Schema tables**: ~30 (1574 lines)
+**Monorepo Structure**:
+- apps/: web (Next.js), cli, mobile, raycast
+- packages/: ai (shared), backend (Convex), byod-schema, config, shared
 
-### Health Indicators
-- Build: Clean (minor Turbopack warning)
-- Tests: All passing
-- TODOs: 5 (low tech debt)
-- Deps: 2 minor updates available (biome, lucide-react)
+**Stats**: ~44k TS/TSX files, 84 Convex modules, 822 test files
 
-### Known Workarounds
-- **390 @ts-ignore in Convex**: TypeScript recursion limits with 94+ modules. Documented pattern, not fixable without restructuring.
-- **61 biome-ignore**: Acceptable lint exceptions for complex types
+**Money Feature Health**: GOOD
+- generation.ts, chat.ts, messages.ts all present and functional
+- E2E tests cover resilient generation flow
 
-### Outstanding TODOs
-- `convex/transcription.ts:225` - Deepgram Nova-3 implementation
-- `convex/transcription.ts:229` - AssemblyAI implementation
-- `convex/designTemplates/analyze.ts:120` - PPTX extraction via jszip
+**Known Tech Debt**:
+- 13 TODO/FIXME markers in backend
+- 415 console.log calls (should use structured logging)
+- 551 @ts-ignore (known Convex type recursion - documented workaround)
+- Backend test coverage: 8 test files for 84 modules
+
+**Open Issues**: #127 (BYOK), #124 (mobile layout), #122 (signout bug), #31 (roadmap)
+

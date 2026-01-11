@@ -13,9 +13,11 @@ export function useFavoriteModels() {
 
   const [localFavorites, setLocalFavorites] = useState<string[]>([]);
 
-  // Sync from Convex on load
+  // Sync from Convex on load (ensure always array)
   useEffect(() => {
-    setLocalFavorites(favoriteModels);
+    if (Array.isArray(favoriteModels)) {
+      setLocalFavorites(favoriteModels);
+    }
   }, [favoriteModels]);
 
   const toggleFavorite = async (modelId: string) => {

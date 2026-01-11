@@ -387,27 +387,17 @@ export const sendMessage = mutation({
       updatedAt: now,
     });
 
-    // Create assistant message placeholder with model
     const effectiveModel = modelId || conversation.model || "openai:gpt-5-mini";
-    const assistantMessageId = await ctx.db.insert("messages", {
-      conversationId,
-      role: "assistant",
-      content: "",
-      status: "pending",
-      model: effectiveModel,
-      createdAt: now,
-      updatedAt: now,
-    });
 
-    // Update conversation
+    // Update conversation (count +1 for user, assistant added in action)
     await ctx.db.patch(conversationId, {
       lastMessageAt: now,
-      messageCount: (conversation.messageCount || 0) + 2,
+      messageCount: (conversation.messageCount || 0) + 1,
       model: modelId || conversation.model,
       updatedAt: now,
     });
 
-    // Schedule generation action (non-blocking)
+    // Schedule generation action (creates assistant message)
     await ctx.scheduler.runAfter(
       0,
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -416,14 +406,12 @@ export const sendMessage = mutation({
         userId: user._id,
         modelId: effectiveModel,
         conversationId,
-        assistantMessageId,
         thinkingEffort: "medium",
       },
     );
 
     return {
       userMessageId: messageId,
-      assistantMessageId: assistantMessageId,
     };
   },
 });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 
 const diffOperationSchema = z.object({
   type: z
@@ -104,7 +105,10 @@ export function createUpdateDocumentTool(
           changeDescription,
         };
       } catch (error) {
-        console.error("[Tool] Update document failed:", error);
+        logger.error("Update document failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           error:

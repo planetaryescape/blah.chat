@@ -37,10 +37,10 @@ function ErrorDisplay({ error }: { error?: string }) {
     <div className="flex flex-col gap-3 p-1">
       <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
         <AlertCircle className="w-4 h-4" />
-        <span className="font-medium text-sm">Unable to generate response</span>
+        <span className="text-sm font-medium">Unable to generate response</span>
       </div>
-      <div className="bg-muted/30 rounded-md p-3 border border-border/50">
-        <p className="text-sm leading-relaxed opacity-90 break-words">
+      <div className="p-3 border rounded-md bg-muted/30 border-border/50">
+        <p className="text-sm leading-relaxed break-words opacity-90">
           {error}
         </p>
       </div>
@@ -49,7 +49,7 @@ function ErrorDisplay({ error }: { error?: string }) {
         <button
           type="button"
           onClick={() => setFeedbackOpen(true)}
-          className="underline hover:text-foreground transition-colors cursor-pointer"
+          className="underline transition-colors cursor-pointer hover:text-foreground"
         >
           contact support
         </button>
@@ -263,8 +263,6 @@ export const ChatMessage = memo(
         className={cn(
           "flex w-full mb-10",
           isUser ? "justify-end" : "justify-start",
-          // Reserve viewport space for generating assistant messages - pushes user message to top
-          !isUser && isGenerating && "min-h-[60vh]",
         )}
       >
         <div className={wrapperClass}>
@@ -291,14 +289,14 @@ export const ChatMessage = memo(
               <>
                 {/* Sender attribution for collaborative conversations */}
                 {isCollaborative && senderUser && (
-                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/20">
-                    <Avatar className="h-5 w-5">
+                  <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border/20">
+                    <Avatar className="w-5 h-5">
                       <AvatarImage src={senderUser.imageUrl} />
                       <AvatarFallback className="text-[10px]">
                         {senderUser.name?.[0]?.toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-xs text-muted-foreground font-medium">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {isUser
                         ? senderUser.name || "User"
                         : `Triggered by ${senderUser.name || "User"}`}
@@ -362,7 +360,7 @@ export const ChatMessage = memo(
 
                 {/* Attachments - don't reserve space, most messages don't have attachments */}
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/10">
+                  <div className="pt-3 mt-3 border-t border-border/10">
                     <AttachmentRenderer
                       attachments={attachments}
                       urls={urlMap}
@@ -398,7 +396,9 @@ export const ChatMessage = memo(
                       <div role="status" aria-live="polite" className="sr-only">
                         {ttft && `Response generated in ${formatTTFT(ttft)}`}
                         {message.tokensPerSecond &&
-                          ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
+                          ` at ${Math.round(
+                            message.tokensPerSecond,
+                          )} tokens per second`}
                       </div>
                     )}
 
@@ -452,6 +452,11 @@ export const ChatMessage = memo(
                           outputTokens={message.outputTokens}
                           status={message.status}
                           showStats={showStats}
+                          routingReasoning={
+                            "routingDecision" in message
+                              ? message.routingDecision?.reasoning
+                              : undefined
+                          }
                         />
                       )}
                   </div>

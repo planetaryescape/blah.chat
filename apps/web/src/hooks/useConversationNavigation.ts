@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 interface UseConversationNavigationOptions {
-  conversationId: Id<"conversations">;
+  conversationId: Id<"conversations"> | undefined;
   filteredConversations: Doc<"conversations">[] | undefined;
 }
 

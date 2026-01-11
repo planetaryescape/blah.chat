@@ -18,6 +18,7 @@ import type { ActionCtx } from "../../_generated/server";
 import { internalAction } from "../../_generated/server";
 import type { KnowledgeSearchResult } from "../../knowledgeBank/search";
 import { LLM_OPERATION_TIMEOUT, withTimeout } from "../../lib/budgetTracker";
+import { logger } from "../../lib/logger";
 import { buildMemoryRerankPrompt } from "../../lib/prompts/operational/memoryRerank";
 import {
   applyRRF,
@@ -169,13 +170,18 @@ async function rerankSearchResults(
       .filter((i) => !Number.isNaN(i) && i >= 0 && i < candidates.length);
 
     if (indices.length === 0) {
-      console.log("[Rerank] Failed to parse response, using original order");
+      logger.info("Failed to parse response, using original order", {
+        tag: "Rerank",
+      });
       return results.slice(0, limit);
     }
 
     return indices.slice(0, limit).map((i) => candidates[i]);
   } catch (error) {
-    console.error("[Rerank] Failed, using original order:", error);
+    logger.error("Failed, using original order", {
+      tag: "Rerank",
+      error: String(error),
+    });
     return results.slice(0, limit);
   }
 }

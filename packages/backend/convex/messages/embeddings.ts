@@ -15,6 +15,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
@@ -61,9 +62,11 @@ export const generateEmbedding = internalAction({
       // For large messages, summarize first using GPT-OSS 120B
       let contentToEmbed = args.content;
       if (args.content.length > MAX_EMBEDDING_CHARS) {
-        console.log(
-          `Message ${args.messageId} too large (${args.content.length} chars), summarizing...`,
-        );
+        logger.info("Message too large, summarizing", {
+          tag: "Embeddings",
+          messageId: args.messageId,
+          charCount: args.content.length,
+        });
         contentToEmbed = await summarizeForEmbedding(args.content);
       }
 
@@ -105,11 +108,11 @@ export const generateEmbedding = internalAction({
         );
       }
     } catch (error) {
-      console.error(
-        "Failed to generate embedding for message:",
-        args.messageId,
-        error,
-      );
+      logger.error("Failed to generate embedding for message", {
+        tag: "Embeddings",
+        messageId: args.messageId,
+        error: String(error),
+      });
       // Don't throw - embedding generation is non-critical
     }
   },

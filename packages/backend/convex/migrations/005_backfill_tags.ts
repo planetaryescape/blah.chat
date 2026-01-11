@@ -6,6 +6,7 @@
 import { normalizeTagSlug } from "@/lib/utils/tagUtils";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Step 1: Backfill bookmarks tags
@@ -353,31 +354,34 @@ export const backfillFeedbackTags = internalMutation({
  */
 export const runBackfill = internalAction({
   handler: async (ctx): Promise<any> => {
-    console.log("[Phase 5 Migration] Starting backfill...");
+    logger.info("Starting backfill", { tag: "Migration", phase: 5 });
 
     const bookmarksResult = (await (ctx.runMutation as any)(
       // @ts-ignore - Type depth exceeded with internal mutations
       internal.migrations["005_backfill_tags"].backfillBookmarks,
     )) as any;
-    console.log("[Phase 5 Migration] Bookmarks:", bookmarksResult);
+    logger.info("Bookmarks processed", {
+      tag: "Migration",
+      ...bookmarksResult,
+    });
 
     const snippetsResult = (await (ctx.runMutation as any)(
       // @ts-ignore - Type depth exceeded with internal mutations
       internal.migrations["005_backfill_tags"].backfillSnippets,
     )) as any;
-    console.log("[Phase 5 Migration] Snippets:", snippetsResult);
+    logger.info("Snippets processed", { tag: "Migration", ...snippetsResult });
 
     const notesResult = (await (ctx.runMutation as any)(
       // @ts-ignore - Type depth exceeded with internal mutations
       internal.migrations["005_backfill_tags"].backfillNotes,
     )) as any;
-    console.log("[Phase 5 Migration] Notes:", notesResult);
+    logger.info("Notes processed", { tag: "Migration", ...notesResult });
 
     const feedbackResult = (await (ctx.runMutation as any)(
       // @ts-ignore - Type depth exceeded with internal mutations
       internal.migrations["005_backfill_tags"].backfillFeedbackTags,
     )) as any;
-    console.log("[Phase 5 Migration] Feedback:", feedbackResult);
+    logger.info("Feedback processed", { tag: "Migration", ...feedbackResult });
 
     const totalTags =
       bookmarksResult.tagsCreated +
@@ -391,15 +395,18 @@ export const runBackfill = internalAction({
       notesResult.junctionsCreated +
       feedbackResult.junctionsCreated;
 
-    console.log("[Phase 5 Migration] Complete!");
-    console.log(`- Total unique tags created: ${totalTags}`);
-    console.log(`- Total junction entries: ${totalJunctions}`);
-
     const deduplicationRatio =
       totalJunctions > 0
         ? ((totalJunctions - totalTags) / totalJunctions) * 100
         : 0;
-    console.log(`- Deduplication ratio: ${deduplicationRatio.toFixed(2)}%`);
+
+    logger.info("Migration complete", {
+      tag: "Migration",
+      phase: 5,
+      totalTags,
+      totalJunctions,
+      deduplicationRatio: `${deduplicationRatio.toFixed(2)}%`,
+    });
 
     return {
       bookmarks: bookmarksResult,
@@ -420,7 +427,7 @@ export const runBackfill = internalAction({
  */
 export const verifyMigration = internalAction({
   handler: async (ctx): Promise<any> => {
-    console.log("[Phase 5 Migration] Verifying...");
+    logger.info("Verifying migration", { tag: "Migration", phase: 5 });
 
     // Get migration stats
     const stats = (await (ctx.runMutation as any)(
@@ -431,8 +438,11 @@ export const verifyMigration = internalAction({
     const totalTags = stats.totalTags;
     const junctionCounts = stats.junctions;
 
-    console.log(`[Phase 5 Migration] Tags created: ${totalTags}`);
-    console.log(`[Phase 5 Migration] Junctions:`, junctionCounts);
+    logger.info("Verification complete", {
+      tag: "Migration",
+      totalTags,
+      junctions: junctionCounts,
+    });
 
     return {
       totalTags,

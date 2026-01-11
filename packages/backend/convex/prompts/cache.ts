@@ -7,6 +7,7 @@
 
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Build and cache a system prompt for a conversation
@@ -20,7 +21,7 @@ export const buildAndCachePrompt = internalMutation({
   },
   handler: async (_ctx, _args) => {
     // Stub - no-op for now
-    console.log("[PromptCache] buildAndCachePrompt called (stub)");
+    logger.info("buildAndCachePrompt called (stub)", { tag: "PromptCache" });
   },
 });
 
@@ -34,6 +35,6 @@ export const rebuildUserPrompts = internalMutation({
   },
   handler: async (_ctx, _args) => {
     // Stub - no-op for now
-    console.log("[PromptCache] rebuildUserPrompts called (stub)");
+    logger.info("rebuildUserPrompts called (stub)", { tag: "PromptCache" });
   },
 });

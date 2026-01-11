@@ -12,6 +12,7 @@ import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 const rephrasedMemorySchema = z.object({
@@ -132,7 +133,10 @@ Return ONLY the rephrased content, no explanation or additional text.`,
 
         migrated++;
       } catch (error) {
-        console.error(`Failed to migrate memory ${memory._id}:`, error);
+        logger.error("Failed to migrate memory", {
+          memoryId: memory._id,
+          error: String(error),
+        });
         skipped++;
       }
     }
@@ -235,9 +239,10 @@ export const consolidateUserMemories = action({
     let deletedCount = 0;
     let createdCount = 0;
 
-    console.log(
-      `Found ${clustersToProcess.length} ${args.selectedIds ? "selected memories to merge" : "clusters to process"}`,
-    );
+    logger.info("Found clusters to process", {
+      count: clustersToProcess.length,
+      type: args.selectedIds ? "selected memories to merge" : "clusters",
+    });
 
     for (const cluster of clustersToProcess) {
       try {
@@ -391,15 +396,18 @@ ${cluster
           createdCount++;
         }
       } catch (error) {
-        console.error(`Failed to consolidate cluster:`, error);
+        logger.error("Failed to consolidate cluster", { error: String(error) });
       }
     }
 
     const consolidatedCount = originalCount - deletedCount + createdCount;
 
-    console.log(
-      `Consolidation complete: ${originalCount} → ${consolidatedCount} memories (${deletedCount} deleted, ${createdCount} created)`,
-    );
+    logger.info("Consolidation complete", {
+      original: originalCount,
+      consolidated: consolidatedCount,
+      deleted: deletedCount,
+      created: createdCount,
+    });
 
     return {
       original: originalCount,

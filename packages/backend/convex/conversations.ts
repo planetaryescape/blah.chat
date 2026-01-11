@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { canAccessConversation } from "./conversations/branching";
+import { logger } from "./lib/logger";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 import { cascadeDeleteConversation } from "./lib/utils/cascade";
 
@@ -385,10 +386,12 @@ export const cleanupEmptyConversations = mutation({
       const actualMessageCount = messages.length;
 
       if (conv.messageCount !== actualMessageCount) {
-        console.warn(
-          `messageCount mismatch for conversation ${conv._id}: ` +
-            `cached=${conv.messageCount}, actual=${actualMessageCount}`,
-        );
+        logger.warn("messageCount mismatch for conversation", {
+          tag: "Conversations",
+          conversationId: conv._id,
+          cached: conv.messageCount,
+          actual: actualMessageCount,
+        });
         await ctx.db.patch(conv._id, { messageCount: actualMessageCount });
       }
 

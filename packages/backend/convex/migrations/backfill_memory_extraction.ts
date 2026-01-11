@@ -1,4 +1,5 @@
 import { internalMutation } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * One-time migration to backfill memory extraction tracking fields
@@ -20,7 +21,10 @@ export const backfillMemoryExtraction = internalMutation({
     // Fetch all messages (may be slow for large datasets)
     const allMessages = await ctx.db.query("messages").collect();
 
-    console.log(`[Migration] Found ${allMessages.length} messages to backfill`);
+    logger.info("Found messages to backfill", {
+      tag: "Migration",
+      count: allMessages.length,
+    });
 
     let updated = 0;
     const batchSize = 100;
@@ -40,17 +44,21 @@ export const backfillMemoryExtraction = internalMutation({
       );
 
       if (i % 500 === 0 && i > 0) {
-        console.log(
-          `[Migration] Processed ${updated}/${allMessages.length} messages...`,
-        );
+        logger.info("Processing messages", {
+          tag: "Migration",
+          processed: updated,
+          total: allMessages.length,
+        });
       }
     }
 
     const duration = Date.now() - startTime;
 
-    console.log(
-      `[Migration] ✅ Backfilled ${updated} messages with extraction tracking in ${Math.round(duration / 1000)}s`,
-    );
+    logger.info("Backfilled messages with extraction tracking", {
+      tag: "Migration",
+      updated,
+      durationSec: Math.round(duration / 1000),
+    });
 
     return {
       updated,

@@ -81,7 +81,12 @@ async function validateApiKey(
     return { valid: false, error: "Could not validate key. Try again later." };
   } catch (error) {
     // Network error - fail secure
-    console.warn(`Failed to validate ${keyType} key:`, error);
+    const { logger } = await import("../lib/logger");
+    logger.warn("Failed to validate API key", {
+      tag: "BYOK",
+      keyType,
+      error: String(error),
+    });
     return {
       valid: false,
       error: "Could not reach provider. Check your connection.",
@@ -133,7 +138,11 @@ export const saveApiKey = action({
       encrypted = await encryptCredential(args.apiKey);
     } catch (error) {
       // Server-side config error (missing encryption key)
-      console.error("BYOK encryption failed:", error);
+      const { logger } = await import("../lib/logger");
+      logger.error("BYOK encryption failed", {
+        tag: "BYOK",
+        error: String(error),
+      });
       throw new ConvexError(
         "BYOK is not available right now. Please contact support.",
       );

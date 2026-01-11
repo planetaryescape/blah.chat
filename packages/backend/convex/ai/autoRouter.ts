@@ -17,6 +17,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Get model instance for router (using Vercel AI Gateway)
@@ -205,7 +206,9 @@ export const routeMessage = internalAction({
 
       if (eligibleModels.length === 0) {
         // Fallback to default model if no eligible models found
-        console.warn("No eligible models found, using default");
+        logger.warn("No eligible models found, using default", {
+          tag: "AutoRouter",
+        });
         return {
           selectedModelId: "openai:gpt-5-mini",
           classification,
@@ -238,7 +241,8 @@ export const routeMessage = internalAction({
         args.preferences,
       );
 
-      console.log("Auto router selected model", {
+      logger.info("Model selected", {
+        tag: "AutoRouter",
         conversationId: args.conversationId,
         selectedModel: selectedModel.modelId,
         score: selectedModel.score,
@@ -257,7 +261,10 @@ export const routeMessage = internalAction({
         explorationPick: selectedModel.explorationPick,
       };
     } catch (error) {
-      console.error("Auto router error:", error);
+      logger.error("Auto router error", {
+        tag: "AutoRouter",
+        error: String(error),
+      });
 
       // Fallback to default model on error
       return {
@@ -336,7 +343,10 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
       confidence: response.object.confidence,
     };
   } catch (error) {
-    console.error("Task classification error:", error);
+    logger.error("Task classification error", {
+      tag: "AutoRouter",
+      error: String(error),
+    });
 
     // Conservative fallback
     return {

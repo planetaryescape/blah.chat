@@ -11,6 +11,7 @@
 
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 export const analyzeVideo = internalAction({
   args: {
@@ -20,9 +21,9 @@ export const analyzeVideo = internalAction({
   },
   handler: async (_ctx, { url }) => {
     // TODO: Implement when @/lib/ai/* imports are fixed for Convex backend
-    console.warn(
-      "[YouTubeVideo] Tool not implemented - imports need to be fixed",
-    );
+    logger.warn("Tool not implemented - imports need to be fixed", {
+      tag: "YouTubeVideo",
+    });
     return {
       success: false,
       error:

@@ -106,21 +106,25 @@ export function InputBottomBar({
           )}
       </div>
 
-      {/* Right group: Secondary actions (Compare + Keyboard + Info) */}
+      {/* Right group: Secondary actions - hidden on mobile except comparison trigger */}
       <div className="flex items-center gap-0.5">
         {onStartComparison && (
-          <ComparisonTrigger
-            onStartComparison={onStartComparison}
-            isActive={isComparisonMode}
-            selectedModels={selectedModels}
-            open={comparisonDialogOpen}
-            onOpenChange={onComparisonDialogOpenChange}
-          />
+          <div className="hidden sm:block">
+            <ComparisonTrigger
+              onStartComparison={onStartComparison}
+              isActive={isComparisonMode}
+              selectedModels={selectedModels}
+              open={comparisonDialogOpen}
+              onOpenChange={onComparisonDialogOpenChange}
+            />
+          </div>
         )}
 
         <KeyboardHints isEmpty={isEmpty} hasContent={hasContent} />
 
-        <AIInfoTooltip />
+        <div className="hidden sm:block">
+          <AIInfoTooltip />
+        </div>
       </div>
     </div>
   );

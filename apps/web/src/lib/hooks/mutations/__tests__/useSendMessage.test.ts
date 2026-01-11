@@ -130,7 +130,7 @@ describe("useSendMessage", () => {
     expect(messages[0]._id).toMatch(/^temp-user-/);
   });
 
-  it("creates optimistic assistant message(s) for model array", async () => {
+  it("creates only user message for model comparison (server creates assistants)", async () => {
     const onOptimisticUpdate = vi.fn();
     renderHook(() => useSendMessage(onOptimisticUpdate));
 
@@ -143,17 +143,10 @@ describe("useSendMessage", () => {
     expect(onOptimisticUpdate).toHaveBeenCalled();
     const [[messages]] = onOptimisticUpdate.mock.calls;
 
-    // Should have 1 user + 2 assistant messages
-    expect(messages).toHaveLength(3);
+    // Only user message - server creates assistant messages synchronously
+    expect(messages).toHaveLength(1);
     expect(messages[0].role).toBe("user");
-    expect(messages[1].role).toBe("assistant");
-    expect(messages[1].model).toBe("openai:gpt-4o");
-    expect(messages[2].role).toBe("assistant");
-    expect(messages[2].model).toBe("anthropic:claude-3-opus");
-
-    // Both assistant messages should have comparisonGroupId
-    expect(messages[1].comparisonGroupId).toBeDefined();
-    expect(messages[2].comparisonGroupId).toBe(messages[1].comparisonGroupId);
+    expect(messages[0].content).toBe("Compare these");
   });
 
   it("calls API client post with correct payload", async () => {

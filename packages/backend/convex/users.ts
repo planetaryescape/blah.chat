@@ -168,6 +168,9 @@ export const updatePreferences = mutation({
       showProjects: v.optional(v.boolean()),
       showBookmarks: v.optional(v.boolean()),
       showSlides: v.optional(v.boolean()),
+      autoCompressContext: v.optional(v.boolean()),
+      autoRouterCostBias: v.optional(v.number()),
+      autoRouterSpeedBias: v.optional(v.number()),
       memoryExtractionLevel: v.optional(
         v.union(
           v.literal("none"),
@@ -272,9 +275,12 @@ export const updateCustomInstructions = mutation({
     );
 
     // Rebuild cached system prompts for all recent conversations (background, non-blocking)
-    await ctx.scheduler.runAfter(0, internal.prompts.cache.rebuildUserPrompts, {
-      userId: user._id,
-    });
+    await (ctx.scheduler.runAfter as any)(
+      0,
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.prompts.cache.rebuildUserPrompts,
+      { userId: user._id },
+    );
   },
 });
 

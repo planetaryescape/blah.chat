@@ -8,7 +8,7 @@ import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
@@ -124,7 +124,7 @@ export const generateResponse = internalAction({
         { conversationId: args.conversationId, limit: 10 },
       );
       const recentMessageIds = recentMessages.map(
-        (m: { _id: string }) => m._id,
+        (m: { _id: Id<"messages"> }) => m._id,
       );
       const attachments =
         recentMessageIds.length > 0

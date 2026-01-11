@@ -2,7 +2,23 @@ import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { logger } from "../lib/logger";
 
-/** Maximum time a message can be in generating state before considered stuck (10 minutes) */
+/**
+ * Maximum time a message can be in pending/generating state before it's considered stuck.
+ *
+ * Rationale for 10 minutes:
+ * - Typical LLM generations in our workloads complete within seconds to a few minutes,
+ *   including tool calls, but we occasionally see longer generations when:
+ *   - The provider is degraded or rate-limiting.
+ *   - The message triggers multiple tool invocations or long-running tools.
+ * - The recovery cron runs every 2 minutes, so a 10-minute window gives several chances
+ *   to observe progress before force-failing the message.
+ * - A shorter threshold risks misclassifying slow-but-successful generations as stuck,
+ *   especially during provider incidents.
+ *
+ * If we introduce message types with substantially different latency characteristics
+ * (e.g. very long-running tools or models with known higher latency), consider making
+ * this threshold configurable per message type instead of using a single global value.
+ */
 const STUCK_THRESHOLD_MS = 10 * 60 * 1000;
 
 /**

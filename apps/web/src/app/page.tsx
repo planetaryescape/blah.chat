@@ -31,17 +31,17 @@ import { Button } from "@/components/ui/button";
 function useTypewriter(text: string, speed = 50, delay = 500) {
   const [displayText, setDisplayText] = useState("");
   const [isComplete, setIsComplete] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
     const timeout = setTimeout(() => {
       let i = 0;
-      interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         if (i < text.length) {
           setDisplayText(text.slice(0, i + 1));
           i++;
         } else {
-          clearInterval(interval);
+          if (intervalRef.current) clearInterval(intervalRef.current);
           setIsComplete(true);
         }
       }, speed);
@@ -49,7 +49,7 @@ function useTypewriter(text: string, speed = 50, delay = 500) {
 
     return () => {
       clearTimeout(timeout);
-      if (interval) clearInterval(interval);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [text, speed, delay]);
 

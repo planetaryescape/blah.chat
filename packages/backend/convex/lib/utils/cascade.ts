@@ -247,7 +247,7 @@ export async function cascadeDeleteUserData(
       .collect(),
     ctx.db
       .query("knowledgeChunks")
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
     ctx.db
       .query("fileChunks")

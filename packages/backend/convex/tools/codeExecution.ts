@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Code execution via Next.js API route
@@ -49,7 +50,10 @@ export const executeCode = internalAction({
 
       return await response.json();
     } catch (error) {
-      console.error("[CodeExecution] Error:", error);
+      logger.error("Error executing code", {
+        tag: "CodeExecution",
+        error: String(error),
+      });
       return {
         success: false,
         language,

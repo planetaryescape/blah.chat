@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx } from "../../../_generated/server";
+import { logger } from "../../../lib/logger";
 
 /**
  * Create memory search tool with closure over ActionCtx.
@@ -64,7 +65,10 @@ Preference/identity/relationship memories are pre-loaded.`,
           })),
         };
       } catch (error) {
-        console.error("[Tool] Memory search failed:", error);
+        logger.error("Memory search failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         // Return empty results for graceful degradation
         return {
           found: 0,

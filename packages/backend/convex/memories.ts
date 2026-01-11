@@ -9,6 +9,7 @@ import {
   internalMutation,
   mutation,
 } from "./_generated/server";
+import { logger } from "./lib/logger";
 
 export * as consolidation from "./memories/consolidation";
 export * as deleteModule from "./memories/delete";
@@ -208,7 +209,10 @@ export const deleteAllMemories = mutation({
       await ctx.db.delete(memory._id);
     }
 
-    console.log(`Deleted ${memories.length} memories for user ${user._id}`);
+    logger.info("Deleted all memories for user", {
+      count: memories.length,
+      userId: user._id,
+    });
 
     return { deleted: memories.length };
   },
@@ -239,9 +243,10 @@ export const deleteSelected = mutation({
       }
     }
 
-    console.log(
-      `Deleted ${deletedCount} selected memories for user ${user._id}`,
-    );
+    logger.info("Deleted selected memories for user", {
+      count: deletedCount,
+      userId: user._id,
+    });
 
     return { deleted: deletedCount };
   },

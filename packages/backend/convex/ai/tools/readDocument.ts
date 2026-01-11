@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 
 /**
  * Read document tool for Canvas.
@@ -57,7 +58,10 @@ export function createReadDocumentTool(
 
         return result;
       } catch (error) {
-        console.error("[Tool] Read document failed:", error);
+        logger.error("Read document failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           hasDocument: false,

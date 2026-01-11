@@ -8,6 +8,7 @@ import { BYODSettings } from "@/components/settings/BYODSettings";
 import { BYOKSettings } from "@/components/settings/BYOKSettings";
 import { CliApiKeysSettings } from "@/components/settings/CliApiKeysSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
+import { DangerZoneSettings } from "@/components/settings/DangerZoneSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { KnowledgeBankSettings } from "@/components/settings/KnowledgeBankSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
@@ -76,6 +77,11 @@ const SETTINGS_SECTIONS = [
     id: "advanced",
     label: "Advanced",
     component: BYOKSettings,
+  },
+  {
+    id: "danger",
+    label: "Danger Zone",
+    component: DangerZoneSettings,
   },
 ];
 

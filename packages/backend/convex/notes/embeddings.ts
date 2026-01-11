@@ -12,6 +12,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
@@ -31,7 +32,10 @@ export const generateEmbedding = internalAction({
     })) as { title: string; content: string; userId: Id<"users"> } | null;
 
     if (!note) {
-      console.error("Note not found:", args.noteId);
+      logger.error("note not found", {
+        tag: "NoteEmbeddings",
+        noteId: args.noteId,
+      });
       return;
     }
 
@@ -83,11 +87,11 @@ export const generateEmbedding = internalAction({
         embedding,
       });
     } catch (error) {
-      console.error(
-        "Failed to generate embedding for note:",
-        args.noteId,
-        error,
-      );
+      logger.error("failed to generate embedding for note", {
+        tag: "NoteEmbeddings",
+        noteId: args.noteId,
+        error: String(error),
+      });
       await ctx.runMutation(internal.notes.embeddings.updateEmbeddingStatus, {
         noteId: args.noteId,
         status: "failed",
@@ -172,7 +176,11 @@ export const generateBatchEmbeddings = internalAction({
           embedding,
         });
       } catch (error) {
-        console.error("Failed to embed note:", note._id, error);
+        logger.error("failed to embed note", {
+          tag: "NoteEmbeddings",
+          noteId: note._id,
+          error: String(error),
+        });
         await ctx.runMutation(internal.notes.embeddings.updateEmbeddingStatus, {
           noteId: note._id as any,
           status: "failed",
@@ -230,18 +238,21 @@ export const updateEmbeddingStatus = internalMutation({
   },
 });
 
+// Backfill query: intentional full scan - runs infrequently during embedding migrations
 export const getNotesWithoutEmbeddings = internalQuery({
   args: {
     cursor: v.optional(v.string()),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
+    // Note: Full table scan is acceptable here - this is a backfill operation
+    // that runs infrequently and needs to find all notes without embeddings
     const result = await ctx.db
       .query("notes")
       .filter((q) => q.eq(q.field("embedding"), undefined))
       .paginate({ cursor: args.cursor || null, numItems: args.limit });
 
-    // Get total count
+    // Get total count (full scan for backfill progress tracking)
     const total = await ctx.db
       .query("notes")
       .filter((q) => q.eq(q.field("embedding"), undefined))

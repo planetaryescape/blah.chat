@@ -102,10 +102,11 @@ export const getPendingSlides = query({
 
     const slides = await ctx.db
       .query("slides")
-      .withIndex("by_presentation", (q) =>
-        q.eq("presentationId", args.presentationId),
+      .withIndex("by_presentation_imageStatus", (q) =>
+        q
+          .eq("presentationId", args.presentationId)
+          .eq("imageStatus", "pending"),
       )
-      .filter((q) => q.eq(q.field("imageStatus"), "pending"))
       .collect();
 
     return slides;

@@ -12,6 +12,7 @@ import {
   TASK_EXTRACTION_PROMPT,
 } from "@/lib/prompts/taskExtraction";
 import { action } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // Smart Manager Phase 2: Task Extraction from Transcripts
 
@@ -75,7 +76,10 @@ Extract actionable tasks from the above transcript. Return a JSON object with a 
 
       return tasksWithParsedDeadlines;
     } catch (error) {
-      console.error("Task extraction failed:", error);
+      logger.error("Task extraction failed", {
+        tag: "TaskExtraction",
+        error: String(error),
+      });
       // Return empty array on failure rather than throwing
       return [];
     }
@@ -113,7 +117,10 @@ Deadline text: "${deadlineText}"`,
     }
     return null;
   } catch (error) {
-    console.error("Error parsing deadline:", error);
+    logger.error("Error parsing deadline", {
+      tag: "TaskExtraction",
+      error: String(error),
+    });
     return null;
   }
 }

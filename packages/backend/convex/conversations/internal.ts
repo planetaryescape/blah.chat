@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 // ===== Internal Queries =====
 
@@ -103,7 +104,10 @@ export const clearMemoryCache = internalMutation({
       cachedMemoryIds: undefined,
       lastMemoryFetchAt: undefined,
     });
-    console.log(`[Cache] Cleared for conversation ${args.conversationId}`);
+    logger.info("Cleared memory cache for conversation", {
+      tag: "Cache",
+      conversationId: args.conversationId,
+    });
   },
 });
 

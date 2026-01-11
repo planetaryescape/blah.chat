@@ -8,6 +8,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 /**
  * Backfill embeddings for existing tags
@@ -29,10 +30,12 @@ export const backfillTagEmbeddings = internalAction({
     const maxTags = args.maxTags ?? 100;
     const dryRun = args.dryRun ?? false;
 
-    console.log(`[Backfill] Starting tag embedding backfill...`);
-    console.log(`  Min usage count: ${minUsageCount}`);
-    console.log(`  Max tags: ${maxTags}`);
-    console.log(`  Dry run: ${dryRun}`);
+    logger.info("starting tag embedding backfill", {
+      tag: "Backfill",
+      minUsageCount,
+      maxTags,
+      dryRun,
+    });
 
     // Get all tags that need embeddings
     const tagsNeedingEmbeddings = (await (ctx.runQuery as any)(
@@ -41,9 +44,10 @@ export const backfillTagEmbeddings = internalAction({
       { minUsageCount, maxTags },
     )) as Doc<"tags">[];
 
-    console.log(
-      `[Backfill] Found ${tagsNeedingEmbeddings.length} tags needing embeddings`,
-    );
+    logger.info("found tags needing embeddings", {
+      tag: "Backfill",
+      count: tagsNeedingEmbeddings.length,
+    });
 
     if (tagsNeedingEmbeddings.length === 0) {
       return {
@@ -54,15 +58,14 @@ export const backfillTagEmbeddings = internalAction({
     }
 
     if (dryRun) {
-      console.log(
-        `[Backfill] DRY RUN - Would process ${tagsNeedingEmbeddings.length} tags:`,
-      );
-      for (const tag of tagsNeedingEmbeddings.slice(0, 10)) {
-        console.log(`  - "${tag.displayName}" (usage: ${tag.usageCount})`);
-      }
-      if (tagsNeedingEmbeddings.length > 10) {
-        console.log(`  ... and ${tagsNeedingEmbeddings.length - 10} more`);
-      }
+      logger.info("dry run - would process tags", {
+        tag: "Backfill",
+        count: tagsNeedingEmbeddings.length,
+        preview: tagsNeedingEmbeddings.slice(0, 10).map((t) => ({
+          displayName: t.displayName,
+          usageCount: t.usageCount,
+        })),
+      });
       return {
         success: true,
         processed: 0,
@@ -79,9 +82,11 @@ export const backfillTagEmbeddings = internalAction({
     for (let i = 0; i < tagsNeedingEmbeddings.length; i += batchSize) {
       const batch = tagsNeedingEmbeddings.slice(i, i + batchSize);
 
-      console.log(
-        `[Backfill] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(tagsNeedingEmbeddings.length / batchSize)}...`,
-      );
+      logger.info("processing batch", {
+        tag: "Backfill",
+        batchNumber: Math.floor(i / batchSize) + 1,
+        totalBatches: Math.ceil(tagsNeedingEmbeddings.length / batchSize),
+      });
 
       // Process batch in parallel
       const results = await Promise.allSettled(
@@ -99,7 +104,10 @@ export const backfillTagEmbeddings = internalAction({
           processed++;
         } else {
           failed++;
-          console.error(`[Backfill] Failed to process tag:`, result.reason);
+          logger.error("failed to process tag", {
+            tag: "Backfill",
+            error: String(result.reason),
+          });
         }
       }
 
@@ -107,9 +115,7 @@ export const backfillTagEmbeddings = internalAction({
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    console.log(
-      `[Backfill] Complete! Processed: ${processed}, Failed: ${failed}`,
-    );
+    logger.info("backfill complete", { tag: "Backfill", processed, failed });
 
     return {
       success: true,

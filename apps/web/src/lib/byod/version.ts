@@ -1,4 +1,4 @@
-export const BYOD_SCHEMA_VERSION = 14;
+export const BYOD_SCHEMA_VERSION = 15;
 
 export const SCHEMA_CHANGELOG: Record<number, string> = {
   1: "Initial BYOD schema - conversations, messages, memories, files, projects, notes, tasks, presentations",

@@ -695,6 +695,14 @@ interface AnalyticsEvent {
     format: "latex" | "html" | "both";
     equationLength: number;
   };
+
+  // === NOTE SETTINGS (2 events) ===
+  note_category_mode_changed: {
+    mode: "fixed" | "ai-suggested";
+  };
+  custom_note_categories_changed: {
+    count: number;
+  };
 }
 
 type EventName = keyof AnalyticsEvent;

@@ -61,6 +61,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import {
   formatCompactNumber,
   formatCurrency,
@@ -104,6 +105,7 @@ const FEATURE_LABELS: Record<string, string> = {
 
 function UsagePageContent() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
+  const showTasks = useUserPreference("showTasks");
 
   // Fetch all user data
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -344,11 +346,13 @@ function UsagePageContent() {
                     value={activityStats?.bookmarksCount ?? 0}
                     icon={Bookmark}
                   />
-                  <UsageKPICard
-                    label="Tasks"
-                    value={activityStats?.tasksCount ?? 0}
-                    icon={CheckSquare}
-                  />
+                  {showTasks && (
+                    <UsageKPICard
+                      label="Tasks"
+                      value={activityStats?.tasksCount ?? 0}
+                      icon={CheckSquare}
+                    />
+                  )}
                   <UsageKPICard
                     label="Files Uploaded"
                     value={totalCounts?.filesCount ?? 0}

@@ -365,8 +365,21 @@ export const searchAll = internalAction({
     const searchedSources: string[] = [];
     const allResults: UnifiedResult[] = [];
 
+    // Get user feature toggles to filter out disabled features
+    const featureToggles = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getFeatureToggles,
+      { userId: args.userId },
+    )) as { showTasks: boolean; showSmartAssistant: boolean };
+
+    // Filter out disabled resource types
+    let activeResourceTypes = args.resourceTypes;
+    if (!featureToggles.showTasks) {
+      activeResourceTypes = activeResourceTypes.filter((t) => t !== "tasks");
+    }
+
     // 1. Search KB FIRST if included (knowledge-first strategy)
-    if (args.resourceTypes.includes("knowledgeBank")) {
+    if (activeResourceTypes.includes("knowledgeBank")) {
       const kbResults = (await (ctx.runAction as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.knowledgeBank.search.searchInternal,
@@ -402,7 +415,7 @@ export const searchAll = internalAction({
     }
 
     // 2. Search remaining types in parallel
-    const remainingTypes = args.resourceTypes.filter(
+    const remainingTypes = activeResourceTypes.filter(
       (t) => t !== "knowledgeBank",
     );
     const searchPromises: Promise<void>[] = [];

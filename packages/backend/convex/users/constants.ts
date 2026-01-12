@@ -46,6 +46,18 @@ export const PREFERENCE_DEFAULTS = {
   showTemplates: true,
   showProjects: true,
   showBookmarks: true,
+  showTasks: true,
+  showSmartAssistant: true,
+
+  // Smart Assistant
+  noteCategoryMode: "fixed" as const,
+  customNoteCategories: [
+    "decision",
+    "discussion",
+    "action-item",
+    "insight",
+    "followup",
+  ] as string[],
 
   // Custom Instructions (single object)
   customInstructions: {
@@ -111,6 +123,12 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showTemplates: "advanced",
   showProjects: "advanced",
   showBookmarks: "advanced",
+  showTasks: "advanced",
+  showSmartAssistant: "advanced",
+
+  // Smart Assistant
+  noteCategoryMode: "advanced",
+  customNoteCategories: "advanced",
 
   // Special: nested objects stored as single rows
   customInstructions: "customInstructions",

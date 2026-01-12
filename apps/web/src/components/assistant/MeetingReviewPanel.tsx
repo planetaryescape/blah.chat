@@ -39,7 +39,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export interface ExtractedTask {
   title: string;
-  description?: string;
+  description?: string | null;
   deadline?: number | null;
   deadlineText?: string | null;
   urgency?: "low" | "medium" | "high" | "urgent" | null;

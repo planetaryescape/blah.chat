@@ -878,6 +878,7 @@ export default defineSchema({
     date: v.string(),
     model: v.string(),
     conversationId: v.optional(v.id("conversations")),
+    presentationId: v.optional(v.string()), // Deprecated: kept for existing data
     feature: v.optional(
       v.union(
         v.literal("chat"),

@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { isAutoModel } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 
 interface ContextWindowIndicatorProps {
@@ -25,8 +26,18 @@ export function ContextWindowIndicator({
     conversationId,
   });
 
-  // Get context limit from currently selected model, not stored value
-  const modelConfig = getModelConfig(modelId);
+  // Get last assistant message to find actual routed model (for Auto model)
+  const lastMessage = useQuery(api.messages.getLastAssistantMessage, {
+    conversationId,
+  });
+
+  // For Auto model, use the actual routed model's context window
+  const effectiveModelId =
+    isAutoModel(modelId) && lastMessage?.routingDecision?.selectedModelId
+      ? lastMessage.routingDecision.selectedModelId
+      : modelId;
+
+  const modelConfig = getModelConfig(effectiveModelId);
   const contextLimit = modelConfig?.contextWindow ?? 128000; // Fallback to 128K
 
   if (!tokenUsage) {

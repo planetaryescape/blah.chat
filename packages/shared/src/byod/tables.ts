@@ -65,13 +65,6 @@ export const BYOD_TABLES = [
   "templates",
   "votes",
 
-  // Presentations (Slides feature)
-  "presentations",
-  "slides",
-  "outlineItems",
-  "designTemplates",
-  "presentationSessions",
-
   // Activity
   "activityEvents",
 

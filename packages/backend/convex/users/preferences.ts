@@ -250,8 +250,22 @@ function validatePreference(key: string, value: any): void {
     case "showProjects":
     case "showBookmarks":
     case "showSlides":
+    case "showTasks":
+    case "showSmartAssistant":
       if (typeof value !== "boolean") {
         throw new Error(`${key} must be a boolean`);
+      }
+      break;
+
+    case "noteCategoryMode":
+      if (!["fixed", "ai-suggested"].includes(value)) {
+        throw new Error("noteCategoryMode must be 'fixed' or 'ai-suggested'");
+      }
+      break;
+
+    case "customNoteCategories":
+      if (!Array.isArray(value) || !value.every((v) => typeof v === "string")) {
+        throw new Error("customNoteCategories must be an array of strings");
       }
       break;
 

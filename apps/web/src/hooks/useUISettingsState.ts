@@ -29,6 +29,11 @@ export interface UISettingsState {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
+  showTasks: boolean;
+  showSmartAssistant: boolean;
+  // Smart Assistant
+  noteCategoryMode: "fixed" | "ai-suggested";
+  customNoteCategories: string[];
   // Auto Router
   autoRouterCostBias: number;
   autoRouterSpeedBias: number;
@@ -49,6 +54,13 @@ export interface UISettingsHandlers {
   handleShowTemplatesChange: (checked: boolean) => Promise<void>;
   handleShowProjectsChange: (checked: boolean) => Promise<void>;
   handleShowBookmarksChange: (checked: boolean) => Promise<void>;
+  handleShowTasksChange: (checked: boolean) => Promise<void>;
+  handleShowSmartAssistantChange: (checked: boolean) => Promise<void>;
+  // Smart Assistant
+  handleNoteCategoryModeChange: (
+    mode: "fixed" | "ai-suggested",
+  ) => Promise<void>;
+  handleCustomNoteCategoriesChange: (categories: string[]) => Promise<void>;
   // Auto Router
   handleCostBiasChange: (value: number) => Promise<void>;
   handleSpeedBiasChange: (value: number) => Promise<void>;
@@ -79,6 +91,10 @@ export function useUISettingsState() {
   const prefShowTemplates = useUserPreference("showTemplates");
   const prefShowProjects = useUserPreference("showProjects");
   const prefShowBookmarks = useUserPreference("showBookmarks");
+  const prefShowTasks = useUserPreference("showTasks");
+  const prefShowSmartAssistant = useUserPreference("showSmartAssistant");
+  const prefNoteCategoryMode = useUserPreference("noteCategoryMode");
+  const prefCustomNoteCategories = useUserPreference("customNoteCategories");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
 
@@ -116,6 +132,16 @@ export function useUISettingsState() {
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
   const [showBookmarks, setShowBookmarks] =
     useState<boolean>(prefShowBookmarks);
+  const [showTasks, setShowTasks] = useState<boolean>(prefShowTasks);
+  const [showSmartAssistant, setShowSmartAssistant] = useState<boolean>(
+    prefShowSmartAssistant,
+  );
+  const [noteCategoryMode, setNoteCategoryMode] = useState<
+    "fixed" | "ai-suggested"
+  >(prefNoteCategoryMode as "fixed" | "ai-suggested");
+  const [customNoteCategories, setCustomNoteCategories] = useState<string[]>(
+    prefCustomNoteCategories as string[],
+  );
   const [autoRouterCostBias, setAutoRouterCostBias] =
     useState<number>(prefCostBias);
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
@@ -163,6 +189,19 @@ export function useUISettingsState() {
   useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);
   useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
   useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
+  useEffect(() => setShowTasks(prefShowTasks), [prefShowTasks]);
+  useEffect(
+    () => setShowSmartAssistant(prefShowSmartAssistant),
+    [prefShowSmartAssistant],
+  );
+  useEffect(
+    () => setNoteCategoryMode(prefNoteCategoryMode as "fixed" | "ai-suggested"),
+    [prefNoteCategoryMode],
+  );
+  useEffect(
+    () => setCustomNoteCategories(prefCustomNoteCategories as string[]),
+    [prefCustomNoteCategories],
+  );
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
 
@@ -268,6 +307,40 @@ export function useUISettingsState() {
     }
   };
 
+  const handleNoteCategoryModeChange = async (
+    mode: "fixed" | "ai-suggested",
+  ) => {
+    const previous = noteCategoryMode;
+    setNoteCategoryMode(mode);
+    try {
+      await updatePreferences({
+        preferences: { noteCategoryMode: mode },
+      });
+      toast.success("Note category mode updated!");
+      analytics.track("note_category_mode_changed", { mode });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setNoteCategoryMode(previous);
+    }
+  };
+
+  const handleCustomNoteCategoriesChange = async (categories: string[]) => {
+    const previous = customNoteCategories;
+    setCustomNoteCategories(categories);
+    try {
+      await updatePreferences({
+        preferences: { customNoteCategories: categories },
+      });
+      toast.success("Note categories updated!");
+      analytics.track("custom_note_categories_changed", {
+        count: categories.length,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setCustomNoteCategories(previous);
+    }
+  };
+
   const handlers: UISettingsHandlers = {
     handleAlwaysShowActionsChange: createBooleanHandler(
       "alwaysShowMessageActions",
@@ -332,6 +405,19 @@ export function useUISettingsState() {
       setShowBookmarks,
       "show_bookmarks",
     ),
+    handleShowTasksChange: createBooleanHandler(
+      "showTasks",
+      setShowTasks,
+      "show_tasks",
+    ),
+    handleShowSmartAssistantChange: createBooleanHandler(
+      "showSmartAssistant",
+      setShowSmartAssistant,
+      "show_smart_assistant",
+    ),
+    // Smart Assistant
+    handleNoteCategoryModeChange,
+    handleCustomNoteCategoriesChange,
     // Auto Router
     handleCostBiasChange,
     handleSpeedBiasChange,
@@ -352,6 +438,11 @@ export function useUISettingsState() {
     showTemplates,
     showProjects,
     showBookmarks,
+    showTasks,
+    showSmartAssistant,
+    // Smart Assistant
+    noteCategoryMode,
+    customNoteCategories,
     // Auto Router
     autoRouterCostBias,
     autoRouterSpeedBias,

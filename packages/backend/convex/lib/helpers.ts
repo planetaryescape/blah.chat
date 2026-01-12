@@ -304,3 +304,28 @@ export const getRecentConversations = internalQuery({
       .collect();
   },
 });
+
+/**
+ * Get feature toggle preferences for a user
+ * Used by search actions to filter out disabled features
+ */
+export const getFeatureToggles = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ showTasks: boolean; showSmartAssistant: boolean }> => {
+    const prefs = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const prefMap = new Map(prefs.map((p) => [p.key, p.value]));
+
+    return {
+      showTasks: (prefMap.get("showTasks") as boolean) ?? true,
+      showSmartAssistant:
+        (prefMap.get("showSmartAssistant") as boolean) ?? true,
+    };
+  },
+});

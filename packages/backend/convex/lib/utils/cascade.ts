@@ -5,8 +5,7 @@ import type { MutationCtx } from "../../_generated/server";
  * Cascade delete all related records for a conversation.
  * Handles: bookmarks, shares, files (nullify), memories (nullify),
  * project junctions, participants, tokenUsage, attachments, toolCalls,
- * sources, canvasDocuments, canvasHistory, presentations (nullify),
- * messages, and the conversation itself.
+ * sources, canvasDocuments, canvasHistory, messages, and the conversation itself.
  */
 export async function cascadeDeleteConversation(
   ctx: MutationCtx,
@@ -29,7 +28,6 @@ export async function cascadeDeleteConversation(
     toolCalls,
     sources,
     canvasDocs,
-    presentations,
   ] = await Promise.all([
     ctx.db
       .query("bookmarks")
@@ -95,12 +93,6 @@ export async function cascadeDeleteConversation(
         q.eq("conversationId", conversationId),
       )
       .collect(),
-    ctx.db
-      .query("presentations")
-      .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", conversationId),
-      )
-      .collect(),
   ]);
 
   // Parallel deletions for independent tables
@@ -119,9 +111,6 @@ export async function cascadeDeleteConversation(
   await Promise.all([
     ...files.map((f) => ctx.db.patch(f._id, { conversationId: undefined })),
     ...memories.map((m) => ctx.db.patch(m._id, { conversationId: undefined })),
-    ...presentations.map((p) =>
-      ctx.db.patch(p._id, { conversationId: undefined }),
-    ),
   ]);
 
   // Canvas docs have history children - must delete history first
@@ -212,8 +201,6 @@ export async function cascadeDeleteUserData(
     attachments,
     votes,
     canvasHistory,
-    slides,
-    outlineItems,
     knowledgeChunks,
     fileChunks,
   ] = await Promise.all([
@@ -238,14 +225,6 @@ export async function cascadeDeleteUserData(
       .filter((q) => q.eq(q.field("userId"), userId))
       .collect(),
     ctx.db
-      .query("slides")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect(),
-    ctx.db
-      .query("outlineItems")
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .collect(),
-    ctx.db
       .query("knowledgeChunks")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
@@ -261,37 +240,29 @@ export async function cascadeDeleteUserData(
     ...attachments.map((r) => ctx.db.delete(r._id)),
     ...votes.map((r) => ctx.db.delete(r._id)),
     ...canvasHistory.map((r) => ctx.db.delete(r._id)),
-    ...slides.map((r) => ctx.db.delete(r._id)),
-    ...outlineItems.map((r) => ctx.db.delete(r._id)),
     ...knowledgeChunks.map((r) => ctx.db.delete(r._id)),
     ...fileChunks.map((r) => ctx.db.delete(r._id)),
   ]);
 
-  // Phase 3: Delete parent records (messages, canvasDocuments, presentations, knowledgeSources)
-  const [messages, canvasDocuments, presentations, knowledgeSources] =
-    await Promise.all([
-      ctx.db
-        .query("messages")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect(),
-      ctx.db
-        .query("canvasDocuments")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect(),
-      ctx.db
-        .query("presentations")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect(),
-      ctx.db
-        .query("knowledgeSources")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect(),
-    ]);
+  // Phase 3: Delete parent records (messages, canvasDocuments, knowledgeSources)
+  const [messages, canvasDocuments, knowledgeSources] = await Promise.all([
+    ctx.db
+      .query("messages")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect(),
+    ctx.db
+      .query("canvasDocuments")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect(),
+    ctx.db
+      .query("knowledgeSources")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect(),
+  ]);
 
   await Promise.all([
     ...messages.map((r) => ctx.db.delete(r._id)),
     ...canvasDocuments.map((r) => ctx.db.delete(r._id)),
-    ...presentations.map((r) => ctx.db.delete(r._id)),
     ...knowledgeSources.map((r) => ctx.db.delete(r._id)),
   ]);
 
@@ -311,7 +282,6 @@ export async function cascadeDeleteUserData(
     notifications,
     feedback,
     conversationParticipants,
-    designTemplates,
   ] = await Promise.all([
     ctx.db
       .query("conversations")
@@ -369,10 +339,6 @@ export async function cascadeDeleteUserData(
       .query("conversationParticipants")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect(),
-    ctx.db
-      .query("designTemplates")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect(),
   ]);
 
   await Promise.all([
@@ -390,7 +356,6 @@ export async function cascadeDeleteUserData(
     ...notifications.map((r) => ctx.db.delete(r._id)),
     ...feedback.map((r) => ctx.db.delete(r._id)),
     ...conversationParticipants.map((r) => ctx.db.delete(r._id)),
-    ...designTemplates.map((r) => ctx.db.delete(r._id)),
   ]);
 
   // Phase 5: Delete user config/metadata

@@ -27,10 +27,6 @@ export {
 export { buildMemoryExtractionPrompt } from "./operational/memoryExtraction";
 export { buildMemoryRephrasePrompt } from "./operational/memoryRephrase";
 export {
-  buildSlideImagePrompt,
-  type SlideImageContext,
-} from "./operational/slideImage";
-export {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./operational/summarization";

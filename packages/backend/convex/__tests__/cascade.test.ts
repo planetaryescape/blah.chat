@@ -534,46 +534,5 @@ describe("cascade delete", () => {
       expect(doc).toBeNull();
       expect(history).toBeNull();
     });
-
-    it("nullifies presentation conversationId instead of delete", async () => {
-      const t = convexTest(schema);
-      const identity = createMockIdentity();
-
-      const { convId, presentationId } = await t.run(async (ctx) => {
-        const userId = await ctx.db.insert(
-          "users",
-          createTestUserData({ clerkId: identity.subject }),
-        );
-        const conversationId = await ctx.db.insert(
-          "conversations",
-          createTestConversationData(userId),
-        );
-
-        const pId = await ctx.db.insert("presentations", {
-          userId,
-          conversationId,
-          title: "Test Presentation",
-          status: "outline_pending",
-          imageModel: "dall-e-3",
-          totalSlides: 10,
-          generatedSlideCount: 0,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-
-        return { convId: conversationId, presentationId: pId };
-      });
-
-      const asUser = t.withIdentity(identity);
-      await asUser.mutation(api.conversations.deleteConversation, {
-        conversationId: convId,
-      });
-
-      const presentation = await t.run(async (ctx) =>
-        ctx.db.get(presentationId),
-      );
-      expect(presentation).toBeDefined();
-      expect(presentation?.conversationId).toBeUndefined();
-    });
   });
 });

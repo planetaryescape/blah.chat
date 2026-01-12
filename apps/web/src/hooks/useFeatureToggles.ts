@@ -21,6 +21,5 @@ export function useFeatureToggles() {
     showTemplates: prefs?.showTemplates ?? PREFERENCE_DEFAULTS.showTemplates,
     showProjects: prefs?.showProjects ?? PREFERENCE_DEFAULTS.showProjects,
     showBookmarks: prefs?.showBookmarks ?? PREFERENCE_DEFAULTS.showBookmarks,
-    showSlides: prefs?.showSlides ?? PREFERENCE_DEFAULTS.showSlides,
   };
 }

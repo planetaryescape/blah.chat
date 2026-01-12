@@ -20,7 +20,6 @@ export interface UISettingsState {
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
-  showSlideStats: boolean;
   showModelProvider: boolean;
   showByDefault: boolean;
   autoExpand: boolean;
@@ -30,7 +29,6 @@ export interface UISettingsState {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
-  showSlides: boolean;
   // Auto Router
   autoRouterCostBias: number;
   autoRouterSpeedBias: number;
@@ -42,7 +40,6 @@ export interface UISettingsHandlers {
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
-  handleSlideStatsChange: (checked: boolean) => Promise<void>;
   handleShowModelProviderChange: (checked: boolean) => Promise<void>;
   handleShowByDefaultChange: (checked: boolean) => Promise<void>;
   handleAutoExpandChange: (checked: boolean) => Promise<void>;
@@ -52,7 +49,6 @@ export interface UISettingsHandlers {
   handleShowTemplatesChange: (checked: boolean) => Promise<void>;
   handleShowProjectsChange: (checked: boolean) => Promise<void>;
   handleShowBookmarksChange: (checked: boolean) => Promise<void>;
-  handleShowSlidesChange: (checked: boolean) => Promise<void>;
   // Auto Router
   handleCostBiasChange: (value: number) => Promise<void>;
   handleSpeedBiasChange: (value: number) => Promise<void>;
@@ -76,7 +72,6 @@ export function useUISettingsState() {
   );
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
   const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
-  const prefShowSlideStats = useUserPreference("showSlideStatistics");
   const prefShowModelProvider = useUserPreference("showModelProvider");
   const prefReasoning = useUserPreference("reasoning");
   const prefChatWidth = useUserPreference("chatWidth");
@@ -84,7 +79,6 @@ export function useUISettingsState() {
   const prefShowTemplates = useUserPreference("showTemplates");
   const prefShowProjects = useUserPreference("showProjects");
   const prefShowBookmarks = useUserPreference("showBookmarks");
-  const prefShowSlides = useUserPreference("showSlides");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
 
@@ -101,8 +95,6 @@ export function useUISettingsState() {
   const [showComparisonStats, setShowComparisonStats] = useState<boolean>(
     prefShowComparisonStats,
   );
-  const [showSlideStats, setShowSlideStats] =
-    useState<boolean>(prefShowSlideStats);
   const [showModelProvider, setShowModelProvider] = useState<boolean>(
     prefShowModelProvider,
   );
@@ -124,7 +116,6 @@ export function useUISettingsState() {
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
   const [showBookmarks, setShowBookmarks] =
     useState<boolean>(prefShowBookmarks);
-  const [showSlides, setShowSlides] = useState<boolean>(prefShowSlides);
   const [autoRouterCostBias, setAutoRouterCostBias] =
     useState<number>(prefCostBias);
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
@@ -151,7 +142,6 @@ export function useUISettingsState() {
     () => setShowComparisonStats(prefShowComparisonStats),
     [prefShowComparisonStats],
   );
-  useEffect(() => setShowSlideStats(prefShowSlideStats), [prefShowSlideStats]);
   useEffect(
     () => setShowModelProvider(prefShowModelProvider),
     [prefShowModelProvider],
@@ -173,7 +163,6 @@ export function useUISettingsState() {
   useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);
   useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
   useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
-  useEffect(() => setShowSlides(prefShowSlides), [prefShowSlides]);
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
 
@@ -308,11 +297,6 @@ export function useUISettingsState() {
       setShowComparisonStats,
       "show_comparison_statistics",
     ),
-    handleSlideStatsChange: createBooleanHandler(
-      "showSlideStatistics",
-      setShowSlideStats,
-      "show_slide_statistics",
-    ),
     handleShowModelProviderChange: createBooleanHandler(
       "showModelProvider",
       setShowModelProvider,
@@ -348,11 +332,6 @@ export function useUISettingsState() {
       setShowBookmarks,
       "show_bookmarks",
     ),
-    handleShowSlidesChange: createBooleanHandler(
-      "showSlides",
-      setShowSlides,
-      "show_slides",
-    ),
     // Auto Router
     handleCostBiasChange,
     handleSpeedBiasChange,
@@ -364,7 +343,6 @@ export function useUISettingsState() {
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,
-    showSlideStats,
     showModelProvider,
     showByDefault,
     autoExpand,
@@ -374,7 +352,6 @@ export function useUISettingsState() {
     showTemplates,
     showProjects,
     showBookmarks,
-    showSlides,
     // Auto Router
     autoRouterCostBias,
     autoRouterSpeedBias,

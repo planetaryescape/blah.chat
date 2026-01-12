@@ -15,7 +15,6 @@ import {
   Maximize2,
   MoreHorizontal,
   Pin,
-  Presentation,
   Shrink,
   Sparkles,
   Star,
@@ -45,7 +44,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useConversationActions } from "@/hooks/useConversationActions";
-import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import {
   updatePreferenceCache,
   useUserPreference,
@@ -70,7 +68,6 @@ export function ConversationHeaderMenu({
   const [isCompacting, setIsCompacting] = useState(false);
   const [copied, setCopied] = useState(false);
   const actions = useConversationActions(conversation._id, "header_menu");
-  const { showSlides } = useFeatureToggles();
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const triggerExtraction = useMutation(api.memories.triggerExtraction);
@@ -84,10 +81,6 @@ export function ConversationHeaderMenu({
   const sources = useQuery(api.sources.operations.getByConversation, {
     conversationId: conversation._id,
   });
-
-  const handleCreatePresentation = () => {
-    router.push(`/slides/new?conversationId=${conversation._id}`);
-  };
 
   const handleExtractMemories = async () => {
     setIsExtracting(true);
@@ -338,18 +331,6 @@ export function ConversationHeaderMenu({
             )}
             {isCompacting ? "Compacting..." : "Compact conversation"}
           </DropdownMenuItem>
-
-          {showSlides && (
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCreatePresentation();
-              }}
-            >
-              <Presentation className="mr-2 h-4 w-4" />
-              Create Presentation
-            </DropdownMenuItem>
-          )}
 
           <DropdownMenuItem
             onClick={(e) => {

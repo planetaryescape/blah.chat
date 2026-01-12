@@ -20,7 +20,6 @@ Core system design and patterns.
 Feature-specific documentation.
 
 - [Canvas](./features/canvas.md) - Split-screen document editor
-- [Slides](./features/slides.md) - AI-powered presentation generator
 - [Reasoning](./features/reasoning.md) - Model thinking/reasoning display
 - [Notes](./features/notes.md) - Markdown note-taking system
 - [Shared Conversations](./features/shared-conversations.md) - Collaboration feature

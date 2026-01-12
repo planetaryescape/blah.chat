@@ -1237,6 +1237,7 @@ export default defineSchema({
 
     // Message limits
     defaultDailyMessageLimit: v.number(),
+    defaultDailyPresentationLimit: v.optional(v.number()), // Deprecated: kept for existing data
 
     // Pro Model Settings
     proModelsEnabled: v.optional(v.boolean()), // Global toggle, default: false

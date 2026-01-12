@@ -85,6 +85,7 @@ export default defineSchema({
     isCollaborative: v.optional(v.boolean()),
     // Incognito mode (ephemeral conversations)
     isIncognito: v.optional(v.boolean()),
+    isPresentation: v.optional(v.boolean()), // Deprecated: kept for existing data
     incognitoSettings: v.optional(
       v.object({
         enableReadTools: v.boolean(), // Allow search of notes/files/tasks

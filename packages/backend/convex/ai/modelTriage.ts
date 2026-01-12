@@ -14,6 +14,12 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
+import {
+  MODEL_PROFILES,
+  TASK_CATEGORIES,
+  type TaskCategoryId,
+} from "./modelProfiles";
+import { ROUTER_CLASSIFICATION_PROMPT } from "./routerPrompts";
 
 /**
  * Cost threshold for triggering triage analysis
@@ -87,26 +93,7 @@ export const analyzeModelFit = internalAction({
         return; // Not expensive enough to warrant analysis
       }
 
-      // Track analysis started
-      logger.info("Analysis started", {
-        tag: "ModelTriage",
-        conversationId: args.conversationId,
-        currentModel: args.currentModelId,
-        avgCost,
-        userMessageLength: args.userMessage.length,
-      });
-
-      // 3. Find cheaper alternatives (50%+ cheaper, matching capabilities)
-      const alternatives = getCheaperAlternatives(currentModel);
-      if (alternatives.length === 0) {
-        logger.info("No cheaper alternatives found", {
-          tag: "ModelTriage",
-          currentModel: args.currentModelId,
-        });
-        return;
-      }
-
-      // Get userId from conversation for cost tracking
+      // Get userId from conversation for cost tracking (needed for classification)
       const conversationUserId = conversation?.userId as
         | Id<"users">
         | undefined;
@@ -118,7 +105,40 @@ export const analyzeModelFit = internalAction({
         return;
       }
 
-      // 4. Use gpt-oss-120b to analyze prompt complexity (ultra-fast via Cerebras)
+      // Track analysis started
+      logger.info("Analysis started", {
+        tag: "ModelTriage",
+        conversationId: args.conversationId,
+        currentModel: args.currentModelId,
+        avgCost,
+        userMessageLength: args.userMessage.length,
+      });
+
+      // 3. Classify task for task-aware alternative selection
+      const taskCategory = await classifyTaskForTriage(
+        args.userMessage,
+        ctx,
+        conversationUserId,
+      );
+
+      logger.info("Task classified for triage", {
+        tag: "ModelTriage",
+        conversationId: args.conversationId,
+        taskCategory,
+      });
+
+      // 4. Find cheaper alternatives (task-aware: 70% task fit + 30% cost savings)
+      const alternatives = getCheaperAlternatives(currentModel, taskCategory);
+      if (alternatives.length === 0) {
+        logger.info("No cheaper alternatives found", {
+          tag: "ModelTriage",
+          currentModel: args.currentModelId,
+          taskCategory,
+        });
+        return;
+      }
+
+      // 5. Use gpt-oss-120b to analyze prompt complexity (ultra-fast via Cerebras)
       const analysis = await analyzePromptComplexity(
         args.userMessage,
         currentModel,
@@ -353,16 +373,84 @@ export const generatePreview = action({
 });
 
 /**
+ * Simplified task classification for triage
+ * Uses same prompt as auto router but only extracts primaryCategory
+ */
+async function classifyTaskForTriage(
+  message: string,
+  ctx: ActionCtx,
+  userId: Id<"users">,
+): Promise<TaskCategoryId> {
+  const modelId = "openai:gpt-oss-120b";
+
+  try {
+    const schema = z.object({
+      primaryCategory: z.enum(
+        TASK_CATEGORIES as unknown as [string, ...string[]],
+      ),
+    });
+
+    const response = await generateObject({
+      model: getModel(modelId),
+      schema,
+      temperature: 0.2,
+      providerOptions: getGatewayOptions(modelId, undefined, [
+        "triage-classify",
+      ]),
+      prompt: `${ROUTER_CLASSIFICATION_PROMPT}
+
+USER MESSAGE:
+${message}
+
+ATTACHMENTS: None`,
+    });
+
+    if (response.usage) {
+      const inputTokens = response.usage.inputTokens ?? 0;
+      const outputTokens = response.usage.outputTokens ?? 0;
+      const cost = calculateCost(modelId, { inputTokens, outputTokens });
+
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId,
+          model: modelId,
+          inputTokens,
+          outputTokens,
+          cost,
+          feature: "smart_assistant",
+        },
+      );
+    }
+
+    return response.object.primaryCategory as TaskCategoryId;
+  } catch (error) {
+    logger.error("Task classification error in triage", {
+      tag: "ModelTriage",
+      error: String(error),
+    });
+    return "conversation"; // Default fallback
+  }
+}
+
+/**
  * Find cheaper alternatives that match current model's capabilities
+ * Now task-aware: scores by 70% task fit + 30% cost savings
  *
  * Criteria:
  * - 50%+ cheaper (significant savings)
  * - Matching vision capability
  * - Reasonable context window (8K+)
+ * - Scored by task fit from MODEL_PROFILES
  */
-function getCheaperAlternatives(currentModel: ModelConfig): string[] {
+function getCheaperAlternatives(
+  currentModel: ModelConfig,
+  taskCategory: TaskCategoryId,
+): string[] {
   const currentAvg =
     (currentModel.pricing.input + currentModel.pricing.output) / 2;
+  const currentProvider = currentModel.id.split(":")[0]; // "anthropic", "openai", etc.
 
   return Object.entries(MODEL_CONFIG)
     .filter(([_id, model]) => {
@@ -380,14 +468,31 @@ function getCheaperAlternatives(currentModel: ModelConfig): string[] {
         model.contextWindow >= 8000 // Reasonable minimum
       );
     })
-    .sort(([, a], [, b]) => {
-      // Sort by cost (cheapest first)
-      const aAvg = (a.pricing.input + a.pricing.output) / 2;
-      const bAvg = (b.pricing.input + b.pricing.output) / 2;
-      return aAvg - bAvg;
+    .map(([id, model]) => {
+      // Calculate task fit score from MODEL_PROFILES (0-100)
+      const profile = MODEL_PROFILES[id];
+      const taskFitScore = profile?.categoryScores?.[taskCategory] ?? 50;
+
+      // Calculate cost savings score (0-100)
+      const candidateAvg = (model.pricing.input + model.pricing.output) / 2;
+      const costSavingsScore = Math.min(
+        ((currentAvg - candidateAvg) / currentAvg) * 100,
+        100,
+      );
+
+      // Same-family bonus (prefer Claude→Haiku, GPT→GPT-mini, etc.)
+      const candidateProvider = id.split(":")[0];
+      const familyBonus = candidateProvider === currentProvider ? 15 : 0;
+
+      // Combined score: 60% task fit + 25% cost savings + 15% family preference
+      const combinedScore =
+        taskFitScore * 0.6 + costSavingsScore * 0.25 + familyBonus;
+
+      return { id, combinedScore, taskFitScore };
     })
-    .map(([id]) => id)
-    .slice(0, 3); // Top 3 by cost savings
+    .sort((a, b) => b.combinedScore - a.combinedScore) // Best combined score first
+    .map(({ id }) => id)
+    .slice(0, 3); // Top 3 by combined score
 }
 
 /**

@@ -81,6 +81,7 @@ export const generateResponse = internalAction({
 
     // AUTO ROUTER: If model is "auto", route to optimal model
     let modelId = args.modelId;
+    const _wasAutoSelected = modelId === "auto";
     let routingDecision:
       | {
           selectedModelId: string;
@@ -137,6 +138,18 @@ export const generateResponse = internalAction({
           : [];
       const hasAttachments = attachments.length > 0;
 
+      // Get previous routing decision for stickiness bias
+      const previousSelectedModel = (
+        recentMessages as Array<{
+          role: string;
+          routingDecision?: { selectedModelId: string };
+        }>
+      )
+        .filter(
+          (m) => m.role === "assistant" && m.routingDecision?.selectedModelId,
+        )
+        .pop()?.routingDecision?.selectedModelId;
+
       // Route the message
       const routerResult = (await ctx.runAction(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -151,6 +164,7 @@ export const generateResponse = internalAction({
             costBias: costBias ?? 50,
             speedBias: speedBias ?? 50,
           },
+          previousSelectedModel,
         },
       )) as {
         selectedModelId: string;
@@ -546,12 +560,6 @@ export const generateResponse = internalAction({
           },
         });
         options.onStepFinish = createOnStepFinish();
-
-        // Disable search tools for presentations without grounding enabled
-        if (conversation?.isPresentation && !conversation?.enableGrounding) {
-          delete options.tools.tavilySearch;
-          delete options.tools.tavilyAdvancedSearch;
-        }
       }
 
       // 13. Apply provider options (merge with gateway options)
@@ -1238,8 +1246,8 @@ export const generateResponse = internalAction({
             })
           : Promise.resolve(),
 
-        // Model triage analysis
-        lastUserMsgForTriage
+        // Model triage analysis (skip if auto-selected - system already optimized)
+        lastUserMsgForTriage && !_wasAutoSelected
           ? ctx.scheduler.runAfter(0, internal.ai.modelTriage.analyzeModelFit, {
               conversationId: args.conversationId,
               userMessage: lastUserMsgForTriage.content,

@@ -10,11 +10,9 @@ export const usageRecordsTable = defineTable({
   date: v.string(),
   model: v.string(),
   conversationId: v.optional(v.id("conversations")),
-  presentationId: v.optional(v.id("presentations")),
   feature: v.optional(
     v.union(
       v.literal("chat"),
-      v.literal("slides"),
       v.literal("notes"),
       v.literal("tasks"),
       v.literal("files"),
@@ -43,7 +41,6 @@ export const usageRecordsTable = defineTable({
   .index("by_user", ["userId"])
   .index("by_user_date_model", ["userId", "date", "model"])
   .index("by_conversation", ["conversationId"])
-  .index("by_presentation", ["presentationId"])
   .index("by_user_feature", ["userId", "feature"]);
 
 export const ttsCacheTable = defineTable({

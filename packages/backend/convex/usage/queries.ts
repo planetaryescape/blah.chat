@@ -462,40 +462,34 @@ export const getActivityStats = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
 
-    const [notes, projects, bookmarks, templates, presentations, tasks] =
-      await Promise.all([
-        ctx.db
-          .query("notes")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect(),
-        ctx.db
-          .query("projects")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect(),
-        ctx.db
-          .query("bookmarks")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect(),
-        ctx.db
-          .query("scheduledPrompts")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect(),
-        ctx.db
-          .query("presentations")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect(),
-        ctx.db
-          .query("tasks")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect(),
-      ]);
+    const [notes, projects, bookmarks, templates, tasks] = await Promise.all([
+      ctx.db
+        .query("notes")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("projects")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("bookmarks")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("scheduledPrompts")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("tasks")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect(),
+    ]);
 
     return {
       notesCount: notes.length,
       projectsCount: projects.length,
       bookmarksCount: bookmarks.length,
       templatesCount: templates.length,
-      slidesCount: presentations.length,
       tasksCount: tasks.length,
     };
   },
@@ -1108,11 +1102,6 @@ export const getUserActivityStats = query({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
 
-    const presentations = await ctx.db
-      .query("presentations")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-
     const tasks = await ctx.db
       .query("tasks")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -1123,7 +1112,6 @@ export const getUserActivityStats = query({
       projectsCount: projects.length,
       bookmarksCount: bookmarks.length,
       templatesCount: templates.length,
-      slidesCount: presentations.length,
       tasksCount: tasks.length,
     };
   },
@@ -1395,189 +1383,5 @@ export const getAllUsersConversationCosts = query({
         };
       }),
     );
-  },
-});
-
-// ============================================
-// PRESENTATION STATS QUERIES
-// ============================================
-
-export const getPresentationStats = query({
-  args: {
-    startDate: v.optional(v.string()),
-    endDate: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-
-    // Count presentations
-    const presentations = await ctx.db
-      .query("presentations")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-
-    // Count total slides
-    const slides = await ctx.db
-      .query("slides")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect();
-
-    // Get usage records for slides feature
-    let usageRecords = await ctx.db
-      .query("usageRecords")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .filter((q) => q.eq(q.field("feature"), "slides"))
-      .collect();
-
-    // Apply date filter if provided
-    if (args.startDate && args.endDate) {
-      usageRecords = usageRecords.filter(
-        (r) => r.date >= args.startDate! && r.date <= args.endDate!,
-      );
-    }
-
-    // Separate outline vs image costs
-    let outlineCost = 0;
-    let imageCost = 0;
-    let outlineRequests = 0;
-    let imageRequests = 0;
-
-    for (const record of usageRecords) {
-      if (record.operationType === "image") {
-        imageCost += record.cost;
-        imageRequests += 1;
-      } else {
-        outlineCost += record.cost;
-        outlineRequests += 1;
-      }
-    }
-
-    return {
-      presentationsCount: presentations.length,
-      slidesCount: slides.length,
-      outlineCost,
-      imageCost,
-      totalCost: outlineCost + imageCost,
-      outlineRequests,
-      imageRequests,
-    };
-  },
-});
-
-export const getAllUsersPresentationStats = query({
-  args: {
-    startDate: v.optional(v.string()),
-    endDate: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-
-    // Count all presentations
-    const presentations = await ctx.db.query("presentations").collect();
-
-    // Count all slides
-    const slides = await ctx.db.query("slides").collect();
-
-    // Get all usage records for slides feature
-    let usageRecords = await ctx.db
-      .query("usageRecords")
-      .filter((q) => q.eq(q.field("feature"), "slides"))
-      .collect();
-
-    // Apply date filter if provided
-    if (args.startDate && args.endDate) {
-      usageRecords = usageRecords.filter(
-        (r) => r.date >= args.startDate! && r.date <= args.endDate!,
-      );
-    }
-
-    // Separate outline vs image costs
-    let outlineCost = 0;
-    let imageCost = 0;
-    let outlineRequests = 0;
-    let imageRequests = 0;
-
-    for (const record of usageRecords) {
-      if (record.operationType === "image") {
-        imageCost += record.cost;
-        imageRequests += 1;
-      } else {
-        outlineCost += record.cost;
-        outlineRequests += 1;
-      }
-    }
-
-    return {
-      presentationsCount: presentations.length,
-      slidesCount: slides.length,
-      outlineCost,
-      imageCost,
-      totalCost: outlineCost + imageCost,
-      outlineRequests,
-      imageRequests,
-    };
-  },
-});
-
-export const getUserPresentationStats = query({
-  args: {
-    userId: v.id("users"),
-    startDate: v.optional(v.string()),
-    endDate: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-
-    // Count user's presentations
-    const presentations = await ctx.db
-      .query("presentations")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    // Count user's slides
-    const slides = await ctx.db
-      .query("slides")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    // Get usage records for slides feature
-    let usageRecords = await ctx.db
-      .query("usageRecords")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.eq(q.field("feature"), "slides"))
-      .collect();
-
-    // Apply date filter if provided
-    if (args.startDate && args.endDate) {
-      usageRecords = usageRecords.filter(
-        (r) => r.date >= args.startDate! && r.date <= args.endDate!,
-      );
-    }
-
-    // Separate outline vs image costs
-    let outlineCost = 0;
-    let imageCost = 0;
-    let outlineRequests = 0;
-    let imageRequests = 0;
-
-    for (const record of usageRecords) {
-      if (record.operationType === "image") {
-        imageCost += record.cost;
-        imageRequests += 1;
-      } else {
-        outlineCost += record.cost;
-        outlineRequests += 1;
-      }
-    }
-
-    return {
-      presentationsCount: presentations.length,
-      slidesCount: slides.length,
-      outlineCost,
-      imageCost,
-      totalCost: outlineCost + imageCost,
-      outlineRequests,
-      imageRequests,
-    };
   },
 });

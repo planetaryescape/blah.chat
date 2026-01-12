@@ -48,11 +48,17 @@ export const analyzeModelFit = internalAction({
     conversationId: v.id("conversations"),
     userMessage: v.string(),
     currentModelId: v.string(),
+    wasAutoSelected: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
     try {
+      // Skip if auto-selected (system already optimized for cost/task)
+      if (args.wasAutoSelected) {
+        return;
+      }
+
       // 1. Check if already triaged (conversation.modelRecommendation exists)
       const conversation = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

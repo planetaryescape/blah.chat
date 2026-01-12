@@ -6,7 +6,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": [
-    "convex/**/*"
-  ]
+  "include": ["convex/**/*"]
 }

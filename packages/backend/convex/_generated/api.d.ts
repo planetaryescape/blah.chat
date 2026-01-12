@@ -13,6 +13,7 @@ import type * as admin_byod from "../admin/byod.js";
 import type * as adminSettings from "../adminSettings.js";
 import type * as ai_autoRouter from "../ai/autoRouter.js";
 import type * as ai_generateTitle from "../ai/generateTitle.js";
+import type * as ai_meetingExtraction from "../ai/meetingExtraction.js";
 import type * as ai_modelProfiles from "../ai/modelProfiles.js";
 import type * as ai_modelTriage from "../ai/modelTriage.js";
 import type * as ai_routerPrompts from "../ai/routerPrompts.js";
@@ -284,6 +285,7 @@ declare const fullApi: ApiFromModules<{
   adminSettings: typeof adminSettings;
   "ai/autoRouter": typeof ai_autoRouter;
   "ai/generateTitle": typeof ai_generateTitle;
+  "ai/meetingExtraction": typeof ai_meetingExtraction;
   "ai/modelProfiles": typeof ai_modelProfiles;
   "ai/modelTriage": typeof ai_modelTriage;
   "ai/routerPrompts": typeof ai_routerPrompts;

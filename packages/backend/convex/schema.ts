@@ -501,6 +501,7 @@ export default defineSchema({
         v.literal("conversation"),
         v.literal("manual"),
         v.literal("file"),
+        v.literal("smart_assistant"),
       ),
     ),
     sourceId: v.optional(v.string()),

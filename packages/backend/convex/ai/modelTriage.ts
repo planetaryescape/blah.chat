@@ -450,7 +450,7 @@ function getCheaperAlternatives(
 ): string[] {
   const currentAvg =
     (currentModel.pricing.input + currentModel.pricing.output) / 2;
-  const currentProvider = currentModel.id.split(":")[0]; // "anthropic", "openai", etc.
+  const currentProvider = currentModel.provider; // Use actual provider, not ID prefix
 
   return Object.entries(MODEL_CONFIG)
     .filter(([_id, model]) => {
@@ -481,8 +481,8 @@ function getCheaperAlternatives(
       );
 
       // Same-family bonus (prefer Claude→Haiku, GPT→GPT-mini, etc.)
-      const candidateProvider = id.split(":")[0];
-      const familyBonus = candidateProvider === currentProvider ? 15 : 0;
+      // Use actual provider field to handle OpenRouter models correctly
+      const familyBonus = model.provider === currentProvider ? 15 : 0;
 
       // Combined score: 60% task fit + 25% cost savings + 15% family preference
       const combinedScore =

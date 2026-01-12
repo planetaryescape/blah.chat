@@ -7,14 +7,7 @@ import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import {
-  Component,
-  memo,
-  type ReactNode,
-  useDeferredValue,
-  useMemo,
-  useRef,
-} from "react";
+import { Component, memo, type ReactNode, useMemo, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { BibleVerseLink } from "./BibleVerseLink";
 import { CodeBlock } from "./CodeBlock";
@@ -326,19 +319,14 @@ export function MarkdownContent({
     return processBibleVerses(withCitations);
   }, [content]);
 
-  // Buffer hook smoothly reveals characters from server chunks
+  // Buffer hook smoothly reveals words from server chunks
   const { displayContent, hasBufferedContent } = useStreamBuffer(
     processedContent,
     isStreaming,
     {
-      charsPerSecond: 200, // Conservative default for comfortable reading speed
-      minTokenSize: 3,
-      adaptiveThreshold: 2000, // Lower threshold - speed up earlier when buffer grows
+      wordsPerSecond: 30, // Smooth word-by-word reveal
     },
   );
-
-  // DEFERRED: Lower priority for markdown parsing - doesn't block interactions
-  const deferredDisplayContent = useDeferredValue(displayContent);
 
   // Phase 4A: Lazy rendering for mobile performance
   const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
@@ -356,10 +344,9 @@ export function MarkdownContent({
   // Show cursor while streaming OR buffer is draining
   const showCursor = isStreaming || hasBufferedContent;
 
-  // Detect if content has math (simple heuristic) - use deferred for consistency
+  // Detect if content has math (simple heuristic)
   const hasMath =
-    deferredDisplayContent.includes("$$") ||
-    deferredDisplayContent.includes("\\(");
+    displayContent.includes("$$") || displayContent.includes("\\(");
 
   // Show skeleton on mobile while waiting for intersection
   if (isMobile && hasMath && !isRendered) {
@@ -384,7 +371,7 @@ export function MarkdownContent({
             mermaid: false, // We handle mermaid controls via custom MermaidRenderer
           }}
         >
-          {deferredDisplayContent}
+          {displayContent}
         </Streamdown>
       </MathErrorBoundary>
       {showCursor && <span className="streaming-cursor" aria-hidden="true" />}

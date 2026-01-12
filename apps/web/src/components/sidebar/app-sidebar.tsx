@@ -12,7 +12,6 @@ import {
   MoreHorizontal,
   NotebookPen,
   Plus,
-  Presentation,
   Search,
   Settings,
   Shield,
@@ -74,12 +73,6 @@ const MENU_ITEMS = [
     featureKey: "showProjects" as const,
   },
   { icon: CheckSquare, label: "Tasks", href: "/tasks", featureKey: null },
-  {
-    icon: Presentation,
-    label: "Slides",
-    href: "/slides",
-    featureKey: "showSlides" as const,
-  },
   { icon: Mic, label: "Smart Assistant", href: "/assistant", featureKey: null },
   {
     icon: FileText,
@@ -106,11 +99,7 @@ export function AppSidebar() {
         (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
     });
 
-  // Filter out presentation conversations (they have their own UI in /slides)
-  const conversations = useMemo(
-    () => rawConversations?.filter((c) => c.isPresentation !== true),
-    [rawConversations],
-  );
+  const conversations = rawConversations;
 
   // Prefetch messages for recent conversations (< 7 days) for instant navigation
   const recentConversationIds = useMemo(() => {

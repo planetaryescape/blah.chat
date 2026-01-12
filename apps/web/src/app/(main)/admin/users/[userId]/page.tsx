@@ -14,7 +14,6 @@ import {
   Folder,
   Loader2,
   MessageSquare,
-  Presentation,
   TrendingUp,
   Zap,
 } from "lucide-react";
@@ -152,15 +151,6 @@ export default function UserDetailPage({
   const activityStats = useQuery(api.usage.queries.getUserActivityStats, {
     userId,
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const presentationStats = useQuery(
-    api.usage.queries.getUserPresentationStats,
-    {
-      userId,
-      startDate: dateRange.startDate,
-      endDate: dateRange.endDate,
-    },
-  );
 
   // Virtualization setup - MUST be before early return to maintain hook order
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -338,19 +328,6 @@ export default function UserDetailPage({
                 icon={Clock}
               />
               <UsageKPICard
-                label="Presentations"
-                value={
-                  presentationStats?.presentationsCount ??
-                  activityStats.slidesCount
-                }
-                icon={Presentation}
-              />
-              <UsageKPICard
-                label="Total Slides"
-                value={presentationStats?.slidesCount ?? 0}
-                icon={Presentation}
-              />
-              <UsageKPICard
                 label="Tasks"
                 value={activityStats.tasksCount}
                 icon={CheckSquare}
@@ -519,69 +496,6 @@ export default function UserDetailPage({
                         </div>
                       </div>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Slides Cost Breakdown */}
-            {presentationStats && presentationStats.totalCost > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Slides Cost Breakdown</CardTitle>
-                  <CardDescription>
-                    Presentation generation costs
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm text-muted-foreground">
-                          Presentations
-                        </div>
-                        <div className="text-2xl font-bold">
-                          {presentationStats.presentationsCount}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-muted-foreground">
-                          Total Slides
-                        </div>
-                        <div className="text-2xl font-bold">
-                          {presentationStats.slidesCount}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-px bg-border" />
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Outline Generation
-                        </span>
-                        <span className="font-mono">
-                          {formatCurrency(presentationStats.outlineCost)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Image Generation
-                        </span>
-                        <span className="font-mono">
-                          {formatCurrency(presentationStats.imageCost)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm font-medium border-t pt-2">
-                        <span>Total</span>
-                        <span>
-                          {formatCurrency(presentationStats.totalCost)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {presentationStats.outlineRequests} outline requests •{" "}
-                      {presentationStats.imageRequests} image requests
-                    </div>
                   </div>
                 </CardContent>
               </Card>

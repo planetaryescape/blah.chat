@@ -33,7 +33,7 @@ vi.mock("@/hooks/useConversationActions", () => ({
 }));
 
 vi.mock("@/hooks/useFeatureToggles", () => ({
-  useFeatureToggles: () => ({ showSlides: false }),
+  useFeatureToggles: () => ({}),
 }));
 
 vi.mock("@/hooks/useUserPreference", () => ({

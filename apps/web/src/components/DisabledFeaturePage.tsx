@@ -3,13 +3,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface DisabledFeaturePageProps {
-  featureName: "Notes" | "Templates" | "Projects" | "Bookmarks" | "Slides";
-  settingKey:
-    | "showNotes"
-    | "showTemplates"
-    | "showProjects"
-    | "showBookmarks"
-    | "showSlides";
+  featureName: "Notes" | "Templates" | "Projects" | "Bookmarks";
+  settingKey: "showNotes" | "showTemplates" | "showProjects" | "showBookmarks";
 }
 
 /**

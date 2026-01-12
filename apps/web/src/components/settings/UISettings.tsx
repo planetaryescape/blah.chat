@@ -33,7 +33,6 @@ const SETTING_TO_SECTION: Record<string, string> = {
   showTemplates: "sidebar-features",
   showProjects: "sidebar-features",
   showBookmarks: "sidebar-features",
-  showSlides: "sidebar-features",
   // Display
   chatWidth: "display",
   // Stats
@@ -138,11 +137,9 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           <StatisticsSection
             showMessageStats={state.showMessageStats}
             showComparisonStats={state.showComparisonStats}
-            showSlideStats={state.showSlideStats}
             showModelProvider={state.showModelProvider}
             onMessageStatsChange={handlers.handleMessageStatsChange}
             onComparisonStatsChange={handlers.handleComparisonStatsChange}
-            onSlideStatsChange={handlers.handleSlideStatsChange}
             onShowModelProviderChange={handlers.handleShowModelProviderChange}
           />
 
@@ -178,12 +175,10 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             showTemplates={state.showTemplates}
             showProjects={state.showProjects}
             showBookmarks={state.showBookmarks}
-            showSlides={state.showSlides}
             onShowNotesChange={handlers.handleShowNotesChange}
             onShowTemplatesChange={handlers.handleShowTemplatesChange}
             onShowProjectsChange={handlers.handleShowProjectsChange}
             onShowBookmarksChange={handlers.handleShowBookmarksChange}
-            onShowSlidesChange={handlers.handleShowSlidesChange}
           />
 
           <AutoRouterSection

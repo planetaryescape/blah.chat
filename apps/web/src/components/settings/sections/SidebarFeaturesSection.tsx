@@ -13,12 +13,10 @@ interface SidebarFeaturesSectionProps {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
-  showSlides: boolean;
   onShowNotesChange: (checked: boolean) => Promise<void>;
   onShowTemplatesChange: (checked: boolean) => Promise<void>;
   onShowProjectsChange: (checked: boolean) => Promise<void>;
   onShowBookmarksChange: (checked: boolean) => Promise<void>;
-  onShowSlidesChange: (checked: boolean) => Promise<void>;
 }
 
 export function SidebarFeaturesSection({
@@ -26,12 +24,10 @@ export function SidebarFeaturesSection({
   showTemplates,
   showProjects,
   showBookmarks,
-  showSlides,
   onShowNotesChange,
   onShowTemplatesChange,
   onShowProjectsChange,
   onShowBookmarksChange,
-  onShowSlidesChange,
 }: SidebarFeaturesSectionProps) {
   return (
     <AccordionItem value="sidebar-features">
@@ -102,23 +98,6 @@ export function SidebarFeaturesSection({
             id="show-bookmarks"
             checked={showBookmarks}
             onCheckedChange={onShowBookmarksChange}
-          />
-        </div>
-
-        <div
-          id="setting-showSlides"
-          className="flex items-center justify-between rounded-md p-2 -m-2 transition-all"
-        >
-          <div className="space-y-0.5">
-            <Label htmlFor="show-slides">Show Slides</Label>
-            <p className="text-sm text-muted-foreground">
-              Create AI-powered presentations
-            </p>
-          </div>
-          <Switch
-            id="show-slides"
-            checked={showSlides}
-            onCheckedChange={onShowSlidesChange}
           />
         </div>
       </AccordionContent>

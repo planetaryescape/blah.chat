@@ -101,7 +101,7 @@ export function DefaultModelSettings() {
   const modelsByProvider = getModelsByProvider();
 
   // Get the most recent model name for display
-  const recentModelId = prefRecentModels[0];
+  const recentModelId = (prefRecentModels ?? [])[0];
   const recentModelName = recentModelId
     ? getModelConfig(recentModelId)?.name || recentModelId
     : "None yet";

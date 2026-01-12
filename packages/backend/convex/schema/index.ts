@@ -40,13 +40,6 @@ export { jobsTable, migrationsTable } from "./migrations";
 export { notesTable } from "./notes";
 export { notificationsTable } from "./notifications";
 export {
-  designTemplatesTable,
-  outlineItemsTable,
-  presentationSessionsTable,
-  presentationsTable,
-  slidesTable,
-} from "./presentations";
-export {
   projectConversationsTable,
   projectFilesTable,
   projectNotesTable,

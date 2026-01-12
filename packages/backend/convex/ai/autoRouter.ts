@@ -184,6 +184,7 @@ export const routeMessage = internalAction({
       costBias: v.number(),
       speedBias: v.number(),
     }),
+    previousSelectedModel: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RouterResult> => {
     const startTime = Date.now();
@@ -222,6 +223,7 @@ export const routeMessage = internalAction({
         eligibleModels,
         classification,
         args.preferences,
+        args.previousSelectedModel,
       );
 
       // 4. Select model with exploration for variety
@@ -418,6 +420,7 @@ function scoreModels(
   modelIds: string[],
   classification: TaskClassification,
   preferences: RouterPreferences,
+  previousSelectedModel?: string,
 ): Array<{ modelId: string; score: number }> {
   return modelIds
     .map((modelId) => {
@@ -462,6 +465,12 @@ function scoreModels(
       // Higher bias = more bonus for fast models
       const speedBonus = getSpeedBonus(modelId) * (preferences.speedBias / 100);
       score += speedBonus;
+
+      // Stickiness bonus - prefer model already selected in conversation
+      // Encourages continuity without preventing switches when task demands it
+      if (previousSelectedModel && modelId === previousSelectedModel) {
+        score += 25;
+      }
 
       // Bonus for reasoning models when reasoning is required
       if (

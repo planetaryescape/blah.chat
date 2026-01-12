@@ -179,7 +179,7 @@ export default function SmartAssistantPage() {
       const taskPromises = data.tasks.map((task) =>
         createTask({
           title: task.title,
-          description: task.description,
+          description: task.description ?? undefined,
           deadline: task.deadline ?? undefined,
           urgency: task.urgency ?? undefined,
           projectId: task.projectId,

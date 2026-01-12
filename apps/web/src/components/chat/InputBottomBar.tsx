@@ -75,6 +75,7 @@ export function InputBottomBar({
             <span className="text-muted-foreground">Comparing</span>
             <span className="text-foreground">{selectedModels.length}</span>
             <Button
+              type="button"
               size="icon"
               variant="ghost"
               className="w-4 h-4 p-0 rounded-full hover:bg-muted/50"
@@ -139,6 +140,7 @@ function AIInfoTooltip() {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-muted-foreground/40 hover:text-muted-foreground/60 hover:bg-transparent"

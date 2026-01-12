@@ -19,6 +19,9 @@ export default defineSchema({
     lastProModelDate: v.optional(v.string()),
     monthlyProModelCount: v.optional(v.number()),
     lastProModelMonth: v.optional(v.string()),
+    // Deprecated: presentation limits (kept for existing data)
+    dailyPresentationCount: v.optional(v.number()),
+    lastPresentationDate: v.optional(v.string()),
     // Preferences
     disabledBuiltInTemplateIds: v.optional(v.array(v.id("templates"))),
     createdAt: v.number(),

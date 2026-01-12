@@ -216,10 +216,11 @@ export const sendMessage = mutation({
       });
     }
 
-    // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected)
+    // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
     if (
       conversationId &&
       modelsToUse[0] !== "auto" &&
+      !comparisonGroupId &&
       shouldAnalyzeModelFit(modelsToUse[0])
     ) {
       await ctx.scheduler.runAfter(

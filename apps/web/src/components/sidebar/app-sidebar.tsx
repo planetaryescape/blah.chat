@@ -534,12 +534,30 @@ export function AppSidebar() {
         </SidebarMenu>
         <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden min-h-10">
           <div className="flex items-center justify-between">
-            {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
+            {isAuthLoaded && (
+              <UserButton
+                afterSignOutUrl="/sign-in"
+                appearance={{
+                  elements: {
+                    userButtonPopoverCard: { pointerEvents: "initial" },
+                  },
+                }}
+              />
+            )}
             <ThemeSwitcher />
           </div>
         </div>
         <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
-          {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
+          {isAuthLoaded && (
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  userButtonPopoverCard: { pointerEvents: "initial" },
+                },
+              }}
+            />
+          )}
         </div>
       </SidebarFooter>
 

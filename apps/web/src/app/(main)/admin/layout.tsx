@@ -1,7 +1,7 @@
 "use client";
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useUser } from "@clerk/nextjs";
+import { useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
@@ -14,22 +14,23 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const isAdmin = useQuery(api.admin.isCurrentUserAdmin);
+  const { user, isLoaded: userLoaded } = useUser();
+  const isAdmin =
+    (user?.publicMetadata as { isAdmin?: boolean })?.isAdmin === true;
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading || !userLoaded) return;
+    if (!isAuthenticated) {
       router.push("/sign-in");
+      return;
     }
-    // Redirect non-admins to home
-    if (!isLoading && isAuthenticated && isAdmin === false) {
+    if (!isAdmin) {
       router.push("/");
     }
-  }, [isAuthenticated, isLoading, isAdmin, router]);
+  }, [isAuthenticated, isLoading, userLoaded, isAdmin, router]);
 
-  // Show loading while checking auth AND admin status
-  if (isLoading || isAdmin === undefined) {
+  if (isLoading || !userLoaded) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

@@ -262,7 +262,10 @@ export const generateResponse = internalAction({
 
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
       const requiresThoughtSignature = modelId.includes("gemini-3-pro-image");
-      if (requiresThoughtSignature && messages.length > 1) {
+      const hasExistingAssistantMessages =
+        messages.filter((m: Doc<"messages">) => m.role === "assistant").length >
+        0;
+      if (requiresThoughtSignature && hasExistingAssistantMessages) {
         // Check if conversation started with a compatible model
         const firstAssistantMsg = messages.find(
           (m: Doc<"messages">) => m.role === "assistant" && m.model,

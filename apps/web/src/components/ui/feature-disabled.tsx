@@ -29,7 +29,7 @@ export function FeatureDisabled({
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href={`/settings?tab=interface&focus=${settingKey}`}>
+          <Link href={`/settings?tab=ui&focus=${settingKey}`}>
             Enable in Settings
           </Link>
         </Button>

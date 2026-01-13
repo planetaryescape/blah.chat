@@ -75,10 +75,6 @@ export const generateResponse = internalAction({
     const generationStartTime = Date.now();
     let firstTokenTime: number | undefined;
 
-    // Track analytics info for deferred tracking (after first token)
-    const isResumedAfterRefresh = false; // No longer applicable - message created here
-    const partialContentLengthForAnalytics = 0;
-
     // AUTO ROUTER: If model is "auto", route to optimal model
     let modelId = args.modelId;
     const _wasAutoSelected = modelId === "auto";
@@ -718,32 +714,18 @@ export const generateResponse = internalAction({
               firstTokenAt: firstTokenTime,
             });
 
-            // DEFERRED ANALYTICS: Track streaming started/resumed after first token arrives
+            // DEFERRED ANALYTICS: Track streaming started after first token arrives
             // This moves ~15ms of analytics work out of the critical path to TTFT
-            if (isResumedAfterRefresh) {
-              trackServerEvent(
-                "generation_resumed_after_refresh",
-                {
-                  model: modelId,
-                  messageId: assistantMessageId,
-                  conversationId: args.conversationId,
-                  partialContentLength: partialContentLengthForAnalytics,
-                  firstTokenLatencyMs: firstTokenTime - generationStartTime,
-                },
-                args.userId,
-              ).catch(() => {}); // Fire-and-forget, don't block streaming
-            } else {
-              trackServerEvent(
-                "message_streaming_started",
-                {
-                  model: modelId,
-                  messageId: assistantMessageId,
-                  conversationId: args.conversationId,
-                  firstTokenLatencyMs: firstTokenTime - generationStartTime,
-                },
-                args.userId,
-              ).catch(() => {}); // Fire-and-forget, don't block streaming
-            }
+            trackServerEvent(
+              "message_streaming_started",
+              {
+                model: modelId,
+                messageId: assistantMessageId,
+                conversationId: args.conversationId,
+                firstTokenLatencyMs: firstTokenTime - generationStartTime,
+              },
+              args.userId,
+            ).catch(() => {}); // Fire-and-forget, don't block streaming
           }
 
           accumulated += chunk.text;

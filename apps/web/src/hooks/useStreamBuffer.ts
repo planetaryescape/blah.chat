@@ -190,6 +190,11 @@ function extractWords(text: string, maxWords: number): string {
     if (endIndex === 0 && text.length < 50) {
       return text;
     }
+    // Prevent stream stall on whitespace-free content (CJK, URLs, base64)
+    // Release content after 100 chars to avoid frozen UI
+    if (endIndex === 0 && text.length >= 100) {
+      return text.slice(0, 100);
+    }
   }
 
   return text.slice(0, endIndex);

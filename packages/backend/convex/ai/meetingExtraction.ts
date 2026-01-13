@@ -117,7 +117,14 @@ async function parseDeadline(
   meetingDate?: string,
 ): Promise<number | null> {
   // Use meetingDate as reference point, fallback to now
-  const referenceDate = meetingDate ? new Date(meetingDate) : new Date();
+  // Validate date to prevent RangeError on toISOString()
+  let referenceDate = new Date();
+  if (meetingDate) {
+    const parsed = new Date(meetingDate);
+    if (!Number.isNaN(parsed.getTime())) {
+      referenceDate = parsed;
+    }
+  }
   const referenceDateStr = referenceDate.toISOString();
 
   const prompt = DEADLINE_PARSING_PROMPT.replace(

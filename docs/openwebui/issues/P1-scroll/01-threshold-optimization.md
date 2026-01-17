@@ -2,6 +2,7 @@
 
 > **Phase**: P1-scroll | **Effort**: 4h | **Impact**: 92% fewer false positives
 > **Dependencies**: None | **Breaking**: No (behavioral improvement)
+> **Status**: ✅ Complete (2026-01-17) - Implemented in `feat(scroll): add velocity-based scroll intent detection`
 
 ---
 

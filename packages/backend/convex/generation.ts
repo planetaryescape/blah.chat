@@ -617,8 +617,10 @@ export const generateResponse = internalAction({
 
       // Stream from LLM - capture exact API call time for true TTFT
       const apiCallStartedAt = Date.now();
-      options.abortSignal = abortController.signal;
-      const result = streamText(options);
+      const result = streamText({
+        ...options,
+        abortSignal: abortController.signal,
+      });
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
       const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming at high TPS
@@ -772,6 +774,16 @@ export const generateResponse = internalAction({
             lastUpdate = now;
           }
         }
+      }
+
+      // If we aborted (user stopped), exit early - no finalization needed
+      // Message already marked as stopped, partial content preserved
+      if (abortController.signal.aborted) {
+        logger.info("Generation stopped by user (loop exit)", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+        });
+        return;
       }
 
       // Check if we have tool calls but no text response - request continuation

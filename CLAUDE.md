@@ -610,6 +610,38 @@ Implementation phases: `docs/implementation/*.md`
 
 ---
 
+## Issue Tracking (Beads/bd)
+
+**Use `bd` for all issue tracking** - not GitHub issues. Issues live in `.beads/` directory.
+
+```bash
+# Essential commands
+bd list                           # View all issues
+bd ready                          # Unblocked tasks (what to work on next)
+bd create "Title" -p 0            # Create priority-0 task
+bd show <id>                      # View issue details
+bd update <id> --status in_progress
+bd update <id> --status done
+bd sync                           # Sync with git remote
+bd dep add <child> <parent>       # Link dependencies
+```
+
+**Workflow:**
+- Before starting: `bd ready` to see available tasks
+- When starting work: `bd update <id> --status in_progress`
+- When done: `bd update <id> --status done`
+- Always: `bd sync` before/after git operations
+
+**Why bd:**
+- Git-native (no external service)
+- AI-friendly CLI (no web UI context switching)
+- Works offline
+- Hash-based IDs prevent merge conflicts
+
+**Docs**: https://github.com/steveyegge/beads
+
+---
+
 ## Codebase Health (2026-01-11)
 
 **Monorepo Structure**:
@@ -628,5 +660,31 @@ Implementation phases: `docs/implementation/*.md`
 - 551 @ts-ignore (known Convex type recursion - documented workaround)
 - Backend test coverage: 8 test files for 84 modules
 
-**Open Issues**: #127 (BYOK), #124 (mobile layout), #122 (signout bug), #31 (roadmap)
+**Open Issues**: Run `bd list` or `bd ready` to see current tasks
 
+
+## Landing the Plane (Session Completion)
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Use `bd create` for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - `bd update <id> --status done` for finished work
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds

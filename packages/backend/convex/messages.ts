@@ -373,6 +373,8 @@ export const updateStatus = internalMutation({
   },
 });
 
+const TERMINAL_STATUSES = new Set(["complete", "stopped", "error"]);
+
 export const updatePartialContent = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -380,11 +382,10 @@ export const updatePartialContent = internalMutation({
   },
   returns: v.object({ updated: v.boolean(), reason: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const { isTerminalStatus } = await import("./lib/message-status");
     const message = await ctx.db.get(args.messageId);
     if (!message) return { updated: false, reason: "not_found" };
 
-    if (isTerminalStatus(message.status)) {
+    if (TERMINAL_STATUSES.has(message.status)) {
       return { updated: false, reason: `terminal:${message.status}` };
     }
 
@@ -466,7 +467,7 @@ export const completeMessage = internalMutation({
     if (!message) throw new Error("Message not found");
 
     // Respect terminal states - update metrics but don't change status
-    if (message.status === "stopped") {
+    if (message.status === "stopped" || message.status === "error") {
       await ctx.db.patch(args.messageId, {
         inputTokens: args.inputTokens,
         outputTokens: args.outputTokens,

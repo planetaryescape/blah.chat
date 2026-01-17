@@ -610,8 +610,14 @@ export const generateResponse = internalAction({
       let reasoningBuffer = "";
       const toolCallsBuffer = new Map<string, any>();
 
+      // AbortController for immediate stream termination on stop
+      const abortController = new AbortController();
+      let lastStopCheck = Date.now();
+      const STOP_CHECK_INTERVAL = 10; // ms - decoupled from write throttle for faster stop response
+
       // Stream from LLM - capture exact API call time for true TTFT
       const apiCallStartedAt = Date.now();
+      options.abortSignal = abortController.signal;
       const result = streamText(options);
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
@@ -619,6 +625,20 @@ export const generateResponse = internalAction({
 
       for await (const chunk of result.fullStream) {
         const now = Date.now();
+
+        // Check stop every 10ms (decoupled from write throttle for faster response)
+        if (now - lastStopCheck >= STOP_CHECK_INTERVAL) {
+          const currentMsg = (await (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.get,
+            { messageId: assistantMessageId },
+          )) as { status?: string } | null;
+          if (currentMsg?.status === "stopped") {
+            abortController.abort();
+            break;
+          }
+          lastStopCheck = now;
+        }
 
         // Handle tool invocations for loading state
         if (chunk.type === "tool-call") {
@@ -745,16 +765,6 @@ export const generateResponse = internalAction({
           accumulated += chunk.text;
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
-            // Check if message was stopped by user
-            const currentMsg = (await (ctx.runQuery as any)(
-              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-              internal.messages.get,
-              { messageId: assistantMessageId },
-            )) as { status?: string } | null;
-            if (currentMsg?.status === "stopped") {
-              break; // Exit streaming loop - user cancelled
-            }
-
             await ctx.runMutation(internal.messages.updatePartialContent, {
               messageId: assistantMessageId,
               partialContent: accumulated,
@@ -1226,6 +1236,15 @@ export const generateResponse = internalAction({
           : Promise.resolve(),
       ]);
     } catch (error) {
+      // Handle AbortError (user stopped generation) - clean exit
+      if (error instanceof Error && error.name === "AbortError") {
+        logger.info("Generation stopped by user", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+        });
+        return; // Clean exit - message already marked stopped
+      }
+
       // Enhanced error logging to capture full gateway error details
       logger.error("Generation error", {
         tag: "Generation",

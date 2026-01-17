@@ -246,7 +246,7 @@ export function VirtualizedMessageList({
       <Virtuoso
         ref={virtuosoRef}
         scrollerRef={(el) => {
-          scrollerRef.current = el;
+          scrollerRef.current = el instanceof HTMLElement ? el : null;
         }}
         data={grouped}
         initialTopMostItemIndex={grouped.length - 1}

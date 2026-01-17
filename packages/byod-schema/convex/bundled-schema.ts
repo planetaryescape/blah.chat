@@ -930,8 +930,6 @@ export const notificationsTable = defineTable({
   .index("by_user_unread", ["userId", "read"])
   .index("by_created", ["createdAt"]);
 
-
-
 export default defineSchema({
   conversations: conversationsTable,
   conversationParticipants: conversationParticipantsTable,

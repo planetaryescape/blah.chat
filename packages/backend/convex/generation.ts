@@ -120,7 +120,8 @@ export const generateResponse = internalAction({
       const userMessageContent = lastUserMessage?.content ?? "";
 
       // Check if conversation has any attachments (for routing decision)
-      const recentMessages = await ctx.runQuery(
+      const recentMessages = await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
         internal.messages.listInternal,
         { conversationId: args.conversationId, limit: 10 },
       );

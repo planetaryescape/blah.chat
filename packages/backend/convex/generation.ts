@@ -227,8 +227,9 @@ export const generateResponse = internalAction({
           ? never
           : any);
 
-    // Declared outside try so it's accessible in catch for wasted cost calculation
+    // Declared outside try so they're accessible in catch for wasted cost calculation
     let accumulated = "";
+    let inputTokenEstimate = 0;
 
     try {
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
@@ -251,6 +252,13 @@ export const generateResponse = internalAction({
             { userId: args.userId, key: "memoryExtractionLevel" },
           ) as Promise<string | null>,
         ]);
+
+      // Estimate input tokens for wasted cost tracking (accessible in catch block)
+      inputTokenEstimate = messages.reduce(
+        (sum: number, m: Doc<"messages">) =>
+          sum + estimateTokens(m.content || ""),
+        0,
+      );
 
       const memoryExtractionLevel = (memoryExtractionLevelRaw ??
         "moderate") as MemoryExtractionLevel;
@@ -1250,13 +1258,18 @@ export const generateResponse = internalAction({
       const isCreditsError = detectCreditsError(error);
 
       // Calculate wasted cost if streaming failed mid-generation
+      // Includes both input tokens (conversation context) and output tokens (partial response)
       const modelConfig = getModelConfig(args.modelId);
       const wastedCost =
         firstTokenTime && modelConfig?.pricing
-          ? estimateWastedCost(estimateTokens(accumulated), {
-              input: modelConfig.pricing.input,
-              output: modelConfig.pricing.output,
-            })
+          ? estimateWastedCost(
+              inputTokenEstimate,
+              estimateTokens(accumulated),
+              {
+                input: modelConfig.pricing.input,
+                output: modelConfig.pricing.output,
+              },
+            )
           : 0;
 
       // Comprehensive error tracking with AI-specific context

@@ -12,6 +12,7 @@ import {
   type GroupedItem,
   useMessageGrouping,
 } from "@/hooks/useMessageGrouping";
+import { useScrollIntent } from "@/hooks/useScrollIntent";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
@@ -52,7 +53,12 @@ export function VirtualizedMessageList({
 }: VirtualizedMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
-  const [atBottom, setAtBottom] = useState(true);
+  const scrollerRef = useRef<HTMLElement | null>(null);
+  const [_atBottom, setAtBottom] = useState(true);
+
+  // Velocity-based scroll intent detection
+  const { escapedFromBottom, autoScrollEnabled, enableAutoScroll } =
+    useScrollIntent({ scrollerRef });
 
   const grouped = useMessageGrouping(messages ?? [], conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
@@ -189,7 +195,10 @@ export function VirtualizedMessageList({
     return (
       <>
         <div
-          ref={scrollContainerRef}
+          ref={(el) => {
+            scrollContainerRef.current = el;
+            scrollerRef.current = el;
+          }}
           className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
           role="log"
           aria-live="polite"
@@ -212,15 +221,18 @@ export function VirtualizedMessageList({
             />
           ))}
         </div>
-        {!atBottom && (
+        {escapedFromBottom && (
           <Button
             variant="outline"
             size="sm"
             className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg transition-all duration-200 z-10 gap-1"
-            onClick={scrollToBottom}
+            onClick={() => {
+              enableAutoScroll();
+              scrollToBottom();
+            }}
             aria-label="Scroll to bottom"
           >
-            Scroll to bottom
+            Scrolled up
             <ArrowDown className="w-3 h-3" aria-hidden="true" />
           </Button>
         )}
@@ -233,10 +245,15 @@ export function VirtualizedMessageList({
     <>
       <Virtuoso
         ref={virtuosoRef}
+        scrollerRef={(el) => {
+          scrollerRef.current = el;
+        }}
         data={grouped}
         initialTopMostItemIndex={grouped.length - 1}
         alignToBottom
-        followOutput="auto"
+        followOutput={(isAtBottom) =>
+          autoScrollEnabled && isAtBottom ? "smooth" : false
+        }
         atBottomStateChange={setAtBottom}
         atBottomThreshold={100}
         className="flex-1 w-full min-w-0 min-h-0"
@@ -260,15 +277,18 @@ export function VirtualizedMessageList({
           />
         )}
       />
-      {!atBottom && (
+      {escapedFromBottom && (
         <Button
           variant="outline"
           size="sm"
           className="absolute bottom-4 left-1/2 -translate-x-1/2 shadow-lg transition-all duration-200 z-10 gap-1"
-          onClick={scrollToBottom}
+          onClick={() => {
+            enableAutoScroll();
+            scrollToBottom();
+          }}
           aria-label="Scroll to bottom"
         >
-          Scroll to bottom
+          Scrolled up
           <ArrowDown className="w-3 h-3" aria-hidden="true" />
         </Button>
       )}

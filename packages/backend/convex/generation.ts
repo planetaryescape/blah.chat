@@ -36,7 +36,10 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
-import { calculateConversationTokensAsync } from "./tokens/counting";
+import {
+  calculateConversationTokensAsync,
+  estimateTokens,
+} from "./tokens/counting";
 
 // Re-export generation submodules
 export * as image from "./generation/image";
@@ -223,6 +226,9 @@ export const generateResponse = internalAction({
         )) as string as typeof args.conversationId extends string
           ? never
           : any);
+
+    // Declared outside try so it's accessible in catch for wasted cost calculation
+    let accumulated = "";
 
     try {
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
@@ -592,7 +598,7 @@ export const generateResponse = internalAction({
       }
 
       // 6. Accumulate chunks, throttle DB updates
-      let accumulated = "";
+      accumulated = ""; // Reset at start of streaming (declared outside try for catch access)
       let reasoningBuffer = "";
       const toolCallsBuffer = new Map<string, any>();
 
@@ -1247,7 +1253,7 @@ export const generateResponse = internalAction({
       const modelConfig = getModelConfig(args.modelId);
       const wastedCost =
         firstTokenTime && modelConfig?.pricing
-          ? estimateWastedCost(0, {
+          ? estimateWastedCost(estimateTokens(accumulated), {
               input: modelConfig.pricing.input,
               output: modelConfig.pricing.output,
             })

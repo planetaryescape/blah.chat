@@ -57,7 +57,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       >
         {/* Profile / Header Bento */}
         <BentoCard
-          style={[styles.profileCard, { height: 120 } as any]}
+          style={{ ...styles.profileCard, height: 120 }}
           variant="featured"
           delay={100}
         >

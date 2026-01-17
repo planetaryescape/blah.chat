@@ -231,7 +231,7 @@ export function ChatInput({
             const storageId = await uploadToConvex({
               generateUploadUrl,
               fileUri: att.uri,
-              mimeType: att.mimeType,
+              mimeType: att.mimeType || "application/octet-stream",
             });
             return {
               type: att.type,

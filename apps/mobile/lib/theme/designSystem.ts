@@ -22,6 +22,8 @@ export const palette = {
   success: "#22c55e",
   error: "#ef4444",
   warning: "#fbbf24",
+  star: "#fbbf24",
+  link: "#818cf8",
 
   // Glass
   glassHigh: "rgba(255, 255, 255, 0.15)",

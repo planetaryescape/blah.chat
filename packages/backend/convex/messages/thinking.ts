@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 
+const TERMINAL_STATUSES = new Set(["complete", "stopped", "error"]);
+
 export const markThinkingStarted = internalMutation({
   args: { messageId: v.id("messages") },
   handler: async (ctx, args) => {
@@ -18,11 +20,10 @@ export const updatePartialReasoning = internalMutation({
   },
   returns: v.object({ updated: v.boolean(), reason: v.optional(v.string()) }),
   handler: async (ctx, args) => {
-    const { isTerminalStatus } = await import("../lib/message-status");
     const message = await ctx.db.get(args.messageId);
     if (!message) return { updated: false, reason: "not_found" };
 
-    if (isTerminalStatus(message.status)) {
+    if (TERMINAL_STATUSES.has(message.status)) {
       return { updated: false, reason: `terminal:${message.status}` };
     }
 

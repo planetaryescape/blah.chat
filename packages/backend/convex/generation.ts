@@ -738,10 +738,17 @@ export const generateResponse = internalAction({
           }
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
-            await ctx.runMutation(internal.messages.updatePartialReasoning, {
-              messageId: assistantMessageId,
-              partialReasoning: reasoningBuffer,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialReasoning,
+              {
+                messageId: assistantMessageId,
+                partialReasoning: reasoningBuffer,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
+            }
             lastReasoningUpdate = now;
           }
         }
@@ -780,10 +787,17 @@ export const generateResponse = internalAction({
           }
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: assistantMessageId,
-              partialContent: accumulated,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
+            }
             lastUpdate = now;
           }
         }
@@ -864,10 +878,14 @@ export const generateResponse = internalAction({
             };
 
             // Update UI with continuation result
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: assistantMessageId,
-              partialContent: accumulated,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) return;
 
             logger.info("Continuation successful", {
               tag: "Generation",

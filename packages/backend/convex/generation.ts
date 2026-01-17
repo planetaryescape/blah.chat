@@ -885,7 +885,23 @@ export const generateResponse = internalAction({
                 partialContent: accumulated,
               },
             );
-            if (!updateResult.updated) return;
+            if (!updateResult.updated) {
+              // Message was stopped - still record continuation metrics
+              const contCost = calculateCost(modelId, {
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cachedTokens: undefined,
+                reasoningTokens: undefined,
+              });
+              await ctx.runMutation(internal.messages.completeMessage, {
+                messageId: assistantMessageId,
+                content: accumulated,
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cost: contCost,
+              });
+              return;
+            }
 
             logger.info("Continuation successful", {
               tag: "Generation",

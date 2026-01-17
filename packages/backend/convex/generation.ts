@@ -693,7 +693,7 @@ export const generateResponse = internalAction({
             const resultStr = JSON.stringify(resultValue ?? "");
             const estimatedTokens = Math.max(
               estimateToolCost(existing.name),
-              Math.ceil(resultStr.length / 4),
+              estimateTokens(resultStr),
             );
             budgetState = recordUsage(budgetState, estimatedTokens);
           }

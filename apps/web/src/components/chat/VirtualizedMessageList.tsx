@@ -12,6 +12,7 @@ import {
   type GroupedItem,
   useMessageGrouping,
 } from "@/hooks/useMessageGrouping";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useScrollIntent } from "@/hooks/useScrollIntent";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ export function VirtualizedMessageList({
 
   const grouped = useMessageGrouping(messages ?? [], conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
+  const _reducedMotion = usePrefersReducedMotion();
 
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -98,16 +100,15 @@ export function VirtualizedMessageList({
     scrolledForConversationRef.current = conversationId;
 
     if (!useVirtualization && scrollContainerRef.current) {
-      // Simple mode: use native scroll with multiple attempts
+      // Simple mode: smooth scroll after DOM renders
       const container = scrollContainerRef.current;
-      const scrollToEnd = () => {
-        container.scrollTop = container.scrollHeight;
-      };
-      // Multiple attempts to ensure DOM is fully rendered
-      scrollToEnd();
-      requestAnimationFrame(scrollToEnd);
-      setTimeout(scrollToEnd, 50);
-      setTimeout(scrollToEnd, 150);
+      // Wait for DOM, then smooth scroll (instant for reduced motion)
+      setTimeout(() => {
+        smoothScrollToBottom(container, {
+          smooth: !_reducedMotion,
+          duration: 300,
+        });
+      }, 50);
     } else if (useVirtualization) {
       // Virtualized mode with multiple attempts
       const scrollToEnd = () => {
@@ -124,7 +125,13 @@ export function VirtualizedMessageList({
     }
 
     onScrollReady?.(true);
-  }, [conversationId, grouped.length, useVirtualization, onScrollReady]);
+  }, [
+    conversationId,
+    grouped.length,
+    useVirtualization,
+    onScrollReady,
+    _reducedMotion,
+  ]);
 
   // Track scroll position for "scroll to bottom" button (simple mode)
   useEffect(() => {
@@ -162,28 +169,31 @@ export function VirtualizedMessageList({
       virtuosoRef.current?.scrollToIndex({
         index,
         align: "start",
-        behavior: "smooth",
+        behavior: _reducedMotion ? "auto" : "smooth",
       });
     } else if (scrollContainerRef.current) {
       const element = document.getElementById(`message-group-${index}`);
-      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      element?.scrollIntoView({
+        behavior: _reducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
     }
-  }, [highlightMessageId, grouped, useVirtualization]);
+  }, [highlightMessageId, grouped, useVirtualization, _reducedMotion]);
 
   const scrollToBottom = useCallback(() => {
     if (useVirtualization) {
       virtuosoRef.current?.scrollToIndex({
         index: grouped.length - 1,
         align: "end",
-        behavior: "smooth",
+        behavior: _reducedMotion ? "auto" : "smooth",
       });
     } else if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: "smooth",
+      smoothScrollToBottom(scrollContainerRef.current, {
+        smooth: !_reducedMotion,
+        duration: 300,
       });
     }
-  }, [grouped.length, useVirtualization]);
+  }, [grouped.length, useVirtualization, _reducedMotion]);
 
   // Empty state handled by parent
   if (!messages || messages.length === 0) {
@@ -199,7 +209,7 @@ export function VirtualizedMessageList({
             scrollContainerRef.current = el;
             scrollerRef.current = el;
           }}
-          className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
+          className="messages-container flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
           role="log"
           aria-live="polite"
           aria-label="Chat message history"

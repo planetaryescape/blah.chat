@@ -75,8 +75,8 @@ export default function ProjectDetailScreen() {
   const saveFile = useMutation(api.files.saveFile);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const addFileToProject = useMutation(api.projects.files.addFileToProject);
-  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const removeFileFromProject = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
     api.projects.files.removeFileFromProject,
   );
 

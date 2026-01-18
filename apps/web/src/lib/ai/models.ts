@@ -639,20 +639,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     bestFor: "Open-source, coding, multilingual tasks, local deployment",
     isInternalOnly: true,
   },
-  "meta:llama-4-maverick": {
-    id: "meta:llama-4-maverick",
-    provider: "meta",
-    name: "Llama 4 Maverick 17B",
-    description:
-      "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
-    contextWindow: 128000,
-    pricing: { input: 0.2, output: 0.6 },
-    capabilities: ["vision", "function-calling"],
-    hostOrder: ["cerebras", "groq"],
-    userFriendlyDescription:
-      "Next-gen Llama. Largest open model with coding, reasoning, and image understanding.",
-    bestFor: "Advanced coding, multimodal tasks, open-source",
-  },
   "meta:llama-4-scout": {
     id: "meta:llama-4-scout",
     provider: "meta",

@@ -296,8 +296,10 @@ export const getSystemInfo = query({
   );
 
   // Run Biome to ensure consistent formatting
+  // Use the installed biome binary directly (added to root package.json)
+  const biomePath = join(ROOT, "node_modules/.bin/biome");
   try {
-    execFileSync("bun", ["x", "biome", "check", "--write", OUTPUT_DIR], {
+    execFileSync(biomePath, ["check", "--write", OUTPUT_DIR], {
       cwd: ROOT,
       stdio: "inherit", // Show output to help debug CI issues
     });

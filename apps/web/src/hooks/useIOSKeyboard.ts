@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface IOSKeyboardState {
   keyboardVisible: boolean;
@@ -14,6 +14,7 @@ interface UseIOSKeyboardOptions {
 }
 
 const KEYBOARD_THRESHOLD = 150;
+const KEYBOARD_ANIMATION_DELAY = 300;
 
 function isIOS(): boolean {
   if (typeof window === "undefined") return false;
@@ -35,27 +36,31 @@ export function useIOSKeyboard(
 
   const lastHeightRef = useRef(0);
   const wasVisibleRef = useRef(false);
-  const isIOSDevice = useRef(false);
-
-  const scrollInputIntoView = useCallback(() => {
-    if (!inputRef?.current) return;
-
-    requestAnimationFrame(() => {
-      inputRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    });
-  }, [inputRef]);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    isIOSDevice.current = isIOS();
-    if (!isIOSDevice.current) return;
+    mountedRef.current = true;
+
+    if (!isIOS()) return;
 
     const viewport = window.visualViewport;
     if (!viewport) return;
 
+    const scrollInputIntoView = () => {
+      if (!inputRef?.current || !mountedRef.current) return;
+
+      setTimeout(() => {
+        if (!mountedRef.current) return;
+        inputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, KEYBOARD_ANIMATION_DELAY);
+    };
+
     const handleResize = () => {
+      if (!mountedRef.current) return;
+
       const windowHeight = window.innerHeight;
       const viewportHeight = viewport.height;
       const heightDiff = windowHeight - viewportHeight;
@@ -87,10 +92,11 @@ export function useIOSKeyboard(
     handleResize();
 
     return () => {
+      mountedRef.current = false;
       viewport.removeEventListener("resize", handleResize);
       viewport.removeEventListener("scroll", handleResize);
     };
-  }, [onKeyboardShow, onKeyboardHide, scrollInputIntoView]);
+  }, [inputRef, onKeyboardShow, onKeyboardHide]);
 
   return state;
 }

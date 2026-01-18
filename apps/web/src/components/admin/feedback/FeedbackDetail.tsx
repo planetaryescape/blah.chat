@@ -313,6 +313,104 @@ export function FeedbackDetail({
           </a>
         </div>
       ) : null}
+
+      {/* Error Context (for system-generated feedback) */}
+      {feedback.errorContext && (
+        <ErrorContextPanel errorContext={feedback.errorContext} />
+      )}
+    </div>
+  );
+}
+
+// Error Context Panel for system-generated feedback
+function ErrorContextPanel({ errorContext }: { errorContext: any }) {
+  return (
+    <div className="border rounded-lg p-4 bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-red-500">⚠️</span>
+        <h3 className="font-medium text-sm text-red-700 dark:text-red-400">
+          System Error Context
+        </h3>
+      </div>
+
+      <div className="grid gap-3 text-sm">
+        {/* Error Type */}
+        {errorContext.errorType && (
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Error Type:</span>
+            <Badge variant="destructive" className="font-mono text-xs">
+              {errorContext.errorType}
+            </Badge>
+          </div>
+        )}
+
+        {/* Model ID */}
+        {errorContext.modelId && (
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Model:</span>
+            <code className="bg-muted px-2 py-0.5 rounded text-xs font-mono">
+              {errorContext.modelId}
+            </code>
+          </div>
+        )}
+
+        {/* Failed Models */}
+        {errorContext.failedModels && errorContext.failedModels.length > 0 && (
+          <div>
+            <span className="text-muted-foreground block mb-1">
+              Failed Models:
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {errorContext.failedModels.map((model: string) => (
+                <Badge
+                  key={model}
+                  variant="outline"
+                  className="font-mono text-xs bg-red-100/50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
+                >
+                  {model}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorContext.errorMessage && (
+          <div>
+            <span className="text-muted-foreground block mb-1">
+              Error Message:
+            </span>
+            <pre className="bg-muted/50 p-2 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap break-words">
+              {errorContext.errorMessage}
+            </pre>
+          </div>
+        )}
+
+        {/* Conversation Link */}
+        {errorContext.conversationId && (
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Conversation:</span>
+            <a
+              href={`/chat/${errorContext.conversationId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
+            >
+              View conversation ↗
+            </a>
+          </div>
+        )}
+
+        {/* Environment */}
+        {errorContext.environment && (
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Environment:</span>
+            <Badge variant="secondary" className="text-xs">
+              {errorContext.environment}
+            </Badge>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

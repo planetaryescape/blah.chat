@@ -129,7 +129,7 @@ export const ChatInput = memo(function ChatInput({
     string | null
   >(null);
   const [quote, setQuote] = useState<string | null>(null);
-  const [_isComposing, _setIsComposing] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -244,7 +244,7 @@ export const ChatInput = memo(function ChatInput({
     setInput,
     textareaRef,
     onSubmit: handleSubmit,
-    isComposing: _isComposing,
+    isComposing,
   });
 
   useChatInputEvents({
@@ -447,8 +447,8 @@ export const ChatInput = memo(function ChatInput({
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  onCompositionStart={() => _setIsComposing(true)}
-                  onCompositionEnd={() => _setIsComposing(false)}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
                   placeholder={getPlaceholder()}

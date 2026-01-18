@@ -663,6 +663,23 @@ bd dep add <child> <parent>       # Link dependencies
 **Open Issues**: Run `bd list` or `bd ready` to see current tasks
 
 
+## Git Workflow
+
+**NEVER commit directly to main.** Always use feature branches and PRs.
+
+```bash
+# Create feature branch before starting work
+git checkout -b feat/description   # or fix/description
+
+# When done, push branch and create PR
+git push -u origin HEAD
+gh pr create --title "..." --body "..."
+```
+
+**Why**: Direct commits bypass code review, CI checks, and make rollbacks harder.
+
+---
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

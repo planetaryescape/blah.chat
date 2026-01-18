@@ -230,6 +230,7 @@ export const ChatInput = memo(function ChatInput({
     setInput("");
     setQuote(null);
     onAttachmentsChange([]);
+    sessionStorage.removeItem(`draft-${conversationId}`);
     setIsSending(false);
 
     if (!isMobile) {
@@ -278,6 +279,32 @@ export const ChatInput = memo(function ChatInput({
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   }, [input]);
+
+  // Draft persistence: debounced save
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const timeoutId = setTimeout(() => {
+      if (input.trim()) {
+        sessionStorage.setItem(`draft-${conversationId}`, input);
+      } else {
+        sessionStorage.removeItem(`draft-${conversationId}`);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [input, conversationId]);
+
+  // Draft persistence: restore on mount/conversation switch
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const savedDraft = sessionStorage.getItem(`draft-${conversationId}`);
+    if (savedDraft && !input) {
+      setInput(savedDraft);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   const getPlaceholder = () => {
     const config = getModelConfig(selectedModel);

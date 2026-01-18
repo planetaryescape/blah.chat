@@ -75,4 +75,12 @@ crons.interval(
   internal.messages.recovery.recoverStuckMessages as any,
 );
 
+// Cleanup stale generation locks every 5 minutes
+crons.interval(
+  "cleanup-stale-generation-locks",
+  { minutes: 5 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.lib.generationLock.cleanupStaleLocks as any,
+);
+
 export default crons;

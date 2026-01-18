@@ -34,6 +34,7 @@ export function useIOSKeyboard(
   });
 
   const lastHeightRef = useRef(0);
+  const wasVisibleRef = useRef(false);
   const isIOSDevice = useRef(false);
 
   const scrollInputIntoView = useCallback(() => {
@@ -62,17 +63,19 @@ export function useIOSKeyboard(
       const keyboardVisible = heightDiff > KEYBOARD_THRESHOLD;
       const keyboardHeight = keyboardVisible ? heightDiff : 0;
 
+      const wasVisible = wasVisibleRef.current;
       if (
-        keyboardVisible !== state.keyboardVisible ||
+        keyboardVisible !== wasVisible ||
         keyboardHeight !== lastHeightRef.current
       ) {
+        wasVisibleRef.current = keyboardVisible;
         lastHeightRef.current = keyboardHeight;
         setState({ keyboardVisible, keyboardHeight });
 
-        if (keyboardVisible) {
+        if (keyboardVisible && !wasVisible) {
           onKeyboardShow?.(keyboardHeight);
           scrollInputIntoView();
-        } else {
+        } else if (!keyboardVisible && wasVisible) {
           onKeyboardHide?.();
         }
       }
@@ -87,12 +90,7 @@ export function useIOSKeyboard(
       viewport.removeEventListener("resize", handleResize);
       viewport.removeEventListener("scroll", handleResize);
     };
-  }, [
-    state.keyboardVisible,
-    onKeyboardShow,
-    onKeyboardHide,
-    scrollInputIntoView,
-  ]);
+  }, [onKeyboardShow, onKeyboardHide, scrollInputIntoView]);
 
   return state;
 }

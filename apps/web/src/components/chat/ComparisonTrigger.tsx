@@ -36,6 +36,7 @@ export function ComparisonTrigger({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
             disabled={isActive}
             title="Compare models"

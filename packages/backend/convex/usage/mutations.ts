@@ -4,7 +4,6 @@ import { internalMutation, mutation } from "../_generated/server";
 
 const featureValidator = v.union(
   v.literal("chat"),
-  v.literal("slides"),
   v.literal("notes"),
   v.literal("tasks"),
   v.literal("files"),
@@ -74,38 +73,10 @@ export const recordImageGeneration = internalMutation({
   },
 });
 
-export const recordSlideImageGeneration = internalMutation({
-  args: {
-    userId: v.id("users"),
-    presentationId: v.id("presentations"),
-    model: v.string(),
-    cost: v.number(),
-    inputTokens: v.optional(v.number()),
-    outputTokens: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const date = new Date().toISOString().split("T")[0];
-
-    await ctx.db.insert("usageRecords", {
-      userId: args.userId,
-      date,
-      model: args.model,
-      presentationId: args.presentationId,
-      feature: "slides",
-      operationType: "image",
-      inputTokens: args.inputTokens ?? 0,
-      outputTokens: args.outputTokens ?? 0,
-      cost: args.cost,
-      messageCount: 1,
-    });
-  },
-});
-
 export const recordTextGeneration = internalMutation({
   args: {
     userId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
-    presentationId: v.optional(v.id("presentations")),
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
@@ -141,7 +112,6 @@ export const recordTextGeneration = internalMutation({
         date,
         model: args.model,
         conversationId: args.conversationId,
-        presentationId: args.presentationId,
         feature,
         operationType: "text",
         inputTokens: args.inputTokens,

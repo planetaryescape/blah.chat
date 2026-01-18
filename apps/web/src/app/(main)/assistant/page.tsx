@@ -2,8 +2,11 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useAction, useMutation } from "convex/react";
+import { format } from "date-fns";
 import {
   ArrowRight,
+  CalendarIcon,
+  CheckSquare,
   FileAudio,
   FileText,
   Loader2,
@@ -12,76 +15,83 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { TaskReviewPanel } from "@/components/assistant/TaskReviewPanel";
+import {
+  type ExtractedNote,
+  type ExtractedTask,
+  MeetingReviewPanel,
+} from "@/components/assistant/MeetingReviewPanel";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
+import { FeatureDisabled } from "@/components/ui/feature-disabled";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useUserPreference } from "@/hooks/useUserPreference";
+import { cn } from "@/lib/utils";
 
 type ProcessingState =
   | "idle"
   | "transcribing"
-  | "analyzing"
   | "extracting"
   | "reviewing"
+  | "saving"
   | "confirmed"
   | "error";
 
 export default function SmartAssistantPage() {
+  const showSmartAssistant = useUserPreference("showSmartAssistant");
   const [state, setState] = useState<ProcessingState>("idle");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [transcript, setTranscript] = useState("");
-  const [extractedTasks, setExtractedTasks] = useState<any[]>([]);
+  const [extractedTasks, setExtractedTasks] = useState<ExtractedTask[]>([]);
+  const [extractedNotes, setExtractedNotes] = useState<ExtractedNote[]>([]);
   const [error, setError] = useState("");
+  const [meetingDate, setMeetingDate] = useState<Date>(new Date());
 
   // Actions
   // @ts-ignore - Type depth exceeded
   const transcribeAudio = useAction(api.transcription.transcribeAudio);
   // @ts-ignore - Type depth exceeded
-  const extractTasks = useAction(
-    api.ai.taskExtraction.extractTasksFromTranscript,
+  const extractFromMeeting = useAction(
+    api.ai.meetingExtraction.extractFromMeeting,
   );
   // @ts-ignore - Type depth exceeded
   const createTask = useMutation(api.tasks.create);
+  // @ts-ignore - Type depth exceeded
+  const createNote = useMutation(api.notes.createNote);
+  // @ts-ignore - Type depth exceeded
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const handleAudioUpload = async () => {
     if (!audioFile) return;
 
-    // Validate file size before upload
     const fileSizeMB = audioFile.size / (1024 * 1024);
     const MAX_SIZE_MB = 24;
 
     if (fileSizeMB > MAX_SIZE_MB) {
       toast.error(
-        `Audio file too large (${fileSizeMB.toFixed(1)}MB). Maximum is ${MAX_SIZE_MB}MB. Try compressing the file.`,
+        `Audio file too large (${fileSizeMB.toFixed(1)}MB). Maximum is ${MAX_SIZE_MB}MB.`,
       );
       return;
     }
 
-    // Warn for large files
     if (fileSizeMB > 15) {
       toast.info(
         `Large file (${fileSizeMB.toFixed(1)}MB) - may take up to 90 seconds`,
       );
     }
 
-    console.log(
-      "[Audio Upload] Starting upload, file:",
-      audioFile.name,
-      audioFile.size,
-      "bytes",
-    );
     setState("transcribing");
     setError("");
 
     try {
-      // Upload to Convex storage first (avoids 16MB argument size limit)
-      console.log("[Audio Upload] Getting upload URL...");
       const uploadUrl = await generateUploadUrl();
-
-      console.log("[Audio Upload] Uploading to storage...");
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": audioFile.type },
@@ -89,89 +99,50 @@ export default function SmartAssistantPage() {
       });
 
       if (!uploadResponse.ok) {
-        console.error(
-          "[Audio Upload] Storage upload failed:",
-          uploadResponse.status,
-          uploadResponse.statusText,
-        );
-        throw new Error("Failed to upload audio file to storage");
+        throw new Error("Failed to upload audio file");
       }
 
       const { storageId } = await uploadResponse.json();
-      console.log("[Audio Upload] Uploaded to storage:", storageId);
 
-      // Client-side timeout (95s) - ensure it definitely rejects
+      // Transcribe with timeout
       let timeoutId: NodeJS.Timeout;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          console.error("[Audio Upload] Client timeout reached (95s)");
-          reject(new Error("TIMEOUT"));
-        }, 95_000);
-        console.log("[Audio Upload] Timeout timer started, ID:", timeoutId);
+        timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), 95_000);
       });
 
-      console.log("[Audio Upload] Starting transcription with 95s timeout...");
       const transcriptionPromise = transcribeAudio({
         storageId,
         mimeType: audioFile.type,
-      })
-        .then((result) => {
-          console.log("[Audio Upload] Transcription promise resolved:", result);
-          clearTimeout(timeoutId);
-          return result;
-        })
-        .catch((error) => {
-          console.error(
-            "[Audio Upload] Transcription promise rejected:",
-            error,
-          );
-          clearTimeout(timeoutId);
-          throw error;
-        });
-
-      console.log("[Audio Upload] Waiting for transcription...");
-      const result = await Promise.race([transcriptionPromise, timeoutPromise]);
-
-      console.log("[Audio Upload] Transcription complete, result:", result);
-
-      // Backend returns string directly, not object
-      setTranscript(result);
-
-      // Extract tasks
-      setState("extracting");
-      console.log("[Audio Upload] Extracting tasks from transcript...");
-      const tasks = await extractTasks({
-        transcript: result,
-        // sourceId omitted - transcription doesn't generate IDs yet
+      }).then((result) => {
+        clearTimeout(timeoutId);
+        return result;
       });
 
-      console.log("[Audio Upload] Extracted tasks:", tasks);
+      const transcriptResult = await Promise.race([
+        transcriptionPromise,
+        timeoutPromise,
+      ]);
+      setTranscript(transcriptResult);
 
-      setExtractedTasks(tasks);
+      // Extract tasks AND notes
+      setState("extracting");
+      const extraction = await extractFromMeeting({
+        transcript: transcriptResult,
+        meetingDate: meetingDate.toISOString(),
+      });
+
+      setExtractedTasks(extraction.tasks || []);
+      setExtractedNotes(extraction.notes || []);
       setState("reviewing");
     } catch (err: any) {
-      console.error("[Audio Upload] Error caught:", err);
-      console.error("[Audio Upload] Error type:", typeof err);
-      console.error("[Audio Upload] Error name:", err?.name);
-      console.error("[Audio Upload] Error message:", err?.message);
-      console.error("[Audio Upload] Error stack:", err?.stack);
-
       const message = err?.message || String(err);
-
       if (message === "TIMEOUT") {
-        console.error("[Audio Upload] Handling timeout error");
-        setError("Transcription timed out after 90 seconds");
+        setError("Transcription timed out. Try a shorter clip.");
         toast.error("Timeout. Try a shorter clip or compress the file.");
-      } else if (message.includes("too large")) {
-        console.error("[Audio Upload] Handling file too large error");
-        setError(message);
-        toast.error(message);
       } else {
-        console.error("[Audio Upload] Handling generic error:", message);
         setError(message || "Processing failed");
         toast.error(message || "Processing failed");
       }
-
       setState("error");
     }
   };
@@ -183,11 +154,13 @@ export default function SmartAssistantPage() {
     setError("");
 
     try {
-      const tasks = await extractTasks({
+      const extraction = await extractFromMeeting({
         transcript: transcript.trim(),
+        meetingDate: meetingDate.toISOString(),
       });
 
-      setExtractedTasks(tasks);
+      setExtractedTasks(extraction.tasks || []);
+      setExtractedNotes(extraction.notes || []);
       setState("reviewing");
     } catch (err: any) {
       setError(err.message || "Extraction failed");
@@ -196,237 +169,319 @@ export default function SmartAssistantPage() {
     }
   };
 
-  const handleConfirmTasks = async (confirmedTasks: any[]) => {
+  const handleConfirm = async (data: {
+    tasks: ExtractedTask[];
+    notes: ExtractedNote[];
+  }) => {
+    setState("saving");
     try {
-      // Create tasks in parallel
-      await Promise.all(
-        confirmedTasks.map((task) =>
-          createTask({
-            title: task.title,
-            description: task.description,
-            deadline: task.deadline,
-            deadlineSource: task.deadlineSource,
-            urgency: task.urgency,
-            sourceType: task.sourceType,
-            sourceId: task.sourceId,
-            sourceContext: task.sourceContext,
-          }),
-        ),
+      // Create tasks
+      const taskPromises = data.tasks.map((task) =>
+        createTask({
+          title: task.title,
+          description: task.description ?? undefined,
+          deadline: task.deadline ?? undefined,
+          urgency: task.urgency ?? undefined,
+          projectId: task.projectId,
+          sourceType: "smart_assistant",
+        }),
       );
 
-      setState("confirmed");
-      toast.success(`${confirmedTasks.length} tasks created`);
+      // Create notes
+      const notePromises = data.notes.map((note) =>
+        createNote({
+          title: note.title,
+          content: note.content,
+          projectId: note.projectId,
+        }),
+      );
 
-      // Reset after 2 seconds
+      await Promise.all([...taskPromises, ...notePromises]);
+
+      setState("confirmed");
+      const taskCount = data.tasks.length;
+      const noteCount = data.notes.length;
+      const parts = [];
+      if (taskCount > 0)
+        parts.push(`${taskCount} task${taskCount > 1 ? "s" : ""}`);
+      if (noteCount > 0)
+        parts.push(`${noteCount} note${noteCount > 1 ? "s" : ""}`);
+      toast.success(`Created ${parts.join(" and ")}`);
+
+      // Reset after delay
       setTimeout(() => {
         setState("idle");
         setAudioFile(null);
         setTranscript("");
         setExtractedTasks([]);
+        setExtractedNotes([]);
+        setMeetingDate(new Date());
       }, 2000);
     } catch (err: any) {
       setError(err.message);
       setState("error");
-      toast.error("Failed to save tasks");
+      toast.error("Failed to save");
     }
   };
 
+  if (!showSmartAssistant) {
+    return (
+      <FeatureDisabled
+        feature="Smart Assistant"
+        settingKey="showSmartAssistant"
+      />
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
-      {/* Fixed Header */}
-      <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
-        <div className="container mx-auto max-w-6xl px-4 py-4">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight">
-              Smart Assistant
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Extract action items from audio, video, or text
-            </p>
+      {/* Header */}
+      <div className="flex-none z-50 border-b">
+        <div className="container mx-auto max-w-6xl px-4 py-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-muted">
+              <Wand2 className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Smart Assistant</h1>
+              <p className="text-sm text-muted-foreground">
+                Extract tasks and notes from meetings
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       <ScrollArea className="flex-1 w-full">
         <div className="container mx-auto max-w-4xl px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            {state === "idle" && (
-              <div className="space-y-6">
-                <Tabs defaultValue="audio" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/30 border border-border/40 rounded-xl mb-6">
-                    <TabsTrigger
-                      value="audio"
-                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                    >
-                      <FileAudio className="mr-2 h-4 w-4" />
-                      Audio
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="text"
-                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Text
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="audio" className="mt-0">
-                    <Card className="border-2 border-dashed border-border/60 bg-muted/5 hover:bg-muted/10 transition-colors">
-                      <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-                        <div className="bg-background p-4 rounded-full shadow-sm border border-border/20">
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                        </div>
-
-                        <div className="space-y-1">
-                          <h3 className="font-semibold text-lg">
-                            Upload Audio Recording
-                          </h3>
-                          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                            Drag and drop or click to select a meeting recording
-                            to extract tasks from
-                          </p>
-                        </div>
-
-                        <input
-                          type="file"
-                          accept="audio/*"
-                          onChange={(e) =>
-                            setAudioFile(e.target.files?.[0] || null)
-                          }
-                          className="hidden"
-                          id="audio-upload"
-                        />
-
-                        <label
-                          htmlFor="audio-upload"
-                          className="w-full max-w-xs"
-                        >
-                          <div className="flex items-center justify-center gap-2 cursor-pointer w-full h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
-                            Choose File
-                          </div>
-                        </label>
-
-                        {audioFile && (
-                          <div className="mt-4 w-full p-3 bg-background rounded-lg border border-border/40 flex items-center justify-between text-sm animate-in fade-in slide-in-from-bottom-2">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <FileAudio className="w-4 h-4" />
-                              <span className="font-medium text-foreground">
-                                {audioFile.name}
-                              </span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {(audioFile.size / 1024 / 1024).toFixed(2)} MB
-                            </span>
-                          </div>
-                        )}
-
-                        <Button
-                          onClick={handleAudioUpload}
-                          disabled={!audioFile}
-                          className="w-full max-w-xs mt-4"
-                          size="lg"
-                        >
-                          Process Recording
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </div>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="text" className="mt-0">
-                    <Card className="border border-border/60 shadow-sm">
-                      <div className="p-4 space-y-4">
-                        <Textarea
-                          placeholder="Paste your meeting transcript here..."
-                          value={transcript}
-                          onChange={(e) => setTranscript(e.target.value)}
-                          rows={12}
-                          className="resize-none border-border/40 focus:border-primary/50 text-base leading-relaxed"
-                        />
-                        <Button
-                          onClick={handleTranscriptSubmit}
-                          disabled={!transcript.trim()}
-                          className="w-full"
-                          size="lg"
-                        >
-                          Extract Tasks
-                          <Wand2 className="w-4 h-4 ml-2" />
-                        </Button>
-                      </div>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-
-            {(state === "transcribing" ||
-              state === "analyzing" ||
-              state === "extracting") && (
-              <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8 animate-in fade-in duration-500">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
-                  <div className="relative bg-background p-6 rounded-2xl border border-border/50 shadow-xl">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                  </div>
-                </div>
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-semibold">
-                    {state === "transcribing" && "Transcribing audio..."}
-                    {state === "analyzing" && "Analyzing video..."}
-                    {state === "extracting" && "Extracting tasks..."}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {state === "transcribing" &&
-                      "This may take a minute depending on file size"}
-                    {state === "analyzing" && "Processing video content"}
-                    {state === "extracting" &&
-                      "Using AI to identify action items"}
+          {state === "idle" && (
+            <div className="max-w-2xl mx-auto space-y-6">
+              {/* Meeting Date Selector */}
+              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">Meeting Date</p>
+                  <p className="text-xs text-muted-foreground">
+                    Used to calculate actual dates from relative references
                   </p>
                 </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[180px] justify-start text-left font-normal",
+                        !meetingDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {meetingDate ? (
+                        format(meetingDate, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={meetingDate}
+                      onSelect={(date) => date && setMeetingDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-            )}
 
-            {state === "reviewing" && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <TaskReviewPanel
-                  tasks={extractedTasks}
-                  onConfirm={handleConfirmTasks}
-                  onCancel={() => {
-                    setState("idle");
-                    setExtractedTasks([]);
-                  }}
-                />
-              </div>
-            )}
+              <Tabs defaultValue="audio" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="audio" className="gap-2">
+                    <FileAudio className="h-4 w-4" />
+                    Audio
+                  </TabsTrigger>
+                  <TabsTrigger value="text" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Text
+                  </TabsTrigger>
+                </TabsList>
 
-            {state === "confirmed" && (
-              <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6 animate-in zoom-in-95 duration-300">
-                <div className="h-20 w-20 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mb-4">
-                  <div className="text-4xl">✓</div>
+                <TabsContent value="audio" className="mt-0">
+                  <Card className="border-2 border-dashed">
+                    <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+                      <div className="p-4 rounded-full bg-muted">
+                        <Upload className="h-8 w-8 text-muted-foreground" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg">
+                          Upload Meeting Recording
+                        </h3>
+                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                          Drop an audio file to extract tasks and notes
+                        </p>
+                      </div>
+
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={(e) =>
+                          setAudioFile(e.target.files?.[0] || null)
+                        }
+                        className="hidden"
+                        id="audio-upload"
+                      />
+
+                      <Button
+                        variant="outline"
+                        asChild
+                        className="w-full max-w-xs"
+                      >
+                        <label
+                          htmlFor="audio-upload"
+                          className="cursor-pointer"
+                        >
+                          Choose File
+                        </label>
+                      </Button>
+
+                      {audioFile && (
+                        <div className="mt-4 w-full p-3 bg-muted/50 rounded-lg border flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <FileAudio className="w-4 h-4" />
+                            <span className="font-medium text-foreground">
+                              {audioFile.name}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {(audioFile.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleAudioUpload}
+                        disabled={!audioFile}
+                        className="w-full max-w-xs mt-4"
+                        size="lg"
+                      >
+                        Process Recording
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="text" className="mt-0">
+                  <Card>
+                    <div className="p-4 space-y-4">
+                      <Textarea
+                        placeholder="Paste your meeting transcript or notes here..."
+                        value={transcript}
+                        onChange={(e) => setTranscript(e.target.value)}
+                        rows={12}
+                        className="resize-none text-base leading-relaxed"
+                      />
+                      <Button
+                        onClick={handleTranscriptSubmit}
+                        disabled={!transcript.trim()}
+                        className="w-full"
+                        size="lg"
+                      >
+                        Extract Tasks & Notes
+                        <Wand2 className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+
+              {/* Feature highlights */}
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border">
+                  <CheckSquare className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Task Extraction</p>
+                    <p className="text-xs text-muted-foreground">
+                      Action items with deadlines and priorities
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold">Tasks Created!</h3>
-                <p className="text-muted-foreground">Redirecting back...</p>
-              </div>
-            )}
-
-            {state === "error" && (
-              <Card className="border-destructive/50 bg-destructive/5 p-8 text-center max-w-md mx-auto mt-12">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-destructive">
-                    Processing Failed
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{error}</p>
-                  <Button
-                    onClick={() => setState("idle")}
-                    variant="outline"
-                    className="border-destructive/30 hover:bg-destructive/10"
-                  >
-                    Try Again
-                  </Button>
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border">
+                  <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm">Meeting Notes</p>
+                    <p className="text-xs text-muted-foreground">
+                      Decisions, insights, and follow-ups
+                    </p>
+                  </div>
                 </div>
-              </Card>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
+
+          {(state === "transcribing" ||
+            state === "extracting" ||
+            state === "saving") && (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+              <div className="p-6 rounded-full bg-muted">
+                <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">
+                  {state === "transcribing" && "Transcribing audio..."}
+                  {state === "extracting" && "Extracting tasks & notes..."}
+                  {state === "saving" && "Saving items..."}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {state === "transcribing" &&
+                    "This may take a minute depending on file size"}
+                  {state === "extracting" &&
+                    "AI is analyzing the content for action items and insights"}
+                  {state === "saving" && "Creating your tasks and notes"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {state === "reviewing" && (
+            <div className="h-[calc(100vh-16rem)]">
+              <MeetingReviewPanel
+                tasks={extractedTasks}
+                notes={extractedNotes}
+                onConfirm={handleConfirm}
+                onCancel={() => {
+                  setState("idle");
+                  setExtractedTasks([]);
+                  setExtractedNotes([]);
+                }}
+              />
+            </div>
+          )}
+
+          {state === "confirmed" && (
+            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center">
+                <CheckSquare className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold">Items Created</h3>
+              <p className="text-sm text-muted-foreground">
+                Returning to start...
+              </p>
+            </div>
+          )}
+
+          {state === "error" && (
+            <Card className="border-destructive/50 bg-destructive/5 p-8 text-center max-w-md mx-auto mt-12">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-destructive">
+                  Processing Failed
+                </h3>
+                <p className="text-sm text-muted-foreground">{error}</p>
+                <Button onClick={() => setState("idle")} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            </Card>
+          )}
         </div>
       </ScrollArea>
     </div>

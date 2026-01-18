@@ -1,12 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the markdown tokens utility
-vi.mock("@/lib/utils/markdownTokens", () => ({
-  getNextCompleteToken: (buffer: string, chars: number) =>
-    buffer.slice(0, Math.min(chars, buffer.length)),
-}));
-
 import { useStreamBuffer } from "../useStreamBuffer";
 
 describe("useStreamBuffer", () => {
@@ -23,6 +17,7 @@ describe("useStreamBuffer", () => {
 
     expect(result.current.displayContent).toBe("");
     expect(result.current.hasBufferedContent).toBe(false);
+    expect(result.current.newWordsCount).toBe(0);
   });
 
   it("flushes immediately when not streaming", () => {
@@ -51,15 +46,25 @@ describe("useStreamBuffer", () => {
     expect(result.current.hasBufferedContent).toBe(false);
   });
 
-  it("accepts custom options", () => {
+  it("accepts custom wordsPerSecond option", () => {
     const { result } = renderHook(() =>
-      useStreamBuffer("Test", false, {
-        charsPerSecond: 500,
-        minTokenSize: 1,
-        adaptiveThreshold: 10000,
+      useStreamBuffer("Test content here", false, {
+        wordsPerSecond: 50,
       }),
     );
 
-    expect(result.current.displayContent).toBe("Test");
+    expect(result.current.displayContent).toBe("Test content here");
+  });
+
+  it("resets newWordsCount when streaming stops", () => {
+    const { result, rerender } = renderHook(
+      ({ content, streaming }) => useStreamBuffer(content, streaming),
+      { initialProps: { content: "Hello world", streaming: true } },
+    );
+
+    // Stop streaming
+    rerender({ content: "Hello world", streaming: false });
+
+    expect(result.current.newWordsCount).toBe(0);
   });
 });

@@ -1,4 +1,5 @@
 import type { Doc } from "../../_generated/dataModel";
+import { estimateTokens } from "../../tokens/counting";
 
 type MemoryCategory =
   | "identity"
@@ -89,8 +90,4 @@ export function truncateMemories(
   }
 
   return result;
-}
-
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
 }

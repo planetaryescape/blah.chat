@@ -50,19 +50,6 @@ export const conversationsTable = defineTable({
       lastActivityAt: v.number(),
     }),
   ),
-  // Presentation mode (slides feature conversations)
-  isPresentation: v.optional(v.boolean()),
-  // Enable web search grounding for presentations
-  enableGrounding: v.optional(v.boolean()),
-  // Presentation metadata
-  slideStyle: v.optional(
-    v.union(v.literal("wordy"), v.literal("illustrative")),
-  ),
-  imageStyle: v.optional(v.string()),
-  aspectRatio: v.optional(
-    v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
-  ),
-  templateId: v.optional(v.id("templates")),
   // Model recommendation (cost optimization & decision guidance)
   modelRecommendation: v.optional(
     v.object({

@@ -25,7 +25,6 @@ import {
   Key,
   Loader2,
   MessageSquare,
-  Presentation,
   RotateCcw,
   TrendingUp,
   Trophy,
@@ -62,6 +61,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import {
   formatCompactNumber,
   formatCurrency,
@@ -83,12 +83,10 @@ const COST_TYPE_COLORS = {
   text: "#3b82f6",
   voice: "#10b981",
   images: "#a855f7",
-  slides: "#f59e0b",
 };
 
 const FEATURE_COLORS: Record<string, string> = {
   chat: "#3b82f6",
-  slides: "#f59e0b",
   notes: "#10b981",
   tasks: "#ec4899",
   files: "#8b5cf6",
@@ -98,7 +96,6 @@ const FEATURE_COLORS: Record<string, string> = {
 
 const FEATURE_LABELS: Record<string, string> = {
   chat: "Chat",
-  slides: "Slides",
   notes: "Notes",
   tasks: "Tasks",
   files: "Files",
@@ -108,6 +105,7 @@ const FEATURE_LABELS: Record<string, string> = {
 
 function UsagePageContent() {
   const [dateRange, setDateRange] = useState(() => getLastNDays(30));
+  const showTasks = useUserPreference("showTasks");
 
   // Fetch all user data
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -145,11 +143,6 @@ function UsagePageContent() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const actionStats = useQuery(api.usage.queries.getActionStats);
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const presentationStats = useQuery(api.usage.queries.getPresentationStats, {
-    startDate: dateRange.startDate,
-    endDate: dateRange.endDate,
-  });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const byokBreakdown = useQuery(api.usage.queries.getByokBreakdown, {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
@@ -179,7 +172,6 @@ function UsagePageContent() {
         { name: "Text", value: costByType.textGeneration.cost },
         { name: "Voice", value: costByType.tts.cost },
         { name: "Images", value: costByType.images.cost },
-        { name: "Slides", value: costByType.slides.cost },
       ].filter((d) => d.value > 0)
     : [];
 
@@ -354,30 +346,13 @@ function UsagePageContent() {
                     value={activityStats?.bookmarksCount ?? 0}
                     icon={Bookmark}
                   />
-                  <UsageKPICard
-                    label="Presentations"
-                    value={
-                      presentationStats?.presentationsCount ??
-                      activityStats?.slidesCount ??
-                      0
-                    }
-                    icon={Presentation}
-                  />
-                  <UsageKPICard
-                    label="Total Slides"
-                    value={presentationStats?.slidesCount ?? 0}
-                    icon={Image}
-                    subtext={
-                      presentationStats
-                        ? `$${presentationStats.totalCost.toFixed(2)} total`
-                        : undefined
-                    }
-                  />
-                  <UsageKPICard
-                    label="Tasks"
-                    value={activityStats?.tasksCount ?? 0}
-                    icon={CheckSquare}
-                  />
+                  {showTasks && (
+                    <UsageKPICard
+                      label="Tasks"
+                      value={activityStats?.tasksCount ?? 0}
+                      icon={CheckSquare}
+                    />
+                  )}
                   <UsageKPICard
                     label="Files Uploaded"
                     value={totalCounts?.filesCount ?? 0}
@@ -513,17 +488,6 @@ function UsagePageContent() {
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Saved as Notes
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border p-4 flex items-center gap-3">
-                    <Presentation className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {actionStats?.create_presentation ?? 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Presentations Created
                       </div>
                     </div>
                   </div>
@@ -730,59 +694,6 @@ function UsagePageContent() {
                             </div>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Slides Cost Breakdown */}
-                  {presentationStats && presentationStats.totalCost > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3">
-                        Slides Cost Breakdown
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Presentations
-                          </span>
-                          <span className="font-medium">
-                            {presentationStats.presentationsCount}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Total Slides
-                          </span>
-                          <span className="font-medium">
-                            {presentationStats.slidesCount}
-                          </span>
-                        </div>
-                        <div className="h-px bg-border my-2" />
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Outline Generation
-                          </span>
-                          <span className="font-medium">
-                            ${presentationStats.outlineCost.toFixed(4)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Image Generation
-                          </span>
-                          <span className="font-medium">
-                            ${presentationStats.imageCost.toFixed(4)}
-                          </span>
-                        </div>
-                        <div className="h-px bg-border my-2" />
-                        <div className="flex items-center justify-between text-sm font-medium">
-                          <span>Total Slides Cost</span>
-                          <span>${presentationStats.totalCost.toFixed(4)}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-2">
-                          {presentationStats.outlineRequests} outline requests •{" "}
-                          {presentationStats.imageRequests} image requests
-                        </div>
                       </div>
                     </div>
                   )}

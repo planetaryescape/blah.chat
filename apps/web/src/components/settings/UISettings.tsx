@@ -25,6 +25,7 @@ import {
   SidebarFeaturesSection,
   StatisticsSection,
 } from "./sections";
+import { SmartAssistantSection } from "./sections/SmartAssistantSection";
 
 // Map setting keys to their accordion section
 const SETTING_TO_SECTION: Record<string, string> = {
@@ -33,7 +34,8 @@ const SETTING_TO_SECTION: Record<string, string> = {
   showTemplates: "sidebar-features",
   showProjects: "sidebar-features",
   showBookmarks: "sidebar-features",
-  showSlides: "sidebar-features",
+  showTasks: "sidebar-features",
+  showSmartAssistant: "sidebar-features",
   // Display
   chatWidth: "display",
   // Stats
@@ -52,6 +54,9 @@ const SETTING_TO_SECTION: Record<string, string> = {
   // Auto Router
   autoRouterCostBias: "auto-router",
   autoRouterSpeedBias: "auto-router",
+  // Smart Assistant
+  noteCategoryMode: "smart-assistant",
+  customNoteCategories: "smart-assistant",
 };
 
 const DEFAULT_EXPANDED = [
@@ -61,6 +66,7 @@ const DEFAULT_EXPANDED = [
   "reasoning",
   "comparison",
   "sidebar-features",
+  "smart-assistant",
   "auto-router",
 ];
 
@@ -138,11 +144,9 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           <StatisticsSection
             showMessageStats={state.showMessageStats}
             showComparisonStats={state.showComparisonStats}
-            showSlideStats={state.showSlideStats}
             showModelProvider={state.showModelProvider}
             onMessageStatsChange={handlers.handleMessageStatsChange}
             onComparisonStatsChange={handlers.handleComparisonStatsChange}
-            onSlideStatsChange={handlers.handleSlideStatsChange}
             onShowModelProviderChange={handlers.handleShowModelProviderChange}
           />
 
@@ -178,12 +182,23 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             showTemplates={state.showTemplates}
             showProjects={state.showProjects}
             showBookmarks={state.showBookmarks}
-            showSlides={state.showSlides}
+            showTasks={state.showTasks}
+            showSmartAssistant={state.showSmartAssistant}
             onShowNotesChange={handlers.handleShowNotesChange}
             onShowTemplatesChange={handlers.handleShowTemplatesChange}
             onShowProjectsChange={handlers.handleShowProjectsChange}
             onShowBookmarksChange={handlers.handleShowBookmarksChange}
-            onShowSlidesChange={handlers.handleShowSlidesChange}
+            onShowTasksChange={handlers.handleShowTasksChange}
+            onShowSmartAssistantChange={handlers.handleShowSmartAssistantChange}
+          />
+
+          <SmartAssistantSection
+            noteCategoryMode={state.noteCategoryMode}
+            customNoteCategories={state.customNoteCategories}
+            onNoteCategoryModeChange={handlers.handleNoteCategoryModeChange}
+            onCustomNoteCategoriesChange={
+              handlers.handleCustomNoteCategoriesChange
+            }
           />
 
           <AutoRouterSection

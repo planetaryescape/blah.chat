@@ -36,6 +36,7 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
+import { StreamingTextBuffer } from "./lib/utils/utf8Safe";
 import {
   calculateConversationTokensAsync,
   estimateTokens,
@@ -119,7 +120,8 @@ export const generateResponse = internalAction({
       const userMessageContent = lastUserMessage?.content ?? "";
 
       // Check if conversation has any attachments (for routing decision)
-      const recentMessages = await ctx.runQuery(
+      const recentMessages = await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
         internal.messages.listInternal,
         { conversationId: args.conversationId, limit: 10 },
       );
@@ -610,6 +612,10 @@ export const generateResponse = internalAction({
       let reasoningBuffer = "";
       const toolCallsBuffer = new Map<string, any>();
 
+      // UTF-8 safe streaming buffers to prevent surrogate pair splitting (emoji/CJK)
+      const textBuffer = new StreamingTextBuffer();
+      const reasoningTextBuffer = new StreamingTextBuffer();
+
       // AbortController for immediate stream termination on stop
       const abortController = new AbortController();
       let lastStopCheck = Date.now();
@@ -726,13 +732,24 @@ export const generateResponse = internalAction({
         const wantsReasoningStreamed =
           args.thinkingEffort && args.thinkingEffort !== "none";
         if (chunk.type === "reasoning-delta" && wantsReasoningStreamed) {
-          reasoningBuffer += chunk.text;
+          // UTF-8 safe: buffer incomplete surrogate pairs
+          const safeReasoningChunk = reasoningTextBuffer.process(chunk.text);
+          if (safeReasoningChunk) {
+            reasoningBuffer += safeReasoningChunk;
+          }
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
-            await ctx.runMutation(internal.messages.updatePartialReasoning, {
-              messageId: assistantMessageId,
-              partialReasoning: reasoningBuffer,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialReasoning,
+              {
+                messageId: assistantMessageId,
+                partialReasoning: reasoningBuffer,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
+            }
             lastReasoningUpdate = now;
           }
         }
@@ -764,16 +781,37 @@ export const generateResponse = internalAction({
             ).catch(() => {}); // Fire-and-forget, don't block streaming
           }
 
-          accumulated += chunk.text;
+          // UTF-8 safe: buffer incomplete surrogate pairs to prevent JSON.stringify crashes
+          const safeChunk = textBuffer.process(chunk.text);
+          if (safeChunk) {
+            accumulated += safeChunk;
+          }
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: assistantMessageId,
-              partialContent: accumulated,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
+            }
             lastUpdate = now;
           }
         }
+      }
+
+      // Flush any remaining buffered content
+      const remainingText = textBuffer.flush();
+      if (remainingText) {
+        accumulated += remainingText;
+      }
+      const remainingReasoning = reasoningTextBuffer.flush();
+      if (remainingReasoning) {
+        reasoningBuffer += remainingReasoning;
       }
 
       // If we aborted (user stopped), exit early - no finalization needed
@@ -841,10 +879,30 @@ export const generateResponse = internalAction({
             };
 
             // Update UI with continuation result
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: assistantMessageId,
-              partialContent: accumulated,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              // Message was stopped - still record continuation metrics
+              const contCost = calculateCost(modelId, {
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cachedTokens: undefined,
+                reasoningTokens: undefined,
+              });
+              await ctx.runMutation(internal.messages.completeMessage, {
+                messageId: assistantMessageId,
+                content: accumulated,
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cost: contCost,
+              });
+              return;
+            }
 
             logger.info("Continuation successful", {
               tag: "Generation",

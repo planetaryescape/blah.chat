@@ -16,6 +16,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useScrollIntent } from "@/hooks/useScrollIntent";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { useUserPreference } from "@/hooks/useUserPreference";
+import { scrollToBottom as smoothScrollToBottom } from "@/lib/smooth-scroll";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 import type { OptimisticMessage } from "@/types/optimistic";

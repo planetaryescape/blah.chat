@@ -1559,4 +1559,16 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_key_hash", ["keyHash"]),
+
+  // Generation locks - prevent concurrent message generation per conversation
+  generationLocks: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    messageId: v.optional(v.id("messages")),
+    comparisonGroupId: v.optional(v.string()),
+    pendingCount: v.number(), // Tracks parallel models in comparison mode
+    lockedAt: v.number(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"]),
 });

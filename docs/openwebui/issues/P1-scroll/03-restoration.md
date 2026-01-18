@@ -1,5 +1,6 @@
 # Scroll Position Restoration
 
+> **Status**: ✅ Complete (PR #159 merged 2026-01-18)
 > **Phase**: P1-scroll | **Effort**: 3h | **Impact**: 61.5x faster navigation
 > **Dependencies**: None | **Breaking**: No
 

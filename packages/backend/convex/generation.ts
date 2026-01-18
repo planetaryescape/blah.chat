@@ -48,6 +48,9 @@ export * as image from "./generation/image";
 /** Maximum tool execution steps before stopping (prevents runaway loops) */
 const MAX_TOOL_STEPS = 15;
 
+/** Maximum auto-retry attempts when auto-router selected model fails */
+const _MAX_AUTO_RETRY_ATTEMPTS = 3;
+
 // Minimal message shape for fast inference (client sends, server skips DB fetch)
 const passedMessageValidator = v.object({
   role: v.union(v.literal("user"), v.literal("assistant")),
@@ -1417,7 +1420,7 @@ export const generateResponse = internalAction({
         ];
         const retryCount = (currentMessage?.retryCount || 0) + 1;
 
-        if (retryCount < 3) {
+        if (retryCount < _MAX_AUTO_RETRY_ATTEMPTS) {
           logger.info("Auto-router retry: switching to different model", {
             tag: "Generation",
             messageId: assistantMessageId,

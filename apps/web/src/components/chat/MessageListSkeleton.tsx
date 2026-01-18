@@ -45,7 +45,7 @@ export function MessageListSkeleton({
   ];
 
   return (
-    <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
+    <div className="scroll-anchor-ignore flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
       <div
         className="flex-1 w-full min-w-0 overflow-y-auto relative"
         style={{

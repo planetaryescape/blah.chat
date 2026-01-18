@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { memo, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,9 +29,35 @@ import { MessageStatsBadges } from "./MessageStatsBadges";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
 
-// Error display component with feedback modal integration
-function ErrorDisplay({ error }: { error?: string }) {
+// Error display component with feedback modal integration and retry button
+function ErrorDisplay({
+  error,
+  messageId,
+  hasFailedModels,
+}: {
+  error?: string;
+  messageId: Id<"messages">;
+  hasFailedModels?: boolean;
+}) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const regenerate = useMutation(api.chat.regenerate);
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await regenerate({
+        messageId,
+        modelId: "auto",
+        useFailedModelsFromMessage: hasFailedModels,
+      });
+    } catch (err) {
+      console.error("[ErrorDisplay] Retry failed:", err);
+      toast.error("Failed to retry generation");
+      setIsRetrying(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-3 p-1">
@@ -44,12 +70,25 @@ function ErrorDisplay({ error }: { error?: string }) {
           {error}
         </p>
       </div>
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <span>Try a different model or</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleRetry}
+          disabled={isRetrying}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50"
+        >
+          {isRetrying ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3 h-3" />
+          )}
+          {isRetrying ? "Retrying..." : "Try Again"}
+        </button>
+        <span className="text-xs text-muted-foreground">or</span>
         <button
           type="button"
           onClick={() => setFeedbackOpen(true)}
-          className="underline transition-colors cursor-pointer hover:text-foreground"
+          className="text-xs underline transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
         >
           contact support
         </button>
@@ -284,7 +323,15 @@ export const ChatMessage = memo(
             aria-keyshortcuts="r b c delete"
           >
             {isError ? (
-              <ErrorDisplay error={message.error} />
+              <ErrorDisplay
+                error={message.error}
+                messageId={message._id as Id<"messages">}
+                hasFailedModels={
+                  "failedModels" in message &&
+                  Array.isArray(message.failedModels) &&
+                  message.failedModels.length > 0
+                }
+              />
             ) : (
               <>
                 {/* Sender attribution for collaborative conversations */}
@@ -346,6 +393,11 @@ export const ChatMessage = memo(
                       <MessageLoadingState
                         isThinkingModel={
                           isThinkingModel && !!message.thinkingStartedAt
+                        }
+                        isAutoRetrying={
+                          "retryCount" in message &&
+                          typeof message.retryCount === "number" &&
+                          message.retryCount > 0
                         }
                       />
                     ) : null}

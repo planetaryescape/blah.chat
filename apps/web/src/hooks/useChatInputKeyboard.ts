@@ -5,6 +5,7 @@ interface UseChatInputKeyboardProps {
   setInput: (value: string) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   onSubmit: (e: React.FormEvent | React.KeyboardEvent) => void;
+  isComposing: boolean;
 }
 
 /**
@@ -16,8 +17,12 @@ export function useChatInputKeyboard({
   setInput,
   textareaRef,
   onSubmit,
+  isComposing,
 }: UseChatInputKeyboardProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Block during IME composition (CJK input - Safari uses nativeEvent)
+    if (isComposing || e.nativeEvent.isComposing) return;
+
     // Enter without Shift submits the form
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();

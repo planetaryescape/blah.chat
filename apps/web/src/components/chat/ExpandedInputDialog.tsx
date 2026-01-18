@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +29,7 @@ export function ExpandedInputDialog({
   placeholder,
 }: ExpandedInputDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isComposing, setIsComposing] = useState(false);
 
   useEffect(() => {
     if (open && textareaRef.current) {
@@ -39,6 +40,9 @@ export function ExpandedInputDialog({
   }, [open, value.length]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Block during IME composition (CJK input - Safari uses nativeEvent)
+    if (isComposing || e.nativeEvent.isComposing) return;
+
     // Cmd/Ctrl + Enter to submit
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -76,6 +80,8 @@ export function ExpandedInputDialog({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
             placeholder={placeholder}
             className="h-full w-full resize-none border-0 bg-transparent focus-visible:ring-0 text-base"
           />

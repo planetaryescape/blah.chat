@@ -335,6 +335,8 @@ export const regenerate = mutation({
   args: {
     messageId: v.id("messages"),
     modelId: v.optional(v.string()),
+    /** Pass failed models from error recovery to exclude them from retry */
+    useFailedModelsFromMessage: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Id<"messages">> => {
     const identity = await ctx.auth.getUserIdentity();
@@ -376,6 +378,10 @@ export const regenerate = mutation({
       reasoning: undefined,
       thinkingStartedAt: undefined,
       thinkingCompletedAt: undefined,
+      // Clear retry tracking when manually regenerating
+      failedModels: undefined,
+      retryCount: undefined,
+      error: undefined,
       updatedAt: Date.now(),
     });
 
@@ -397,12 +403,18 @@ export const regenerate = mutation({
       await ctx.db.delete(src._id);
     }
 
+    // Get excluded models if retrying from error
+    const excludedModels = args.useFailedModelsFromMessage
+      ? message.failedModels
+      : undefined;
+
     // Schedule generation (reuse existing message)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: message.conversationId,
       existingMessageId: args.messageId,
       modelId,
       userId: conversation.userId,
+      excludedModels,
     });
 
     // Update conversation timestamp

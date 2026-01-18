@@ -411,6 +411,8 @@
 .messages-container {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  overflow-anchor: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {

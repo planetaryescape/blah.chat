@@ -311,26 +311,24 @@ export const ChatInput = memo(function ChatInput({
   }, [conversationId]);
 
   // Paste handling helpers
-  const insertTextAtCursor = useCallback(
-    (text: string) => {
-      const textarea = textareaRef.current;
-      if (!textarea) return;
+  const insertTextAtCursor = useCallback((text: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const before = input.slice(0, start);
-      const after = input.slice(end);
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentValue = textarea.value;
+    const before = currentValue.slice(0, start);
+    const after = currentValue.slice(end);
 
-      const newValue = before + text + after;
-      setInput(newValue);
+    const newValue = before + text + after;
+    setInput(newValue);
 
-      requestAnimationFrame(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + text.length;
-        textarea.focus();
-      });
-    },
-    [input],
-  );
+    requestAnimationFrame(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + text.length;
+      textarea.focus();
+    });
+  }, []);
 
   const handleImagePaste = useCallback(
     async (file: File) => {

@@ -1,6 +1,31 @@
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
+import type { MutationCtx } from "../_generated/server";
 import { internalMutation } from "../_generated/server";
 import { logger } from "../lib/logger";
+
+/**
+ * Force release generation lock for a conversation.
+ * Used during stuck message recovery to clean up abandoned locks.
+ */
+async function forceReleaseLockForConversation(
+  ctx: MutationCtx,
+  conversationId: Id<"conversations">,
+): Promise<void> {
+  const lock = await ctx.db
+    .query("generationLocks")
+    .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+    .first();
+
+  if (lock) {
+    await ctx.db.delete(lock._id);
+    logger.info("Force released lock during message recovery", {
+      tag: "MessageRecovery",
+      conversationId,
+      lockAge: Date.now() - lock.lockedAt,
+    });
+  }
+}
 
 /**
  * Maximum time a message can be in pending/generating state before it's considered stuck.
@@ -85,6 +110,10 @@ export const recoverStuckMessages = internalMutation({
           "Generation timed out. The AI took too long to respond. Please try again.",
         generationCompletedAt: now,
       });
+
+      // Force release any generation lock for this conversation
+      await forceReleaseLockForConversation(ctx, message.conversationId);
+
       recoveredCount++;
 
       logger.info("Recovered stuck message", {
@@ -138,6 +167,9 @@ export const recoverMessage = internalMutation({
         "Generation timed out. The AI took too long to respond. Please try again.",
       generationCompletedAt: now,
     });
+
+    // Force release any generation lock for this conversation
+    await forceReleaseLockForConversation(ctx, message.conversationId);
 
     logger.info("Manually recovered stuck message", {
       tag: "MessageRecovery",

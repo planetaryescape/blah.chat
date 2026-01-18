@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.0](https://github.com/planetaryescape/blah.chat/compare/v1.0.1...v1.1.0) (2026-01-18)
+
+
+### Features
+
+* **input:** auto-convert large pastes to file attachments ([198227c](https://github.com/planetaryescape/blah.chat/commit/198227cfd600299556753512c3f3b9b4e2c34857))
+* persist unsent message drafts in sessionStorage ([69a44df](https://github.com/planetaryescape/blah.chat/commit/69a44dff54d326a0b23e3c2e311c6dec8ff4aa8f))
+
+
+### Bug Fixes
+
+* always set input on conversation switch to clear stale text ([97eae48](https://github.com/planetaryescape/blah.chat/commit/97eae48790314e2cbd8ba22bb446dc5cd2a50f9d))
+* **input:** prevent Enter submission during IME composition ([e0f89bc](https://github.com/planetaryescape/blah.chat/commit/e0f89bc5126b19e6b46b891fbe8bcead28930f52))
+* read textarea.value to avoid race condition in insertTextAtCursor ([b9d55c3](https://github.com/planetaryescape/blah.chat/commit/b9d55c3369ce04492a5f8de8c9bca41db4f16caa))
+* remove underscore prefix from isComposing variable ([81ac605](https://github.com/planetaryescape/blah.chat/commit/81ac60510d01a147ac27b335ead858594a5cd957))
+
 ## [1.0.1](https://github.com/planetaryescape/blah.chat/compare/v1.0.0...v1.0.1) (2026-01-18)
 
 

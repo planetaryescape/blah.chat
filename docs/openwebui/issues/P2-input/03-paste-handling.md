@@ -1,7 +1,16 @@
 # Paste Handling
 
+> **Status**: ✅ DONE (PR #168)
 > **Phase**: P2-input | **Effort**: 2h | **Impact**: Common workflow support
 > **Dependencies**: None | **Breaking**: No
+
+## Implementation Notes
+
+Implemented in PR #168 with slight modification:
+- Large pastes (10k+ chars) → auto-convert to `.txt` file attachment (better UX than confirmation dialog)
+- HTML stripping → plain text only
+- Image paste → attachment with preview
+- Race condition fix: reads `textarea.value` instead of closure state
 
 ---
 

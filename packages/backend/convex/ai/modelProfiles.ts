@@ -226,14 +226,6 @@ export const MODEL_CONFIG: Record<string, ModelConfigForRouter> = {
   },
 
   // Meta Llama (via Cerebras/Groq)
-  "meta:llama-4-maverick": {
-    id: "meta:llama-4-maverick",
-    name: "Llama 4 Maverick",
-    contextWindow: 1048576,
-    pricing: { input: 0.2, output: 0.6 },
-    capabilities: ["vision", "function-calling"],
-    hostOrder: ["cerebras", "groq"],
-  },
   "meta:llama-4-scout": {
     id: "meta:llama-4-scout",
     name: "Llama 4 Scout",
@@ -561,20 +553,6 @@ export const MODEL_PROFILES: Record<string, ModelProfile> = {
   },
 
   // Llama
-  "meta:llama-4-maverick": {
-    modelId: "meta:llama-4-maverick",
-    qualityScore: 88,
-    categoryScores: {
-      coding: 85,
-      reasoning: 82,
-      creative: 85,
-      factual: 85,
-      analysis: 82,
-      conversation: 88,
-      multimodal: 85,
-      research: 70,
-    },
-  },
   "meta:llama-4-scout": {
     modelId: "meta:llama-4-scout",
     qualityScore: 82,

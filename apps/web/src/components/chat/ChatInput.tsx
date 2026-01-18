@@ -16,6 +16,7 @@ import {
 import useBrowserFeature from "@/hooks/useBrowserFeature";
 import { useChatInputEvents } from "@/hooks/useChatInputEvents";
 import { useChatInputKeyboard } from "@/hooks/useChatInputKeyboard";
+import { useIOSKeyboard } from "@/hooks/useIOSKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
@@ -135,6 +136,9 @@ export const ChatInput = memo(function ChatInput({
   const dragCounterRef = useRef(0);
   const { isMobile, isTouchDevice } = useMobileDetect();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
+
+  // iOS keyboard handling - scrolls input into view when virtual keyboard appears
+  useIOSKeyboard({ inputRef: textareaRef });
 
   const { mutate: sendMessage } = useSendMessage(onOptimisticUpdate);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)

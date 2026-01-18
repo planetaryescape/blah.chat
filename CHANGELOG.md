@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/planetaryescape/blah.chat/compare/v1.0.0...v1.0.1) (2026-01-18)
+
+
+### Bug Fixes
+
+* add Bun setup to Vercel deploy workflow ([efad8e0](https://github.com/planetaryescape/blah.chat/commit/efad8e0f77620628cd90a05da4dd6c311d1de5ca))
+
 ## 1.0.0 (2026-01-18)
 
 

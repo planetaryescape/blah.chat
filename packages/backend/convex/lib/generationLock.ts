@@ -245,6 +245,9 @@ export const getLockStatus = internalQuery({
 /**
  * Cleanup stale locks older than the timeout.
  * Called by cron job.
+ *
+ * Only deletes locks if there's no active generating message -
+ * this prevents killing locks for legitimately long-running generations.
  */
 export const cleanupStaleLocks = internalMutation({
   args: {
@@ -260,24 +263,53 @@ export const cleanupStaleLocks = internalMutation({
       .filter((q) => q.lt(q.field("lockedAt"), cutoff))
       .collect();
 
-    // Delete stale locks
+    // Delete stale locks only if no active generation
+    let cleaned = 0;
     for (const lock of staleLocks) {
-      await ctx.db.delete(lock._id);
-      logger.info("Cleaned up stale generation lock", {
-        tag: "GenerationLock",
-        conversationId: lock.conversationId,
-        ageMs: Date.now() - lock.lockedAt,
-      });
+      // Check if there's still an active generating message for this conversation
+      const activeMessage = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", lock.conversationId),
+        )
+        .filter((q) =>
+          q.or(
+            q.eq(q.field("status"), "pending"),
+            q.eq(q.field("status"), "generating"),
+          ),
+        )
+        .first();
+
+      if (activeMessage) {
+        // Lock is stale but generation still running - refresh lock instead of deleting
+        await ctx.db.patch(lock._id, { lockedAt: Date.now() });
+        logger.info("Refreshed lock for active generation", {
+          tag: "GenerationLock",
+          conversationId: lock.conversationId,
+          messageId: activeMessage._id,
+          originalAge: Date.now() - lock.lockedAt,
+        });
+      } else {
+        // No active generation - safe to delete
+        await ctx.db.delete(lock._id);
+        cleaned++;
+        logger.info("Cleaned up stale generation lock", {
+          tag: "GenerationLock",
+          conversationId: lock.conversationId,
+          ageMs: Date.now() - lock.lockedAt,
+        });
+      }
     }
 
-    if (staleLocks.length > 0) {
+    if (cleaned > 0) {
       logger.info("Stale lock cleanup completed", {
         tag: "GenerationLock",
-        cleaned: staleLocks.length,
+        cleaned,
+        total: staleLocks.length,
       });
     }
 
-    return { cleaned: staleLocks.length };
+    return { cleaned };
   },
 });
 

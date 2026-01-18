@@ -45,6 +45,9 @@ import {
 // Re-export generation submodules
 export * as image from "./generation/image";
 
+// Re-export lock utilities for cron job
+export { cleanupStaleLocks } from "./lib/generationLock";
+
 /** Maximum tool execution steps before stopping (prevents runaway loops) */
 const MAX_TOOL_STEPS = 15;
 
@@ -1218,6 +1221,13 @@ export const generateResponse = internalAction({
         });
       }
 
+      // Release generation lock (decrements pendingCount for comparison mode)
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.generationLock.releaseLock,
+        { conversationId: args.conversationId },
+      );
+
       // Track streaming completed with performance metrics
       const generationTimeMs = Date.now() - generationStartTime;
       const firstTokenLatencyMs = firstTokenTime
@@ -1322,6 +1332,12 @@ export const generateResponse = internalAction({
           tag: "Generation",
           messageId: assistantMessageId,
         });
+        // Release lock even on stop
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.lib.generationLock.releaseLock,
+          { conversationId: args.conversationId },
+        );
         return; // Clean exit - message already marked stopped
       }
 
@@ -1650,6 +1666,13 @@ export const generateResponse = internalAction({
         tag: "Generation",
         error: String(error),
       });
+
+      // Release lock on error
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.generationLock.releaseLock,
+        { conversationId: args.conversationId },
+      );
 
       await ctx.runMutation(internal.messages.markError, {
         messageId: assistantMessageId,

@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useMessageGrouping";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useScrollIntent } from "@/hooks/useScrollIntent";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
@@ -65,6 +66,13 @@ export function VirtualizedMessageList({
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
   const _reducedMotion = usePrefersReducedMotion();
 
+  // Scroll position restoration per conversation
+  const { restore: restoreScrollPosition } = useScrollRestoration(
+    conversationId,
+    scrollerRef,
+    virtuosoRef,
+  );
+
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
@@ -88,21 +96,22 @@ export function VirtualizedMessageList({
   // Track which conversation we've scrolled for
   const scrolledForConversationRef = useRef<string | undefined>(undefined);
 
-  // Scroll to bottom when conversation changes or on initial load
+  // Scroll to saved position or bottom when conversation changes
   useEffect(() => {
-    // Skip if no messages yet
     if (grouped.length === 0) return;
-
-    // Skip if we've already scrolled for this conversation
     if (scrolledForConversationRef.current === conversationId) return;
-
-    // Mark as scrolled for this conversation
     scrolledForConversationRef.current = conversationId;
 
+    // Try restore saved position first
+    const restored = restoreScrollPosition();
+    if (restored) {
+      onScrollReady?.(true);
+      return;
+    }
+
+    // No saved position - scroll to bottom
     if (!useVirtualization && scrollContainerRef.current) {
-      // Simple mode: smooth scroll after DOM renders
       const container = scrollContainerRef.current;
-      // Wait for DOM, then smooth scroll (instant for reduced motion)
       setTimeout(() => {
         smoothScrollToBottom(container, {
           smooth: !_reducedMotion,
@@ -110,7 +119,6 @@ export function VirtualizedMessageList({
         });
       }, 50);
     } else if (useVirtualization) {
-      // Virtualized mode with multiple attempts
       const scrollToEnd = () => {
         virtuosoRef.current?.scrollToIndex({
           index: grouped.length - 1,
@@ -131,6 +139,7 @@ export function VirtualizedMessageList({
     useVirtualization,
     onScrollReady,
     _reducedMotion,
+    restoreScrollPosition,
   ]);
 
   // Track scroll position for "scroll to bottom" button (simple mode)

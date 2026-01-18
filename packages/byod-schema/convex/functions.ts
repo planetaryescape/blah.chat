@@ -8,5 +8,9 @@ export const ping = query({
 
 export const getSystemInfo = query({
   args: {},
-  handler: async () => ({ schemaVersion: 25, provider: "blah.chat", type: "byod" }),
+  handler: async () => ({
+    schemaVersion: 25,
+    provider: "blah.chat",
+    type: "byod",
+  }),
 });

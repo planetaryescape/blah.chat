@@ -98,6 +98,9 @@ export const messagesTable = defineTable({
       }),
     ),
   ),
+  // Retry tracking for auto-router recovery
+  failedModels: v.optional(v.array(v.string())),
+  retryCount: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
 })

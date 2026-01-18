@@ -43,21 +43,22 @@ export const acquireLock = internalMutation({
       .first();
 
     if (existingLock) {
-      // Check if stale (> 60s old) - delete and fall through to create new lock
-      if (now - existingLock.lockedAt > STALE_LOCK_TIMEOUT_MS) {
+      const isStale = now - existingLock.lockedAt > STALE_LOCK_TIMEOUT_MS;
+
+      if (isStale) {
+        // Stale lock - delete it and create new one below
         await ctx.db.delete(existingLock._id);
         logger.info("Deleted stale generation lock", {
           tag: "GenerationLock",
           conversationId: args.conversationId,
           ageMs: now - existingLock.lockedAt,
         });
-        // Fall through to create new lock below
-      }
-      // Same comparison group - increment pendingCount and refresh lockedAt
-      else if (
+        // Continue to create new lock below (don't return here)
+      } else if (
         args.comparisonGroupId &&
         existingLock.comparisonGroupId === args.comparisonGroupId
       ) {
+        // Same comparison group - increment pendingCount and refresh lockedAt
         await ctx.db.patch(existingLock._id, {
           pendingCount: existingLock.pendingCount + (args.modelCount || 1),
           lockedAt: now, // Refresh to prevent stale timeout during long comparisons
@@ -69,9 +70,8 @@ export const acquireLock = internalMutation({
           newCount: existingLock.pendingCount + (args.modelCount || 1),
         });
         return true;
-      }
-      // Active lock from different request - block
-      else {
+      } else {
+        // Active lock from different request - block
         logger.info("Lock acquisition blocked - conversation locked", {
           tag: "GenerationLock",
           conversationId: args.conversationId,

@@ -28,6 +28,9 @@ export function useDeleteConversation() {
         queryKey: queryKeys.conversations.detail(variables.conversationId),
       });
 
+      // Clear draft for deleted conversation
+      sessionStorage.removeItem(`draft-${variables.conversationId}`);
+
       toast.success("Conversation deleted");
     },
 

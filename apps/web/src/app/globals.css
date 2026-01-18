@@ -415,6 +415,11 @@
   overflow-anchor: auto;
 }
 
+/* Prevent loading elements from being anchor candidates */
+.scroll-anchor-ignore {
+  overflow-anchor: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .messages-container {
     scroll-behavior: auto !important;

@@ -209,7 +209,9 @@ export const sendMessage = mutation({
       throw new Error("Please wait for the current response to complete.");
     }
 
-    // 5. Create messages and schedule generations - release lock on failure
+    // 5. Create messages and schedule generations - release lock on any failure
+    // Note: Convex mutations are atomic, so failures roll back everything.
+    // The try/catch with forceReleaseLock is belt-and-suspenders safety.
     let userMessageId: Id<"messages">;
     const assistantMessageIds: Id<"messages">[] = [];
 
@@ -242,8 +244,46 @@ export const sendMessage = mutation({
         )) as Id<"messages">;
         assistantMessageIds.push(assistantMessageId);
       }
+
+      // 6. Schedule generation actions with existing message IDs
+      for (let i = 0; i < modelsToUse.length; i++) {
+        await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+          conversationId,
+          existingMessageId: assistantMessageIds[i],
+          modelId: modelsToUse[i],
+          userId: user._id,
+          thinkingEffort: args.thinkingEffort as any,
+          comparisonGroupId,
+        });
+      }
+
+      // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
+      if (
+        conversationId &&
+        modelsToUse[0] !== "auto" &&
+        !comparisonGroupId &&
+        shouldAnalyzeModelFit(modelsToUse[0])
+      ) {
+        await ctx.scheduler.runAfter(
+          0, // Immediate, non-blocking
+          // @ts-ignore
+          internal.ai.modelTriage.analyzeModelFit,
+          {
+            conversationId,
+            userMessage: args.content,
+            currentModelId: modelsToUse[0],
+          },
+        );
+      }
+
+      // 8. Schedule background housekeeping (non-blocking)
+      // This handles: daily count, timestamp update, limit checks, memory extraction
+      await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+        userId: user._id,
+        conversationId: conversationId!,
+      });
     } catch (error) {
-      // Release lock if message creation fails
+      // Release lock on any failure (message creation or scheduling)
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.lib.generationLock.forceReleaseLock,
@@ -251,44 +291,6 @@ export const sendMessage = mutation({
       );
       throw error;
     }
-
-    // 6. Schedule generation actions with existing message IDs
-    for (let i = 0; i < modelsToUse.length; i++) {
-      await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
-        conversationId,
-        existingMessageId: assistantMessageIds[i],
-        modelId: modelsToUse[i],
-        userId: user._id,
-        thinkingEffort: args.thinkingEffort as any,
-        comparisonGroupId,
-      });
-    }
-
-    // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
-    if (
-      conversationId &&
-      modelsToUse[0] !== "auto" &&
-      !comparisonGroupId &&
-      shouldAnalyzeModelFit(modelsToUse[0])
-    ) {
-      await ctx.scheduler.runAfter(
-        0, // Immediate, non-blocking
-        // @ts-ignore
-        internal.ai.modelTriage.analyzeModelFit,
-        {
-          conversationId,
-          userMessage: args.content,
-          currentModelId: modelsToUse[0],
-        },
-      );
-    }
-
-    // 8. Schedule background housekeeping (non-blocking)
-    // This handles: daily count, timestamp update, limit checks, memory extraction
-    await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
-      userId: user._id,
-      conversationId: conversationId!,
-    });
 
     // 9. Return immediately with all message IDs
     return {

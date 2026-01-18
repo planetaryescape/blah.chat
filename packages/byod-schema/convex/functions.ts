@@ -1,11 +1,11 @@
-// BYOD Functions v32 - DO NOT EDIT
+// BYOD Functions v33 - DO NOT EDIT
 import { query } from "./_generated/server";
 
 export const ping = query({
   args: {},
   handler: async () => ({
     status: "ok",
-    version: 32,
+    version: 33,
     timestamp: Date.now(),
   }),
 });
@@ -13,7 +13,7 @@ export const ping = query({
 export const getSystemInfo = query({
   args: {},
   handler: async () => ({
-    schemaVersion: 32,
+    schemaVersion: 33,
     provider: "blah.chat",
     type: "byod",
   }),

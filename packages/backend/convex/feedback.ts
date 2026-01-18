@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalQuery, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 // Re-export triage module
@@ -282,6 +287,63 @@ export const archiveFeedback = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ============================================================================
+// INTERNAL MUTATIONS
+// ============================================================================
+
+/**
+ * Create system-generated feedback for automated error tracking.
+ * Used when generation fails after all retries are exhausted.
+ */
+export const createSystemFeedback = internalMutation({
+  args: {
+    userId: v.id("users"),
+    errorContext: v.object({
+      conversationId: v.optional(v.id("conversations")),
+      messageId: v.optional(v.id("messages")),
+      modelId: v.optional(v.string()),
+      errorMessage: v.optional(v.string()),
+      errorType: v.optional(v.string()),
+      failedModels: v.optional(v.array(v.string())),
+      userAgent: v.optional(v.string()),
+      environment: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    // Get user info
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const now = Date.now();
+
+    // Create system feedback entry
+    const feedbackId = await ctx.db.insert("feedback", {
+      userId: args.userId,
+      userEmail: user.email || "system@blah.chat",
+      userName: "System (Auto-Generated)",
+      page: args.errorContext.conversationId
+        ? `/chat/${args.errorContext.conversationId}`
+        : "/chat",
+      feedbackType: "bug",
+      description: `Auto-router failure: ${args.errorContext.errorType || "unknown"} error after ${args.errorContext.failedModels?.length || 0} model attempts.\n\nError: ${args.errorContext.errorMessage || "Unknown error"}\n\nFailed models: ${args.errorContext.failedModels?.join(", ") || "none"}`,
+      status: "new",
+      priority: "high",
+      tags: [
+        "system-generated",
+        "auto-router",
+        args.errorContext.errorType || "unknown-error",
+      ],
+      errorContext: args.errorContext,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return feedbackId;
   },
 });
 

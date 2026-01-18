@@ -45,9 +45,6 @@ import {
 // Re-export generation submodules
 export * as image from "./generation/image";
 
-// Re-export lock utilities for cron job
-export { cleanupStaleLocks } from "./lib/generationLock";
-
 /** Maximum tool execution steps before stopping (prevents runaway loops) */
 const MAX_TOOL_STEPS = 15;
 

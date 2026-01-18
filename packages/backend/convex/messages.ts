@@ -210,6 +210,27 @@ export const updateRoutingDecision = internalMutation({
   },
 });
 
+/**
+ * Mark message as retrying with a different model.
+ * Used by auto-router recovery when initial model fails.
+ */
+export const markRetrying = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    failedModels: v.array(v.string()),
+    retryCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      status: "generating",
+      failedModels: args.failedModels,
+      retryCount: args.retryCount,
+      error: undefined,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // ===== List Queries =====
 
 export const list = query({

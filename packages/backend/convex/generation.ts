@@ -73,6 +73,8 @@ export const generateResponse = internalAction({
     systemPromptOverride: v.optional(v.string()), // For consolidation
     /** Messages from client for fast inference (skip DB fetch) */
     passedMessages: v.optional(v.array(passedMessageValidator)),
+    /** Models to exclude from auto-router (failed in previous attempts) */
+    excludedModels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     // Timing variables for performance metrics
@@ -166,6 +168,7 @@ export const generateResponse = internalAction({
             speedBias: speedBias ?? 50,
           },
           previousSelectedModel,
+          excludedModels: args.excludedModels,
         },
       )) as {
         selectedModelId: string;
@@ -1387,6 +1390,123 @@ export const generateResponse = internalAction({
             errorMessage:
               error instanceof Error ? error.message : String(error),
             modelId: args.modelId,
+          },
+        );
+      }
+
+      // Auto-retry with different model if auto-selected and error is retryable
+      const isAutoSelected = _wasAutoSelected || !!routingDecision;
+      const isRetryableError = [
+        "model_not_found",
+        "gateway_error",
+        "rate_limit",
+      ].includes(errorType);
+
+      if (isAutoSelected && isRetryableError) {
+        // Get current message state to check retry count
+        const currentMessage = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.get,
+          { messageId: assistantMessageId },
+        )) as Doc<"messages"> | null;
+
+        const failedModels = [
+          ...(currentMessage?.failedModels || []),
+          ...(args.excludedModels || []),
+          modelId,
+        ];
+        const retryCount = (currentMessage?.retryCount || 0) + 1;
+
+        if (retryCount < 3) {
+          logger.info("Auto-router retry: switching to different model", {
+            tag: "Generation",
+            messageId: assistantMessageId,
+            failedModels,
+            retryCount,
+            errorType,
+          });
+
+          // Mark message as retrying (clears error, updates status)
+          await (ctx.runMutation as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.markRetrying,
+            {
+              messageId: assistantMessageId,
+              failedModels,
+              retryCount,
+            },
+          );
+
+          // Re-invoke generation with excluded models
+          await ctx.scheduler.runAfter(
+            0,
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.generation.generateResponse,
+            {
+              conversationId: args.conversationId,
+              modelId: "auto", // Force auto-routing again
+              userId: args.userId,
+              thinkingEffort: args.thinkingEffort,
+              comparisonGroupId: args.comparisonGroupId,
+              existingMessageId: assistantMessageId,
+              systemPromptOverride: args.systemPromptOverride,
+              passedMessages: args.passedMessages,
+              excludedModels: failedModels,
+            },
+          );
+
+          return; // Exit without marking error - retry in progress
+        }
+
+        // All retries exhausted - create system feedback and alert admin
+        logger.error("Auto-router: all retries exhausted", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+          failedModels,
+          retryCount,
+        });
+
+        // Get user info for the alert
+        const user = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.lib.helpers.getCurrentUser,
+          {},
+        )) as Doc<"users"> | null;
+
+        // Create system feedback entry for tracking
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.feedback.createSystemFeedback,
+          {
+            userId: args.userId,
+            errorContext: {
+              conversationId: args.conversationId,
+              messageId: assistantMessageId,
+              modelId,
+              errorMessage:
+                error instanceof Error ? error.message : String(error),
+              errorType,
+              failedModels,
+              environment: process.env.NODE_ENV || "development",
+            },
+          },
+        );
+
+        // Send admin alert email
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.emails.utils.send.sendGenerationErrorAlert,
+          {
+            userId: args.userId,
+            userEmail: user?.email,
+            conversationId: args.conversationId,
+            messageId: assistantMessageId,
+            modelId,
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            errorType,
+            failedModels,
           },
         );
       }

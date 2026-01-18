@@ -185,6 +185,7 @@ export const routeMessage = internalAction({
       speedBias: v.number(),
     }),
     previousSelectedModel: v.optional(v.string()),
+    excludedModels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args): Promise<RouterResult> => {
     const startTime = Date.now();
@@ -199,10 +200,11 @@ export const routeMessage = internalAction({
         args.userId,
       );
 
-      // 2. Get eligible models (filter by capabilities, context, etc.)
+      // 2. Get eligible models (filter by capabilities, context, excluded models, etc.)
       const eligibleModels = getEligibleModels(
         classification,
         args.currentContextTokens ?? 0,
+        args.excludedModels,
       );
 
       if (eligibleModels.length === 0) {
@@ -368,9 +370,13 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
 function getEligibleModels(
   classification: TaskClassification,
   currentContextTokens: number,
+  excludedModels?: string[],
 ): string[] {
   return Object.keys(MODEL_CONFIG).filter((modelId) => {
     const config = MODEL_CONFIG[modelId];
+
+    // Exclude failed models from retry attempts
+    if (excludedModels?.includes(modelId)) return false;
 
     // Exclude internal-only models
     if (config.isInternalOnly) return false;

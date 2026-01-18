@@ -210,6 +210,15 @@ describe("model switching", () => {
         modelId: "openai:gpt-4o-mini",
       });
 
+      // Release lock (generation action doesn't run in tests due to fake timers)
+      await t.run(async (ctx) => {
+        const lock = await ctx.db
+          .query("generationLocks")
+          .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
+          .first();
+        if (lock) await ctx.db.delete(lock._id);
+      });
+
       // Switch model
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await asUser.mutation(api.conversations.updateModel, {

@@ -373,17 +373,28 @@ export const updateStatus = internalMutation({
   },
 });
 
+const TERMINAL_STATUSES = new Set(["complete", "stopped", "error"]);
+
 export const updatePartialContent = internalMutation({
   args: {
     messageId: v.id("messages"),
     partialContent: v.string(),
   },
+  returns: v.object({ updated: v.boolean(), reason: v.optional(v.string()) }),
   handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return { updated: false, reason: "not_found" };
+
+    if (TERMINAL_STATUSES.has(message.status)) {
+      return { updated: false, reason: `terminal:${message.status}` };
+    }
+
     await ctx.db.patch(args.messageId, {
       partialContent: args.partialContent,
       status: "generating",
       updatedAt: Date.now(),
     });
+    return { updated: true };
   },
 });
 
@@ -454,6 +465,21 @@ export const completeMessage = internalMutation({
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
+
+    // Respect terminal states - update metrics but don't change status
+    if (message.status === "stopped" || message.status === "error") {
+      await ctx.db.patch(args.messageId, {
+        inputTokens: args.inputTokens,
+        outputTokens: args.outputTokens,
+        reasoningTokens: args.reasoningTokens,
+        cost: args.cost,
+        tokensPerSecond: args.tokensPerSecond,
+        providerMetadata: args.providerMetadata,
+        generationCompletedAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      return;
+    }
 
     await ctx.db.patch(args.messageId, {
       content: args.content,

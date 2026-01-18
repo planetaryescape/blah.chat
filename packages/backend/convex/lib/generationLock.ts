@@ -43,23 +43,24 @@ export const acquireLock = internalMutation({
       .first();
 
     if (existingLock) {
-      // Check if stale (> 60s old)
+      // Check if stale (> 60s old) - delete and fall through to create new lock
       if (now - existingLock.lockedAt > STALE_LOCK_TIMEOUT_MS) {
-        // Stale lock - delete and allow acquisition
         await ctx.db.delete(existingLock._id);
         logger.info("Deleted stale generation lock", {
           tag: "GenerationLock",
           conversationId: args.conversationId,
           ageMs: now - existingLock.lockedAt,
         });
+        // Fall through to create new lock below
       }
-      // Same comparison group - increment pendingCount
+      // Same comparison group - increment pendingCount and refresh lockedAt
       else if (
         args.comparisonGroupId &&
         existingLock.comparisonGroupId === args.comparisonGroupId
       ) {
         await ctx.db.patch(existingLock._id, {
           pendingCount: existingLock.pendingCount + (args.modelCount || 1),
+          lockedAt: now, // Refresh to prevent stale timeout during long comparisons
         });
         logger.info("Incremented lock pendingCount for comparison", {
           tag: "GenerationLock",
@@ -69,7 +70,7 @@ export const acquireLock = internalMutation({
         });
         return true;
       }
-      // Different request, conversation is locked
+      // Active lock from different request - block
       else {
         logger.info("Lock acquisition blocked - conversation locked", {
           tag: "GenerationLock",
@@ -283,6 +284,7 @@ export const cleanupStaleLocks = internalMutation({
 /**
  * Public query for frontend to check if generation is locked.
  * Enables disabling send button while generating.
+ * Returns false for stale locks (>60s) - actual cleanup done by cron.
  */
 export const isGenerationLocked = query({
   args: {

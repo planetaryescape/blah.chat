@@ -48,7 +48,11 @@ export * as image from "./generation/image";
 /** Maximum tool execution steps before stopping (prevents runaway loops) */
 const MAX_TOOL_STEPS = 15;
 
-/** Maximum auto-retry attempts when auto-router selected model fails */
+/**
+ * Maximum auto-retry attempts when auto-router selected model fails.
+ * With `retryCount < MAX`, allows up to (MAX-1) retries.
+ * Example: MAX=3 means retryCount 1,2 allowed = 2 retries = 3 total attempts.
+ */
 const _MAX_AUTO_RETRY_ATTEMPTS = 3;
 
 // Minimal message shape for fast inference (client sends, server skips DB fetch)
@@ -1423,7 +1427,7 @@ export const generateResponse = internalAction({
         );
         const retryCount = (currentMessage?.retryCount || 0) + 1;
 
-        if (retryCount <= _MAX_AUTO_RETRY_ATTEMPTS) {
+        if (retryCount < _MAX_AUTO_RETRY_ATTEMPTS) {
           logger.info("Auto-router retry: switching to different model", {
             tag: "Generation",
             messageId: assistantMessageId,

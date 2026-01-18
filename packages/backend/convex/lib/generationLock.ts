@@ -263,53 +263,26 @@ export const cleanupStaleLocks = internalMutation({
       .filter((q) => q.lt(q.field("lockedAt"), cutoff))
       .collect();
 
-    // Delete stale locks only if no active generation
-    let cleaned = 0;
+    // Delete stale locks unconditionally.
+    // If there's still an active message, stuck message recovery (10 min) will handle it
+    // and release the lock properly. Refreshing here could extend bad state.
     for (const lock of staleLocks) {
-      // Check if there's still an active generating message for this conversation
-      const activeMessage = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) =>
-          q.eq("conversationId", lock.conversationId),
-        )
-        .filter((q) =>
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "generating"),
-          ),
-        )
-        .first();
-
-      if (activeMessage) {
-        // Lock is stale but generation still running - refresh lock instead of deleting
-        await ctx.db.patch(lock._id, { lockedAt: Date.now() });
-        logger.info("Refreshed lock for active generation", {
-          tag: "GenerationLock",
-          conversationId: lock.conversationId,
-          messageId: activeMessage._id,
-          originalAge: Date.now() - lock.lockedAt,
-        });
-      } else {
-        // No active generation - safe to delete
-        await ctx.db.delete(lock._id);
-        cleaned++;
-        logger.info("Cleaned up stale generation lock", {
-          tag: "GenerationLock",
-          conversationId: lock.conversationId,
-          ageMs: Date.now() - lock.lockedAt,
-        });
-      }
-    }
-
-    if (cleaned > 0) {
-      logger.info("Stale lock cleanup completed", {
+      await ctx.db.delete(lock._id);
+      logger.info("Cleaned up stale generation lock", {
         tag: "GenerationLock",
-        cleaned,
-        total: staleLocks.length,
+        conversationId: lock.conversationId,
+        ageMs: Date.now() - lock.lockedAt,
       });
     }
 
-    return { cleaned };
+    if (staleLocks.length > 0) {
+      logger.info("Stale lock cleanup completed", {
+        tag: "GenerationLock",
+        cleaned: staleLocks.length,
+      });
+    }
+
+    return { cleaned: staleLocks.length };
   },
 });
 

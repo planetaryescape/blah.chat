@@ -2,6 +2,7 @@
 
 > **Phase**: P1-scroll | **Effort**: 3h | **Impact**: Professional UX feel
 > **Dependencies**: None | **Breaking**: No
+> **Status**: ✅ Complete (2026-01-17) - Implemented in `feat(scroll): add smooth scrolling animations`
 
 ---
 

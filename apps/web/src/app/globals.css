@@ -407,6 +407,18 @@
   scroll-margin-top: 5rem; /* 80px - accounts for header + breathing room */
 }
 
+/* Smooth Scrolling for Message Containers */
+.messages-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messages-container {
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Performance Optimizations */
 .prose {
   /* Prevent layout thrashing during streaming */

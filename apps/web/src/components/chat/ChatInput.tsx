@@ -5,7 +5,8 @@ import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Expand, Loader2, Send, Square, Upload } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -147,6 +148,10 @@ export const ChatInput = memo(function ChatInput({
   const lastAssistantMessage = useQuery(api.messages.getLastAssistantMessage, {
     conversationId,
   });
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const saveFile = useMutation(api.files.saveFile);
 
   // Check model capabilities
   const modelConfig = getModelConfig(selectedModel);
@@ -305,6 +310,187 @@ export const ChatInput = memo(function ChatInput({
     setInput(savedDraft || "");
   }, [conversationId]);
 
+  // Paste handling helpers
+  const insertTextAtCursor = useCallback(
+    (text: string) => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = input.slice(0, start);
+      const after = input.slice(end);
+
+      const newValue = before + text + after;
+      setInput(newValue);
+
+      requestAnimationFrame(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+        textarea.focus();
+      });
+    },
+    [input],
+  );
+
+  const handleImagePaste = useCallback(
+    async (file: File) => {
+      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_SIZE) {
+        toast.error("Image too large (max 10MB)");
+        return;
+      }
+
+      const validTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Unsupported image format");
+        return;
+      }
+
+      setUploading(true);
+      try {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        const { storageId } = await result.json();
+
+        await saveFile({
+          storageId,
+          name: file.name || `pasted-image-${Date.now()}.png`,
+          mimeType: file.type,
+          size: file.size,
+          conversationId,
+        });
+
+        const attachment: Attachment = {
+          type: "image",
+          name: file.name || `pasted-image-${Date.now()}.png`,
+          storageId,
+          mimeType: file.type,
+          size: file.size,
+        };
+
+        onAttachmentsChange([...attachments, attachment]);
+        toast.success("Image added");
+        analytics.track("attachment_uploaded", {
+          type: "image",
+          size: file.size,
+          mimeType: file.type,
+          countPerMessage: 1,
+        });
+      } catch (error) {
+        console.error("Image paste upload failed:", error);
+        toast.error("Failed to upload image");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [
+      attachments,
+      conversationId,
+      generateUploadUrl,
+      onAttachmentsChange,
+      saveFile,
+      setUploading,
+    ],
+  );
+
+  const handleLargeTextPaste = useCallback(
+    async (text: string) => {
+      setUploading(true);
+      try {
+        const blob = new Blob([text], { type: "text/plain" });
+        const filename = `pasted-text-${Date.now()}.txt`;
+
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: blob,
+        });
+        const { storageId } = await result.json();
+
+        await saveFile({
+          storageId,
+          name: filename,
+          mimeType: "text/plain",
+          size: blob.size,
+          conversationId,
+        });
+
+        const attachment: Attachment = {
+          type: "file",
+          name: filename,
+          storageId,
+          mimeType: "text/plain",
+          size: blob.size,
+        };
+
+        onAttachmentsChange([...attachments, attachment]);
+        toast.success("Large text attached as file");
+        analytics.track("attachment_uploaded", {
+          type: "file",
+          size: blob.size,
+          mimeType: "text/plain",
+          countPerMessage: 1,
+        });
+      } catch (error) {
+        console.error("Large text paste upload failed:", error);
+        toast.error("Failed to attach text");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [
+      attachments,
+      conversationId,
+      generateUploadUrl,
+      onAttachmentsChange,
+      saveFile,
+    ],
+  );
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const clipboardData = e.clipboardData;
+
+      // 1. Check for images
+      const items = Array.from(clipboardData.items);
+      const imageItem = items.find((item) => item.type.startsWith("image/"));
+
+      if (imageItem) {
+        e.preventDefault();
+        const file = imageItem.getAsFile();
+        if (file) handleImagePaste(file);
+        return;
+      }
+
+      // 2. Get text content
+      const plainText = clipboardData.getData("text/plain");
+      const html = clipboardData.getData("text/html");
+
+      // 3. Large paste → convert to file attachment
+      const LARGE_PASTE_THRESHOLD = 10000;
+      if (plainText.length > LARGE_PASTE_THRESHOLD) {
+        e.preventDefault();
+        handleLargeTextPaste(plainText);
+        return;
+      }
+
+      // 4. Strip HTML - use plain text instead
+      if (html && plainText) {
+        e.preventDefault();
+        insertTextAtCursor(plainText);
+        return;
+      }
+
+      // 5. Plain text only - let default behavior handle
+    },
+    [handleImagePaste, handleLargeTextPaste, insertTextAtCursor],
+  );
+
   const getPlaceholder = () => {
     const config = getModelConfig(selectedModel);
     if (config?.capabilities?.includes("vision")) {
@@ -447,6 +633,7 @@ export const ChatInput = memo(function ChatInput({
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   onCompositionStart={() => setIsComposing(true)}
                   onCompositionEnd={() => setIsComposing(false)}
                   onFocus={() => setIsFocused(true)}

@@ -312,3 +312,91 @@ export const sendBYODUpdateNotification = internalAction({
     }
   },
 });
+
+// Send generation error alert email (after all retries exhausted)
+export const sendGenerationErrorAlert = internalAction({
+  args: {
+    userId: v.id("users"),
+    userEmail: v.optional(v.string()),
+    conversationId: v.id("conversations"),
+    messageId: v.id("messages"),
+    modelId: v.string(),
+    errorMessage: v.string(),
+    errorType: v.string(),
+    failedModels: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const type = `generation_error_${args.errorType}`;
+
+    // Rate limit: 1 per user per hour per error type
+    const canSend = await ctx.runMutation(
+      internal.emails.utils.mutations.checkCanSendToUser,
+      { type, userId: args.userId },
+    );
+    if (!canSend) {
+      logger.info("Skipping email - sent within last hour", {
+        tag: "Email",
+        type,
+        userId: args.userId,
+      });
+      return;
+    }
+
+    // Get admin email from settings
+    const adminSettings = await ctx.runQuery(
+      internal.adminSettings.getInternal,
+      {},
+    );
+    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+
+    // Render email
+    const { GenerationErrorAlertEmail } = await import("../templates");
+    const html = await render(
+      GenerationErrorAlertEmail({
+        userEmail: args.userEmail,
+        conversationId: args.conversationId,
+        messageId: args.messageId,
+        modelId: args.modelId,
+        errorMessage: args.errorMessage,
+        errorType: args.errorType,
+        failedModels: args.failedModels,
+      }),
+    );
+
+    try {
+      // Send via Resend
+      await resend.sendEmail(ctx, {
+        from: "blah.chat Alerts <alerts@blah.chat>",
+        to: recipientEmail,
+        subject: `Auto-Router Failure: ${args.errorType}`,
+        html,
+      });
+
+      // Record sent
+      await ctx.runMutation(internal.emails.utils.mutations.recordSent, {
+        type,
+        recipientEmail,
+        metadata: {
+          userId: args.userId,
+          conversationId: args.conversationId,
+          messageId: args.messageId,
+          errorType: args.errorType,
+          failedModels: args.failedModels,
+        },
+      });
+
+      logger.info("Sent generation error alert", {
+        tag: "Email",
+        userId: args.userId,
+        errorType: args.errorType,
+        failedModels: args.failedModels,
+      });
+    } catch (error) {
+      logger.error("Generation error alert failed", {
+        tag: "Email",
+        userId: args.userId,
+        error: String(error),
+      });
+    }
+  },
+});

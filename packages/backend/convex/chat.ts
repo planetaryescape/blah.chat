@@ -193,7 +193,23 @@ export const sendMessage = mutation({
       );
     }
 
-    // 4. Insert user message (single)
+    // 4. Acquire lock BEFORE creating messages (prevents reactive query race condition)
+    const lockAcquired = (await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.generationLock.acquireLock,
+      {
+        conversationId,
+        userId: user._id,
+        comparisonGroupId,
+        modelCount: modelsToUse.length,
+      },
+    )) as boolean;
+
+    if (!lockAcquired) {
+      throw new Error("Please wait for the current response to complete.");
+    }
+
+    // 5. Insert user message (single) - only after lock acquired
     const userMessageId = (await ctx.runMutation(internal.messages.create, {
       conversationId,
       userId: user._id,
@@ -204,7 +220,7 @@ export const sendMessage = mutation({
       comparisonGroupId, // Link to comparison group if multi-model
     })) as Id<"messages">;
 
-    // 5. Create assistant messages upfront with status: "pending"
+    // 6. Create assistant messages upfront with status: "pending"
     // This eliminates client-side optimistic messages and deduplication
     const assistantMessageIds: Id<"messages">[] = [];
     for (const model of modelsToUse) {
@@ -223,28 +239,7 @@ export const sendMessage = mutation({
       assistantMessageIds.push(assistantMessageId);
     }
 
-    // 5b. Acquire generation lock before scheduling
-    const lockAcquired = (await (ctx.runMutation as any)(
-      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.lib.generationLock.acquireLock,
-      {
-        conversationId,
-        userId: user._id,
-        messageId: assistantMessageIds[0],
-        comparisonGroupId,
-        modelCount: modelsToUse.length,
-      },
-    )) as boolean;
-
-    if (!lockAcquired) {
-      // Cleanup created messages - generation blocked
-      for (const msgId of [...assistantMessageIds, userMessageId]) {
-        await ctx.db.delete(msgId);
-      }
-      throw new Error("Please wait for the current response to complete.");
-    }
-
-    // 6. Schedule generation actions with existing message IDs
+    // 8. Schedule generation actions with existing message IDs
     for (let i = 0; i < modelsToUse.length; i++) {
       await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
         conversationId,
@@ -256,7 +251,7 @@ export const sendMessage = mutation({
       });
     }
 
-    // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
+    // 9. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
     if (
       conversationId &&
       modelsToUse[0] !== "auto" &&
@@ -275,7 +270,7 @@ export const sendMessage = mutation({
       );
     }
 
-    // 8. Schedule background housekeeping (non-blocking)
+    // 10. Schedule background housekeeping (non-blocking)
     // This handles: daily count, timestamp update, limit checks, memory extraction
     await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
       userId: user._id,

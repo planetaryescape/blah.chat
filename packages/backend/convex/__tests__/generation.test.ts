@@ -27,7 +27,7 @@ describe("convex/generation support", () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
-      const { convId, msgId } = await t.run(async (ctx) => {
+      const { msgId } = await t.run(async (ctx) => {
         const userId = await ctx.db.insert(
           "users",
           createTestUserData({ clerkId: identity.subject }),
@@ -45,7 +45,7 @@ describe("convex/generation support", () => {
             model: "openai:gpt-4o",
           }),
         );
-        return { convId: cId, msgId: mId };
+        return { msgId: mId };
       });
 
       // Verify pending state
@@ -456,7 +456,7 @@ describe("convex/generation support", () => {
     it("stores tool calls for assistant messages", async () => {
       const t = convexTest(schema);
 
-      const { msgId, toolCallId } = await t.run(async (ctx) => {
+      const { msgId } = await t.run(async (ctx) => {
         const userId = await ctx.db.insert(
           "users",
           createTestUserData({ clerkId: "test" }),
@@ -473,7 +473,7 @@ describe("convex/generation support", () => {
             model: "openai:gpt-4o",
           }),
         );
-        const tcId = await ctx.db.insert("toolCalls", {
+        await ctx.db.insert("toolCalls", {
           messageId: mId,
           conversationId: convId,
           userId,
@@ -485,7 +485,7 @@ describe("convex/generation support", () => {
           timestamp: Date.now(),
           createdAt: Date.now(),
         });
-        return { msgId: mId, toolCallId: tcId };
+        return { msgId: mId };
       });
 
       const toolCalls = await t.run(async (ctx) => {
@@ -648,9 +648,7 @@ describe("convex/generation support", () => {
       const msg = await t.run(async (ctx) => ctx.db.get(msgId));
       expect(msg?.generationStartedAt).toBe(startTime);
       expect(msg?.generationCompletedAt).toBe(startTime + 2500);
-      expect(msg?.generationCompletedAt! - msg?.generationStartedAt!).toBe(
-        2500,
-      );
+      // Duration check: already verified by individual assertions above
     });
   });
 });

@@ -11,9 +11,6 @@ export default defineSchema({
     // Daily message tracking (stored per user, limit from admin settings)
     dailyMessageCount: v.optional(v.number()),
     lastMessageDate: v.optional(v.string()),
-    // Daily presentation tracking (stored per user, limit from admin settings)
-    dailyPresentationCount: v.optional(v.number()),
-    lastPresentationDate: v.optional(v.string()),
     // Pro Model Tier System
     tier: v.optional(
       v.union(v.literal("free"), v.literal("tier1"), v.literal("tier2")),
@@ -22,6 +19,9 @@ export default defineSchema({
     lastProModelDate: v.optional(v.string()),
     monthlyProModelCount: v.optional(v.number()),
     lastProModelMonth: v.optional(v.string()),
+    // Deprecated: presentation limits (kept for existing data)
+    dailyPresentationCount: v.optional(v.number()),
+    lastPresentationDate: v.optional(v.string()),
     // Preferences
     disabledBuiltInTemplateIds: v.optional(v.array(v.id("templates"))),
     createdAt: v.number(),
@@ -88,6 +88,8 @@ export default defineSchema({
     isCollaborative: v.optional(v.boolean()),
     // Incognito mode (ephemeral conversations)
     isIncognito: v.optional(v.boolean()),
+    isPresentation: v.optional(v.boolean()), // Deprecated: kept for existing data
+    enableGrounding: v.optional(v.boolean()), // Deprecated: kept for existing data
     incognitoSettings: v.optional(
       v.object({
         enableReadTools: v.boolean(), // Allow search of notes/files/tasks
@@ -97,19 +99,6 @@ export default defineSchema({
         lastActivityAt: v.number(), // For inactivity timer
       }),
     ),
-    // Presentation mode (slides feature conversations)
-    isPresentation: v.optional(v.boolean()),
-    // Enable web search grounding for presentations
-    enableGrounding: v.optional(v.boolean()),
-    // Presentation metadata
-    slideStyle: v.optional(
-      v.union(v.literal("wordy"), v.literal("illustrative")),
-    ),
-    imageStyle: v.optional(v.string()), // e.g. "minimalist line art", "photorealistic"
-    aspectRatio: v.optional(
-      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
-    ), // default 16:9
-    templateId: v.optional(v.id("templates")),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -512,6 +501,7 @@ export default defineSchema({
         v.literal("conversation"),
         v.literal("manual"),
         v.literal("file"),
+        v.literal("smart_assistant"),
       ),
     ),
     sourceId: v.optional(v.string()),
@@ -892,16 +882,16 @@ export default defineSchema({
     date: v.string(),
     model: v.string(),
     conversationId: v.optional(v.id("conversations")),
-    presentationId: v.optional(v.id("presentations")),
+    presentationId: v.optional(v.string()), // Deprecated: kept for existing data
     feature: v.optional(
       v.union(
         v.literal("chat"),
-        v.literal("slides"),
         v.literal("notes"),
         v.literal("tasks"),
         v.literal("files"),
         v.literal("memory"),
         v.literal("smart_assistant"),
+        v.literal("slides"), // Deprecated: kept for existing data
       ),
     ),
     operationType: v.optional(
@@ -927,7 +917,6 @@ export default defineSchema({
     .index("by_date", ["date"]) // admin analytics
     .index("by_date_model", ["date", "model"]) // admin model usage
     .index("by_conversation", ["conversationId"])
-    .index("by_presentation", ["presentationId"])
     .index("by_user_feature", ["userId", "feature"]),
 
   templates: defineTable({
@@ -1256,9 +1245,7 @@ export default defineSchema({
 
     // Message limits
     defaultDailyMessageLimit: v.number(),
-
-    // Presentation limits
-    defaultDailyPresentationLimit: v.optional(v.number()), // Default: 1
+    defaultDailyPresentationLimit: v.optional(v.number()), // Deprecated: kept for existing data
 
     // Pro Model Settings
     proModelsEnabled: v.optional(v.boolean()), // Global toggle, default: false
@@ -1405,329 +1392,6 @@ export default defineSchema({
     .index("by_status_expires", ["status", "expiresAt"])
     .index("by_type_status", ["type", "status"])
     .index("by_expires", ["expiresAt"]),
-
-  // ===== SLIDES FEATURE =====
-
-  // Presentations (AI-generated slide decks)
-  presentations: defineTable({
-    userId: v.id("users"),
-    conversationId: v.optional(v.id("conversations")), // Links to outline chat iteration
-    title: v.string(),
-    description: v.optional(v.string()), // AI-generated summary
-
-    // Generation state tracking
-    status: v.union(
-      v.literal("outline_pending"),
-      v.literal("outline_generating"),
-      v.literal("outline_complete"),
-      v.literal("design_generating"),
-      v.literal("design_complete"),
-      v.literal("slides_generating"),
-      v.literal("slides_complete"),
-      v.literal("stopped"),
-      v.literal("error"),
-    ),
-
-    // AI-generated design system (small fixed-schema metadata)
-    designSystem: v.optional(
-      v.object({
-        theme: v.string(),
-        themeRationale: v.string(),
-        primaryColor: v.string(),
-        secondaryColor: v.string(),
-        accentColor: v.string(),
-        backgroundColor: v.string(),
-        fontPairings: v.object({
-          heading: v.string(),
-          body: v.string(),
-        }),
-        visualStyle: v.string(),
-        layoutPrinciples: v.array(v.string()),
-        iconStyle: v.string(),
-        imageGuidelines: v.string(),
-        designInspiration: v.string(),
-      }),
-    ),
-
-    // Model selection
-    imageModel: v.string(),
-
-    // Slide style - affects text density and visual approach
-    slideStyle: v.optional(
-      v.union(v.literal("wordy"), v.literal("illustrative")),
-    ),
-
-    // Organization template (reusable brand constraints)
-    templateId: v.optional(v.id("designTemplates")),
-
-    // Progress tracking
-    totalSlides: v.number(),
-    generatedSlideCount: v.number(),
-
-    // New format fields
-    aspectRatio: v.optional(
-      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
-    ),
-    imageStyle: v.optional(v.string()),
-
-    // PPTX export caching
-    pptxStorageId: v.optional(v.id("_storage")),
-    pptxGeneratedAt: v.optional(v.number()),
-
-    // PDF export caching (for social/stories)
-    pdfStorageId: v.optional(v.id("_storage")),
-    pdfGeneratedAt: v.optional(v.number()),
-
-    // Images ZIP export caching (for social/stories)
-    imagesZipStorageId: v.optional(v.id("_storage")),
-    imagesZipGeneratedAt: v.optional(v.number()),
-
-    // Card-based outline editor fields
-    overallFeedback: v.optional(v.string()), // General feedback not tied to specific slide
-    currentOutlineVersion: v.optional(v.number()), // Track latest version for queries
-    outlineStatus: v.optional(
-      v.union(
-        v.literal("draft"),
-        v.literal("feedback_pending"),
-        v.literal("regenerating"),
-        v.literal("ready"),
-      ),
-    ),
-
-    // Organization (matches conversations pattern)
-    starred: v.optional(v.boolean()),
-    pinned: v.optional(v.boolean()),
-
-    // Vector embedding for semantic search
-    embedding: v.optional(v.array(v.float64())),
-
-    // Timestamps
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_conversation", ["conversationId"])
-    .index("by_user_status", ["userId", "status"])
-    .index("by_user_pinned", ["userId", "pinned"])
-    .index("by_user_created", ["userId", "createdAt"]) // recent presentations
-    .index("by_user_updated", ["userId", "updatedAt"]) // recently updated
-    .searchIndex("search_title", {
-      searchField: "title",
-      filterFields: ["userId"],
-    })
-    .vectorIndex("by_embedding", {
-      vectorField: "embedding",
-      dimensions: 1536,
-      filterFields: ["userId"],
-    }),
-
-  // Individual slides within presentations
-  slides: defineTable({
-    presentationId: v.id("presentations"),
-    userId: v.id("users"), // Denormalized for filtering
-
-    position: v.number(), // Slide order (1, 2, 3...)
-    slideType: v.union(
-      // Presentation types (16:9)
-      v.literal("title"),
-      v.literal("section"),
-      v.literal("content"),
-      // Carousel/Story types (1:1, 9:16)
-      v.literal("hook"),
-      v.literal("rehook"),
-      v.literal("value"),
-      v.literal("cta"),
-      // Narrative beat types (emotional arc)
-      v.literal("context"),
-      v.literal("validation"),
-      v.literal("reality"),
-      v.literal("emotional"),
-      v.literal("reframe"),
-      v.literal("affirmation"),
-    ),
-
-    // Text content (from outline, editable)
-    title: v.string(),
-    content: v.string(), // Markdown bullets or supporting text
-    speakerNotes: v.optional(v.string()),
-    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
-
-    // Image generation state
-    imageStatus: v.union(
-      v.literal("pending"),
-      v.literal("generating"),
-      v.literal("complete"),
-      v.literal("error"),
-    ),
-    imageStorageId: v.optional(v.id("_storage")),
-    imagePrompt: v.optional(v.string()),
-    imageError: v.optional(v.string()),
-    hasEmbeddedText: v.optional(v.boolean()), // True if text baked into image (illustrative style)
-
-    // Cost tracking (per slide)
-    generationCost: v.optional(v.number()),
-    inputTokens: v.optional(v.number()),
-    outputTokens: v.optional(v.number()),
-
-    // Timestamps
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_presentation", ["presentationId"])
-    .index("by_presentation_position", ["presentationId", "position"])
-    .index("by_presentation_type", ["presentationId", "slideType"])
-    .index("by_presentation_imageStatus", ["presentationId", "imageStatus"]) // pending images in presentation
-    .index("by_user", ["userId"])
-    .index("by_image_status", ["imageStatus"]),
-
-  // Outline items (draft slides before approval, supports per-slide feedback)
-  outlineItems: defineTable({
-    presentationId: v.id("presentations"),
-    userId: v.id("users"),
-
-    position: v.number(), // Slide order (1, 2, 3...)
-    slideType: v.union(
-      // Presentation types (16:9)
-      v.literal("title"),
-      v.literal("section"),
-      v.literal("content"),
-      // Carousel/Story types (1:1, 9:16)
-      v.literal("hook"),
-      v.literal("rehook"),
-      v.literal("value"),
-      v.literal("cta"),
-      // Narrative beat types (emotional arc)
-      v.literal("context"),
-      v.literal("validation"),
-      v.literal("reality"),
-      v.literal("emotional"),
-      v.literal("reframe"),
-      v.literal("affirmation"),
-    ),
-
-    // Content (from parsed outline)
-    title: v.string(),
-    content: v.string(), // Markdown bullets or supporting text
-    speakerNotes: v.optional(v.string()),
-    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
-
-    // Per-slide feedback from user
-    feedback: v.optional(v.string()),
-
-    // Version tracking (for future history feature)
-    // Current impl: always query latest version, delete old on regeneration
-    version: v.number(), // 1, 2, 3... increments on regeneration
-
-    // Streaming status: partial during generation, complete when done
-    status: v.optional(v.union(v.literal("partial"), v.literal("complete"))),
-
-    // Timestamps
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_presentation", ["presentationId"])
-    .index("by_presentation_position", ["presentationId", "position"])
-    .index("by_presentation_version", ["presentationId", "version"])
-    .index("by_presentation_status", ["presentationId", "status"]),
-
-  // Reusable design templates (organization brand constraints)
-  designTemplates: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    description: v.optional(v.string()),
-
-    // Source files (stored in Convex storage)
-    sourceFiles: v.array(
-      v.object({
-        storageId: v.id("_storage"),
-        name: v.string(),
-        mimeType: v.string(),
-        type: v.union(v.literal("pdf"), v.literal("pptx"), v.literal("image")),
-      }),
-    ),
-
-    // Extracted design constraints (from multimodal analysis)
-    extractedDesign: v.optional(
-      v.object({
-        colors: v.object({
-          primary: v.string(),
-          secondary: v.string(),
-          accent: v.optional(v.string()),
-          background: v.string(),
-          text: v.string(),
-        }),
-        fonts: v.object({
-          heading: v.string(),
-          body: v.string(),
-          fallbackHeading: v.optional(v.string()),
-          fallbackBody: v.optional(v.string()),
-        }),
-        logoGuidelines: v.optional(
-          v.object({
-            position: v.string(),
-            size: v.string(),
-            description: v.optional(v.string()),
-          }),
-        ),
-        layoutPatterns: v.array(v.string()),
-        visualStyle: v.string(),
-        iconStyle: v.optional(v.string()),
-        analysisNotes: v.string(),
-      }),
-    ),
-
-    // Logo asset (extracted from template for slide generation)
-    logoStorageId: v.optional(v.id("_storage")),
-
-    // Processing state
-    status: v.union(
-      v.literal("pending"),
-      v.literal("processing"),
-      v.literal("complete"),
-      v.literal("error"),
-    ),
-    error: v.optional(v.string()),
-
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_status", ["userId", "status"]),
-
-  // Presentation sessions (for remote control & multi-device sync)
-  presentationSessions: defineTable({
-    presentationId: v.id("presentations"),
-    userId: v.id("users"),
-
-    // Session identification
-    sessionCode: v.string(), // 6-digit code for remote pairing
-    sessionCodeExpiresAt: v.number(), // Code expires after 10 minutes
-
-    // Session state
-    isActive: v.boolean(),
-    currentSlide: v.number(), // Current slide index (0-based)
-    totalSlides: v.number(),
-
-    // Timer state (synced to all connected devices)
-    timerStartedAt: v.optional(v.number()),
-    timerPausedAt: v.optional(v.number()),
-    timerElapsed: v.optional(v.number()), // Accumulated elapsed time in ms
-
-    // Presenter tools state
-    laserEnabled: v.optional(v.boolean()),
-    drawingEnabled: v.optional(v.boolean()),
-
-    // Connected devices tracking
-    lastPresenterPingAt: v.optional(v.number()),
-    lastRemotePingAt: v.optional(v.number()),
-
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_session_code", ["sessionCode", "isActive"])
-    .index("by_presentation", ["presentationId", "isActive"])
-    .index("by_user", ["userId"])
-    .index("by_user_active", ["userId", "isActive"]),
 
   // Canvas documents (split-screen document editor)
   canvasDocuments: defineTable({

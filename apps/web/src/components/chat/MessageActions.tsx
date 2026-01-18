@@ -9,7 +9,6 @@ import {
   FileText,
   GitBranch,
   Pencil,
-  Presentation,
   RotateCcw,
   Square,
 } from "lucide-react";
@@ -157,16 +156,6 @@ export function MessageActions({
     }
   };
 
-  const handleCreatePresentation = () => {
-    recordAction({
-      actionType: "create_presentation",
-      resourceId: message._id,
-    });
-    router.push(
-      `/slides/new?conversationId=${message.conversationId}&messageId=${message._id}`,
-    );
-  };
-
   const [_bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
 
   const handleBookmark = () => {
@@ -192,13 +181,6 @@ export function MessageActions({
               features.showNotes ? handleSaveAsNoteClick : undefined
             }
             onBookmark={features.showBookmarks ? handleBookmark : undefined}
-            onCreatePresentation={
-              features.showSlides &&
-              !isUser &&
-              (message.content || message.partialContent)
-                ? handleCreatePresentation
-                : undefined
-            }
           />
         </div>
 
@@ -340,28 +322,6 @@ export function MessageActions({
                 </TooltipContent>
               </Tooltip>
             )}
-
-            {/* Create Presentation Button - only for assistant messages with content */}
-            {features.showSlides &&
-              !isUser &&
-              (message.content || message.partialContent) && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-muted-foreground/70 hover:bg-background/20 hover:text-foreground"
-                      onClick={handleCreatePresentation}
-                    >
-                      <Presentation className="w-3.5 h-3.5" />
-                      <span className="sr-only">Create Presentation</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Create presentation</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
 
             {/* Branch Button */}
             <Tooltip>

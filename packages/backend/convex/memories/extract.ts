@@ -121,7 +121,7 @@ export const extractMemories = internalAction({
     const totalContent = unextractedMessages
       .map((m) => m.content || "")
       .join(" ");
-    const estimatedTokens = totalContent.length / 4; // rough estimate
+    const estimatedTokens = estimateTokens(totalContent);
     if (estimatedTokens < 100) {
       // Lowered from 500
       await markAsProcessed();

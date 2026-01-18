@@ -27,7 +27,6 @@ export const PREFERENCE_DEFAULTS = {
   minimalAssistantStyle: false,
   showMessageStatistics: true,
   showComparisonStatistics: true,
-  showSlideStatistics: true,
   enableHybridSearch: false,
   showModelNamesDuringComparison: false,
   showModelProvider: false,
@@ -47,7 +46,18 @@ export const PREFERENCE_DEFAULTS = {
   showTemplates: true,
   showProjects: true,
   showBookmarks: true,
-  showSlides: true,
+  showTasks: true,
+  showSmartAssistant: true,
+
+  // Smart Assistant
+  noteCategoryMode: "fixed" as const,
+  customNoteCategories: [
+    "decision",
+    "discussion",
+    "action-item",
+    "insight",
+    "followup",
+  ] as string[],
 
   // Custom Instructions (single object)
   customInstructions: {
@@ -94,7 +104,6 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   minimalAssistantStyle: "chat",
   showMessageStatistics: "chat",
   showComparisonStatistics: "chat",
-  showSlideStatistics: "chat",
   enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
   showModelProvider: "chat",
@@ -114,7 +123,12 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showTemplates: "advanced",
   showProjects: "advanced",
   showBookmarks: "advanced",
-  showSlides: "advanced",
+  showTasks: "advanced",
+  showSmartAssistant: "advanced",
+
+  // Smart Assistant
+  noteCategoryMode: "advanced",
+  customNoteCategories: "advanced",
 
   // Special: nested objects stored as single rows
   customInstructions: "customInstructions",

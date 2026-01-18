@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { DollarSign, Loader2, MessageCircle, Presentation } from "lucide-react";
+import { DollarSign, Loader2, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ export function AdminLimitsSettings() {
   const [alertThreshold, setAlertThreshold] = useState(80);
   const [hardLimitEnabled, setHardLimitEnabled] = useState(true);
   const [dailyLimit, setDailyLimit] = useState(50);
-  const [dailyPresentationLimit, setDailyPresentationLimit] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load settings from query
@@ -38,7 +37,6 @@ export function AdminLimitsSettings() {
       setAlertThreshold((settings.defaultBudgetAlertThreshold ?? 0.8) * 100);
       setHardLimitEnabled(settings.budgetHardLimitEnabled ?? true);
       setDailyLimit(settings.defaultDailyMessageLimit ?? 50);
-      setDailyPresentationLimit(settings.defaultDailyPresentationLimit ?? 1);
     }
   }, [settings]);
 
@@ -50,7 +48,6 @@ export function AdminLimitsSettings() {
         defaultBudgetAlertThreshold: alertThreshold / 100,
         budgetHardLimitEnabled: hardLimitEnabled,
         defaultDailyMessageLimit: dailyLimit,
-        defaultDailyPresentationLimit: dailyPresentationLimit,
       });
       toast.success("Limits and budget settings saved!");
     } catch (_error) {
@@ -171,35 +168,6 @@ export function AdminLimitsSettings() {
             <p className="text-sm">
               <strong>Note:</strong> Counters reset daily at midnight (user's
               local time).
-            </p>
-          </div>
-
-          <div className="space-y-2 pt-4 border-t">
-            <Label
-              htmlFor="presentation-limit"
-              className="flex items-center gap-2"
-            >
-              <Presentation className="h-4 w-4" />
-              Daily Presentation Limit
-            </Label>
-            <div className="relative">
-              <Presentation className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="presentation-limit"
-                type="number"
-                value={dailyPresentationLimit}
-                onChange={(e) =>
-                  setDailyPresentationLimit(Number(e.target.value))
-                }
-                min={0}
-                max={100}
-                step={1}
-                className="pl-9"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Maximum presentations per day. Set to 0 for unlimited. Admins are
-              always exempt.
             </p>
           </div>
         </CardContent>

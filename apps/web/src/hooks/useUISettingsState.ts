@@ -20,7 +20,6 @@ export interface UISettingsState {
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
-  showSlideStats: boolean;
   showModelProvider: boolean;
   showByDefault: boolean;
   autoExpand: boolean;
@@ -30,7 +29,11 @@ export interface UISettingsState {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
-  showSlides: boolean;
+  showTasks: boolean;
+  showSmartAssistant: boolean;
+  // Smart Assistant
+  noteCategoryMode: "fixed" | "ai-suggested";
+  customNoteCategories: string[];
   // Auto Router
   autoRouterCostBias: number;
   autoRouterSpeedBias: number;
@@ -42,7 +45,6 @@ export interface UISettingsHandlers {
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
-  handleSlideStatsChange: (checked: boolean) => Promise<void>;
   handleShowModelProviderChange: (checked: boolean) => Promise<void>;
   handleShowByDefaultChange: (checked: boolean) => Promise<void>;
   handleAutoExpandChange: (checked: boolean) => Promise<void>;
@@ -52,7 +54,13 @@ export interface UISettingsHandlers {
   handleShowTemplatesChange: (checked: boolean) => Promise<void>;
   handleShowProjectsChange: (checked: boolean) => Promise<void>;
   handleShowBookmarksChange: (checked: boolean) => Promise<void>;
-  handleShowSlidesChange: (checked: boolean) => Promise<void>;
+  handleShowTasksChange: (checked: boolean) => Promise<void>;
+  handleShowSmartAssistantChange: (checked: boolean) => Promise<void>;
+  // Smart Assistant
+  handleNoteCategoryModeChange: (
+    mode: "fixed" | "ai-suggested",
+  ) => Promise<void>;
+  handleCustomNoteCategoriesChange: (categories: string[]) => Promise<void>;
   // Auto Router
   handleCostBiasChange: (value: number) => Promise<void>;
   handleSpeedBiasChange: (value: number) => Promise<void>;
@@ -76,7 +84,6 @@ export function useUISettingsState() {
   );
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
   const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
-  const prefShowSlideStats = useUserPreference("showSlideStatistics");
   const prefShowModelProvider = useUserPreference("showModelProvider");
   const prefReasoning = useUserPreference("reasoning");
   const prefChatWidth = useUserPreference("chatWidth");
@@ -84,7 +91,10 @@ export function useUISettingsState() {
   const prefShowTemplates = useUserPreference("showTemplates");
   const prefShowProjects = useUserPreference("showProjects");
   const prefShowBookmarks = useUserPreference("showBookmarks");
-  const prefShowSlides = useUserPreference("showSlides");
+  const prefShowTasks = useUserPreference("showTasks");
+  const prefShowSmartAssistant = useUserPreference("showSmartAssistant");
+  const prefNoteCategoryMode = useUserPreference("noteCategoryMode");
+  const prefCustomNoteCategories = useUserPreference("customNoteCategories");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
 
@@ -101,8 +111,6 @@ export function useUISettingsState() {
   const [showComparisonStats, setShowComparisonStats] = useState<boolean>(
     prefShowComparisonStats,
   );
-  const [showSlideStats, setShowSlideStats] =
-    useState<boolean>(prefShowSlideStats);
   const [showModelProvider, setShowModelProvider] = useState<boolean>(
     prefShowModelProvider,
   );
@@ -124,7 +132,16 @@ export function useUISettingsState() {
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
   const [showBookmarks, setShowBookmarks] =
     useState<boolean>(prefShowBookmarks);
-  const [showSlides, setShowSlides] = useState<boolean>(prefShowSlides);
+  const [showTasks, setShowTasks] = useState<boolean>(prefShowTasks);
+  const [showSmartAssistant, setShowSmartAssistant] = useState<boolean>(
+    prefShowSmartAssistant,
+  );
+  const [noteCategoryMode, setNoteCategoryMode] = useState<
+    "fixed" | "ai-suggested"
+  >(prefNoteCategoryMode as "fixed" | "ai-suggested");
+  const [customNoteCategories, setCustomNoteCategories] = useState<string[]>(
+    prefCustomNoteCategories as string[],
+  );
   const [autoRouterCostBias, setAutoRouterCostBias] =
     useState<number>(prefCostBias);
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
@@ -151,7 +168,6 @@ export function useUISettingsState() {
     () => setShowComparisonStats(prefShowComparisonStats),
     [prefShowComparisonStats],
   );
-  useEffect(() => setShowSlideStats(prefShowSlideStats), [prefShowSlideStats]);
   useEffect(
     () => setShowModelProvider(prefShowModelProvider),
     [prefShowModelProvider],
@@ -173,7 +189,19 @@ export function useUISettingsState() {
   useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);
   useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
   useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
-  useEffect(() => setShowSlides(prefShowSlides), [prefShowSlides]);
+  useEffect(() => setShowTasks(prefShowTasks), [prefShowTasks]);
+  useEffect(
+    () => setShowSmartAssistant(prefShowSmartAssistant),
+    [prefShowSmartAssistant],
+  );
+  useEffect(
+    () => setNoteCategoryMode(prefNoteCategoryMode as "fixed" | "ai-suggested"),
+    [prefNoteCategoryMode],
+  );
+  useEffect(
+    () => setCustomNoteCategories(prefCustomNoteCategories as string[]),
+    [prefCustomNoteCategories],
+  );
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
 
@@ -279,6 +307,40 @@ export function useUISettingsState() {
     }
   };
 
+  const handleNoteCategoryModeChange = async (
+    mode: "fixed" | "ai-suggested",
+  ) => {
+    const previous = noteCategoryMode;
+    setNoteCategoryMode(mode);
+    try {
+      await updatePreferences({
+        preferences: { noteCategoryMode: mode },
+      });
+      toast.success("Note category mode updated!");
+      analytics.track("note_category_mode_changed", { mode });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setNoteCategoryMode(previous);
+    }
+  };
+
+  const handleCustomNoteCategoriesChange = async (categories: string[]) => {
+    const previous = customNoteCategories;
+    setCustomNoteCategories(categories);
+    try {
+      await updatePreferences({
+        preferences: { customNoteCategories: categories },
+      });
+      toast.success("Note categories updated!");
+      analytics.track("custom_note_categories_changed", {
+        count: categories.length,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setCustomNoteCategories(previous);
+    }
+  };
+
   const handlers: UISettingsHandlers = {
     handleAlwaysShowActionsChange: createBooleanHandler(
       "alwaysShowMessageActions",
@@ -307,11 +369,6 @@ export function useUISettingsState() {
       "showComparisonStatistics",
       setShowComparisonStats,
       "show_comparison_statistics",
-    ),
-    handleSlideStatsChange: createBooleanHandler(
-      "showSlideStatistics",
-      setShowSlideStats,
-      "show_slide_statistics",
     ),
     handleShowModelProviderChange: createBooleanHandler(
       "showModelProvider",
@@ -348,11 +405,19 @@ export function useUISettingsState() {
       setShowBookmarks,
       "show_bookmarks",
     ),
-    handleShowSlidesChange: createBooleanHandler(
-      "showSlides",
-      setShowSlides,
-      "show_slides",
+    handleShowTasksChange: createBooleanHandler(
+      "showTasks",
+      setShowTasks,
+      "show_tasks",
     ),
+    handleShowSmartAssistantChange: createBooleanHandler(
+      "showSmartAssistant",
+      setShowSmartAssistant,
+      "show_smart_assistant",
+    ),
+    // Smart Assistant
+    handleNoteCategoryModeChange,
+    handleCustomNoteCategoriesChange,
     // Auto Router
     handleCostBiasChange,
     handleSpeedBiasChange,
@@ -364,7 +429,6 @@ export function useUISettingsState() {
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,
-    showSlideStats,
     showModelProvider,
     showByDefault,
     autoExpand,
@@ -374,7 +438,11 @@ export function useUISettingsState() {
     showTemplates,
     showProjects,
     showBookmarks,
-    showSlides,
+    showTasks,
+    showSmartAssistant,
+    // Smart Assistant
+    noteCategoryMode,
+    customNoteCategories,
     // Auto Router
     autoRouterCostBias,
     autoRouterSpeedBias,

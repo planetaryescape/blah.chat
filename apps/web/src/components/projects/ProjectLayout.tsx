@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
 
 interface ProjectLayoutProps {
@@ -29,6 +30,7 @@ interface ProjectLayoutProps {
 export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
   const _router = useRouter();
   const pathname = usePathname();
+  const showTasks = useUserPreference("showTasks");
   // @ts-ignore - Type depth exceeded
   const project = useQuery(api.projects.get, { id: projectId });
   // @ts-ignore - Type depth exceeded
@@ -50,7 +52,7 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
     return pathname?.includes(path);
   };
 
-  const navItems = [
+  const allNavItems = [
     {
       id: "overview",
       label: "Overview",
@@ -86,6 +88,11 @@ export function ProjectLayout({ projectId, children }: ProjectLayoutProps) {
       count: stats?.conversationCount || undefined,
     },
   ];
+
+  // Filter out tasks if feature is disabled
+  const navItems = allNavItems.filter(
+    (item) => item.id !== "tasks" || showTasks,
+  );
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">

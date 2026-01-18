@@ -109,7 +109,7 @@
   ],
   "dependencies": {
     "@raycast/api": "^1.87.0",
-    "@raycast/utils": "^1.18.0",
+    "@raycast/utils": "^2.2.2",
     "@blah-chat/backend": "workspace:*",
     "convex": "^1.17.0"
   },

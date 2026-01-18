@@ -11,22 +11,18 @@ import { Switch } from "@/components/ui/switch";
 interface StatisticsSectionProps {
   showMessageStats: boolean;
   showComparisonStats: boolean;
-  showSlideStats: boolean;
   showModelProvider: boolean;
   onMessageStatsChange: (checked: boolean) => Promise<void>;
   onComparisonStatsChange: (checked: boolean) => Promise<void>;
-  onSlideStatsChange: (checked: boolean) => Promise<void>;
   onShowModelProviderChange: (checked: boolean) => Promise<void>;
 }
 
 export function StatisticsSection({
   showMessageStats,
   showComparisonStats,
-  showSlideStats,
   showModelProvider,
   onMessageStatsChange,
   onComparisonStatsChange,
-  onSlideStatsChange,
   onShowModelProviderChange,
 }: StatisticsSectionProps) {
   return (
@@ -61,20 +57,6 @@ export function StatisticsSection({
             id="show-comparison-stats"
             checked={showComparisonStats}
             onCheckedChange={onComparisonStatsChange}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <Label htmlFor="show-slide-stats">Show slide statistics</Label>
-            <p className="text-sm text-muted-foreground">
-              Display generation cost and token usage for presentation slides
-            </p>
-          </div>
-          <Switch
-            id="show-slide-stats"
-            checked={showSlideStats}
-            onCheckedChange={onSlideStatsChange}
           />
         </div>
 

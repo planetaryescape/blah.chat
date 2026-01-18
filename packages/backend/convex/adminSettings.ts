@@ -116,7 +116,6 @@ export const update = mutation({
         defaultBudgetAlertThreshold: args.defaultBudgetAlertThreshold ?? 0.8,
         budgetHardLimitEnabled: args.budgetHardLimitEnabled ?? true,
         defaultDailyMessageLimit: args.defaultDailyMessageLimit ?? 50,
-        defaultDailyPresentationLimit: args.defaultDailyPresentationLimit ?? 1,
         alertEmail: args.alertEmail ?? "blah.chat@bhekani.com",
         transcriptProvider: args.transcriptProvider ?? "groq",
         transcriptCostPerMinute: args.transcriptCostPerMinute ?? 0.0067,
@@ -162,7 +161,6 @@ export const getWithEnvOverrides = internalQuery({
       defaultBudgetAlertThreshold: 0.8,
       budgetHardLimitEnabled: true,
       defaultDailyMessageLimit: 50,
-      defaultDailyPresentationLimit: 1,
       alertEmail: "blah.chat@bhekani.com",
       transcriptProvider: "groq",
       transcriptCostPerMinute: 0.0067,
@@ -181,10 +179,6 @@ export const getWithEnvOverrides = internalQuery({
       defaultDailyMessageLimit: process.env.DEFAULT_DAILY_MESSAGE_LIMIT
         ? Number.parseInt(process.env.DEFAULT_DAILY_MESSAGE_LIMIT, 10)
         : settings.defaultDailyMessageLimit,
-      defaultDailyPresentationLimit: process.env
-        .DEFAULT_DAILY_PRESENTATION_LIMIT
-        ? Number.parseInt(process.env.DEFAULT_DAILY_PRESENTATION_LIMIT, 10)
-        : (settings.defaultDailyPresentationLimit ?? 1),
       defaultMonthlyBudget: process.env.DEFAULT_MONTHLY_BUDGET
         ? Number.parseFloat(process.env.DEFAULT_MONTHLY_BUDGET)
         : settings.defaultMonthlyBudget,

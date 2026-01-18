@@ -12,7 +12,6 @@ import {
   MoreHorizontal,
   NotebookPen,
   Plus,
-  Presentation,
   Search,
   Settings,
   Shield,
@@ -73,14 +72,18 @@ const MENU_ITEMS = [
     href: "/projects",
     featureKey: "showProjects" as const,
   },
-  { icon: CheckSquare, label: "Tasks", href: "/tasks", featureKey: null },
   {
-    icon: Presentation,
-    label: "Slides",
-    href: "/slides",
-    featureKey: "showSlides" as const,
+    icon: CheckSquare,
+    label: "Tasks",
+    href: "/tasks",
+    featureKey: "showTasks" as const,
   },
-  { icon: Mic, label: "Smart Assistant", href: "/assistant", featureKey: null },
+  {
+    icon: Mic,
+    label: "Smart Assistant",
+    href: "/assistant",
+    featureKey: "showSmartAssistant" as const,
+  },
   {
     icon: FileText,
     label: "Templates",
@@ -106,11 +109,7 @@ export function AppSidebar() {
         (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
     });
 
-  // Filter out presentation conversations (they have their own UI in /slides)
-  const conversations = useMemo(
-    () => rawConversations?.filter((c) => c.isPresentation !== true),
-    [rawConversations],
-  );
+  const conversations = rawConversations;
 
   // Prefetch messages for recent conversations (< 7 days) for instant navigation
   const recentConversationIds = useMemo(() => {
@@ -163,6 +162,8 @@ export function AppSidebar() {
         showProjects: false,
         showBookmarks: false,
         showSlides: false,
+        showTasks: false,
+        showSmartAssistant: false,
         isLoading: true,
       };
     }
@@ -174,6 +175,8 @@ export function AppSidebar() {
       showProjects: rawAdvancedSettings.showProjects ?? true,
       showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
       showSlides: rawAdvancedSettings.showSlides ?? false,
+      showTasks: rawAdvancedSettings.showTasks ?? true,
+      showSmartAssistant: rawAdvancedSettings.showSmartAssistant ?? true,
       isLoading: false,
     };
   }, [rawAdvancedSettings]);

@@ -36,7 +36,11 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
-import { calculateConversationTokensAsync } from "./tokens/counting";
+import { StreamingTextBuffer } from "./lib/utils/utf8Safe";
+import {
+  calculateConversationTokensAsync,
+  estimateTokens,
+} from "./tokens/counting";
 
 // Re-export generation submodules
 export * as image from "./generation/image";
@@ -75,12 +79,9 @@ export const generateResponse = internalAction({
     const generationStartTime = Date.now();
     let firstTokenTime: number | undefined;
 
-    // Track analytics info for deferred tracking (after first token)
-    const isResumedAfterRefresh = false; // No longer applicable - message created here
-    const partialContentLengthForAnalytics = 0;
-
     // AUTO ROUTER: If model is "auto", route to optimal model
     let modelId = args.modelId;
+    const _wasAutoSelected = modelId === "auto";
     let routingDecision:
       | {
           selectedModelId: string;
@@ -119,7 +120,8 @@ export const generateResponse = internalAction({
       const userMessageContent = lastUserMessage?.content ?? "";
 
       // Check if conversation has any attachments (for routing decision)
-      const recentMessages = await ctx.runQuery(
+      const recentMessages = await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
         internal.messages.listInternal,
         { conversationId: args.conversationId, limit: 10 },
       );
@@ -137,6 +139,18 @@ export const generateResponse = internalAction({
           : [];
       const hasAttachments = attachments.length > 0;
 
+      // Get previous routing decision for stickiness bias
+      const previousSelectedModel = (
+        recentMessages as Array<{
+          role: string;
+          routingDecision?: { selectedModelId: string };
+        }>
+      )
+        .filter(
+          (m) => m.role === "assistant" && m.routingDecision?.selectedModelId,
+        )
+        .pop()?.routingDecision?.selectedModelId;
+
       // Route the message
       const routerResult = (await ctx.runAction(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -151,6 +165,7 @@ export const generateResponse = internalAction({
             costBias: costBias ?? 50,
             speedBias: speedBias ?? 50,
           },
+          previousSelectedModel,
         },
       )) as {
         selectedModelId: string;
@@ -214,6 +229,10 @@ export const generateResponse = internalAction({
           ? never
           : any);
 
+    // Declared outside try so they're accessible in catch for wasted cost calculation
+    let accumulated = "";
+    let inputTokenEstimate = 0;
+
     try {
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
       const [messages, conversation, memoryExtractionLevelRaw] =
@@ -236,6 +255,13 @@ export const generateResponse = internalAction({
           ) as Promise<string | null>,
         ]);
 
+      // Estimate input tokens for wasted cost tracking (accessible in catch block)
+      inputTokenEstimate = messages.reduce(
+        (sum: number, m: Doc<"messages">) =>
+          sum + estimateTokens(m.content || ""),
+        0,
+      );
+
       const memoryExtractionLevel = (memoryExtractionLevelRaw ??
         "moderate") as MemoryExtractionLevel;
 
@@ -248,7 +274,10 @@ export const generateResponse = internalAction({
 
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
       const requiresThoughtSignature = modelId.includes("gemini-3-pro-image");
-      if (requiresThoughtSignature && messages.length > 1) {
+      const hasExistingAssistantMessages =
+        messages.filter((m: Doc<"messages">) => m.role === "assistant").length >
+        0;
+      if (requiresThoughtSignature && hasExistingAssistantMessages) {
         // Check if conversation started with a compatible model
         const firstAssistantMsg = messages.find(
           (m: Doc<"messages">) => m.role === "assistant" && m.model,
@@ -546,12 +575,6 @@ export const generateResponse = internalAction({
           },
         });
         options.onStepFinish = createOnStepFinish();
-
-        // Disable search tools for presentations without grounding enabled
-        if (conversation?.isPresentation && !conversation?.enableGrounding) {
-          delete options.tools.tavilySearch;
-          delete options.tools.tavilyAdvancedSearch;
-        }
       }
 
       // 13. Apply provider options (merge with gateway options)
@@ -585,19 +608,45 @@ export const generateResponse = internalAction({
       }
 
       // 6. Accumulate chunks, throttle DB updates
-      let accumulated = "";
+      accumulated = ""; // Reset at start of streaming (declared outside try for catch access)
       let reasoningBuffer = "";
       const toolCallsBuffer = new Map<string, any>();
 
+      // UTF-8 safe streaming buffers to prevent surrogate pair splitting (emoji/CJK)
+      const textBuffer = new StreamingTextBuffer();
+      const reasoningTextBuffer = new StreamingTextBuffer();
+
+      // AbortController for immediate stream termination on stop
+      const abortController = new AbortController();
+      let lastStopCheck = Date.now();
+      const STOP_CHECK_INTERVAL = 10; // ms - decoupled from write throttle for faster stop response
+
       // Stream from LLM - capture exact API call time for true TTFT
       const apiCallStartedAt = Date.now();
-      const result = streamText(options);
+      const result = streamText({
+        ...options,
+        abortSignal: abortController.signal,
+      });
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
       const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming at high TPS
 
       for await (const chunk of result.fullStream) {
         const now = Date.now();
+
+        // Check stop every 10ms (decoupled from write throttle for faster response)
+        if (now - lastStopCheck >= STOP_CHECK_INTERVAL) {
+          const currentMsg = (await (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.get,
+            { messageId: assistantMessageId },
+          )) as { status?: string } | null;
+          if (currentMsg?.status === "stopped") {
+            abortController.abort();
+            break;
+          }
+          lastStopCheck = now;
+        }
 
         // Handle tool invocations for loading state
         if (chunk.type === "tool-call") {
@@ -672,7 +721,7 @@ export const generateResponse = internalAction({
             const resultStr = JSON.stringify(resultValue ?? "");
             const estimatedTokens = Math.max(
               estimateToolCost(existing.name),
-              Math.ceil(resultStr.length / 4),
+              estimateTokens(resultStr),
             );
             budgetState = recordUsage(budgetState, estimatedTokens);
           }
@@ -683,13 +732,24 @@ export const generateResponse = internalAction({
         const wantsReasoningStreamed =
           args.thinkingEffort && args.thinkingEffort !== "none";
         if (chunk.type === "reasoning-delta" && wantsReasoningStreamed) {
-          reasoningBuffer += chunk.text;
+          // UTF-8 safe: buffer incomplete surrogate pairs
+          const safeReasoningChunk = reasoningTextBuffer.process(chunk.text);
+          if (safeReasoningChunk) {
+            reasoningBuffer += safeReasoningChunk;
+          }
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
-            await ctx.runMutation(internal.messages.updatePartialReasoning, {
-              messageId: assistantMessageId,
-              partialReasoning: reasoningBuffer,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialReasoning,
+              {
+                messageId: assistantMessageId,
+                partialReasoning: reasoningBuffer,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
+            }
             lastReasoningUpdate = now;
           }
         }
@@ -707,54 +767,61 @@ export const generateResponse = internalAction({
               firstTokenAt: firstTokenTime,
             });
 
-            // DEFERRED ANALYTICS: Track streaming started/resumed after first token arrives
+            // DEFERRED ANALYTICS: Track streaming started after first token arrives
             // This moves ~15ms of analytics work out of the critical path to TTFT
-            if (isResumedAfterRefresh) {
-              trackServerEvent(
-                "generation_resumed_after_refresh",
-                {
-                  model: modelId,
-                  messageId: assistantMessageId,
-                  conversationId: args.conversationId,
-                  partialContentLength: partialContentLengthForAnalytics,
-                  firstTokenLatencyMs: firstTokenTime - generationStartTime,
-                },
-                args.userId,
-              ).catch(() => {}); // Fire-and-forget, don't block streaming
-            } else {
-              trackServerEvent(
-                "message_streaming_started",
-                {
-                  model: modelId,
-                  messageId: assistantMessageId,
-                  conversationId: args.conversationId,
-                  firstTokenLatencyMs: firstTokenTime - generationStartTime,
-                },
-                args.userId,
-              ).catch(() => {}); // Fire-and-forget, don't block streaming
-            }
+            trackServerEvent(
+              "message_streaming_started",
+              {
+                model: modelId,
+                messageId: assistantMessageId,
+                conversationId: args.conversationId,
+                firstTokenLatencyMs: firstTokenTime - generationStartTime,
+              },
+              args.userId,
+            ).catch(() => {}); // Fire-and-forget, don't block streaming
           }
 
-          accumulated += chunk.text;
+          // UTF-8 safe: buffer incomplete surrogate pairs to prevent JSON.stringify crashes
+          const safeChunk = textBuffer.process(chunk.text);
+          if (safeChunk) {
+            accumulated += safeChunk;
+          }
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
-            // Check if message was stopped by user
-            const currentMsg = (await (ctx.runQuery as any)(
-              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-              internal.messages.get,
-              { messageId: assistantMessageId },
-            )) as { status?: string } | null;
-            if (currentMsg?.status === "stopped") {
-              break; // Exit streaming loop - user cancelled
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
             }
-
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: assistantMessageId,
-              partialContent: accumulated,
-            });
             lastUpdate = now;
           }
         }
+      }
+
+      // Flush any remaining buffered content
+      const remainingText = textBuffer.flush();
+      if (remainingText) {
+        accumulated += remainingText;
+      }
+      const remainingReasoning = reasoningTextBuffer.flush();
+      if (remainingReasoning) {
+        reasoningBuffer += remainingReasoning;
+      }
+
+      // If we aborted (user stopped), exit early - no finalization needed
+      // Message already marked as stopped, partial content preserved
+      if (abortController.signal.aborted) {
+        logger.info("Generation stopped by user (loop exit)", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+        });
+        return;
       }
 
       // Check if we have tool calls but no text response - request continuation
@@ -812,10 +879,30 @@ export const generateResponse = internalAction({
             };
 
             // Update UI with continuation result
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: assistantMessageId,
-              partialContent: accumulated,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              // Message was stopped - still record continuation metrics
+              const contCost = calculateCost(modelId, {
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cachedTokens: undefined,
+                reasoningTokens: undefined,
+              });
+              await ctx.runMutation(internal.messages.completeMessage, {
+                messageId: assistantMessageId,
+                content: accumulated,
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cost: contCost,
+              });
+              return;
+            }
 
             logger.info("Continuation successful", {
               tag: "Generation",
@@ -1144,35 +1231,6 @@ export const generateResponse = internalAction({
         conversationId: args.conversationId,
       });
 
-      // 10.5. Check if this was a presentation generation and trigger parsing
-      // We check if there's a presentation associated with this conversation
-      // that is in the "outline_generating" or "outline_pending" state
-      const presentation = await ctx.runQuery(
-        // @ts-ignore
-        internal.presentations.internal.getPresentationByConversation,
-        { conversationId: args.conversationId },
-      );
-
-      if (
-        presentation &&
-        (presentation.status === "outline_generating" ||
-          presentation.status === "outline_pending")
-      ) {
-        logger.info("Triggering outline parsing for presentation", {
-          tag: "Generation",
-          presentationId: presentation._id,
-        });
-        await ctx.runMutation(
-          // @ts-ignore
-          internal.presentations.outline.parseOutlineMessageInternal,
-          {
-            presentationId: presentation._id,
-            messageId: assistantMessageId,
-            userId: args.userId,
-          },
-        );
-      }
-
       // 11. POST-STREAMING CLEANUP (parallelized for speed)
       // These operations don't need to block action completion - run in parallel
 
@@ -1238,8 +1296,8 @@ export const generateResponse = internalAction({
             })
           : Promise.resolve(),
 
-        // Model triage analysis
-        lastUserMsgForTriage
+        // Model triage analysis (skip if auto-selected - system already optimized)
+        lastUserMsgForTriage && !_wasAutoSelected
           ? ctx.scheduler.runAfter(0, internal.ai.modelTriage.analyzeModelFit, {
               conversationId: args.conversationId,
               userMessage: lastUserMsgForTriage.content,
@@ -1248,6 +1306,15 @@ export const generateResponse = internalAction({
           : Promise.resolve(),
       ]);
     } catch (error) {
+      // Handle AbortError (user stopped generation) - clean exit
+      if (error instanceof Error && error.name === "AbortError") {
+        logger.info("Generation stopped by user", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+        });
+        return; // Clean exit - message already marked stopped
+      }
+
       // Enhanced error logging to capture full gateway error details
       logger.error("Generation error", {
         tag: "Generation",
@@ -1280,13 +1347,18 @@ export const generateResponse = internalAction({
       const isCreditsError = detectCreditsError(error);
 
       // Calculate wasted cost if streaming failed mid-generation
+      // Includes both input tokens (conversation context) and output tokens (partial response)
       const modelConfig = getModelConfig(args.modelId);
       const wastedCost =
         firstTokenTime && modelConfig?.pricing
-          ? estimateWastedCost(0, {
-              input: modelConfig.pricing.input,
-              output: modelConfig.pricing.output,
-            })
+          ? estimateWastedCost(
+              inputTokenEstimate,
+              estimateTokens(accumulated),
+              {
+                input: modelConfig.pricing.input,
+                output: modelConfig.pricing.output,
+              },
+            )
           : 0;
 
       // Comprehensive error tracking with AI-specific context

@@ -1,5 +1,6 @@
 # Fix Stop Generation Race Condition
 
+> **Status**: ✅ DONE (PR #153 merged 2026-01-17)
 > **Phase**: P0-critical | **Effort**: 6h | **Impact**: $219K/yr savings
 > **Dependencies**: None | **Breaking**: No
 

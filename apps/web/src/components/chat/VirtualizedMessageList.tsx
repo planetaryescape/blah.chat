@@ -13,6 +13,7 @@ import {
   useMessageGrouping,
 } from "@/hooks/useMessageGrouping";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useScrollAnchor } from "@/hooks/useScrollAnchor";
 import { useScrollIntent } from "@/hooks/useScrollIntent";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import { useUserPreference } from "@/hooks/useUserPreference";
@@ -67,6 +68,9 @@ export function VirtualizedMessageList({
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
   const _reducedMotion = usePrefersReducedMotion();
 
+  // Scroll anchoring fallback for Safari (only in simple mode, Virtuoso handles its own)
+  useScrollAnchor(scrollContainerRef, !useVirtualization);
+
   // Scroll position restoration per conversation
   const { restore: restoreScrollPosition } = useScrollRestoration(
     conversationId,
@@ -75,8 +79,8 @@ export function VirtualizedMessageList({
   );
 
   // Lift conversation query here to avoid N subscriptions in ChatMessage children
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const conversation = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );

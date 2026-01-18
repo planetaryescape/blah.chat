@@ -1413,11 +1413,14 @@ export const generateResponse = internalAction({
           { messageId: assistantMessageId },
         )) as Doc<"messages"> | null;
 
-        const failedModels = [
-          ...(currentMessage?.failedModels || []),
-          ...(args.excludedModels || []),
-          modelId,
-        ];
+        // Deduplicate failed models to prevent array bloat
+        const failedModels = Array.from(
+          new Set([
+            ...(currentMessage?.failedModels || []),
+            ...(args.excludedModels || []),
+            modelId,
+          ]),
+        );
         const retryCount = (currentMessage?.retryCount || 0) + 1;
 
         if (retryCount < _MAX_AUTO_RETRY_ATTEMPTS) {
@@ -1429,36 +1432,46 @@ export const generateResponse = internalAction({
             errorType,
           });
 
-          // Mark message as retrying (clears error, updates status)
-          await (ctx.runMutation as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            internal.messages.markRetrying,
-            {
-              messageId: assistantMessageId,
-              failedModels,
-              retryCount,
-            },
-          );
-
           // Re-invoke generation with excluded models
-          await ctx.scheduler.runAfter(
-            0,
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            internal.generation.generateResponse,
-            {
-              conversationId: args.conversationId,
-              modelId: "auto", // Force auto-routing again
-              userId: args.userId,
-              thinkingEffort: args.thinkingEffort,
-              comparisonGroupId: args.comparisonGroupId,
-              existingMessageId: assistantMessageId,
-              systemPromptOverride: args.systemPromptOverride,
-              passedMessages: args.passedMessages,
-              excludedModels: failedModels,
-            },
-          );
+          // Note: We schedule BEFORE marking as retrying to avoid stuck "generating" state
+          try {
+            await ctx.scheduler.runAfter(
+              0,
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.generation.generateResponse,
+              {
+                conversationId: args.conversationId,
+                modelId: "auto", // Force auto-routing again
+                userId: args.userId,
+                thinkingEffort: args.thinkingEffort,
+                comparisonGroupId: args.comparisonGroupId,
+                existingMessageId: assistantMessageId,
+                systemPromptOverride: args.systemPromptOverride,
+                passedMessages: args.passedMessages,
+                excludedModels: failedModels,
+              },
+            );
 
-          return; // Exit without marking error - retry in progress
+            // Only mark as retrying after scheduler succeeds
+            await (ctx.runMutation as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.messages.markRetrying,
+              {
+                messageId: assistantMessageId,
+                failedModels,
+                retryCount,
+              },
+            );
+
+            return; // Exit without marking error - retry in progress
+          } catch (schedulerError) {
+            logger.error("Failed to schedule retry, falling through to error", {
+              tag: "Generation",
+              messageId: assistantMessageId,
+              error: String(schedulerError),
+            });
+            // Fall through to error handling below
+          }
         }
 
         // All retries exhausted - create system feedback and alert admin

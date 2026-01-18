@@ -294,6 +294,20 @@ export const archiveFeedback = mutation({
 // INTERNAL MUTATIONS
 // ============================================================================
 
+/** Build description for system-generated error feedback */
+function buildSystemFeedbackDescription(errorContext: {
+  errorType?: string;
+  errorMessage?: string;
+  failedModels?: string[];
+}): string {
+  const errorType = errorContext.errorType || "unknown";
+  const modelCount = errorContext.failedModels?.length || 0;
+  const errorMessage = errorContext.errorMessage || "Unknown error";
+  const failedModels = errorContext.failedModels?.join(", ") || "none";
+
+  return `Auto-router failure: ${errorType} error after ${modelCount} model attempts.\n\nError: ${errorMessage}\n\nFailed models: ${failedModels}`;
+}
+
 /**
  * Create system-generated feedback for automated error tracking.
  * Used when generation fails after all retries are exhausted.
@@ -330,7 +344,7 @@ export const createSystemFeedback = internalMutation({
         ? `/chat/${args.errorContext.conversationId}`
         : "/chat",
       feedbackType: "bug",
-      description: `Auto-router failure: ${args.errorContext.errorType || "unknown"} error after ${args.errorContext.failedModels?.length || 0} model attempts.\n\nError: ${args.errorContext.errorMessage || "Unknown error"}\n\nFailed models: ${args.errorContext.failedModels?.join(", ") || "none"}`,
+      description: buildSystemFeedbackDescription(args.errorContext),
       status: "new",
       priority: "high",
       tags: [

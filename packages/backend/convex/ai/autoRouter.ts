@@ -208,12 +208,21 @@ export const routeMessage = internalAction({
       );
 
       if (eligibleModels.length === 0) {
+        const fallbackModel = "openai:gpt-5-mini";
+        // Check if fallback is also excluded (all models exhausted)
+        if (args.excludedModels?.includes(fallbackModel)) {
+          logger.error("All models exhausted including fallback", {
+            tag: "AutoRouter",
+            excludedModels: args.excludedModels,
+          });
+          throw new Error("All models exhausted including fallback");
+        }
         // Fallback to default model if no eligible models found
         logger.warn("No eligible models found, using default", {
           tag: "AutoRouter",
         });
         return {
-          selectedModelId: "openai:gpt-5-mini",
+          selectedModelId: fallbackModel,
           classification,
           reasoning: "No eligible models matched requirements, using default",
           candidatesConsidered: 0,

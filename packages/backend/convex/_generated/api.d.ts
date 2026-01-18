@@ -86,6 +86,7 @@ import type * as emails_templates_apiCreditsExhausted from "../emails/templates/
 import type * as emails_templates_budgetWarning from "../emails/templates/budgetWarning.js";
 import type * as emails_templates_byodUpdateRequired from "../emails/templates/byodUpdateRequired.js";
 import type * as emails_templates_feedbackNotification from "../emails/templates/feedbackNotification.js";
+import type * as emails_templates_generationErrorAlert from "../emails/templates/generationErrorAlert.js";
 import type * as emails_templates_index from "../emails/templates/index.js";
 import type * as emails_test_testEmails from "../emails/test/testEmails.js";
 import type * as emails_utils_index from "../emails/utils/index.js";
@@ -142,6 +143,7 @@ import type * as lib_userSync from "../lib/userSync.js";
 import type * as lib_utils_cascade from "../lib/utils/cascade.js";
 import type * as lib_utils_memory from "../lib/utils/memory.js";
 import type * as lib_utils_search from "../lib/utils/search.js";
+import type * as lib_utils_utf8Safe from "../lib/utils/utf8Safe.js";
 import type * as memories from "../memories.js";
 import type * as memories_consolidation from "../memories/consolidation.js";
 import type * as memories_delete from "../memories/delete.js";
@@ -358,6 +360,7 @@ declare const fullApi: ApiFromModules<{
   "emails/templates/budgetWarning": typeof emails_templates_budgetWarning;
   "emails/templates/byodUpdateRequired": typeof emails_templates_byodUpdateRequired;
   "emails/templates/feedbackNotification": typeof emails_templates_feedbackNotification;
+  "emails/templates/generationErrorAlert": typeof emails_templates_generationErrorAlert;
   "emails/templates/index": typeof emails_templates_index;
   "emails/test/testEmails": typeof emails_test_testEmails;
   "emails/utils/index": typeof emails_utils_index;
@@ -414,6 +417,7 @@ declare const fullApi: ApiFromModules<{
   "lib/utils/cascade": typeof lib_utils_cascade;
   "lib/utils/memory": typeof lib_utils_memory;
   "lib/utils/search": typeof lib_utils_search;
+  "lib/utils/utf8Safe": typeof lib_utils_utf8Safe;
   memories: typeof memories;
   "memories/consolidation": typeof memories_consolidation;
   "memories/delete": typeof memories_delete;

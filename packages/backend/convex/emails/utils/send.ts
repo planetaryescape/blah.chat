@@ -12,6 +12,9 @@ import {
   FeedbackNotificationEmail,
 } from "../templates";
 
+/** Default admin email for alerts when adminSettings.alertEmail is not configured */
+const DEFAULT_ADMIN_EMAIL = "blah.chat@bhekani.com";
+
 export const resend = new Resend(components.resend, {
   testMode: false, // Set to true for testing with delivered@resend.dev
 });
@@ -45,7 +48,7 @@ export const sendBudgetAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Render email
     const html = await render(
@@ -107,7 +110,7 @@ export const sendApiCreditsAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Render email
     const html = await render(
@@ -202,7 +205,7 @@ export const sendFeedbackNotification = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Generate email subject with priority and type emojis
     const priorityEmoji = getPriorityEmoji(
@@ -347,7 +350,7 @@ export const sendGenerationErrorAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Render email
     const { GenerationErrorAlertEmail } = await import("../templates");

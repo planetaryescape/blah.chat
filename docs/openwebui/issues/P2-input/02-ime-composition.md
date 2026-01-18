@@ -1,5 +1,6 @@
-# IME Composition Guard
+# IME Composition Guard ✅
 
+> **Status**: COMPLETE | **PR**: #167
 > **Phase**: P2-input | **Effort**: 2h | **Impact**: 1.4B+ potential CJK users
 > **Dependencies**: None | **Breaking**: No
 

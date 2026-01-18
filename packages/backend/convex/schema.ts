@@ -277,6 +277,9 @@ export default defineSchema({
         }),
       ),
     ),
+    // Retry tracking for auto-router recovery
+    failedModels: v.optional(v.array(v.string())),
+    retryCount: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1095,6 +1098,20 @@ export default defineSchema({
     // Assignment
     assignedTo: v.optional(v.id("users")),
     archivedAt: v.optional(v.number()),
+
+    // System-generated error context for automated feedback
+    errorContext: v.optional(
+      v.object({
+        conversationId: v.optional(v.id("conversations")),
+        messageId: v.optional(v.id("messages")),
+        modelId: v.optional(v.string()),
+        errorMessage: v.optional(v.string()),
+        errorType: v.optional(v.string()),
+        failedModels: v.optional(v.array(v.string())),
+        userAgent: v.optional(v.string()),
+        environment: v.optional(v.string()),
+      }),
+    ),
 
     createdAt: v.number(),
     updatedAt: v.number(),

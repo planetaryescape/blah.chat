@@ -55,6 +55,7 @@ function ErrorDisplay({
     } catch (err) {
       console.error("[ErrorDisplay] Retry failed:", err);
       toast.error("Failed to retry generation");
+    } finally {
       setIsRetrying(false);
     }
   };

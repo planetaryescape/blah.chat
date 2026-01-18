@@ -1423,7 +1423,7 @@ export const generateResponse = internalAction({
         );
         const retryCount = (currentMessage?.retryCount || 0) + 1;
 
-        if (retryCount < _MAX_AUTO_RETRY_ATTEMPTS) {
+        if (retryCount <= _MAX_AUTO_RETRY_ATTEMPTS) {
           logger.info("Auto-router retry: switching to different model", {
             tag: "Generation",
             messageId: assistantMessageId,

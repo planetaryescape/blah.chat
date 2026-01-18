@@ -90,6 +90,25 @@ export const sendMessage = mutation({
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
+    // Early lock check for existing conversations - prevent spam sends
+    if (args.conversationId) {
+      const existingConvId = args.conversationId;
+      const existingLock = await ctx.db
+        .query("generationLocks")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", existingConvId),
+        )
+        .first();
+
+      if (existingLock) {
+        const STALE_TIMEOUT_MS = 60 * 1000;
+        const isStale = Date.now() - existingLock.lockedAt > STALE_TIMEOUT_MS;
+        if (!isStale) {
+          throw new Error("Please wait for the current response to complete.");
+        }
+      }
+    }
+
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
     const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
 
@@ -202,6 +221,27 @@ export const sendMessage = mutation({
         },
       )) as Id<"messages">;
       assistantMessageIds.push(assistantMessageId);
+    }
+
+    // 5b. Acquire generation lock before scheduling
+    const lockAcquired = (await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.generationLock.acquireLock,
+      {
+        conversationId,
+        userId: user._id,
+        messageId: assistantMessageIds[0],
+        comparisonGroupId,
+        modelCount: modelsToUse.length,
+      },
+    )) as boolean;
+
+    if (!lockAcquired) {
+      // Cleanup created messages - generation blocked
+      for (const msgId of [...assistantMessageIds, userMessageId]) {
+        await ctx.db.delete(msgId);
+      }
+      throw new Error("Please wait for the current response to complete.");
     }
 
     // 6. Schedule generation actions with existing message IDs

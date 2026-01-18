@@ -209,37 +209,50 @@ export const sendMessage = mutation({
       throw new Error("Please wait for the current response to complete.");
     }
 
-    // 5. Insert user message (single) - only after lock acquired
-    const userMessageId = (await ctx.runMutation(internal.messages.create, {
-      conversationId,
-      userId: user._id,
-      role: "user",
-      content: args.content,
-      attachments: args.attachments,
-      status: "complete",
-      comparisonGroupId, // Link to comparison group if multi-model
-    })) as Id<"messages">;
-
-    // 6. Create assistant messages upfront with status: "pending"
-    // This eliminates client-side optimistic messages and deduplication
+    // 5. Create messages and schedule generations - release lock on failure
+    let userMessageId: Id<"messages">;
     const assistantMessageIds: Id<"messages">[] = [];
-    for (const model of modelsToUse) {
-      const assistantMessageId = (await ctx.runMutation(
-        internal.messages.create,
-        {
-          conversationId,
-          userId: user._id,
-          role: "assistant",
-          content: "",
-          status: "pending",
-          model,
-          comparisonGroupId,
-        },
-      )) as Id<"messages">;
-      assistantMessageIds.push(assistantMessageId);
+
+    try {
+      // Insert user message (single) - only after lock acquired
+      userMessageId = (await ctx.runMutation(internal.messages.create, {
+        conversationId,
+        userId: user._id,
+        role: "user",
+        content: args.content,
+        attachments: args.attachments,
+        status: "complete",
+        comparisonGroupId, // Link to comparison group if multi-model
+      })) as Id<"messages">;
+
+      // Create assistant messages upfront with status: "pending"
+      // This eliminates client-side optimistic messages and deduplication
+      for (const model of modelsToUse) {
+        const assistantMessageId = (await ctx.runMutation(
+          internal.messages.create,
+          {
+            conversationId,
+            userId: user._id,
+            role: "assistant",
+            content: "",
+            status: "pending",
+            model,
+            comparisonGroupId,
+          },
+        )) as Id<"messages">;
+        assistantMessageIds.push(assistantMessageId);
+      }
+    } catch (error) {
+      // Release lock if message creation fails
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.generationLock.forceReleaseLock,
+        { conversationId },
+      );
+      throw error;
     }
 
-    // 8. Schedule generation actions with existing message IDs
+    // 6. Schedule generation actions with existing message IDs
     for (let i = 0; i < modelsToUse.length; i++) {
       await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
         conversationId,
@@ -251,7 +264,7 @@ export const sendMessage = mutation({
       });
     }
 
-    // 9. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
+    // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
     if (
       conversationId &&
       modelsToUse[0] !== "auto" &&
@@ -270,14 +283,14 @@ export const sendMessage = mutation({
       );
     }
 
-    // 10. Schedule background housekeeping (non-blocking)
+    // 8. Schedule background housekeeping (non-blocking)
     // This handles: daily count, timestamp update, limit checks, memory extraction
     await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
       userId: user._id,
       conversationId: conversationId!,
     });
 
-    // 11. Return immediately with all message IDs
+    // 9. Return immediately with all message IDs
     return {
       conversationId: conversationId!,
       userMessageId,

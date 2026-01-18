@@ -68,7 +68,7 @@ export function useScrollAnchor(
         container.getBoundingClientRect().top;
       const diff = newOffsetTop - offsetTop;
 
-      if (Math.abs(diff) > 1) {
+      if (Math.abs(diff) > 5) {
         container.scrollTop += diff;
       }
     };
@@ -96,13 +96,13 @@ export function useScrollAnchor(
       // Observe any new message elements
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
-          if (node instanceof Element) {
+          if (node instanceof HTMLElement) {
             if (node.hasAttribute("data-message-id")) {
               observeMessage(node);
             }
             // Check descendants too
-            const newMessages = node.querySelectorAll?.("[data-message-id]");
-            newMessages?.forEach(observeMessage);
+            const newMessages = node.querySelectorAll("[data-message-id]");
+            newMessages.forEach(observeMessage);
           }
         }
       }

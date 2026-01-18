@@ -90,25 +90,6 @@ export const sendMessage = mutation({
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
 
-    // Early lock check for existing conversations - prevent spam sends
-    if (args.conversationId) {
-      const existingConvId = args.conversationId;
-      const existingLock = await ctx.db
-        .query("generationLocks")
-        .withIndex("by_conversation", (q) =>
-          q.eq("conversationId", existingConvId),
-        )
-        .first();
-
-      if (existingLock) {
-        const STALE_TIMEOUT_MS = 60 * 1000;
-        const isStale = Date.now() - existingLock.lockedAt > STALE_TIMEOUT_MS;
-        if (!isStale) {
-          throw new Error("Please wait for the current response to complete.");
-        }
-      }
-    }
-
     // Determine models to use - client MUST provide modelId, fallback only for edge cases
     const modelsToUse = args.models || [args.modelId || "openai:gpt-oss-20b"];
 
@@ -210,8 +191,8 @@ export const sendMessage = mutation({
     }
 
     // 5. Create messages and schedule generations - release lock on any failure
-    // Note: Convex mutations are atomic, so failures roll back everything.
-    // The try/catch with forceReleaseLock is belt-and-suspenders safety.
+    // Each ctx.runMutation is atomic independently, NOT together as a transaction.
+    // If message creation fails after lock acquired, we must explicitly release.
     let userMessageId: Id<"messages">;
     const assistantMessageIds: Id<"messages">[] = [];
 

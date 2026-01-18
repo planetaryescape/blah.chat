@@ -300,10 +300,7 @@ export const ChatInput = memo(function ChatInput({
     if (!conversationId) return;
 
     const savedDraft = sessionStorage.getItem(`draft-${conversationId}`);
-    if (savedDraft && !input) {
-      setInput(savedDraft);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setInput(savedDraft || "");
   }, [conversationId]);
 
   const getPlaceholder = () => {

@@ -1684,6 +1684,12 @@ export const generateResponse = internalAction({
         { messageId: assistantMessageId },
       );
 
+      // Mark error BEFORE releasing lock to avoid stuck "generating" state
+      await ctx.runMutation(internal.messages.markError, {
+        messageId: assistantMessageId,
+        error: userMessage,
+      });
+
       // Release lock on error
       await (ctx.runMutation as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -1691,10 +1697,6 @@ export const generateResponse = internalAction({
         { conversationId: args.conversationId },
       );
 
-      await ctx.runMutation(internal.messages.markError, {
-        messageId: assistantMessageId,
-        error: userMessage,
-      });
       throw error;
     }
   },

@@ -1,0 +1,48 @@
+name: Dependabot Lockfile Fix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-lockfile:
+    name: Update Lockfile
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Git for push
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: git checkout "$HEAD_REF"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+
+      - name: Update lockfile
+        run: bun install --no-frozen-lockfile
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet bun.lock; then
+            echo "No lockfile changes"
+          else
+            git add bun.lock
+            git commit -m "chore: update bun.lock"
+            git push
+          fi

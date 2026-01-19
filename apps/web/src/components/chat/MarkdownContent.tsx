@@ -3,6 +3,7 @@
 import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
@@ -300,6 +301,7 @@ export function MarkdownContent({
   isStreaming = false,
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Create markdown components (including theme-aware Mermaid)
   const markdownComponents = createMarkdownComponents();
@@ -320,9 +322,10 @@ export function MarkdownContent({
   }, [content]);
 
   // Buffer hook smoothly reveals words from server chunks
+  // Bypass buffering if user prefers reduced motion (instant text display)
   const { displayContent, hasBufferedContent } = useStreamBuffer(
     processedContent,
-    isStreaming,
+    isStreaming && !prefersReducedMotion,
     {
       wordsPerSecond: 30, // Smooth word-by-word reveal
     },

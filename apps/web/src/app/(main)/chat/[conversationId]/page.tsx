@@ -41,6 +41,7 @@ import { useComparisonMode } from "@/hooks/useComparisonMode";
 import { useContextLimitEnforcement } from "@/hooks/useContextLimitEnforcement";
 import { useConversationNavigation } from "@/hooks/useConversationNavigation";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useMessageAnnouncer } from "@/hooks/useMessageAnnouncer";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useModelRecommendation } from "@/hooks/useModelRecommendation";
 import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
@@ -106,6 +107,9 @@ function ChatPageContent({
   const { messages, addOptimisticMessages } = useOptimisticMessages({
     serverMessages,
   });
+
+  // Announce new messages to screen readers
+  useMessageAnnouncer(messages);
 
   // Extract chat width preference
   const rawChatWidth = useQuery(api.users.getUserPreference, {
@@ -397,6 +401,29 @@ function ChatPageContent({
 
   return (
     <TTSProvider defaultSpeed={ttsSpeed} defaultVoice={ttsVoice}>
+      {/* Skip links for keyboard navigation */}
+      <a
+        href="#chat-messages"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
+      >
+        Skip to messages
+      </a>
+      <a
+        href="#chat-input"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-32 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
+      >
+        Skip to compose
+      </a>
+
+      {/* Screen reader announcer for new messages */}
+      <div
+        id="message-announcer"
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+        className="sr-only"
+      />
+
       <ResizablePanelGroup
         orientation="horizontal"
         className="flex-1 min-h-0"
@@ -505,6 +532,7 @@ function ChatPageContent({
                         highlightMessageId={highlightMessageId}
                         isCollaborative={conversation?.isCollaborative}
                         onScrollReady={setIsScrollReady}
+                        isGenerating={isGenerating}
                       />
                     </div>
                   )}
@@ -636,7 +664,7 @@ function ChatPageContent({
               )}
 
               {/* ChatInput - always rendered to preserve focus and input state during navigation */}
-              <div className="flex shrink-0">
+              <div id="chat-input" className="flex shrink-0">
                 <ChatInput
                   conversationId={validConversationId!}
                   chatWidth={chatWidth}

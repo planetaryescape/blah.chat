@@ -41,6 +41,8 @@ interface VirtualizedMessageListProps {
   chatWidth?: ChatWidth;
   isCollaborative?: boolean;
   onScrollReady?: (ready: boolean) => void;
+  /** Whether AI is currently generating a response (for aria-busy) */
+  isGenerating?: boolean;
 }
 
 export function VirtualizedMessageList({
@@ -54,6 +56,7 @@ export function VirtualizedMessageList({
   highlightMessageId,
   isCollaborative,
   onScrollReady,
+  isGenerating = false,
 }: VirtualizedMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -223,9 +226,11 @@ export function VirtualizedMessageList({
             scrollContainerRef.current = el;
             scrollerRef.current = el;
           }}
+          id="chat-messages"
           className="messages-container flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
           role="log"
           aria-live="polite"
+          aria-busy={isGenerating}
           aria-label="Chat message history"
         >
           {grouped.map((item, index) => (
@@ -280,9 +285,11 @@ export function VirtualizedMessageList({
         }
         atBottomStateChange={setAtBottom}
         atBottomThreshold={100}
+        id="chat-messages"
         className="flex-1 w-full min-w-0 min-h-0"
         role="log"
         aria-live="polite"
+        aria-busy={isGenerating}
         aria-label="Chat message history"
         itemContent={(index, item) => (
           <MessageItemContent

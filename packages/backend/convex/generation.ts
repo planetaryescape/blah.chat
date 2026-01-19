@@ -1329,6 +1329,12 @@ export const generateResponse = internalAction({
           tag: "Generation",
           messageId: assistantMessageId,
         });
+        // Cleanup orphaned partial tool calls
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.cleanupPartialToolCalls,
+          { messageId: assistantMessageId },
+        );
         // Release lock even on stop
         await (ctx.runMutation as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -1448,6 +1454,13 @@ export const generateResponse = internalAction({
             retryCount,
             errorType,
           });
+
+          // Cleanup partial tool calls before retry
+          await (ctx.runMutation as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.cleanupPartialToolCalls,
+            { messageId: assistantMessageId },
+          );
 
           // Re-invoke generation with excluded models
           // Note: We schedule BEFORE marking as retrying to avoid stuck "generating" state
@@ -1663,6 +1676,13 @@ export const generateResponse = internalAction({
         tag: "Generation",
         error: String(error),
       });
+
+      // Cleanup partial tool calls on error
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.messages.cleanupPartialToolCalls,
+        { messageId: assistantMessageId },
+      );
 
       // Release lock on error
       await (ctx.runMutation as any)(

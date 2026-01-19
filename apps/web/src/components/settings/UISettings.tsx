@@ -45,6 +45,7 @@ const SETTING_TO_SECTION: Record<string, string> = {
   // Messages
   alwaysShowMessageActions: "messages",
   autoCompressContext: "messages",
+  hapticFeedbackEnabled: "messages",
   // Reasoning
   showByDefault: "reasoning",
   autoExpand: "reasoning",
@@ -153,10 +154,12 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           <MessageBehaviorSection
             alwaysShowMessageActions={state.alwaysShowMessageActions}
             autoCompressContext={state.autoCompressContext}
+            hapticFeedbackEnabled={state.hapticFeedbackEnabled}
             onAlwaysShowActionsChange={handlers.handleAlwaysShowActionsChange}
             onAutoCompressContextChange={
               handlers.handleAutoCompressContextChange
             }
+            onHapticFeedbackChange={handlers.handleHapticFeedbackChange}
           />
 
           <ReasoningDisplaySection

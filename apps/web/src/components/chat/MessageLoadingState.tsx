@@ -5,6 +5,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 interface MessageLoadingStateProps {
   isThinkingModel: boolean;
   isAutoRetrying?: boolean;
+  modelName?: string;
 }
 
 /**
@@ -16,6 +17,7 @@ interface MessageLoadingStateProps {
 export function MessageLoadingState({
   isThinkingModel,
   isAutoRetrying,
+  modelName,
 }: MessageLoadingStateProps) {
   if (isAutoRetrying) {
     return (
@@ -36,19 +38,35 @@ export function MessageLoadingState({
   }
 
   return (
-    <div className="flex gap-1 items-center h-6">
-      <span
-        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-        style={{ animationDelay: "0ms" }}
-      />
-      <span
-        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-        style={{ animationDelay: "150ms" }}
-      />
-      <span
-        className="w-2 h-2 bg-primary/40 rounded-full animate-bounce"
-        style={{ animationDelay: "300ms" }}
-      />
+    <div className="flex items-center gap-2 h-6">
+      {modelName && (
+        <span className="text-xs text-muted-foreground">
+          {modelName} is typing
+        </span>
+      )}
+      <div className="typing-indicator flex gap-1 items-center">
+        <span
+          className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full"
+          style={{
+            animation: "typing-pulse 0.8s ease-in-out infinite",
+            animationDelay: "0ms",
+          }}
+        />
+        <span
+          className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full"
+          style={{
+            animation: "typing-pulse 0.8s ease-in-out infinite",
+            animationDelay: "200ms",
+          }}
+        />
+        <span
+          className="w-1.5 h-1.5 bg-muted-foreground/60 rounded-full"
+          style={{
+            animation: "typing-pulse 0.8s ease-in-out infinite",
+            animationDelay: "400ms",
+          }}
+        />
+      </div>
     </div>
   );
 }

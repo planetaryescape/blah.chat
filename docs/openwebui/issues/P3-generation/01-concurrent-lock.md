@@ -1,5 +1,6 @@
 # Concurrent Generation Lock
 
+> **Status**: DONE (PR #169 merged 2026-01-18)
 > **Phase**: P3-generation | **Effort**: 5h | **Impact**: Rate limit protection
 > **Dependencies**: None | **Breaking**: No (behavioral improvement)
 

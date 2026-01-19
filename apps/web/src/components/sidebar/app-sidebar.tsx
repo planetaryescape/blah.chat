@@ -344,6 +344,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
+      id="conversation-list"
       collapsible="icon"
       data-tour="sidebar"
       role="navigation"

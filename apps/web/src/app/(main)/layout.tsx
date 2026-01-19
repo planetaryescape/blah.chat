@@ -4,6 +4,7 @@ import { useConvexAuth } from "convex/react";
 import { Ghost, Keyboard, MoreHorizontal, Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
+import { KeyboardHelpManager } from "@/components/accessibility/KeyboardHelpManager";
 import { CommandPalette } from "@/components/CommandPalette";
 import { NewIncognitoDialog } from "@/components/chat/NewIncognitoDialog";
 import { SelectionContextMenu } from "@/components/chat/SelectionContextMenu";
@@ -167,6 +168,7 @@ export default function MainLayout({
                   </div>
                 )}
                 <CommandPalette />
+                <KeyboardHelpManager />
                 <SelectionContextMenu />
                 <OfflineQueueIndicator />
               </OnboardingWrapper>

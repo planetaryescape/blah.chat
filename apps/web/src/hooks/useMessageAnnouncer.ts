@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type MessageLike = {
   _id: string;
@@ -9,13 +9,46 @@ type MessageLike = {
 };
 
 /**
- * Announces new messages to screen readers via the message-announcer live region.
+ * Announces new messages to screen readers via a live region.
+ * Returns a ref to attach to the announcer element.
  * Only announces when a message completes (status === "complete" or user message).
  */
 export function useMessageAnnouncer(messages: MessageLike[] | undefined) {
+  const announcerRef = useRef<HTMLDivElement | null>(null);
   const prevCountRef = useRef(0);
   const prevLastIdRef = useRef<string | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Announce function with proper cleanup
+  const announce = useCallback((message: string) => {
+    const announcer = announcerRef.current;
+    if (!announcer) return;
+
+    // Clear any pending timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Clear then set after brief delay for reliable announcement
+    announcer.textContent = "";
+    timeoutRef.current = setTimeout(() => {
+      // Check ref is still valid after timeout
+      if (announcerRef.current) {
+        announcerRef.current.textContent = message;
+      }
+    }, 100);
+  }, []);
+
+  // Watch for new messages and announce them
   useEffect(() => {
     if (!messages || messages.length === 0) {
       prevCountRef.current = 0;
@@ -40,27 +73,22 @@ export function useMessageAnnouncer(messages: MessageLike[] | undefined) {
           lastMessage.status === "complete"));
 
     if (shouldAnnounce) {
-      const announcer = document.getElementById("message-announcer");
-      if (announcer) {
-        const sender = lastMessage.role === "assistant" ? "Assistant" : "You";
-        const model =
-          lastMessage.role === "assistant" && lastMessage.model
-            ? ` (${lastMessage.model})`
-            : "";
+      const sender = lastMessage.role === "assistant" ? "Assistant" : "You";
+      const model =
+        lastMessage.role === "assistant" && lastMessage.model
+          ? ` (${lastMessage.model})`
+          : "";
 
-        // Truncate long messages
-        const preview = lastMessage.content.slice(0, 150);
-        const truncated = lastMessage.content.length > 150 ? "..." : "";
+      // Truncate long messages
+      const preview = lastMessage.content.slice(0, 150);
+      const truncated = lastMessage.content.length > 150 ? "..." : "";
 
-        // Clear then set for reliable announcement
-        announcer.textContent = "";
-        setTimeout(() => {
-          announcer.textContent = `${sender}${model} said: ${preview}${truncated}`;
-        }, 100);
-      }
+      announce(`${sender}${model} said: ${preview}${truncated}`);
     }
 
     prevCountRef.current = currentCount;
     prevLastIdRef.current = lastMessage._id;
-  }, [messages]);
+  }, [messages, announce]);
+
+  return { announcerRef };
 }

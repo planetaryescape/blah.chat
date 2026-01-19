@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/planetaryescape/blah.chat/compare/v1.2.0...v1.3.0) (2026-01-19)
+
+
+### Features
+
+* **chat:** add StatusTimeline for tool execution progress ([b1aecad](https://github.com/planetaryescape/blah.chat/commit/b1aecad1f5a444d9aa3b640303f0cdd2e39b7617))
+* **chat:** add useHoverIntent hook for delayed hover states ([cbeaf2a](https://github.com/planetaryescape/blah.chat/commit/cbeaf2ad888a039bb1aab98b3f65e954529d7cfe))
+* **chat:** apply hover delay to message action menus ([c12ae32](https://github.com/planetaryescape/blah.chat/commit/c12ae327d2f480dd3e45303d8fff0c177151bbca))
+* **chat:** enhance typing indicator with model name ([262e4aa](https://github.com/planetaryescape/blah.chat/commit/262e4aa4f87792e663c2d9d4f08efc299a8d387a))
+* **chat:** integrate StatusTimeline in AI messages ([244354d](https://github.com/planetaryescape/blah.chat/commit/244354dd5d9b3b199da1a7bbb7a2bb7f0c42562f))
+
+
+### Bug Fixes
+
+* **chat:** graceful StatusTimeline exit animation and aria-busy string ([129911c](https://github.com/planetaryescape/blah.chat/commit/129911c136e220d4732d84504bb11f880bf324d4))
+
 ## [1.2.0](https://github.com/planetaryescape/blah.chat/compare/v1.1.0...v1.2.0) (2026-01-19)
 
 

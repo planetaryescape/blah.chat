@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.2.0](https://github.com/planetaryescape/blah.chat/compare/v1.1.0...v1.2.0) (2026-01-19)
+
+
+### Features
+
+* **a11y:** bypass stream buffering when reduced motion preferred ([5233920](https://github.com/planetaryescape/blah.chat/commit/52339207b6a71c954412ddd3e43ea8f24c750465))
+* **chat:** add lock check and acquisition in sendMessage ([83dcae2](https://github.com/planetaryescape/blah.chat/commit/83dcae29325956f19d7bd388d2983776d217e452))
+* **generation:** add generation lock utility module ([af896b6](https://github.com/planetaryescape/blah.chat/commit/af896b6313b7516929ebd105746dd12bb2d926e7))
+* **generation:** release lock on completion, stop, and error ([9cdbe0c](https://github.com/planetaryescape/blah.chat/commit/9cdbe0c10f04239d550f0b91bccf5bfc1ef348f6))
+* **recovery:** integrate lock release with stuck message recovery ([921acc4](https://github.com/planetaryescape/blah.chat/commit/921acc4b1b42f6188893de81b0d43ca8d6251710))
+* **schema:** add generationLocks table for concurrent generation prevention ([4965cd1](https://github.com/planetaryescape/blah.chat/commit/4965cd1bb8af32a18a6f7c147e8becf974dac1fc))
+* **streaming:** add buffer state tracking to useStreamBuffer ([965758b](https://github.com/planetaryescape/blah.chat/commit/965758b38fd0e14da7be48370dc0519f3638b54d))
+* **streaming:** add subtle fade animation for streaming text ([602b244](https://github.com/planetaryescape/blah.chat/commit/602b2448b161bccea24d998955188001e0739a53))
+
+
+### Bug Fixes
+
+* add lock release on message creation failure and improve stale cleanup ([fa9110f](https://github.com/planetaryescape/blah.chat/commit/fa9110f92a43040770a2689bba94824f6a060398))
+* address code review feedback for generation lock ([41278f4](https://github.com/planetaryescape/blah.chat/commit/41278f42fcbc86e6eb3150c1627392c934b4a13d))
+* extend try/catch to cover scheduler calls for belt-and-suspenders safety ([9b826c0](https://github.com/planetaryescape/blah.chat/commit/9b826c08e24c8d52d7667b6fcb18cf583fe20200))
+* **generation:** cleanup partial tool calls on error paths ([c9b7e85](https://github.com/planetaryescape/blah.chat/commit/c9b7e8598deac39b4a3c2f4a2773cace4ca34c26))
+* move markError before releaseLock to prevent stuck state ([285c077](https://github.com/planetaryescape/blah.chat/commit/285c0772823f808b00f0534f3b4193f3675019e6))
+* release lock in test between consecutive sends ([fcb6e26](https://github.com/planetaryescape/blah.chat/commit/fcb6e26be30a1199c31ac063ef9c5a4a3c7fc317))
+* remove early lock check, fix atomicity comment ([a7fe8c6](https://github.com/planetaryescape/blah.chat/commit/a7fe8c6549087c4820f863f2b37848d6c75dbf34))
+* remove lock refresh in cleanup - let stuck message recovery handle it ([9f26569](https://github.com/planetaryescape/blah.chat/commit/9f26569352353ff44401f2248e9337680cc553d9))
+
 ## [1.1.0](https://github.com/planetaryescape/blah.chat/compare/v1.0.1...v1.1.0) (2026-01-18)
 
 

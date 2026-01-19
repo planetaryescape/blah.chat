@@ -1,5 +1,6 @@
 # Status Timeline for Tools
 
+> **Status**: ✅ Complete (PR #179 merged 2026-01-19)
 > **Phase**: P4-streaming | **Effort**: 4h | **Impact**: Tool visibility
 > **Dependencies**: None | **Breaking**: No
 

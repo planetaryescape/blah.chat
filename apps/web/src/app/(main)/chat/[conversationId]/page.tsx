@@ -42,6 +42,7 @@ import { useContextLimitEnforcement } from "@/hooks/useContextLimitEnforcement";
 import { useConversationNavigation } from "@/hooks/useConversationNavigation";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageAnnouncer } from "@/hooks/useMessageAnnouncer";
+import { useMessageNavigation } from "@/hooks/useMessageNavigation";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useModelRecommendation } from "@/hooks/useModelRecommendation";
 import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
@@ -110,6 +111,12 @@ function ChatPageContent({
 
   // Announce new messages to screen readers
   const { announcerRef } = useMessageAnnouncer(messages);
+
+  // Vim-style j/k navigation between messages
+  useMessageNavigation({
+    messageCount: messages?.length ?? 0,
+    enabled: messages !== undefined && messages.length > 0,
+  });
 
   // Extract chat width preference
   const rawChatWidth = useQuery(api.users.getUserPreference, {
@@ -402,18 +409,26 @@ function ChatPageContent({
   return (
     <TTSProvider defaultSpeed={ttsSpeed} defaultVoice={ttsVoice}>
       {/* Skip links for keyboard navigation */}
-      <a
-        href="#chat-messages"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
-      >
-        Skip to messages
-      </a>
-      <a
-        href="#chat-input"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-32 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
-      >
-        Skip to compose
-      </a>
+      <nav aria-label="Skip links" className="skip-links">
+        <a
+          href="#chat-messages"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
+        >
+          Skip to messages
+        </a>
+        <a
+          href="#chat-input"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-36 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
+        >
+          Skip to compose
+        </a>
+        <a
+          href="#conversation-list"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-64 focus:z-50 focus:bg-background focus:p-2 focus:rounded focus:ring-2 focus:ring-ring"
+        >
+          Skip to conversations
+        </a>
+      </nav>
 
       {/* Screen reader announcer for new messages */}
       <div

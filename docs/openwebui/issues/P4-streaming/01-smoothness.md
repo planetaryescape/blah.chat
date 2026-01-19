@@ -1,5 +1,6 @@
 # Streaming Display Smoothness
 
+> **Status**: ✅ Complete (PR #178 merged 2026-01-18)
 > **Phase**: P4-streaming | **Effort**: 4h | **Impact**: Professional polish
 > **Dependencies**: None | **Breaking**: No
 

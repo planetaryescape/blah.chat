@@ -591,6 +591,19 @@
   animation: fade-up 0.6s ease-out forwards;
 }
 
+/* Typing indicator animation */
+@keyframes typing-pulse {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-indicator span {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}
+
 /* Landing page specific utilities */
 @layer utilities {
   .terminal-green {

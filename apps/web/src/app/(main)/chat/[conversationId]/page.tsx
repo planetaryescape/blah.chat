@@ -109,7 +109,7 @@ function ChatPageContent({
   });
 
   // Announce new messages to screen readers
-  useMessageAnnouncer(messages);
+  const { announcerRef } = useMessageAnnouncer(messages);
 
   // Extract chat width preference
   const rawChatWidth = useQuery(api.users.getUserPreference, {
@@ -417,7 +417,7 @@ function ChatPageContent({
 
       {/* Screen reader announcer for new messages */}
       <div
-        id="message-announcer"
+        ref={announcerRef}
         role="status"
         aria-live="polite"
         aria-atomic="false"

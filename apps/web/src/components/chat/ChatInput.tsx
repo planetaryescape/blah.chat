@@ -17,6 +17,7 @@ import {
 import useBrowserFeature from "@/hooks/useBrowserFeature";
 import { useChatInputEvents } from "@/hooks/useChatInputEvents";
 import { useChatInputKeyboard } from "@/hooks/useChatInputKeyboard";
+import { useHaptic } from "@/hooks/useHaptic";
 import { useIOSKeyboard } from "@/hooks/useIOSKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { getModelConfig } from "@/lib/ai/utils";
@@ -137,6 +138,7 @@ export const ChatInput = memo(function ChatInput({
   const voiceInputRef = useRef<VoiceInputRef>(null);
   const dragCounterRef = useRef(0);
   const { isMobile, isTouchDevice } = useMobileDetect();
+  const { haptic } = useHaptic();
   const hasSpeechRecognition = useBrowserFeature("webkitSpeechRecognition");
 
   // iOS keyboard handling - scrolls input into view when virtual keyboard appears
@@ -238,6 +240,7 @@ export const ChatInput = memo(function ChatInput({
     onAttachmentsChange([]);
     sessionStorage.removeItem(`draft-${conversationId}`);
     setIsSending(false);
+    haptic("MEDIUM");
 
     if (!isMobile) {
       setTimeout(() => textareaRef.current?.focus(), 0);
@@ -270,6 +273,7 @@ export const ChatInput = memo(function ChatInput({
     e.stopPropagation();
     try {
       await stopGeneration({ conversationId });
+      haptic("LIGHT");
       analytics.track("generation_stopped", {
         model: selectedModel,
         source: "stop_button",

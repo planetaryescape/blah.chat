@@ -421,11 +421,29 @@
     will-change: auto;
   }
 
+  /* Subtle fade for newly appearing text - reduces "chunky" feel */
+  @keyframes streamFadeIn {
+    from {
+      opacity: 0.7;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .markdown-content.streaming .prose > * {
+    animation: streamFadeIn 0.1s ease-out;
+  }
+
   /* Respect user's motion preferences */
   @media (prefers-reduced-motion: reduce) {
     .markdown-content.streaming .streaming-cursor {
       animation: none;
       opacity: 1;
+    }
+
+    .markdown-content.streaming .prose > * {
+      animation: none;
     }
   }
 

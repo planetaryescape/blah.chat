@@ -379,16 +379,13 @@ export const ChatMessage = memo(
                   />
                 ) : (
                   <>
-                    {/* Status timeline at top during generation */}
-                    {isGenerating &&
-                      (toolCalls?.length || partialToolCalls?.length) && (
-                        <StatusTimeline
-                          toolCalls={toolCalls}
-                          partialToolCalls={partialToolCalls}
-                          isGenerating={isGenerating}
-                          hasContent={!!displayContent}
-                        />
-                      )}
+                    {/* Status timeline at top - handles own visibility for graceful exit */}
+                    <StatusTimeline
+                      toolCalls={toolCalls}
+                      partialToolCalls={partialToolCalls}
+                      isGenerating={isGenerating}
+                      hasContent={!!displayContent}
+                    />
 
                     {/* Inline tool calls and content */}
                     {displayContent ||

@@ -17,6 +17,7 @@ interface ReasoningSettings {
 export interface UISettingsState {
   alwaysShowMessageActions: boolean;
   autoCompressContext: boolean;
+  hapticFeedbackEnabled: boolean;
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
@@ -42,6 +43,7 @@ export interface UISettingsState {
 export interface UISettingsHandlers {
   handleAlwaysShowActionsChange: (checked: boolean) => Promise<void>;
   handleAutoCompressContextChange: (checked: boolean) => Promise<void>;
+  handleHapticFeedbackChange: (checked: boolean) => Promise<void>;
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
@@ -79,6 +81,7 @@ export function useUISettingsState() {
   // Get preference values from hooks
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
   const prefAutoCompressContext = useUserPreference("autoCompressContext");
+  const _prefHapticFeedbackEnabled = useUserPreference("hapticFeedbackEnabled");
   const prefShowModelNames = useUserPreference(
     "showModelNamesDuringComparison",
   );
@@ -103,6 +106,9 @@ export function useUISettingsState() {
     useState<boolean>(prefAlwaysShowActions);
   const [autoCompressContext, setAutoCompressContext] = useState<boolean>(
     prefAutoCompressContext,
+  );
+  const [_hapticFeedbackEnabled, _setHapticFeedbackEnabled] = useState<boolean>(
+    _prefHapticFeedbackEnabled,
   );
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState<boolean>(prefShowModelNames);
@@ -155,6 +161,10 @@ export function useUISettingsState() {
   useEffect(
     () => setAutoCompressContext(prefAutoCompressContext),
     [prefAutoCompressContext],
+  );
+  useEffect(
+    () => _setHapticFeedbackEnabled(_prefHapticFeedbackEnabled),
+    [_prefHapticFeedbackEnabled],
   );
   useEffect(
     () => setShowModelNamesDuringComparison(prefShowModelNames),
@@ -354,6 +364,12 @@ export function useUISettingsState() {
       "auto_compress_context",
       "Auto-compress setting saved!",
     ),
+    handleHapticFeedbackChange: createBooleanHandler(
+      "hapticFeedbackEnabled",
+      _setHapticFeedbackEnabled,
+      "haptic_feedback_enabled",
+      "Haptic feedback setting saved!",
+    ),
     handleShowModelNamesChange: createBooleanHandler(
       "showModelNamesDuringComparison",
       setShowModelNamesDuringComparison,
@@ -426,6 +442,7 @@ export function useUISettingsState() {
   const state: UISettingsState = {
     alwaysShowMessageActions,
     autoCompressContext,
+    hapticFeedbackEnabled: _hapticFeedbackEnabled,
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,

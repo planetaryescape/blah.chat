@@ -1,5 +1,6 @@
 # iOS Virtual Keyboard Handling
 
+> **Status**: ✅ Complete (2026-01-18)
 > **Phase**: P1-scroll | **Effort**: 4h | **Impact**: Mobile UX fix
 > **Dependencies**: None | **Breaking**: No
 

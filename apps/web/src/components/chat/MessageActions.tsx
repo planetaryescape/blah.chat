@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useHaptic } from "@/hooks/useHaptic";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,7 @@ export function MessageActions({
       : "skip",
   );
   const { isMobile } = useMobileDetect();
+  const { haptic } = useHaptic();
   const features = useFeatureToggles();
 
   const ttsEnabled = useUserPreference("ttsEnabled");
@@ -125,6 +127,7 @@ export function MessageActions({
 
     await navigator.clipboard.writeText(text);
     setCopied(true);
+    haptic("SUCCESS");
     setTimeout(() => setCopied(false), 2000);
     recordAction({ actionType: "copy_message", resourceId: message._id });
   };

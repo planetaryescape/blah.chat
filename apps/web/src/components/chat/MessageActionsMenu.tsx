@@ -16,6 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useHaptic } from "@/hooks/useHaptic";
 import { analytics } from "@/lib/analytics";
 import { cache } from "@/lib/cache";
 import type { OptimisticMessage } from "@/types/optimistic";
@@ -35,10 +36,12 @@ export function MessageActionsMenu({ message }: MessageActionsMenuProps) {
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMsg = useMutation(api.chat.deleteMessage);
+  const { haptic } = useHaptic();
 
   const handleDelete = async () => {
     try {
       const messageId = message._id as Id<"messages">;
+      haptic("HEAVY");
       await deleteMsg({ messageId });
 
       // Clear from local cache (prevents stale data)

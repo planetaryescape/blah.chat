@@ -8,6 +8,8 @@ export interface StreamBufferOptions {
   wordsPerSecond?: number;
 }
 
+export type BufferState = "filling" | "draining" | "empty" | "complete";
+
 export interface StreamBufferResult {
   /**
    * The content to display (smoothly revealed).
@@ -25,6 +27,15 @@ export interface StreamBufferResult {
    * Resets each animation frame.
    */
   newWordsCount: number;
+
+  /**
+   * Current buffer state for UI feedback:
+   * - "filling": Buffer has content and server is still sending
+   * - "draining": Buffer has content but server stopped (flushing remaining)
+   * - "empty": Still streaming but buffer drained (waiting for server)
+   * - "complete": Not streaming and buffer is empty
+   */
+  bufferState: BufferState;
 }
 
 /**
@@ -147,10 +158,19 @@ export function useStreamBuffer(
     };
   }, [serverContent, isStreaming, wordsPerSecond, displayContent]);
 
+  // Calculate buffer state for UI feedback
+  const bufferState: BufferState = (() => {
+    if (!isStreaming && !hasBufferedContent) return "complete";
+    if (!isStreaming && hasBufferedContent) return "draining";
+    if (isStreaming && hasBufferedContent) return "filling";
+    return "empty"; // isStreaming && !hasBufferedContent
+  })();
+
   return {
     displayContent,
     hasBufferedContent,
     newWordsCount,
+    bufferState,
   };
 }
 

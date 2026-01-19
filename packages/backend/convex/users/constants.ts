@@ -31,6 +31,7 @@ export const PREFERENCE_DEFAULTS = {
   showModelNamesDuringComparison: false,
   showModelProvider: false,
   autoCompressContext: false,
+  hapticFeedbackEnabled: true,
 
   // Audio
   sttEnabled: true,
@@ -108,6 +109,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showModelNamesDuringComparison: "chat",
   showModelProvider: "chat",
   autoCompressContext: "chat",
+  hapticFeedbackEnabled: "chat",
 
   // Audio
   sttEnabled: "audio",

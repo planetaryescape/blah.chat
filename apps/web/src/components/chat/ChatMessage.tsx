@@ -28,6 +28,7 @@ import { MessageNotesIndicator } from "./MessageNotesIndicator";
 import { MessageStatsBadges } from "./MessageStatsBadges";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
+import { StatusTimeline } from "./StatusTimeline";
 
 // Error display component with feedback modal integration and retry button
 function ErrorDisplay({
@@ -378,6 +379,17 @@ export const ChatMessage = memo(
                   />
                 ) : (
                   <>
+                    {/* Status timeline at top during generation */}
+                    {isGenerating &&
+                      (toolCalls?.length || partialToolCalls?.length) && (
+                        <StatusTimeline
+                          toolCalls={toolCalls}
+                          partialToolCalls={partialToolCalls}
+                          isGenerating={isGenerating}
+                          hasContent={!!displayContent}
+                        />
+                      )}
+
                     {/* Inline tool calls and content */}
                     {displayContent ||
                     toolCalls?.length ||

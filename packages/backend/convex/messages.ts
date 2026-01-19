@@ -772,9 +772,9 @@ export {
 // From toolCalls.ts
 export {
   addToolCalls,
+  cleanupPartialToolCalls,
   finalizeToolCalls,
   getToolCallCountByConversation,
   getToolCalls,
-  updatePartialToolCalls,
   upsertToolCall,
 } from "./messages/toolCalls";

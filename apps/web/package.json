@@ -148,7 +148,7 @@
     "sharp": "^0.34.5",
     "shiki": "^3.20.0",
     "sonner": "^2.0.7",
-    "streamdown": "^1.6.10",
+    "streamdown": "^2.1.0",
     "svix": "^1.82.0",
     "tailwind-merge": "^3.4.0",
     "tiktoken": "^1.0.22",

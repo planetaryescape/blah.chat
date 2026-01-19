@@ -3,8 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseMessageNavigationProps {
-  messageCount: number;
+  /** Number of grouped message items (not raw messages) */
+  groupedCount: number;
   enabled?: boolean;
+  /** Callback for Virtuoso integration - scrolls to index in virtualized list */
+  scrollToIndex?: (index: number) => void;
+  /** Whether the list is using virtualization */
+  isVirtualized?: boolean;
   onFocusMessage?: (index: number) => void;
 }
 
@@ -14,12 +19,18 @@ interface UseMessageNavigationProps {
  * Shortcuts:
  * - j / ArrowDown: Next message
  * - k / ArrowUp: Previous message
- * - g: First message
+ * - g: First message (gg)
  * - G (Shift+g): Last message
+ *
+ * @param groupedCount - Count of grouped items (from useMessageGrouping), not raw messages
+ * @param scrollToIndex - Virtuoso scrollToIndex for virtualized lists
+ * @param isVirtualized - Whether virtualization is active
  */
 export function useMessageNavigation({
-  messageCount,
+  groupedCount,
   enabled = true,
+  scrollToIndex,
+  isVirtualized = false,
   onFocusMessage,
 }: UseMessageNavigationProps) {
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -28,22 +39,34 @@ export function useMessageNavigation({
 
   const focusMessage = useCallback(
     (index: number) => {
-      if (index < 0 || index >= messageCount) return;
+      if (index < 0 || index >= groupedCount) return;
 
       setFocusedIndex(index);
 
-      // Scroll message into view
-      const element = document.getElementById(`message-group-${index}`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Focus for screen readers
-        element.setAttribute("tabindex", "-1");
-        element.focus({ preventScroll: true });
+      // For virtualized lists, use Virtuoso's scrollToIndex
+      if (isVirtualized && scrollToIndex) {
+        scrollToIndex(index);
+        // After scroll, try to focus the element (it should be rendered now)
+        requestAnimationFrame(() => {
+          const element = document.getElementById(`message-group-${index}`);
+          if (element) {
+            element.setAttribute("tabindex", "-1");
+            element.focus({ preventScroll: true });
+          }
+        });
+      } else {
+        // For non-virtualized lists, use DOM-based scroll
+        const element = document.getElementById(`message-group-${index}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.setAttribute("tabindex", "-1");
+          element.focus({ preventScroll: true });
+        }
       }
 
       onFocusMessage?.(index);
     },
-    [messageCount, onFocusMessage],
+    [groupedCount, isVirtualized, scrollToIndex, onFocusMessage],
   );
 
   const navigateUp = useCallback(() => {
@@ -52,27 +75,27 @@ export function useMessageNavigation({
   }, [focusedIndex, focusMessage]);
 
   const navigateDown = useCallback(() => {
-    if (messageCount === 0) return;
+    if (groupedCount === 0) return;
     const newIndex =
       focusedIndex < 0
         ? 0
-        : focusedIndex >= messageCount - 1
-          ? messageCount - 1
+        : focusedIndex >= groupedCount - 1
+          ? groupedCount - 1
           : focusedIndex + 1;
     focusMessage(newIndex);
-  }, [focusedIndex, messageCount, focusMessage]);
+  }, [focusedIndex, groupedCount, focusMessage]);
 
   const navigateToFirst = useCallback(() => {
-    if (messageCount > 0) {
+    if (groupedCount > 0) {
       focusMessage(0);
     }
-  }, [messageCount, focusMessage]);
+  }, [groupedCount, focusMessage]);
 
   const navigateToLast = useCallback(() => {
-    if (messageCount > 0) {
-      focusMessage(messageCount - 1);
+    if (groupedCount > 0) {
+      focusMessage(groupedCount - 1);
     }
-  }, [messageCount, focusMessage]);
+  }, [groupedCount, focusMessage]);
 
   const clearFocus = useCallback(() => {
     setFocusedIndex(-1);
@@ -80,7 +103,7 @@ export function useMessageNavigation({
   }, []);
 
   useEffect(() => {
-    if (!enabled || messageCount === 0) return;
+    if (!enabled || groupedCount === 0) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if user is typing in an input
@@ -147,7 +170,7 @@ export function useMessageNavigation({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     enabled,
-    messageCount,
+    groupedCount,
     navigateUp,
     navigateDown,
     navigateToFirst,

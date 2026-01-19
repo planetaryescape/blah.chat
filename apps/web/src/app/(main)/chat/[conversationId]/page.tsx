@@ -42,7 +42,6 @@ import { useContextLimitEnforcement } from "@/hooks/useContextLimitEnforcement";
 import { useConversationNavigation } from "@/hooks/useConversationNavigation";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMessageAnnouncer } from "@/hooks/useMessageAnnouncer";
-import { useMessageNavigation } from "@/hooks/useMessageNavigation";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 import { useModelRecommendation } from "@/hooks/useModelRecommendation";
 import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
@@ -112,11 +111,8 @@ function ChatPageContent({
   // Announce new messages to screen readers
   const { announcerRef } = useMessageAnnouncer(messages);
 
-  // Vim-style j/k navigation between messages
-  useMessageNavigation({
-    messageCount: messages?.length ?? 0,
-    enabled: messages !== undefined && messages.length > 0,
-  });
+  // NOTE: Vim-style j/k navigation is now handled inside VirtualizedMessageList
+  // where it has access to grouped message count and Virtuoso scrollToIndex
 
   // Extract chat width preference
   const rawChatWidth = useQuery(api.users.getUserPreference, {

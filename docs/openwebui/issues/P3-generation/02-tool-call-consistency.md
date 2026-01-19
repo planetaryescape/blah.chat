@@ -1,5 +1,6 @@
 # Tool Call Consistency (Dual-Write Fix)
 
+> **Status**: DONE (PR #171 merged 2026-01-19)
 > **Phase**: P3-generation | **Effort**: 5h | **Impact**: 100% data consistency
 > **Dependencies**: None | **Breaking**: No
 

@@ -12,6 +12,7 @@ import {
   type GroupedItem,
   useMessageGrouping,
 } from "@/hooks/useMessageGrouping";
+import { useMessageNavigation } from "@/hooks/useMessageNavigation";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useScrollAnchor } from "@/hooks/useScrollAnchor";
 import { useScrollIntent } from "@/hooks/useScrollIntent";
@@ -73,6 +74,27 @@ export function VirtualizedMessageList({
 
   // Scroll anchoring fallback for Safari (only in simple mode, Virtuoso handles its own)
   useScrollAnchor(scrollContainerRef, !useVirtualization);
+
+  // Vim-style j/k navigation between message groups
+  const scrollToIndex = useCallback(
+    (index: number) => {
+      if (useVirtualization && virtuosoRef.current) {
+        virtuosoRef.current.scrollToIndex({
+          index,
+          align: "center",
+          behavior: _reducedMotion ? "auto" : "smooth",
+        });
+      }
+    },
+    [useVirtualization, _reducedMotion],
+  );
+
+  useMessageNavigation({
+    groupedCount: grouped.length,
+    enabled: grouped.length > 0,
+    scrollToIndex: useVirtualization ? scrollToIndex : undefined,
+    isVirtualized: useVirtualization,
+  });
 
   // Scroll position restoration per conversation
   const { restore: restoreScrollPosition } = useScrollRestoration(

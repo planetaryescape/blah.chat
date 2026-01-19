@@ -1,5 +1,6 @@
 # Scroll Anchoring
 
+> **Status**: ✅ Complete (2026-01-18)
 > **Phase**: P1-scroll | **Effort**: 4h | **Impact**: Stable reading position
 > **Dependencies**: None | **Breaking**: No
 

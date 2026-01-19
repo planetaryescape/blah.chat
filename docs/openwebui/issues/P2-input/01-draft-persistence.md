@@ -1,5 +1,6 @@
 # Draft Persistence
 
+> **Status**: ✅ Complete (2026-01-18)
 > **Phase**: P2-input | **Effort**: 2h | **Impact**: Zero draft loss
 > **Dependencies**: None | **Breaking**: No
 

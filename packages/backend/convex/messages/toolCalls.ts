@@ -103,24 +103,23 @@ export const finalizeToolCalls = internalMutation({
   },
 });
 
-export const updatePartialToolCalls = internalMutation({
+export const cleanupPartialToolCalls = internalMutation({
   args: {
     messageId: v.id("messages"),
-    partialToolCalls: v.array(
-      v.object({
-        id: v.string(),
-        name: v.string(),
-        arguments: v.string(),
-        result: v.optional(v.string()),
-        timestamp: v.number(),
-        textPosition: v.optional(v.number()),
-      }),
-    ),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, {
-      updatedAt: Date.now(),
-    });
+    const partials = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_message_partial", (q) =>
+        q.eq("messageId", args.messageId).eq("isPartial", true),
+      )
+      .collect();
+
+    for (const tc of partials) {
+      await ctx.db.delete(tc._id);
+    }
+
+    return { deleted: partials.length };
   },
 });
 

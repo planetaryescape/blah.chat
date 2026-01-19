@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/planetaryescape/blah.chat/compare/v1.3.0...v1.4.0) (2026-01-19)
+
+
+### Features
+
+* **backend:** add hapticFeedbackEnabled preference ([1d0f2ef](https://github.com/planetaryescape/blah.chat/commit/1d0f2ef70692e30101c748239479633365d6eeb5))
+* **chat:** integrate haptic feedback on send, copy, stop, delete ([a7f2533](https://github.com/planetaryescape/blah.chat/commit/a7f25335bc7b373488a8b1fba446c10c1bb1c422))
+* **hooks:** add useHaptic hook ([a92ea1d](https://github.com/planetaryescape/blah.chat/commit/a92ea1d6146d38303f89b3c16eeb93444bef3883))
+* **lib:** add haptic feedback utility ([cbe061c](https://github.com/planetaryescape/blah.chat/commit/cbe061cd2ce4e14ab289ef24bd4b87697cfcae71))
+* **settings:** add haptic feedback toggle to UI settings ([841346f](https://github.com/planetaryescape/blah.chat/commit/841346fddd28da26c0440f910f86d386320602b1))
+* **settings:** wire hapticFeedbackEnabled to settings state ([89bc0b6](https://github.com/planetaryescape/blah.chat/commit/89bc0b67c1ab57810eaf3ed9cce79d6bbb677e8f))
+
 ## [1.3.0](https://github.com/planetaryescape/blah.chat/compare/v1.2.0...v1.3.0) (2026-01-19)
 
 

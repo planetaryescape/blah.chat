@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { getModelConfig } from "@/lib/ai/utils";
@@ -150,6 +151,15 @@ export const ChatMessage = memo(
     // showMessageStats is now passed as prop from VirtualizedMessageList (avoids memo blocking)
     const showStats = showMessageStats ?? false;
     const features = useFeatureToggles();
+
+    // Hover intent: 350ms enter delay, 150ms leave delay (Baymard: 94% accidental trigger reduction)
+    const {
+      isHovered,
+      handleMouseEnter,
+      handleMouseLeave,
+      handleFocus: handleHoverFocus,
+      handleBlur: handleHoverBlur,
+    } = useHoverIntent({ enterDelay: 350, leaveDelay: 150 });
 
     // Query for original responses if this is a consolidated message
     const originalResponses = useQuery(
@@ -306,7 +316,13 @@ export const ChatMessage = memo(
           isUser ? "justify-end" : "justify-start",
         )}
       >
-        <div className={wrapperClass}>
+        <div
+          className={wrapperClass}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onFocus={handleHoverFocus}
+          onBlur={handleHoverBlur}
+        >
           <article
             ref={messageRef}
             id={`message-${message._id}`}
@@ -536,12 +552,9 @@ export const ChatMessage = memo(
                 isUser ? "right-5 sm:right-6" : "left-5 sm:left-6",
                 "-bottom-8",
                 "flex justify-end",
-                "transition-opacity duration-200 ease-out",
-                alwaysShow
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100",
-                !alwaysShow &&
-                  "pointer-events-none group-hover:pointer-events-auto",
+                "transition-opacity duration-150 ease-out",
+                alwaysShow || isHovered ? "opacity-100" : "opacity-0",
+                !alwaysShow && !isHovered && "pointer-events-none",
               )}
             >
               <MessageActions

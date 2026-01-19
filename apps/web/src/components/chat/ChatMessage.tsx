@@ -409,6 +409,7 @@ export const ChatMessage = memo(
                           typeof message.retryCount === "number" &&
                           message.retryCount > 0
                         }
+                        modelName={modelName}
                       />
                     ) : null}
                   </>

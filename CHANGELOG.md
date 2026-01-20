@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.0](https://github.com/planetaryescape/blah.chat/compare/v1.5.0...v1.6.0) (2026-01-20)
+
+
+### Features
+
+* **hooks:** add useBranchComparison hook for branch state management ([0030646](https://github.com/planetaryescape/blah.chat/commit/003064672c54aa5aa5624d0e213368baedbdbb35))
+* **ui:** add BranchComparisonSheet for side-by-side version comparison ([473e16c](https://github.com/planetaryescape/blah.chat/commit/473e16c0d69264b7e178a1d4162b68af8412d3f0))
+* **ui:** add compare button to MessageBranchIndicator ([de0c696](https://github.com/planetaryescape/blah.chat/commit/de0c69623452aef23e3ef7ff068873494eeb1593))
+
 ## [1.5.0](https://github.com/planetaryescape/blah.chat/compare/v1.4.0...v1.5.0) (2026-01-20)
 
 

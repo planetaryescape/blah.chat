@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/planetaryescape/blah.chat/compare/v1.7.0...v1.7.1) (2026-01-20)
+
+
+### Bug Fixes
+
+* **chat:** use padding instead of margin for Virtuoso height measurement ([9a6d130](https://github.com/planetaryescape/blah.chat/commit/9a6d130c184b5936397d986361ff44a918d6c6af))
+
 ## [1.7.0](https://github.com/planetaryescape/blah.chat/compare/v1.6.0...v1.7.0) (2026-01-20)
 
 

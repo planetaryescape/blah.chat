@@ -1,3 +1,4 @@
+export { AccessibilitySection } from "./AccessibilitySection";
 export { AutoRouterSection } from "./AutoRouterSection";
 export { ComparisonSettingsSection } from "./ComparisonSettingsSection";
 export { DisplayLayoutSection } from "./DisplayLayoutSection";

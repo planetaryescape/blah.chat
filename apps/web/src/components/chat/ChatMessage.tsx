@@ -514,9 +514,10 @@ export const ChatMessage = memo(
                 )}
 
                 {/* Branch indicator */}
-                {!readOnly && (
+                {!readOnly && conversation && (
                   <MessageBranchIndicator
                     messageId={message._id as Id<"messages">}
+                    conversationId={conversation._id}
                   />
                 )}
                 {!readOnly && features.showNotes && (

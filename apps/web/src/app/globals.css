@@ -289,7 +289,11 @@
   }
 }
 
-/* ===== TEXT SCALING ===== */
+/* ===== TEXT SCALING (WCAG 1.4.4) ===== */
+/* Root font-size scaling is the standard WCAG approach for text resizing.
+   This intentionally scales rem-based values (spacing, icons) proportionally
+   to maintain visual harmony and prevent text overflow issues.
+   Browser zoom and OS accessibility tools use the same technique. */
 html { --text-scale: 1; font-size: calc(16px * var(--text-scale)); }
 html.text-scale-75 { --text-scale: 0.75; }
 html.text-scale-100 { --text-scale: 1; }

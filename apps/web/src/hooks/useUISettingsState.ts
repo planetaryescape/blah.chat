@@ -14,6 +14,8 @@ interface ReasoningSettings {
   showDuringStreaming: boolean;
 }
 
+export type TextScale = 75 | 100 | 125 | 150 | 175 | 200;
+
 export interface UISettingsState {
   alwaysShowMessageActions: boolean;
   autoCompressContext: boolean;
@@ -40,7 +42,7 @@ export interface UISettingsState {
   autoRouterSpeedBias: number;
   // Accessibility
   highContrastMode: boolean;
-  textScale: number;
+  textScale: TextScale;
 }
 
 export interface UISettingsHandlers {
@@ -71,7 +73,7 @@ export interface UISettingsHandlers {
   handleSpeedBiasChange: (value: number) => Promise<void>;
   // Accessibility
   handleHighContrastChange: (checked: boolean) => Promise<void>;
-  handleTextScaleChange: (scale: number) => Promise<void>;
+  handleTextScaleChange: (scale: TextScale) => Promise<void>;
 }
 
 /**
@@ -163,7 +165,9 @@ export function useUISettingsState() {
   const [_highContrastMode, _setHighContrastMode] = useState<boolean>(
     _prefHighContrastMode,
   );
-  const [_textScale, _setTextScale] = useState<number>(_prefTextScale);
+  const [_textScale, _setTextScale] = useState<TextScale>(
+    _prefTextScale as TextScale,
+  );
 
   // Sync local state when hook values change
   useEffect(
@@ -385,7 +389,7 @@ export function useUISettingsState() {
     }
   };
 
-  const _handleTextScaleChange = async (scale: number) => {
+  const _handleTextScaleChange = async (scale: TextScale) => {
     const previous = _textScale;
     _setTextScale(scale);
     try {

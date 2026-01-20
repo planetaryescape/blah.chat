@@ -96,10 +96,11 @@ const TIER_WEIGHTS: Record<string, Record<CostTier, number>> = {
  * Instead of random exploration, uses weighted tier selection:
  * - Simple tasks: 60% cheap, 25% mid, 15% premium
  * - Complex tasks: 30% cheap, 40% mid, 30% premium
+ * - High-stakes tasks: 100% premium (forced for safety)
  */
 function selectWithExploration(
   scoredModels: Array<{ modelId: string; score: number }>,
-  classification: { complexity: string },
+  classification: { complexity: string; isHighStakes?: boolean },
 ): { modelId: string; score: number; explorationPick: boolean } {
   if (scoredModels.length === 0) {
     throw new Error("No scored models to select from");
@@ -118,6 +119,13 @@ function selectWithExploration(
     const config = MODEL_CONFIG[model.modelId];
     const tier = getCostTier(config.pricing);
     tiers[tier].push(model);
+  }
+
+  // HIGH-STAKES OVERRIDE: Force premium tier for medical/legal/financial/safety questions
+  if (classification.isHighStakes && tiers.premium.length > 0) {
+    const pool = tiers.premium;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    return { ...picked, explorationPick: false };
   }
 
   // Get weights for this complexity level
@@ -154,6 +162,17 @@ function selectWithExploration(
 /**
  * Classification result schema for generateObject
  */
+const HIGH_STAKES_DOMAINS = [
+  "medical",
+  "legal",
+  "financial",
+  "safety",
+  "mental_health",
+  "privacy",
+  "immigration",
+  "domestic_abuse",
+] as const;
+
 const classificationSchema = z.object({
   primaryCategory: z.enum(TASK_CATEGORIES as unknown as [string, ...string[]]),
   secondaryCategory: z
@@ -165,6 +184,8 @@ const classificationSchema = z.object({
   requiresLongContext: z.boolean(),
   requiresReasoning: z.boolean(),
   confidence: z.number().min(0).max(1),
+  isHighStakes: z.boolean(),
+  highStakesDomain: z.enum(HIGH_STAKES_DOMAINS).optional().nullable(),
 });
 
 /**
@@ -252,6 +273,8 @@ export const routeMessage = internalAction({
         categoryScore,
         modelConfig?.pricing ?? { input: 0.5, output: 1.0 },
         args.preferences,
+        classification.isHighStakes,
+        classification.highStakesDomain,
       );
 
       logger.info("Model selected", {
@@ -261,6 +284,8 @@ export const routeMessage = internalAction({
         score: selectedModel.score,
         classification: classification.primaryCategory,
         complexity: classification.complexity,
+        isHighStakes: classification.isHighStakes,
+        highStakesDomain: classification.highStakesDomain,
         candidatesConsidered: eligibleModels.length,
         explorationPick: selectedModel.explorationPick,
         routingTimeMs: Date.now() - startTime,
@@ -289,6 +314,7 @@ export const routeMessage = internalAction({
           requiresLongContext: false,
           requiresReasoning: false,
           confidence: 0,
+          isHighStakes: false,
         },
         reasoning: "Routing failed, using default model",
         candidatesConsidered: 0,
@@ -354,6 +380,8 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
       requiresLongContext: response.object.requiresLongContext,
       requiresReasoning: response.object.requiresReasoning,
       confidence: response.object.confidence,
+      isHighStakes: response.object.isHighStakes,
+      highStakesDomain: response.object.highStakesDomain ?? undefined,
     };
   } catch (error) {
     logger.error("Task classification error", {
@@ -369,6 +397,7 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
       requiresLongContext: false,
       requiresReasoning: false,
       confidence: 0,
+      isHighStakes: false,
     };
   }
 }

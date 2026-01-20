@@ -68,7 +68,7 @@ export function MessageListSkeleton({
             <div
               key={i}
               className={cn(
-                "col-start-2 flex w-full mb-10",
+                "col-start-2 flex w-full pb-10",
                 msg.isUser ? "justify-end" : "justify-start",
               )}
             >

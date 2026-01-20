@@ -358,6 +358,50 @@ html.text-scale-200 { --text-scale: 2; }
   white-space: normal;
 }
 
+/* ===== FOCUS MANAGEMENT (WCAG 2.4.3/2.4.7) ===== */
+/* Ensure focus is always visible for keyboard users */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* Custom focus for message elements */
+.message-group:focus-visible,
+[id^='message-group-']:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 4px;
+}
+
+/* Remove outline for mouse users, keep for keyboard */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Dialog/modal focus trap container doesn't need visible outline */
+[role='dialog']:focus {
+  outline: none;
+}
+
+/* Skip link styles - becomes visible on focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--background));
+  border: 2px solid hsl(var(--primary));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
 /* Custom Animations */
 @keyframes message-enter {
   from {

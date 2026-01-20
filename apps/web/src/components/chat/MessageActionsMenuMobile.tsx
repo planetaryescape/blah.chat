@@ -91,6 +91,16 @@ export function MessageActionsMenuMobile({
 
     try {
       const messageId = message._id as Id<"messages">;
+
+      // Find message group before deleting for focus management
+      const messageElement = document.querySelector(
+        `[data-message-id="${messageId}"]`,
+      );
+      const currentGroup = messageElement?.closest("[id^='message-group-']");
+      const nextGroup = currentGroup?.nextElementSibling as HTMLElement | null;
+      const prevGroup =
+        currentGroup?.previousElementSibling as HTMLElement | null;
+
       await deleteMsg({ messageId });
 
       // Clear from local cache (prevents stale data)
@@ -100,6 +110,28 @@ export function MessageActionsMenuMobile({
         cache.toolCalls.where("messageId").equals(messageId).delete(),
         cache.sources.where("messageId").equals(messageId).delete(),
       ]).catch(console.error);
+
+      // Focus next, or prev, or chat input as fallback (WCAG 2.4.3)
+      requestAnimationFrame(() => {
+        let targetElement: HTMLElement | null = null;
+
+        if (nextGroup && document.body.contains(nextGroup)) {
+          targetElement = nextGroup;
+        } else if (prevGroup && document.body.contains(prevGroup)) {
+          targetElement = prevGroup;
+        }
+
+        if (targetElement) {
+          targetElement.setAttribute("tabindex", "-1");
+          targetElement.focus();
+        } else {
+          // Fallback to chat input
+          const chatInput = document.getElementById(
+            "chat-input",
+          ) as HTMLElement | null;
+          chatInput?.focus();
+        }
+      });
     } catch (error) {
       console.error("Failed to delete:", error);
     }

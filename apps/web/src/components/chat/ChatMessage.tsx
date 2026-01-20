@@ -4,7 +4,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
@@ -43,8 +43,14 @@ function ErrorDisplay({
 }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const alertRef = useRef<HTMLDivElement>(null);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const regenerate = useMutation(api.chat.regenerate);
+
+  // Focus error on mount for screen reader announcement (WCAG 2.4.3)
+  useEffect(() => {
+    alertRef.current?.focus();
+  }, []);
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -63,9 +69,15 @@ function ErrorDisplay({
   };
 
   return (
-    <div className="flex flex-col gap-3 p-1">
+    <div
+      ref={alertRef}
+      role="alert"
+      aria-live="assertive"
+      tabIndex={-1}
+      className="flex flex-col gap-3 p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 rounded-md"
+    >
       <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
-        <AlertCircle className="w-4 h-4" />
+        <AlertCircle className="w-4 h-4" aria-hidden="true" />
         <span className="text-sm font-medium">Unable to generate response</span>
       </div>
       <div className="p-3 border rounded-md bg-muted/30 border-border/50">
@@ -81,9 +93,9 @@ function ErrorDisplay({
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50"
         >
           {isRetrying ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
+            <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
           ) : (
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="w-3 h-3" aria-hidden="true" />
           )}
           {isRetrying ? "Retrying..." : "Try Again"}
         </button>

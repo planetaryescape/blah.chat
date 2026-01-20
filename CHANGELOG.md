@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.5.0](https://github.com/planetaryescape/blah.chat/compare/v1.4.0...v1.5.0) (2026-01-20)
+
+
+### Features
+
+* **a11y:** add accessibility analytics events ([952157c](https://github.com/planetaryescape/blah.chat/commit/952157cde8acce36ba5367a4883e8d25dcfdf755))
+* **a11y:** add accessibility preference schema and defaults ([262010e](https://github.com/planetaryescape/blah.chat/commit/262010e31b6c37f67c8c5282172249384cec0982))
+* **a11y:** add accessibility settings UI ([903b788](https://github.com/planetaryescape/blah.chat/commit/903b7885715bc2102100a75472d78d1df8bae621))
+* **a11y:** add hook to apply accessibility classes to DOM ([43682e4](https://github.com/planetaryescape/blah.chat/commit/43682e459da641e0447ee53041c5eac06bda2190))
+* **a11y:** add keyboard navigation with vim-style shortcuts ([60d757c](https://github.com/planetaryescape/blah.chat/commit/60d757c980fc813613cf58d0b4e12e7e898e408b))
+* **a11y:** add MotionProvider for reduced motion support ([c369bfc](https://github.com/planetaryescape/blah.chat/commit/c369bfcae32c3824e029d9334c4f05e3a2c77b94))
+* **a11y:** add semantic HTML accessibility improvements ([730756d](https://github.com/planetaryescape/blah.chat/commit/730756d176194b37423a9af2ef6bc8699cd4e3fd))
+* **a11y:** add WCAG-compliant CSS for high contrast and text scaling ([bb326fd](https://github.com/planetaryescape/blah.chat/commit/bb326fd69344f6ce41fd0dfa605d2a6a43cec579))
+* **a11y:** implement focus management for WCAG 2.4.3/2.4.7 compliance ([0403c93](https://github.com/planetaryescape/blah.chat/commit/0403c93b4ee14bb3b10ae15edabcf1208c2b8e5a))
+* **auto-router:** add high-stakes topic detection ([3c75b08](https://github.com/planetaryescape/blah.chat/commit/3c75b08fd483ef3153a53c94daf785cf46338800))
+* **backend:** add tree architecture migration script ([21c0819](https://github.com/planetaryescape/blah.chat/commit/21c0819870126a40646995099ad106cf3e54176f))
+* **backend:** add tree queries and update message creation for P7 ([c4f5376](https://github.com/planetaryescape/blah.chat/commit/c4f5376370b9c5b1aa3bfd67f1755d871f4476c8))
+* **backend:** add tree traversal utilities for message architecture ([4d78b63](https://github.com/planetaryescape/blah.chat/commit/4d78b63f4449a0ccff070b2bd44dc2a2b6583261))
+* **backend:** filter messages by active branch in getConversationMessages ([65e38af](https://github.com/planetaryescape/blah.chat/commit/65e38afc095d31a28e74fcf9d68c4a16e92ced22))
+* **backend:** update chat mutations for tree-based branching (P7) ([ead2dff](https://github.com/planetaryescape/blah.chat/commit/ead2dff6298cbdf4c46bde53d98b95b4a8e6c2b3))
+* **cache:** update Dexie schema v5 for tree architecture ([4cc4c9e](https://github.com/planetaryescape/blah.chat/commit/4cc4c9eb8e098d752142f0fdf29a41a69f2bdcaf))
+* **hooks:** add tree data cache sync hooks ([7a0ee1e](https://github.com/planetaryescape/blah.chat/commit/7a0ee1eda0d4581878251c30bea49a0ce65b998a))
+* **schema:** add tree-based message architecture fields (P7) ([963da4f](https://github.com/planetaryescape/blah.chat/commit/963da4f5ef45ebc52ccd63db12b44430777e9b8b))
+* **ui:** add branch navigation components for tree architecture ([5d8ef53](https://github.com/planetaryescape/blah.chat/commit/5d8ef53c34467f47597b946b900cbe34cd8ef28a))
+
+
+### Bug Fixes
+
+* **a11y:** add fallback defaults for a11y preferences ([079b1cd](https://github.com/planetaryescape/blah.chat/commit/079b1cd10fae21e65217d134a668b89e48757c1d))
+* **a11y:** address PR review feedback ([8a937ea](https://github.com/planetaryescape/blah.chat/commit/8a937ea008528629f3b4521164cac3815bddb7af))
+* **a11y:** address PR review feedback ([134ccfa](https://github.com/planetaryescape/blah.chat/commit/134ccfa9bff0721eb357dabd816487dcde263d51))
+* **a11y:** address PR review feedback ([728044d](https://github.com/planetaryescape/blah.chat/commit/728044dc91bf0db988adacb1e70428b1cb901246))
+* **a11y:** combine effects to avoid classList race condition ([dce12a2](https://github.com/planetaryescape/blah.chat/commit/dce12a241e5d249e749097eda0c6fb58ec7213c4))
+* **a11y:** remove unused return from side-effect hook ([b46e66d](https://github.com/planetaryescape/blah.chat/commit/b46e66dd3d9efd2179b599f826fc8dddaa6b20f1))
+* add high-stakes fields to routing decision validators ([eb3240e](https://github.com/planetaryescape/blah.chat/commit/eb3240e25109936b6b105c517325e25b5680d1b4))
+* address code review feedback ([6fbb3dd](https://github.com/planetaryescape/blah.chat/commit/6fbb3dd023d18bb5ba3ce58971a4e536793fccff))
+* handle missing premium models for high-stakes queries ([fe6d2f5](https://github.com/planetaryescape/blah.chat/commit/fe6d2f583b639af90755f36c96cca190ba00da05))
+* make isHighStakes optional for backward compatibility ([443d615](https://github.com/planetaryescape/blah.chat/commit/443d6155b2dc62c79ba5040fb3369e1175d342a3))
+
 ## [1.4.0](https://github.com/planetaryescape/blah.chat/compare/v1.3.0...v1.4.0) (2026-01-19)
 
 

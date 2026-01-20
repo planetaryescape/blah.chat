@@ -80,6 +80,10 @@ export const PREFERENCE_DEFAULTS = {
 
   // Memory
   memoryExtractionLevel: "moderate" as const,
+
+  // Accessibility
+  highContrastMode: false,
+  textScale: 100,
 } as const;
 
 export const PREFERENCE_CATEGORIES: Record<string, string> = {
@@ -138,4 +142,8 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
 
   // Memory
   memoryExtractionLevel: "memory",
+
+  // Accessibility
+  highContrastMode: "accessibility",
+  textScale: "accessibility",
 };

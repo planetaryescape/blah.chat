@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.2](https://github.com/planetaryescape/blah.chat/compare/v1.7.1...v1.7.2) (2026-01-20)
+
+
+### Bug Fixes
+
+* **chat:** extract conversationId from branchFromMessage result ([dbe738f](https://github.com/planetaryescape/blah.chat/commit/dbe738faf261799901ed9a0f153d613f5b905f52))
+
+
+### Performance Improvements
+
+* extract sortedCalls to separate useMemo in InlineToolCallContent ([07a6b00](https://github.com/planetaryescape/blah.chat/commit/07a6b00e8fb99dfabe2e8da48a26b8ce7a0b321b))
+
 ## [1.7.1](https://github.com/planetaryescape/blah.chat/compare/v1.7.0...v1.7.1) (2026-01-20)
 
 

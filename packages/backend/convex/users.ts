@@ -188,7 +188,16 @@ export const updatePreferences = mutation({
       ),
       // Accessibility
       highContrastMode: v.optional(v.boolean()),
-      textScale: v.optional(v.number()),
+      textScale: v.optional(
+        v.union(
+          v.literal(75),
+          v.literal(100),
+          v.literal(125),
+          v.literal(150),
+          v.literal(175),
+          v.literal(200),
+        ),
+      ),
     }),
   },
   handler: async (ctx, args) => {

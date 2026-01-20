@@ -434,3 +434,44 @@ export function useCachedChildBranches(
     [] as Doc<"conversations">[],
   );
 }
+
+/**
+ * P7 Tree Architecture: Get child messages (siblings in tree) for a message
+ * Used for in-conversation branch navigation
+ */
+export function useCachedChildMessages(
+  parentMessageId: Id<"messages"> | string,
+) {
+  return useLiveQuery(
+    () =>
+      cache.messages
+        .where("parentMessageId")
+        .equals(parentMessageId)
+        .sortBy("siblingIndex"),
+    [parentMessageId],
+    [] as Doc<"messages">[],
+  );
+}
+
+/**
+ * P7 Tree Architecture: Get sibling messages (same parent) for a message
+ * Used for branch switching UI
+ */
+export function useCachedSiblings(messageId: Id<"messages"> | string) {
+  return useLiveQuery(
+    async () => {
+      const message = await cache.messages.get(messageId);
+      if (!message) return [];
+
+      const parentId = message.parentMessageId;
+      if (!parentId) return [message]; // Root message
+
+      return cache.messages
+        .where("parentMessageId")
+        .equals(parentId)
+        .sortBy("siblingIndex");
+    },
+    [messageId],
+    [] as Doc<"messages">[],
+  );
+}

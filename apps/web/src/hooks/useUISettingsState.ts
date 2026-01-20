@@ -108,8 +108,8 @@ export function useUISettingsState() {
   const prefCustomNoteCategories = useUserPreference("customNoteCategories");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
-  const _prefHighContrastMode = useUserPreference("highContrastMode");
-  const _prefTextScale = useUserPreference("textScale");
+  const prefHighContrastMode = useUserPreference("highContrastMode");
+  const prefTextScale = useUserPreference("textScale");
 
   // Local state for optimistic updates
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
@@ -162,11 +162,11 @@ export function useUISettingsState() {
     useState<number>(prefCostBias);
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
     useState<number>(prefSpeedBias);
-  const [_highContrastMode, _setHighContrastMode] = useState<boolean>(
-    _prefHighContrastMode ?? false,
+  const [highContrastMode, setHighContrastMode] = useState<boolean>(
+    prefHighContrastMode ?? false,
   );
-  const [_textScale, _setTextScale] = useState<TextScale>(
-    (_prefTextScale as TextScale) ?? 100,
+  const [textScale, setTextScale] = useState<TextScale>(
+    (prefTextScale as TextScale) ?? 100,
   );
 
   // Sync local state when hook values change
@@ -231,12 +231,12 @@ export function useUISettingsState() {
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
   useEffect(
-    () => _setHighContrastMode(_prefHighContrastMode ?? false),
-    [_prefHighContrastMode],
+    () => setHighContrastMode(prefHighContrastMode ?? false),
+    [prefHighContrastMode],
   );
   useEffect(
-    () => _setTextScale((_prefTextScale as TextScale) ?? 100),
-    [_prefTextScale],
+    () => setTextScale((prefTextScale as TextScale) ?? 100),
+    [prefTextScale],
   );
 
   // Generic handler for simple boolean preferences
@@ -375,9 +375,9 @@ export function useUISettingsState() {
     }
   };
 
-  const _handleHighContrastChange = async (checked: boolean) => {
-    const previous = _highContrastMode;
-    _setHighContrastMode(checked);
+  const handleHighContrastChange = async (checked: boolean) => {
+    const previous = highContrastMode;
+    setHighContrastMode(checked);
     try {
       await updatePreferences({
         preferences: { highContrastMode: checked },
@@ -388,13 +388,13 @@ export function useUISettingsState() {
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
-      _setHighContrastMode(previous);
+      setHighContrastMode(previous);
     }
   };
 
-  const _handleTextScaleChange = async (scale: TextScale) => {
-    const previous = _textScale;
-    _setTextScale(scale);
+  const handleTextScaleChange = async (scale: TextScale) => {
+    const previous = textScale;
+    setTextScale(scale);
     try {
       await updatePreferences({
         preferences: { textScale: scale },
@@ -403,7 +403,7 @@ export function useUISettingsState() {
       analytics.track("accessibility_text_scale_changed", { scale });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
-      _setTextScale(previous);
+      setTextScale(previous);
     }
   };
 
@@ -494,8 +494,8 @@ export function useUISettingsState() {
     handleCostBiasChange,
     handleSpeedBiasChange,
     // Accessibility
-    handleHighContrastChange: _handleHighContrastChange,
-    handleTextScaleChange: _handleTextScaleChange,
+    handleHighContrastChange: handleHighContrastChange,
+    handleTextScaleChange: handleTextScaleChange,
   };
 
   const state: UISettingsState = {
@@ -523,8 +523,8 @@ export function useUISettingsState() {
     autoRouterCostBias,
     autoRouterSpeedBias,
     // Accessibility
-    highContrastMode: _highContrastMode,
-    textScale: _textScale,
+    highContrastMode: highContrastMode,
+    textScale: textScale,
   };
 
   return {

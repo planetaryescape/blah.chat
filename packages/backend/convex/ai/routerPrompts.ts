@@ -39,6 +39,30 @@ Set these flags based on the task:
 - **requiresLongContext**: True ONLY if the task involves very long documents (>50K tokens) or needs extensive history
 - **requiresReasoning**: True if the task would benefit from chain-of-thought thinking (math, logic, complex analysis)
 
+## HIGH-STAKES DETECTION
+
+Set isHighStakes: true ONLY when user seeks actionable advice about:
+- **medical**: Symptoms, diagnoses, treatments, medication, health emergencies
+- **legal**: Legal rights, lawsuits, contracts, criminal matters, liability
+- **financial**: Investments, taxes, retirement, debt decisions, large purchases
+- **safety**: Physical safety, emergencies, dangerous activities
+- **mental_health**: Suicide ideation, self-harm, severe depression, panic attacks, crisis support
+- **privacy**: Identity theft, stalking, data breaches, account compromise, online harassment
+- **immigration**: Visa status, deportation risk, asylum claims, work permits, citizenship
+- **domestic_abuse**: Abusive relationships, safety planning, leaving abusive situations
+
+RULES:
+1. Must seek ADVICE or ACTION, not just information
+2. "What is a heart attack?" = NOT high stakes (educational)
+3. "Am I having a heart attack?" = HIGH STAKES (medical)
+4. "What does liability mean?" = NOT high stakes (definition)
+5. "Can my employer fire me for this?" = HIGH STAKES (legal)
+6. "I've been thinking about ending it" = HIGH STAKES (mental_health)
+7. "What is depression?" = NOT high stakes (educational)
+8. "Someone is stalking me online" = HIGH STAKES (privacy)
+9. Casual mentions are NOT high stakes
+10. When in doubt, err toward NOT high stakes
+
 ## IMPORTANT GUIDELINES
 
 1. Be conservative with requirements - only set true when clearly needed
@@ -57,7 +81,11 @@ Return a JSON object with:
 - requiresVision: boolean
 - requiresLongContext: boolean
 - requiresReasoning: boolean
-- confidence: 0.0-1.0 (how confident you are in this classification)`;
+- confidence: 0.0-1.0 (how confident you are in this classification)
+- isHighStakes: boolean (true ONLY if user seeks advice on high-stakes domains)
+- highStakesDomain: "medical" | "legal" | "financial" | "safety" | "mental_health" | "privacy" | "immigration" | "domestic_abuse" | null`;
+
+import type { HighStakesDomain } from "./modelProfiles";
 
 /**
  * Prompt for generating routing reasoning explanation
@@ -71,7 +99,24 @@ export const ROUTER_REASONING_TEMPLATE = (
   categoryScore: number,
   pricing: { input: number; output: number },
   preferences: { costBias: number; speedBias: number },
+  isHighStakes?: boolean,
+  highStakesDomain?: HighStakesDomain | null,
 ): string => {
+  // High-stakes override explanation (takes priority)
+  if (isHighStakes && highStakesDomain) {
+    const domainLabels: Record<HighStakesDomain, string> = {
+      medical: "health-related",
+      legal: "legal",
+      financial: "financial",
+      safety: "safety-critical",
+      mental_health: "mental health",
+      privacy: "privacy and security",
+      immigration: "immigration",
+      domestic_abuse: "sensitive personal safety",
+    };
+    return `${modelName} selected for this ${domainLabels[highStakesDomain]} question. For important topics like this, we use our most capable models to ensure accuracy.`;
+  }
+
   // Category descriptions for education
   const categoryDescriptions: Record<string, string> = {
     coding: "code generation, debugging, and technical programming",

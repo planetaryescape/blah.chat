@@ -14,6 +14,16 @@ export interface RouterPreferences {
   speedBias: number; // 0-100: higher = prefer faster models
 }
 
+export type HighStakesDomain =
+  | "medical"
+  | "legal"
+  | "financial"
+  | "safety"
+  | "mental_health"
+  | "privacy"
+  | "immigration"
+  | "domestic_abuse";
+
 export interface TaskClassification {
   primaryCategory: TaskCategoryId;
   secondaryCategory?: TaskCategoryId;
@@ -22,6 +32,8 @@ export interface TaskClassification {
   requiresLongContext: boolean;
   requiresReasoning: boolean;
   confidence: number;
+  isHighStakes: boolean;
+  highStakesDomain?: HighStakesDomain;
 }
 
 export interface RouterResult {

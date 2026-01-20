@@ -54,10 +54,42 @@ export const getConversation = internalQuery({
 /**
  * List messages for a conversation
  * Replaces: ctx.runQuery(internal.messages.listInternal, { conversationId })
+ *
+ * P7 Tree Architecture: By default returns only active branch messages.
+ * Set includeAllBranches: true to get the full tree.
  */
 export const getConversationMessages = internalQuery({
-  args: { conversationId: v.id("conversations") },
+  args: {
+    conversationId: v.id("conversations"),
+    includeAllBranches: v.optional(v.boolean()),
+  },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
+    if (args.includeAllBranches) {
+      // Return all messages for tree visualization
+      return await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", args.conversationId),
+        )
+        .order("asc")
+        .collect();
+    }
+
+    // P7: Return only active branch messages
+    // First try to use the index for active branch
+    const activeMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_active", (q) =>
+        q.eq("conversationId", args.conversationId).eq("isActiveBranch", true),
+      )
+      .collect();
+
+    // If we got results from active index, return them sorted
+    if (activeMessages.length > 0) {
+      return activeMessages.sort((a, b) => a.createdAt - b.createdAt);
+    }
+
+    // Fallback for un-migrated conversations: return all messages
     return await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>

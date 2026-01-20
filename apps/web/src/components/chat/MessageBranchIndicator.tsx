@@ -8,16 +8,23 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Columns2,
   GitBranch,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   useCachedChildBranches,
   useCachedChildMessages,
   useCachedSiblings,
 } from "@/hooks/useCacheSync";
+import { BranchComparisonSheet } from "./BranchComparisonSheet";
 
 interface MessageBranchIndicatorProps {
   messageId: Id<"messages">;
@@ -36,6 +43,7 @@ export function MessageBranchIndicator({
 }: MessageBranchIndicatorProps) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   // Legacy: child conversations
   const childConversations = useCachedChildBranches(messageId);
@@ -109,7 +117,35 @@ export function MessageBranchIndicator({
           >
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
+
+          {/* Compare button - only show when 2+ siblings */}
+          {totalSiblings >= 2 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setCompareOpen(true)}
+                  aria-label="Compare versions"
+                >
+                  <Columns2 className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Compare versions</TooltipContent>
+            </Tooltip>
+          )}
         </div>
+      )}
+
+      {/* Branch comparison sheet */}
+      {hasSiblings && (
+        <BranchComparisonSheet
+          messageId={messageId}
+          conversationId={conversationId}
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+        />
       )}
 
       {/* Child branches indicator */}

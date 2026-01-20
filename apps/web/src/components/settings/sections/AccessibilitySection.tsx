@@ -7,22 +7,23 @@ import {
 } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import type { TextScale } from "@/hooks/useUISettingsState";
 import { cn } from "@/lib/utils";
 
 interface AccessibilitySectionProps {
   highContrastMode: boolean;
-  textScale: number;
+  textScale: TextScale;
   onHighContrastChange: (checked: boolean) => Promise<void>;
-  onTextScaleChange: (scale: number) => Promise<void>;
+  onTextScaleChange: (scale: TextScale) => Promise<void>;
 }
 
-const textScaleOptions = [
-  { value: 75, label: "75%", description: "Smaller" },
-  { value: 100, label: "100%", description: "Default" },
-  { value: 125, label: "125%", description: "Larger" },
-  { value: 150, label: "150%", description: "Extra large" },
-  { value: 175, label: "175%", description: "Very large" },
-  { value: 200, label: "200%", description: "Maximum" },
+const textScaleOptions: { value: TextScale; label: string }[] = [
+  { value: 75, label: "75%" },
+  { value: 100, label: "100%" },
+  { value: 125, label: "125%" },
+  { value: 150, label: "150%" },
+  { value: 175, label: "175%" },
+  { value: 200, label: "200%" },
 ];
 
 export function AccessibilitySection({

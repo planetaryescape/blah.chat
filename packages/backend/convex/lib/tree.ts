@@ -319,13 +319,13 @@ export async function deactivateSubtree(
     }
   }
 
-  // Mark all as inactive
+  // Mark all as inactive (patch if not already false to ensure consistency)
   let deactivatedCount = 0;
   const now = Date.now();
 
   for (const id of descendants) {
     const msg = await ctx.db.get(id);
-    if (msg?.isActiveBranch) {
+    if (msg && msg.isActiveBranch !== false) {
       await ctx.db.patch(id, {
         isActiveBranch: false,
         updatedAt: now,

@@ -122,10 +122,18 @@ function selectWithExploration(
   }
 
   // HIGH-STAKES OVERRIDE: Force premium tier for medical/legal/financial/safety questions
-  if (classification.isHighStakes && tiers.premium.length > 0) {
-    const pool = tiers.premium;
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    return { ...picked, explorationPick: false };
+  if (classification.isHighStakes) {
+    if (tiers.premium.length > 0) {
+      const pool = tiers.premium;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      return { ...picked, explorationPick: false };
+    }
+    // No premium models available - fall back to best model by score with warning
+    logger.warn("High-stakes query but no premium models available", {
+      tag: "AutoRouter",
+      fallbackModel: sorted[0]?.modelId,
+    });
+    return { ...sorted[0], explorationPick: false };
   }
 
   // Get weights for this complexity level

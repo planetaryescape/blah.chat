@@ -324,7 +324,7 @@ export const ChatMessage = memo(
     return (
       <div
         className={cn(
-          "flex w-full mb-10",
+          "flex w-full pb-10",
           isUser ? "justify-end" : "justify-start",
         )}
       >

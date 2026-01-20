@@ -300,20 +300,19 @@ export async function deactivateSubtree(
   const root = await ctx.db.get(rootMessageId);
   if (!root) return 0;
 
-  // Collect all descendants using BFS
+  // Collect all descendants using BFS (handles DAG with multi-parent nodes)
   const descendants: Id<"messages">[] = [];
   const queue: Id<"messages">[] = [rootMessageId];
-  const visited = new Set<string>();
+  const visited = new Set<string>([rootMessageId]); // Mark root as visited immediately
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
-    if (visited.has(currentId)) continue;
-    visited.add(currentId);
     descendants.push(currentId);
 
     const children = await getChildren(ctx, currentId);
     for (const child of children) {
       if (!visited.has(child._id)) {
+        visited.add(child._id); // Mark visited when enqueueing to prevent duplicates
         queue.push(child._id);
       }
     }
@@ -347,16 +346,15 @@ export async function getDescendants(
 ): Promise<Id<"messages">[]> {
   const descendants: Id<"messages">[] = [];
   const queue: Id<"messages">[] = [rootMessageId];
-  const visited = new Set<string>();
+  const visited = new Set<string>([rootMessageId]); // Mark root as visited immediately
 
   while (queue.length > 0) {
     const currentId = queue.shift()!;
-    if (visited.has(currentId)) continue;
-    visited.add(currentId);
 
     const children = await getChildren(ctx, currentId);
     for (const child of children) {
       if (!visited.has(child._id)) {
+        visited.add(child._id); // Mark visited when enqueueing to prevent duplicates
         descendants.push(child._id);
         queue.push(child._id);
       }

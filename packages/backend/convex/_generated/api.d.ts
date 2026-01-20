@@ -119,6 +119,7 @@ import type * as lib_analytics from "../lib/analytics.js";
 import type * as lib_budgetTracker from "../lib/budgetTracker.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errorTracking from "../lib/errorTracking.js";
+import type * as lib_generationLock from "../lib/generationLock.js";
 import type * as lib_helpers from "../lib/helpers.js";
 import type * as lib_logger from "../lib/logger.js";
 import type * as lib_pdf_convertToPdf from "../lib/pdf/convertToPdf.js";
@@ -139,6 +140,7 @@ import type * as lib_prompts_operational_titleGeneration from "../lib/prompts/op
 import type * as lib_prompts_operational_visualFormatting from "../lib/prompts/operational/visualFormatting.js";
 import type * as lib_prompts_systemBuilder from "../lib/prompts/systemBuilder.js";
 import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/builtIn.js";
+import type * as lib_tree from "../lib/tree.js";
 import type * as lib_userSync from "../lib/userSync.js";
 import type * as lib_utils_cascade from "../lib/utils/cascade.js";
 import type * as lib_utils_memory from "../lib/utils/memory.js";
@@ -175,6 +177,7 @@ import type * as migrations_007_verify_token_usage from "../migrations/007_verif
 import type * as migrations_010_fix_gemini_image_pricing from "../migrations/010_fix_gemini_image_pricing.js";
 import type * as migrations_011_migrate_project_files_to_kb from "../migrations/011_migrate_project_files_to_kb.js";
 import type * as migrations_012_rechunk_knowledge from "../migrations/012_rechunk_knowledge.js";
+import type * as migrations_013_tree_architecture from "../migrations/013_tree_architecture.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
 import type * as notes from "../notes.js";
@@ -393,6 +396,7 @@ declare const fullApi: ApiFromModules<{
   "lib/budgetTracker": typeof lib_budgetTracker;
   "lib/encryption": typeof lib_encryption;
   "lib/errorTracking": typeof lib_errorTracking;
+  "lib/generationLock": typeof lib_generationLock;
   "lib/helpers": typeof lib_helpers;
   "lib/logger": typeof lib_logger;
   "lib/pdf/convertToPdf": typeof lib_pdf_convertToPdf;
@@ -413,6 +417,7 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/operational/visualFormatting": typeof lib_prompts_operational_visualFormatting;
   "lib/prompts/systemBuilder": typeof lib_prompts_systemBuilder;
   "lib/prompts/templates/builtIn": typeof lib_prompts_templates_builtIn;
+  "lib/tree": typeof lib_tree;
   "lib/userSync": typeof lib_userSync;
   "lib/utils/cascade": typeof lib_utils_cascade;
   "lib/utils/memory": typeof lib_utils_memory;
@@ -449,6 +454,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/010_fix_gemini_image_pricing": typeof migrations_010_fix_gemini_image_pricing;
   "migrations/011_migrate_project_files_to_kb": typeof migrations_011_migrate_project_files_to_kb;
   "migrations/012_rechunk_knowledge": typeof migrations_012_rechunk_knowledge;
+  "migrations/013_tree_architecture": typeof migrations_013_tree_architecture;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
   notes: typeof notes;

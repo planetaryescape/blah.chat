@@ -71,7 +71,7 @@
   --accent-foreground: oklch(98% 0.01 80);
 
   --muted: oklch(90% 0.01 80);
-  --muted-foreground: oklch(50% 0.04 80);
+  --muted-foreground: oklch(40% 0.04 80); /* WCAG AA: 4.5:1 contrast (was 50%) */
 
   --destructive: oklch(60% 0.2 25);
   --destructive-foreground: oklch(98% 0 0);
@@ -187,7 +187,7 @@
   --secondary-foreground: oklch(98% 0.01 285);
 
   --muted: oklch(25% 0.03 285);
-  --muted-foreground: oklch(70% 0.02 285);
+  --muted-foreground: oklch(75% 0.02 285); /* WCAG AA: 4.5:1 contrast (was 70%) */
 
   --accent: oklch(25% 0.04 285);
   --accent-foreground: oklch(98% 0.01 285);
@@ -238,6 +238,65 @@
   --surface-glass-border: oklch(40% 0.05 285 / 0.3);
   --surface-glass-highlight: oklch(90% 0.03 25 / 0.1);
 }
+
+/* ===== HIGH CONTRAST MODE ===== */
+/* User preference override via settings toggle */
+.high-contrast {
+  --muted-foreground: oklch(35% 0.02 80);
+  --border: oklch(50% 0.03 80);
+  --input: oklch(50% 0.03 80);
+  --bg-mesh-1: none;
+  --bg-mesh-2: none;
+  --bg-mesh-3: none;
+  --bg-grain: none;
+}
+
+.dark.high-contrast {
+  --muted-foreground: oklch(85% 0.01 285);
+  --border: oklch(55% 0.04 285);
+  --input: oklch(55% 0.04 285);
+}
+
+/* OS-level high contrast preference */
+@media (prefers-contrast: more) {
+  :root:not(.contrast-normal) {
+    --muted-foreground: oklch(35% 0.02 80);
+    --border: oklch(50% 0.03 80);
+    --bg-mesh-1: none;
+    --bg-mesh-2: none;
+    --bg-mesh-3: none;
+    --bg-grain: none;
+  }
+  .dark:not(.contrast-normal) {
+    --muted-foreground: oklch(85% 0.01 285);
+    --border: oklch(55% 0.04 285);
+  }
+}
+
+/* Windows High Contrast / forced-colors mode */
+@media (forced-colors: active) {
+  :root {
+    --background: Canvas;
+    --foreground: CanvasText;
+    --primary: LinkText;
+    --border: CanvasText;
+    --muted-foreground: GrayText;
+  }
+  * { forced-color-adjust: auto; }
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* ===== TEXT SCALING ===== */
+html { --text-scale: 1; font-size: calc(16px * var(--text-scale)); }
+html.text-scale-75 { --text-scale: 0.75; }
+html.text-scale-100 { --text-scale: 1; }
+html.text-scale-125 { --text-scale: 1.25; }
+html.text-scale-150 { --text-scale: 1.5; }
+html.text-scale-175 { --text-scale: 1.75; }
+html.text-scale-200 { --text-scale: 2; }
 
 @layer base {
   * {

@@ -80,6 +80,22 @@ class BlahChatCache extends Dexie {
       pendingMutations: "_id, type, createdAt",
       userPreferences: "&_id",
     });
+
+    // v5: P7 Tree Architecture - Add tree field indexes
+    this.version(5).stores({
+      conversations:
+        "_id, userId, parentMessageId, updatedAt, projectId, activeLeafMessageId",
+      messages:
+        "_id, conversationId, createdAt, isActiveBranch, parentMessageId, rootMessageId",
+      notes: "_id, userId, projectId, updatedAt",
+      tasks: "_id, userId, projectId, status, deadline, _creationTime",
+      projects: "_id, userId",
+      attachments: "_id, messageId",
+      toolCalls: "_id, messageId",
+      sources: "_id, messageId",
+      pendingMutations: "_id, type, createdAt",
+      userPreferences: "&_id",
+    });
   }
 }
 

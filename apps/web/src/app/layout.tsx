@@ -1,5 +1,6 @@
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ConvexClerkProvider } from "@/components/providers/convex-clerk-provider";
+import { MotionProvider } from "@/components/providers/motion-provider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -177,12 +178,14 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <TooltipProvider>
-                <AnalyticsProvider>
-                  <NuqsAdapter>{children}</NuqsAdapter>
-                  <Toaster />
-                </AnalyticsProvider>
-              </TooltipProvider>
+              <MotionProvider>
+                <TooltipProvider>
+                  <AnalyticsProvider>
+                    <NuqsAdapter>{children}</NuqsAdapter>
+                    <Toaster />
+                  </AnalyticsProvider>
+                </TooltipProvider>
+              </MotionProvider>
             </ThemeProvider>
           </QueryProvider>
         </ConvexClerkProvider>

@@ -24,15 +24,11 @@ export function useAccessibilitySettings() {
   const highContrastMode = useUserPreference("highContrastMode") ?? false;
   const textScale = useUserPreference("textScale") ?? 100;
 
+  // Combined effect to avoid race conditions when modifying classList
   useEffect(() => {
-    document.documentElement.classList.toggle(
-      "high-contrast",
-      highContrastMode,
-    );
-  }, [highContrastMode]);
-
-  useEffect(() => {
-    document.documentElement.classList.remove(...TEXT_SCALE_CLASSES);
-    document.documentElement.classList.add(`text-scale-${textScale}`);
-  }, [textScale]);
+    const html = document.documentElement;
+    html.classList.toggle("high-contrast", highContrastMode);
+    html.classList.remove(...TEXT_SCALE_CLASSES);
+    html.classList.add(`text-scale-${textScale}`);
+  }, [highContrastMode, textScale]);
 }

@@ -301,7 +301,7 @@ export function VirtualizedMessageList({
         }}
         data={grouped}
         computeItemKey={(index, item) =>
-          item.type === "comparison" ? item.id : String(item.data._id)
+          item.type === "comparison" ? item.id : item.data._id
         }
         defaultItemHeight={190}
         increaseViewportBy={{ top: 300, bottom: 300 }}

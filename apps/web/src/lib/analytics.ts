@@ -73,9 +73,10 @@ interface AnalyticsEvent {
     firstTokenLatencyMs?: number;
   };
   message_regenerated: {
-    model: string;
+    model?: string;
     messageId: string;
-    previousStatus: string;
+    previousStatus?: string;
+    conversationId?: string;
   };
   generation_stopped: {
     model: string;
@@ -637,7 +638,7 @@ interface AnalyticsEvent {
     feedbackType: string;
   };
 
-  // === ADVANCED FEATURES (8 events) ===
+  // === ADVANCED FEATURES (11 events) ===
   branch_created: {
     fromMessageIndex: number;
     parentMessageRole: string;
@@ -647,6 +648,14 @@ interface AnalyticsEvent {
   };
   branch_selected: {
     branchIndex: number;
+  };
+  branch_switched: {
+    conversationId: string;
+    fromMessageId: string;
+    toMessageId: string;
+  };
+  content_copied: {
+    source: string;
   };
   context_window_indicator_viewed: {
     tokenCount: number;

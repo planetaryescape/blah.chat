@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useUISettingsState } from "@/hooks/useUISettingsState";
 import {
+  AccessibilitySection,
   AutoRouterSection,
   ComparisonSettingsSection,
   DisplayLayoutSection,
@@ -58,6 +59,9 @@ const SETTING_TO_SECTION: Record<string, string> = {
   // Smart Assistant
   noteCategoryMode: "smart-assistant",
   customNoteCategories: "smart-assistant",
+  // Accessibility
+  highContrastMode: "accessibility",
+  textScale: "accessibility",
 };
 
 const DEFAULT_EXPANDED = [
@@ -69,6 +73,7 @@ const DEFAULT_EXPANDED = [
   "sidebar-features",
   "smart-assistant",
   "auto-router",
+  "accessibility",
 ];
 
 interface UISettingsProps {
@@ -209,6 +214,13 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             speedBias={state.autoRouterSpeedBias}
             onCostBiasChange={handlers.handleCostBiasChange}
             onSpeedBiasChange={handlers.handleSpeedBiasChange}
+          />
+
+          <AccessibilitySection
+            highContrastMode={state.highContrastMode}
+            textScale={state.textScale}
+            onHighContrastChange={handlers.handleHighContrastChange}
+            onTextScaleChange={handlers.handleTextScaleChange}
           />
         </Accordion>
 

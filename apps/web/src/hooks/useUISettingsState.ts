@@ -38,6 +38,9 @@ export interface UISettingsState {
   // Auto Router
   autoRouterCostBias: number;
   autoRouterSpeedBias: number;
+  // Accessibility
+  highContrastMode: boolean;
+  textScale: number;
 }
 
 export interface UISettingsHandlers {
@@ -66,6 +69,9 @@ export interface UISettingsHandlers {
   // Auto Router
   handleCostBiasChange: (value: number) => Promise<void>;
   handleSpeedBiasChange: (value: number) => Promise<void>;
+  // Accessibility
+  handleHighContrastChange: (checked: boolean) => Promise<void>;
+  handleTextScaleChange: (scale: number) => Promise<void>;
 }
 
 /**
@@ -100,6 +106,8 @@ export function useUISettingsState() {
   const prefCustomNoteCategories = useUserPreference("customNoteCategories");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
+  const _prefHighContrastMode = useUserPreference("highContrastMode");
+  const _prefTextScale = useUserPreference("textScale");
 
   // Local state for optimistic updates
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
@@ -152,6 +160,10 @@ export function useUISettingsState() {
     useState<number>(prefCostBias);
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
     useState<number>(prefSpeedBias);
+  const [_highContrastMode, _setHighContrastMode] = useState<boolean>(
+    _prefHighContrastMode,
+  );
+  const [_textScale, _setTextScale] = useState<number>(_prefTextScale);
 
   // Sync local state when hook values change
   useEffect(
@@ -214,6 +226,11 @@ export function useUISettingsState() {
   );
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
+  useEffect(
+    () => _setHighContrastMode(_prefHighContrastMode),
+    [_prefHighContrastMode],
+  );
+  useEffect(() => _setTextScale(_prefTextScale), [_prefTextScale]);
 
   // Generic handler for simple boolean preferences
   const createBooleanHandler = (
@@ -351,6 +368,38 @@ export function useUISettingsState() {
     }
   };
 
+  const _handleHighContrastChange = async (checked: boolean) => {
+    const previous = _highContrastMode;
+    _setHighContrastMode(checked);
+    try {
+      await updatePreferences({
+        preferences: { highContrastMode: checked },
+      });
+      toast.success("High contrast mode updated!");
+      analytics.track("accessibility_high_contrast_changed", {
+        enabled: checked,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      _setHighContrastMode(previous);
+    }
+  };
+
+  const _handleTextScaleChange = async (scale: number) => {
+    const previous = _textScale;
+    _setTextScale(scale);
+    try {
+      await updatePreferences({
+        preferences: { textScale: scale },
+      });
+      toast.success("Text scale updated!");
+      analytics.track("accessibility_text_scale_changed", { scale });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      _setTextScale(previous);
+    }
+  };
+
   const handlers: UISettingsHandlers = {
     handleAlwaysShowActionsChange: createBooleanHandler(
       "alwaysShowMessageActions",
@@ -437,6 +486,9 @@ export function useUISettingsState() {
     // Auto Router
     handleCostBiasChange,
     handleSpeedBiasChange,
+    // Accessibility
+    handleHighContrastChange: _handleHighContrastChange,
+    handleTextScaleChange: _handleTextScaleChange,
   };
 
   const state: UISettingsState = {
@@ -463,6 +515,9 @@ export function useUISettingsState() {
     // Auto Router
     autoRouterCostBias,
     autoRouterSpeedBias,
+    // Accessibility
+    highContrastMode: _highContrastMode,
+    textScale: _textScale,
   };
 
   return {

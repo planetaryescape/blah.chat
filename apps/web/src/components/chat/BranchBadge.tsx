@@ -33,12 +33,24 @@ export function BranchBadge({ conversationId }: BranchBadgeProps) {
 
   const validId = isInvalidConversationId ? null : conversationId;
 
+  // Legacy: child conversations (conversation-based branching)
   const childBranches = useQuery(
     api.conversations.getChildBranches,
     validId ? { conversationId: validId } : "skip",
   );
 
-  if (!childBranches || childBranches.length === 0) {
+  // P7: Tree-based branch info
+  const branchInfo = useQuery(
+    api.messages.getBranchInfo,
+    validId ? { conversationId: validId } : "skip",
+  );
+
+  // Total branches: legacy child conversations + P7 tree branches (minus 1 for main path)
+  const legacyCount = childBranches?.length ?? 0;
+  const treeCount = Math.max(0, (branchInfo?.branchCount ?? 1) - 1);
+  const totalBranches = legacyCount + treeCount;
+
+  if (totalBranches === 0) {
     return null;
   }
 
@@ -55,48 +67,68 @@ export function BranchBadge({ conversationId }: BranchBadgeProps) {
             variant="secondary"
             className="h-4 min-w-4 px-1 text-[10px] rounded-full"
           >
-            {childBranches.length}
+            {totalBranches}
           </Badge>
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-2">
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground px-2 py-1">
-            Branched conversations ({childBranches.length})
+            Branches ({totalBranches})
           </p>
-          <div className="space-y-0.5">
-            {childBranches.map(
-              (branch: { _id: string; title: string; createdAt: number }) => (
-                <Button
-                  key={branch._id}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start h-auto py-2 px-2 text-left font-normal"
-                  onClick={() => {
-                    router.push(`/chat/${branch._id}`);
-                  }}
-                >
-                  <div className="flex items-start gap-2 w-full min-w-0">
-                    <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{branch.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(branch.createdAt).toLocaleDateString(
-                          undefined,
-                          {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </p>
+
+          {/* P7: Tree branch info */}
+          {treeCount > 0 && (
+            <div className="px-2 py-1.5 bg-muted/50 rounded text-xs text-muted-foreground">
+              <p>
+                {branchInfo?.branchPoints?.length ?? 0} branch point(s) in this
+                conversation
+              </p>
+              <p className="text-[10px] mt-0.5">
+                Use the branch navigator on messages to switch paths
+              </p>
+            </div>
+          )}
+
+          {/* Legacy: child conversations */}
+          {legacyCount > 0 && (
+            <div className="space-y-0.5 mt-2">
+              <p className="text-[10px] font-medium text-muted-foreground px-2">
+                Branched conversations
+              </p>
+              {childBranches?.map(
+                (branch: { _id: string; title: string; createdAt: number }) => (
+                  <Button
+                    key={branch._id}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-auto py-2 px-2 text-left font-normal"
+                    onClick={() => {
+                      router.push(`/chat/${branch._id}`);
+                    }}
+                  >
+                    <div className="flex items-start gap-2 w-full min-w-0">
+                      <GitBranch className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{branch.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(branch.createdAt).toLocaleDateString(
+                            undefined,
+                            {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ),
-            )}
-          </div>
+                  </Button>
+                ),
+              )}
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

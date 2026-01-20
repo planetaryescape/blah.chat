@@ -71,20 +71,22 @@ export function InlineToolCallContent({
     return combined;
   }, [toolCalls, partialToolCalls]);
 
-  // Build segments: interleave text and tool calls based on textPosition
-  const segments = useMemo<ContentSegment[]>(() => {
-    if (allToolCalls.length === 0) {
-      // No tool calls, just render content
-      return content ? [{ type: "text", content }] : [];
-    }
-
-    // Sort tool calls by position (or timestamp as fallback)
-    const sortedCalls = [...allToolCalls].sort((a, b) => {
+  // Sort tool calls by position (separate memo to avoid re-sorting when only content changes)
+  const sortedCalls = useMemo(() => {
+    return [...allToolCalls].sort((a, b) => {
       const posA = a.textPosition ?? Infinity;
       const posB = b.textPosition ?? Infinity;
       if (posA !== posB) return posA - posB;
       return a.timestamp - b.timestamp;
     });
+  }, [allToolCalls]);
+
+  // Build segments: interleave text and tool calls based on textPosition
+  const segments = useMemo<ContentSegment[]>(() => {
+    if (sortedCalls.length === 0) {
+      // No tool calls, just render content
+      return content ? [{ type: "text", content }] : [];
+    }
 
     // Check if any tool calls have position info
     const hasPositionInfo = sortedCalls.some(
@@ -140,7 +142,7 @@ export function InlineToolCallContent({
     }
 
     return result;
-  }, [content, allToolCalls]);
+  }, [content, sortedCalls]);
 
   // Handle empty state
   if (segments.length === 0) {

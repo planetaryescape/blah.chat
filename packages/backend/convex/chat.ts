@@ -36,6 +36,65 @@ async function canAccessConversation(
   return false;
 }
 
+/**
+ * Derive rootMessageId for tree architecture
+ * Walks up the tree to find the actual root if not set
+ */
+async function _deriveRootMessageId(
+  ctx: MutationCtx,
+  message: {
+    _id: Id<"messages">;
+    rootMessageId?: Id<"messages">;
+    parentMessageId?: Id<"messages">;
+    parentMessageIds?: Id<"messages">[];
+  },
+): Promise<Id<"messages">> {
+  // If rootMessageId is set, use it
+  if (message.rootMessageId) {
+    return message.rootMessageId;
+  }
+
+  // If no parents, this is the root
+  const parentId = message.parentMessageIds?.[0] ?? message.parentMessageId;
+  if (!parentId) {
+    return message._id;
+  }
+
+  // Walk up to find root (max 1000 iterations for safety)
+  let currentId: Id<"messages"> | undefined = parentId;
+  const visited = new Set<string>();
+
+  while (currentId && visited.size < 1000) {
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+
+    const parent: {
+      _id: Id<"messages">;
+      rootMessageId?: Id<"messages">;
+      parentMessageId?: Id<"messages">;
+      parentMessageIds?: Id<"messages">[];
+    } | null = await ctx.db.get(currentId);
+    if (!parent) break;
+
+    // Found a message with rootMessageId set
+    if (parent.rootMessageId) {
+      return parent.rootMessageId;
+    }
+
+    // Check if this is the root (no parents)
+    const nextParentId: Id<"messages"> | undefined =
+      parent.parentMessageIds?.[0] ?? parent.parentMessageId;
+    if (!nextParentId) {
+      return parent._id;
+    }
+
+    currentId = nextParentId;
+  }
+
+  // Fallback: use the message's own ID (shouldn't happen normally)
+  return message._id;
+}
+
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
   name: v.string(),
@@ -450,6 +509,9 @@ export const regenerate = mutation({
       updatedAt: Date.now(),
     });
 
+    // Derive rootMessageId properly (walk tree if not set)
+    const rootMessageId = await _deriveRootMessageId(ctx, message);
+
     // Create new sibling message
     const newMessageId = (await ctx.runMutation(internal.messages.create, {
       conversationId: message.conversationId,
@@ -463,7 +525,7 @@ export const regenerate = mutation({
       parentMessageIds: parentIds,
       siblingIndex,
       isActiveBranch: true,
-      rootMessageId: message.rootMessageId,
+      rootMessageId,
       forkReason: "regenerate",
     })) as Id<"messages">;
 
@@ -580,6 +642,9 @@ export const editMessage = mutation({
       updatedAt: Date.now(),
     });
 
+    // Derive rootMessageId properly (walk tree if not set)
+    const rootMessageId = await _deriveRootMessageId(ctx, message);
+
     // Create new sibling with edited content
     const newUserMessageId = (await ctx.runMutation(internal.messages.create, {
       conversationId: message.conversationId,
@@ -591,7 +656,7 @@ export const editMessage = mutation({
       parentMessageIds: parentIds,
       siblingIndex,
       isActiveBranch: true,
-      rootMessageId: message.rootMessageId ?? message._id,
+      rootMessageId,
       forkReason: "edit",
       forkMetadata: {
         originalContent: message.content,
@@ -627,7 +692,7 @@ export const editMessage = mutation({
         parentMessageIds: [newUserMessageId],
         siblingIndex: 0,
         isActiveBranch: true,
-        rootMessageId: message.rootMessageId ?? message._id,
+        rootMessageId,
       },
     )) as Id<"messages">;
 
@@ -671,13 +736,90 @@ export const deleteMessage = mutation({
     );
     if (!hasAccess) throw new Error("Unauthorized");
 
-    await ctx.db.delete(args.messageId);
+    // Cascade delete: collect all messages to delete (children recursively)
+    const messagesToDelete: Id<"messages">[] = [args.messageId];
+    const visited = new Set<string>();
+
+    // BFS to find all descendant messages
+    const queue: Id<"messages">[] = [args.messageId];
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      // Find children by parentMessageId index
+      const children = await ctx.db
+        .query("messages")
+        .withIndex("by_parent", (q) => q.eq("parentMessageId", currentId))
+        .collect();
+
+      for (const child of children) {
+        if (!visited.has(child._id)) {
+          messagesToDelete.push(child._id);
+          queue.push(child._id);
+        }
+      }
+
+      // Also find children using parentMessageIds array (scoped to conversation)
+      const conversationMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", message.conversationId),
+        )
+        .collect();
+
+      for (const msg of conversationMessages) {
+        if (
+          msg.parentMessageIds?.includes(currentId) &&
+          !visited.has(msg._id)
+        ) {
+          messagesToDelete.push(msg._id);
+          queue.push(msg._id);
+        }
+      }
+    }
+
+    // Delete related records for each message
+    for (const msgId of messagesToDelete) {
+      // Delete attachments
+      const attachments = await ctx.db
+        .query("attachments")
+        .withIndex("by_message", (q) => q.eq("messageId", msgId))
+        .collect();
+      for (const att of attachments) {
+        await ctx.db.delete(att._id);
+      }
+
+      // Delete tool calls
+      const toolCalls = await ctx.db
+        .query("toolCalls")
+        .withIndex("by_message", (q) => q.eq("messageId", msgId))
+        .collect();
+      for (const tc of toolCalls) {
+        await ctx.db.delete(tc._id);
+      }
+
+      // Delete sources
+      const sources = await ctx.db
+        .query("sources")
+        .withIndex("by_message", (q) => q.eq("messageId", msgId))
+        .collect();
+      for (const src of sources) {
+        await ctx.db.delete(src._id);
+      }
+
+      // Delete the message itself
+      await ctx.db.delete(msgId);
+    }
 
     // Decrement conversation messageCount
     const conversation = await ctx.db.get(message.conversationId);
     if (conversation?.messageCount && conversation.messageCount > 0) {
       await ctx.db.patch(message.conversationId, {
-        messageCount: conversation.messageCount - 1,
+        messageCount: Math.max(
+          0,
+          conversation.messageCount - messagesToDelete.length,
+        ),
       });
     }
   },

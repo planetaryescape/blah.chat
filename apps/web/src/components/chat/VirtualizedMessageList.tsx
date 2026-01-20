@@ -300,6 +300,11 @@ export function VirtualizedMessageList({
           scrollerRef.current = el instanceof HTMLElement ? el : null;
         }}
         data={grouped}
+        computeItemKey={(index, item) =>
+          item.type === "comparison" ? item.id : String(item.data._id)
+        }
+        defaultItemHeight={190}
+        increaseViewportBy={{ top: 300, bottom: 300 }}
         initialTopMostItemIndex={grouped.length - 1}
         alignToBottom
         followOutput={(isAtBottom) =>
@@ -419,7 +424,7 @@ const MessageItemContent = memo(function MessageItemContent({
               showMessageStats={showMessageStats}
             />
           </div>
-          <div className="col-span-full mt-4">
+          <div className="col-span-full pt-4">
             <ComparisonView
               assistantMessages={item.assistantMessages}
               comparisonGroupId={item.id}

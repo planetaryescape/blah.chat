@@ -163,10 +163,10 @@ export function useUISettingsState() {
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
     useState<number>(prefSpeedBias);
   const [_highContrastMode, _setHighContrastMode] = useState<boolean>(
-    _prefHighContrastMode,
+    _prefHighContrastMode ?? false,
   );
   const [_textScale, _setTextScale] = useState<TextScale>(
-    _prefTextScale as TextScale,
+    (_prefTextScale as TextScale) ?? 100,
   );
 
   // Sync local state when hook values change
@@ -231,10 +231,13 @@ export function useUISettingsState() {
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
   useEffect(
-    () => _setHighContrastMode(_prefHighContrastMode),
+    () => _setHighContrastMode(_prefHighContrastMode ?? false),
     [_prefHighContrastMode],
   );
-  useEffect(() => _setTextScale(_prefTextScale), [_prefTextScale]);
+  useEffect(
+    () => _setTextScale((_prefTextScale as TextScale) ?? 100),
+    [_prefTextScale],
+  );
 
   // Generic handler for simple boolean preferences
   const createBooleanHandler = (

@@ -35,6 +35,4 @@ export function useAccessibilitySettings() {
     document.documentElement.classList.remove(...TEXT_SCALE_CLASSES);
     document.documentElement.classList.add(`text-scale-${textScale}`);
   }, [textScale]);
-
-  return { highContrastMode, textScale };
 }

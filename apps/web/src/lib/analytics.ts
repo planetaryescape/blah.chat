@@ -545,6 +545,12 @@ interface AnalyticsEvent {
     setting: string;
     value: boolean;
   };
+  accessibility_high_contrast_changed: {
+    enabled: boolean;
+  };
+  accessibility_text_scale_changed: {
+    scale: number;
+  };
   maintenance_action_performed: {
     actionType: string;
     dataClearedCount?: number;

@@ -69,6 +69,42 @@ export async function getChildren(
 }
 
 /**
+ * Get message with its tree context (parent + children) in one call
+ */
+export interface MessageWithContext {
+  message: Message;
+  parent: Message | null;
+  children: Message[];
+  hasBranches: boolean;
+  siblingCount: number;
+  siblingIndex: number;
+}
+
+export async function getWithContext(
+  ctx: QueryCtx | MutationCtx,
+  messageId: Id<"messages">,
+): Promise<MessageWithContext | null> {
+  const message = await ctx.db.get(messageId);
+  if (!message) return null;
+
+  const parentId = message.parentMessageIds?.[0] ?? message.parentMessageId;
+  const [parent, children, siblings] = await Promise.all([
+    parentId ? ctx.db.get(parentId) : Promise.resolve(null),
+    getChildren(ctx, messageId),
+    parentId ? getChildren(ctx, parentId) : Promise.resolve([message]),
+  ]);
+
+  return {
+    message,
+    parent,
+    children,
+    hasBranches: children.length > 1,
+    siblingCount: siblings.length,
+    siblingIndex: message.siblingIndex ?? 0,
+  };
+}
+
+/**
  * Get all siblings of a message (messages with the same parent(s))
  */
 export async function getSiblings(
@@ -139,7 +175,7 @@ export async function getActivePath(
 }
 
 /**
- * Find the common ancestor of two messages
+ * Find the nearest (deepest) common ancestor of two messages
  */
 export async function findCommonAncestor(
   ctx: QueryCtx | MutationCtx,
@@ -151,10 +187,10 @@ export async function findCommonAncestor(
 
   const path2 = await getPathToRoot(ctx, msg2Id);
 
-  // Find first message in path2 that's also in path1
-  for (const msg of path2) {
-    if (path1Ids.has(msg._id)) {
-      return msg;
+  // Find nearest (deepest) common ancestor by iterating from msg2 toward root
+  for (let i = path2.length - 1; i >= 0; i--) {
+    if (path1Ids.has(path2[i]._id)) {
+      return path2[i];
     }
   }
 
@@ -250,6 +286,84 @@ export async function markPathAsActive(
       });
     }
   }
+}
+
+/**
+ * Deactivate a subtree (mark all descendants as inactive)
+ * Useful for branch deletion prep or hiding branches
+ * Returns count of deactivated messages
+ */
+export async function deactivateSubtree(
+  ctx: MutationCtx,
+  rootMessageId: Id<"messages">,
+): Promise<number> {
+  const root = await ctx.db.get(rootMessageId);
+  if (!root) return 0;
+
+  // Collect all descendants using BFS
+  const descendants: Id<"messages">[] = [];
+  const queue: Id<"messages">[] = [rootMessageId];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+    descendants.push(currentId);
+
+    const children = await getChildren(ctx, currentId);
+    for (const child of children) {
+      if (!visited.has(child._id)) {
+        queue.push(child._id);
+      }
+    }
+  }
+
+  // Mark all as inactive
+  let deactivatedCount = 0;
+  const now = Date.now();
+
+  for (const id of descendants) {
+    const msg = await ctx.db.get(id);
+    if (msg?.isActiveBranch) {
+      await ctx.db.patch(id, {
+        isActiveBranch: false,
+        updatedAt: now,
+      });
+      deactivatedCount++;
+    }
+  }
+
+  return deactivatedCount;
+}
+
+/**
+ * Get all descendants of a message (all children, grandchildren, etc.)
+ * Returns array of message IDs, NOT including the root message
+ */
+export async function getDescendants(
+  ctx: QueryCtx | MutationCtx,
+  rootMessageId: Id<"messages">,
+): Promise<Id<"messages">[]> {
+  const descendants: Id<"messages">[] = [];
+  const queue: Id<"messages">[] = [rootMessageId];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+
+    const children = await getChildren(ctx, currentId);
+    for (const child of children) {
+      if (!visited.has(child._id)) {
+        descendants.push(child._id);
+        queue.push(child._id);
+      }
+    }
+  }
+
+  return descendants;
 }
 
 /**

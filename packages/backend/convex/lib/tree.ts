@@ -32,19 +32,30 @@ export async function getChildren(
   ctx: QueryCtx | MutationCtx,
   messageId: Id<"messages">,
 ): Promise<Message[]> {
-  // Query by legacy parentMessageId first
+  // Query by legacy parentMessageId first (indexed)
   const legacyChildren = await ctx.db
     .query("messages")
     .withIndex("by_parent", (q) => q.eq("parentMessageId", messageId))
     .collect();
 
-  // For messages using new parentMessageIds array, we need to filter
-  // since Convex doesn't support array contains index
-  // This is less efficient but necessary for transition period
-  const allMessages = await ctx.db.query("messages").collect();
-  const arrayChildren = allMessages.filter(
-    (m) => m.parentMessageIds?.includes(messageId) && !m.parentMessageId,
-  );
+  // For messages using parentMessageIds array, scope to conversation
+  // to avoid full table scan (Convex doesn't support array-contains index)
+  const parentMessage = await ctx.db.get(messageId);
+  let arrayChildren: Message[] = [];
+
+  if (parentMessage) {
+    // Only query messages in the same conversation
+    const conversationMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", parentMessage.conversationId),
+      )
+      .collect();
+
+    arrayChildren = conversationMessages.filter(
+      (m) => m.parentMessageIds?.includes(messageId) && !m.parentMessageId,
+    );
+  }
 
   // Combine and dedupe
   const childMap = new Map<string, Message>();

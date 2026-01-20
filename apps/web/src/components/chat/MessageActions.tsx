@@ -134,11 +134,11 @@ export function MessageActions({
 
   const handleBranch = async () => {
     try {
-      const newConversationId = await branchFromMessage({
+      const result = await branchFromMessage({
         messageId: message._id as Id<"messages">,
       });
       recordAction({ actionType: "branch_message", resourceId: message._id });
-      router.push(`/chat/${newConversationId}`);
+      router.push(`/chat/${result.conversationId}`);
     } catch (error) {
       console.error("Failed to branch:", error);
     }

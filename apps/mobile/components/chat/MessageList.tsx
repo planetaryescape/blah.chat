@@ -275,10 +275,10 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
           break;
         case "Branch":
           try {
-            const newId = await branchFromMessage({
+            const result = await branchFromMessage({
               messageId: msg._id as Id<"messages">,
             });
-            router.push(`/chat/${newId}`);
+            router.push(`/chat/${result.conversationId}`);
           } catch (error) {
             console.error("Failed to branch:", error);
           }
@@ -337,10 +337,10 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     async (msg: Message) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       try {
-        const newId = await branchFromMessage({
+        const result = await branchFromMessage({
           messageId: msg._id as Id<"messages">,
         });
-        router.push(`/chat/${newId}`);
+        router.push(`/chat/${result.conversationId}`);
       } catch (error) {
         console.error("Failed to branch:", error);
       }

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0](https://github.com/planetaryescape/blah.chat/compare/v1.6.0...v1.7.0) (2026-01-20)
+
+
+### Features
+
+* **tree:** add context, descendants, and subtree deactivation helpers ([1f9c854](https://github.com/planetaryescape/blah.chat/commit/1f9c85466ac5fd359e47b6f494cd5b05d16fb6bf))
+
+
+### Bug Fixes
+
+* **tree:** ensure deactivateSubtree patches undefined isActiveBranch values ([75b19b9](https://github.com/planetaryescape/blah.chat/commit/75b19b9362e184b0f9894f35d90b314291f195ad))
+* **tree:** prevent duplicate IDs in BFS traversal for DAG with multi-parent nodes ([3375c60](https://github.com/planetaryescape/blah.chat/commit/3375c609cb0cbef0ab58a117fa9f9cbffcbfdebc))
+
 ## [1.6.0](https://github.com/planetaryescape/blah.chat/compare/v1.5.0...v1.6.0) (2026-01-20)
 
 

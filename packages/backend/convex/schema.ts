@@ -81,9 +81,13 @@ export default defineSchema({
     ),
     messageCount: v.optional(v.number()),
     lastMessageAt: v.number(),
-    // Branching support
-    parentConversationId: v.optional(v.id("conversations")),
-    parentMessageId: v.optional(v.id("messages")),
+    // Branching support (legacy - conversation-based)
+    parentConversationId: v.optional(v.id("conversations")), // DEPRECATED: Use tree architecture
+    parentMessageId: v.optional(v.id("messages")), // DEPRECATED: Use tree architecture
+
+    // Tree-based architecture (P7)
+    activeLeafMessageId: v.optional(v.id("messages")), // Current "head" position in tree
+    branchCount: v.optional(v.number()), // Denormalized for UI badges
     // Collaborative conversations (multi-user)
     isCollaborative: v.optional(v.boolean()),
     // Incognito mode (ephemeral conversations)
@@ -128,7 +132,8 @@ export default defineSchema({
     .index("by_user_archived", ["userId", "archived"])
     .index("by_user_lastMessageAt", ["userId", "lastMessageAt"])
     .index("by_projectId", ["projectId"])
-    .index("by_parent_conversation", ["parentConversationId"])
+    .index("by_parent_conversation", ["parentConversationId"]) // Legacy
+    .index("by_active_leaf", ["activeLeafMessageId"]) // P7: Tree navigation
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "archived"],
@@ -192,10 +197,34 @@ export default defineSchema({
     embedding: v.optional(v.array(v.float64())),
     // Provider specific metadata (e.g. Gemini thought signatures)
     providerMetadata: v.optional(v.any()),
-    // Branching support
-    parentMessageId: v.optional(v.id("messages")),
+    // Branching support (legacy - single parent)
+    parentMessageId: v.optional(v.id("messages")), // DEPRECATED: Use parentMessageIds
     branchLabel: v.optional(v.string()),
     branchIndex: v.optional(v.number()),
+
+    // Tree-based architecture (P7)
+    parentMessageIds: v.optional(v.array(v.id("messages"))), // Multiple parents for merges
+    siblingIndex: v.optional(v.number()), // Position among siblings (0, 1, 2...)
+    isActiveBranch: v.optional(v.boolean()), // Part of currently displayed path
+    rootMessageId: v.optional(v.id("messages")), // First message in tree (quick access)
+    forkReason: v.optional(
+      v.union(
+        v.literal("edit"), // User edited a message
+        v.literal("regenerate"), // Regenerated response
+        v.literal("branch"), // Explicit branch creation
+        v.literal("model_compare"), // Multi-model comparison
+        v.literal("merge"), // Merged from multiple branches
+      ),
+    ),
+    forkMetadata: v.optional(
+      v.object({
+        originalContent: v.optional(v.string()), // Pre-edit content
+        originalBranchId: v.optional(v.string()), // Source branch for merge
+        mergedFromIds: v.optional(v.array(v.id("messages"))), // Merge sources
+        branchedAt: v.optional(v.number()), // Timestamp
+        branchedBy: v.optional(v.id("users")), // Who branched
+      }),
+    ),
     // Comparison support
     comparisonGroupId: v.optional(v.string()),
     consolidatedMessageId: v.optional(v.id("messages")), // Links to consolidated message
@@ -288,11 +317,13 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_conversation_status", ["conversationId", "status"]) // Find generating messages
     .index("by_user_created", ["userId", "createdAt"]) // User's recent messages
-    .index("by_parent", ["parentMessageId"])
+    .index("by_parent", ["parentMessageId"]) // Legacy: single parent
     .index("by_comparison_group", ["comparisonGroupId"])
     .index("by_consolidated_message", ["consolidatedMessageId"])
     .index("by_conversation_created", ["conversationId", "createdAt"]) // Phase 7: Ordered messages
     .index("by_conversation_role", ["conversationId", "role"]) // Phase 7: Filter user/assistant
+    .index("by_conversation_active", ["conversationId", "isActiveBranch"]) // P7: Active branch path
+    .index("by_root", ["rootMessageId"]) // P7: All messages in tree
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,

@@ -37,7 +37,9 @@ export function useMessageKeyboardShortcuts({
   readOnly,
   messageRef,
 }: UseMessageKeyboardShortcutsOptions) {
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const deleteMsg = useMutation(api.chat.deleteMessage);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createBookmark = useMutation(api.bookmarks.create);
 
   useEffect(() => {
@@ -106,17 +108,43 @@ export function useMessageKeyboardShortcuts({
 
         case "delete":
         case "backspace":
-          // Delete message and focus next
+          // Delete message and focus next/prev message or chat input
           if (!isMod) {
             e.preventDefault();
             try {
+              // Find next or previous message group before deleting
+              const currentGroup = messageRef.current?.closest(
+                "[id^='message-group-']",
+              );
+              const nextGroup =
+                currentGroup?.nextElementSibling as HTMLElement | null;
+              const prevGroup =
+                currentGroup?.previousElementSibling as HTMLElement | null;
+
               await deleteMsg({ messageId });
-              // Focus next message sibling
-              const nextSibling =
-                messageRef.current?.parentElement?.nextElementSibling?.querySelector(
-                  '[tabindex="0"]',
-                ) as HTMLElement;
-              nextSibling?.focus();
+
+              // Focus next, or prev, or chat input as fallback
+              requestAnimationFrame(() => {
+                let targetElement: HTMLElement | null = null;
+
+                if (nextGroup && document.body.contains(nextGroup)) {
+                  targetElement = nextGroup;
+                } else if (prevGroup && document.body.contains(prevGroup)) {
+                  targetElement = prevGroup;
+                }
+
+                if (targetElement) {
+                  targetElement.setAttribute("tabindex", "-1");
+                  targetElement.focus();
+                } else {
+                  // Fallback to chat input
+                  const chatInput = document.getElementById(
+                    "chat-input",
+                  ) as HTMLElement | null;
+                  chatInput?.focus();
+                }
+              });
+
               toast.success("Message deleted");
             } catch (_error) {
               toast.error("Failed to delete");

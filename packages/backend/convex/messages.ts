@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { getCurrentUser } from "./lib/userSync";
 
@@ -44,9 +44,32 @@ export const create = internalMutation({
     ),
     model: v.optional(v.string()),
     comparisonGroupId: v.optional(v.string()),
-    parentMessageId: v.optional(v.id("messages")),
-    branchIndex: v.optional(v.number()),
-    branchLabel: v.optional(v.string()),
+    parentMessageId: v.optional(v.id("messages")), // Legacy
+    branchIndex: v.optional(v.number()), // Legacy
+    branchLabel: v.optional(v.string()), // Legacy
+    // Tree architecture (P7)
+    parentMessageIds: v.optional(v.array(v.id("messages"))),
+    siblingIndex: v.optional(v.number()),
+    isActiveBranch: v.optional(v.boolean()),
+    rootMessageId: v.optional(v.id("messages")),
+    forkReason: v.optional(
+      v.union(
+        v.literal("edit"),
+        v.literal("regenerate"),
+        v.literal("branch"),
+        v.literal("model_compare"),
+        v.literal("merge"),
+      ),
+    ),
+    forkMetadata: v.optional(
+      v.object({
+        originalContent: v.optional(v.string()),
+        originalBranchId: v.optional(v.string()),
+        mergedFromIds: v.optional(v.array(v.id("messages"))),
+        branchedAt: v.optional(v.number()),
+        branchedBy: v.optional(v.id("users")),
+      }),
+    ),
     attachments: v.optional(
       v.array(
         v.object({
@@ -91,9 +114,17 @@ export const create = internalMutation({
       status: args.status || "complete",
       model: args.model,
       comparisonGroupId: args.comparisonGroupId,
+      // Legacy branching
       parentMessageId: args.parentMessageId,
       branchIndex: args.branchIndex,
       branchLabel: args.branchLabel,
+      // Tree architecture (P7)
+      parentMessageIds: args.parentMessageIds,
+      siblingIndex: args.siblingIndex ?? 0,
+      isActiveBranch: args.isActiveBranch ?? true,
+      rootMessageId: args.rootMessageId,
+      forkReason: args.forkReason,
+      forkMetadata: args.forkMetadata,
       routingDecision: args.routingDecision,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -116,12 +147,19 @@ export const create = internalMutation({
       }
     }
 
-    // Increment conversation messageCount
+    // Increment conversation messageCount and update activeLeafMessageId
     const conversation = await ctx.db.get(args.conversationId);
     if (conversation) {
-      await ctx.db.patch(args.conversationId, {
+      const patchData: Record<string, unknown> = {
         messageCount: (conversation.messageCount || 0) + 1,
-      });
+      };
+
+      // Update activeLeafMessageId if this message is on the active branch
+      if (args.isActiveBranch !== false) {
+        patchData.activeLeafMessageId = messageId;
+      }
+
+      await ctx.db.patch(args.conversationId, patchData);
     }
 
     // Update user stats for progressive hints
@@ -769,6 +807,201 @@ export {
   markThinkingStarted,
   updatePartialReasoning,
 } from "./messages/thinking";
+// ===== P7 Tree Architecture Queries =====
+
+/**
+ * Get all branches (children) at a specific message
+ * Used for branch navigation UI
+ */
+export const getBranchesAtMessage = query({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return [];
+
+    // Get children using legacy index (works for both old and new structure)
+    const legacyChildren = await ctx.db
+      .query("messages")
+      .withIndex("by_parent", (q) => q.eq("parentMessageId", args.messageId))
+      .collect();
+
+    // For new parentMessageIds, we need to filter all messages in conversation
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", message.conversationId),
+      )
+      .collect();
+
+    const arrayChildren = allMessages.filter(
+      (m) =>
+        m.parentMessageIds?.includes(args.messageId) &&
+        m.parentMessageId !== args.messageId,
+    );
+
+    // Combine and dedupe
+    const childMap = new Map();
+    for (const child of [...legacyChildren, ...arrayChildren]) {
+      childMap.set(child._id, child);
+    }
+
+    return Array.from(childMap.values()).sort(
+      (a, b) => (a.siblingIndex ?? 0) - (b.siblingIndex ?? 0),
+    );
+  },
+});
+
+/**
+ * Get branch statistics for a conversation
+ * Used for UI badges and branch navigation overview
+ */
+export const getBranchInfo = query({
+  args: {
+    conversationId: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) {
+      return {
+        totalMessages: 0,
+        branchCount: 0,
+        branchPoints: [],
+        activePathLength: 0,
+      };
+    }
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .collect();
+
+    // Find branch points (messages with multiple children)
+    const branchPoints: Array<{
+      messageId: string;
+      childCount: number;
+      createdAt: number;
+    }> = [];
+
+    for (const msg of messages) {
+      // Count children
+      const children = messages.filter(
+        (m) =>
+          m.parentMessageId === msg._id ||
+          m.parentMessageIds?.includes(msg._id),
+      );
+
+      if (children.length > 1) {
+        branchPoints.push({
+          messageId: msg._id,
+          childCount: children.length,
+          createdAt: msg.createdAt,
+        });
+      }
+    }
+
+    // Count active path length
+    const activePathLength = messages.filter((m) => m.isActiveBranch).length;
+
+    return {
+      totalMessages: messages.length,
+      branchCount: conversation.branchCount ?? 1,
+      branchPoints: branchPoints.sort((a, b) => a.createdAt - b.createdAt),
+      activePathLength:
+        activePathLength > 0 ? activePathLength : messages.length,
+    };
+  },
+});
+
+/**
+ * Get message ancestors (context) up to N levels
+ * Used for providing context in generation
+ */
+export const getMessageContext = internalQuery({
+  args: {
+    messageId: v.id("messages"),
+    depth: v.optional(v.number()), // Max ancestors to return, default all
+  },
+  handler: async (ctx, args) => {
+    const maxDepth = args.depth ?? Infinity;
+    const ancestors: Doc<"messages">[] = [];
+
+    let currentId: Id<"messages"> | undefined = args.messageId;
+    const visited = new Set<string>();
+    let depth = 0;
+
+    while (currentId && depth < maxDepth) {
+      if (visited.has(currentId)) break;
+      visited.add(currentId);
+
+      const message: Doc<"messages"> | null = await ctx.db.get(currentId);
+      if (!message) break;
+
+      ancestors.push(message);
+
+      // Get parent (prefer array, fallback to legacy)
+      currentId = message.parentMessageIds?.[0] ?? message.parentMessageId;
+      depth++;
+    }
+
+    return ancestors.reverse(); // Root first
+  },
+});
+
+/**
+ * Get sibling messages (same parent)
+ * Used for branch switching UI
+ */
+export const getSiblings = query({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return [];
+
+    // Get parent ID
+    const parentId = message.parentMessageIds?.[0] ?? message.parentMessageId;
+    if (!parentId) {
+      // Root message - only sibling is itself
+      return [message];
+    }
+
+    // Get all children of parent
+    const legacyChildren = await ctx.db
+      .query("messages")
+      .withIndex("by_parent", (q) => q.eq("parentMessageId", parentId))
+      .collect();
+
+    // Also check for new-style children
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", message.conversationId),
+      )
+      .collect();
+
+    const arrayChildren = allMessages.filter(
+      (m) =>
+        m.parentMessageIds?.includes(parentId) &&
+        m.parentMessageId !== parentId,
+    );
+
+    // Combine and dedupe
+    const siblingMap = new Map();
+    for (const sibling of [...legacyChildren, ...arrayChildren]) {
+      siblingMap.set(sibling._id, sibling);
+    }
+
+    return Array.from(siblingMap.values()).sort(
+      (a, b) => (a.siblingIndex ?? 0) - (b.siblingIndex ?? 0),
+    );
+  },
+});
+
 // From toolCalls.ts
 export {
   addToolCalls,

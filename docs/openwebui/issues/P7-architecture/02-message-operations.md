@@ -2,6 +2,7 @@
 
 > **Phase**: P7-architecture | **Effort**: 8h | **Impact**: Enable branching features
 > **Dependencies**: P7-architecture/01-tree-schema.md | **Breaking**: No
+> **Status**: ✅ Complete (2026-01-20)
 
 ---
 

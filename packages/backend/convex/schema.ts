@@ -263,7 +263,8 @@ export default defineSchema({
           requiresLongContext: v.boolean(),
           requiresReasoning: v.boolean(),
           confidence: v.number(),
-          isHighStakes: v.boolean(),
+          // Optional for backward compatibility with existing messages
+          isHighStakes: v.optional(v.boolean()),
           highStakesDomain: v.optional(v.string()),
         }),
         reasoning: v.string(),

@@ -332,6 +332,18 @@ html.text-scale-200 { --text-scale: 2; }
     background-color: var(--primary);
     color: var(--primary-foreground);
   }
+
+  /* iOS Safari auto-zoom prevention */
+  /* Inputs < 16px trigger zoom on focus. Force 16px on mobile. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select,
+    [role="combobox"],
+    [contenteditable="true"] {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Screen reader only - WCAG 2.1 */

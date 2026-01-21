@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.8.0](https://github.com/planetaryescape/blah.chat/compare/v1.7.2...v1.8.0) (2026-01-21)
+
+
+### Features
+
+* **chat:** add web worker for markdown parsing ([bbe90d1](https://github.com/planetaryescape/blah.chat/commit/bbe90d1caaaef7a13a43bfa9a6c299df1c795845))
+
+
+### Bug Fixes
+
+* add null guard instead of type assertion for stableCode ([e89a4d7](https://github.com/planetaryescape/blah.chat/commit/e89a4d7504479cef5c0d93cf85229b433e916ae5))
+* capture stableCode in closure to prevent async race conditions ([63627fd](https://github.com/planetaryescape/blah.chat/commit/63627fd9d78c97bbbee6decf8ae3b1cfb5c74abf))
+* **chat:** debounce mermaid rendering to prevent streaming errors ([e7a380a](https://github.com/planetaryescape/blah.chat/commit/e7a380adad794cd63b52c6446ce85d6c01d4381f))
+* **security:** move DOMPurify sanitization to main thread ([38ced16](https://github.com/planetaryescape/blah.chat/commit/38ced166f1c7e2819b51f9576b796d7901ba2d43))
+* **ui:** prevent iOS Safari auto-zoom on input focus ([ddb6b70](https://github.com/planetaryescape/blah.chat/commit/ddb6b70b02a10f3c7ab86aa3b56698ea400cfcd7))
+
 ## [1.7.2](https://github.com/planetaryescape/blah.chat/compare/v1.7.1...v1.7.2) (2026-01-20)
 
 

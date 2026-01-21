@@ -6,10 +6,11 @@
  * - marked: Fast markdown parser
  * - shiki: Syntax highlighting (async initialization)
  * - katex: Math rendering
- * - dompurify: XSS sanitization (CRITICAL - all output sanitized)
+ *
+ * NOTE: XSS sanitization happens on main thread (DOMPurify needs DOM APIs)
+ * See useWorkerMarkdown.ts for sanitization
  */
 
-import DOMPurify from "dompurify";
 import katex from "katex";
 import { Marked, type TokenizerExtension } from "marked";
 import type { BundledLanguage, BundledTheme, Highlighter } from "shiki";
@@ -339,45 +340,13 @@ async function getMarked(): Promise<Marked> {
 }
 
 /**
- * Parse markdown content to sanitized HTML
+ * Parse markdown content to HTML
+ * NOTE: Returns unsanitized HTML - sanitization happens on main thread
  */
 async function parseMarkdown(content: string): Promise<string> {
   const marked = await getMarked();
   const preprocessed = preprocessContent(content);
-  const html = await marked.parse(preprocessed);
-
-  // CRITICAL: Sanitize all output to prevent XSS
-  // DOMPurify is configured to allow safe HTML elements
-  const sanitized = DOMPurify.sanitize(html, {
-    USE_PROFILES: { html: true },
-    ADD_TAGS: [
-      "math",
-      "semantics",
-      "mrow",
-      "mi",
-      "mo",
-      "mn",
-      "msup",
-      "msub",
-      "mfrac",
-      "mtext",
-      "annotation",
-    ],
-    ADD_ATTR: [
-      "data-language",
-      "data-code",
-      "data-osis",
-      "aria-hidden",
-      "encoding",
-      "xmlns",
-    ],
-    ALLOW_DATA_ATTR: true,
-    ADD_URI_SAFE_ATTR: ["href"],
-    ALLOWED_URI_REGEXP:
-      /^(?:(?:https?|bible):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
-  });
-
-  return sanitized;
+  return marked.parse(preprocessed);
 }
 
 // Worker message handler

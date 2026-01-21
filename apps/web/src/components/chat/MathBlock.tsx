@@ -3,6 +3,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useSafeTimeout } from "@/hooks/useSafeTimeout";
 import { cn } from "@/lib/utils";
 
 interface MathBlockProps {
@@ -21,6 +22,7 @@ export function MathBlock({
   displayMode = true,
 }: MathBlockProps) {
   const [copied, setCopied] = useState(false);
+  const { setSafeTimeout } = useSafeTimeout();
 
   const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -57,7 +59,7 @@ export function MathBlock({
       }
 
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setSafeTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy math:", error);
       // Try simple fallback
@@ -65,7 +67,7 @@ export function MathBlock({
         displayMode ? `$$${source}$$` : `\\(${source}\\)`,
       );
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setSafeTimeout(() => setCopied(false), 2000);
     }
   };
 

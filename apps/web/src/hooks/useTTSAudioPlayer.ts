@@ -32,6 +32,9 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
   const objectUrlRef = useRef<string | null>(null);
   const speedRef = useRef(clamp(defaultSpeed, 0.5, 2));
   const abortControllerRef = useRef<AbortController | null>(null);
+  const endStreamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   /**
    * Process the buffer queue safely - appends next buffer when ready.
@@ -89,6 +92,12 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+
+    // Clear endStream interval
+    if (endStreamIntervalRef.current) {
+      clearInterval(endStreamIntervalRef.current);
+      endStreamIntervalRef.current = null;
     }
   }, []);
 
@@ -188,9 +197,17 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
    * Signal end of stream when all buffers are processed.
    */
   const endStream = useCallback(() => {
-    const checkQueue = setInterval(() => {
+    // Clear any existing interval before creating a new one
+    if (endStreamIntervalRef.current) {
+      clearInterval(endStreamIntervalRef.current);
+    }
+
+    endStreamIntervalRef.current = setInterval(() => {
       if (abortControllerRef.current?.signal.aborted) {
-        clearInterval(checkQueue);
+        if (endStreamIntervalRef.current) {
+          clearInterval(endStreamIntervalRef.current);
+          endStreamIntervalRef.current = null;
+        }
         return;
       }
       if (
@@ -208,7 +225,10 @@ export function useTTSAudioPlayer(options: UseTTSAudioPlayerOptions = {}) {
             /* ignore */
           }
         }
-        clearInterval(checkQueue);
+        if (endStreamIntervalRef.current) {
+          clearInterval(endStreamIntervalRef.current);
+          endStreamIntervalRef.current = null;
+        }
       }
     }, 500);
   }, []);

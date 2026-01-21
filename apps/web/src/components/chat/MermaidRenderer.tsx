@@ -86,6 +86,9 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
 
   useEffect(() => {
     const renderDiagram = async () => {
+      // Guard against race condition where stableCode becomes null between check and render
+      if (!stableCode) return;
+
       try {
         setError(null);
         setIsLoading(true);
@@ -140,9 +143,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
         // Auto-fix common LLM-generated syntax errors
-        // stableCode is guaranteed non-null here (checked in useEffect condition)
-        const codeToRender = stableCode as string;
-        const fixedCode = fixMermaidSyntax(codeToRender);
+        const fixedCode = fixMermaidSyntax(stableCode);
 
         try {
           // Try rendering with fixed code
@@ -155,7 +156,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
           );
           // Fallback: try original code if fix caused issues
           try {
-            const { svg: renderedSvg } = await mermaid.render(id, codeToRender);
+            const { svg: renderedSvg } = await mermaid.render(id, stableCode);
             setSvg(renderedSvg);
           } catch (originalError) {
             console.error(

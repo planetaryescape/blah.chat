@@ -7,11 +7,50 @@
  * - Content is below threshold
  * - Worker is unavailable
  * - Parse fails
+ *
+ * SECURITY: HTML is sanitized via DOMPurify on main thread
+ * (Workers don't have DOM APIs needed by DOMPurify)
  */
 
+import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
 import { getMarkdownCache } from "@/lib/markdown/cache";
 import { parseMarkdownInWorker } from "@/lib/markdown/worker-manager";
+
+/**
+ * Sanitize HTML from worker to prevent XSS
+ * CRITICAL: Must be called on main thread (needs DOM APIs)
+ */
+function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    ADD_TAGS: [
+      "math",
+      "semantics",
+      "mrow",
+      "mi",
+      "mo",
+      "mn",
+      "msup",
+      "msub",
+      "mfrac",
+      "mtext",
+      "annotation",
+    ],
+    ADD_ATTR: [
+      "data-language",
+      "data-code",
+      "data-osis",
+      "aria-hidden",
+      "encoding",
+      "xmlns",
+    ],
+    ALLOW_DATA_ATTR: true,
+    ADD_URI_SAFE_ATTR: ["href"],
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:https?|bible):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+  });
+}
 
 // Minimum content size to use worker (5KB)
 // Smaller content parses fast enough on main thread (~50ms)
@@ -68,9 +107,11 @@ export function useWorkerMarkdown(
         if (cancelled) return;
 
         if (result) {
-          // Cache successful result
-          cache.set(content, result);
-          setHtml(result);
+          // CRITICAL: Sanitize HTML on main thread (worker lacks DOM APIs)
+          const sanitized = sanitizeHtml(result);
+          // Cache sanitized result
+          cache.set(content, sanitized);
+          setHtml(sanitized);
           setError(null);
         } else {
           // Worker unavailable, let caller use Streamdown

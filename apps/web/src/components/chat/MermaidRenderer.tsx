@@ -47,6 +47,21 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
   const [copied, setCopied] = useState(false);
   const { theme, resolvedTheme } = useTheme();
 
+  // Debounce: wait for code to stabilize before rendering (prevents errors during streaming)
+  const [stableCode, setStableCode] = useState<string | null>(null);
+  const [isWaitingForStable, setIsWaitingForStable] = useState(true);
+
+  // Debounce effect: only render after code hasn't changed for 300ms
+  useEffect(() => {
+    setIsWaitingForStable(true);
+    const timeout = setTimeout(() => {
+      setStableCode(code);
+      setIsWaitingForStable(false);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [code]);
+
   // Determine if we're in dark mode
   const isDark =
     resolvedTheme === "dark" ||
@@ -125,7 +140,9 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
         // Auto-fix common LLM-generated syntax errors
-        const fixedCode = fixMermaidSyntax(code);
+        // stableCode is guaranteed non-null here (checked in useEffect condition)
+        const codeToRender = stableCode as string;
+        const fixedCode = fixMermaidSyntax(codeToRender);
 
         try {
           // Try rendering with fixed code
@@ -138,7 +155,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
           );
           // Fallback: try original code if fix caused issues
           try {
-            const { svg: renderedSvg } = await mermaid.render(id, code);
+            const { svg: renderedSvg } = await mermaid.render(id, codeToRender);
             setSvg(renderedSvg);
           } catch (originalError) {
             console.error(
@@ -158,10 +175,10 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
       }
     };
 
-    if (code) {
+    if (stableCode) {
       renderDiagram();
     }
-  }, [code, isDark, config]);
+  }, [stableCode, isDark, config]);
 
   const handleCopy = async () => {
     try {
@@ -206,6 +223,21 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
     return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  // Show placeholder while waiting for code to stabilize (during streaming)
+  if (isWaitingForStable || !stableCode) {
+    return (
+      <div className="my-4 rounded border border-border bg-card">
+        <div className="flex items-center gap-2 p-4 text-muted-foreground text-sm">
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          Generating diagram...
+        </div>
+        <pre className="p-4 text-xs text-muted-foreground overflow-x-auto bg-muted/30 max-h-[200px]">
+          {code}
+        </pre>
+      </div>
+    );
+  }
 
   if (error) {
     return (

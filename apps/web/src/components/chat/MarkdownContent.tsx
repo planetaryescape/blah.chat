@@ -5,6 +5,7 @@ import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
+import { useWorkerMarkdown } from "@/hooks/useWorkerMarkdown";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
@@ -331,6 +332,11 @@ export function MarkdownContent({
     },
   );
 
+  // Web worker for large completed messages (≥5KB)
+  // Offloads expensive markdown parsing to worker thread to keep UI at 60fps
+  // Returns null during streaming or for small content (not worth overhead)
+  const { html: workerHtml } = useWorkerMarkdown(content, isStreaming);
+
   // Phase 4A: Lazy rendering for mobile performance
   const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
     threshold: 0.01,
@@ -357,6 +363,18 @@ export function MarkdownContent({
       <div ref={observeRef} className="markdown-content prose">
         <MathSkeleton isDisplay />
       </div>
+    );
+  }
+
+  // Use worker-rendered HTML for large completed messages
+  // XSS-SAFE: HTML sanitized by DOMPurify in worker (see worker.ts parseMarkdown)
+  if (workerHtml && !isStreaming) {
+    return (
+      <div
+        ref={containerRef}
+        className="markdown-content prose"
+        dangerouslySetInnerHTML={{ __html: workerHtml }}
+      />
     );
   }
 

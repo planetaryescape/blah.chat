@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/planetaryescape/blah.chat/compare/v1.8.0...v1.8.1) (2026-01-21)
+
+
+### Bug Fixes
+
+* **memory:** prevent timer leaks in TTS and copy handlers ([d82834f](https://github.com/planetaryescape/blah.chat/commit/d82834fc1e33d0c253abf412803ad0d27ef29acc))
+
 ## [1.8.0](https://github.com/planetaryescape/blah.chat/compare/v1.7.2...v1.8.0) (2026-01-21)
 
 

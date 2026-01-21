@@ -16,6 +16,18 @@ export function useMathCopyButtons<T extends HTMLElement = HTMLElement>(
   containerRef: React.RefObject<T | null>,
 ) {
   const addedButtonsRef = useRef<Set<Element>>(new Set());
+  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (feedbackTimeoutRef.current) {
+        clearTimeout(feedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Keyboard shortcut handler
   useEffect(() => {
@@ -84,7 +96,20 @@ export function useMathCopyButtons<T extends HTMLElement = HTMLElement>(
       button.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        await handleCopy(latexSource, mathElement, copyIcon, checkIcon, true);
+        await copyToClipboard(latexSource, mathElement);
+
+        // Visual feedback with cleanup
+        copyIcon.classList.add("hidden");
+        checkIcon.classList.remove("hidden");
+
+        // Clear previous timeout to prevent accumulation on rapid clicks
+        if (feedbackTimeoutRef.current) {
+          clearTimeout(feedbackTimeoutRef.current);
+        }
+        feedbackTimeoutRef.current = setTimeout(() => {
+          copyIcon.classList.remove("hidden");
+          checkIcon.classList.add("hidden");
+        }, 2000);
       });
 
       wrapper.appendChild(button);
@@ -194,7 +219,7 @@ async function copyToClipboard(latex: string, element: Element): Promise<void> {
 /**
  * Handle copy with visual feedback
  */
-async function handleCopy(
+async function _handleCopy(
   latex: string,
   element: Element,
   copyIcon: SVGSVGElement,

@@ -85,10 +85,11 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
   }, []);
 
   useEffect(() => {
-    const renderDiagram = async () => {
-      // Guard against race condition where stableCode becomes null between check and render
-      if (!stableCode) return;
+    // Capture stableCode in closure to prevent race conditions during async render
+    const codeToRender = stableCode;
+    if (!codeToRender) return;
 
+    const renderDiagram = async () => {
       try {
         setError(null);
         setIsLoading(true);
@@ -143,7 +144,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
         // Auto-fix common LLM-generated syntax errors
-        const fixedCode = fixMermaidSyntax(stableCode);
+        const fixedCode = fixMermaidSyntax(codeToRender);
 
         try {
           // Try rendering with fixed code
@@ -156,7 +157,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
           );
           // Fallback: try original code if fix caused issues
           try {
-            const { svg: renderedSvg } = await mermaid.render(id, stableCode);
+            const { svg: renderedSvg } = await mermaid.render(id, codeToRender);
             setSvg(renderedSvg);
           } catch (originalError) {
             console.error(
@@ -176,9 +177,7 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
       }
     };
 
-    if (stableCode) {
-      renderDiagram();
-    }
+    renderDiagram();
   }, [stableCode, isDark, config]);
 
   const handleCopy = async () => {

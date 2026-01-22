@@ -195,6 +195,10 @@ export const ChatMessage = memo(
       modelConfig?.capabilities?.includes("thinking") ||
       false;
 
+    const _isDecidingModel =
+      message.model === "auto" &&
+      !("routingDecision" in message && message.routingDecision);
+
     // Calculate performance metrics
     const ttft =
       message.firstTokenAt && message.generationStartedAt
@@ -318,7 +322,7 @@ export const ChatMessage = memo(
       "relative group",
       isUser
         ? "ml-auto mr-4 max-w-[90%] sm:max-w-[75%]"
-        : "mr-auto ml-4 max-w-[95%] sm:max-w-[85%]",
+        : "mr-auto ml-1 sm:ml-4 max-w-[95%] sm:max-w-[85%]",
     );
 
     return (
@@ -437,6 +441,7 @@ export const ChatMessage = memo(
                           typeof message.retryCount === "number" &&
                           message.retryCount > 0
                         }
+                        isDecidingModel={_isDecidingModel}
                         modelName={modelName}
                       />
                     ) : null}

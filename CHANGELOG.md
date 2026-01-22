@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2](https://github.com/planetaryescape/blah.chat/compare/v1.8.1...v1.8.2) (2026-01-22)
+
+
+### Bug Fixes
+
+* **chat:** improve mobile UX for input focus and message display ([56cfa79](https://github.com/planetaryescape/blah.chat/commit/56cfa795063458f3fda937cb85de01b6e8fa42d6))
+
 ## [1.8.1](https://github.com/planetaryescape/blah.chat/compare/v1.8.0...v1.8.1) (2026-01-21)
 
 

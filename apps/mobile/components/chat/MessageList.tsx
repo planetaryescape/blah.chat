@@ -8,7 +8,6 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { AlertCircle, FileText, Sparkles } from "lucide-react-native";
-import { MotiView } from "moti";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -21,8 +20,8 @@ import {
   Text,
   View,
 } from "react-native";
-import ContextMenu from "react-native-context-menu-view";
 import Markdown from "react-native-markdown-display";
+import Animated, { FadeInUp } from "react-native-reanimated";
 import { GlassPane } from "@/components/ui/GlassPane";
 import { colors } from "@/lib/theme/colors";
 import { palette } from "@/lib/theme/designSystem";
@@ -222,7 +221,7 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     return items;
   }, [messages]);
 
-  const getContextMenuActions = useCallback((msg: Message) => {
+  const _getContextMenuActions = useCallback((msg: Message) => {
     const isUser = msg.role === "user";
     const isComplete = msg.status === "complete";
 
@@ -254,7 +253,7 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     return actions;
   }, []);
 
-  const handleContextMenuAction = useCallback(
+  const _handleContextMenuAction = useCallback(
     async (actionTitle: string, msg: Message) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -377,110 +376,100 @@ export function MessageList({ messages, conversationId }: MessageListProps) {
     const isEditing = editingMessageId === item._id;
 
     return (
-      <ContextMenu
-        actions={getContextMenuActions(item)}
-        onPress={(e) => handleContextMenuAction(e.nativeEvent.name, item)}
-        previewBackgroundColor={colors.background}
+      <View
+        style={[
+          styles.messageContainer,
+          isUser ? styles.userMessage : styles.assistantMessage,
+        ]}
       >
-        <View
-          style={[
-            styles.messageContainer,
-            isUser ? styles.userMessage : styles.assistantMessage,
-          ]}
-        >
-          {/* AI message header */}
-          {!isUser && (
-            <View style={styles.messageHeader}>
-              <View style={styles.avatarContainer}>
-                <Sparkles size={14} color={colors.primary} />
+        {/* AI message header */}
+        {!isUser && (
+          <View style={styles.messageHeader}>
+            <View style={styles.avatarContainer}>
+              <Sparkles size={14} color={colors.primary} />
+            </View>
+            <Text style={styles.modelName}>
+              {item.model?.split(":")[1] || "AI"}
+            </Text>
+            {(isGenerating || isPending) && (
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>
+                  {isPending ? "Thinking" : "Generating"}
+                </Text>
               </View>
-              <Text style={styles.modelName}>
-                {item.model?.split(":")[1] || "AI"}
-              </Text>
-              {(isGenerating || isPending) && (
-                <View style={styles.statusBadge}>
-                  <View style={styles.statusDot} />
-                  <Text style={styles.statusText}>
-                    {isPending ? "Thinking" : "Generating"}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+            )}
+          </View>
+        )}
 
-          {/* Message attachments */}
-          <MessageAttachments messageId={item._id as Id<"messages">} />
+        {/* Message attachments */}
+        <MessageAttachments messageId={item._id as Id<"messages">} />
 
-          {/* Message bubble or edit mode */}
-          {isEditing && isUser ? (
-            <MessageEditMode
-              messageId={item._id as Id<"messages">}
-              initialContent={displayContent}
-              onCancel={() => setEditingMessageId(null)}
-              onSaved={() => setEditingMessageId(null)}
-            />
-          ) : isPending && !displayContent ? (
-            // Show shimmer for pending messages with no content
-            <ShimmerLoader status="pending" />
-          ) : (
-            <MotiView
-              from={{ opacity: 0, scale: 0.95, translateY: 10 }}
-              animate={{ opacity: 1, scale: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 300 }}
-            >
-              {isUser ? (
-                <LinearGradient
-                  colors={[palette.roseQuartz, "#E0C8C3"]}
-                  style={[styles.bubble, styles.userBubble]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Text style={styles.userText}>{displayContent}</Text>
-                </LinearGradient>
-              ) : (
-                <GlassPane
-                  intensity={20}
-                  tint="systemUltraThinMaterialDark"
-                  style={
-                    [
-                      styles.bubble,
-                      styles.assistantBubble,
-                      isGenerating && styles.generatingBubble,
-                    ] as any
-                  }
-                >
-                  <Markdown style={markdownStyles}>
-                    {displayContent || " "}
-                  </Markdown>
-                </GlassPane>
-              )}
-            </MotiView>
-          )}
+        {/* Message bubble or edit mode */}
+        {isEditing && isUser ? (
+          <MessageEditMode
+            messageId={item._id as Id<"messages">}
+            initialContent={displayContent}
+            onCancel={() => setEditingMessageId(null)}
+            onSaved={() => setEditingMessageId(null)}
+          />
+        ) : isPending && !displayContent ? (
+          // Show shimmer for pending messages with no content
+          <ShimmerLoader status="pending" />
+        ) : (
+          <Animated.View entering={FadeInUp.duration(300)}>
+            {isUser ? (
+              <LinearGradient
+                colors={[palette.roseQuartz, "#E0C8C3"]}
+                style={[styles.bubble, styles.userBubble]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.userText}>{displayContent}</Text>
+              </LinearGradient>
+            ) : (
+              <GlassPane
+                intensity={20}
+                tint="systemUltraThinMaterialDark"
+                style={
+                  [
+                    styles.bubble,
+                    styles.assistantBubble,
+                    isGenerating && styles.generatingBubble,
+                  ] as any
+                }
+              >
+                <Markdown style={markdownStyles}>
+                  {displayContent || " "}
+                </Markdown>
+              </GlassPane>
+            )}
+          </Animated.View>
+        )}
 
-          {/* Inline actions - show for complete AI messages or user messages (not when editing) */}
-          {(isComplete || isUser) && !isEditing && (
-            <MessageInlineActions
-              content={displayContent}
-              isAI={!isUser}
-              isComplete={isComplete}
-              onBranch={() => handleBranchInline(item)}
-              onRegenerate={
-                !isUser ? () => handleRegenerateInline(item) : undefined
-              }
-            />
-          )}
+        {/* Inline actions - show for complete AI messages or user messages (not when editing) */}
+        {(isComplete || isUser) && !isEditing && (
+          <MessageInlineActions
+            content={displayContent}
+            isAI={!isUser}
+            isComplete={isComplete}
+            onBranch={() => handleBranchInline(item)}
+            onRegenerate={
+              !isUser ? () => handleRegenerateInline(item) : undefined
+            }
+          />
+        )}
 
-          {/* Error state */}
-          {item.status === "error" && (
-            <View style={styles.errorContainer}>
-              <AlertCircle size={14} color={colors.error} />
-              <Text style={styles.errorText}>
-                {item.error || "Generation failed"}
-              </Text>
-            </View>
-          )}
-        </View>
-      </ContextMenu>
+        {/* Error state */}
+        {item.status === "error" && (
+          <View style={styles.errorContainer}>
+            <AlertCircle size={14} color={colors.error} />
+            <Text style={styles.errorText}>
+              {item.error || "Generation failed"}
+            </Text>
+          </View>
+        )}
+      </View>
     );
   };
 

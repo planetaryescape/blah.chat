@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalQuery, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
 // Re-export triage module
@@ -282,6 +287,77 @@ export const archiveFeedback = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// ============================================================================
+// INTERNAL MUTATIONS
+// ============================================================================
+
+/** Build description for system-generated error feedback */
+function buildSystemFeedbackDescription(errorContext: {
+  errorType?: string;
+  errorMessage?: string;
+  failedModels?: string[];
+}): string {
+  const errorType = errorContext.errorType || "unknown";
+  const modelCount = errorContext.failedModels?.length || 0;
+  const errorMessage = errorContext.errorMessage || "Unknown error";
+  const failedModels = errorContext.failedModels?.join(", ") || "none";
+
+  return `Auto-router failure: ${errorType} error after ${modelCount} model attempts.\n\nError: ${errorMessage}\n\nFailed models: ${failedModels}`;
+}
+
+/**
+ * Create system-generated feedback for automated error tracking.
+ * Used when generation fails after all retries are exhausted.
+ */
+export const createSystemFeedback = internalMutation({
+  args: {
+    userId: v.id("users"),
+    errorContext: v.object({
+      conversationId: v.optional(v.id("conversations")),
+      messageId: v.optional(v.id("messages")),
+      modelId: v.optional(v.string()),
+      errorMessage: v.optional(v.string()),
+      errorType: v.optional(v.string()),
+      failedModels: v.optional(v.array(v.string())),
+      userAgent: v.optional(v.string()),
+      environment: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    // Get user info
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const now = Date.now();
+
+    // Create system feedback entry
+    const feedbackId = await ctx.db.insert("feedback", {
+      userId: args.userId,
+      userEmail: user.email || "system@blah.chat",
+      userName: "System (Auto-Generated)",
+      page: args.errorContext.conversationId
+        ? `/chat/${args.errorContext.conversationId}`
+        : "/chat",
+      feedbackType: "bug",
+      description: buildSystemFeedbackDescription(args.errorContext),
+      status: "new",
+      priority: "high",
+      tags: [
+        "system-generated",
+        "auto-router",
+        args.errorContext.errorType || "unknown-error",
+      ],
+      errorContext: args.errorContext,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return feedbackId;
   },
 });
 

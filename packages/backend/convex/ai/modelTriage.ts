@@ -13,6 +13,13 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
+import {
+  MODEL_PROFILES,
+  TASK_CATEGORIES,
+  type TaskCategoryId,
+} from "./modelProfiles";
+import { ROUTER_CLASSIFICATION_PROMPT } from "./routerPrompts";
 
 /**
  * Cost threshold for triggering triage analysis
@@ -47,11 +54,17 @@ export const analyzeModelFit = internalAction({
     conversationId: v.id("conversations"),
     userMessage: v.string(),
     currentModelId: v.string(),
+    wasAutoSelected: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const startTime = Date.now();
 
     try {
+      // Skip if auto-selected (system already optimized for cost/task)
+      if (args.wasAutoSelected) {
+        return;
+      }
+
       // 1. Check if already triaged (conversation.modelRecommendation exists)
       const conversation = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -66,7 +79,10 @@ export const analyzeModelFit = internalAction({
       // 2. Get current model + validate it's expensive
       const currentModel = MODEL_CONFIG[args.currentModelId];
       if (!currentModel) {
-        console.warn(`Model not found: ${args.currentModelId}`);
+        logger.warn("Model not found", {
+          tag: "ModelTriage",
+          modelId: args.currentModelId,
+        });
         return;
       }
 
@@ -77,34 +93,52 @@ export const analyzeModelFit = internalAction({
         return; // Not expensive enough to warrant analysis
       }
 
+      // Get userId from conversation for cost tracking (needed for classification)
+      const conversationUserId = conversation?.userId as
+        | Id<"users">
+        | undefined;
+
+      if (!conversationUserId) {
+        logger.warn("No userId found in conversation for cost tracking", {
+          tag: "ModelTriage",
+        });
+        return;
+      }
+
       // Track analysis started
-      console.log("Model triage analysis started", {
+      logger.info("Analysis started", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         currentModel: args.currentModelId,
         avgCost,
         userMessageLength: args.userMessage.length,
       });
 
-      // 3. Find cheaper alternatives (50%+ cheaper, matching capabilities)
-      const alternatives = getCheaperAlternatives(currentModel);
+      // 3. Classify task for task-aware alternative selection
+      const taskCategory = await classifyTaskForTriage(
+        args.userMessage,
+        ctx,
+        conversationUserId,
+      );
+
+      logger.info("Task classified for triage", {
+        tag: "ModelTriage",
+        conversationId: args.conversationId,
+        taskCategory,
+      });
+
+      // 4. Find cheaper alternatives (task-aware: 70% task fit + 30% cost savings)
+      const alternatives = getCheaperAlternatives(currentModel, taskCategory);
       if (alternatives.length === 0) {
-        console.log("No cheaper alternatives found", {
+        logger.info("No cheaper alternatives found", {
+          tag: "ModelTriage",
           currentModel: args.currentModelId,
+          taskCategory,
         });
         return;
       }
 
-      // Get userId from conversation for cost tracking
-      const conversationUserId = conversation?.userId as
-        | Id<"users">
-        | undefined;
-
-      if (!conversationUserId) {
-        console.warn("No userId found in conversation for cost tracking");
-        return;
-      }
-
-      // 4. Use gpt-oss-120b to analyze prompt complexity (ultra-fast via Cerebras)
+      // 5. Use gpt-oss-120b to analyze prompt complexity (ultra-fast via Cerebras)
       const analysis = await analyzePromptComplexity(
         args.userMessage,
         currentModel,
@@ -115,7 +149,8 @@ export const analyzeModelFit = internalAction({
 
       if (!analysis.shouldRecommend) {
         // Track when expensive model is justified
-        console.log("Expensive model justified", {
+        logger.info("Expensive model justified", {
+          tag: "ModelTriage",
           conversationId: args.conversationId,
           currentModel: args.currentModelId,
           reasoning: analysis.reasoning,
@@ -124,15 +159,18 @@ export const analyzeModelFit = internalAction({
       }
 
       if (!analysis.recommendedModel) {
-        console.warn("Analysis recommended switch but no model specified");
+        logger.warn("Analysis recommended switch but no model specified", {
+          tag: "ModelTriage",
+        });
         return;
       }
 
       // Validate model is in alternatives list (prevent hallucination)
       if (!alternatives.includes(analysis.recommendedModel)) {
-        console.error("LLM recommended model outside alternatives list", {
+        logger.error("LLM recommended model outside alternatives list", {
+          tag: "ModelTriage",
           recommended: analysis.recommendedModel,
-          validAlternatives: alternatives,
+          validAlternatives: alternatives.join(", "),
           conversationId: args.conversationId,
         });
         return;
@@ -141,9 +179,10 @@ export const analyzeModelFit = internalAction({
       // 5. Calculate savings
       const recommendedModel = MODEL_CONFIG[analysis.recommendedModel];
       if (!recommendedModel) {
-        console.warn(
-          `Recommended model not found: ${analysis.recommendedModel}`,
-        );
+        logger.warn("Recommended model not found", {
+          tag: "ModelTriage",
+          modelId: analysis.recommendedModel,
+        });
         return;
       }
 
@@ -167,7 +206,8 @@ export const analyzeModelFit = internalAction({
       )) as Promise<void>;
 
       // Track successful recommendation generation
-      console.log("Model recommendation generated", {
+      logger.info("Model recommendation generated", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         currentModel: args.currentModelId,
         suggestedModel: analysis.recommendedModel,
@@ -176,7 +216,10 @@ export const analyzeModelFit = internalAction({
         analysisTimeMs: Date.now() - startTime,
       });
     } catch (error) {
-      console.error("Error in model triage analysis:", error);
+      logger.error("Error in model triage analysis", {
+        tag: "ModelTriage",
+        error: String(error),
+      });
       // Don't throw - this is a nice-to-have feature, shouldn't break chat
     }
   },
@@ -207,7 +250,8 @@ export const generatePreview = action({
     )) as { _id: Id<"users"> } | null;
 
     try {
-      console.log("Preview generation started", {
+      logger.info("Preview generation started", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         suggestedModel: args.suggestedModelId,
       });
@@ -231,7 +275,8 @@ export const generatePreview = action({
         throw new Error("No messages found for conversation");
       }
 
-      console.log("Fetched messages for preview", {
+      logger.info("Fetched messages for preview", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         messageCount: messages.length,
         hasSystemPrompt: !!conversation?.systemPrompt,
@@ -304,7 +349,8 @@ export const generatePreview = action({
         );
       }
 
-      console.log("Preview generation completed", {
+      logger.info("Preview generation completed", {
+        tag: "ModelTriage",
         conversationId: args.conversationId,
         suggestedModel: args.suggestedModelId,
         generationTimeMs: Date.now() - startTime,
@@ -313,7 +359,10 @@ export const generatePreview = action({
 
       return { content: response.text };
     } catch (error) {
-      console.error("Error generating preview:", error);
+      logger.error("Error generating preview", {
+        tag: "ModelTriage",
+        error: String(error),
+      });
       throw error instanceof Error
         ? new Error(`Preview generation failed: ${error.message}`, {
             cause: error,
@@ -324,16 +373,84 @@ export const generatePreview = action({
 });
 
 /**
+ * Simplified task classification for triage
+ * Uses same prompt as auto router but only extracts primaryCategory
+ */
+async function classifyTaskForTriage(
+  message: string,
+  ctx: ActionCtx,
+  userId: Id<"users">,
+): Promise<TaskCategoryId> {
+  const modelId = "openai:gpt-oss-120b";
+
+  try {
+    const schema = z.object({
+      primaryCategory: z.enum(
+        TASK_CATEGORIES as unknown as [string, ...string[]],
+      ),
+    });
+
+    const response = await generateObject({
+      model: getModel(modelId),
+      schema,
+      temperature: 0.2,
+      providerOptions: getGatewayOptions(modelId, undefined, [
+        "triage-classify",
+      ]),
+      prompt: `${ROUTER_CLASSIFICATION_PROMPT}
+
+USER MESSAGE:
+${message}
+
+ATTACHMENTS: None`,
+    });
+
+    if (response.usage) {
+      const inputTokens = response.usage.inputTokens ?? 0;
+      const outputTokens = response.usage.outputTokens ?? 0;
+      const cost = calculateCost(modelId, { inputTokens, outputTokens });
+
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.usage.mutations.recordTextGeneration,
+        {
+          userId,
+          model: modelId,
+          inputTokens,
+          outputTokens,
+          cost,
+          feature: "smart_assistant",
+        },
+      );
+    }
+
+    return response.object.primaryCategory as TaskCategoryId;
+  } catch (error) {
+    logger.error("Task classification error in triage", {
+      tag: "ModelTriage",
+      error: String(error),
+    });
+    return "conversation"; // Default fallback
+  }
+}
+
+/**
  * Find cheaper alternatives that match current model's capabilities
+ * Now task-aware: scores by 70% task fit + 30% cost savings
  *
  * Criteria:
  * - 50%+ cheaper (significant savings)
  * - Matching vision capability
  * - Reasonable context window (8K+)
+ * - Scored by task fit from MODEL_PROFILES
  */
-function getCheaperAlternatives(currentModel: ModelConfig): string[] {
+function getCheaperAlternatives(
+  currentModel: ModelConfig,
+  taskCategory: TaskCategoryId,
+): string[] {
   const currentAvg =
     (currentModel.pricing.input + currentModel.pricing.output) / 2;
+  const currentProvider = currentModel.provider; // Use actual provider, not ID prefix
 
   return Object.entries(MODEL_CONFIG)
     .filter(([_id, model]) => {
@@ -351,14 +468,31 @@ function getCheaperAlternatives(currentModel: ModelConfig): string[] {
         model.contextWindow >= 8000 // Reasonable minimum
       );
     })
-    .sort(([, a], [, b]) => {
-      // Sort by cost (cheapest first)
-      const aAvg = (a.pricing.input + a.pricing.output) / 2;
-      const bAvg = (b.pricing.input + b.pricing.output) / 2;
-      return aAvg - bAvg;
+    .map(([id, model]) => {
+      // Calculate task fit score from MODEL_PROFILES (0-100)
+      const profile = MODEL_PROFILES[id];
+      const taskFitScore = profile?.categoryScores?.[taskCategory] ?? 50;
+
+      // Calculate cost savings score (0-100)
+      const candidateAvg = (model.pricing.input + model.pricing.output) / 2;
+      const costSavingsScore = Math.min(
+        ((currentAvg - candidateAvg) / currentAvg) * 100,
+        100,
+      );
+
+      // Same-family bonus (prefer Claude→Haiku, GPT→GPT-mini, etc.)
+      // Use actual provider field to handle OpenRouter models correctly
+      const familyBonus = model.provider === currentProvider ? 15 : 0;
+
+      // Combined score: 60% task fit + 25% cost savings + 15% family preference
+      const combinedScore =
+        taskFitScore * 0.6 + costSavingsScore * 0.25 + familyBonus;
+
+      return { id, combinedScore, taskFitScore };
     })
-    .map(([id]) => id)
-    .slice(0, 3); // Top 3 by cost savings
+    .sort((a, b) => b.combinedScore - a.combinedScore) // Best combined score first
+    .map(({ id }) => id)
+    .slice(0, 3); // Top 3 by combined score
 }
 
 /**
@@ -445,7 +579,10 @@ ${alternatives
 
     return response.object as AnalysisResult;
   } catch (error) {
-    console.error("Error in prompt complexity analysis:", error);
+    logger.error("Error in prompt complexity analysis", {
+      tag: "ModelTriage",
+      error: String(error),
+    });
     // Conservative fallback - don't recommend if analysis fails
     return {
       shouldRecommend: false,

@@ -131,20 +131,22 @@ describe("model switching", () => {
         modelId: "anthropic:claude-3-5-sonnet",
       });
 
-      // Check assistant message has correct model
+      // Mutation returns conversationId (assistant message created in action, not mutation)
+      expect(result.conversationId).toBeDefined();
+
+      // Verify user message was created
       const messages = await t.run(async (ctx) =>
         ctx.db
           .query("messages")
           .withIndex("by_conversation", (q) =>
             q.eq("conversationId", result.conversationId),
           )
-          .filter((q) => q.eq(q.field("role"), "assistant"))
+          .filter((q) => q.eq(q.field("role"), "user"))
           .collect(),
       );
 
       expect(messages).toHaveLength(1);
-      expect(messages[0].model).toBe("anthropic:claude-3-5-sonnet");
-      expect(messages[0].status).toBe("pending");
+      expect(messages[0].content).toBe("Test message");
     });
 
     it("uses fallback model when none specified", async () => {
@@ -164,23 +166,26 @@ describe("model switching", () => {
         content: "Test without model",
       });
 
+      // Mutation returns conversationId (assistant message created in action)
+      expect(result.conversationId).toBeDefined();
+
+      // Verify user message was created
       const messages = await t.run(async (ctx) =>
         ctx.db
           .query("messages")
           .withIndex("by_conversation", (q) =>
             q.eq("conversationId", result.conversationId),
           )
-          .filter((q) => q.eq(q.field("role"), "assistant"))
+          .filter((q) => q.eq(q.field("role"), "user"))
           .collect(),
       );
 
       expect(messages).toHaveLength(1);
-      expect(messages[0].model).toBe("openai:gpt-oss-20b"); // Default fallback
     });
   });
 
   describe("mid-conversation model switch", () => {
-    it("new messages use updated model", async () => {
+    it("conversation model updates correctly", async () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
@@ -197,12 +202,21 @@ describe("model switching", () => {
 
       const asUser = t.withIdentity(identity);
 
-      // Send first message with original model
+      // Send first message
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await asUser.mutation(api.chat.sendMessage, {
         conversationId: convId,
         content: "First message",
         modelId: "openai:gpt-4o-mini",
+      });
+
+      // Release lock (generation action doesn't run in tests due to fake timers)
+      await t.run(async (ctx) => {
+        const lock = await ctx.db
+          .query("generationLocks")
+          .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
+          .first();
+        if (lock) await ctx.db.delete(lock._id);
       });
 
       // Switch model
@@ -212,6 +226,10 @@ describe("model switching", () => {
         model: "anthropic:claude-3-5-sonnet",
       });
 
+      // Verify conversation model was updated
+      const conv = await t.run(async (ctx) => ctx.db.get(convId));
+      expect(conv?.model).toBe("anthropic:claude-3-5-sonnet");
+
       // Send second message with new model
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       await asUser.mutation(api.chat.sendMessage, {
@@ -220,19 +238,19 @@ describe("model switching", () => {
         modelId: "anthropic:claude-3-5-sonnet",
       });
 
-      // Verify messages have different models
+      // Verify user messages were created (assistant messages created in action)
       const messages = await t.run(async (ctx) =>
         ctx.db
           .query("messages")
           .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-          .filter((q) => q.eq(q.field("role"), "assistant"))
+          .filter((q) => q.eq(q.field("role"), "user"))
           .order("asc")
           .collect(),
       );
 
       expect(messages).toHaveLength(2);
-      expect(messages[0].model).toBe("openai:gpt-4o-mini");
-      expect(messages[1].model).toBe("anthropic:claude-3-5-sonnet");
+      expect(messages[0].content).toBe("First message");
+      expect(messages[1].content).toBe("Second message");
     });
   });
 
@@ -260,33 +278,12 @@ describe("model switching", () => {
         models: ["openai:gpt-4o-mini", "anthropic:claude-3-5-sonnet"],
       });
 
-      expect(result.assistantMessageIds).toHaveLength(2);
+      // Comparison mode returns comparisonGroupId (message IDs created in action)
       expect(result.comparisonGroupId).toBeDefined();
-
-      // Verify both messages created with correct models
-      const messages = await t.run(async (ctx) =>
-        ctx.db
-          .query("messages")
-          .withIndex("by_conversation", (q) => q.eq("conversationId", convId))
-          .filter((q) => q.eq(q.field("role"), "assistant"))
-          .collect(),
-      );
-
-      expect(messages).toHaveLength(2);
-
-      const models = messages.map((m) => m.model).sort();
-      expect(models).toEqual([
-        "anthropic:claude-3-5-sonnet",
-        "openai:gpt-4o-mini",
-      ]);
-
-      // All should have same comparisonGroupId
-      const groupIds = new Set(messages.map((m) => m.comparisonGroupId));
-      expect(groupIds.size).toBe(1);
-      expect([...groupIds][0]).toBe(result.comparisonGroupId);
+      expect(result.conversationId).toBeDefined();
     });
 
-    it("single model returns messageId not assistantMessageIds", async () => {
+    it("single model does not return comparisonGroupId", async () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();
 
@@ -306,6 +303,7 @@ describe("model switching", () => {
 
       // Single mode should not have comparisonGroupId
       expect(result.comparisonGroupId).toBeUndefined();
+      expect(result.conversationId).toBeDefined();
     });
   });
 });

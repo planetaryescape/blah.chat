@@ -12,6 +12,7 @@ import { getModel } from "@/lib/ai/registry";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 import {
   buildMemoryExtractionPrompt,
   EXTRACTION_THRESHOLDS,
@@ -120,7 +121,7 @@ export const extractMemories = internalAction({
     const totalContent = unextractedMessages
       .map((m) => m.content || "")
       .join(" ");
-    const estimatedTokens = totalContent.length / 4; // rough estimate
+    const estimatedTokens = estimateTokens(totalContent);
     if (estimatedTokens < 100) {
       // Lowered from 500
       await markAsProcessed();
@@ -265,9 +266,11 @@ export const extractMemories = internalAction({
         storedCount++;
       }
 
-      console.log(
-        `[${extractionLevel}] Extracted ${storedCount} unique memories (${qualityFacts.length - storedCount} duplicates filtered)`,
-      );
+      logger.info("Extracted unique memories", {
+        tag: extractionLevel,
+        storedCount,
+        duplicatesFiltered: qualityFacts.length - storedCount,
+      });
 
       // 6. Update conversation tracking
       await ctx.runMutation(internal.conversations.updateMemoryTracking, {
@@ -297,7 +300,7 @@ export const extractMemories = internalAction({
 
       return { extracted: storedCount };
     } catch (error) {
-      console.error("Memory extraction failed:", error);
+      logger.error("Memory extraction failed", { error: String(error) });
       return { extracted: 0 };
     }
   },
@@ -324,9 +327,10 @@ export const processInactiveConversations = internalAction({
       return { processed: 0 };
     }
 
-    console.log(
-      `[Cron] Found ${candidates.length} inactive conversations to process`,
-    );
+    logger.info("Found inactive conversations to process", {
+      tag: "Cron",
+      count: candidates.length,
+    });
 
     // 2. Schedule extraction for each (async, don't block cron)
     let scheduled = 0;
@@ -341,7 +345,7 @@ export const processInactiveConversations = internalAction({
       scheduled++;
     }
 
-    console.log(`[Cron] Scheduled ${scheduled} extractions`);
+    logger.info("Scheduled extractions", { tag: "Cron", scheduled });
     return { processed: scheduled };
   },
 });

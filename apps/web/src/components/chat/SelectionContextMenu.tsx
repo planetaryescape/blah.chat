@@ -2,9 +2,16 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useAction, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Brain, type LucideIcon, Quote, Search, Sparkles } from "lucide-react";
+import {
+  Brain,
+  Copy,
+  type LucideIcon,
+  Quote,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -40,10 +47,7 @@ export function SelectionContextMenu() {
   const [currentMessageId, setCurrentMessageId] =
     useState<Id<"messages"> | null>(null);
 
-  // Convex mutations and actions
-  // @ts-ignore
-  const createSnippet = useMutation(api.snippets.createSnippet);
-  // @ts-ignore
+  // @ts-ignore - Type depth exceeded with 94+ Convex modules
   const createMemoryFromSelection = useAction(
     api.memories.createMemoryFromSelection,
   );
@@ -125,6 +129,12 @@ export function SelectionContextMenu() {
     }
   }, [selection.isActive, showSummarizePopover]);
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(selection.text);
+    toast.success("Copied to clipboard");
+    clearSelection();
+  };
+
   const handleQuote = () => {
     window.dispatchEvent(
       new CustomEvent("quote-selection", {
@@ -138,20 +148,6 @@ export function SelectionContextMenu() {
     const query = encodeURIComponent(selection.text);
     window.open(`https://www.google.com/search?q=${query}`, "_blank");
     clearSelection();
-  };
-
-  const _handleBookmarkSnippet = async () => {
-    try {
-      await createSnippet({
-        text: selection.text,
-        sourceMessageId: selection.messageId as Id<"messages">,
-      });
-      toast.success("Snippet bookmarked");
-      clearSelection();
-    } catch (error) {
-      console.error("Failed to bookmark snippet:", error);
-      toast.error("Failed to bookmark snippet");
-    }
   };
 
   const handleSummarize = () => {
@@ -233,6 +229,13 @@ export function SelectionContextMenu() {
 
   const actions: MenuAction[] = [
     {
+      id: "copy",
+      label: "Copy",
+      icon: Copy,
+      shortcut: "C",
+      action: handleCopy,
+    },
+    {
       id: "quote",
       label: "Quote",
       icon: Quote,
@@ -246,15 +249,6 @@ export function SelectionContextMenu() {
       shortcut: "S",
       action: handleSearch,
     },
-    // TODO: https://github.com/planetaryescape/blah.chat/issues/21
-    // {
-    //   id: "bookmark",
-    //   label: "Bookmark Snippet",
-    //   icon: Tag,
-    //   shortcut: "B",
-    //   action: handleBookmarkSnippet,
-    //   disabled: selection.messageRole === "user", // Can't bookmark own messages
-    // },
     {
       id: "summarize",
       label: "Summarize",

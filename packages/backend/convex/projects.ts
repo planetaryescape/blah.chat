@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser, getCurrentUserOrCreate } from "./lib/userSync";
 
@@ -184,6 +185,17 @@ export const addConversation = mutation({
       projectId: args.projectId,
       updatedAt: Date.now(),
     });
+
+    // Rebuild cached system prompt for project context (background, non-blocking)
+    await ctx.scheduler.runAfter(
+      0,
+      internal.prompts.cache.buildAndCachePrompt,
+      {
+        conversationId: args.conversationId,
+        userId: user._id,
+        modelId: conversation.model,
+      },
+    );
   },
 });
 
@@ -220,6 +232,17 @@ export const removeConversation = mutation({
         projectId: undefined,
         updatedAt: Date.now(),
       });
+
+      // Rebuild cached system prompt without project context (background, non-blocking)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.prompts.cache.buildAndCachePrompt,
+        {
+          conversationId: args.conversationId,
+          userId: user._id,
+          modelId: conversation.model,
+        },
+      );
     }
   },
 });
@@ -240,7 +263,7 @@ export const assignConversations = mutation({
       }
     }
 
-    // Update each conversation's projectId
+    // Update each conversation's projectId and rebuild prompts
     for (const convId of args.conversationIds) {
       const conversation = await ctx.db.get(convId);
       if (!conversation || conversation.userId !== user._id) {
@@ -251,6 +274,17 @@ export const assignConversations = mutation({
         projectId: args.projectId || undefined,
         updatedAt: Date.now(),
       });
+
+      // Rebuild cached system prompt for project context (background, non-blocking)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.prompts.cache.buildAndCachePrompt,
+        {
+          conversationId: convId,
+          userId: user._id,
+          modelId: conversation.model,
+        },
+      );
     }
 
     // Sync junction table

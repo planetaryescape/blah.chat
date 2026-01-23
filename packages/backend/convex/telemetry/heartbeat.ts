@@ -3,6 +3,7 @@
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { trackServerEvent } from "../lib/analytics";
+import { logger } from "../lib/logger";
 
 /**
  * Send daily heartbeat with anonymous instance metrics
@@ -43,7 +44,8 @@ export const sendDailyHeartbeat = internalAction({
         };
       }>);
 
-      console.log("[Telemetry Debug] Would send:", {
+      logger.info("Would send telemetry", {
+        tag: "Telemetry",
         instanceId,
         version: process.env.APP_VERSION || "unknown",
         deployment: process.env.CONVEX_DEPLOYMENT || "unknown",
@@ -102,7 +104,10 @@ export const sendDailyHeartbeat = internalAction({
       return { success: true, instanceId };
     } catch (error) {
       // Fail silently - don't break the app if telemetry fails
-      console.error("[Telemetry] Error sending heartbeat:", error);
+      logger.error("Error sending heartbeat", {
+        tag: "Telemetry",
+        error: String(error),
+      });
       return { success: false, error: String(error) };
     }
   },

@@ -3,10 +3,32 @@ import type { GatewayName } from "./providers";
 import type { ReasoningConfig } from "./reasoning/types";
 import type { BenchmarkScores, ComputedMetrics, SpeedTier } from "./types";
 
+/**
+ * AUTO_MODEL - Special "auto" mode for intelligent model routing.
+ * When selected, the system classifies the task and routes to optimal model.
+ */
+export const AUTO_MODEL = {
+  id: "auto",
+  provider: "auto" as const,
+  name: "Auto",
+  description: "Intelligently routes to optimal model based on your task",
+  contextWindow: 0, // N/A - depends on selected model
+  pricing: { input: 0, output: 0 }, // Variable - depends on selected model
+  capabilities: [],
+  userFriendlyDescription:
+    "Let blah.chat pick the best model for each message. Analyzes your task and routes to the optimal model.",
+  bestFor:
+    "When you want the best model for each task without manual selection",
+};
+
+/** Check if a model ID is the auto router */
+export const isAutoModel = (modelId: string): boolean => modelId === "auto";
+
 export interface ModelConfig {
   id: string;
   /** Model creator/vendor (OpenAI, Anthropic, etc.) - used for grouping and icons */
   provider:
+    | "auto"
     | "openai"
     | "anthropic"
     | "google"
@@ -64,6 +86,9 @@ export interface ModelConfig {
 }
 
 export const MODEL_CONFIG: Record<string, ModelConfig> = {
+  // Auto Router (special model that routes to optimal model)
+  auto: AUTO_MODEL,
+
   // OpenAI
 
   // GPT-5 Series (Size Variants)
@@ -216,7 +241,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Instant responses. Blazing-fast model for when you need answers right now.",
     bestFor: "Ultra-low latency, real-time applications, edge deployment",
-    isInternalOnly: true,
   },
   "openai:gpt-oss-120b": {
     id: "openai:gpt-oss-120b",
@@ -231,7 +255,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "Powerful and versatile. Handles complex tasks with strong reasoning at very fast speeds.",
     bestFor: "General purpose, fast reasoning, high-performance tasks",
-    isInternalOnly: true,
   },
 
   // Anthropic
@@ -616,20 +639,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     bestFor: "Open-source, coding, multilingual tasks, local deployment",
     isInternalOnly: true,
   },
-  "meta:llama-4-maverick": {
-    id: "meta:llama-4-maverick",
-    provider: "meta",
-    name: "Llama 4 Maverick 17B",
-    description:
-      "Llama 4's largest MoE model with coding, reasoning, and image capabilities.",
-    contextWindow: 128000,
-    pricing: { input: 0.2, output: 0.6 },
-    capabilities: ["vision", "function-calling"],
-    hostOrder: ["cerebras", "groq"],
-    userFriendlyDescription:
-      "Next-gen Llama. Largest open model with coding, reasoning, and image understanding.",
-    bestFor: "Advanced coding, multimodal tasks, open-source",
-  },
   "meta:llama-4-scout": {
     id: "meta:llama-4-scout",
     provider: "meta",
@@ -921,46 +930,6 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
     userFriendlyDescription:
       "State-of-the-art agentic coding. Explores codebases and orchestrates multi-file changes.",
     bestFor: "Code generation, agentic coding tasks, large codebases",
-  },
-  "openrouter:gpt-oss-120b": {
-    id: "openrouter:gpt-oss-120b",
-    provider: "openai",
-    name: "GPT-OSS 120B",
-    description: "117B MoE model with configurable reasoning.",
-    contextWindow: 131072,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["thinking", "function-calling"],
-    actualModelId: "openai/gpt-oss-120b:free",
-    gateway: "openrouter",
-    reasoning: {
-      type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
-      summaryLevel: "detailed",
-      useResponsesAPI: false,
-    },
-    userFriendlyDescription:
-      "Large open-source model with reasoning. 117B params, 5.1B active per pass.",
-    bestFor: "Reasoning tasks, complex analysis, cost-conscious users",
-  },
-  "openrouter:gpt-oss-20b": {
-    id: "openrouter:gpt-oss-20b",
-    provider: "openai",
-    name: "GPT-OSS 20B",
-    description: "21B MoE model optimized for low-latency inference.",
-    contextWindow: 131072,
-    pricing: { input: 0, output: 0 },
-    capabilities: ["thinking", "function-calling"],
-    actualModelId: "openai/gpt-oss-20b:free",
-    gateway: "openrouter",
-    reasoning: {
-      type: "openai-reasoning-effort",
-      effortMapping: { low: "low", medium: "medium", high: "high" },
-      summaryLevel: "detailed",
-      useResponsesAPI: false,
-    },
-    userFriendlyDescription:
-      "Fast open-source reasoning model. 21B params, 3.6B active per pass.",
-    bestFor: "Quick reasoning, low-latency tasks, cost-conscious users",
   },
   "openrouter:glm-4.5-air": {
     id: "openrouter:glm-4.5-air",

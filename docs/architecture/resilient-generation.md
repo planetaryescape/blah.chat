@@ -40,7 +40,7 @@ Resilient generation is blah.chat's core architectural pattern that ensures AI r
    ↓
 3. ctx.scheduler.runAfter(0, generateResponse) schedules action
    ↓
-4. Action streams from LLM, updates partialContent every ~200ms
+4. Action streams from LLM, updates partialContent every ~50ms
    ↓
 5. Client query reactively updates UI
    ↓
@@ -99,8 +99,8 @@ export const generateResponse = internalAction({
       if (chunk.type === "text-delta") {
         accumulated += chunk.text;
 
-        // Throttled updates (200ms)
-        if (Date.now() - lastUpdate >= 200) {
+        // Throttled updates (50ms for smooth streaming)
+        if (Date.now() - lastUpdate >= 50) {
           await ctx.runMutation(internal.messages.updatePartialContent, {
             messageId: args.messageId,
             partialContent: accumulated,
@@ -197,7 +197,7 @@ Convex actions support up to 10 minutes. For extremely long generations:
 
 ## Performance Considerations
 
-### Throttled Updates (200ms)
+### Throttled Updates (50ms)
 - Prevents database write spam
 - Balances real-time feel with server load
 - Configurable per use case

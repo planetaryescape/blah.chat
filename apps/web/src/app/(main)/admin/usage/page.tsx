@@ -47,7 +47,6 @@ const COLORS = [
 
 const FEATURE_COLORS: Record<string, string> = {
   chat: "#3b82f6",
-  slides: "#f59e0b",
   notes: "#10b981",
   tasks: "#ec4899",
   files: "#8b5cf6",
@@ -57,7 +56,6 @@ const FEATURE_COLORS: Record<string, string> = {
 
 const FEATURE_LABELS: Record<string, string> = {
   chat: "Chat",
-  slides: "Slides",
   notes: "Notes",
   tasks: "Tasks",
   files: "Files",
@@ -94,14 +92,6 @@ export default function UsagePage() {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
   });
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const presentationStats = useQuery(
-    api.usage.queries.getAllUsersPresentationStats,
-    {
-      startDate: dateRange.startDate,
-      endDate: dateRange.endDate,
-    },
-  );
 
   if (
     !monthlyTotal ||
@@ -418,83 +408,6 @@ export default function UsagePage() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Slides Stats */}
-          {presentationStats && presentationStats.totalCost > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Slides Statistics</CardTitle>
-                <CardDescription>
-                  Presentation generation costs (all users)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Total Presentations
-                      </span>
-                      <span className="text-lg font-bold">
-                        {presentationStats.presentationsCount}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Total Slides Generated
-                      </span>
-                      <span className="text-lg font-bold">
-                        {presentationStats.slidesCount}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Avg Slides per Presentation
-                      </span>
-                      <span className="text-lg font-bold">
-                        {presentationStats.presentationsCount > 0
-                          ? (
-                              presentationStats.slidesCount /
-                              presentationStats.presentationsCount
-                            ).toFixed(1)
-                          : 0}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Outline Generation Cost
-                      </span>
-                      <span className="font-mono">
-                        ${presentationStats.outlineCost.toFixed(4)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Image Generation Cost
-                      </span>
-                      <span className="font-mono">
-                        ${presentationStats.imageCost.toFixed(4)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between border-t pt-2">
-                      <span className="text-sm font-medium">
-                        Total Slides Cost
-                      </span>
-                      <span className="text-lg font-bold">
-                        ${presentationStats.totalCost.toFixed(4)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {presentationStats.outlineRequests} outline requests •{" "}
-                      {presentationStats.imageRequests} image requests
-                    </div>
                   </div>
                 </div>
               </CardContent>

@@ -1,26 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { getNextCompleteToken } from "@/lib/utils/markdownTokens";
 
 export interface StreamBufferOptions {
   /**
-   * Characters per second for normal streaming.
-   * @default 200
+   * Words per second for streaming.
+   * @default 30
    */
-  charsPerSecond?: number;
-
-  /**
-   * Minimum token size (prevents splitting mid-word).
-   * @default 3
-   */
-  minTokenSize?: number;
-
-  /**
-   * Buffer size threshold (bytes) to trigger faster drain.
-   * When buffer exceeds this, speed doubles.
-   * @default 5000
-   */
-  adaptiveThreshold?: number;
+  wordsPerSecond?: number;
 }
+
+export type BufferState = "filling" | "draining" | "empty" | "complete";
 
 export interface StreamBufferResult {
   /**
@@ -33,13 +21,28 @@ export interface StreamBufferResult {
    * Useful for showing cursor even after streaming stops.
    */
   hasBufferedContent: boolean;
+
+  /**
+   * Number of words recently released (for animation targeting).
+   * Resets each animation frame.
+   */
+  newWordsCount: number;
+
+  /**
+   * Current buffer state for UI feedback:
+   * - "filling": Buffer has content and server is still sending
+   * - "draining": Buffer has content but server stopped (flushing remaining)
+   * - "empty": Still streaming but buffer drained (waiting for server)
+   * - "complete": Not streaming and buffer is empty
+   */
+  bufferState: BufferState;
 }
 
 /**
- * Buffers streaming content and reveals it smoothly character-by-character.
+ * Buffers streaming content and reveals it smoothly word-by-word.
  *
  * Decouples network timing (chunky server updates) from visual timing
- * (smooth RAF-based character reveal). Prevents layout shifts and jarring
+ * (smooth RAF-based word reveal). Prevents layout shifts and jarring
  * text appearance during streaming.
  *
  * @param serverContent - The full content from the server (grows over time)
@@ -47,7 +50,7 @@ export interface StreamBufferResult {
  * @param options - Configuration options
  *
  * @example
- * const { displayContent, hasBufferedContent } = useStreamBuffer(
+ * const { displayContent, hasBufferedContent, newWordsCount } = useStreamBuffer(
  *   message.partialContent || message.content || "",
  *   message.status === "generating"
  * );
@@ -58,11 +61,10 @@ export function useStreamBuffer(
   options?: StreamBufferOptions,
 ): StreamBufferResult {
   const [displayContent, setDisplayContent] = useState("");
+  const [newWordsCount, setNewWordsCount] = useState(0);
 
-  // Configuration
-  const baseSpeed = options?.charsPerSecond ?? 200;
-  const minTokenSize = options?.minTokenSize ?? 3;
-  const adaptiveThreshold = options?.adaptiveThreshold ?? 5000;
+  // Configuration - 30 words/sec default for smooth reading
+  const wordsPerSecond = options?.wordsPerSecond ?? 30;
 
   // Internal state (refs to avoid triggering re-renders)
   const bufferRef = useRef("");
@@ -90,6 +92,7 @@ export function useStreamBuffer(
         // Reset everything
         setDisplayContent(serverContent);
         bufferRef.current = "";
+        setNewWordsCount(0);
         lastTickRef.current = Date.now();
       }
 
@@ -106,6 +109,7 @@ export function useStreamBuffer(
         // Ensure display syncs with server (edge case)
         setDisplayContent(serverContent);
       }
+      setNewWordsCount(0);
 
       if (rafIdRef.current) {
         cancelAnimationFrame(rafIdRef.current);
@@ -114,29 +118,22 @@ export function useStreamBuffer(
       return;
     }
 
-    // RAF loop: smoothly release characters from buffer
+    // RAF loop: smoothly release words from buffer
     const tick = () => {
       const now = Date.now();
       const elapsed = now - lastTickRef.current;
 
-      // Adaptive speed: faster drain when buffer is large
-      const currentSpeed =
-        bufferRef.current.length > adaptiveThreshold
-          ? baseSpeed * 2
-          : baseSpeed;
+      // Calculate words to release based on elapsed time
+      const wordsToRelease = Math.floor((elapsed / 1000) * wordsPerSecond);
 
-      const charsToRelease = Math.floor((elapsed / 1000) * currentSpeed);
-
-      if (charsToRelease > 0 && bufferRef.current.length > 0) {
-        // Get token-aware chunk (respects word boundaries and markdown)
-        const nextChunk = getNextCompleteToken(
-          bufferRef.current,
-          charsToRelease,
-          minTokenSize,
-        );
+      if (wordsToRelease > 0 && bufferRef.current.length > 0) {
+        // Extract words from buffer
+        const nextChunk = extractWords(bufferRef.current, wordsToRelease);
 
         if (nextChunk.length > 0) {
+          const wordCount = countWords(nextChunk);
           setDisplayContent((prev) => prev + nextChunk);
+          setNewWordsCount(wordCount);
           bufferRef.current = bufferRef.current.slice(nextChunk.length);
           lastTickRef.current = now;
         }
@@ -159,17 +156,74 @@ export function useStreamBuffer(
         rafIdRef.current = undefined;
       }
     };
-  }, [
-    serverContent,
-    isStreaming,
-    baseSpeed,
-    minTokenSize,
-    adaptiveThreshold,
-    displayContent,
-  ]);
+  }, [serverContent, isStreaming, wordsPerSecond, displayContent]);
+
+  // Calculate buffer state for UI feedback
+  const bufferState: BufferState = (() => {
+    if (!isStreaming && !hasBufferedContent) return "complete";
+    if (!isStreaming && hasBufferedContent) return "draining";
+    if (isStreaming && hasBufferedContent) return "filling";
+    return "empty"; // isStreaming && !hasBufferedContent
+  })();
 
   return {
     displayContent,
     hasBufferedContent,
+    newWordsCount,
+    bufferState,
   };
+}
+
+/**
+ * Extract N words from the start of text, preserving trailing whitespace.
+ */
+function extractWords(text: string, maxWords: number): string {
+  if (!text || maxWords <= 0) return "";
+
+  let wordCount = 0;
+  let endIndex = 0;
+  let inWord = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const isWhitespace = /\s/.test(char);
+
+    if (!isWhitespace && !inWord) {
+      // Starting a new word
+      inWord = true;
+    } else if (isWhitespace && inWord) {
+      // Ending a word
+      inWord = false;
+      wordCount++;
+      endIndex = i + 1; // Include the whitespace
+
+      if (wordCount >= maxWords) {
+        break;
+      }
+    }
+  }
+
+  // Handle case where we're in the middle of a word at end of buffer
+  if (inWord && wordCount < maxWords) {
+    // Don't include partial word - wait for more content
+    // Unless it's the entire buffer (small edge case)
+    if (endIndex === 0 && text.length < 50) {
+      return text;
+    }
+    // Prevent stream stall on whitespace-free content (CJK, URLs, base64)
+    // Release content after 100 chars to avoid frozen UI
+    if (endIndex === 0 && text.length >= 100) {
+      return text.slice(0, 100);
+    }
+  }
+
+  return text.slice(0, endIndex);
+}
+
+/**
+ * Count words in text.
+ */
+function countWords(text: string): number {
+  if (!text) return 0;
+  return text.trim().split(/\s+/).filter(Boolean).length;
 }

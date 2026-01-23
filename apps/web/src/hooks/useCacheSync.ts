@@ -17,6 +17,19 @@ export function useMessageCacheSync({
   conversationId,
   initialNumItems = 50,
 }: MessageCacheSyncOptions) {
+  // Track conversation ID changes to detect switches
+  const prevConversationIdRef = useRef<Id<"conversations"> | undefined>(
+    conversationId,
+  );
+  const isConversationChanging =
+    prevConversationIdRef.current !== conversationId;
+
+  // Update ref IMMEDIATELY (not in useEffect) to prevent stale data on next render
+  if (isConversationChanging) {
+    prevConversationIdRef.current = conversationId;
+  }
+
+  // Subscribe to Convex for real-time updates
   const convexMessages = usePaginatedQuery(
     // @ts-ignore - Type depth exceeded with complex Convex query
     api.messages.listPaginated,
@@ -65,7 +78,7 @@ export function useMessageCacheSync({
   }, [conversationId, convexMessages.results?.length, triggerAutoRename]);
 
   // @ts-ignore - Dexie PromiseExtended type incompatible with useLiveQuery generics
-  const cachedMessages: Doc<"messages">[] = useLiveQuery(
+  const cachedMessages: Doc<"messages">[] | undefined = useLiveQuery(
     () =>
       conversationId
         ? cache.messages
@@ -74,38 +87,49 @@ export function useMessageCacheSync({
             .sortBy("createdAt")
         : [],
     [conversationId],
-    [],
+    undefined, // Return undefined while loading, not []
   );
 
-  // Keep previous cached data during transitions (prevents skeleton flash)
-  // Pattern from useStableMessages.ts
-  const prevConversationIdRef = useRef(conversationId);
-  const lastValidCachedRef = useRef<Doc<"messages">[]>([]);
+  // Validate that cached messages actually belong to current conversation
+  // useLiveQuery can return stale data briefly when dependencies change
+  // Handle edge cases:
+  // 1. conversationId undefined → accept any cached data (no validation needed)
+  //    Note: In production, conversationId is always defined via [conversationId] route
+  //    This case exists for hook flexibility/future use cases
+  // 2. Empty array → VALID! Means conversation has no messages (don't return undefined)
+  // 3. Non-empty array → validate all messages belong to current conversation
+  const validatedMessages =
+    conversationId === undefined
+      ? cachedMessages // No conversation selected - accept cache as-is
+      : cachedMessages === undefined
+        ? undefined // Not loaded yet
+        : cachedMessages.length === 0
+          ? cachedMessages // Empty conversation - valid data!
+          : cachedMessages.every((m) => m.conversationId === conversationId)
+            ? cachedMessages // All messages match
+            : undefined; // Wrong conversation
 
-  // Reset cache on conversation change
-  if (conversationId !== prevConversationIdRef.current) {
-    prevConversationIdRef.current = conversationId;
-    lastValidCachedRef.current = [];
-  }
+  // During conversation switch (including to/from undefined), force return undefined
+  // to prevent stale data flash. This ensures clean transitions between conversations.
+  // The isConversationChanging guard handles ALL transitions, including:
+  // - Conversation A → B (blocks stale A data)
+  // - Conversation A → undefined (blocks stale A data)
+  // - undefined → Conversation A (blocks any stale cache)
+  const results = isConversationChanging ? undefined : validatedMessages;
 
-  // Store valid results
-  if (cachedMessages.length > 0) {
-    lastValidCachedRef.current = cachedMessages;
-  }
+  // Determine loading states (compatible with useStableMessages)
+  // isFirstLoad should be true when:
+  // 1. Convex is still loading (LoadingFirstPage) OR
+  // 2. Cache is still empty/loading (results undefined) OR
+  // 3. Convex has data but cache hasn't synced yet (mismatch in lengths)
+  const hasConvexData =
+    convexMessages.results && convexMessages.results.length > 0;
+  const hasCacheData = results && results.length > 0;
+  const isSyncInProgress = hasConvexData && !hasCacheData; // Convex loaded but cache not synced
+  const isConvexStillLoading = convexMessages.status === "LoadingFirstPage";
 
-  // Prefer: cache → previous cache → convex results → empty
-  const results =
-    cachedMessages.length > 0
-      ? cachedMessages
-      : lastValidCachedRef.current.length > 0
-        ? lastValidCachedRef.current
-        : (convexMessages.results ?? []);
-
-  // Show skeleton while loading first page AND we have no messages to display
   const isFirstLoad =
-    (convexMessages.status === "LoadingFirstPage" ||
-      convexMessages.results === undefined) &&
-    results.length === 0;
+    isConvexStillLoading || results === undefined || isSyncInProgress;
 
   return {
     results,
@@ -233,9 +257,26 @@ export function useNoteCacheSync() {
   );
 
   useEffect(() => {
-    if (notes?.length) {
-      cache.notes.bulkPut(notes).catch(console.error);
-    }
+    if (notes === undefined) return;
+
+    const syncCache = async () => {
+      const convexIds = new Set(notes.map((n) => n._id));
+      const dexieRecords = await cache.notes.toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) {
+        await cache.notes.bulkDelete(orphanIds);
+      }
+
+      if (notes.length > 0) {
+        await cache.notes.bulkPut(notes);
+      }
+    };
+
+    syncCache().catch(console.error);
   }, [notes]);
 
   const cachedNotes = useLiveQuery(
@@ -258,9 +299,26 @@ export function useTaskCacheSync() {
   );
 
   useEffect(() => {
-    if (tasks?.length) {
-      cache.tasks.bulkPut(tasks).catch(console.error);
-    }
+    if (tasks === undefined) return;
+
+    const syncCache = async () => {
+      const convexIds = new Set(tasks.map((t) => t._id));
+      const dexieRecords = await cache.tasks.toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) {
+        await cache.tasks.bulkDelete(orphanIds);
+      }
+
+      if (tasks.length > 0) {
+        await cache.tasks.bulkPut(tasks);
+      }
+    };
+
+    syncCache().catch(console.error);
   }, [tasks]);
 
   const cachedTasks = useLiveQuery(
@@ -282,9 +340,26 @@ export function useProjectCacheSync() {
   );
 
   useEffect(() => {
-    if (projects?.length) {
-      cache.projects.bulkPut(projects).catch(console.error);
-    }
+    if (projects === undefined) return;
+
+    const syncCache = async () => {
+      const convexIds = new Set(projects.map((p) => p._id));
+      const dexieRecords = await cache.projects.toArray();
+
+      const orphanIds = dexieRecords
+        .filter((d) => !convexIds.has(d._id))
+        .map((d) => d._id);
+
+      if (orphanIds.length > 0) {
+        await cache.projects.bulkDelete(orphanIds);
+      }
+
+      if (projects.length > 0) {
+        await cache.projects.bulkPut(projects);
+      }
+    };
+
+    syncCache().catch(console.error);
   }, [projects]);
 
   const cachedProjects = useLiveQuery(
@@ -357,5 +432,46 @@ export function useCachedChildBranches(
         .toArray(),
     [parentMessageId],
     [] as Doc<"conversations">[],
+  );
+}
+
+/**
+ * P7 Tree Architecture: Get child messages (siblings in tree) for a message
+ * Used for in-conversation branch navigation
+ */
+export function useCachedChildMessages(
+  parentMessageId: Id<"messages"> | string,
+) {
+  return useLiveQuery(
+    () =>
+      cache.messages
+        .where("parentMessageId")
+        .equals(parentMessageId)
+        .sortBy("siblingIndex"),
+    [parentMessageId],
+    [] as Doc<"messages">[],
+  );
+}
+
+/**
+ * P7 Tree Architecture: Get sibling messages (same parent) for a message
+ * Used for branch switching UI
+ */
+export function useCachedSiblings(messageId: Id<"messages"> | string) {
+  return useLiveQuery(
+    async () => {
+      const message = await cache.messages.get(messageId);
+      if (!message) return [];
+
+      const parentId = message.parentMessageId;
+      if (!parentId) return [message]; // Root message
+
+      return cache.messages
+        .where("parentMessageId")
+        .equals(parentId)
+        .sortBy("siblingIndex");
+    },
+    [messageId],
+    [] as Doc<"messages">[],
   );
 }

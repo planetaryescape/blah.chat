@@ -5,7 +5,10 @@ import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useMemo } from "react";
 import { BYODSettings } from "@/components/settings/BYODSettings";
+import { BYOKSettings } from "@/components/settings/BYOKSettings";
+import { CliApiKeysSettings } from "@/components/settings/CliApiKeysSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
+import { DangerZoneSettings } from "@/components/settings/DangerZoneSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
 import { KnowledgeBankSettings } from "@/components/settings/KnowledgeBankSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
@@ -61,9 +64,24 @@ const SETTINGS_SECTIONS = [
     component: ShortcutsSettings,
   },
   {
+    id: "api-keys",
+    label: "API Keys",
+    component: CliApiKeysSettings,
+  },
+  {
     id: "database",
     label: "Database",
     component: BYODSettings,
+  },
+  {
+    id: "advanced",
+    label: "Advanced",
+    component: BYOKSettings,
+  },
+  {
+    id: "danger",
+    label: "Danger Zone",
+    component: DangerZoneSettings,
   },
 ];
 
@@ -87,7 +105,7 @@ function SettingsContent() {
   }, [isBYODEnabled]);
 
   return (
-    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+    <div className="h-[calc(100vh-(--spacing(16)))] flex flex-col relative bg-background overflow-hidden">
       {/* Fixed Header */}
       <div className="flex-none z-50 bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm">
         <div className="container mx-auto max-w-4xl px-4 py-4">
@@ -140,7 +158,7 @@ function SettingsContent() {
               className="w-full flex flex-row gap-6"
             >
               {/* Sidebar with vertical tabs */}
-              <TabsList className="flex-shrink-0 w-48 h-fit flex-col items-stretch justify-start p-1.5 bg-muted/50 rounded-lg gap-1">
+              <TabsList className="shrink-0 w-48 h-fit flex-col items-stretch justify-start p-1.5 bg-muted/50 rounded-lg gap-1">
                 {visibleSections.map((section: any) => (
                   <TabsTrigger
                     key={section.id}

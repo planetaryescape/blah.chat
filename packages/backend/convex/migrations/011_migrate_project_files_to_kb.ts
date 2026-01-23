@@ -16,6 +16,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 const MIGRATION_ID = "011_migrate_project_files_to_kb";
 const MIGRATION_NAME = "Migrate Project Files to Knowledge Bank";
@@ -152,8 +153,10 @@ export const backfillBatch = internalMutation({
  */
 export const migrate = internalAction({
   handler: async (ctx) => {
-    console.log(`🚀 Starting ${MIGRATION_NAME}...`);
-    console.log(`   Migration ID: ${MIGRATION_ID}`);
+    logger.info(`Starting ${MIGRATION_NAME}`, {
+      tag: "Migration",
+      migrationId: MIGRATION_ID,
+    });
 
     const startTime = Date.now();
 
@@ -171,12 +174,12 @@ export const migrate = internalAction({
           .initializeMigration,
         {},
       )) as Doc<"migrations">;
-      console.log("✅ Migration initialized");
+      logger.info("Migration initialized", { tag: "Migration" });
     } else if (migration.status === "completed") {
-      console.log("⚠️  Migration already completed");
+      logger.warn("Migration already completed", { tag: "Migration" });
       return;
     } else {
-      console.log(`🔄 Resuming migration from cursor...`);
+      logger.info("Resuming migration from cursor", { tag: "Migration" });
     }
 
     // Run backfill in batches
@@ -208,9 +211,14 @@ export const migrate = internalAction({
       totalSkipped += result.skipped;
       batchCount++;
 
-      console.log(
-        `   Batch ${batchCount}: ${result.processed} items (${result.sourcesCreated} sources, ${result.chunksCreated} chunks, ${result.skipped} skipped)`,
-      );
+      logger.info("Batch processed", {
+        tag: "Migration",
+        batchCount,
+        processed: result.processed,
+        sourcesCreated: result.sourcesCreated,
+        chunksCreated: result.chunksCreated,
+        skipped: result.skipped,
+      });
 
       if (result.done) {
         await (ctx.runMutation as any)(
@@ -224,12 +232,14 @@ export const migrate = internalAction({
     } while (cursor);
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`\n🎉 Migration complete!`);
-    console.log(`   Project files processed: ${totalProcessed}`);
-    console.log(`   Knowledge sources created: ${totalSources}`);
-    console.log(`   Knowledge chunks created: ${totalChunks}`);
-    console.log(`   Skipped (already migrated): ${totalSkipped}`);
-    console.log(`   Duration: ${duration}s`);
+    logger.info("Migration complete", {
+      tag: "Migration",
+      projectFilesProcessed: totalProcessed,
+      knowledgeSourcesCreated: totalSources,
+      knowledgeChunksCreated: totalChunks,
+      skipped: totalSkipped,
+      durationSec: duration,
+    });
   },
 });
 

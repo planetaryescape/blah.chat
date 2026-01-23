@@ -71,7 +71,7 @@
   --accent-foreground: oklch(98% 0.01 80);
 
   --muted: oklch(90% 0.01 80);
-  --muted-foreground: oklch(50% 0.04 80);
+  --muted-foreground: oklch(40% 0.04 80); /* WCAG AA: 4.5:1 contrast (was 50%) */
 
   --destructive: oklch(60% 0.2 25);
   --destructive-foreground: oklch(98% 0 0);
@@ -155,6 +155,10 @@
   --background: oklch(20% 0.03 285);
   --foreground: oklch(98% 0.01 285);
 
+  /* Terminal Green - For self-host/code sections */
+  --terminal-green: oklch(75% 0.15 145);
+  --terminal-green-dim: oklch(65% 0.12 145);
+
   /* Surface System - Lighter Indigo Scale */
   /* Level 2: Cards/Modals - Lighter again (approx #2A2A3A) */
   --card: oklch(25% 0.04 285 / 0.9);
@@ -183,7 +187,7 @@
   --secondary-foreground: oklch(98% 0.01 285);
 
   --muted: oklch(25% 0.03 285);
-  --muted-foreground: oklch(70% 0.02 285);
+  --muted-foreground: oklch(75% 0.02 285); /* WCAG AA: 4.5:1 contrast (was 70%) */
 
   --accent: oklch(25% 0.04 285);
   --accent-foreground: oklch(98% 0.01 285);
@@ -235,6 +239,69 @@
   --surface-glass-highlight: oklch(90% 0.03 25 / 0.1);
 }
 
+/* ===== HIGH CONTRAST MODE ===== */
+/* User preference override via settings toggle */
+.high-contrast {
+  --muted-foreground: oklch(35% 0.02 80);
+  --border: oklch(50% 0.03 80);
+  --input: oklch(50% 0.03 80);
+  --bg-mesh-1: none;
+  --bg-mesh-2: none;
+  --bg-mesh-3: none;
+  --bg-grain: none;
+}
+
+.dark.high-contrast {
+  --muted-foreground: oklch(85% 0.01 285);
+  --border: oklch(55% 0.04 285);
+  --input: oklch(55% 0.04 285);
+}
+
+/* OS-level high contrast preference */
+@media (prefers-contrast: more) {
+  :root:not(.contrast-normal) {
+    --muted-foreground: oklch(35% 0.02 80);
+    --border: oklch(50% 0.03 80);
+    --bg-mesh-1: none;
+    --bg-mesh-2: none;
+    --bg-mesh-3: none;
+    --bg-grain: none;
+  }
+  .dark:not(.contrast-normal) {
+    --muted-foreground: oklch(85% 0.01 285);
+    --border: oklch(55% 0.04 285);
+  }
+}
+
+/* Windows High Contrast / forced-colors mode */
+@media (forced-colors: active) {
+  :root {
+    --background: Canvas;
+    --foreground: CanvasText;
+    --primary: LinkText;
+    --border: CanvasText;
+    --muted-foreground: GrayText;
+  }
+  * { forced-color-adjust: auto; }
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+/* ===== TEXT SCALING (WCAG 1.4.4) ===== */
+/* Root font-size scaling is the standard WCAG approach for text resizing.
+   This intentionally scales rem-based values (spacing, icons) proportionally
+   to maintain visual harmony and prevent text overflow issues.
+   Browser zoom and OS accessibility tools use the same technique. */
+html { --text-scale: 1; font-size: calc(16px * var(--text-scale)); }
+html.text-scale-75 { --text-scale: 0.75; }
+html.text-scale-100 { --text-scale: 1; }
+html.text-scale-125 { --text-scale: 1.25; }
+html.text-scale-150 { --text-scale: 1.5; }
+html.text-scale-175 { --text-scale: 1.75; }
+html.text-scale-200 { --text-scale: 2; }
+
 @layer base {
   * {
     @apply border-border;
@@ -265,6 +332,18 @@
     background-color: var(--primary);
     color: var(--primary-foreground);
   }
+
+  /* iOS Safari auto-zoom prevention */
+  /* Inputs < 16px trigger zoom on focus. Force 16px on mobile. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select,
+    [role="combobox"],
+    [contenteditable="true"] {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Screen reader only - WCAG 2.1 */
@@ -289,6 +368,50 @@
   overflow: visible;
   clip: auto;
   white-space: normal;
+}
+
+/* ===== FOCUS MANAGEMENT (WCAG 2.4.3/2.4.7) ===== */
+/* Ensure focus is always visible for keyboard users */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+/* Custom focus for message elements */
+.message-group:focus-visible,
+[id^='message-group-']:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 4px;
+}
+
+/* Remove outline for mouse users, keep for keyboard */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Dialog/modal focus trap container doesn't need visible outline */
+[role='dialog']:focus {
+  outline: none;
+}
+
+/* Skip link styles - becomes visible on focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--background));
+  border: 2px solid hsl(var(--primary));
+  border-radius: var(--radius);
+  color: hsl(var(--foreground));
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.skip-link:focus {
+  top: 1rem;
 }
 
 /* Custom Animations */
@@ -403,6 +526,25 @@
   scroll-margin-top: 5rem; /* 80px - accounts for header + breathing room */
 }
 
+/* Smooth Scrolling for Message Containers */
+.messages-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  overflow-anchor: auto;
+}
+
+/* Prevent loading elements from being anchor candidates */
+.scroll-anchor-ignore {
+  overflow-anchor: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messages-container {
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Performance Optimizations */
 .prose {
   /* Prevent layout thrashing during streaming */
@@ -471,5 +613,127 @@
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
+  }
+}
+
+/* ===== LANDING PAGE ANIMATIONS ===== */
+
+/* Typewriter cursor blink */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1s steps(1) infinite;
+}
+
+/* Typewriter text reveal */
+@keyframes typewriter {
+  from { max-width: 0; }
+  to { max-width: 100%; }
+}
+
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 2s steps(30) forwards;
+}
+
+/* Strikethrough sweep */
+@keyframes strikethrough-sweep {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+
+.strikethrough-sweep {
+  position: relative;
+}
+
+.strikethrough-sweep::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2px;
+  width: 0;
+  background: oklch(60% 0.2 25);
+  animation: strikethrough-sweep 0.4s ease-out forwards;
+}
+
+/* Feature pill float */
+@keyframes pill-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.pill-float {
+  animation: pill-float 3s ease-in-out infinite;
+}
+
+/* Spectrum glow pulse */
+@keyframes spectrum-glow {
+  0%, 100% { box-shadow: 0 0 20px oklch(90% 0.03 25 / 0.3); }
+  50% { box-shadow: 0 0 40px oklch(90% 0.03 25 / 0.5); }
+}
+
+.spectrum-glow {
+  animation: spectrum-glow 2s ease-in-out infinite;
+}
+
+/* Terminal typing */
+@keyframes terminal-type {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.terminal-type {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--terminal-green, oklch(75% 0.15 145));
+  animation: terminal-type 1.5s steps(40) forwards, cursor-blink 0.75s step-end infinite;
+}
+
+/* Fade up stagger base */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fade-up 0.6s ease-out forwards;
+}
+
+/* Typing indicator animation */
+@keyframes typing-pulse {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-indicator span {
+    animation: none !important;
+    opacity: 0.6;
+  }
+}
+
+/* Landing page specific utilities */
+@layer utilities {
+  .terminal-green {
+    color: var(--terminal-green, oklch(75% 0.15 145));
+  }
+
+  .bg-terminal-green {
+    background-color: var(--terminal-green, oklch(75% 0.15 145));
+  }
+
+  .border-terminal-green {
+    border-color: var(--terminal-green, oklch(75% 0.15 145));
   }
 }

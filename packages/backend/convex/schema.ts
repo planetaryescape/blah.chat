@@ -11,9 +11,6 @@ export default defineSchema({
     // Daily message tracking (stored per user, limit from admin settings)
     dailyMessageCount: v.optional(v.number()),
     lastMessageDate: v.optional(v.string()),
-    // Daily presentation tracking (stored per user, limit from admin settings)
-    dailyPresentationCount: v.optional(v.number()),
-    lastPresentationDate: v.optional(v.string()),
     // Pro Model Tier System
     tier: v.optional(
       v.union(v.literal("free"), v.literal("tier1"), v.literal("tier2")),
@@ -22,6 +19,9 @@ export default defineSchema({
     lastProModelDate: v.optional(v.string()),
     monthlyProModelCount: v.optional(v.number()),
     lastProModelMonth: v.optional(v.string()),
+    // Deprecated: presentation limits (kept for existing data)
+    dailyPresentationCount: v.optional(v.number()),
+    lastPresentationDate: v.optional(v.string()),
     // Preferences
     disabledBuiltInTemplateIds: v.optional(v.array(v.id("templates"))),
     createdAt: v.number(),
@@ -81,13 +81,19 @@ export default defineSchema({
     ),
     messageCount: v.optional(v.number()),
     lastMessageAt: v.number(),
-    // Branching support
-    parentConversationId: v.optional(v.id("conversations")),
-    parentMessageId: v.optional(v.id("messages")),
+    // Branching support (legacy - conversation-based)
+    parentConversationId: v.optional(v.id("conversations")), // DEPRECATED: Use tree architecture
+    parentMessageId: v.optional(v.id("messages")), // DEPRECATED: Use tree architecture
+
+    // Tree-based architecture (P7)
+    activeLeafMessageId: v.optional(v.id("messages")), // Current "head" position in tree
+    branchCount: v.optional(v.number()), // Denormalized for UI badges
     // Collaborative conversations (multi-user)
     isCollaborative: v.optional(v.boolean()),
     // Incognito mode (ephemeral conversations)
     isIncognito: v.optional(v.boolean()),
+    isPresentation: v.optional(v.boolean()), // Deprecated: kept for existing data
+    enableGrounding: v.optional(v.boolean()), // Deprecated: kept for existing data
     incognitoSettings: v.optional(
       v.object({
         enableReadTools: v.boolean(), // Allow search of notes/files/tasks
@@ -97,19 +103,6 @@ export default defineSchema({
         lastActivityAt: v.number(), // For inactivity timer
       }),
     ),
-    // Presentation mode (slides feature conversations)
-    isPresentation: v.optional(v.boolean()),
-    // Enable web search grounding for presentations
-    enableGrounding: v.optional(v.boolean()),
-    // Presentation metadata
-    slideStyle: v.optional(
-      v.union(v.literal("wordy"), v.literal("illustrative")),
-    ),
-    imageStyle: v.optional(v.string()), // e.g. "minimalist line art", "photorealistic"
-    aspectRatio: v.optional(
-      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
-    ), // default 16:9
-    templateId: v.optional(v.id("templates")),
     // Model recommendation (cost optimization & decision guidance)
     modelRecommendation: v.optional(
       v.object({
@@ -127,13 +120,20 @@ export default defineSchema({
     // Document mode (Canvas)
     mode: v.optional(v.union(v.literal("document"), v.literal("normal"))),
     modeActivatedAt: v.optional(v.number()),
+    // Cached system prompt (built in background on creation/input changes)
+    cachedSystemPrompt: v.optional(v.string()),
+    promptInputHash: v.optional(v.string()),
+    promptBuiltAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_user_archived", ["userId", "archived"])
+    .index("by_user_lastMessageAt", ["userId", "lastMessageAt"])
     .index("by_projectId", ["projectId"])
-    .index("by_parent_conversation", ["parentConversationId"])
+    .index("by_parent_conversation", ["parentConversationId"]) // Legacy
+    .index("by_active_leaf", ["activeLeafMessageId"]) // P7: Tree navigation
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "archived"],
@@ -197,10 +197,34 @@ export default defineSchema({
     embedding: v.optional(v.array(v.float64())),
     // Provider specific metadata (e.g. Gemini thought signatures)
     providerMetadata: v.optional(v.any()),
-    // Branching support
-    parentMessageId: v.optional(v.id("messages")),
+    // Branching support (legacy - single parent)
+    parentMessageId: v.optional(v.id("messages")), // DEPRECATED: Use parentMessageIds
     branchLabel: v.optional(v.string()),
     branchIndex: v.optional(v.number()),
+
+    // Tree-based architecture (P7)
+    parentMessageIds: v.optional(v.array(v.id("messages"))), // Multiple parents for merges
+    siblingIndex: v.optional(v.number()), // Position among siblings (0, 1, 2...)
+    isActiveBranch: v.optional(v.boolean()), // Part of currently displayed path
+    rootMessageId: v.optional(v.id("messages")), // First message in tree (quick access)
+    forkReason: v.optional(
+      v.union(
+        v.literal("edit"), // User edited a message
+        v.literal("regenerate"), // Regenerated response
+        v.literal("branch"), // Explicit branch creation
+        v.literal("model_compare"), // Multi-model comparison
+        v.literal("merge"), // Merged from multiple branches
+      ),
+    ),
+    forkMetadata: v.optional(
+      v.object({
+        originalContent: v.optional(v.string()), // Pre-edit content
+        originalBranchId: v.optional(v.string()), // Source branch for merge
+        mergedFromIds: v.optional(v.array(v.id("messages"))), // Merge sources
+        branchedAt: v.optional(v.number()), // Timestamp
+        branchedBy: v.optional(v.id("users")), // Who branched
+      }),
+    ),
     // Comparison support
     comparisonGroupId: v.optional(v.string()),
     consolidatedMessageId: v.optional(v.id("messages")), // Links to consolidated message
@@ -219,12 +243,33 @@ export default defineSchema({
     ),
     generationStartedAt: v.optional(v.number()),
     generationCompletedAt: v.optional(v.number()),
+    // API call timing (for latency tracking)
+    apiCallStartedAt: v.optional(v.number()),
     // Performance metrics
     firstTokenAt: v.optional(v.number()), // When first token received
     tokensPerSecond: v.optional(v.number()), // Calculated TPS
     // Memory extraction tracking
     memoryExtracted: v.optional(v.boolean()),
     memoryExtractedAt: v.optional(v.number()),
+    // Auto router decision (when user selected "auto" model)
+    routingDecision: v.optional(
+      v.object({
+        selectedModelId: v.string(),
+        classification: v.object({
+          primaryCategory: v.string(),
+          secondaryCategory: v.optional(v.string()),
+          complexity: v.string(),
+          requiresVision: v.boolean(),
+          requiresLongContext: v.boolean(),
+          requiresReasoning: v.boolean(),
+          confidence: v.number(),
+          // Optional for backward compatibility with existing messages
+          isHighStakes: v.optional(v.boolean()),
+          highStakesDomain: v.optional(v.string()),
+        }),
+        reasoning: v.string(),
+      }),
+    ),
     // DEPRECATED (Phase 2): Source citations migrated to normalized tables
     // Fields kept for backward compatibility with existing messages in database
     // NO LONGER WRITTEN TO - see convex/sources/* for new implementation
@@ -264,17 +309,24 @@ export default defineSchema({
         }),
       ),
     ),
+    // Retry tracking for auto-router recovery
+    failedModels: v.optional(v.array(v.string())),
+    retryCount: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
-    .index("by_parent", ["parentMessageId"])
+    .index("by_conversation_status", ["conversationId", "status"]) // Find generating messages
+    .index("by_user_created", ["userId", "createdAt"]) // User's recent messages
+    .index("by_parent", ["parentMessageId"]) // Legacy: single parent
     .index("by_comparison_group", ["comparisonGroupId"])
     .index("by_consolidated_message", ["consolidatedMessageId"])
     .index("by_conversation_created", ["conversationId", "createdAt"]) // Phase 7: Ordered messages
     .index("by_conversation_role", ["conversationId", "role"]) // Phase 7: Filter user/assistant
+    .index("by_conversation_active", ["conversationId", "isActiveBranch"]) // P7: Active branch path
+    .index("by_root", ["rootMessageId"]) // P7: All messages in tree
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: 1536,
@@ -309,11 +361,16 @@ export default defineSchema({
         generationTime: v.optional(v.number()),
       }),
     ),
+    // Text extraction for searchability
+    extractedText: v.optional(v.string()),
+    extractedAt: v.optional(v.number()),
+    extractionError: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_message", ["messageId"])
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]) // user's recent attachments
     .index("by_storage", ["storageId"]), // Find which messages use a file
 
   // Phase 1: Normalized tool calls (consolidates toolCalls[] + partialToolCalls[])
@@ -424,6 +481,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_category", ["userId", "metadata.category"])
     .index("by_importance", ["userId", "metadata.importance"]) // Query by importance
     .index("by_conversation", ["conversationId"]) // Phase 7: Query memories by conversation
     .vectorIndex("by_embedding", {
@@ -480,6 +538,7 @@ export default defineSchema({
         v.literal("conversation"),
         v.literal("manual"),
         v.literal("file"),
+        v.literal("smart_assistant"),
       ),
     ),
     sourceId: v.optional(v.string()),
@@ -512,8 +571,11 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_user_deadline", ["userId", "deadline"])
+    .index("by_user_urgency", ["userId", "urgency"]) // filter by urgency
+    .index("by_user_created", ["userId", "createdAt"]) // recent tasks
     .index("by_project", ["projectId"])
     .index("by_user_project", ["userId", "projectId"])
+    .index("by_user_project_status", ["userId", "projectId", "status"]) // project tasks by status
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "status", "projectId"],
@@ -580,6 +642,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]) // recent files
     .index("by_conversation", ["conversationId"]),
 
   // Smart Manager Phase 1: Document chunks for RAG
@@ -661,6 +724,7 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_user_type", ["userId", "type"])
     .index("by_user_project", ["userId", "projectId"])
+    .index("by_user_status", ["userId", "status"]) // user's sources by status
     .index("by_status", ["status"]),
 
   // Knowledge chunks (vectorized content from sources)
@@ -707,7 +771,8 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_message", ["messageId"])
     .index("by_conversation", ["conversationId"])
-    .index("by_user_created", ["userId", "createdAt"]), // Phase 7: Sorted recent bookmarks
+    .index("by_user_created", ["userId", "createdAt"]) // Phase 7: Sorted recent bookmarks
+    .index("by_user_message", ["userId", "messageId"]),
 
   snippets: defineTable({
     userId: v.id("users"),
@@ -769,9 +834,11 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_updated", ["userId", "updatedAt"]) // for recent notes sorting
+    .index("by_user_pinned", ["userId", "isPinned"]) // pinned notes at top
     .index("by_source_message", ["sourceMessageId"]) // optional cleanup
     .index("by_share_id", ["shareId"]) // for public access
     .index("by_projectId", ["projectId"]) // for project stats and filtering
+    .index("by_user_project", ["userId", "projectId"]) // user's notes in project
     .searchIndex("search_notes", {
       searchField: "content",
       filterFields: ["userId"],
@@ -852,16 +919,16 @@ export default defineSchema({
     date: v.string(),
     model: v.string(),
     conversationId: v.optional(v.id("conversations")),
-    presentationId: v.optional(v.id("presentations")),
+    presentationId: v.optional(v.string()), // Deprecated: kept for existing data
     feature: v.optional(
       v.union(
         v.literal("chat"),
-        v.literal("slides"),
         v.literal("notes"),
         v.literal("tasks"),
         v.literal("files"),
         v.literal("memory"),
         v.literal("smart_assistant"),
+        v.literal("slides"), // Deprecated: kept for existing data
       ),
     ),
     operationType: v.optional(
@@ -879,12 +946,14 @@ export default defineSchema({
     cost: v.number(),
     messageCount: v.number(),
     warningsSent: v.optional(v.array(v.string())),
+    isByok: v.optional(v.boolean()), // true = user's own API key was used
   })
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"])
     .index("by_user_date_model", ["userId", "date", "model"])
+    .index("by_date", ["date"]) // admin analytics
+    .index("by_date_model", ["date", "model"]) // admin model usage
     .index("by_conversation", ["conversationId"])
-    .index("by_presentation", ["presentationId"])
     .index("by_user_feature", ["userId", "feature"]),
 
   templates: defineTable({
@@ -1064,6 +1133,20 @@ export default defineSchema({
     assignedTo: v.optional(v.id("users")),
     archivedAt: v.optional(v.number()),
 
+    // System-generated error context for automated feedback
+    errorContext: v.optional(
+      v.object({
+        conversationId: v.optional(v.id("conversations")),
+        messageId: v.optional(v.id("messages")),
+        modelId: v.optional(v.string()),
+        errorMessage: v.optional(v.string()),
+        errorType: v.optional(v.string()),
+        failedModels: v.optional(v.array(v.string())),
+        userAgent: v.optional(v.string()),
+        environment: v.optional(v.string()),
+      }),
+    ),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1194,6 +1277,7 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"])
+    .index("by_user_created", ["userId", "createdAt"]) // sorted notifications
     .index("by_created", ["createdAt"]), // For cleanup cron
 
   // Admin Settings (global platform settings)
@@ -1212,9 +1296,7 @@ export default defineSchema({
 
     // Message limits
     defaultDailyMessageLimit: v.number(),
-
-    // Presentation limits
-    defaultDailyPresentationLimit: v.optional(v.number()), // Default: 1
+    defaultDailyPresentationLimit: v.optional(v.number()), // Deprecated: kept for existing data
 
     // Pro Model Settings
     proModelsEnabled: v.optional(v.boolean()), // Global toggle, default: false
@@ -1362,326 +1444,6 @@ export default defineSchema({
     .index("by_type_status", ["type", "status"])
     .index("by_expires", ["expiresAt"]),
 
-  // ===== SLIDES FEATURE =====
-
-  // Presentations (AI-generated slide decks)
-  presentations: defineTable({
-    userId: v.id("users"),
-    conversationId: v.optional(v.id("conversations")), // Links to outline chat iteration
-    title: v.string(),
-    description: v.optional(v.string()), // AI-generated summary
-
-    // Generation state tracking
-    status: v.union(
-      v.literal("outline_pending"),
-      v.literal("outline_generating"),
-      v.literal("outline_complete"),
-      v.literal("design_generating"),
-      v.literal("design_complete"),
-      v.literal("slides_generating"),
-      v.literal("slides_complete"),
-      v.literal("stopped"),
-      v.literal("error"),
-    ),
-
-    // AI-generated design system (small fixed-schema metadata)
-    designSystem: v.optional(
-      v.object({
-        theme: v.string(),
-        themeRationale: v.string(),
-        primaryColor: v.string(),
-        secondaryColor: v.string(),
-        accentColor: v.string(),
-        backgroundColor: v.string(),
-        fontPairings: v.object({
-          heading: v.string(),
-          body: v.string(),
-        }),
-        visualStyle: v.string(),
-        layoutPrinciples: v.array(v.string()),
-        iconStyle: v.string(),
-        imageGuidelines: v.string(),
-        designInspiration: v.string(),
-      }),
-    ),
-
-    // Model selection
-    imageModel: v.string(),
-
-    // Slide style - affects text density and visual approach
-    slideStyle: v.optional(
-      v.union(v.literal("wordy"), v.literal("illustrative")),
-    ),
-
-    // Organization template (reusable brand constraints)
-    templateId: v.optional(v.id("designTemplates")),
-
-    // Progress tracking
-    totalSlides: v.number(),
-    generatedSlideCount: v.number(),
-
-    // New format fields
-    aspectRatio: v.optional(
-      v.union(v.literal("16:9"), v.literal("1:1"), v.literal("9:16")),
-    ),
-    imageStyle: v.optional(v.string()),
-
-    // PPTX export caching
-    pptxStorageId: v.optional(v.id("_storage")),
-    pptxGeneratedAt: v.optional(v.number()),
-
-    // PDF export caching (for social/stories)
-    pdfStorageId: v.optional(v.id("_storage")),
-    pdfGeneratedAt: v.optional(v.number()),
-
-    // Images ZIP export caching (for social/stories)
-    imagesZipStorageId: v.optional(v.id("_storage")),
-    imagesZipGeneratedAt: v.optional(v.number()),
-
-    // Card-based outline editor fields
-    overallFeedback: v.optional(v.string()), // General feedback not tied to specific slide
-    currentOutlineVersion: v.optional(v.number()), // Track latest version for queries
-    outlineStatus: v.optional(
-      v.union(
-        v.literal("draft"),
-        v.literal("feedback_pending"),
-        v.literal("regenerating"),
-        v.literal("ready"),
-      ),
-    ),
-
-    // Organization (matches conversations pattern)
-    starred: v.optional(v.boolean()),
-    pinned: v.optional(v.boolean()),
-
-    // Vector embedding for semantic search
-    embedding: v.optional(v.array(v.float64())),
-
-    // Timestamps
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_conversation", ["conversationId"])
-    .index("by_user_status", ["userId", "status"])
-    .index("by_user_pinned", ["userId", "pinned"])
-    .searchIndex("search_title", {
-      searchField: "title",
-      filterFields: ["userId"],
-    })
-    .vectorIndex("by_embedding", {
-      vectorField: "embedding",
-      dimensions: 1536,
-      filterFields: ["userId"],
-    }),
-
-  // Individual slides within presentations
-  slides: defineTable({
-    presentationId: v.id("presentations"),
-    userId: v.id("users"), // Denormalized for filtering
-
-    position: v.number(), // Slide order (1, 2, 3...)
-    slideType: v.union(
-      // Presentation types (16:9)
-      v.literal("title"),
-      v.literal("section"),
-      v.literal("content"),
-      // Carousel/Story types (1:1, 9:16)
-      v.literal("hook"),
-      v.literal("rehook"),
-      v.literal("value"),
-      v.literal("cta"),
-      // Narrative beat types (emotional arc)
-      v.literal("context"),
-      v.literal("validation"),
-      v.literal("reality"),
-      v.literal("emotional"),
-      v.literal("reframe"),
-      v.literal("affirmation"),
-    ),
-
-    // Text content (from outline, editable)
-    title: v.string(),
-    content: v.string(), // Markdown bullets or supporting text
-    speakerNotes: v.optional(v.string()),
-    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
-
-    // Image generation state
-    imageStatus: v.union(
-      v.literal("pending"),
-      v.literal("generating"),
-      v.literal("complete"),
-      v.literal("error"),
-    ),
-    imageStorageId: v.optional(v.id("_storage")),
-    imagePrompt: v.optional(v.string()),
-    imageError: v.optional(v.string()),
-    hasEmbeddedText: v.optional(v.boolean()), // True if text baked into image (illustrative style)
-
-    // Cost tracking (per slide)
-    generationCost: v.optional(v.number()),
-    inputTokens: v.optional(v.number()),
-    outputTokens: v.optional(v.number()),
-
-    // Timestamps
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_presentation", ["presentationId"])
-    .index("by_presentation_position", ["presentationId", "position"])
-    .index("by_presentation_type", ["presentationId", "slideType"])
-    .index("by_user", ["userId"])
-    .index("by_image_status", ["imageStatus"]),
-
-  // Outline items (draft slides before approval, supports per-slide feedback)
-  outlineItems: defineTable({
-    presentationId: v.id("presentations"),
-    userId: v.id("users"),
-
-    position: v.number(), // Slide order (1, 2, 3...)
-    slideType: v.union(
-      // Presentation types (16:9)
-      v.literal("title"),
-      v.literal("section"),
-      v.literal("content"),
-      // Carousel/Story types (1:1, 9:16)
-      v.literal("hook"),
-      v.literal("rehook"),
-      v.literal("value"),
-      v.literal("cta"),
-      // Narrative beat types (emotional arc)
-      v.literal("context"),
-      v.literal("validation"),
-      v.literal("reality"),
-      v.literal("emotional"),
-      v.literal("reframe"),
-      v.literal("affirmation"),
-    ),
-
-    // Content (from parsed outline)
-    title: v.string(),
-    content: v.string(), // Markdown bullets or supporting text
-    speakerNotes: v.optional(v.string()),
-    visualDirection: v.optional(v.string()), // Mood, colors, imagery guidance
-
-    // Per-slide feedback from user
-    feedback: v.optional(v.string()),
-
-    // Version tracking (for future history feature)
-    // Current impl: always query latest version, delete old on regeneration
-    version: v.number(), // 1, 2, 3... increments on regeneration
-
-    // Streaming status: partial during generation, complete when done
-    status: v.optional(v.union(v.literal("partial"), v.literal("complete"))),
-
-    // Timestamps
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_presentation", ["presentationId"])
-    .index("by_presentation_position", ["presentationId", "position"])
-    .index("by_presentation_version", ["presentationId", "version"])
-    .index("by_presentation_status", ["presentationId", "status"]),
-
-  // Reusable design templates (organization brand constraints)
-  designTemplates: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    description: v.optional(v.string()),
-
-    // Source files (stored in Convex storage)
-    sourceFiles: v.array(
-      v.object({
-        storageId: v.id("_storage"),
-        name: v.string(),
-        mimeType: v.string(),
-        type: v.union(v.literal("pdf"), v.literal("pptx"), v.literal("image")),
-      }),
-    ),
-
-    // Extracted design constraints (from multimodal analysis)
-    extractedDesign: v.optional(
-      v.object({
-        colors: v.object({
-          primary: v.string(),
-          secondary: v.string(),
-          accent: v.optional(v.string()),
-          background: v.string(),
-          text: v.string(),
-        }),
-        fonts: v.object({
-          heading: v.string(),
-          body: v.string(),
-          fallbackHeading: v.optional(v.string()),
-          fallbackBody: v.optional(v.string()),
-        }),
-        logoGuidelines: v.optional(
-          v.object({
-            position: v.string(),
-            size: v.string(),
-            description: v.optional(v.string()),
-          }),
-        ),
-        layoutPatterns: v.array(v.string()),
-        visualStyle: v.string(),
-        iconStyle: v.optional(v.string()),
-        analysisNotes: v.string(),
-      }),
-    ),
-
-    // Logo asset (extracted from template for slide generation)
-    logoStorageId: v.optional(v.id("_storage")),
-
-    // Processing state
-    status: v.union(
-      v.literal("pending"),
-      v.literal("processing"),
-      v.literal("complete"),
-      v.literal("error"),
-    ),
-    error: v.optional(v.string()),
-
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_status", ["userId", "status"]),
-
-  // Presentation sessions (for remote control & multi-device sync)
-  presentationSessions: defineTable({
-    presentationId: v.id("presentations"),
-    userId: v.id("users"),
-
-    // Session identification
-    sessionCode: v.string(), // 6-digit code for remote pairing
-    sessionCodeExpiresAt: v.number(), // Code expires after 10 minutes
-
-    // Session state
-    isActive: v.boolean(),
-    currentSlide: v.number(), // Current slide index (0-based)
-    totalSlides: v.number(),
-
-    // Timer state (synced to all connected devices)
-    timerStartedAt: v.optional(v.number()),
-    timerPausedAt: v.optional(v.number()),
-    timerElapsed: v.optional(v.number()), // Accumulated elapsed time in ms
-
-    // Presenter tools state
-    laserEnabled: v.optional(v.boolean()),
-    drawingEnabled: v.optional(v.boolean()),
-
-    // Connected devices tracking
-    lastPresenterPingAt: v.optional(v.number()),
-    lastRemotePingAt: v.optional(v.number()),
-
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_session_code", ["sessionCode", "isActive"])
-    .index("by_presentation", ["presentationId", "isActive"])
-    .index("by_user", ["userId"])
-    .index("by_user_active", ["userId", "isActive"]),
-
   // Canvas documents (split-screen document editor)
   canvasDocuments: defineTable({
     userId: v.id("users"),
@@ -1789,4 +1551,58 @@ export default defineSchema({
     version: v.string(), // Bible version (e.g., "WEB")
     cachedAt: v.number(),
   }).index("by_osis", ["osis"]),
+
+  // BYOK (Bring Your Own Key) - user API keys for AI services
+  userApiKeys: defineTable({
+    userId: v.id("users"),
+    byokEnabled: v.boolean(),
+
+    // Encrypted keys (reuse existing encryption.ts)
+    encryptedVercelGatewayKey: v.optional(v.string()),
+    encryptedOpenRouterKey: v.optional(v.string()),
+    encryptedGroqKey: v.optional(v.string()),
+    encryptedDeepgramKey: v.optional(v.string()),
+
+    // Encryption IVs (colon-separated like BYOD)
+    encryptionIVs: v.optional(v.string()), // "vercel:openrouter:groq:deepgram"
+    authTags: v.optional(v.string()), // "vercel:openrouter:groq:deepgram"
+
+    // Validation timestamps
+    lastValidated: v.optional(
+      v.object({
+        vercelGateway: v.optional(v.number()),
+        openRouter: v.optional(v.number()),
+        groq: v.optional(v.number()),
+        deepgram: v.optional(v.number()),
+      }),
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // CLI API Keys - authentication for CLI app
+  cliApiKeys: defineTable({
+    userId: v.id("users"),
+    keyHash: v.string(), // SHA-256 hash (plaintext never stored)
+    keyPrefix: v.string(), // First 12 chars for display: "blah_abc1..."
+    name: v.string(), // Auto: "CLI Login - Dec 31, 2025"
+    lastUsedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_key_hash", ["keyHash"]),
+
+  // Generation locks - prevent concurrent message generation per conversation
+  generationLocks: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    messageId: v.optional(v.id("messages")),
+    comparisonGroupId: v.optional(v.string()),
+    pendingCount: v.number(), // Tracks parallel models in comparison mode
+    lockedAt: v.number(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"]),
 });

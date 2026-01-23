@@ -486,7 +486,7 @@ export const getNote = query({
 /**
  * List all notes for current user (sorted by updated date)
  */
-export const listNotes = query({
+export const list = query({
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return [];
@@ -498,6 +498,9 @@ export const listNotes = query({
       .take(100); // Limit to most recent 100
   },
 });
+
+// Backward compatibility alias
+export const listNotes = list;
 
 export const getNotesFromMessage = query({
   args: {
@@ -956,6 +959,37 @@ export const getPublicNote = query({
       createdAt: note.createdAt,
       updatedAt: note.updatedAt,
     };
+  },
+});
+
+/**
+ * Trigger AI auto-tagging for a note
+ * Reuses existing extractAndApplyTags logic
+ */
+export const triggerAutoTag = action({
+  args: { noteId: v.id("notes") },
+  handler: async (ctx, { noteId }): Promise<{ appliedTags: string[] }> => {
+    // Verify ownership
+    const note = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getNote,
+      { noteId },
+    )) as { _id: string; userId: string; content: string } | null;
+    if (!note) throw new Error("Note not found");
+
+    const user = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getCurrentUser,
+      {},
+    )) as { _id: string } | null;
+    if (!user || note.userId !== user._id) throw new Error("Not authorized");
+
+    // Trigger auto-tagging
+    return (await (ctx.runAction as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.notes.tags.extractAndApplyTags,
+      { noteId },
+    )) as { appliedTags: string[] };
   },
 });
 

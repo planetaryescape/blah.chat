@@ -15,8 +15,8 @@ export function MessageListSkeleton({
   const userMessageClass = cn(
     "relative rounded-[2rem] rounded-tr-sm",
     "px-5 py-3 sm:px-6 sm:py-4 text-sm sm:text-base leading-relaxed",
-    "bg-primary/5",
-    "border border-primary/10",
+    "bg-primary/10",
+    "border border-primary/20",
   );
 
   const assistantMessageClass = cn(
@@ -45,7 +45,7 @@ export function MessageListSkeleton({
   ];
 
   return (
-    <div className="flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
+    <div className="scroll-anchor-ignore flex-1 w-full min-w-0 relative flex flex-col overflow-hidden">
       <div
         className="flex-1 w-full min-w-0 overflow-y-auto relative"
         style={{
@@ -68,7 +68,7 @@ export function MessageListSkeleton({
             <div
               key={i}
               className={cn(
-                "col-start-2 flex w-full mb-10",
+                "col-start-2 flex w-full pb-10",
                 msg.isUser ? "justify-end" : "justify-start",
               )}
             >
@@ -89,7 +89,7 @@ export function MessageListSkeleton({
                         className={cn(
                           "h-4",
                           line.width,
-                          msg.isUser && "ml-auto",
+                          msg.isUser && "ml-auto bg-primary/30",
                         )}
                       />
                     ))}

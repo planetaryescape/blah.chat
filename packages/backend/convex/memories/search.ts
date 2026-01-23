@@ -11,6 +11,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { internalAction, internalQuery } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { buildMemoryRerankPrompt } from "../lib/prompts/operational/memoryRerank";
 import { applyRRF } from "../lib/utils/search";
 
@@ -68,16 +69,19 @@ async function rerankMemories(
 
     // Fallback to original order if parsing fails
     if (indices.length === 0) {
-      console.log(
-        "[Rerank] Failed to parse LLM response, using original order",
-      );
+      logger.warn("Failed to parse LLM response, using original order", {
+        tag: "Rerank",
+      });
       return candidates;
     }
 
     const reranked = indices.map((i) => candidates[i]);
     return reranked;
   } catch (error) {
-    console.error("[Rerank] Failed, using original order:", error);
+    logger.error("Rerank failed, using original order", {
+      tag: "Rerank",
+      error: String(error),
+    });
     return candidates;
   }
 }
@@ -90,18 +94,35 @@ export const getIdentityMemories = internalQuery({
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
-    const identityCategories = ["identity", "preference", "relationship"];
     const now = Date.now();
 
-    // Fetch all memories for user, then filter in JavaScript
-    // (Convex FilterBuilder doesn't support isNull checks)
-    const allMemories = await ctx.db
-      .query("memories")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
+    // OPTIMIZATION: Use indexed queries for each identity category (O(1) vs O(n))
+    // Parallel fetch from compound index by_user_category
+    const [identity, preference, relationship] = await Promise.all([
+      ctx.db
+        .query("memories")
+        .withIndex("by_user_category", (q) =>
+          q.eq("userId", args.userId).eq("metadata.category", "identity"),
+        )
+        .collect(),
+      ctx.db
+        .query("memories")
+        .withIndex("by_user_category", (q) =>
+          q.eq("userId", args.userId).eq("metadata.category", "preference"),
+        )
+        .collect(),
+      ctx.db
+        .query("memories")
+        .withIndex("by_user_category", (q) =>
+          q.eq("userId", args.userId).eq("metadata.category", "relationship"),
+        )
+        .collect(),
+    ]);
 
-    // Filter by quality and category
-    const filtered = allMemories.filter((m) => {
+    const allIdentityMemories = [...identity, ...preference, ...relationship];
+
+    // Filter by quality (confidence, expiration, superseded) - minimal JS filtering
+    const filtered = allIdentityMemories.filter((m) => {
       // Skip low confidence
       if (m.metadata?.confidence && m.metadata.confidence < MIN_CONFIDENCE) {
         return false;
@@ -114,14 +135,6 @@ export const getIdentityMemories = internalQuery({
 
       // Skip superseded
       if (m.metadata?.supersededBy) {
-        return false;
-      }
-
-      // Only identity categories
-      if (
-        !m.metadata?.category ||
-        !identityCategories.includes(m.metadata.category)
-      ) {
         return false;
       }
 
@@ -195,7 +208,10 @@ export const vectorSearch = internalAction({
 
       return memories;
     } catch (error) {
-      console.error("[VectorSearch] Failed, falling back to empty:", error);
+      logger.error("VectorSearch failed, falling back to empty", {
+        tag: "VectorSearch",
+        error: String(error),
+      });
       // Fallback: return empty (graceful degradation)
       return [];
     }
@@ -238,11 +254,15 @@ export const hybridSearch = internalAction({
       ]);
 
       // 3. Merge with RRF
-      const merged = applyRRF(textResults, vectorResults, 60);
+      const merged = applyRRF(
+        textResults,
+        vectorResults,
+        60,
+      ) as (Doc<"memories"> & { score: number })[];
 
       // 4. Filter by quality (confidence, expiration, superseded)
       const now = Date.now();
-      const filtered = merged.filter((m: Doc<"memories">) => {
+      const filtered = merged.filter((m) => {
         // Skip low confidence
         if (m.metadata?.confidence && m.metadata.confidence < MIN_CONFIDENCE) {
           return false;
@@ -261,9 +281,11 @@ export const hybridSearch = internalAction({
         return true;
       });
 
-      console.log(
-        `[Memory] Filtered ${merged.length - filtered.length} memories (confidence/expiration/superseded)`,
-      );
+      logger.info("Filtered memories", {
+        tag: "Memory",
+        filteredCount: merged.length - filtered.length,
+        reason: "confidence/expiration/superseded",
+      });
 
       // 5. Take top 20 candidates for reranking
       const candidates = filtered.slice(0, 20);
@@ -279,7 +301,7 @@ export const hybridSearch = internalAction({
       // 7. Return top N after reranking
       return reranked.slice(0, limit);
     } catch (error) {
-      console.error("Hybrid search failed:", error);
+      logger.error("Hybrid search failed", { error: String(error) });
       // Fallback to empty results on error
       return [];
     }

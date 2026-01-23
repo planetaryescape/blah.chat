@@ -12,6 +12,7 @@ import {
   internalMutation,
   internalQuery,
 } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
 // text-embedding-3-small has 8192 token limit (~4 chars/token on average)
@@ -38,7 +39,10 @@ export const generateEmbedding = internalAction({
     } | null;
 
     if (!task) {
-      console.error("Task not found:", args.taskId);
+      logger.error("task not found", {
+        tag: "TaskEmbeddings",
+        taskId: args.taskId,
+      });
       return;
     }
 
@@ -92,11 +96,11 @@ export const generateEmbedding = internalAction({
         embedding,
       });
     } catch (error) {
-      console.error(
-        "Failed to generate embedding for task:",
-        args.taskId,
-        error,
-      );
+      logger.error("failed to generate embedding for task", {
+        tag: "TaskEmbeddings",
+        taskId: args.taskId,
+        error: String(error),
+      });
       await ctx.runMutation(internal.tasks.embeddings.updateEmbeddingStatus, {
         taskId: args.taskId,
         status: "failed",
@@ -183,7 +187,11 @@ export const generateBatchEmbeddings = internalAction({
           embedding,
         });
       } catch (error) {
-        console.error("Failed to embed task:", task._id, error);
+        logger.error("failed to embed task", {
+          tag: "TaskEmbeddings",
+          taskId: task._id,
+          error: String(error),
+        });
         await ctx.runMutation(internal.tasks.embeddings.updateEmbeddingStatus, {
           taskId: task._id as any,
           status: "failed",
@@ -250,18 +258,21 @@ export const updateEmbeddingStatus = internalMutation({
   },
 });
 
+// Backfill query: intentional full scan - runs infrequently during embedding migrations
 export const getTasksWithoutEmbeddings = internalQuery({
   args: {
     cursor: v.optional(v.string()),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
+    // Note: Full table scan is acceptable here - this is a backfill operation
+    // that runs infrequently and needs to find all tasks without embeddings
     const result = await ctx.db
       .query("tasks")
       .filter((q) => q.eq(q.field("embedding"), undefined))
       .paginate({ cursor: args.cursor || null, numItems: args.limit });
 
-    // Get total count
+    // Get total count (full scan for backfill progress tracking)
     const total = await ctx.db
       .query("tasks")
       .filter((q) => q.eq(q.field("embedding"), undefined))

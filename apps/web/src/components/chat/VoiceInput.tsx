@@ -12,8 +12,14 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { analytics } from "@/lib/analytics";
+import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { cn } from "@/lib/utils";
 
 interface VoiceInputProps {
@@ -44,6 +50,10 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
     // Phase 4: Use new preference hooks
     const sttEnabled = useUserPreference("sttEnabled");
     const sttProvider = useUserPreference("sttProvider");
+
+    // BYOK check for Groq key
+    const { byok, getSTTErrorMessage } = useApiKeyValidation();
+    const isByokGroqMissing = byok.enabled && !byok.hasGroqKey;
 
     const startRecording = useCallback(async () => {
       if (!sttEnabled) {
@@ -197,13 +207,13 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
       return null; // Hide button if STT disabled
     }
 
-    return (
+    const button = (
       <Button
         type="button"
         variant="ghost"
         size="icon"
         onClick={toggleRecording}
-        disabled={isDisabled || isProcessing || !user}
+        disabled={isDisabled || isProcessing || !user || isByokGroqMissing}
         aria-label={
           isRecording ? "Stop recording" : `Start voice input (${sttProvider})`
         }
@@ -241,6 +251,20 @@ export const VoiceInput = forwardRef<VoiceInputRef, VoiceInputProps>(
         </div>
       </Button>
     );
+
+    // Show tooltip when BYOK enabled but Groq key missing
+    if (isByokGroqMissing) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent>
+            {getSTTErrorMessage() || "Add Groq API key in Settings → Advanced"}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return button;
   },
 );
 

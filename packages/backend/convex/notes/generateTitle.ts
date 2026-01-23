@@ -6,6 +6,7 @@ import { getModel } from "@/lib/ai/registry";
 import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { NOTE_TITLE_PROMPT } from "../lib/prompts/operational/titleGeneration";
 
 /**
@@ -24,8 +25,8 @@ export const generateTitle = action({
 
     const user = (await (ctx.runQuery as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-      internal.lib.helpers.getUserByClerkId,
-      { clerkId: identity.subject },
+      internal.lib.helpers.getCurrentUser,
+      {},
     )) as { _id: string } | null;
 
     // Truncate content if too long (first 500 chars should be enough for title generation)
@@ -78,7 +79,10 @@ ${truncatedContent}`,
 
       return { title };
     } catch (error) {
-      console.error("Failed to generate note title:", error);
+      logger.error("failed to generate note title", {
+        tag: "NoteTitle",
+        error: String(error),
+      });
       throw new Error("Failed to generate title");
     }
   },

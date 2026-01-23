@@ -3,11 +3,13 @@
 import { useLazyMathRenderer } from "@/hooks/useLazyMathRenderer";
 import { useMathAccessibility } from "@/hooks/useMathAccessibility";
 import { useMathCopyButtons } from "@/hooks/useMathCopyButtons";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useStreamBuffer } from "@/hooks/useStreamBuffer";
+import { useWorkerMarkdown } from "@/hooks/useWorkerMarkdown";
 import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
-import { Component, memo, type ReactNode, useRef } from "react";
+import { Component, memo, type ReactNode, useMemo, useRef } from "react";
 import { Streamdown } from "streamdown";
 import { BibleVerseLink } from "./BibleVerseLink";
 import { CodeBlock } from "./CodeBlock";
@@ -300,31 +302,40 @@ export function MarkdownContent({
   isStreaming = false,
 }: MarkdownContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Create markdown components (including theme-aware Mermaid)
   const markdownComponents = createMarkdownComponents();
 
-  // Normalize LaTeX delimiters before other processing
-  // AI models often output \(...\) but Streamdown expects $$...$$
-  const normalizedContent = normalizeLatexDelimiters(content);
+  // MEMOIZED: Expensive O(n) regex processing - only recompute when content changes
+  // This prevents redundant processing during RAF-based streaming (~60 renders/sec)
+  const processedContent = useMemo(() => {
+    // Normalize LaTeX delimiters before other processing
+    // AI models often output \(...\) but Streamdown expects $$...$$
+    const normalizedContent = normalizeLatexDelimiters(content);
 
-  // Process citations and Bible verses before buffering
-  // This ensures the buffer sees the "final" linkified version
-  // If a [1] appears, the processed content will change non-monotonically
-  // prompting useStreamBuffer to reset buffer and show the new content immediately
-  const withCitations = processCitations(normalizedContent);
-  const processedContent = processBibleVerses(withCitations);
+    // Process citations and Bible verses before buffering
+    // This ensures the buffer sees the "final" linkified version
+    // If a [1] appears, the processed content will change non-monotonically
+    // prompting useStreamBuffer to reset buffer and show the new content immediately
+    const withCitations = processCitations(normalizedContent);
+    return processBibleVerses(withCitations);
+  }, [content]);
 
-  // Buffer hook smoothly reveals characters from server chunks
+  // Buffer hook smoothly reveals words from server chunks
+  // Bypass buffering if user prefers reduced motion (instant text display)
   const { displayContent, hasBufferedContent } = useStreamBuffer(
     processedContent,
-    isStreaming,
+    isStreaming && !prefersReducedMotion,
     {
-      charsPerSecond: 200,
-      minTokenSize: 3,
-      adaptiveThreshold: 5000,
+      wordsPerSecond: 30, // Smooth word-by-word reveal
     },
   );
+
+  // Web worker for large completed messages (≥5KB)
+  // Offloads expensive markdown parsing to worker thread to keep UI at 60fps
+  // Returns null during streaming or for small content (not worth overhead)
+  const { html: workerHtml } = useWorkerMarkdown(content, isStreaming);
 
   // Phase 4A: Lazy rendering for mobile performance
   const { observeRef, isRendered, isMobile } = useLazyMathRenderer({
@@ -352,6 +363,18 @@ export function MarkdownContent({
       <div ref={observeRef} className="markdown-content prose">
         <MathSkeleton isDisplay />
       </div>
+    );
+  }
+
+  // Use worker-rendered HTML for large completed messages
+  // XSS-SAFE: HTML sanitized by DOMPurify in worker (see worker.ts parseMarkdown)
+  if (workerHtml && !isStreaming) {
+    return (
+      <div
+        ref={containerRef}
+        className="markdown-content prose"
+        dangerouslySetInnerHTML={{ __html: workerHtml }}
+      />
     );
   }
 

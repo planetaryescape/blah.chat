@@ -5,13 +5,18 @@ import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
-import { isValidModel } from "@/lib/ai/utils";
+import { getModelConfig, isValidModel } from "@/lib/ai/utils";
+import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 
 interface UseChatModelSelectionOptions {
-  conversationId: Id<"conversations">;
+  conversationId: Id<"conversations"> | undefined;
   conversation: Doc<"conversations"> | null | undefined;
   user: Doc<"users"> | null | undefined;
   defaultModel: string | undefined;
+  /** Token usage for context limit checking */
+  tokenUsage?: { totalTokens: number } | null;
+  /** Callback when model switch is blocked due to context exceeding target model's limit */
+  onModelBlocked?: (targetModelId: string, targetContextWindow: number) => void;
 }
 
 interface UseChatModelSelectionReturn {
@@ -37,6 +42,8 @@ export function useChatModelSelection({
   conversation,
   user,
   defaultModel,
+  tokenUsage,
+  onModelBlocked,
 }: UseChatModelSelectionOptions): UseChatModelSelectionReturn {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);
@@ -79,6 +86,17 @@ export function useChatModelSelection({
 
   const handleModelChange = useCallback(
     async (modelId: string) => {
+      // Check if context would exceed target model's limit
+      if (tokenUsage && onModelBlocked) {
+        const targetConfig = getModelConfig(modelId);
+        const targetContextWindow =
+          targetConfig?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
+        if (tokenUsage.totalTokens > targetContextWindow) {
+          onModelBlocked(modelId, targetContextWindow);
+          return; // Block the switch
+        }
+      }
+
       // Optimistic update - shows immediately while persisting
       setOptimisticModel(modelId);
 
@@ -99,7 +117,7 @@ export function useChatModelSelection({
       }
       // New conversations: model saved when first message sent (chat.ts:75)
     },
-    [conversationId, updateModelMutation],
+    [conversationId, updateModelMutation, tokenUsage, onModelBlocked],
   );
 
   return {

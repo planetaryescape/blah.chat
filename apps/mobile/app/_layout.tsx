@@ -1,8 +1,10 @@
 import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import * as Font from "expo-font";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +17,7 @@ import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
 import { convex } from "@/lib/convex";
 import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 
 // Keep splash screen visible while loading fonts
 SplashScreen.preventAutoHideAsync();
@@ -80,24 +83,34 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
-          {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-          <ClerkProvider
-            publishableKey={clerkPublishableKey}
-            tokenCache={tokenCache}
+          {/* Global Nebula Background */}
+          <LinearGradient
+            colors={[palette.void, palette.nebula, palette.void]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ flex: 1 }}
           >
             {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-            <ClerkLoaded>
-              <PersistQueryClientProvider
-                client={queryClient}
-                persistOptions={{ persister }}
-              >
-                <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                  <RootLayoutNav />
-                  <StatusBar style="light" />
-                </ConvexProviderWithClerk>
-              </PersistQueryClientProvider>
-            </ClerkLoaded>
-          </ClerkProvider>
+            <ClerkProvider
+              publishableKey={clerkPublishableKey}
+              tokenCache={tokenCache}
+            >
+              {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
+              <ClerkLoaded>
+                <PersistQueryClientProvider
+                  client={queryClient}
+                  persistOptions={{ persister }}
+                >
+                  <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+                    <BottomSheetModalProvider>
+                      <RootLayoutNav />
+                      <StatusBar style="light" />
+                    </BottomSheetModalProvider>
+                  </ConvexProviderWithClerk>
+                </PersistQueryClientProvider>
+              </ClerkLoaded>
+            </ClerkProvider>
+          </LinearGradient>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

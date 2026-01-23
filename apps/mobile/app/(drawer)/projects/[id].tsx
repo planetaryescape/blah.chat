@@ -2,10 +2,12 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "convex/react";
+import * as DocumentPicker from "expo-document-picker";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { MessageSquare, Trash2 } from "lucide-react-native";
+import { MessageSquare, Paperclip, Plus, Trash2 } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -14,10 +16,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { ProjectFileCard } from "@/components/projects/ProjectFileCard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
+import { haptics } from "@/lib/haptics";
 import { colors } from "@/lib/theme/colors";
 import { fonts } from "@/lib/theme/fonts";
 import { radius, spacing } from "@/lib/theme/spacing";
+import { uploadToConvex } from "@/lib/upload";
 
 interface Project {
   _id: string;
@@ -48,6 +53,34 @@ export default function ProjectDetailScreen() {
   const updateProject = useMutation(api.projects.update);
   // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
   const deleteProject = useMutation(api.projects.deleteProject);
+
+  // File-related queries and mutations
+  // @ts-ignore - Type depth exceeded with complex Convex query (94+ modules)
+  const resources = useQuery(api.projects.resources.getProjectResources, {
+    projectId,
+  }) as
+    | {
+        files: Array<{
+          _id: string;
+          name: string;
+          mimeType: string;
+          size: number;
+        }>;
+      }
+    | undefined;
+
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  const saveFile = useMutation(api.files.saveFile);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+  const addFileToProject = useMutation(api.projects.files.addFileToProject);
+  const removeFileFromProject = useMutation(
+    // @ts-ignore - Type depth exceeded with complex Convex mutation (94+ modules)
+    api.projects.files.removeFileFromProject,
+  );
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleStartEdit = useCallback(() => {
     if (project) {
@@ -115,6 +148,90 @@ export default function ProjectDetailScreen() {
       ],
     );
   }, [projectId, deleteProject, router]);
+
+  const handleUploadFile = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const file = result.assets[0];
+      setIsUploading(true);
+      haptics.light();
+
+      // Upload to Convex storage
+      const storageId = await uploadToConvex({
+        fileUri: file.uri,
+        generateUploadUrl: generateUploadUrl as () => Promise<string>,
+        mimeType: file.mimeType || "application/octet-stream",
+      });
+
+      // Save file record
+      const fileId = await (
+        saveFile as (args: {
+          storageId: string;
+          name: string;
+          mimeType: string;
+          size: number;
+        }) => Promise<string>
+      )({
+        storageId,
+        name: file.name,
+        mimeType: file.mimeType || "application/octet-stream",
+        size: file.size || 0,
+      });
+
+      // Link to project
+      await (
+        addFileToProject as (args: {
+          projectId: Id<"projects">;
+          fileId: Id<"files">;
+        }) => Promise<void>
+      )({
+        projectId,
+        fileId: fileId as Id<"files">,
+      });
+
+      haptics.success();
+    } catch (error) {
+      console.error("File upload failed:", error);
+      Alert.alert(
+        "Upload Failed",
+        "Could not upload the file. Please try again.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  }, [projectId, generateUploadUrl, saveFile, addFileToProject]);
+
+  const handleDeleteFile = useCallback(
+    (fileId: string, fileName: string) => {
+      Alert.alert("Remove File", `Remove "${fileName}" from this project?`, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            haptics.light();
+            await (
+              removeFileFromProject as (args: {
+                projectId: Id<"projects">;
+                fileId: Id<"files">;
+              }) => Promise<void>
+            )({
+              projectId,
+              fileId: fileId as Id<"files">,
+            });
+            haptics.success();
+          },
+        },
+      ]);
+    },
+    [projectId, removeFileFromProject],
+  );
 
   if (project === undefined) {
     return (
@@ -262,6 +379,46 @@ export default function ProjectDetailScreen() {
                 </Text>
               </View>
             </View>
+
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Files</Text>
+                <TouchableOpacity
+                  onPress={handleUploadFile}
+                  disabled={isUploading}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Plus size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              </View>
+              {resources?.files && resources.files.length > 0 ? (
+                <View style={styles.filesList}>
+                  {resources.files.map((file) => (
+                    <ProjectFileCard
+                      key={file._id}
+                      file={file}
+                      onDelete={() => handleDeleteFile(file._id, file.name)}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyFiles}>
+                  <Paperclip
+                    size={32}
+                    color={colors.border}
+                    strokeWidth={1.5}
+                  />
+                  <Text style={styles.emptyText}>No files yet</Text>
+                  <Text style={styles.emptySubtext}>
+                    Tap + to attach files to this project
+                  </Text>
+                </View>
+              )}
+            </View>
           </>
         )}
       </ScrollView>
@@ -366,6 +523,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     gap: spacing.sm,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+  },
+  filesList: {
+    gap: spacing.xs,
+  },
+  emptyFiles: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
   emptyText: {
     fontFamily: fonts.bodyMedium,
     fontSize: 15,
@@ -417,6 +588,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
     alignItems: "center",
+    marginBottom: spacing.xl,
   },
   cancelButtonText: {
     fontFamily: fonts.bodySemibold,

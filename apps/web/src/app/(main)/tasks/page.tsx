@@ -1,6 +1,8 @@
 "use client";
 
 import { Suspense } from "react";
+import { FeatureDisabled } from "@/components/ui/feature-disabled";
+import { useUserPreference } from "@/hooks/useUserPreference";
 import { TasksDashboard } from "./_components/TasksDashboard";
 
 function TasksDashboardFallback() {
@@ -14,6 +16,12 @@ function TasksDashboardFallback() {
 }
 
 export default function TasksPage() {
+  const showTasks = useUserPreference("showTasks");
+
+  if (!showTasks) {
+    return <FeatureDisabled feature="Tasks" settingKey="showTasks" />;
+  }
+
   return (
     <Suspense fallback={<TasksDashboardFallback />}>
       <TasksDashboard />

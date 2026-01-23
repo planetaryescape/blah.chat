@@ -8,7 +8,7 @@ import { buildReasoningOptions } from "@/lib/ai/reasoning";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
@@ -29,14 +29,18 @@ import {
   detectCreditsError,
   estimateWastedCost,
 } from "./lib/errorTracking";
+import { logger } from "./lib/logger";
 import type { MemoryExtractionLevel } from "./lib/prompts/operational/memoryExtraction";
 import {
   buildSummarizationPrompt,
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
-import { parseOutlineMarkdown } from "./lib/slides/parseOutline";
-import { calculateConversationTokensAsync } from "./tokens/counting";
+import { StreamingTextBuffer } from "./lib/utils/utf8Safe";
+import {
+  calculateConversationTokensAsync,
+  estimateTokens,
+} from "./tokens/counting";
 
 // Re-export generation submodules
 export * as image from "./generation/image";
@@ -44,10 +48,23 @@ export * as image from "./generation/image";
 /** Maximum tool execution steps before stopping (prevents runaway loops) */
 const MAX_TOOL_STEPS = 15;
 
+/**
+ * Maximum auto-retry attempts when auto-router selected model fails.
+ * With `retryCount < MAX`, allows up to (MAX-1) retries.
+ * Example: MAX=3 means retryCount 1,2 allowed = 2 retries = 3 total attempts.
+ */
+const _MAX_AUTO_RETRY_ATTEMPTS = 3;
+
+// Minimal message shape for fast inference (client sends, server skips DB fetch)
+const passedMessageValidator = v.object({
+  role: v.union(v.literal("user"), v.literal("assistant")),
+  content: v.string(),
+  model: v.optional(v.string()),
+});
+
 export const generateResponse = internalAction({
   args: {
     conversationId: v.id("conversations"),
-    assistantMessageId: v.id("messages"),
     modelId: v.string(),
     userId: v.id("users"),
     thinkingEffort: v.optional(
@@ -58,83 +75,219 @@ export const generateResponse = internalAction({
         v.literal("high"),
       ),
     ),
+    comparisonGroupId: v.optional(v.string()), // For comparison mode
+    existingMessageId: v.optional(v.id("messages")), // For regeneration (reuse existing message)
     systemPromptOverride: v.optional(v.string()), // For consolidation
+    /** Messages from client for fast inference (skip DB fetch) */
+    passedMessages: v.optional(v.array(passedMessageValidator)),
+    /** Models to exclude from auto-router (failed in previous attempts) */
+    excludedModels: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     // Timing variables for performance metrics
     const generationStartTime = Date.now();
     let firstTokenTime: number | undefined;
 
-    try {
-      // Check message status to detect resilient generation (resumed after refresh)
-      const message = (await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.messages.get,
-        {
-          messageId: args.assistantMessageId,
-        },
-      )) as Doc<"messages"> | null;
-      const wasAlreadyGenerating = message?.status === "generating";
-      const isResumedAfterRefresh =
-        wasAlreadyGenerating && message?.partialContent;
+    // AUTO ROUTER: If model is "auto", route to optimal model
+    let modelId = args.modelId;
+    const _wasAutoSelected = modelId === "auto";
+    let routingDecision:
+      | {
+          selectedModelId: string;
+          classification: {
+            primaryCategory: string;
+            secondaryCategory?: string;
+            complexity: string;
+            requiresVision: boolean;
+            requiresLongContext: boolean;
+            requiresReasoning: boolean;
+            confidence: number;
+          };
+          reasoning: string;
+        }
+      | undefined;
 
-      // 1. Mark generation started
-      await ctx.runMutation(internal.messages.updatePartialContent, {
-        messageId: args.assistantMessageId,
-        partialContent: "",
+    if (modelId === "auto") {
+      // Get user's router preferences
+      const [costBias, speedBias] = await Promise.all([
+        (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.users.getUserPreferenceByUserId,
+          { userId: args.userId, key: "autoRouterCostBias" },
+        ) as Promise<number | null>,
+        (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.users.getUserPreferenceByUserId,
+          { userId: args.userId, key: "autoRouterSpeedBias" },
+        ) as Promise<number | null>,
+      ]);
+
+      // Get the last user message for classification
+      const lastUserMessage = args.passedMessages
+        ?.filter((m) => m.role === "user")
+        .pop();
+      const userMessageContent = lastUserMessage?.content ?? "";
+
+      // Check if conversation has any attachments (for routing decision)
+      const recentMessages = await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
+        internal.messages.listInternal,
+        { conversationId: args.conversationId, limit: 10 },
+      );
+      const recentMessageIds = recentMessages.map(
+        (m: { _id: Id<"messages"> }) => m._id,
+      );
+      const attachments =
+        recentMessageIds.length > 0
+          ? await ctx.runQuery(
+              internal.lib.helpers.getAttachmentsByMessageIds,
+              {
+                messageIds: recentMessageIds,
+              },
+            )
+          : [];
+      const hasAttachments = attachments.length > 0;
+
+      // Get previous routing decision for stickiness bias
+      const previousSelectedModel = (
+        recentMessages as Array<{
+          role: string;
+          routingDecision?: { selectedModelId: string };
+        }>
+      )
+        .filter(
+          (m) => m.role === "assistant" && m.routingDecision?.selectedModelId,
+        )
+        .pop()?.routingDecision?.selectedModelId;
+
+      // Route the message
+      const routerResult = (await ctx.runAction(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.ai.autoRouter.routeMessage,
+        {
+          userMessage: userMessageContent,
+          conversationId: args.conversationId,
+          userId: args.userId,
+          hasAttachments,
+          currentContextTokens: 0, // Will be calculated from messages
+          preferences: {
+            costBias: costBias ?? 50,
+            speedBias: speedBias ?? 50,
+          },
+          previousSelectedModel,
+          excludedModels: args.excludedModels,
+        },
+      )) as {
+        selectedModelId: string;
+        classification: {
+          primaryCategory: string;
+          secondaryCategory?: string;
+          complexity: string;
+          requiresVision: boolean;
+          requiresLongContext: boolean;
+          requiresReasoning: boolean;
+          confidence: number;
+        };
+        reasoning: string;
+        candidatesConsidered: number;
+      };
+
+      // Use the selected model
+      modelId = routerResult.selectedModelId;
+      routingDecision = {
+        selectedModelId: routerResult.selectedModelId,
+        classification: routerResult.classification,
+        reasoning: routerResult.reasoning,
+      };
+
+      logger.info("Auto router selected model", {
+        conversationId: args.conversationId,
+        selectedModel: modelId,
+        classification: routerResult.classification.primaryCategory,
       });
 
-      // Set generation started timestamp
+      // Update existing message with routing decision if it was pre-created
+      if (args.existingMessageId) {
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.updateRoutingDecision,
+          {
+            messageId: args.existingMessageId,
+            model: modelId,
+            routingDecision,
+          },
+        );
+      }
+    }
+
+    // 1. Create or reuse assistant message
+    const assistantMessageId = args.existingMessageId
+      ? args.existingMessageId
+      : ((await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.create,
+          {
+            conversationId: args.conversationId,
+            userId: args.userId,
+            role: "assistant",
+            status: "generating",
+            model: modelId,
+            comparisonGroupId: args.comparisonGroupId,
+            routingDecision,
+          },
+        )) as string as typeof args.conversationId extends string
+          ? never
+          : any);
+
+    // Declared outside try so they're accessible in catch for wasted cost calculation
+    let accumulated = "";
+    let inputTokenEstimate = 0;
+
+    try {
+      // PARALLEL QUERIES: Batch all initial queries for faster TTFT
+      const [messages, conversation, memoryExtractionLevelRaw] =
+        await Promise.all([
+          // Get conversation history - limit to recent 30 messages for faster TTFT
+          // (300ms → 50ms improvement for long conversations)
+          ctx.runQuery(internal.messages.listInternal, {
+            conversationId: args.conversationId,
+            limit: 30,
+          }),
+          // Get conversation for tool filtering
+          ctx.runQuery(internal.conversations.getInternal, {
+            id: args.conversationId,
+          }),
+          // Get user memory preference
+          (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            api.users.getUserPreferenceByUserId,
+            { userId: args.userId, key: "memoryExtractionLevel" },
+          ) as Promise<string | null>,
+        ]);
+
+      // Estimate input tokens for wasted cost tracking (accessible in catch block)
+      inputTokenEstimate = messages.reduce(
+        (sum: number, m: Doc<"messages">) =>
+          sum + estimateTokens(m.content || ""),
+        0,
+      );
+
+      const memoryExtractionLevel = (memoryExtractionLevelRaw ??
+        "moderate") as MemoryExtractionLevel;
+
+      // 2. Set generation started timestamp
       await ctx.runMutation(internal.messages.updateStatus, {
-        messageId: args.assistantMessageId,
+        messageId: assistantMessageId,
         status: "generating",
         generationStartedAt: generationStartTime,
       });
 
-      // Track streaming started or resumed
-      if (isResumedAfterRefresh) {
-        await trackServerEvent(
-          "generation_resumed_after_refresh",
-          {
-            model: args.modelId,
-            messageId: args.assistantMessageId,
-            conversationId: args.conversationId,
-            partialContentLength: message.partialContent?.length || 0,
-          },
-          args.userId,
-        );
-      } else {
-        await trackServerEvent(
-          "message_streaming_started",
-          {
-            model: args.modelId,
-            messageId: args.assistantMessageId,
-            conversationId: args.conversationId,
-          },
-          args.userId,
-        );
-      }
-
-      // 1.5 Check if this is a presentation generation (for incremental outline parsing)
-      const presentationForOutline = (await ctx.runQuery(
-        // @ts-ignore
-        internal.presentations.internal.getPresentationByConversation,
-        { conversationId: args.conversationId },
-      )) as Doc<"presentations"> | null;
-      const isOutlineGeneration =
-        presentationForOutline &&
-        (presentationForOutline.status === "outline_generating" ||
-          presentationForOutline.status === "outline_pending");
-
-      // 2. Get conversation history
-      const messages = await ctx.runQuery(internal.messages.listInternal, {
-        conversationId: args.conversationId,
-      });
-
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
-      const requiresThoughtSignature =
-        args.modelId.includes("gemini-3-pro-image");
-      if (requiresThoughtSignature && messages.length > 1) {
+      const requiresThoughtSignature = modelId.includes("gemini-3-pro-image");
+      const hasExistingAssistantMessages =
+        messages.filter((m: Doc<"messages">) => m.role === "assistant").length >
+        0;
+      if (requiresThoughtSignature && hasExistingAssistantMessages) {
         // Check if conversation started with a compatible model
         const firstAssistantMsg = messages.find(
           (m: Doc<"messages">) => m.role === "assistant" && m.model,
@@ -149,226 +302,214 @@ export const generateResponse = internalAction({
         }
       }
 
-      // 3. Get last user message for memory retrieval and attachments
+      // 3. Get model config first (sync operation, needed to skip unnecessary fetches)
+      const modelConfig = getModelConfig(modelId);
+      if (!modelConfig) {
+        throw new Error(`Model ${modelId} not found in configuration`);
+      }
+
+      const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
+      const hasFunctionCalling =
+        modelConfig.capabilities?.includes("function-calling") ?? false;
+
+      // 3b. Initialize budget tracking (Phase 1 infrastructure, used in Phase 3)
+      let budgetState: BudgetState = createBudgetState(
+        modelConfig.contextWindow,
+      );
+
+      // 4. Get last user message for memory retrieval
       const lastUserMsg = messages
         .filter((m: Doc<"messages">) => m.role === "user")
         .sort(
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
 
-      // Extract attachments from last user message for file processing tool
-      const messageAttachments = lastUserMsg
-        ? await ctx.runQuery(internal.lib.helpers.getMessageAttachments, {
-            messageId: lastUserMsg._id,
-          })
-        : undefined;
+      // 5. Skip attachment fetch if model doesn't have function-calling
+      // (fileDocument tool won't be available anyway - saves ~20-50ms)
+      const messageAttachments =
+        hasFunctionCalling && lastUserMsg
+          ? await ctx.runQuery(internal.lib.helpers.getMessageAttachments, {
+              messageId: lastUserMsg._id,
+            })
+          : undefined;
 
-      // 4. Get model config
-      const modelConfig = getModelConfig(args.modelId);
-      if (!modelConfig) {
-        throw new Error(`Model ${args.modelId} not found in configuration`);
-      }
+      // 6. Build system prompts (or use override for consolidation)
+      // OPTIMIZATION: Use cached prompt if available (built in background on conversation creation)
+      let systemPromptsResult: {
+        messages: any[];
+        memoryContent: string | null;
+      };
 
-      // 4b. Initialize budget tracking (Phase 1 infrastructure, used in Phase 3)
-      let budgetState: BudgetState = createBudgetState(
-        modelConfig.contextWindow,
-      );
-
-      // 5. Check for vision and function-calling capabilities
-      const hasVision = modelConfig.capabilities?.includes("vision") ?? false;
-      const hasFunctionCalling =
-        modelConfig.capabilities?.includes("function-calling") ?? false;
-
-      // 5b. Get user's memory extraction level preference
-      const memoryExtractionLevel = ((await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        api.users.getUserPreferenceByUserId,
-        { userId: args.userId, key: "memoryExtractionLevel" },
-      )) ?? "moderate") as MemoryExtractionLevel;
-
-      // 6. Pre-fetch contextual memories for NON-TOOL models only
-      // Tool-capable models use searchMemories/searchAll tools instead
-      // (active/aggressive levels are instructed via system prompt to call these)
-      let prefetchedMemories: string | null = null;
-
-      // Only pre-fetch for non-tool models that can't call searchMemories
-      const shouldFetchMemories =
-        memoryExtractionLevel !== "none" && lastUserMsg && !hasFunctionCalling;
-
-      if (shouldFetchMemories) {
+      if (args.systemPromptOverride) {
+        // Consolidation mode: use override directly
+        systemPromptsResult = {
+          messages: [
+            { role: "system" as const, content: args.systemPromptOverride },
+          ],
+          memoryContent: null,
+        };
+      } else if (conversation?.cachedSystemPrompt) {
+        // Use cached prompt (fast path - no queries needed)
         try {
-          // Build search query from last user message (content is a string)
-          const searchQuery = (lastUserMsg.content || "").slice(0, 500); // Cap query length
-
-          if (searchQuery.trim()) {
-            // Search all non-identity categories for non-tool models
-            const fetchLimit = 15;
-            const searchResults = await ctx.runAction(
-              internal.memories.search.hybridSearch,
-              {
-                userId: args.userId,
-                query: searchQuery,
-                limit: fetchLimit,
-                // No category filter = search all
-              },
-            );
-
-            // Filter out identity memories (already loaded separately)
-            const contextMemories = searchResults.filter(
-              (m: { metadata?: { category?: string } }) =>
-                !["identity", "preference", "relationship"].includes(
-                  m.metadata?.category ?? "",
-                ),
-            );
-
-            if (contextMemories.length > 0) {
-              // Format for system prompt injection
-              const memoryTokenBudget = Math.floor(
-                modelConfig.contextWindow * 0.15,
-              );
-              const memoryCharBudget = memoryTokenBudget * 4;
-
-              let formatted = contextMemories
-                .map(
-                  (m: {
-                    metadata?: { category?: string };
-                    _creationTime: number;
-                    content: string;
-                  }) => {
-                    const cat = m.metadata?.category || "general";
-                    const timestamp = new Date(
-                      m._creationTime,
-                    ).toLocaleDateString();
-                    return `[${cat}] (${timestamp}) ${m.content}`;
-                  },
-                )
-                .join("\n\n");
-
-              // Truncate if exceeds budget
-              if (formatted.length > memoryCharBudget) {
-                formatted =
-                  formatted.slice(0, memoryCharBudget) +
-                  "\n\n[...truncated for token limit]";
-              }
-
-              prefetchedMemories = formatted;
-            }
-          }
-        } catch (error) {
-          console.error("[Memory Pre-fetch] Failed:", error);
-          // Continue without memories - don't block generation
-        }
-      }
-
-      // 7. Build system prompts (or use override for consolidation)
-      const systemPromptsResult = args.systemPromptOverride
-        ? {
-            messages: [
-              { role: "system" as const, content: args.systemPromptOverride },
-            ],
-            memoryContent: null,
-          }
-        : await buildSystemPrompts(ctx, {
+          const cachedMessages = JSON.parse(conversation.cachedSystemPrompt);
+          systemPromptsResult = {
+            messages: cachedMessages,
+            memoryContent: null, // Not tracked for cached prompts
+          };
+          logger.info("Using cached system prompt", {
+            tag: "Generation",
+            messageCount: cachedMessages.length,
+          });
+        } catch (_e) {
+          logger.error("Failed to parse cached prompt, falling back", {
+            tag: "Generation",
+          });
+          // Fall through to buildSystemPrompts
+          systemPromptsResult = await buildSystemPrompts(ctx, {
             userId: args.userId,
             conversationId: args.conversationId,
             userMessage: lastUserMsg?.content || "",
             modelConfig,
             hasFunctionCalling,
-            prefetchedMemories,
+            prefetchedMemories: null,
             memoryExtractionLevel,
             budgetState,
           });
+        }
+      } else {
+        // Cold start fallback: build synchronously (first message or cache miss)
+        logger.info("No cached prompt, building synchronously", {
+          tag: "Generation",
+        });
+        systemPromptsResult = await buildSystemPrompts(ctx, {
+          userId: args.userId,
+          conversationId: args.conversationId,
+          userMessage: lastUserMsg?.content || "",
+          modelConfig,
+          hasFunctionCalling,
+          prefetchedMemories: null,
+          memoryExtractionLevel,
+          budgetState,
+        });
+      }
 
       const systemPrompts = systemPromptsResult.messages;
       const memoryContentForTracking = systemPromptsResult.memoryContent;
 
       // 7. Filter and transform conversation history (with attachments if vision model)
+      // Filter messages first
+      const filteredMessages = messages.filter(
+        (m: Doc<"messages">) =>
+          m._id !== assistantMessageId && m.status === "complete",
+      );
+
+      // OPTIMIZATION: Batch fetch all attachments in single query (O(1) instead of O(n))
+      const allAttachments = await ctx.runQuery(
+        internal.lib.helpers.getAttachmentsByMessageIds,
+        { messageIds: filteredMessages.map((m: Doc<"messages">) => m._id) },
+      );
+
+      // Group attachments by messageId for O(1) lookup
+      const attachmentsByMessage = new Map<string, Doc<"attachments">[]>();
+      for (const attachment of allAttachments) {
+        const msgId = attachment.messageId as string;
+        if (!attachmentsByMessage.has(msgId)) {
+          attachmentsByMessage.set(msgId, []);
+        }
+        attachmentsByMessage.get(msgId)!.push(attachment);
+      }
+
+      // Download cache for vision models (within this generation only)
+      const downloadCache = new Map<string, string>();
+      async function getCachedDownload(storageId: string): Promise<string> {
+        const cached = downloadCache.get(storageId);
+        if (cached) return cached;
+        const base64 = await downloadAttachment(ctx, storageId);
+        downloadCache.set(storageId, base64);
+        return base64;
+      }
+
       const history = await Promise.all(
-        messages
-          .filter(
-            (m: Doc<"messages">) =>
-              m._id !== args.assistantMessageId && m.status === "complete",
-          )
-          .map(async (m: Doc<"messages">) => {
-            // Query attachments for this message
-            const attachments = await ctx.runQuery(
-              internal.lib.helpers.getMessageAttachments,
-              { messageId: m._id },
-            );
+        filteredMessages.map(async (m: Doc<"messages">) => {
+          // Get attachments from pre-fetched map (O(1) lookup)
+          const attachments = attachmentsByMessage.get(m._id as string) || [];
 
-            // Text-only messages (no attachments)
-            if (!attachments || attachments.length === 0) {
-              return {
-                role: m.role as "user" | "assistant" | "system",
-                content: m.content || "",
-                providerMetadata: m.providerMetadata,
-              };
-            }
-
-            // Build attachment metadata info for ALL models (so they know to use fileDocument tool)
-            const attachmentInfo = attachments
-              .map(
-                (a: Doc<"attachments">, i: number) =>
-                  `[Attached file ${i}: ${a.name} (${a.mimeType}, ${Math.round(a.size / 1024)}KB)]`,
-              )
-              .join("\n");
-
-            // Messages with attachments - non-vision models get text + metadata info
-            if (!hasVision) {
-              // Non-vision models: append attachment metadata so AI knows to call fileDocument
-              const content = `${m.content || ""}\n\n${attachmentInfo}`;
-              return {
-                role: m.role as "user" | "assistant" | "system",
-                content,
-                providerMetadata: m.providerMetadata,
-              };
-            }
-
-            // Vision models: build content array with text + metadata + actual file data
-            const contentParts: any[] = [
-              { type: "text", text: `${m.content || ""}\n\n${attachmentInfo}` },
-            ];
-
-            for (const attachment of attachments) {
-              const base64 = await downloadAttachment(
-                ctx,
-                attachment.storageId,
-              );
-
-              if (attachment.type === "image") {
-                contentParts.push({
-                  type: "image",
-                  image: base64,
-                });
-              } else if (attachment.type === "file") {
-                // PDFs are the only document type supported as inline blobs by Gemini
-                if (attachment.mimeType === "application/pdf") {
-                  contentParts.push({
-                    type: "file",
-                    data: base64,
-                    mediaType: attachment.mimeType,
-                    filename: attachment.name,
-                  });
-                } else {
-                  // For other file types (PPTX, DOCX, etc.), we rely on the fileDocument tool
-                  // to extract text. We do NOT send the raw blob to the model as it causes 400 errors.
-                  // The text content is already in the message or will be extracted.
-                  // We add a text hint to the content parts.
-                  contentParts.push({
-                    type: "text",
-                    text: `\n[Reference: ${attachment.name} (${attachment.mimeType})]`,
-                  });
-                }
-              }
-              // Future: audio support
-            }
-
+          // Text-only messages (no attachments)
+          if (attachments.length === 0) {
             return {
               role: m.role as "user" | "assistant" | "system",
-              content: contentParts,
+              content: m.content || "",
               providerMetadata: m.providerMetadata,
             };
-          }),
+          }
+
+          // Build attachment metadata info for ALL models (so they know to use fileDocument tool)
+          const attachmentInfo = attachments
+            .map(
+              (a: Doc<"attachments">, i: number) =>
+                `[Attached file ${i}: ${a.name} (${a.mimeType}, ${Math.round(a.size / 1024)}KB)]`,
+            )
+            .join("\n");
+
+          // Messages with attachments - non-vision models get text + metadata info
+          if (!hasVision) {
+            // Non-vision models: append attachment metadata so AI knows to call fileDocument
+            const content = `${m.content || ""}\n\n${attachmentInfo}`;
+            return {
+              role: m.role as "user" | "assistant" | "system",
+              content,
+              providerMetadata: m.providerMetadata,
+            };
+          }
+
+          // Vision models: build content array with text + metadata + actual file data
+          const contentParts: any[] = [
+            { type: "text", text: `${m.content || ""}\n\n${attachmentInfo}` },
+          ];
+
+          // PARALLEL: Download all attachments concurrently (with caching)
+          const downloadResults = await Promise.all(
+            attachments.map(async (attachment: Doc<"attachments">) => ({
+              attachment,
+              base64: await getCachedDownload(attachment.storageId),
+            })),
+          );
+
+          for (const { attachment, base64 } of downloadResults) {
+            if (attachment.type === "image") {
+              contentParts.push({
+                type: "image",
+                image: base64,
+              });
+            } else if (attachment.type === "file") {
+              // PDFs are the only document type supported as inline blobs by Gemini
+              if (attachment.mimeType === "application/pdf") {
+                contentParts.push({
+                  type: "file",
+                  data: base64,
+                  mediaType: attachment.mimeType,
+                  filename: attachment.name,
+                });
+              } else {
+                // For other file types (PPTX, DOCX, etc.), we rely on the fileDocument tool
+                // to extract text. We do NOT send the raw blob to the model as it causes 400 errors.
+                // The text content is already in the message or will be extracted.
+                // We add a text hint to the content parts.
+                contentParts.push({
+                  type: "text",
+                  text: `\n[Reference: ${attachment.name} (${attachment.mimeType})]`,
+                });
+              }
+            }
+            // Future: audio support
+          }
+
+          return {
+            role: m.role as "user" | "assistant" | "system",
+            content: contentParts,
+            providerMetadata: m.providerMetadata,
+          };
+        }),
       );
 
       // 7. Combine: system prompts FIRST, then history
@@ -382,7 +523,7 @@ export const generateResponse = internalAction({
 
       // Clean providerMetadata for cross-model compatibility
       // Gemini rejects messages with metadata from other providers (e.g., thought_signature)
-      const isGeminiModel = args.modelId.includes("gemini");
+      const isGeminiModel = modelId.includes("gemini");
       const cleanedHistory = nonEmptyHistory.map((msg: any) => {
         if (isGeminiModel && msg.providerMetadata) {
           // Remove providerMetadata for Gemini models to avoid cross-model conflicts
@@ -401,7 +542,7 @@ export const generateResponse = internalAction({
           : null;
 
       // 9. Get model
-      const model = getModel(args.modelId);
+      const model = getModel(modelId);
 
       // 10. Apply middleware (e.g., DeepSeek tag extraction)
       const finalModel = reasoningResult?.applyMiddleware
@@ -413,21 +554,13 @@ export const generateResponse = internalAction({
         model: finalModel,
         messages: allMessages,
         stopWhen: hasFunctionCalling ? stepCountIs(MAX_TOOL_STEPS) : undefined,
-        providerOptions: getGatewayOptions(args.modelId, args.userId, ["chat"]),
+        providerOptions: getGatewayOptions(modelId, args.userId, ["chat"]),
       };
-
-      // Fetch conversation to check for project-specific tools
-      const conversation = await ctx.runQuery(
-        internal.conversations.getInternal,
-        {
-          id: args.conversationId,
-        },
-      );
 
       // Only add tools for capable models
       // Note: Gemini Flash Lite has tool schema compatibility issues with Vercel AI SDK 4.0.34+
       // See: https://github.com/vercel/ai/issues - optional arrays/enums in tool schemas cause 400 errors
-      const isGeminiFlashLite = args.modelId === "google:gemini-2.0-flash-lite";
+      const isGeminiFlashLite = modelId === "google:gemini-2.0-flash-lite";
       const shouldEnableTools = hasFunctionCalling && !isGeminiFlashLite;
 
       // Search cache: cleared after each generation (scoped to this action)
@@ -452,12 +585,6 @@ export const generateResponse = internalAction({
           },
         });
         options.onStepFinish = createOnStepFinish();
-
-        // Disable search tools for presentations without grounding enabled
-        if (conversation?.isPresentation && !conversation?.enableGrounding) {
-          delete options.tools.tavilySearch;
-          delete options.tools.tavilyAdvancedSearch;
-        }
       }
 
       // 13. Apply provider options (merge with gateway options)
@@ -486,25 +613,50 @@ export const generateResponse = internalAction({
         hasReasoningCapability;
       if (shouldShowThinking) {
         await ctx.runMutation(internal.messages.markThinkingStarted, {
-          messageId: args.assistantMessageId,
+          messageId: assistantMessageId,
         });
       }
 
       // 6. Accumulate chunks, throttle DB updates
-      let accumulated = "";
+      accumulated = ""; // Reset at start of streaming (declared outside try for catch access)
       let reasoningBuffer = "";
       const toolCallsBuffer = new Map<string, any>();
 
-      // Stream from LLM
-      const result = streamText(options);
+      // UTF-8 safe streaming buffers to prevent surrogate pair splitting (emoji/CJK)
+      const textBuffer = new StreamingTextBuffer();
+      const reasoningTextBuffer = new StreamingTextBuffer();
+
+      // AbortController for immediate stream termination on stop
+      const abortController = new AbortController();
+      let lastStopCheck = Date.now();
+      const STOP_CHECK_INTERVAL = 10; // ms - decoupled from write throttle for faster stop response
+
+      // Stream from LLM - capture exact API call time for true TTFT
+      const apiCallStartedAt = Date.now();
+      const result = streamText({
+        ...options,
+        abortSignal: abortController.signal,
+      });
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
-      let lastOutlineUpdate = Date.now();
-      let lastParsedItemCount = 0;
-      const UPDATE_INTERVAL = 200; // ms
+      const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming at high TPS
 
       for await (const chunk of result.fullStream) {
         const now = Date.now();
+
+        // Check stop every 10ms (decoupled from write throttle for faster response)
+        if (now - lastStopCheck >= STOP_CHECK_INTERVAL) {
+          const currentMsg = (await (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.get,
+            { messageId: assistantMessageId },
+          )) as { status?: string } | null;
+          if (currentMsg?.status === "stopped") {
+            abortController.abort();
+            break;
+          }
+          lastStopCheck = now;
+        }
 
         // Handle tool invocations for loading state
         if (chunk.type === "tool-call") {
@@ -518,7 +670,7 @@ export const generateResponse = internalAction({
 
           // Phase 1: Write to new toolCalls table (dual-write)
           (await (ctx.runMutation as any)(internal.messages.upsertToolCall, {
-            messageId: args.assistantMessageId,
+            messageId: assistantMessageId,
             conversationId: args.conversationId,
             userId: args.userId,
             toolCallId: chunk.toolCallId,
@@ -551,7 +703,7 @@ export const generateResponse = internalAction({
 
             // Phase 1: Update with result (dual-write)
             (await (ctx.runMutation as any)(internal.messages.upsertToolCall, {
-              messageId: args.assistantMessageId,
+              messageId: assistantMessageId,
               conversationId: args.conversationId,
               userId: args.userId,
               toolCallId: chunk.toolCallId,
@@ -563,11 +715,23 @@ export const generateResponse = internalAction({
               textPosition: existing.textPosition,
             })) as Promise<void>;
 
+            // Track tool call for analytics
+            trackServerEvent(
+              "tool_call_executed",
+              {
+                tool: existing.name,
+                messageId: assistantMessageId,
+                conversationId: args.conversationId,
+                success: !(resultValue as any)?.error,
+              },
+              args.userId,
+            ).catch(() => {}); // Fire-and-forget
+
             // Track tool usage in budget (Phase 1 infrastructure, used in Phase 3)
             const resultStr = JSON.stringify(resultValue ?? "");
             const estimatedTokens = Math.max(
               estimateToolCost(existing.name),
-              Math.ceil(resultStr.length / 4),
+              estimateTokens(resultStr),
             );
             budgetState = recordUsage(budgetState, estimatedTokens);
           }
@@ -578,83 +742,200 @@ export const generateResponse = internalAction({
         const wantsReasoningStreamed =
           args.thinkingEffort && args.thinkingEffort !== "none";
         if (chunk.type === "reasoning-delta" && wantsReasoningStreamed) {
-          reasoningBuffer += chunk.text;
+          // UTF-8 safe: buffer incomplete surrogate pairs
+          const safeReasoningChunk = reasoningTextBuffer.process(chunk.text);
+          if (safeReasoningChunk) {
+            reasoningBuffer += safeReasoningChunk;
+          }
 
           if (now - lastReasoningUpdate >= UPDATE_INTERVAL) {
-            await ctx.runMutation(internal.messages.updatePartialReasoning, {
-              messageId: args.assistantMessageId,
-              partialReasoning: reasoningBuffer,
-            });
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialReasoning,
+              {
+                messageId: assistantMessageId,
+                partialReasoning: reasoningBuffer,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
+            }
             lastReasoningUpdate = now;
           }
         }
 
         // Handle text chunks
         if (chunk.type === "text-delta") {
-          // Capture first token timestamp
+          // Capture first token timestamp and track analytics (deferred from before streaming)
           if (!firstTokenTime && chunk.text.length > 0) {
             firstTokenTime = now;
 
-            // Immediately update message with firstTokenAt
+            // Immediately update message with firstTokenAt and apiCallStartedAt for true TTFT
             await ctx.runMutation(internal.messages.updateMetrics, {
-              messageId: args.assistantMessageId,
+              messageId: assistantMessageId,
+              apiCallStartedAt,
               firstTokenAt: firstTokenTime,
             });
+
+            // DEFERRED ANALYTICS: Track streaming started after first token arrives
+            // This moves ~15ms of analytics work out of the critical path to TTFT
+            trackServerEvent(
+              "message_streaming_started",
+              {
+                model: modelId,
+                messageId: assistantMessageId,
+                conversationId: args.conversationId,
+                firstTokenLatencyMs: firstTokenTime - generationStartTime,
+              },
+              args.userId,
+            ).catch(() => {}); // Fire-and-forget, don't block streaming
           }
 
-          accumulated += chunk.text;
+          // UTF-8 safe: buffer incomplete surrogate pairs to prevent JSON.stringify crashes
+          const safeChunk = textBuffer.process(chunk.text);
+          if (safeChunk) {
+            accumulated += safeChunk;
+          }
 
           if (now - lastUpdate >= UPDATE_INTERVAL) {
-            // Check if message was stopped by user
-            const currentMsg = (await (ctx.runQuery as any)(
-              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-              internal.messages.get,
-              { messageId: args.assistantMessageId },
-            )) as { status?: string } | null;
-            if (currentMsg?.status === "stopped") {
-              break; // Exit streaming loop - user cancelled
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              abortController.abort();
+              break;
             }
-
-            await ctx.runMutation(internal.messages.updatePartialContent, {
-              messageId: args.assistantMessageId,
-              partialContent: accumulated,
-            });
             lastUpdate = now;
+          }
+        }
+      }
 
-            // Incremental outline parsing (same throttle as content updates)
-            if (
-              isOutlineGeneration &&
-              presentationForOutline &&
-              now - lastOutlineUpdate >= UPDATE_INTERVAL
-            ) {
-              try {
-                const parsed = parseOutlineMarkdown(accumulated);
-                // Only upsert if we have new items
-                if (parsed.length > lastParsedItemCount) {
-                  const currentVersion =
-                    presentationForOutline.currentOutlineVersion ?? 1;
-                  (await (ctx.runMutation as any)(
-                    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-                    internal.outlineItems.upsertBatch,
-                    {
-                      presentationId: presentationForOutline._id,
-                      userId: args.userId,
-                      version: currentVersion,
-                      items: parsed,
-                    },
-                  )) as Promise<void>;
-                  lastParsedItemCount = parsed.length;
-                }
-                lastOutlineUpdate = now;
-              } catch (parseError) {
-                // Silently ignore parse errors during streaming
-                // Final parsing will catch any issues
-                console.log(
-                  "[Generation] Outline parse error (will retry):",
-                  parseError,
-                );
-              }
+      // Flush any remaining buffered content
+      const remainingText = textBuffer.flush();
+      if (remainingText) {
+        accumulated += remainingText;
+      }
+      const remainingReasoning = reasoningTextBuffer.flush();
+      if (remainingReasoning) {
+        reasoningBuffer += remainingReasoning;
+      }
+
+      // If we aborted (user stopped), exit early - no finalization needed
+      // Message already marked as stopped, partial content preserved
+      if (abortController.signal.aborted) {
+        logger.info("Generation stopped by user (loop exit)", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+        });
+        return;
+      }
+
+      // Check if we have tool calls but no text response - request continuation
+      const hasToolCalls = toolCallsBuffer.size > 0;
+      const hasNoText = accumulated.trim().length === 0;
+      let continuationUsage: { inputTokens?: number; outputTokens?: number } =
+        {};
+
+      if (hasToolCalls && hasNoText) {
+        logger.info(
+          "Tool calls completed but no text, requesting continuation",
+          {
+            tag: "Generation",
+          },
+        );
+
+        // Build tool call/result messages from buffer
+        const completedToolCalls = Array.from(toolCallsBuffer.values()).filter(
+          (tc) => tc.result,
+        );
+
+        if (completedToolCalls.length > 0) {
+          try {
+            const continuationResult = await generateText({
+              model: getModel(modelId),
+              messages: [
+                ...allMessages,
+                {
+                  role: "assistant",
+                  content: completedToolCalls.map((tc) => ({
+                    type: "tool-call" as const,
+                    toolCallId: tc.id,
+                    toolName: tc.name,
+                    args: JSON.parse(tc.arguments),
+                  })),
+                },
+                {
+                  role: "tool",
+                  content: completedToolCalls.map((tc) => ({
+                    type: "tool-result" as const,
+                    toolCallId: tc.id,
+                    result: JSON.parse(tc.result),
+                  })),
+                },
+              ],
+              providerOptions: getGatewayOptions(modelId, args.userId, [
+                "chat-continuation",
+              ]),
+            });
+
+            accumulated = continuationResult.text;
+            continuationUsage = {
+              inputTokens: continuationResult.usage?.inputTokens ?? 0,
+              outputTokens: continuationResult.usage?.outputTokens ?? 0,
+            };
+
+            // Update UI with continuation result
+            const updateResult = await ctx.runMutation(
+              internal.messages.updatePartialContent,
+              {
+                messageId: assistantMessageId,
+                partialContent: accumulated,
+              },
+            );
+            if (!updateResult.updated) {
+              // Message was stopped - still record continuation metrics
+              const contCost = calculateCost(modelId, {
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cachedTokens: undefined,
+                reasoningTokens: undefined,
+              });
+              await ctx.runMutation(internal.messages.completeMessage, {
+                messageId: assistantMessageId,
+                content: accumulated,
+                inputTokens: continuationUsage.inputTokens ?? 0,
+                outputTokens: continuationUsage.outputTokens ?? 0,
+                cost: contCost,
+              });
+              return;
             }
+
+            logger.info("Continuation successful", {
+              tag: "Generation",
+              charCount: accumulated.length,
+            });
+          } catch (continuationError) {
+            logger.error("Continuation failed, using fallback", {
+              tag: "Generation",
+              error: String(continuationError),
+            });
+            // Fallback: generate summary from tool results
+            const toolSummaries = completedToolCalls.map((tc) => {
+              try {
+                const result = JSON.parse(tc.result);
+                if (result.success === false) {
+                  return `• ${tc.name}: Failed - ${result.error || "Unknown error"}`;
+                }
+                return `• ${tc.name}: Completed successfully`;
+              } catch {
+                return `• ${tc.name}: Completed`;
+              }
+            });
+            accumulated = `I executed the following tools:\n${toolSummaries.join("\n")}`;
           }
         }
       }
@@ -678,30 +959,35 @@ export const generateResponse = internalAction({
         finalReasoning.trim().length > 0
       ) {
         await ctx.runMutation(internal.messages.completeThinking, {
-          messageId: args.assistantMessageId,
+          messageId: assistantMessageId,
           reasoning: finalReasoning,
           reasoningTokens: usage.reasoningTokens,
         });
       }
 
-      // 8. Calculate cost
-      const inputTokens = usage.inputTokens ?? 0;
-      const outputTokens = usage.outputTokens ?? 0;
+      // 8. Calculate cost (include continuation usage if any)
+      const inputTokens =
+        (usage.inputTokens ?? 0) + (continuationUsage.inputTokens ?? 0);
+      const outputTokens =
+        (usage.outputTokens ?? 0) + (continuationUsage.outputTokens ?? 0);
       const reasoningTokens = usage.reasoningTokens;
 
-      const cost = calculateCost(args.modelId, {
+      const cost = calculateCost(modelId, {
         inputTokens,
         outputTokens,
         cachedTokens: undefined,
         reasoningTokens,
       });
 
-      // Calculate TPS (tokens per second)
+      // Calculate TPS (tokens per second) - measure from first token, not action start
+      // This excludes setup time (memory fetch, prompt building) for accurate speed display
       const endTime = Date.now();
-      const durationSeconds = (endTime - generationStartTime) / 1000;
+      const generationDuration = firstTokenTime
+        ? endTime - firstTokenTime
+        : endTime - generationStartTime; // Fallback if no tokens generated
       const tokensPerSecond =
-        outputTokens && durationSeconds > 0
-          ? outputTokens / durationSeconds
+        outputTokens && generationDuration > 0
+          ? outputTokens / (generationDuration / 1000)
           : undefined;
 
       // Extract all tool calls from result.steps
@@ -756,29 +1042,36 @@ export const generateResponse = internalAction({
             publishedDate: undefined,
           }));
 
-          console.log(
-            `[Sources] Extracted ${sources.length} sources from result.sources (Perplexity)`,
-          );
+          logger.info("Extracted sources from result.sources (Perplexity)", {
+            tag: "Sources",
+            count: sources.length,
+          });
         } else {
-          console.log(
-            "[Sources] result.sources was empty or undefined, trying providerMetadata",
+          logger.info(
+            "result.sources was empty or undefined, trying providerMetadata",
+            {
+              tag: "Sources",
+            },
           );
         }
       } catch (_error) {
-        console.log(
-          "[Sources] result.sources not available, trying providerMetadata",
-        );
+        logger.info("result.sources not available, trying providerMetadata", {
+          tag: "Sources",
+        });
       }
 
       // Priority 2: Fall back to extracting from providerMetadata (OpenRouter, etc.)
       if (!sources) {
         sources = extractSources(providerMetadata);
         if (sources) {
-          console.log(
-            `[Sources] Extracted ${sources.length} sources from providerMetadata`,
-          );
+          logger.info("Extracted sources from providerMetadata", {
+            tag: "Sources",
+            count: sources.length,
+          });
         } else {
-          console.log("[Sources] No sources found in providerMetadata either");
+          logger.info("No sources found in providerMetadata either", {
+            tag: "Sources",
+          });
         }
       }
 
@@ -796,9 +1089,12 @@ export const generateResponse = internalAction({
       ];
 
       if (allSources.length > 0) {
-        console.log(
-          `[Sources] Total: ${allSources.length} (Perplexity: ${perplexitySourceCount}, WebSearch: ${webSearchSources.length})`,
-        );
+        logger.info("Total sources", {
+          tag: "Sources",
+          total: allSources.length,
+          perplexity: perplexitySourceCount,
+          webSearch: webSearchSources.length,
+        });
       }
 
       // Handle image generation (files in result)
@@ -806,7 +1102,10 @@ export const generateResponse = internalAction({
       try {
         const files = await result.files;
         if (files && files.length > 0) {
-          console.log("[Generation] Processing generated files:", files.length);
+          logger.info("Processing generated files", {
+            tag: "Generation",
+            count: files.length,
+          });
 
           for (const file of files) {
             let imageBytes: Uint8Array;
@@ -824,7 +1123,10 @@ export const generateResponse = internalAction({
                 imageBytes[i] = binaryString.charCodeAt(i);
               }
             } else {
-              console.warn("[Generation] Unknown file format:", file);
+              logger.warn("Unknown file format", {
+                tag: "Generation",
+                file: JSON.stringify(file),
+              });
               continue;
             }
 
@@ -835,7 +1137,7 @@ export const generateResponse = internalAction({
 
             // Add attachment to message
             await ctx.runMutation(internal.messages.addAttachment, {
-              messageId: args.assistantMessageId,
+              messageId: assistantMessageId,
               attachment: {
                 type: "image",
                 storageId,
@@ -844,7 +1146,7 @@ export const generateResponse = internalAction({
                 mimeType: "image/png",
                 metadata: {
                   prompt: lastUserMsg?.content || "",
-                  model: args.modelId,
+                  model: modelId,
                   generationTime: Date.now() - generationStartTime,
                 },
               },
@@ -852,13 +1154,16 @@ export const generateResponse = internalAction({
           }
         }
       } catch (error) {
-        console.error("[Generation] Error processing generated files:", error);
+        logger.error("Error processing generated files", {
+          tag: "Generation",
+          error: String(error),
+        });
       }
 
       // 9. Finalize tool calls (Phase 1: mark partials as complete)
       if (allToolCalls.length > 0) {
         (await (ctx.runMutation as any)(internal.messages.finalizeToolCalls, {
-          messageId: args.assistantMessageId,
+          messageId: assistantMessageId,
         })) as Promise<void>;
       }
 
@@ -876,7 +1181,7 @@ export const generateResponse = internalAction({
           // @ts-ignore - TypeScript recursion limit
           internal.sources.operations_actions.addSources,
           {
-            messageId: args.assistantMessageId,
+            messageId: assistantMessageId,
             conversationId: args.conversationId,
             userId: args.userId,
             provider,
@@ -894,13 +1199,13 @@ export const generateResponse = internalAction({
       const finalCheck = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.messages.get,
-        { messageId: args.assistantMessageId },
+        { messageId: assistantMessageId },
       )) as { status?: string } | null;
 
       if (finalCheck?.status !== "stopped") {
         // Store reasoning if present - models may return it natively even without config
         await ctx.runMutation(internal.messages.completeMessage, {
-          messageId: args.assistantMessageId,
+          messageId: assistantMessageId,
           content: accumulated,
           reasoning: finalReasoning,
           inputTokens,
@@ -913,6 +1218,13 @@ export const generateResponse = internalAction({
         });
       }
 
+      // Release generation lock (decrements pendingCount for comparison mode)
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.generationLock.releaseLock,
+        { conversationId: args.conversationId },
+      );
+
       // Track streaming completed with performance metrics
       const generationTimeMs = Date.now() - generationStartTime;
       const firstTokenLatencyMs = firstTokenTime
@@ -922,8 +1234,8 @@ export const generateResponse = internalAction({
       await trackServerEvent(
         "message_streaming_completed",
         {
-          model: args.modelId,
-          messageId: args.assistantMessageId,
+          model: modelId,
+          messageId: assistantMessageId,
           tokensPerSecond,
           generationTimeMs,
           firstTokenLatencyMs,
@@ -936,39 +1248,13 @@ export const generateResponse = internalAction({
         conversationId: args.conversationId,
       });
 
-      // 10.5. Check if this was a presentation generation and trigger parsing
-      // We check if there's a presentation associated with this conversation
-      // that is in the "outline_generating" or "outline_pending" state
-      const presentation = await ctx.runQuery(
-        // @ts-ignore
-        internal.presentations.internal.getPresentationByConversation,
-        { conversationId: args.conversationId },
-      );
+      // 11. POST-STREAMING CLEANUP (parallelized for speed)
+      // These operations don't need to block action completion - run in parallel
 
-      if (
-        presentation &&
-        (presentation.status === "outline_generating" ||
-          presentation.status === "outline_pending")
-      ) {
-        console.log(
-          "[Generation] Triggering outline parsing for presentation:",
-          presentation._id,
-        );
-        await ctx.runMutation(
-          // @ts-ignore
-          internal.presentations.outline.parseOutlineMessageInternal,
-          {
-            presentationId: presentation._id,
-            messageId: args.assistantMessageId,
-            userId: args.userId,
-          },
-        );
-      }
-
-      // 11. Calculate and update token usage
-      const allMessagesForCounting = await ctx.runQuery(
-        internal.messages.listInternal,
-        { conversationId: args.conversationId },
+      // Get conversation for title check (needed for conditional title gen)
+      const conversationForTitle = await ctx.runQuery(
+        internal.conversations.getInternal,
+        { id: args.conversationId },
       );
 
       // System prompts (tool-based memory retrieval tokens counted separately by AI SDK)
@@ -978,91 +1264,109 @@ export const generateResponse = internalAction({
           : JSON.stringify(msg.content),
       );
 
-      const tokenUsage = await calculateConversationTokensAsync(
-        systemPromptStrings,
-        memoryContentForTracking ? [memoryContentForTracking] : [],
-        allMessagesForCounting,
-        modelConfig.contextWindow,
-        args.modelId,
-      );
-
-      // Legacy conversation-level token usage (Phase 6: keep for backward compat)
-      await ctx.runMutation(internal.conversations.updateTokenUsage, {
-        conversationId: args.conversationId,
-        tokenUsage,
-      });
-
-      // Phase 6: Per-model token tracking (new normalized table)
-      (await (ctx.runMutation as any)(
-        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.conversations.updateConversationTokenUsage,
-        {
-          conversationId: args.conversationId,
-          model: args.modelId,
-          inputTokens,
-          outputTokens,
-          reasoningTokens: reasoningTokens || 0,
-        },
-      )) as Promise<void>;
-
-      // 12. Auto-name if conversation still has default title
-      const conversationForTitle = await ctx.runQuery(
-        internal.conversations.getInternal,
-        {
-          id: args.conversationId,
-        },
-      );
-
-      if (conversationForTitle && conversationForTitle.title === "New Chat") {
-        // Still has default title, schedule title generation
-        await ctx.scheduler.runAfter(
-          0,
-          internal.ai.generateTitle.generateTitle,
-          {
-            conversationId: args.conversationId,
-          },
-        );
-      }
-
-      // 13. Trigger model triage analysis for cost optimization
-      // Runs async in background, analyzes if cheaper model would work
+      // Get last user message for model triage
       const lastUserMsgForTriage = messages
         .filter((m: Doc<"messages">) => m.role === "user")
         .sort(
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
 
-      if (lastUserMsgForTriage) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.ai.modelTriage.analyzeModelFit,
-          {
-            conversationId: args.conversationId,
-            userMessage: lastUserMsgForTriage.content,
-            currentModelId: args.modelId,
-          },
-        );
-      }
+      // PARALLEL: Run all post-streaming work concurrently
+      await Promise.all([
+        // Token counting and updates
+        (async () => {
+          const allMessagesForCounting = await ctx.runQuery(
+            internal.messages.listInternal,
+            { conversationId: args.conversationId },
+          );
+          const tokenUsage = await calculateConversationTokensAsync(
+            systemPromptStrings,
+            memoryContentForTracking ? [memoryContentForTracking] : [],
+            allMessagesForCounting,
+            modelConfig.contextWindow,
+            modelId,
+          );
+          // Run both token updates in parallel
+          await Promise.all([
+            ctx.runMutation(internal.conversations.updateTokenUsage, {
+              conversationId: args.conversationId,
+              tokenUsage,
+            }),
+            (ctx.runMutation as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.conversations.updateConversationTokenUsage,
+              {
+                conversationId: args.conversationId,
+                model: modelId,
+                inputTokens,
+                outputTokens,
+                reasoningTokens: reasoningTokens || 0,
+              },
+            ),
+          ]);
+        })(),
+
+        // Auto-name if conversation still has default title
+        conversationForTitle?.title === "New Chat"
+          ? ctx.scheduler.runAfter(0, internal.ai.generateTitle.generateTitle, {
+              conversationId: args.conversationId,
+            })
+          : Promise.resolve(),
+
+        // Model triage analysis (skip if auto-selected - system already optimized)
+        lastUserMsgForTriage && !_wasAutoSelected
+          ? ctx.scheduler.runAfter(0, internal.ai.modelTriage.analyzeModelFit, {
+              conversationId: args.conversationId,
+              userMessage: lastUserMsgForTriage.content,
+              currentModelId: modelId,
+            })
+          : Promise.resolve(),
+      ]);
     } catch (error) {
+      // Handle AbortError (user stopped generation) - clean exit
+      if (error instanceof Error && error.name === "AbortError") {
+        logger.info("Generation stopped by user", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+        });
+        // Cleanup orphaned partial tool calls
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.cleanupPartialToolCalls,
+          { messageId: assistantMessageId },
+        );
+        // Release lock even on stop
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.lib.generationLock.releaseLock,
+          { conversationId: args.conversationId },
+        );
+        return; // Clean exit - message already marked stopped
+      }
+
       // Enhanced error logging to capture full gateway error details
-      console.error("[Generation] Error:", error);
+      logger.error("Generation error", {
+        tag: "Generation",
+        error: String(error),
+      });
 
       // Extract and log full responseBody from gateway errors for debugging
       const causeObj = (error as any)?.cause || {};
       if (causeObj.responseBody) {
         try {
           const parsedBody = JSON.parse(causeObj.responseBody);
-          console.error("[Generation] Full gateway error:", {
+          logger.error("Full gateway error", {
+            tag: "Generation",
             statusCode: causeObj.statusCode || (error as any).statusCode,
             model: args.modelId,
             errorMessage: parsedBody?.error?.message,
             fullResponse: parsedBody,
           });
         } catch {
-          console.error(
-            "[Generation] Raw gateway responseBody:",
-            causeObj.responseBody,
-          );
+          logger.error("Raw gateway responseBody", {
+            tag: "Generation",
+            responseBody: causeObj.responseBody,
+          });
         }
       }
 
@@ -1072,13 +1376,18 @@ export const generateResponse = internalAction({
       const isCreditsError = detectCreditsError(error);
 
       // Calculate wasted cost if streaming failed mid-generation
+      // Includes both input tokens (conversation context) and output tokens (partial response)
       const modelConfig = getModelConfig(args.modelId);
       const wastedCost =
         firstTokenTime && modelConfig?.pricing
-          ? estimateWastedCost(0, {
-              input: modelConfig.pricing.input,
-              output: modelConfig.pricing.output,
-            })
+          ? estimateWastedCost(
+              inputTokenEstimate,
+              estimateTokens(accumulated),
+              {
+                input: modelConfig.pricing.input,
+                output: modelConfig.pricing.output,
+              },
+            )
           : 0;
 
       // Comprehensive error tracking with AI-specific context
@@ -1087,7 +1396,7 @@ export const generateResponse = internalAction({
         {
           userId: args.userId,
           conversationId: args.conversationId,
-          messageId: args.assistantMessageId,
+          messageId: assistantMessageId,
           model: args.modelId,
           errorType,
           context: "ai_generation",
@@ -1107,6 +1416,143 @@ export const generateResponse = internalAction({
             errorMessage:
               error instanceof Error ? error.message : String(error),
             modelId: args.modelId,
+          },
+        );
+      }
+
+      // Auto-retry with different model if auto-selected and error is retryable
+      const isAutoSelected = _wasAutoSelected || !!routingDecision;
+      const isRetryableError = [
+        "model_not_found",
+        "gateway_error",
+        "rate_limit",
+      ].includes(errorType);
+
+      if (isAutoSelected && isRetryableError) {
+        // Get current message state to check retry count
+        const currentMessage = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.messages.get,
+          { messageId: assistantMessageId },
+        )) as Doc<"messages"> | null;
+
+        // Deduplicate failed models to prevent array bloat
+        const failedModels = Array.from(
+          new Set([
+            ...(currentMessage?.failedModels || []),
+            ...(args.excludedModels || []),
+            modelId,
+          ]),
+        );
+        const retryCount = (currentMessage?.retryCount || 0) + 1;
+
+        if (retryCount < _MAX_AUTO_RETRY_ATTEMPTS) {
+          logger.info("Auto-router retry: switching to different model", {
+            tag: "Generation",
+            messageId: assistantMessageId,
+            failedModels,
+            retryCount,
+            errorType,
+          });
+
+          // Cleanup partial tool calls before retry
+          await (ctx.runMutation as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.cleanupPartialToolCalls,
+            { messageId: assistantMessageId },
+          );
+
+          // Re-invoke generation with excluded models
+          // Note: We schedule BEFORE marking as retrying to avoid stuck "generating" state
+          try {
+            await ctx.scheduler.runAfter(
+              0,
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.generation.generateResponse,
+              {
+                conversationId: args.conversationId,
+                modelId: "auto", // Force auto-routing again
+                userId: args.userId,
+                thinkingEffort: args.thinkingEffort,
+                comparisonGroupId: args.comparisonGroupId,
+                existingMessageId: assistantMessageId,
+                systemPromptOverride: args.systemPromptOverride,
+                passedMessages: args.passedMessages,
+                excludedModels: failedModels,
+              },
+            );
+
+            // Only mark as retrying after scheduler succeeds
+            await (ctx.runMutation as any)(
+              // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+              internal.messages.markRetrying,
+              {
+                messageId: assistantMessageId,
+                failedModels,
+                retryCount,
+              },
+            );
+
+            return; // Exit without marking error - retry in progress
+          } catch (schedulerError) {
+            logger.error("Failed to schedule retry, falling through to error", {
+              tag: "Generation",
+              messageId: assistantMessageId,
+              error: String(schedulerError),
+            });
+            // Fall through to error handling below
+          }
+        }
+
+        // All retries exhausted - create system feedback and alert admin
+        logger.error("Auto-router: all retries exhausted", {
+          tag: "Generation",
+          messageId: assistantMessageId,
+          failedModels,
+          retryCount,
+        });
+
+        // Get user info for the alert
+        const user = (await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.lib.helpers.getCurrentUser,
+          {},
+        )) as Doc<"users"> | null;
+
+        // Create system feedback entry for tracking
+        await (ctx.runMutation as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.feedback.createSystemFeedback,
+          {
+            userId: args.userId,
+            errorContext: {
+              conversationId: args.conversationId,
+              messageId: assistantMessageId,
+              modelId,
+              errorMessage:
+                error instanceof Error ? error.message : String(error),
+              errorType,
+              failedModels,
+              environment: process.env.NODE_ENV || "development",
+            },
+          },
+        );
+
+        // Send admin alert email
+        await ctx.scheduler.runAfter(
+          0,
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.emails.utils.send.sendGenerationErrorAlert,
+          {
+            userId: args.userId,
+            userEmail: user?.email,
+            conversationId: args.conversationId,
+            messageId: assistantMessageId,
+            modelId,
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            errorType,
+            failedModels,
           },
         );
       }
@@ -1226,12 +1672,31 @@ export const generateResponse = internalAction({
         }
       }
 
-      console.error("[Generation] Error:", error);
+      logger.error("Generation error", {
+        tag: "Generation",
+        error: String(error),
+      });
 
+      // Cleanup partial tool calls on error
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.messages.cleanupPartialToolCalls,
+        { messageId: assistantMessageId },
+      );
+
+      // Mark error BEFORE releasing lock to avoid stuck "generating" state
       await ctx.runMutation(internal.messages.markError, {
-        messageId: args.assistantMessageId,
+        messageId: assistantMessageId,
         error: userMessage,
       });
+
+      // Release lock on error
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.generationLock.releaseLock,
+        { conversationId: args.conversationId },
+      );
+
       throw error;
     }
   },

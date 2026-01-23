@@ -6,6 +6,7 @@ import { getModel } from "@/lib/ai/registry";
 import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 import { IMAGE_GENERATION_SYSTEM_PROMPT } from "../lib/prompts/operational/imageGeneration";
 
 export const generateImage = internalAction({
@@ -101,7 +102,7 @@ export const generateImage = internalAction({
       let reasoningBuffer = "";
       let lastUpdate = Date.now();
       let lastReasoningUpdate = Date.now();
-      const UPDATE_INTERVAL = 200; // Throttle DB updates
+      const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming
 
       for await (const chunk of result.fullStream) {
         const now = Date.now();
@@ -273,7 +274,10 @@ export const generateImage = internalAction({
         generationTime: totalTime,
       };
     } catch (error) {
-      console.error("Image generation error:", error);
+      logger.error("Image generation error", {
+        tag: "ImageGeneration",
+        error: String(error),
+      });
 
       // Use markError to properly set status="error" and clear state
       await ctx.runMutation(internal.messages.markError, {

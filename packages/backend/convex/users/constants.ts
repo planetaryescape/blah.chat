@@ -12,20 +12,26 @@ export const PREFERENCE_DEFAULTS = {
   chatWidth: "standard" as const,
 
   // Models
-  defaultModel: "zai:glm-4.6v-flash",
+  defaultModel: "auto",
   favoriteModels: [] as string[],
   recentModels: [] as string[],
   newChatModelSelection: "recent" as const,
 
+  // Auto Router
+  autoRouterCostBias: 50, // 0=quality focus, 100=cheapest possible
+  autoRouterSpeedBias: 50, // 0=quality focus, 100=fastest possible
+
   // Chat
   sendOnEnter: true,
   alwaysShowMessageActions: true,
+  minimalAssistantStyle: false,
   showMessageStatistics: true,
   showComparisonStatistics: true,
-  showSlideStatistics: true,
   enableHybridSearch: false,
   showModelNamesDuringComparison: false,
   showModelProvider: false,
+  autoCompressContext: false,
+  hapticFeedbackEnabled: true,
 
   // Audio
   sttEnabled: true,
@@ -41,7 +47,18 @@ export const PREFERENCE_DEFAULTS = {
   showTemplates: true,
   showProjects: true,
   showBookmarks: true,
-  showSlides: true,
+  showTasks: true,
+  showSmartAssistant: true,
+
+  // Smart Assistant
+  noteCategoryMode: "fixed" as const,
+  customNoteCategories: [
+    "decision",
+    "discussion",
+    "action-item",
+    "insight",
+    "followup",
+  ] as string[],
 
   // Custom Instructions (single object)
   customInstructions: {
@@ -63,6 +80,10 @@ export const PREFERENCE_DEFAULTS = {
 
   // Memory
   memoryExtractionLevel: "moderate" as const,
+
+  // Accessibility
+  highContrastMode: false,
+  textScale: 100,
 } as const;
 
 export const PREFERENCE_CATEGORIES: Record<string, string> = {
@@ -78,15 +99,21 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   recentModels: "models",
   newChatModelSelection: "models",
 
+  // Auto Router
+  autoRouterCostBias: "models",
+  autoRouterSpeedBias: "models",
+
   // Chat
   sendOnEnter: "chat",
   alwaysShowMessageActions: "chat",
+  minimalAssistantStyle: "chat",
   showMessageStatistics: "chat",
   showComparisonStatistics: "chat",
-  showSlideStatistics: "chat",
   enableHybridSearch: "chat",
   showModelNamesDuringComparison: "chat",
   showModelProvider: "chat",
+  autoCompressContext: "chat",
+  hapticFeedbackEnabled: "chat",
 
   // Audio
   sttEnabled: "audio",
@@ -102,7 +129,12 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showTemplates: "advanced",
   showProjects: "advanced",
   showBookmarks: "advanced",
-  showSlides: "advanced",
+  showTasks: "advanced",
+  showSmartAssistant: "advanced",
+
+  // Smart Assistant
+  noteCategoryMode: "advanced",
+  customNoteCategories: "advanced",
 
   // Special: nested objects stored as single rows
   customInstructions: "customInstructions",
@@ -110,4 +142,8 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
 
   // Memory
   memoryExtractionLevel: "memory",
+
+  // Accessibility
+  highContrastMode: "accessibility",
+  textScale: "accessibility",
 };

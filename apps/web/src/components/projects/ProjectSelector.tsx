@@ -44,12 +44,13 @@ export function ProjectSelector({
   return (
     <Select value={currentProjectId || "none"} onValueChange={handleChange}>
       <SelectTrigger
-        className="w-auto sm:w-[200px] px-2 sm:px-3 max-w-[180px] min-w-0"
+        className="w-auto h-7! px-2 sm:px-3 max-w-[180px] min-w-0"
         aria-label="Select Project"
+        size="sm"
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center flex-1 min-w-0 gap-2">
           <FolderOpen className="w-4 h-4 shrink-0" />
-          <span className="hidden sm:block truncate min-w-0 flex-1">
+          <span className="flex-1 hidden min-w-0 truncate sm:block">
             <SelectValue placeholder="No project" />
           </span>
         </div>

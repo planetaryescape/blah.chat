@@ -10,12 +10,20 @@ import { Switch } from "@/components/ui/switch";
 
 interface MessageBehaviorSectionProps {
   alwaysShowMessageActions: boolean;
+  autoCompressContext: boolean;
+  hapticFeedbackEnabled: boolean;
   onAlwaysShowActionsChange: (checked: boolean) => Promise<void>;
+  onAutoCompressContextChange: (checked: boolean) => Promise<void>;
+  onHapticFeedbackChange: (checked: boolean) => Promise<void>;
 }
 
 export function MessageBehaviorSection({
   alwaysShowMessageActions,
+  autoCompressContext,
+  hapticFeedbackEnabled,
   onAlwaysShowActionsChange,
+  onAutoCompressContextChange,
+  onHapticFeedbackChange,
 }: MessageBehaviorSectionProps) {
   return (
     <AccordionItem value="messages">
@@ -35,6 +43,40 @@ export function MessageBehaviorSection({
             id="always-show-actions"
             checked={alwaysShowMessageActions}
             onCheckedChange={onAlwaysShowActionsChange}
+          />
+        </div>
+
+        <div
+          id="setting-autoCompressContext"
+          className="flex items-center justify-between rounded-lg transition-all"
+        >
+          <div className="space-y-0.5">
+            <Label htmlFor="auto-compress-context">Auto-compress context</Label>
+            <p className="text-sm text-muted-foreground">
+              Automatically compress conversation at 75% context capacity
+            </p>
+          </div>
+          <Switch
+            id="auto-compress-context"
+            checked={autoCompressContext}
+            onCheckedChange={onAutoCompressContextChange}
+          />
+        </div>
+
+        <div
+          id="setting-hapticFeedbackEnabled"
+          className="flex items-center justify-between rounded-lg transition-all"
+        >
+          <div className="space-y-0.5">
+            <Label htmlFor="haptic-feedback">Haptic feedback</Label>
+            <p className="text-sm text-muted-foreground">
+              Vibrate on send, copy, and delete actions (mobile only)
+            </p>
+          </div>
+          <Switch
+            id="haptic-feedback"
+            checked={hapticFeedbackEnabled}
+            onCheckedChange={onHapticFeedbackChange}
           />
         </div>
       </AccordionContent>

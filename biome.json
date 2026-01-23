@@ -1,5 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -15,13 +20,20 @@
       "!**/build",
       "!**/convex/_generated",
       "!.claude",
-      "!**/.turbo"
+      "!**/.turbo",
+      "!**/raycast-env.d.ts",
+      "!**/*.css"
     ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2
+  },
+  "javascript": {
+    "formatter": {
+      "trailingCommas": "all"
+    }
   },
   "linter": {
     "enabled": true,

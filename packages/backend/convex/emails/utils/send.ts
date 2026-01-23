@@ -4,12 +4,16 @@ import { render } from "@react-email/render";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
+import { logger } from "../../lib/logger";
 import {
   ApiCreditsExhaustedEmail,
   BudgetWarningEmail,
   BYODUpdateRequiredEmail,
   FeedbackNotificationEmail,
 } from "../templates";
+
+/** Default admin email for alerts when adminSettings.alertEmail is not configured */
+const DEFAULT_ADMIN_EMAIL = "blah.chat@bhekani.com";
 
 export const resend = new Resend(components.resend, {
   testMode: false, // Set to true for testing with delivered@resend.dev
@@ -32,7 +36,10 @@ export const sendBudgetAlert = internalAction({
       { type },
     );
     if (!canSend) {
-      console.log(`[Email] Skipping ${type} - sent within last hour`);
+      logger.info("Skipping email - sent within last hour", {
+        tag: "Email",
+        type,
+      });
       return;
     }
 
@@ -41,7 +48,7 @@ export const sendBudgetAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Render email
     const html = await render(
@@ -72,7 +79,7 @@ export const sendBudgetAlert = internalAction({
       },
     });
 
-    console.log(`[Email] Sent ${type} to ${recipientEmail}`);
+    logger.info("Sent email", { tag: "Email", type, recipientEmail });
   },
 });
 
@@ -91,7 +98,10 @@ export const sendApiCreditsAlert = internalAction({
       { type },
     );
     if (!canSend) {
-      console.log(`[Email] Skipping ${type} - sent within last hour`);
+      logger.info("Skipping email - sent within last hour", {
+        tag: "Email",
+        type,
+      });
       return;
     }
 
@@ -100,7 +110,7 @@ export const sendApiCreditsAlert = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Render email
     const html = await render(
@@ -128,7 +138,7 @@ export const sendApiCreditsAlert = internalAction({
       },
     });
 
-    console.log(`[Email] Sent ${type} to ${recipientEmail}`);
+    logger.info("Sent email", { tag: "Email", type, recipientEmail });
   },
 });
 
@@ -168,7 +178,10 @@ export const sendFeedbackNotification = internalAction({
     });
 
     if (!feedback) {
-      console.error(`[Email] Feedback ${args.feedbackId} not found`);
+      logger.error("Feedback not found", {
+        tag: "Email",
+        feedbackId: args.feedbackId,
+      });
       return;
     }
 
@@ -178,10 +191,11 @@ export const sendFeedbackNotification = internalAction({
       try {
         screenshotUrl = await ctx.storage.getUrl(feedback.screenshotStorageId);
       } catch (error) {
-        console.warn(
-          `[Email] Screenshot URL fetch failed for ${args.feedbackId}:`,
-          error,
-        );
+        logger.warn("Screenshot URL fetch failed", {
+          tag: "Email",
+          feedbackId: args.feedbackId,
+          error: String(error),
+        });
         // Continue without screenshot
       }
     }
@@ -191,7 +205,7 @@ export const sendFeedbackNotification = internalAction({
       internal.adminSettings.getInternal,
       {},
     );
-    const recipientEmail = adminSettings?.alertEmail || "blah.chat@bhekani.com";
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
 
     // Generate email subject with priority and type emojis
     const priorityEmoji = getPriorityEmoji(
@@ -217,14 +231,17 @@ export const sendFeedbackNotification = internalAction({
         html,
       });
 
-      console.log(
-        `[Email] Sent feedback notification for ${args.feedbackId} to ${recipientEmail}`,
-      );
+      logger.info("Sent feedback notification", {
+        tag: "Email",
+        feedbackId: args.feedbackId,
+        recipientEmail,
+      });
     } catch (error) {
-      console.error(
-        `[Email] Feedback notification failed for ${args.feedbackId}:`,
-        error,
-      );
+      logger.error("Feedback notification failed", {
+        tag: "Email",
+        feedbackId: args.feedbackId,
+        error: String(error),
+      });
       // Don't throw - feedback is already saved, email is best-effort
     }
   },
@@ -247,9 +264,11 @@ export const sendBYODUpdateNotification = internalAction({
       { type, userId: args.userId },
     );
     if (!canSend) {
-      console.log(
-        `[Email] Skipping ${type} for user ${args.userId} - already sent`,
-      );
+      logger.info("Skipping email - already sent", {
+        tag: "Email",
+        type,
+        userId: args.userId,
+      });
       return;
     }
 
@@ -281,14 +300,106 @@ export const sendBYODUpdateNotification = internalAction({
         },
       });
 
-      console.log(
-        `[Email] Sent BYOD update notification to ${args.userEmail} (v${args.currentVersion} → v${args.latestVersion})`,
-      );
+      logger.info("Sent BYOD update notification", {
+        tag: "Email",
+        userEmail: args.userEmail,
+        currentVersion: args.currentVersion,
+        latestVersion: args.latestVersion,
+      });
     } catch (error) {
-      console.error(
-        `[Email] BYOD update notification failed for ${args.userId}:`,
-        error,
-      );
+      logger.error("BYOD update notification failed", {
+        tag: "Email",
+        userId: args.userId,
+        error: String(error),
+      });
+    }
+  },
+});
+
+// Send generation error alert email (after all retries exhausted)
+export const sendGenerationErrorAlert = internalAction({
+  args: {
+    userId: v.id("users"),
+    userEmail: v.optional(v.string()),
+    conversationId: v.id("conversations"),
+    messageId: v.id("messages"),
+    modelId: v.string(),
+    errorMessage: v.string(),
+    errorType: v.string(),
+    failedModels: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const type = `generation_error_${args.errorType}`;
+
+    // Rate limit: 1 per user per hour per error type
+    const canSend = await ctx.runMutation(
+      internal.emails.utils.mutations.checkCanSendToUser,
+      { type, userId: args.userId },
+    );
+    if (!canSend) {
+      logger.info("Skipping email - sent within last hour", {
+        tag: "Email",
+        type,
+        userId: args.userId,
+      });
+      return;
+    }
+
+    // Get admin email from settings
+    const adminSettings = await ctx.runQuery(
+      internal.adminSettings.getInternal,
+      {},
+    );
+    const recipientEmail = adminSettings?.alertEmail || DEFAULT_ADMIN_EMAIL;
+
+    // Render email
+    const { GenerationErrorAlertEmail } = await import("../templates");
+    const html = await render(
+      GenerationErrorAlertEmail({
+        userEmail: args.userEmail,
+        conversationId: args.conversationId,
+        messageId: args.messageId,
+        modelId: args.modelId,
+        errorMessage: args.errorMessage,
+        errorType: args.errorType,
+        failedModels: args.failedModels,
+      }),
+    );
+
+    try {
+      // Send via Resend
+      await resend.sendEmail(ctx, {
+        from: "blah.chat Alerts <alerts@blah.chat>",
+        to: recipientEmail,
+        subject: `Auto-Router Failure: ${args.errorType}`,
+        html,
+      });
+
+      // Record sent
+      await ctx.runMutation(internal.emails.utils.mutations.recordSent, {
+        type,
+        recipientEmail,
+        metadata: {
+          userId: args.userId,
+          conversationId: args.conversationId,
+          messageId: args.messageId,
+          errorType: args.errorType,
+          failedModels: args.failedModels,
+        },
+      });
+
+      logger.info("Sent generation error alert", {
+        tag: "Email",
+        userId: args.userId,
+        errorType: args.errorType,
+        failedModels: args.failedModels,
+      });
+    } catch (error) {
+      logger.error("Generation error alert failed", {
+        tag: "Email",
+        userId: args.userId,
+        error: String(error),
+      });
     }
   },
 });

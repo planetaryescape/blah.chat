@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
+import { logger } from "./lib/logger";
 
 const http = httpRouter();
 
@@ -42,7 +43,10 @@ http.route({
         },
       });
     } catch (error) {
-      console.error("[StoreCodeExecutionImage] Error:", error);
+      logger.error("Store code execution image failed", {
+        tag: "StoreCodeExecutionImage",
+        error: String(error),
+      });
       return new Response(
         JSON.stringify({
           error: error instanceof Error ? error.message : "Storage failed",
@@ -158,6 +162,53 @@ http.route({
         "Access-Control-Allow-Origin": "*",
       },
     });
+  }),
+});
+
+/**
+ * Return decrypted BYOD credentials for GHA deployment
+ * Protected by shared secret header
+ */
+http.route({
+  path: "/api/byod/credentials-for-deploy",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // Verify deploy secret
+    const deploySecret = request.headers.get("X-Deploy-Secret");
+    if (!deploySecret || deploySecret !== process.env.BYOD_DEPLOY_SECRET) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    try {
+      // Get decrypted credentials via Node action
+      const credentials = (await (ctx.runAction as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.byod.deployCredentials.getDecryptedCredentials,
+        {},
+      )) as {
+        configId: string;
+        userId: string;
+        deploymentUrl: string;
+        deployKey: string;
+      }[];
+
+      return new Response(
+        JSON.stringify({ credentials, count: credentials.length }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    } catch (error) {
+      logger.error("BYOD credentials fetch failed", {
+        tag: "BYODCredentials",
+        error: String(error),
+      });
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch credentials" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
   }),
 });
 

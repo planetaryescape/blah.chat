@@ -4,6 +4,7 @@ import { Copy, Download, Maximize2, Minimize2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { fixMermaidSyntax } from "@/lib/utils/mermaidFixer";
 
 interface MermaidRendererProps {
   code: string;
@@ -46,6 +47,21 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
   const [copied, setCopied] = useState(false);
   const { theme, resolvedTheme } = useTheme();
 
+  // Debounce: wait for code to stabilize before rendering (prevents errors during streaming)
+  const [stableCode, setStableCode] = useState<string | null>(null);
+  const [isWaitingForStable, setIsWaitingForStable] = useState(true);
+
+  // Debounce effect: only render after code hasn't changed for 300ms
+  useEffect(() => {
+    setIsWaitingForStable(true);
+    const timeout = setTimeout(() => {
+      setStableCode(code);
+      setIsWaitingForStable(false);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [code]);
+
   // Determine if we're in dark mode
   const isDark =
     resolvedTheme === "dark" ||
@@ -55,33 +71,24 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
     const initializeMermaid = async () => {
       const mermaid = await getMermaid();
       if (!mermaidInitialized) {
+        // Minimal initialization - full config happens during render
         mermaid.initialize({
           startOnLoad: false,
-          theme: config?.theme || "base",
-          themeVariables: config?.themeVariables || {},
-          flowchart: config?.flowchart || {
-            nodeSpacing: 50,
-            rankSpacing: 50,
-            curve: "basis",
-          },
-          sequence: config?.sequence || {
-            actorMargin: 50,
-            boxMargin: 10,
-            boxTextMargin: 5,
-            diagramMarginX: 50,
-            diagramMarginY: 10,
-            messageMargin: 35,
-          },
-          state: config?.state || { titleTopMargin: 25 },
+          theme: "base",
+          suppressErrorRendering: true, // Handle errors manually with custom UI
         });
         mermaidInitialized = true;
       }
     };
 
     initializeMermaid();
-  }, [config]);
+  }, []);
 
   useEffect(() => {
+    // Capture stableCode in closure to prevent race conditions during async render
+    const codeToRender = stableCode;
+    if (!codeToRender) return;
+
     const renderDiagram = async () => {
       try {
         setError(null);
@@ -89,48 +96,36 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
 
         const mermaid = await getMermaid();
 
-        // Get theme-specific colors
+        // Use built-in Mermaid themes without color overrides
+        const theme = isDark ? "dark" : "default";
+
+        // Minimal theme overrides: improve text contrast in dark mode
         const themeVars = isDark
           ? {
-              // Dark mode colors
-              primaryColor: "#d4a574", // warm gold (same)
-              primaryTextColor: "#e8dfd4", // light beige text
-              primaryBorderColor: "#e89f5f", // bright orange border
-              lineColor: "#b8b8b8", // lighter gray lines
-              secondaryColor: "#3d3d3d", // dark gray
-              tertiaryColor: "#e89f5f", // deep orange
-              background: "#1a1a1a", // dark background
-              mainBkg: "#2d2d2d", // dark card bg
-              secondBkg: "#3d3d3d", // darker muted bg
-              textColor: "#e8dfd4", // light text
-              nodeBorder: "#d4a574", // gold borders
-              clusterBkg: "#2d2d2d", // dark cluster background
-              clusterBorder: "#b88a5f", // darker gold cluster border
-              edgeLabelBackground: "#2d2d2d", // dark edge label bg
+              // Dark mode: make text brighter/more visible (default uses #ccc)
+              primaryTextColor: "#ffffff",
+              secondaryTextColor: "#ffffff",
+              tertiaryTextColor: "#ffffff",
+              textColor: "#ffffff",
+              nodeTextColor: "#ffffff",
+              labelTextColor: "#ffffff",
+              actorTextColor: "#ffffff",
+              signalTextColor: "#ffffff",
+              ...config?.themeVariables,
             }
-          : {
-              // Light mode colors
-              primaryColor: "#d4a574",
-              primaryTextColor: "#2d2d2d",
-              primaryBorderColor: "#b88a5f",
-              lineColor: "#8b8b8b",
-              secondaryColor: "#e8dfd4",
-              tertiaryColor: "#e89f5f",
-              background: "#f0ebe5",
-              mainBkg: "#fdfcfb",
-              secondBkg: "#e8dfd4",
-              textColor: "#2d2d2d",
-            };
+          : config?.themeVariables || {};
 
-        // Re-initialize mermaid with theme-specific colors
+        // Re-initialize mermaid with minimal config - let Mermaid handle colors
         mermaid.initialize({
           startOnLoad: false,
-          theme: "base",
-          themeVariables: { ...themeVars, ...config?.themeVariables },
+          theme,
+          suppressErrorRendering: true, // Handle errors manually with custom UI
+          themeVariables: themeVars,
           flowchart: config?.flowchart || {
             nodeSpacing: 50,
             rankSpacing: 50,
             curve: "basis",
+            padding: 15,
           },
           sequence: config?.sequence || {
             actorMargin: 50,
@@ -140,14 +135,40 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
             diagramMarginY: 10,
             messageMargin: 35,
           },
-          state: config?.state || { titleTopMargin: 25 },
+          state: config?.state || {
+            titleTopMargin: 25,
+            padding: 15,
+          },
         });
 
         const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        const { svg: renderedSvg } = await mermaid.render(id, code);
-        setSvg(renderedSvg);
+
+        // Auto-fix common LLM-generated syntax errors
+        const fixedCode = fixMermaidSyntax(codeToRender);
+
+        try {
+          // Try rendering with fixed code
+          const { svg: renderedSvg } = await mermaid.render(id, fixedCode);
+          setSvg(renderedSvg);
+        } catch (fixedError) {
+          console.error(
+            "[MermaidRenderer] Fixed code failed to render:",
+            fixedError,
+          );
+          // Fallback: try original code if fix caused issues
+          try {
+            const { svg: renderedSvg } = await mermaid.render(id, codeToRender);
+            setSvg(renderedSvg);
+          } catch (originalError) {
+            console.error(
+              "[MermaidRenderer] Original code also failed to render:",
+              originalError,
+            );
+            throw originalError;
+          }
+        }
       } catch (err) {
-        console.error("[MermaidRenderer] Render error:", err);
+        // Error is caught - show clean error UI (suppressErrorRendering prevents error SVG)
         setError(
           err instanceof Error ? err.message : "Failed to render diagram",
         );
@@ -156,10 +177,8 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
       }
     };
 
-    if (code) {
-      renderDiagram();
-    }
-  }, [code, isDark, config]);
+    renderDiagram();
+  }, [stableCode, isDark, config]);
 
   const handleCopy = async () => {
     try {
@@ -204,6 +223,21 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
     return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  // Show placeholder while waiting for code to stabilize (during streaming)
+  if (isWaitingForStable || !stableCode) {
+    return (
+      <div className="my-4 rounded border border-border bg-card">
+        <div className="flex items-center gap-2 p-4 text-muted-foreground text-sm">
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          Generating diagram...
+        </div>
+        <pre className="p-4 text-xs text-muted-foreground overflow-x-auto bg-muted/30 max-h-[200px]">
+          {code}
+        </pre>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -284,7 +318,10 @@ export function MermaidRenderer({ code, config }: MermaidRendererProps) {
             Loading diagram...
           </div>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: svg }} />
+          <div
+            className="w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-w-full"
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
         )}
       </div>
     </div>

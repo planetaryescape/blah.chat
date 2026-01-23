@@ -11,6 +11,7 @@ import { ModelBadge } from "@/components/chat/ModelBadge";
 import { ShareDialog } from "@/components/chat/ShareDialog";
 import { ProjectSelector } from "@/components/projects/ProjectSelector";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserPreference } from "@/hooks/useUserPreference";
 
 interface ChatHeaderProps {
@@ -49,9 +50,9 @@ export function ChatHeader({
   const showMessageStats = useUserPreference("showMessageStatistics");
 
   return (
-    <header className="flex items-center gap-4 border-b px-4 py-3 shrink-0">
-      {/* Navigation buttons - left side next to title */}
-      <div className="flex items-center gap-1">
+    <header className="flex items-center gap-2 sm:gap-4 border-b px-3 sm:px-4 py-2 sm:py-3 shrink-0">
+      {/* Navigation buttons - hidden on mobile */}
+      <div className="hidden sm:flex items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
@@ -75,8 +76,12 @@ export function ChatHeader({
       </div>
 
       <div className="flex items-center gap-1 flex-1 min-w-0">
-        <h1 className="text-lg font-semibold truncate">
-          {conversation?.title || "New Chat"}
+        <h1 className="text-base sm:text-lg font-semibold truncate">
+          {conversation === undefined ? (
+            <Skeleton className="h-6 w-32" />
+          ) : (
+            conversation?.title || "New Chat"
+          )}
         </h1>
       </div>
 
@@ -91,17 +96,20 @@ export function ChatHeader({
             }
           />
         )}
-        {conversation?.isIncognito && <IncognitoBadge />}
       </div>
 
-      {showProjects && !conversation?.isIncognito && (
-        <ProjectSelector
-          conversationId={conversationId}
-          currentProjectId={conversation?.projectId ?? undefined}
-        />
-      )}
+      {/* Project selector - hidden on mobile */}
+      <div className="hidden sm:block">
+        {showProjects && !conversation?.isIncognito && (
+          <ProjectSelector
+            conversationId={conversationId}
+            currentProjectId={conversation?.projectId ?? undefined}
+          />
+        )}
+      </div>
 
-      <div className="flex items-center gap-2">
+      {/* Desktop-only: stats, branch, share */}
+      <div className="hidden sm:flex items-center gap-2">
         {showMessageStats && hasMessages && conversationId && (
           <ContextWindowIndicator
             conversationId={conversationId}
@@ -109,13 +117,18 @@ export function ChatHeader({
           />
         )}
         {conversationId && <BranchBadge conversationId={conversationId} />}
-        {/* Hide sharing for incognito - ephemeral by design */}
         {hasMessages && conversationId && !conversation?.isIncognito && (
           <ShareDialog conversationId={conversationId} />
         )}
-        {/* Fire button for incognito conversations */}
+      </div>
+
+      {/* Always visible: incognito badge, fire button, menu */}
+      <div className="flex items-center gap-1 sm:gap-2">
         {conversation?.isIncognito && (
-          <FireButton conversationId={conversationId} />
+          <>
+            <IncognitoBadge />
+            <FireButton conversationId={conversationId} />
+          </>
         )}
         {conversation && <ConversationHeaderMenu conversation={conversation} />}
       </div>

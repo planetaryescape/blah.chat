@@ -29,7 +29,7 @@ export function ModelBadge({
         onClick={onClick}
         title="Manage comparison models"
         className={cn(
-          "gap-2 h-7 text-xs border-primary/20 bg-primary/2 hover:bg-primary/10 px-3 rounded-full transition-colors min-w-0 w-auto font-medium text-primary/80 hover:text-primary/80 cursor-pointer",
+          "gap-2 h-7 text-xs border-primary/20 bg-primary/2 hover:bg-primary/10 px-3 rounded-md transition-colors min-w-0 w-auto font-medium text-primary/80 hover:text-primary/80 cursor-pointer",
           className,
         )}
       >
@@ -56,7 +56,7 @@ export function ModelBadge({
       onClick={onClick}
       title="Change AI model (⌘J)"
       className={cn(
-        "gap-2 h-7 text-xs border-primary/20 bg-primary/2 hover:bg-primary/10 px-3 rounded-full transition-colors min-w-0 w-auto font-medium text-primary/80 hover:text-primary/80 cursor-pointer",
+        "gap-2 h-7 text-xs border-primary/20 bg-primary/2 hover:bg-primary/10 px-3 rounded-md transition-colors min-w-0 w-auto font-medium text-primary/80 hover:text-primary/80 cursor-pointer",
         className,
       )}
     >

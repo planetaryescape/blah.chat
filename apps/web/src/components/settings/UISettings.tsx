@@ -17,6 +17,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { useUISettingsState } from "@/hooks/useUISettingsState";
 import {
+  AccessibilitySection,
+  AutoRouterSection,
   ComparisonSettingsSection,
   DisplayLayoutSection,
   MessageBehaviorSection,
@@ -24,6 +26,7 @@ import {
   SidebarFeaturesSection,
   StatisticsSection,
 } from "./sections";
+import { SmartAssistantSection } from "./sections/SmartAssistantSection";
 
 // Map setting keys to their accordion section
 const SETTING_TO_SECTION: Record<string, string> = {
@@ -32,7 +35,8 @@ const SETTING_TO_SECTION: Record<string, string> = {
   showTemplates: "sidebar-features",
   showProjects: "sidebar-features",
   showBookmarks: "sidebar-features",
-  showSlides: "sidebar-features",
+  showTasks: "sidebar-features",
+  showSmartAssistant: "sidebar-features",
   // Display
   chatWidth: "display",
   // Stats
@@ -41,12 +45,23 @@ const SETTING_TO_SECTION: Record<string, string> = {
   showModelProvider: "stats",
   // Messages
   alwaysShowMessageActions: "messages",
+  autoCompressContext: "messages",
+  hapticFeedbackEnabled: "messages",
   // Reasoning
   showByDefault: "reasoning",
   autoExpand: "reasoning",
   showDuringStreaming: "reasoning",
   // Comparison
   showModelNamesDuringComparison: "comparison",
+  // Auto Router
+  autoRouterCostBias: "auto-router",
+  autoRouterSpeedBias: "auto-router",
+  // Smart Assistant
+  noteCategoryMode: "smart-assistant",
+  customNoteCategories: "smart-assistant",
+  // Accessibility
+  highContrastMode: "accessibility",
+  textScale: "accessibility",
 };
 
 const DEFAULT_EXPANDED = [
@@ -56,6 +71,9 @@ const DEFAULT_EXPANDED = [
   "reasoning",
   "comparison",
   "sidebar-features",
+  "smart-assistant",
+  "auto-router",
+  "accessibility",
 ];
 
 interface UISettingsProps {
@@ -132,17 +150,21 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           <StatisticsSection
             showMessageStats={state.showMessageStats}
             showComparisonStats={state.showComparisonStats}
-            showSlideStats={state.showSlideStats}
             showModelProvider={state.showModelProvider}
             onMessageStatsChange={handlers.handleMessageStatsChange}
             onComparisonStatsChange={handlers.handleComparisonStatsChange}
-            onSlideStatsChange={handlers.handleSlideStatsChange}
             onShowModelProviderChange={handlers.handleShowModelProviderChange}
           />
 
           <MessageBehaviorSection
             alwaysShowMessageActions={state.alwaysShowMessageActions}
+            autoCompressContext={state.autoCompressContext}
+            hapticFeedbackEnabled={state.hapticFeedbackEnabled}
             onAlwaysShowActionsChange={handlers.handleAlwaysShowActionsChange}
+            onAutoCompressContextChange={
+              handlers.handleAutoCompressContextChange
+            }
+            onHapticFeedbackChange={handlers.handleHapticFeedbackChange}
           />
 
           <ReasoningDisplaySection
@@ -168,12 +190,37 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
             showTemplates={state.showTemplates}
             showProjects={state.showProjects}
             showBookmarks={state.showBookmarks}
-            showSlides={state.showSlides}
+            showTasks={state.showTasks}
+            showSmartAssistant={state.showSmartAssistant}
             onShowNotesChange={handlers.handleShowNotesChange}
             onShowTemplatesChange={handlers.handleShowTemplatesChange}
             onShowProjectsChange={handlers.handleShowProjectsChange}
             onShowBookmarksChange={handlers.handleShowBookmarksChange}
-            onShowSlidesChange={handlers.handleShowSlidesChange}
+            onShowTasksChange={handlers.handleShowTasksChange}
+            onShowSmartAssistantChange={handlers.handleShowSmartAssistantChange}
+          />
+
+          <SmartAssistantSection
+            noteCategoryMode={state.noteCategoryMode}
+            customNoteCategories={state.customNoteCategories}
+            onNoteCategoryModeChange={handlers.handleNoteCategoryModeChange}
+            onCustomNoteCategoriesChange={
+              handlers.handleCustomNoteCategoriesChange
+            }
+          />
+
+          <AutoRouterSection
+            costBias={state.autoRouterCostBias}
+            speedBias={state.autoRouterSpeedBias}
+            onCostBiasChange={handlers.handleCostBiasChange}
+            onSpeedBiasChange={handlers.handleSpeedBiasChange}
+          />
+
+          <AccessibilitySection
+            highContrastMode={state.highContrastMode}
+            textScale={state.textScale}
+            onHighContrastChange={handlers.handleHighContrastChange}
+            onTextScaleChange={handlers.handleTextScaleChange}
           />
         </Accordion>
 

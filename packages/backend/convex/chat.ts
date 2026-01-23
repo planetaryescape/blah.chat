@@ -36,12 +36,78 @@ async function canAccessConversation(
   return false;
 }
 
+/**
+ * Derive rootMessageId for tree architecture
+ * Walks up the tree to find the actual root if not set
+ */
+async function _deriveRootMessageId(
+  ctx: MutationCtx,
+  message: {
+    _id: Id<"messages">;
+    rootMessageId?: Id<"messages">;
+    parentMessageId?: Id<"messages">;
+    parentMessageIds?: Id<"messages">[];
+  },
+): Promise<Id<"messages">> {
+  // If rootMessageId is set, use it
+  if (message.rootMessageId) {
+    return message.rootMessageId;
+  }
+
+  // If no parents, this is the root
+  const parentId = message.parentMessageIds?.[0] ?? message.parentMessageId;
+  if (!parentId) {
+    return message._id;
+  }
+
+  // Walk up to find root (max 1000 iterations for safety)
+  let currentId: Id<"messages"> | undefined = parentId;
+  const visited = new Set<string>();
+
+  while (currentId && visited.size < 1000) {
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+
+    const parent: {
+      _id: Id<"messages">;
+      rootMessageId?: Id<"messages">;
+      parentMessageId?: Id<"messages">;
+      parentMessageIds?: Id<"messages">[];
+    } | null = await ctx.db.get(currentId);
+    if (!parent) break;
+
+    // Found a message with rootMessageId set
+    if (parent.rootMessageId) {
+      return parent.rootMessageId;
+    }
+
+    // Check if this is the root (no parents)
+    const nextParentId: Id<"messages"> | undefined =
+      parent.parentMessageIds?.[0] ?? parent.parentMessageId;
+    if (!nextParentId) {
+      return parent._id;
+    }
+
+    currentId = nextParentId;
+  }
+
+  // Fallback: use the message's own ID (shouldn't happen normally)
+  return message._id;
+}
+
 const attachmentValidator = v.object({
   type: v.union(v.literal("file"), v.literal("image"), v.literal("audio")),
   name: v.string(),
   storageId: v.string(),
   mimeType: v.string(),
   size: v.number(),
+});
+
+// Minimal message shape for fast inference (client sends, server skips DB fetch)
+const _inferenceMessageValidator = v.object({
+  role: v.union(v.literal("user"), v.literal("assistant")),
+  content: v.string(),
+  model: v.optional(v.string()),
 });
 
 /**
@@ -77,8 +143,8 @@ export const sendMessage = mutation({
     args,
   ): Promise<{
     conversationId: Id<"conversations">;
-    messageId?: Id<"messages">; // Single mode
-    assistantMessageIds?: Id<"messages">[]; // Comparison mode
+    userMessageId: Id<"messages">;
+    assistantMessageIds: Id<"messages">[];
     comparisonGroupId?: string;
   }> => {
     const user = await getCurrentUserOrCreate(ctx);
@@ -167,68 +233,138 @@ export const sendMessage = mutation({
       );
     }
 
-    // 4. Insert user message (single)
-    await ctx.runMutation(internal.messages.create, {
-      conversationId,
-      userId: user._id,
-      role: "user",
-      content: args.content,
-      attachments: args.attachments,
-      status: "complete",
-      comparisonGroupId, // Link to comparison group if multi-model
-    });
+    // 4. Acquire lock BEFORE creating messages (prevents reactive query race condition)
+    const lockAcquired = (await (ctx.runMutation as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.generationLock.acquireLock,
+      {
+        conversationId,
+        userId: user._id,
+        comparisonGroupId,
+        modelCount: modelsToUse.length,
+      },
+    )) as boolean;
 
-    // 5. Insert N pending assistant messages
+    if (!lockAcquired) {
+      throw new Error("Please wait for the current response to complete.");
+    }
+
+    // 5. Create messages and schedule generations - release lock on any failure
+    // Each ctx.runMutation is atomic independently, NOT together as a transaction.
+    // If message creation fails after lock acquired, we must explicitly release.
+    let userMessageId: Id<"messages">;
     const assistantMessageIds: Id<"messages">[] = [];
 
-    for (const model of modelsToUse) {
-      const msgId = await ctx.runMutation(internal.messages.create, {
-        conversationId,
-        userId: user._id,
-        role: "assistant",
-        status: "pending",
-        model,
-        comparisonGroupId, // Link all responses
-      });
-      assistantMessageIds.push(msgId);
+    try {
+      // Get tree context: find last message and root for tree fields
+      const existingMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation_created", (q) =>
+          q.eq("conversationId", conversationId!),
+        )
+        .collect();
 
-      // 6. Schedule generation action (non-blocking)
-      await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
-        conversationId,
-        assistantMessageId: msgId,
-        modelId: model,
-        userId: user._id,
-        thinkingEffort: args.thinkingEffort as any,
-      });
-    }
-
-    // 7. Trigger model recommendation triage (if expensive model used)
-    if (conversationId && shouldAnalyzeModelFit(modelsToUse[0])) {
-      await ctx.scheduler.runAfter(
-        0, // Immediate, non-blocking
-        // @ts-ignore
-        internal.ai.modelTriage.analyzeModelFit,
-        {
-          conversationId,
-          userMessage: args.content,
-          currentModelId: modelsToUse[0],
-        },
+      // Sort by createdAt to find last message
+      const sortedMessages = existingMessages.sort(
+        (a, b) => a.createdAt - b.createdAt,
       );
+      const lastMessage = sortedMessages[sortedMessages.length - 1];
+      const rootMessageId =
+        sortedMessages[0]?.rootMessageId ?? sortedMessages[0]?._id;
+
+      // Insert user message (single) - only after lock acquired
+      userMessageId = (await ctx.runMutation(internal.messages.create, {
+        conversationId,
+        userId: user._id,
+        role: "user",
+        content: args.content,
+        attachments: args.attachments,
+        status: "complete",
+        comparisonGroupId, // Link to comparison group if multi-model
+        // Tree fields (P7)
+        parentMessageIds: lastMessage ? [lastMessage._id] : undefined,
+        siblingIndex: 0,
+        isActiveBranch: true,
+        rootMessageId: rootMessageId,
+      })) as Id<"messages">;
+
+      // Create assistant messages upfront with status: "pending"
+      // This eliminates client-side optimistic messages and deduplication
+      for (let i = 0; i < modelsToUse.length; i++) {
+        const model = modelsToUse[i];
+        const assistantMessageId = (await ctx.runMutation(
+          internal.messages.create,
+          {
+            conversationId,
+            userId: user._id,
+            role: "assistant",
+            content: "",
+            status: "pending",
+            model,
+            comparisonGroupId,
+            // Tree fields (P7)
+            parentMessageIds: [userMessageId],
+            siblingIndex: i, // Multiple models = siblings
+            isActiveBranch: i === 0, // First model is active branch
+            rootMessageId: rootMessageId ?? userMessageId, // userMessage is root if first
+            forkReason: modelsToUse.length > 1 ? "model_compare" : undefined,
+          },
+        )) as Id<"messages">;
+        assistantMessageIds.push(assistantMessageId);
+      }
+
+      // 6. Schedule generation actions with existing message IDs
+      for (let i = 0; i < modelsToUse.length; i++) {
+        await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+          conversationId,
+          existingMessageId: assistantMessageIds[i],
+          modelId: modelsToUse[i],
+          userId: user._id,
+          thinkingEffort: args.thinkingEffort as any,
+          comparisonGroupId,
+        });
+      }
+
+      // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
+      if (
+        conversationId &&
+        modelsToUse[0] !== "auto" &&
+        !comparisonGroupId &&
+        shouldAnalyzeModelFit(modelsToUse[0])
+      ) {
+        await ctx.scheduler.runAfter(
+          0, // Immediate, non-blocking
+          // @ts-ignore
+          internal.ai.modelTriage.analyzeModelFit,
+          {
+            conversationId,
+            userMessage: args.content,
+            currentModelId: modelsToUse[0],
+          },
+        );
+      }
+
+      // 8. Schedule background housekeeping (non-blocking)
+      // This handles: daily count, timestamp update, limit checks, memory extraction
+      await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
+        userId: user._id,
+        conversationId: conversationId!,
+      });
+    } catch (error) {
+      // Release lock on any failure (message creation or scheduling)
+      await (ctx.runMutation as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.lib.generationLock.forceReleaseLock,
+        { conversationId },
+      );
+      throw error;
     }
 
-    // 8. Schedule background housekeeping (non-blocking)
-    // This handles: daily count, timestamp update, limit checks, memory extraction
-    await ctx.scheduler.runAfter(0, internal.chat.runHousekeeping, {
-      userId: user._id,
-      conversationId: conversationId!,
-    });
-
-    // 11. Return immediately
+    // 9. Return immediately with all message IDs
     return {
       conversationId: conversationId!,
-      messageId: modelsToUse.length === 1 ? assistantMessageIds[0] : undefined,
-      assistantMessageIds:
-        modelsToUse.length > 1 ? assistantMessageIds : undefined,
+      userMessageId,
+      assistantMessageIds,
       comparisonGroupId,
     };
   },
@@ -317,6 +453,8 @@ export const regenerate = mutation({
   args: {
     messageId: v.id("messages"),
     modelId: v.optional(v.string()),
+    /** Pass failed models from error recovery to exclude them from retry */
+    useFailedModelsFromMessage: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Id<"messages">> => {
     const identity = await ctx.auth.getUserIdentity();
@@ -349,42 +487,60 @@ export const regenerate = mutation({
       userDefaultModel ||
       "openai:gpt-oss-20b";
 
-    // Reset the message in-place (replace, not create sibling)
+    // P7 Tree Architecture: Create sibling message instead of replacing in-place
+    // This preserves the original response and enables branch navigation
+    const parentIds =
+      message.parentMessageIds ??
+      (message.parentMessageId ? [message.parentMessageId] : undefined);
+
+    // Get sibling index (count existing siblings)
+    let siblingIndex = 0;
+    if (parentIds && parentIds.length > 0) {
+      const siblings = await ctx.db
+        .query("messages")
+        .withIndex("by_parent", (q) => q.eq("parentMessageId", parentIds[0]))
+        .collect();
+      siblingIndex = siblings.length;
+    }
+
+    // Mark original message as not on active branch
     await ctx.db.patch(args.messageId, {
-      content: "",
-      status: "pending",
-      model: modelId,
-      partialContent: undefined,
-      reasoning: undefined,
-      thinkingStartedAt: undefined,
-      thinkingCompletedAt: undefined,
+      isActiveBranch: false,
       updatedAt: Date.now(),
     });
 
-    // Delete any existing tool calls for this message
-    const existingToolCalls = await ctx.db
-      .query("toolCalls")
-      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
-      .collect();
-    for (const tc of existingToolCalls) {
-      await ctx.db.delete(tc._id);
-    }
+    // Derive rootMessageId properly (walk tree if not set)
+    const rootMessageId = await _deriveRootMessageId(ctx, message);
 
-    // Delete any existing sources for this message
-    const existingSources = await ctx.db
-      .query("sources")
-      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
-      .collect();
-    for (const src of existingSources) {
-      await ctx.db.delete(src._id);
-    }
+    // Create new sibling message
+    const newMessageId = (await ctx.runMutation(internal.messages.create, {
+      conversationId: message.conversationId,
+      userId: conversation.userId,
+      role: "assistant",
+      content: "",
+      status: "pending",
+      model: modelId,
+      comparisonGroupId: message.comparisonGroupId,
+      // Tree fields (P7)
+      parentMessageIds: parentIds,
+      siblingIndex,
+      isActiveBranch: true,
+      rootMessageId,
+      forkReason: "regenerate",
+    })) as Id<"messages">;
 
-    // Schedule generation
+    // Get excluded models if retrying from error
+    const excludedModels = args.useFailedModelsFromMessage
+      ? message.failedModels
+      : undefined;
+
+    // Schedule generation with new message
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: message.conversationId,
-      assistantMessageId: args.messageId,
+      existingMessageId: newMessageId,
       modelId,
       userId: conversation.userId,
+      excludedModels,
     });
 
     // Update conversation timestamp
@@ -392,7 +548,14 @@ export const regenerate = mutation({
       conversationId: message.conversationId,
     });
 
-    return args.messageId;
+    // Increment branch count if set
+    if (conversation.branchCount !== undefined) {
+      await ctx.db.patch(conversation._id, {
+        branchCount: (conversation.branchCount || 1) + 1,
+      });
+    }
+
+    return newMessageId;
   },
 });
 
@@ -400,8 +563,12 @@ export const editMessage = mutation({
   args: {
     messageId: v.id("messages"),
     content: v.string(),
+    /** If true, creates a sibling branch and triggers new AI response (default: true) */
+    createBranch: v.optional(v.boolean()),
+    /** Model to use for the new response (only used when createBranch is true) */
+    modelId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"messages"> | undefined> => {
     const user = await getCurrentUserOrCreate(ctx);
 
     const message = await ctx.db.get(args.messageId);
@@ -420,16 +587,136 @@ export const editMessage = mutation({
       throw new Error("Can only edit user messages");
     }
 
-    // Update message content
+    // Default to creating a branch (tree architecture)
+    const shouldCreateBranch = args.createBranch !== false;
+
+    if (!shouldCreateBranch) {
+      // Simple in-place edit (for typo fixes without new response)
+      await ctx.db.patch(args.messageId, {
+        content: args.content,
+        updatedAt: Date.now(),
+      });
+
+      await ctx.runMutation(internal.conversations.updateLastMessageAt, {
+        conversationId: message.conversationId,
+      });
+      return;
+    }
+
+    // P7 Tree Architecture: Create sibling message with edited content
+    // This preserves the original branch and creates a new path
+
+    // Get parent info for sibling creation
+    const parentIds =
+      message.parentMessageIds ??
+      (message.parentMessageId ? [message.parentMessageId] : undefined);
+
+    // Get sibling index (count existing siblings with same parent)
+    let siblingIndex = 0;
+    if (parentIds && parentIds.length > 0) {
+      const siblings = await ctx.db
+        .query("messages")
+        .withIndex("by_parent", (q) => q.eq("parentMessageId", parentIds[0]))
+        .collect();
+      siblingIndex = siblings.length;
+    } else {
+      // Root message - count other root messages
+      const rootSiblings = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation_created", (q) =>
+          q.eq("conversationId", message.conversationId),
+        )
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("parentMessageId"), undefined),
+            q.eq(q.field("parentMessageIds"), undefined),
+          ),
+        )
+        .collect();
+      siblingIndex = rootSiblings.length;
+    }
+
+    // Mark original message as not on active branch
     await ctx.db.patch(args.messageId, {
-      content: args.content,
+      isActiveBranch: false,
       updatedAt: Date.now(),
+    });
+
+    // Derive rootMessageId properly (walk tree if not set)
+    const rootMessageId = await _deriveRootMessageId(ctx, message);
+
+    // Create new sibling with edited content
+    const newUserMessageId = (await ctx.runMutation(internal.messages.create, {
+      conversationId: message.conversationId,
+      userId: user._id,
+      role: "user",
+      content: args.content,
+      status: "complete",
+      // Tree fields (P7)
+      parentMessageIds: parentIds,
+      siblingIndex,
+      isActiveBranch: true,
+      rootMessageId,
+      forkReason: "edit",
+      forkMetadata: {
+        originalContent: message.content,
+        branchedAt: Date.now(),
+        branchedBy: user._id,
+      },
+    })) as Id<"messages">;
+
+    // Get model for new response
+    const userDefaultModel = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getUserPreference,
+      { key: "defaultModel" },
+    )) as string | null;
+
+    const modelId =
+      args.modelId ||
+      conversation.model ||
+      userDefaultModel ||
+      "openai:gpt-oss-20b";
+
+    // Create pending assistant message
+    const newAssistantMessageId = (await ctx.runMutation(
+      internal.messages.create,
+      {
+        conversationId: message.conversationId,
+        userId: user._id,
+        role: "assistant",
+        content: "",
+        status: "pending",
+        model: modelId,
+        // Tree fields (P7)
+        parentMessageIds: [newUserMessageId],
+        siblingIndex: 0,
+        isActiveBranch: true,
+        rootMessageId,
+      },
+    )) as Id<"messages">;
+
+    // Update conversation with new active leaf
+    await ctx.db.patch(conversation._id, {
+      activeLeafMessageId: newAssistantMessageId,
+      branchCount: (conversation.branchCount || 1) + 1,
+      updatedAt: Date.now(),
+    });
+
+    // Schedule generation for the new response
+    await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+      conversationId: message.conversationId,
+      existingMessageId: newAssistantMessageId,
+      modelId,
+      userId: user._id,
     });
 
     // Update conversation timestamp
     await ctx.runMutation(internal.conversations.updateLastMessageAt, {
       conversationId: message.conversationId,
     });
+
+    return newUserMessageId;
   },
 });
 
@@ -449,13 +736,90 @@ export const deleteMessage = mutation({
     );
     if (!hasAccess) throw new Error("Unauthorized");
 
-    await ctx.db.delete(args.messageId);
+    // Cascade delete: collect all messages to delete (children recursively)
+    const messagesToDelete: Id<"messages">[] = [args.messageId];
+    const visited = new Set<string>();
+
+    // BFS to find all descendant messages
+    const queue: Id<"messages">[] = [args.messageId];
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      // Find children by parentMessageId index
+      const children = await ctx.db
+        .query("messages")
+        .withIndex("by_parent", (q) => q.eq("parentMessageId", currentId))
+        .collect();
+
+      for (const child of children) {
+        if (!visited.has(child._id)) {
+          messagesToDelete.push(child._id);
+          queue.push(child._id);
+        }
+      }
+
+      // Also find children using parentMessageIds array (scoped to conversation)
+      const conversationMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", message.conversationId),
+        )
+        .collect();
+
+      for (const msg of conversationMessages) {
+        if (
+          msg.parentMessageIds?.includes(currentId) &&
+          !visited.has(msg._id)
+        ) {
+          messagesToDelete.push(msg._id);
+          queue.push(msg._id);
+        }
+      }
+    }
+
+    // Delete related records for each message
+    for (const msgId of messagesToDelete) {
+      // Delete attachments
+      const attachments = await ctx.db
+        .query("attachments")
+        .withIndex("by_message", (q) => q.eq("messageId", msgId))
+        .collect();
+      for (const att of attachments) {
+        await ctx.db.delete(att._id);
+      }
+
+      // Delete tool calls
+      const toolCalls = await ctx.db
+        .query("toolCalls")
+        .withIndex("by_message", (q) => q.eq("messageId", msgId))
+        .collect();
+      for (const tc of toolCalls) {
+        await ctx.db.delete(tc._id);
+      }
+
+      // Delete sources
+      const sources = await ctx.db
+        .query("sources")
+        .withIndex("by_message", (q) => q.eq("messageId", msgId))
+        .collect();
+      for (const src of sources) {
+        await ctx.db.delete(src._id);
+      }
+
+      // Delete the message itself
+      await ctx.db.delete(msgId);
+    }
 
     // Decrement conversation messageCount
     const conversation = await ctx.db.get(message.conversationId);
     if (conversation?.messageCount && conversation.messageCount > 0) {
       await ctx.db.patch(message.conversationId, {
-        messageCount: conversation.messageCount - 1,
+        messageCount: Math.max(
+          0,
+          conversation.messageCount - messagesToDelete.length,
+        ),
       });
     }
   },
@@ -562,22 +926,9 @@ export const retryMessage = mutation({
       userDefaultModel2 ||
       "openai:gpt-oss-20b";
 
-    // Create new pending assistant message
-    const newMessageId: Id<"messages"> = await ctx.runMutation(
-      internal.messages.create,
-      {
-        conversationId: userMessage.conversationId,
-        userId: conversation.userId,
-        role: "assistant",
-        status: "pending",
-        model: modelId,
-      },
-    );
-
-    // Schedule generation
+    // Schedule generation (action creates message)
     await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
       conversationId: userMessage.conversationId,
-      assistantMessageId: newMessageId,
       modelId,
       userId: conversation.userId,
     });
@@ -587,11 +938,88 @@ export const retryMessage = mutation({
       conversationId: userMessage.conversationId,
     });
 
-    return newMessageId;
+    // Note: message ID not available here - created in action
+    return userMessage._id; // Return user message ID as reference
   },
 });
 
+/**
+ * P7 Tree Architecture: Branch from a message without copying
+ *
+ * Sets up the conversation to branch from a specific message.
+ * The next message sent will create a new branch from this point.
+ *
+ * Returns the conversation ID (same as before) and branch info.
+ */
 export const branchFromMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+    title: v.optional(v.string()), // Unused in tree architecture, kept for API compat
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    conversationId: Id<"conversations">;
+    branchPointId: Id<"messages">;
+    existingSiblings: number;
+  }> => {
+    const user = await getCurrentUserOrCreate(ctx);
+    const branchPoint = await ctx.db.get(args.messageId);
+    if (!branchPoint) throw new Error("Message not found");
+
+    // Get conversation
+    const conversation = await ctx.db.get(branchPoint.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      throw new Error("Unauthorized");
+    }
+
+    // Count existing children (siblings in new branch)
+    const existingChildren = await ctx.db
+      .query("messages")
+      .withIndex("by_parent", (q) => q.eq("parentMessageId", args.messageId))
+      .collect();
+
+    // Mark the path from branch point to current leaf as inactive
+    // (The new branch will be active)
+    const activePath = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_active", (q) =>
+        q.eq("conversationId", conversation._id).eq("isActiveBranch", true),
+      )
+      .collect();
+
+    // Find messages after the branch point and mark them inactive
+    const branchPointTime = branchPoint.createdAt;
+    for (const msg of activePath) {
+      if (msg.createdAt > branchPointTime) {
+        await ctx.db.patch(msg._id, {
+          isActiveBranch: false,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Update conversation to point to branch point as active leaf
+    await ctx.db.patch(conversation._id, {
+      activeLeafMessageId: args.messageId,
+      branchCount: (conversation.branchCount ?? 1) + 1,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      conversationId: conversation._id,
+      branchPointId: args.messageId,
+      existingSiblings: existingChildren.length,
+    };
+  },
+});
+
+/**
+ * Legacy: Create a new conversation by copying messages up to branch point
+ * DEPRECATED: Use branchFromMessage for in-conversation branching (P7)
+ */
+export const branchToNewConversation = mutation({
   args: {
     messageId: v.id("messages"),
     title: v.optional(v.string()),
@@ -636,18 +1064,314 @@ export const branchFromMessage = mutation({
       },
     );
 
-    // Copy messages to new conversation
+    // Copy messages to new conversation (with tree fields)
+    let rootMessageId: Id<"messages"> | undefined;
+    let previousMessageId: Id<"messages"> | undefined;
+
     for (const message of messagesToCopy) {
-      await ctx.runMutation(internal.messages.create, {
+      const newMsgId = (await ctx.runMutation(internal.messages.create, {
         conversationId: newConversationId,
         userId: user._id,
         role: message.role,
         content: message.content,
-        status: "complete", // All copied messages are complete
+        status: "complete",
         model: message.model,
-      });
+        // Tree fields
+        parentMessageIds: previousMessageId ? [previousMessageId] : undefined,
+        siblingIndex: 0,
+        isActiveBranch: true,
+        rootMessageId: rootMessageId,
+      })) as Id<"messages">;
+
+      if (!rootMessageId) {
+        rootMessageId = newMsgId;
+        // Update the root message to point to itself
+        await ctx.db.patch(newMsgId, { rootMessageId: newMsgId });
+      }
+      previousMessageId = newMsgId;
     }
 
     return newConversationId;
+  },
+});
+
+/**
+ * P7 Tree Architecture: Switch to a different branch
+ *
+ * Changes which branch is displayed by updating isActiveBranch flags
+ * and the conversation's activeLeafMessageId.
+ */
+export const switchBranch = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    targetMessageId: v.id("messages"),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    activeLeafId: Id<"messages">;
+    pathLength: number;
+  }> => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      throw new Error("Unauthorized");
+    }
+
+    const targetMessage = await ctx.db.get(args.targetMessageId);
+    if (
+      !targetMessage ||
+      targetMessage.conversationId !== args.conversationId
+    ) {
+      throw new Error("Message not in conversation");
+    }
+
+    // Get all messages in conversation
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .collect();
+
+    // Build path to root from target message
+    const pathToRootIds = new Set<string>();
+    let currentId: Id<"messages"> | undefined = args.targetMessageId;
+    const visited = new Set<string>();
+
+    while (currentId) {
+      if (visited.has(currentId)) break;
+      visited.add(currentId);
+      pathToRootIds.add(currentId);
+
+      const msg = allMessages.find((m) => m._id === currentId);
+      if (!msg) break;
+      currentId = msg.parentMessageIds?.[0] ?? msg.parentMessageId;
+    }
+
+    // Find the leaf of the branch containing target message
+    // Walk from target to its leaf (follow first child repeatedly)
+    let leafMessage = targetMessage;
+    const leafVisited = new Set<string>();
+
+    while (true) {
+      if (leafVisited.has(leafMessage._id)) break;
+      leafVisited.add(leafMessage._id);
+
+      // Find children of current message
+      const children = allMessages.filter(
+        (m) =>
+          (m.parentMessageIds?.includes(leafMessage._id) ||
+            m.parentMessageId === leafMessage._id) &&
+          m._id !== leafMessage._id,
+      );
+
+      if (children.length === 0) break;
+
+      // Follow the first child by siblingIndex
+      const sortedChildren = children.sort(
+        (a, b) => (a.siblingIndex ?? 0) - (b.siblingIndex ?? 0),
+      );
+      leafMessage = sortedChildren[0];
+      pathToRootIds.add(leafMessage._id);
+    }
+
+    // Update isActiveBranch for all messages
+    for (const msg of allMessages) {
+      const shouldBeActive = pathToRootIds.has(msg._id);
+      if (msg.isActiveBranch !== shouldBeActive) {
+        await ctx.db.patch(msg._id, {
+          isActiveBranch: shouldBeActive,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Update conversation activeLeafMessageId
+    await ctx.db.patch(args.conversationId, {
+      activeLeafMessageId: leafMessage._id,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      activeLeafId: leafMessage._id,
+      pathLength: pathToRootIds.size,
+    };
+  },
+});
+
+/**
+ * P7 Tree Architecture: Merge branches
+ *
+ * Creates a new message that combines multiple branches by having
+ * multiple parent messages. This enables synthesizing insights from
+ * different conversation paths.
+ *
+ * Use cases:
+ * - Combine insights from two different AI model responses
+ * - Merge edited branch back with original
+ * - Synthesize multiple exploration paths
+ */
+export const mergeBranches = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    /** Message IDs from different branches to merge */
+    parentMessageIds: v.array(v.id("messages")),
+    /** User message content that synthesizes/continues from merged branches */
+    content: v.string(),
+    /** Optional: trigger AI response after merge */
+    generateResponse: v.optional(v.boolean()),
+    /** Model to use for response (if generateResponse is true) */
+    modelId: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<Id<"messages">> => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== user._id) {
+      throw new Error("Unauthorized");
+    }
+
+    if (args.parentMessageIds.length < 2) {
+      throw new Error("Merge requires at least 2 parent messages");
+    }
+
+    // Verify all parent messages exist and belong to this conversation
+    const parentMessages = await Promise.all(
+      args.parentMessageIds.map((id) => ctx.db.get(id)),
+    );
+
+    for (let i = 0; i < parentMessages.length; i++) {
+      const msg = parentMessages[i];
+      if (!msg) {
+        throw new Error(`Parent message ${args.parentMessageIds[i]} not found`);
+      }
+      if (msg.conversationId !== args.conversationId) {
+        throw new Error(
+          `Message ${args.parentMessageIds[i]} not in conversation`,
+        );
+      }
+    }
+
+    // Find common ancestor to get rootMessageId
+    const firstParent = parentMessages[0]!;
+    const rootMessageId = firstParent.rootMessageId ?? firstParent._id;
+
+    // Create the merge user message
+    const mergeMessageId = (await ctx.runMutation(internal.messages.create, {
+      conversationId: args.conversationId,
+      userId: user._id,
+      role: "user",
+      content: args.content,
+      status: "complete",
+      // Tree fields (P7) - multiple parents!
+      parentMessageIds: args.parentMessageIds,
+      siblingIndex: 0,
+      isActiveBranch: true,
+      rootMessageId,
+      forkReason: "merge",
+      forkMetadata: {
+        mergedFromIds: args.parentMessageIds,
+        branchedAt: Date.now(),
+        branchedBy: user._id,
+      },
+    })) as Id<"messages">;
+
+    // Mark all merged branches as not active (except path to root)
+    // The new merge message becomes the active path
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .collect();
+
+    // Build new active path from merge message to root
+    const activePath = new Set<string>();
+    let currentId: Id<"messages"> | undefined = mergeMessageId;
+    const visited = new Set<string>();
+
+    while (currentId) {
+      if (visited.has(currentId)) break;
+      visited.add(currentId);
+      activePath.add(currentId);
+
+      const msg = allMessages.find((m) => m._id === currentId);
+      if (!msg) break;
+      // For merge messages, follow first parent
+      currentId = msg.parentMessageIds?.[0] ?? msg.parentMessageId;
+    }
+
+    // Update isActiveBranch for all messages
+    for (const msg of allMessages) {
+      const shouldBeActive = activePath.has(msg._id);
+      if (msg.isActiveBranch !== shouldBeActive) {
+        await ctx.db.patch(msg._id, {
+          isActiveBranch: shouldBeActive,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    let activeLeafId = mergeMessageId;
+
+    // Optionally generate AI response
+    if (args.generateResponse !== false) {
+      const userDefaultModel = (await (ctx.runQuery as any)(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.users.getUserPreference,
+        { key: "defaultModel" },
+      )) as string | null;
+
+      const modelId =
+        args.modelId ||
+        conversation.model ||
+        userDefaultModel ||
+        "openai:gpt-oss-20b";
+
+      // Create pending assistant message
+      const assistantMessageId = (await ctx.runMutation(
+        internal.messages.create,
+        {
+          conversationId: args.conversationId,
+          userId: user._id,
+          role: "assistant",
+          content: "",
+          status: "pending",
+          model: modelId,
+          // Tree fields (P7)
+          parentMessageIds: [mergeMessageId],
+          siblingIndex: 0,
+          isActiveBranch: true,
+          rootMessageId,
+        },
+      )) as Id<"messages">;
+
+      activeLeafId = assistantMessageId;
+
+      // Schedule generation
+      await ctx.scheduler.runAfter(0, internal.generation.generateResponse, {
+        conversationId: args.conversationId,
+        existingMessageId: assistantMessageId,
+        modelId,
+        userId: user._id,
+      });
+    }
+
+    // Update conversation
+    await ctx.db.patch(args.conversationId, {
+      activeLeafMessageId: activeLeafId,
+      branchCount: Math.max(1, (conversation.branchCount || 1) - 1), // Merging reduces branch count
+      updatedAt: Date.now(),
+    });
+
+    // Update conversation timestamp
+    await ctx.runMutation(internal.conversations.updateLastMessageAt, {
+      conversationId: args.conversationId,
+    });
+
+    return mergeMessageId;
   },
 });

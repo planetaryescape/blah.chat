@@ -16,7 +16,7 @@ export function useNewChatModel() {
   const defaultModel = useUserPreference("defaultModel") ?? DEFAULT_MODEL_ID;
 
   const { recents } = useRecentModels();
-  const recentModel = recents[0]; // Most recently used
+  const recentModel = recents?.[0]; // Most recently used (defensive)
 
   // Return model based on user's preference
   // Falls back to default if no recent model exists

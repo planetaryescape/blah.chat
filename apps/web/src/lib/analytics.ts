@@ -5,8 +5,6 @@ export function initAnalytics() {
   if (typeof window === "undefined") return;
 
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-  const host =
-    process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://app.posthog.com";
 
   if (!apiKey) {
     console.warn("PostHog API key not configured");
@@ -14,7 +12,8 @@ export function initAnalytics() {
   }
 
   posthog.init(apiKey, {
-    api_host: host,
+    api_host: "/ingest", // Reverse proxy - bypasses ad blockers
+    ui_host: "https://eu.posthog.com",
     person_profiles: "identified_only",
     capture_pageview: false, // We'll manually capture pageviews
     autocapture: {
@@ -74,9 +73,10 @@ interface AnalyticsEvent {
     firstTokenLatencyMs?: number;
   };
   message_regenerated: {
-    model: string;
+    model?: string;
     messageId: string;
-    previousStatus: string;
+    previousStatus?: string;
+    conversationId?: string;
   };
   generation_stopped: {
     model: string;
@@ -290,6 +290,10 @@ interface AnalyticsEvent {
   };
 
   // === CONVERSATIONS (15 events) ===
+  conversation_compacted: {
+    source: "manual" | "auto";
+    conversationId: string;
+  };
   conversation_created: {
     initialModel: string;
     reusedEmpty: boolean;
@@ -510,6 +514,12 @@ interface AnalyticsEvent {
   };
 
   // === SETTINGS (12 events) ===
+  auto_router_cost_bias_changed: {
+    value: number;
+  };
+  auto_router_speed_bias_changed: {
+    value: number;
+  };
   theme_toggled: {
     newTheme: string;
   };
@@ -535,6 +545,12 @@ interface AnalyticsEvent {
   reasoning_display_changed: {
     setting: string;
     value: boolean;
+  };
+  accessibility_high_contrast_changed: {
+    enabled: boolean;
+  };
+  accessibility_text_scale_changed: {
+    scale: number;
   };
   maintenance_action_performed: {
     actionType: string;
@@ -622,7 +638,7 @@ interface AnalyticsEvent {
     feedbackType: string;
   };
 
-  // === ADVANCED FEATURES (8 events) ===
+  // === ADVANCED FEATURES (11 events) ===
   branch_created: {
     fromMessageIndex: number;
     parentMessageRole: string;
@@ -632,6 +648,14 @@ interface AnalyticsEvent {
   };
   branch_selected: {
     branchIndex: number;
+  };
+  branch_switched: {
+    conversationId: string;
+    fromMessageId: string;
+    toMessageId: string;
+  };
+  content_copied: {
+    source: string;
   };
   context_window_indicator_viewed: {
     tokenCount: number;
@@ -685,6 +709,14 @@ interface AnalyticsEvent {
   math_copied: {
     format: "latex" | "html" | "both";
     equationLength: number;
+  };
+
+  // === NOTE SETTINGS (2 events) ===
+  note_category_mode_changed: {
+    mode: "fixed" | "ai-suggested";
+  };
+  custom_note_categories_changed: {
+    count: number;
   };
 }
 

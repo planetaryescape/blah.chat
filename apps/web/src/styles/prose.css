@@ -384,8 +384,8 @@
   }
 
   /* ============================================
-   * Smooth Character-by-Character Streaming
-   * Cursor-only animation, no layout shifts
+   * Smooth Word-by-Word Streaming
+   * Minimal animation for smooth appearance
    * ============================================ */
 
   /* Blinking cursor during streaming */
@@ -410,29 +410,40 @@
     }
   }
 
-  /* Subtle content fade (opacity only - no transforms) */
+  /* Smooth streaming appearance - no jerky re-trigger animation */
   .markdown-content.streaming {
-    animation: content-fade 0.15s ease-out;
+    /* Use will-change hint during streaming for GPU optimization */
+    will-change: contents;
   }
 
-  @keyframes content-fade {
+  /* Reset will-change when not streaming */
+  .markdown-content:not(.streaming) {
+    will-change: auto;
+  }
+
+  /* Subtle fade for newly appearing text - reduces "chunky" feel */
+  @keyframes streamFadeIn {
     from {
-      opacity: 0.8;
+      opacity: 0.7;
     }
     to {
       opacity: 1;
     }
   }
 
+  .markdown-content.streaming .prose > * {
+    animation: streamFadeIn 0.1s ease-out;
+  }
+
   /* Respect user's motion preferences */
   @media (prefers-reduced-motion: reduce) {
-    .markdown-content.streaming {
-      animation: none;
-    }
-
     .markdown-content.streaming .streaming-cursor {
       animation: none;
       opacity: 1;
+    }
+
+    .markdown-content.streaming .prose > * {
+      animation: none;
     }
   }
 

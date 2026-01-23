@@ -12,7 +12,6 @@ import {
   MoreHorizontal,
   NotebookPen,
   Plus,
-  Presentation,
   Search,
   Settings,
   Shield,
@@ -73,14 +72,18 @@ const MENU_ITEMS = [
     href: "/projects",
     featureKey: "showProjects" as const,
   },
-  { icon: CheckSquare, label: "Tasks", href: "/tasks", featureKey: null },
   {
-    icon: Presentation,
-    label: "Slides",
-    href: "/slides",
-    featureKey: "showSlides" as const,
+    icon: CheckSquare,
+    label: "Tasks",
+    href: "/tasks",
+    featureKey: "showTasks" as const,
   },
-  { icon: Mic, label: "Smart Assistant", href: "/assistant", featureKey: null },
+  {
+    icon: Mic,
+    label: "Smart Assistant",
+    href: "/assistant",
+    featureKey: "showSmartAssistant" as const,
+  },
   {
     icon: FileText,
     label: "Templates",
@@ -106,11 +109,7 @@ export function AppSidebar() {
         (projectFilter as Id<"projects"> | "none" | undefined) || undefined,
     });
 
-  // Filter out presentation conversations (they have their own UI in /slides)
-  const conversations = useMemo(
-    () => rawConversations?.filter((c) => c.isPresentation !== true),
-    [rawConversations],
-  );
+  const conversations = rawConversations;
 
   // Prefetch messages for recent conversations (< 7 days) for instant navigation
   const recentConversationIds = useMemo(() => {
@@ -163,6 +162,8 @@ export function AppSidebar() {
         showProjects: false,
         showBookmarks: false,
         showSlides: false,
+        showTasks: false,
+        showSmartAssistant: false,
         isLoading: true,
       };
     }
@@ -174,6 +175,8 @@ export function AppSidebar() {
       showProjects: rawAdvancedSettings.showProjects ?? true,
       showBookmarks: rawAdvancedSettings.showBookmarks ?? true,
       showSlides: rawAdvancedSettings.showSlides ?? false,
+      showTasks: rawAdvancedSettings.showTasks ?? true,
+      showSmartAssistant: rawAdvancedSettings.showSmartAssistant ?? true,
       isLoading: false,
     };
   }, [rawAdvancedSettings]);
@@ -341,6 +344,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar
+      id="conversation-list"
       collapsible="icon"
       data-tour="sidebar"
       role="navigation"
@@ -363,7 +367,7 @@ export function AppSidebar() {
           <div className="sm:hidden">
             <PrefetchableLink
               href="/app"
-              className="hover:opacity-80 transition-opacity"
+              className="transition-opacity hover:opacity-80"
             >
               <Logo size="sm" />
             </PrefetchableLink>
@@ -386,18 +390,16 @@ export function AppSidebar() {
           </Button>
           <Button
             onClick={() => setShowIncognitoDialog(true)}
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 shrink-0 border border-sidebar-border text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
+            className="p-0 transition-all duration-200 border shadow-sm cursor-pointer h-9 w-9 shrink-0 bg-sidebar-accent hover:bg-sidebar-accent/80 text-violet-400 border-sidebar-border "
             title="New Incognito Chat (Shift+Alt+N)"
           >
-            <Ghost className="h-4 w-4" />
+            <Ghost className="w-4 h-4" />
           </Button>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="flex flex-col gap-0">
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0">
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden shrink-0 py-0">
           <SidebarGroupLabel>Conversations</SidebarGroupLabel>
 
           {/* Project filter - Fixed */}
@@ -416,7 +418,7 @@ export function AppSidebar() {
                 <>
                   {/* Bulk Action Bar - Top Position */}
                   {selectedIds.length > 0 ? (
-                    <div className="px-2 pb-2 sticky top-0 bg-sidebar z-10">
+                    <div className="sticky top-0 z-10 px-2 pb-2 bg-sidebar">
                       <BulkActionBar
                         selectedCount={selectedIds.length}
                         onClearSelection={handleClearSelection}
@@ -547,12 +549,30 @@ export function AppSidebar() {
         </SidebarMenu>
         <div className="px-2 pt-2 group-data-[collapsible=icon]:hidden min-h-10">
           <div className="flex items-center justify-between">
-            {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
+            {isAuthLoaded && (
+              <UserButton
+                afterSignOutUrl="/sign-in"
+                appearance={{
+                  elements: {
+                    userButtonPopoverCard: { pointerEvents: "initial" },
+                  },
+                }}
+              />
+            )}
             <ThemeSwitcher />
           </div>
         </div>
         <div className="hidden group-data-[collapsible=icon]:flex justify-center pt-2">
-          {isAuthLoaded && <UserButton afterSignOutUrl="/sign-in" />}
+          {isAuthLoaded && (
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  userButtonPopoverCard: { pointerEvents: "initial" },
+                },
+              }}
+            />
+          )}
         </div>
       </SidebarFooter>
 

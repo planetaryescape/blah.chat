@@ -1,6 +1,7 @@
 "use node";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { logger } from "../lib/logger";
 
 const BATCH_SIZE = 50;
 
@@ -17,7 +18,7 @@ export const backfillConversationTokenUsage = internalAction({
     let totalConversations = 0;
     let totalUsageRecords = 0;
 
-    console.log("🚀 Starting token usage backfill...");
+    logger.info("Starting token usage backfill", { tag: "Migration" });
 
     while (true) {
       const batch = (await (ctx.runQuery as any)(
@@ -60,16 +61,20 @@ export const backfillConversationTokenUsage = internalAction({
 
       totalConversations += batch.conversations.length;
       cursor = batch.nextCursor;
-      console.log(
-        `✅ Processed ${totalConversations} conversations (${totalUsageRecords} records)`,
-      );
+      logger.info("Batch processed", {
+        tag: "Migration",
+        conversations: totalConversations,
+        records: totalUsageRecords,
+      });
 
       if (!batch.nextCursor) break;
     }
 
-    console.log(
-      `🎉 Backfill complete! ${totalConversations} conversations, ${totalUsageRecords} usage records`,
-    );
+    logger.info("Backfill complete", {
+      tag: "Migration",
+      totalConversations,
+      totalUsageRecords,
+    });
     return { totalConversations, totalUsageRecords };
   },
 });

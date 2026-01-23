@@ -21,13 +21,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MODEL_CONFIG } from "@/lib/ai/models";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 type ConsolidationMode = "same-chat" | "new-chat";
+
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
+  senderUser?: { name?: string; imageUrl?: string } | null;
+};
 
 interface ConsolidateDialogProps {
   open: boolean;
   comparisonGroupId: string;
-  messages: Doc<"messages">[];
+  messages: MessageWithUser[];
   onConfirm: (model: string, mode: ConsolidationMode) => void;
   onClose: () => void;
 }

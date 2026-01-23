@@ -103,24 +103,23 @@ export const finalizeToolCalls = internalMutation({
   },
 });
 
-export const updatePartialToolCalls = internalMutation({
+export const cleanupPartialToolCalls = internalMutation({
   args: {
     messageId: v.id("messages"),
-    partialToolCalls: v.array(
-      v.object({
-        id: v.string(),
-        name: v.string(),
-        arguments: v.string(),
-        result: v.optional(v.string()),
-        timestamp: v.number(),
-        textPosition: v.optional(v.number()),
-      }),
-    ),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, {
-      updatedAt: Date.now(),
-    });
+    const partials = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_message_partial", (q) =>
+        q.eq("messageId", args.messageId).eq("isPartial", true),
+      )
+      .collect();
+
+    for (const tc of partials) {
+      await ctx.db.delete(tc._id);
+    }
+
+    return { deleted: partials.length };
   },
 });
 
@@ -160,5 +159,25 @@ export const getToolCalls = query({
   },
   handler: async (ctx, { messageId, includePartial }) => {
     return getMessageToolCalls(ctx, messageId, includePartial);
+  },
+});
+
+export const getToolCallCountByConversation = query({
+  args: { conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const toolCalls = await ctx.db
+      .query("toolCalls")
+      .withIndex("by_conversation", (q: any) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .filter((q: any) => q.eq(q.field("isPartial"), false))
+      .collect();
+
+    const breakdown: Record<string, number> = {};
+    for (const tc of toolCalls) {
+      breakdown[tc.toolName] = (breakdown[tc.toolName] || 0) + 1;
+    }
+
+    return { total: toolCalls.length, breakdown };
   },
 });

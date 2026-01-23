@@ -3,15 +3,15 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { AlertCircle } from "lucide-react";
-import { memo, useMemo, useRef, useState } from "react";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCachedAttachments, useCachedToolCalls } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
+import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useMessageKeyboardShortcuts } from "@/hooks/useMessageKeyboardShortcuts";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { formatTTFT, isCachedResponse } from "@/lib/utils/formatMetrics";
@@ -27,31 +27,83 @@ import { MessageEditMode } from "./MessageEditMode";
 import { MessageLoadingState } from "./MessageLoadingState";
 import { MessageNotesIndicator } from "./MessageNotesIndicator";
 import { MessageStatsBadges } from "./MessageStatsBadges";
-import { ModelRecommendationBanner } from "./ModelRecommendationBanner";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { SourceList } from "./SourceList";
+import { StatusTimeline } from "./StatusTimeline";
 
-// Error display component with feedback modal integration
-function ErrorDisplay({ error }: { error?: string }) {
+// Error display component with feedback modal integration and retry button
+function ErrorDisplay({
+  error,
+  messageId,
+  hasFailedModels,
+}: {
+  error?: string;
+  messageId: Id<"messages">;
+  hasFailedModels?: boolean;
+}) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const alertRef = useRef<HTMLDivElement>(null);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const regenerate = useMutation(api.chat.regenerate);
+
+  // Focus error on mount for screen reader announcement (WCAG 2.4.3)
+  useEffect(() => {
+    alertRef.current?.focus();
+  }, []);
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await regenerate({
+        messageId,
+        modelId: "auto",
+        useFailedModelsFromMessage: hasFailedModels,
+      });
+    } catch (err) {
+      console.error("[ErrorDisplay] Retry failed:", err);
+      toast.error("Failed to retry generation");
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-3 p-1">
+    <div
+      ref={alertRef}
+      role="alert"
+      aria-live="assertive"
+      tabIndex={-1}
+      className="flex flex-col gap-3 p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 rounded-md"
+    >
       <div className="flex items-center gap-2 text-amber-500/90 dark:text-amber-400/90">
-        <AlertCircle className="w-4 h-4" />
-        <span className="font-medium text-sm">Unable to generate response</span>
+        <AlertCircle className="w-4 h-4" aria-hidden="true" />
+        <span className="text-sm font-medium">Unable to generate response</span>
       </div>
-      <div className="bg-muted/30 rounded-md p-3 border border-border/50">
-        <p className="text-sm leading-relaxed opacity-90 break-words">
+      <div className="p-3 border rounded-md bg-muted/30 border-border/50">
+        <p className="text-sm leading-relaxed break-words opacity-90">
           {error}
         </p>
       </div>
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <span>Try a different model or</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleRetry}
+          disabled={isRetrying}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50"
+        >
+          {isRetrying ? (
+            <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+          ) : (
+            <RefreshCw className="w-3 h-3" aria-hidden="true" />
+          )}
+          {isRetrying ? "Retrying..." : "Try Again"}
+        </button>
+        <span className="text-xs text-muted-foreground">or</span>
         <button
           type="button"
           onClick={() => setFeedbackOpen(true)}
-          className="underline hover:text-foreground transition-colors cursor-pointer"
+          className="text-xs underline transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
         >
           contact support
         </button>
@@ -67,6 +119,10 @@ interface ChatMessageProps {
   readOnly?: boolean;
   isCollaborative?: boolean;
   senderUser?: { name?: string; imageUrl?: string } | null;
+  // Lifted from child to reduce N subscription to 1
+  conversation?: Doc<"conversations"> | null;
+  // Lifted preference to avoid memo blocking updates
+  showMessageStats?: boolean;
 }
 
 export const ChatMessage = memo(
@@ -76,6 +132,8 @@ export const ChatMessage = memo(
     readOnly,
     isCollaborative,
     senderUser,
+    conversation,
+    showMessageStats,
   }: ChatMessageProps) {
     const [showOriginals, setShowOriginals] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -96,15 +154,24 @@ export const ChatMessage = memo(
     const editMessage = useMutation(api.chat.editMessage);
 
     // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
-    const updateModel = useMutation(api.conversations.updateModel);
+    const _updateModel = useMutation(api.conversations.updateModel);
 
     // Phase 4: Use new preference hooks
     const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
-    const prefShowStats = useUserPreference("showMessageStatistics");
 
     const alwaysShow = prefAlwaysShowActions;
-    const showStats = prefShowStats;
+    // showMessageStats is now passed as prop from VirtualizedMessageList (avoids memo blocking)
+    const showStats = showMessageStats ?? false;
     const features = useFeatureToggles();
+
+    // Hover intent: 350ms enter delay, 150ms leave delay (Baymard: 94% accidental trigger reduction)
+    const {
+      isHovered,
+      handleMouseEnter,
+      handleMouseLeave,
+      handleFocus: handleHoverFocus,
+      handleBlur: handleHoverBlur,
+    } = useHoverIntent({ enterDelay: 350, leaveDelay: 150 });
 
     // Query for original responses if this is a consolidated message
     const originalResponses = useQuery(
@@ -114,10 +181,7 @@ export const ChatMessage = memo(
         : "skip",
     );
 
-    // Query conversation for model recommendation (cost optimization)
-    const conversation = useQuery(api.conversations.get, {
-      conversationId: message.conversationId,
-    });
+    // conversation is now passed as prop from VirtualizedMessageList (reduces N→1 subscriptions)
 
     const displayContent = message.partialContent || message.content || "";
 
@@ -130,6 +194,10 @@ export const ChatMessage = memo(
       modelConfig?.capabilities?.includes("extended-thinking") ||
       modelConfig?.capabilities?.includes("thinking") ||
       false;
+
+    const _isDecidingModel =
+      message.model === "auto" &&
+      !("routingDecision" in message && message.routingDecision);
 
     // Calculate performance metrics
     const ttft =
@@ -190,28 +258,6 @@ export const ChatMessage = memo(
       (tc) => tc.isPartial,
     ) as any[];
 
-    // Model recommendation handlers
-    const handleModelSwitch = async (modelId: string) => {
-      try {
-        await updateModel({
-          conversationId: message.conversationId,
-          model: modelId,
-        });
-        toast.success(`Switched to ${MODEL_CONFIG[modelId]?.name || modelId}`);
-      } catch (error) {
-        toast.error("Failed to switch model");
-        console.error("[ChatMessage] Model switch error:", error);
-      }
-    };
-
-    const handleModelPreview = (modelId: string) => {
-      // Dispatch event for page-level modal (ModelPreviewModal is at page level)
-      const event = new CustomEvent("open-model-preview", {
-        detail: { modelId },
-      });
-      window.dispatchEvent(event);
-    };
-
     // Edit handlers
     const handleEdit = () => {
       setEditedContent(message.content || "");
@@ -237,7 +283,7 @@ export const ChatMessage = memo(
       setEditedContent("");
     };
 
-    // Keyboard shortcuts for focused messages
+    // Keyboard shortcuts for focused messages (disabled for temp/optimistic messages)
     useMessageKeyboardShortcuts({
       messageId: message._id as Id<"messages">,
       conversationId: message.conversationId,
@@ -245,7 +291,7 @@ export const ChatMessage = memo(
       isFocused,
       isUser,
       isGenerating,
-      readOnly,
+      readOnly: readOnly || isTempMessage,
       messageRef,
     });
 
@@ -276,19 +322,23 @@ export const ChatMessage = memo(
       "relative group",
       isUser
         ? "ml-auto mr-4 max-w-[90%] sm:max-w-[75%]"
-        : "mr-auto ml-4 max-w-[95%] sm:max-w-[85%]",
+        : "mr-auto ml-1 sm:ml-4 max-w-[95%] sm:max-w-[85%]",
     );
 
     return (
       <div
         className={cn(
-          "flex w-full mb-10",
+          "flex w-full pb-10",
           isUser ? "justify-end" : "justify-start",
-          // Reserve viewport space for generating assistant messages - pushes user message to top
-          !isUser && isGenerating && "min-h-[60vh]",
         )}
       >
-        <div className={wrapperClass}>
+        <div
+          className={wrapperClass}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onFocus={handleHoverFocus}
+          onBlur={handleHoverBlur}
+        >
           <article
             ref={messageRef}
             id={`message-${message._id}`}
@@ -307,19 +357,27 @@ export const ChatMessage = memo(
             aria-keyshortcuts="r b c delete"
           >
             {isError ? (
-              <ErrorDisplay error={message.error} />
+              <ErrorDisplay
+                error={message.error}
+                messageId={message._id as Id<"messages">}
+                hasFailedModels={
+                  "failedModels" in message &&
+                  Array.isArray(message.failedModels) &&
+                  message.failedModels.length > 0
+                }
+              />
             ) : (
               <>
                 {/* Sender attribution for collaborative conversations */}
                 {isCollaborative && senderUser && (
-                  <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/20">
-                    <Avatar className="h-5 w-5">
+                  <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border/20">
+                    <Avatar className="w-5 h-5">
                       <AvatarImage src={senderUser.imageUrl} />
                       <AvatarFallback className="text-[10px]">
                         {senderUser.name?.[0]?.toUpperCase() || "?"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-xs text-muted-foreground font-medium">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {isUser
                         ? senderUser.name || "User"
                         : `Triggered by ${senderUser.name || "User"}`}
@@ -353,6 +411,14 @@ export const ChatMessage = memo(
                   />
                 ) : (
                   <>
+                    {/* Status timeline at top - handles own visibility for graceful exit */}
+                    <StatusTimeline
+                      toolCalls={toolCalls}
+                      partialToolCalls={partialToolCalls}
+                      isGenerating={isGenerating}
+                      hasContent={!!displayContent}
+                    />
+
                     {/* Inline tool calls and content */}
                     {displayContent ||
                     toolCalls?.length ||
@@ -370,6 +436,13 @@ export const ChatMessage = memo(
                         isThinkingModel={
                           isThinkingModel && !!message.thinkingStartedAt
                         }
+                        isAutoRetrying={
+                          "retryCount" in message &&
+                          typeof message.retryCount === "number" &&
+                          message.retryCount > 0
+                        }
+                        isDecidingModel={_isDecidingModel}
+                        modelName={modelName}
                       />
                     ) : null}
                   </>
@@ -383,7 +456,7 @@ export const ChatMessage = memo(
 
                 {/* Attachments - don't reserve space, most messages don't have attachments */}
                 {attachments && attachments.length > 0 && urlMap.size > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/10">
+                  <div className="pt-3 mt-3 border-t border-border/10">
                     <AttachmentRenderer
                       attachments={attachments}
                       urls={urlMap}
@@ -419,7 +492,9 @@ export const ChatMessage = memo(
                       <div role="status" aria-live="polite" className="sr-only">
                         {ttft && `Response generated in ${formatTTFT(ttft)}`}
                         {message.tokensPerSecond &&
-                          ` at ${Math.round(message.tokensPerSecond)} tokens per second`}
+                          ` at ${Math.round(
+                            message.tokensPerSecond,
+                          )} tokens per second`}
                       </div>
                     )}
 
@@ -444,9 +519,10 @@ export const ChatMessage = memo(
                 )}
 
                 {/* Branch indicator */}
-                {!readOnly && (
+                {!readOnly && conversation && (
                   <MessageBranchIndicator
                     messageId={message._id as Id<"messages">}
+                    conversationId={conversation._id}
                   />
                 )}
                 {!readOnly && features.showNotes && (
@@ -473,6 +549,11 @@ export const ChatMessage = memo(
                           outputTokens={message.outputTokens}
                           status={message.status}
                           showStats={showStats}
+                          routingReasoning={
+                            "routingDecision" in message
+                              ? message.routingDecision?.reasoning
+                              : undefined
+                          }
                         />
                       )}
                   </div>
@@ -480,22 +561,6 @@ export const ChatMessage = memo(
               </>
             )}
           </article>
-
-          {/* Model Recommendation Banner - cost optimization */}
-          {!readOnly &&
-            !isUser &&
-            message.status === "complete" &&
-            conversation?.modelRecommendation &&
-            !conversation.modelRecommendation.dismissed && (
-              <div className="mt-4">
-                <ModelRecommendationBanner
-                  recommendation={conversation.modelRecommendation}
-                  conversationId={message.conversationId}
-                  onSwitch={handleModelSwitch}
-                  onPreview={handleModelPreview}
-                />
-              </div>
-            )}
 
           {/* Action buttons - absolutely positioned, no layout shift */}
           {!isGenerating && (
@@ -505,12 +570,9 @@ export const ChatMessage = memo(
                 isUser ? "right-5 sm:right-6" : "left-5 sm:left-6",
                 "-bottom-8",
                 "flex justify-end",
-                "transition-opacity duration-200 ease-out",
-                alwaysShow
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100",
-                !alwaysShow &&
-                  "pointer-events-none group-hover:pointer-events-auto",
+                "transition-opacity duration-150 ease-out",
+                alwaysShow || isHovered ? "opacity-100" : "opacity-0",
+                !alwaysShow && !isHovered && "pointer-events-none",
               )}
             >
               <MessageActions
@@ -539,7 +601,11 @@ export const ChatMessage = memo(
       prev.message.isConsolidation === next.message.isConsolidation &&
       prev.nextMessage?.status === next.nextMessage?.status &&
       prev.isCollaborative === next.isCollaborative &&
-      prev.senderUser?.name === next.senderUser?.name
+      prev.senderUser?.name === next.senderUser?.name &&
+      prev.showMessageStats === next.showMessageStats &&
+      prev.conversation?._id === next.conversation?._id &&
+      prev.conversation?.modelRecommendation?.dismissed ===
+        next.conversation?.modelRecommendation?.dismissed
     );
   },
 );

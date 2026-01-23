@@ -14,12 +14,15 @@ interface ReasoningSettings {
   showDuringStreaming: boolean;
 }
 
+export type TextScale = 75 | 100 | 125 | 150 | 175 | 200;
+
 export interface UISettingsState {
   alwaysShowMessageActions: boolean;
+  autoCompressContext: boolean;
+  hapticFeedbackEnabled: boolean;
   showModelNamesDuringComparison: boolean;
   showMessageStats: boolean;
   showComparisonStats: boolean;
-  showSlideStats: boolean;
   showModelProvider: boolean;
   showByDefault: boolean;
   autoExpand: boolean;
@@ -29,15 +32,26 @@ export interface UISettingsState {
   showTemplates: boolean;
   showProjects: boolean;
   showBookmarks: boolean;
-  showSlides: boolean;
+  showTasks: boolean;
+  showSmartAssistant: boolean;
+  // Smart Assistant
+  noteCategoryMode: "fixed" | "ai-suggested";
+  customNoteCategories: string[];
+  // Auto Router
+  autoRouterCostBias: number;
+  autoRouterSpeedBias: number;
+  // Accessibility
+  highContrastMode: boolean;
+  textScale: TextScale;
 }
 
 export interface UISettingsHandlers {
   handleAlwaysShowActionsChange: (checked: boolean) => Promise<void>;
+  handleAutoCompressContextChange: (checked: boolean) => Promise<void>;
+  handleHapticFeedbackChange: (checked: boolean) => Promise<void>;
   handleShowModelNamesChange: (checked: boolean) => Promise<void>;
   handleMessageStatsChange: (checked: boolean) => Promise<void>;
   handleComparisonStatsChange: (checked: boolean) => Promise<void>;
-  handleSlideStatsChange: (checked: boolean) => Promise<void>;
   handleShowModelProviderChange: (checked: boolean) => Promise<void>;
   handleShowByDefaultChange: (checked: boolean) => Promise<void>;
   handleAutoExpandChange: (checked: boolean) => Promise<void>;
@@ -47,7 +61,19 @@ export interface UISettingsHandlers {
   handleShowTemplatesChange: (checked: boolean) => Promise<void>;
   handleShowProjectsChange: (checked: boolean) => Promise<void>;
   handleShowBookmarksChange: (checked: boolean) => Promise<void>;
-  handleShowSlidesChange: (checked: boolean) => Promise<void>;
+  handleShowTasksChange: (checked: boolean) => Promise<void>;
+  handleShowSmartAssistantChange: (checked: boolean) => Promise<void>;
+  // Smart Assistant
+  handleNoteCategoryModeChange: (
+    mode: "fixed" | "ai-suggested",
+  ) => Promise<void>;
+  handleCustomNoteCategoriesChange: (categories: string[]) => Promise<void>;
+  // Auto Router
+  handleCostBiasChange: (value: number) => Promise<void>;
+  handleSpeedBiasChange: (value: number) => Promise<void>;
+  // Accessibility
+  handleHighContrastChange: (checked: boolean) => Promise<void>;
+  handleTextScaleChange: (scale: TextScale) => Promise<void>;
 }
 
 /**
@@ -62,12 +88,13 @@ export function useUISettingsState() {
 
   // Get preference values from hooks
   const prefAlwaysShowActions = useUserPreference("alwaysShowMessageActions");
+  const prefAutoCompressContext = useUserPreference("autoCompressContext");
+  const _prefHapticFeedbackEnabled = useUserPreference("hapticFeedbackEnabled");
   const prefShowModelNames = useUserPreference(
     "showModelNamesDuringComparison",
   );
   const prefShowMessageStats = useUserPreference("showMessageStatistics");
   const prefShowComparisonStats = useUserPreference("showComparisonStatistics");
-  const prefShowSlideStats = useUserPreference("showSlideStatistics");
   const prefShowModelProvider = useUserPreference("showModelProvider");
   const prefReasoning = useUserPreference("reasoning");
   const prefChatWidth = useUserPreference("chatWidth");
@@ -75,11 +102,24 @@ export function useUISettingsState() {
   const prefShowTemplates = useUserPreference("showTemplates");
   const prefShowProjects = useUserPreference("showProjects");
   const prefShowBookmarks = useUserPreference("showBookmarks");
-  const prefShowSlides = useUserPreference("showSlides");
+  const prefShowTasks = useUserPreference("showTasks");
+  const prefShowSmartAssistant = useUserPreference("showSmartAssistant");
+  const prefNoteCategoryMode = useUserPreference("noteCategoryMode");
+  const prefCustomNoteCategories = useUserPreference("customNoteCategories");
+  const prefCostBias = useUserPreference("autoRouterCostBias");
+  const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
+  const prefHighContrastMode = useUserPreference("highContrastMode");
+  const prefTextScale = useUserPreference("textScale");
 
   // Local state for optimistic updates
   const [alwaysShowMessageActions, setAlwaysShowMessageActions] =
     useState<boolean>(prefAlwaysShowActions);
+  const [autoCompressContext, setAutoCompressContext] = useState<boolean>(
+    prefAutoCompressContext,
+  );
+  const [_hapticFeedbackEnabled, _setHapticFeedbackEnabled] = useState<boolean>(
+    _prefHapticFeedbackEnabled,
+  );
   const [showModelNamesDuringComparison, setShowModelNamesDuringComparison] =
     useState<boolean>(prefShowModelNames);
   const [showMessageStats, setShowMessageStats] =
@@ -87,8 +127,6 @@ export function useUISettingsState() {
   const [showComparisonStats, setShowComparisonStats] = useState<boolean>(
     prefShowComparisonStats,
   );
-  const [showSlideStats, setShowSlideStats] =
-    useState<boolean>(prefShowSlideStats);
   const [showModelProvider, setShowModelProvider] = useState<boolean>(
     prefShowModelProvider,
   );
@@ -110,12 +148,39 @@ export function useUISettingsState() {
   const [showProjects, setShowProjects] = useState<boolean>(prefShowProjects);
   const [showBookmarks, setShowBookmarks] =
     useState<boolean>(prefShowBookmarks);
-  const [showSlides, setShowSlides] = useState<boolean>(prefShowSlides);
+  const [showTasks, setShowTasks] = useState<boolean>(prefShowTasks);
+  const [showSmartAssistant, setShowSmartAssistant] = useState<boolean>(
+    prefShowSmartAssistant,
+  );
+  const [noteCategoryMode, setNoteCategoryMode] = useState<
+    "fixed" | "ai-suggested"
+  >(prefNoteCategoryMode as "fixed" | "ai-suggested");
+  const [customNoteCategories, setCustomNoteCategories] = useState<string[]>(
+    prefCustomNoteCategories as string[],
+  );
+  const [autoRouterCostBias, setAutoRouterCostBias] =
+    useState<number>(prefCostBias);
+  const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
+    useState<number>(prefSpeedBias);
+  const [highContrastMode, setHighContrastMode] = useState<boolean>(
+    prefHighContrastMode ?? false,
+  );
+  const [textScale, setTextScale] = useState<TextScale>(
+    (prefTextScale as TextScale) ?? 100,
+  );
 
   // Sync local state when hook values change
   useEffect(
     () => setAlwaysShowMessageActions(prefAlwaysShowActions),
     [prefAlwaysShowActions],
+  );
+  useEffect(
+    () => setAutoCompressContext(prefAutoCompressContext),
+    [prefAutoCompressContext],
+  );
+  useEffect(
+    () => _setHapticFeedbackEnabled(_prefHapticFeedbackEnabled),
+    [_prefHapticFeedbackEnabled],
   );
   useEffect(
     () => setShowModelNamesDuringComparison(prefShowModelNames),
@@ -129,7 +194,6 @@ export function useUISettingsState() {
     () => setShowComparisonStats(prefShowComparisonStats),
     [prefShowComparisonStats],
   );
-  useEffect(() => setShowSlideStats(prefShowSlideStats), [prefShowSlideStats]);
   useEffect(
     () => setShowModelProvider(prefShowModelProvider),
     [prefShowModelProvider],
@@ -151,7 +215,29 @@ export function useUISettingsState() {
   useEffect(() => setShowTemplates(prefShowTemplates), [prefShowTemplates]);
   useEffect(() => setShowProjects(prefShowProjects), [prefShowProjects]);
   useEffect(() => setShowBookmarks(prefShowBookmarks), [prefShowBookmarks]);
-  useEffect(() => setShowSlides(prefShowSlides), [prefShowSlides]);
+  useEffect(() => setShowTasks(prefShowTasks), [prefShowTasks]);
+  useEffect(
+    () => setShowSmartAssistant(prefShowSmartAssistant),
+    [prefShowSmartAssistant],
+  );
+  useEffect(
+    () => setNoteCategoryMode(prefNoteCategoryMode as "fixed" | "ai-suggested"),
+    [prefNoteCategoryMode],
+  );
+  useEffect(
+    () => setCustomNoteCategories(prefCustomNoteCategories as string[]),
+    [prefCustomNoteCategories],
+  );
+  useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
+  useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
+  useEffect(
+    () => setHighContrastMode(prefHighContrastMode ?? false),
+    [prefHighContrastMode],
+  );
+  useEffect(
+    () => setTextScale((prefTextScale as TextScale) ?? 100),
+    [prefTextScale],
+  );
 
   // Generic handler for simple boolean preferences
   const createBooleanHandler = (
@@ -225,12 +311,120 @@ export function useUISettingsState() {
     }
   };
 
+  const handleCostBiasChange = async (value: number) => {
+    const previous = autoRouterCostBias;
+    setAutoRouterCostBias(value);
+    try {
+      await updatePreferences({
+        preferences: { autoRouterCostBias: value },
+      });
+      toast.success("Cost preference updated!");
+      analytics.track("auto_router_cost_bias_changed", { value });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setAutoRouterCostBias(previous);
+    }
+  };
+
+  const handleSpeedBiasChange = async (value: number) => {
+    const previous = autoRouterSpeedBias;
+    setAutoRouterSpeedBias(value);
+    try {
+      await updatePreferences({
+        preferences: { autoRouterSpeedBias: value },
+      });
+      toast.success("Speed preference updated!");
+      analytics.track("auto_router_speed_bias_changed", { value });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setAutoRouterSpeedBias(previous);
+    }
+  };
+
+  const handleNoteCategoryModeChange = async (
+    mode: "fixed" | "ai-suggested",
+  ) => {
+    const previous = noteCategoryMode;
+    setNoteCategoryMode(mode);
+    try {
+      await updatePreferences({
+        preferences: { noteCategoryMode: mode },
+      });
+      toast.success("Note category mode updated!");
+      analytics.track("note_category_mode_changed", { mode });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setNoteCategoryMode(previous);
+    }
+  };
+
+  const handleCustomNoteCategoriesChange = async (categories: string[]) => {
+    const previous = customNoteCategories;
+    setCustomNoteCategories(categories);
+    try {
+      await updatePreferences({
+        preferences: { customNoteCategories: categories },
+      });
+      toast.success("Note categories updated!");
+      analytics.track("custom_note_categories_changed", {
+        count: categories.length,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setCustomNoteCategories(previous);
+    }
+  };
+
+  const handleHighContrastChange = async (checked: boolean) => {
+    const previous = highContrastMode;
+    setHighContrastMode(checked);
+    try {
+      await updatePreferences({
+        preferences: { highContrastMode: checked },
+      });
+      toast.success("High contrast mode updated!");
+      analytics.track("accessibility_high_contrast_changed", {
+        enabled: checked,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setHighContrastMode(previous);
+    }
+  };
+
+  const handleTextScaleChange = async (scale: TextScale) => {
+    const previous = textScale;
+    setTextScale(scale);
+    try {
+      await updatePreferences({
+        preferences: { textScale: scale },
+      });
+      toast.success("Text scale updated!");
+      analytics.track("accessibility_text_scale_changed", { scale });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setTextScale(previous);
+    }
+  };
+
   const handlers: UISettingsHandlers = {
     handleAlwaysShowActionsChange: createBooleanHandler(
       "alwaysShowMessageActions",
       setAlwaysShowMessageActions,
       "always_show_message_actions",
       "UI settings saved!",
+    ),
+    handleAutoCompressContextChange: createBooleanHandler(
+      "autoCompressContext",
+      setAutoCompressContext,
+      "auto_compress_context",
+      "Auto-compress setting saved!",
+    ),
+    handleHapticFeedbackChange: createBooleanHandler(
+      "hapticFeedbackEnabled",
+      _setHapticFeedbackEnabled,
+      "haptic_feedback_enabled",
+      "Haptic feedback setting saved!",
     ),
     handleShowModelNamesChange: createBooleanHandler(
       "showModelNamesDuringComparison",
@@ -247,11 +441,6 @@ export function useUISettingsState() {
       "showComparisonStatistics",
       setShowComparisonStats,
       "show_comparison_statistics",
-    ),
-    handleSlideStatsChange: createBooleanHandler(
-      "showSlideStatistics",
-      setShowSlideStats,
-      "show_slide_statistics",
     ),
     handleShowModelProviderChange: createBooleanHandler(
       "showModelProvider",
@@ -288,19 +477,34 @@ export function useUISettingsState() {
       setShowBookmarks,
       "show_bookmarks",
     ),
-    handleShowSlidesChange: createBooleanHandler(
-      "showSlides",
-      setShowSlides,
-      "show_slides",
+    handleShowTasksChange: createBooleanHandler(
+      "showTasks",
+      setShowTasks,
+      "show_tasks",
     ),
+    handleShowSmartAssistantChange: createBooleanHandler(
+      "showSmartAssistant",
+      setShowSmartAssistant,
+      "show_smart_assistant",
+    ),
+    // Smart Assistant
+    handleNoteCategoryModeChange,
+    handleCustomNoteCategoriesChange,
+    // Auto Router
+    handleCostBiasChange,
+    handleSpeedBiasChange,
+    // Accessibility
+    handleHighContrastChange: handleHighContrastChange,
+    handleTextScaleChange: handleTextScaleChange,
   };
 
   const state: UISettingsState = {
     alwaysShowMessageActions,
+    autoCompressContext,
+    hapticFeedbackEnabled: _hapticFeedbackEnabled,
     showModelNamesDuringComparison,
     showMessageStats,
     showComparisonStats,
-    showSlideStats,
     showModelProvider,
     showByDefault,
     autoExpand,
@@ -310,7 +514,17 @@ export function useUISettingsState() {
     showTemplates,
     showProjects,
     showBookmarks,
-    showSlides,
+    showTasks,
+    showSmartAssistant,
+    // Smart Assistant
+    noteCategoryMode,
+    customNoteCategories,
+    // Auto Router
+    autoRouterCostBias,
+    autoRouterSpeedBias,
+    // Accessibility
+    highContrastMode: highContrastMode,
+    textScale: textScale,
   };
 
   return {

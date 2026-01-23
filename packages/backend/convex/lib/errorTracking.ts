@@ -68,14 +68,24 @@ export async function captureException(
     await client.shutdown();
 
     // Also log to console for Convex dashboard
-    console.error(
-      `[ErrorTracking] ${error.name}: ${error.message}`,
-      context || {},
-    );
+    const { logger } = await import("./logger");
+    logger.error(`${error.name}: ${error.message}`, {
+      tag: "ErrorTracking",
+      ...context,
+    });
   } catch (captureError) {
-    console.error("Failed to capture exception in PostHog:", captureError);
+    const { logger } = await import("./logger");
+    logger.error("Failed to capture exception in PostHog", {
+      tag: "ErrorTracking",
+      captureError: String(captureError),
+    });
     // Still log the original error
-    console.error("Original error:", error, context);
+    logger.error("Original error", {
+      tag: "ErrorTracking",
+      errorName: error.name,
+      errorMessage: error.message,
+      ...context,
+    });
   }
 }
 
@@ -224,11 +234,14 @@ export function getUserFriendlyMessage(errorType: string): string {
 
 /**
  * Estimate wasted cost from failed generation
+ * Includes both input tokens (conversation context) and output tokens (partial response)
  */
 export function estimateWastedCost(
-  tokensGenerated: number,
+  inputTokens: number,
+  outputTokens: number,
   modelPricing: { input: number; output: number },
 ): number {
-  // Simple estimation - actual cost tracking should be more precise
-  return (tokensGenerated * modelPricing.output) / 1000000; // Convert to USD
+  const inputCost = (inputTokens * modelPricing.input) / 1000000;
+  const outputCost = (outputTokens * modelPricing.output) / 1000000;
+  return inputCost + outputCost;
 }

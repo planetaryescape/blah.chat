@@ -18,6 +18,7 @@ import type { ActionCtx } from "../../_generated/server";
 import { internalAction } from "../../_generated/server";
 import type { KnowledgeSearchResult } from "../../knowledgeBank/search";
 import { LLM_OPERATION_TIMEOUT, withTimeout } from "../../lib/budgetTracker";
+import { logger } from "../../lib/logger";
 import { buildMemoryRerankPrompt } from "../../lib/prompts/operational/memoryRerank";
 import {
   applyRRF,
@@ -156,7 +157,7 @@ async function rerankSearchResults(
           inputTokens,
           outputTokens,
           cost,
-          feature: "search-rerank",
+          feature: "chat", // Search reranking is part of chat flow
         },
       );
     }
@@ -169,13 +170,18 @@ async function rerankSearchResults(
       .filter((i) => !Number.isNaN(i) && i >= 0 && i < candidates.length);
 
     if (indices.length === 0) {
-      console.log("[Rerank] Failed to parse response, using original order");
+      logger.info("Failed to parse response, using original order", {
+        tag: "Rerank",
+      });
       return results.slice(0, limit);
     }
 
     return indices.slice(0, limit).map((i) => candidates[i]);
   } catch (error) {
-    console.error("[Rerank] Failed, using original order:", error);
+    logger.error("Failed, using original order", {
+      tag: "Rerank",
+      error: String(error),
+    });
     return results.slice(0, limit);
   }
 }
@@ -234,7 +240,7 @@ One query per line, no numbering.`;
           inputTokens,
           outputTokens,
           cost,
-          feature: "search-expansion",
+          feature: "chat", // Search expansion is part of chat flow
         },
       );
     }
@@ -359,8 +365,21 @@ export const searchAll = internalAction({
     const searchedSources: string[] = [];
     const allResults: UnifiedResult[] = [];
 
+    // Get user feature toggles to filter out disabled features
+    const featureToggles = (await (ctx.runQuery as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.lib.helpers.getFeatureToggles,
+      { userId: args.userId },
+    )) as { showTasks: boolean; showSmartAssistant: boolean };
+
+    // Filter out disabled resource types
+    let activeResourceTypes = args.resourceTypes;
+    if (!featureToggles.showTasks) {
+      activeResourceTypes = activeResourceTypes.filter((t) => t !== "tasks");
+    }
+
     // 1. Search KB FIRST if included (knowledge-first strategy)
-    if (args.resourceTypes.includes("knowledgeBank")) {
+    if (activeResourceTypes.includes("knowledgeBank")) {
       const kbResults = (await (ctx.runAction as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
         internal.knowledgeBank.search.searchInternal,
@@ -396,7 +415,7 @@ export const searchAll = internalAction({
     }
 
     // 2. Search remaining types in parallel
-    const remainingTypes = args.resourceTypes.filter(
+    const remainingTypes = activeResourceTypes.filter(
       (t) => t !== "knowledgeBank",
     );
     const searchPromises: Promise<void>[] = [];

@@ -67,4 +67,20 @@ crons.daily(
   internal.usage.rankings.calculateAllUserRankings as any,
 );
 
+// Recover stuck messages every 2 minutes
+crons.interval(
+  "recover-stuck-messages",
+  { minutes: 2 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.messages.recovery.recoverStuckMessages as any,
+);
+
+// Cleanup stale generation locks every 5 minutes
+crons.interval(
+  "cleanup-stale-generation-locks",
+  { minutes: 5 },
+  // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+  internal.lib.generationLock.cleanupStaleLocks as any,
+);
+
 export default crons;

@@ -115,6 +115,30 @@ export function useKeyboardShortcuts() {
       if (e.key === "Escape" && !pathname?.startsWith("/notes")) {
         // Allow default behavior for non-notes pages
       }
+
+      // ? - Show keyboard help (no modifiers, not in input)
+      if (
+        e.key === "?" &&
+        !isMod &&
+        target.tagName !== "INPUT" &&
+        target.tagName !== "TEXTAREA" &&
+        !target.isContentEditable
+      ) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("open-keyboard-help"));
+      }
+
+      // i or / - Focus chat input (no modifiers, not in input)
+      if (
+        (e.key === "i" || e.key === "/") &&
+        !isMod &&
+        target.tagName !== "INPUT" &&
+        target.tagName !== "TEXTAREA" &&
+        !target.isContentEditable
+      ) {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("focus-chat-input"));
+      }
     };
 
     function navigateConversation(direction: "prev" | "next") {
@@ -151,8 +175,9 @@ export const KEYBOARD_SHORTCUTS = {
     "Cmd/Ctrl + [": "Previous conversation",
     "Cmd/Ctrl + ]": "Next conversation",
     "Cmd/Ctrl + ,": "Settings",
-
     "Cmd/Ctrl + F": "Search",
+    "?": "Show keyboard shortcuts help",
+    "i or /": "Focus chat input",
     Esc: "Close dialogs/modals",
   },
   chat: {
@@ -161,15 +186,22 @@ export const KEYBOARD_SHORTCUTS = {
     Enter: "Send message",
     "Shift + Enter": "New line",
   },
+  messageNavigation: {
+    "j or ↓": "Next message",
+    "k or ↑": "Previous message",
+    gg: "First message",
+    G: "Last message",
+  },
   notes: {
     "Cmd/Ctrl + Shift + N": "New note",
     "Cmd/Ctrl + S": "Save note (manual)",
     Esc: "Clear selection",
   },
   messageActions: {
-    R: "Regenerate response (hover message first)",
+    R: "Regenerate response (when message focused)",
     C: "Copy message",
     B: "Bookmark message",
+    N: "Save as note",
     Delete: "Delete message",
   },
 } as const;

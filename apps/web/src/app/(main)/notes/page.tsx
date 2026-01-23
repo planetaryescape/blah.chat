@@ -25,6 +25,9 @@ import { useNoteCacheSync } from "@/hooks/useCacheSync";
 import { useFeatureToggles } from "@/hooks/useFeatureToggles";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
 
+// Delay to allow Convex → Dexie cache sync after note creation
+const CACHE_SYNC_DELAY_MS = 200;
+
 function NotesPageContent() {
   const { showNotes, isLoading: prefsLoading } = useFeatureToggles();
 
@@ -148,10 +151,13 @@ function NotesPageContent() {
     return notes.find((n: { _id: string }) => n._id === selectedNoteId);
   }, [selectedNoteId, notes]);
 
-  // Clear invalid selection from URL
+  // Clear invalid selection from URL (debounced to allow cache sync)
   useEffect(() => {
     if (selectedNoteId && notes && !selectedNote) {
-      setSelectedNoteId(null);
+      const timeout = setTimeout(() => {
+        setSelectedNoteId(null);
+      }, CACHE_SYNC_DELAY_MS);
+      return () => clearTimeout(timeout);
     }
   }, [selectedNoteId, notes, selectedNote, setSelectedNoteId]);
 
@@ -159,8 +165,8 @@ function NotesPageContent() {
   const createNewNote = useCallback(async () => {
     try {
       const noteId = await createNote({
-        content: "# New Note\n\nStart writing...",
-        title: "New Note",
+        content: "",
+        title: "",
         projectId: projectId || undefined,
       });
       setSelectedNoteId(noteId);

@@ -7,15 +7,16 @@
  * Change models here - no need to hunt through the codebase!
  */
 
-import { MODEL_CONFIG, type ModelConfig } from "./models";
+import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "./models";
 import { vercel } from "./providers/gateway";
 
 // ============================================================================
 // DEFAULT MODEL (used for new conversations when no model is specified)
 // ============================================================================
 
-export const DEFAULT_MODEL_ID = "openai:gpt-5-mini";
-export const DEFAULT_MODEL = MODEL_CONFIG[DEFAULT_MODEL_ID];
+export const DEFAULT_MODEL_ID = "auto";
+export const DEFAULT_MODEL =
+  DEFAULT_MODEL_ID === "auto" ? AUTO_MODEL : MODEL_CONFIG[DEFAULT_MODEL_ID];
 
 // ============================================================================
 // OPERATIONAL TASK MODELS
@@ -92,6 +93,13 @@ export const DEADLINE_PARSING_MODEL: ModelConfig =
   MODEL_CONFIG["openai:gpt-oss-120b"];
 
 /**
+ * Meeting extraction (combined tasks + notes).
+ * Extracts both actionable tasks and meeting notes from transcripts.
+ */
+export const MEETING_EXTRACTION_MODEL: ModelConfig =
+  MODEL_CONFIG["openai:gpt-oss-120b"];
+
+/**
  * Document extraction (OCR/text extraction from files).
  * Uses Gemini 2.0 Flash for native PDF/document support.
  * Extracts text from PDFs, images, DOCX, etc. page-by-page.
@@ -163,6 +171,7 @@ export const OPERATIONAL_MODELS = {
   feedbackTriage: FEEDBACK_TRIAGE_MODEL,
   taskExtraction: TASK_EXTRACTION_MODEL,
   deadlineParsing: DEADLINE_PARSING_MODEL,
+  meetingExtraction: MEETING_EXTRACTION_MODEL,
   documentExtraction: DOCUMENT_EXTRACTION_MODEL,
   designSystemGeneration: DESIGN_SYSTEM_GENERATION_MODEL,
   templateAnalysis: TEMPLATE_ANALYSIS_MODEL,

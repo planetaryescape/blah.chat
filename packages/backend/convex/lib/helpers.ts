@@ -54,10 +54,42 @@ export const getConversation = internalQuery({
 /**
  * List messages for a conversation
  * Replaces: ctx.runQuery(internal.messages.listInternal, { conversationId })
+ *
+ * P7 Tree Architecture: By default returns only active branch messages.
+ * Set includeAllBranches: true to get the full tree.
  */
 export const getConversationMessages = internalQuery({
-  args: { conversationId: v.id("conversations") },
+  args: {
+    conversationId: v.id("conversations"),
+    includeAllBranches: v.optional(v.boolean()),
+  },
   handler: async (ctx, args): Promise<Doc<"messages">[]> => {
+    if (args.includeAllBranches) {
+      // Return all messages for tree visualization
+      return await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) =>
+          q.eq("conversationId", args.conversationId),
+        )
+        .order("asc")
+        .collect();
+    }
+
+    // P7: Return only active branch messages
+    // First try to use the index for active branch
+    const activeMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation_active", (q) =>
+        q.eq("conversationId", args.conversationId).eq("isActiveBranch", true),
+      )
+      .collect();
+
+    // If we got results from active index, return them sorted
+    if (activeMessages.length > 0) {
+      return activeMessages.sort((a, b) => a.createdAt - b.createdAt);
+    }
+
+    // Fallback for un-migrated conversations: return all messages
     return await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -187,6 +219,27 @@ export const getMessageAttachments = internalQuery({
 });
 
 /**
+ * Get attachments for multiple messages (batch operation)
+ * Optimizes O(n) queries to O(n) parallel fetches in single query call
+ * Returns all attachments for all message IDs (caller groups by messageId)
+ */
+export const getAttachmentsByMessageIds = internalQuery({
+  args: { messageIds: v.array(v.id("messages")) },
+  handler: async (ctx, args): Promise<Doc<"attachments">[]> => {
+    // Parallel fetch for each message (still O(n) but in parallel, single round-trip)
+    const results = await Promise.all(
+      args.messageIds.map((messageId) =>
+        ctx.db
+          .query("attachments")
+          .withIndex("by_message", (q) => q.eq("messageId", messageId))
+          .collect(),
+      ),
+    );
+    return results.flat();
+  },
+});
+
+/**
  * Get task by ID (Smart Manager Phase 2)
  * Replaces: ctx.runQuery(internal.tasks.getInternal, { taskId })
  */
@@ -262,6 +315,49 @@ export const getApiKeyAvailability = internalQuery({
         deepgram: !!process.env.DEEPGRAM_API_KEY,
       },
       isProduction,
+    };
+  },
+});
+
+/**
+ * Get recent conversations for a user (for batch prompt rebuilds)
+ * Used by prompts/cache.ts for rebuilding cached prompts
+ */
+export const getRecentConversations = internalQuery({
+  args: {
+    userId: v.id("users"),
+    since: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("conversations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.gte(q.field("lastMessageAt"), args.since))
+      .collect();
+  },
+});
+
+/**
+ * Get feature toggle preferences for a user
+ * Used by search actions to filter out disabled features
+ */
+export const getFeatureToggles = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ showTasks: boolean; showSmartAssistant: boolean }> => {
+    const prefs = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const prefMap = new Map(prefs.map((p) => [p.key, p.value]));
+
+    return {
+      showTasks: (prefMap.get("showTasks") as boolean) ?? true,
+      showSmartAssistant:
+        (prefMap.get("showSmartAssistant") as boolean) ?? true,
     };
   },
 });

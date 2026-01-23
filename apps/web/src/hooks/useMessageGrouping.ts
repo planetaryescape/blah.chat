@@ -1,9 +1,10 @@
 "use client";
 
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMemo } from "react";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import { useMemo, useRef } from "react";
+import type { OptimisticMessage } from "@/types/optimistic";
 
-type MessageWithUser = Doc<"messages"> & {
+type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
   senderUser?: { name?: string; imageUrl?: string } | null;
 };
 
@@ -18,8 +19,16 @@ export type GroupedItem =
     };
 
 /** Groups messages by comparisonGroupId, filtering out consolidated ones */
-export function useMessageGrouping(messages: MessageWithUser[]): GroupedItem[] {
-  return useMemo(() => {
+export function useMessageGrouping(
+  messages: MessageWithUser[],
+  conversationId?: Id<"conversations"> | string,
+): GroupedItem[] {
+  const prevResultRef = useRef<GroupedItem[]>([]);
+  const prevConversationIdRef = useRef<
+    Id<"conversations"> | string | undefined
+  >(undefined);
+
+  const result = useMemo(() => {
     const visibleMessages = messages.filter(
       (m) => !(m.role === "assistant" && m.consolidatedMessageId),
     );
@@ -64,4 +73,19 @@ export function useMessageGrouping(messages: MessageWithUser[]): GroupedItem[] {
 
     return items;
   }, [messages]);
+
+  // Reset cache when conversation changes to prevent data leakage
+  if (conversationId !== prevConversationIdRef.current) {
+    prevConversationIdRef.current = conversationId;
+    prevResultRef.current = []; // Clear cache, don't store potentially stale data
+    return result;
+  }
+
+  // Keep previous data during brief empty states (prevents flash during pagination)
+  // Only applies within the same conversation
+  if (result.length > 0) {
+    prevResultRef.current = result;
+    return result;
+  }
+  return prevResultRef.current;
 }

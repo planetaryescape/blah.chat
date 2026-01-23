@@ -3,6 +3,7 @@ import { z } from "zod";
 import { internal } from "../../../_generated/api";
 import type { Id } from "../../../_generated/dataModel";
 import type { ActionCtx } from "../../../_generated/server";
+import { logger } from "../../../lib/logger";
 
 /**
  * Create memory save tool with closure over ActionCtx.
@@ -68,7 +69,10 @@ IMPORTANT: Rephrase content to third-person before saving:
 
         return result;
       } catch (error) {
-        console.error("[Tool] Memory save failed:", error);
+        logger.error("Memory save failed", {
+          tag: "Tool",
+          error: String(error),
+        });
         return {
           success: false,
           message: `Failed to save memory: ${error instanceof Error ? error.message : "Unknown error"}`,

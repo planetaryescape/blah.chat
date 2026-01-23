@@ -24,6 +24,8 @@ export function RenameDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [title, setTitle] = useState(conversation.title || "");
+  const [isComposing, setIsComposing] = useState(false);
+  // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
   const renameConversation = useMutation(api.conversations.rename);
 
   const handleSave = async () => {
@@ -44,7 +46,10 @@ export function RenameDialog({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter title..."
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
+            if (isComposing || e.nativeEvent.isComposing) return;
             if (e.key === "Enter") handleSave();
           }}
         />

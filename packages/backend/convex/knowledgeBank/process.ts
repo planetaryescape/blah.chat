@@ -19,6 +19,7 @@ import {
   chunkText,
   OVERLAP_SIZE_CHARS,
 } from "../files/chunking";
+import { logger } from "../lib/logger";
 import { EMBEDDING_BATCH_SIZE, EMBEDDING_MODEL } from "./constants";
 import { KNOWLEDGE_BANK_LIMITS } from "./index";
 
@@ -40,7 +41,10 @@ export const processSource = internalAction({
     sourceId: v.id("knowledgeSources"),
   },
   handler: async (ctx, args) => {
-    console.log(`[KnowledgeBank] Processing source ${args.sourceId}`);
+    logger.info("Processing source", {
+      tag: "KnowledgeBank",
+      sourceId: args.sourceId,
+    });
 
     // Get source
     const source = (await (ctx.runQuery as any)(
@@ -50,7 +54,10 @@ export const processSource = internalAction({
     )) as Doc<"knowledgeSources"> | null;
 
     if (!source) {
-      console.error(`[KnowledgeBank] Source not found: ${args.sourceId}`);
+      logger.error("Source not found", {
+        tag: "KnowledgeBank",
+        sourceId: args.sourceId,
+      });
       return;
     }
 
@@ -133,9 +140,10 @@ export const processSource = internalAction({
       }
 
       // Generate embeddings in batches
-      console.log(
-        `[KnowledgeBank] Generating embeddings for ${chunks.length} chunks`,
-      );
+      logger.info("Generating embeddings", {
+        tag: "KnowledgeBank",
+        chunkCount: chunks.length,
+      });
 
       for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
         const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
@@ -165,9 +173,11 @@ export const processSource = internalAction({
           );
         }
 
-        console.log(
-          `[KnowledgeBank] Processed batch ${Math.floor(i / EMBEDDING_BATCH_SIZE) + 1}/${Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE)}`,
-        );
+        logger.info("Processed batch", {
+          tag: "KnowledgeBank",
+          batch: Math.floor(i / EMBEDDING_BATCH_SIZE) + 1,
+          total: Math.ceil(chunks.length / EMBEDDING_BATCH_SIZE),
+        });
       }
 
       // Update status to completed
@@ -181,14 +191,17 @@ export const processSource = internalAction({
         },
       );
 
-      console.log(
-        `[KnowledgeBank] Completed processing ${args.sourceId}: ${chunks.length} chunks`,
-      );
+      logger.info("Completed processing", {
+        tag: "KnowledgeBank",
+        sourceId: args.sourceId,
+        chunkCount: chunks.length,
+      });
     } catch (error) {
-      console.error(
-        `[KnowledgeBank] Error processing ${args.sourceId}:`,
-        error,
-      );
+      logger.error("Error processing source", {
+        tag: "KnowledgeBank",
+        sourceId: args.sourceId,
+        error: String(error),
+      });
 
       await (ctx.runMutation as any)(
         // @ts-ignore
@@ -265,7 +278,9 @@ async function extractWebContent(
 
   if (!firecrawlApiKey) {
     // Fallback: simple fetch + HTML to text
-    console.log("[KnowledgeBank] Firecrawl not configured, using simple fetch");
+    logger.info("Firecrawl not configured, using simple fetch", {
+      tag: "KnowledgeBank",
+    });
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch URL: ${response.status}`);
@@ -341,9 +356,10 @@ async function extractYouTubeContent(
 
     if (!response.ok) {
       // Fallback: Use Gemini 2.0 Flash to analyze the video
-      console.log(
-        `[KnowledgeBank] Transcript API failed for ${videoId}, trying Gemini fallback`,
-      );
+      logger.info("Transcript API failed, trying Gemini fallback", {
+        tag: "KnowledgeBank",
+        videoId,
+      });
 
       try {
         const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -399,9 +415,13 @@ Be thorough - this will be used for search and retrieval.`,
           },
         );
 
-        console.log(
-          `[KnowledgeBank] Gemini summary for ${videoId}: ${inputTokens} in, ${outputTokens} out, $${cost.toFixed(4)}`,
-        );
+        logger.info("Gemini summary generated", {
+          tag: "KnowledgeBank",
+          videoId,
+          inputTokens,
+          outputTokens,
+          cost: cost.toFixed(4),
+        });
 
         // Prepend marker for UI detection
         const summary = `[AI Video Summary]\n\n${result.text}`;
@@ -415,10 +435,11 @@ Be thorough - this will be used for search and retrieval.`,
         return { transcript: summary, chunks };
       } catch (geminiError) {
         // Both failed - graceful degradation
-        console.error(
-          `[KnowledgeBank] Gemini fallback failed for ${videoId}:`,
-          geminiError,
-        );
+        logger.error("Gemini fallback failed", {
+          tag: "KnowledgeBank",
+          videoId,
+          error: String(geminiError),
+        });
         return {
           transcript: `YouTube video: ${videoId}. Transcript and AI analysis unavailable.`,
           chunks: [
@@ -502,7 +523,10 @@ Be thorough - this will be used for search and retrieval.`,
 
     return { transcript, chunks };
   } catch (error) {
-    console.error(`[KnowledgeBank] YouTube extraction error:`, error);
+    logger.error("YouTube extraction error", {
+      tag: "KnowledgeBank",
+      error: String(error),
+    });
     throw new Error(
       `Failed to extract YouTube transcript: ${error instanceof Error ? error.message : "Unknown error"}`,
     );

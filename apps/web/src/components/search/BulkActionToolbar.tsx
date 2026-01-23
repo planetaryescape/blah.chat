@@ -52,6 +52,10 @@ export function BulkActionToolbar({
     setIsDeleting(true);
     try {
       await deleteConversations({ conversationIds });
+      // Clear drafts for all deleted conversations
+      for (const id of conversationIds) {
+        sessionStorage.removeItem(`draft-${id}`);
+      }
       toast.success(`Deleted ${conversationIds.length} conversation(s)`);
       onActionComplete();
       onClearSelection();

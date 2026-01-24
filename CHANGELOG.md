@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.9.1](https://github.com/planetaryescape/blah.chat/compare/v1.9.0...v1.9.1) (2026-01-24)
+
+
+### Bug Fixes
+
+* allow bible:// protocol in Streamdown link safety ([7e85358](https://github.com/planetaryescape/blah.chat/commit/7e85358aa77744927ac33ca1182f8d6611736633))
+
+## [1.9.0](https://github.com/planetaryescape/blah.chat/compare/v1.8.2...v1.9.0) (2026-01-24)
+
+
+### Features
+
+* **backend:** add enableModelRecommendations user preference ([5397ac5](https://github.com/planetaryescape/blah.chat/commit/5397ac55e7ccdb535ebfaf0bb5ed89b143a4edf4))
+* **web:** add UI controls for model recommendations preference ([01c08f5](https://github.com/planetaryescape/blah.chat/commit/01c08f56216ff875908285d57e9575405e6bfa73))
+
+
+### Bug Fixes
+
+* **mobile:** resolve React version mismatch and remove Moti ([fff65a8](https://github.com/planetaryescape/blah.chat/commit/fff65a8c5d66950b6417663f916e063aeb6aa6e7))
+
 ## [1.8.2](https://github.com/planetaryescape/blah.chat/compare/v1.8.1...v1.8.2) (2026-01-22)
 
 

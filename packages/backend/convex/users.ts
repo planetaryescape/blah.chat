@@ -177,6 +177,7 @@ export const updatePreferences = mutation({
       autoCompressContext: v.optional(v.boolean()),
       autoRouterCostBias: v.optional(v.number()),
       autoRouterSpeedBias: v.optional(v.number()),
+      enableModelRecommendations: v.optional(v.boolean()),
       memoryExtractionLevel: v.optional(
         v.union(
           v.literal("none"),

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/planetaryescape/blah.chat/compare/v1.9.0...v1.9.1) (2026-01-24)
+
+
+### Bug Fixes
+
+* allow bible:// protocol in Streamdown link safety ([7e85358](https://github.com/planetaryescape/blah.chat/commit/7e85358aa77744927ac33ca1182f8d6611736633))
+
 ## [1.9.0](https://github.com/planetaryescape/blah.chat/compare/v1.8.2...v1.9.0) (2026-01-24)
 
 

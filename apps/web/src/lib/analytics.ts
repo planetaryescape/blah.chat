@@ -602,6 +602,9 @@ interface AnalyticsEvent {
     anonymized: boolean;
     ageDays?: number;
   };
+  share_expiration_extended: {
+    expiresIn?: number;
+  };
   share_deleted: Record<string, never>;
 
   // === USAGE & COST (6 events) ===

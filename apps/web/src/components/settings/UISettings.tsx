@@ -56,6 +56,7 @@ const SETTING_TO_SECTION: Record<string, string> = {
   // Auto Router
   autoRouterCostBias: "auto-router",
   autoRouterSpeedBias: "auto-router",
+  enableModelRecommendations: "auto-router",
   // Smart Assistant
   noteCategoryMode: "smart-assistant",
   customNoteCategories: "smart-assistant",
@@ -212,8 +213,12 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           <AutoRouterSection
             costBias={state.autoRouterCostBias}
             speedBias={state.autoRouterSpeedBias}
+            enableModelRecommendations={state.enableModelRecommendations}
             onCostBiasChange={handlers.handleCostBiasChange}
             onSpeedBiasChange={handlers.handleSpeedBiasChange}
+            onEnableModelRecommendationsChange={
+              handlers.handleEnableModelRecommendationsChange
+            }
           />
 
           <AccessibilitySection

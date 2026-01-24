@@ -40,6 +40,7 @@ export interface UISettingsState {
   // Auto Router
   autoRouterCostBias: number;
   autoRouterSpeedBias: number;
+  enableModelRecommendations: boolean;
   // Accessibility
   highContrastMode: boolean;
   textScale: TextScale;
@@ -71,6 +72,7 @@ export interface UISettingsHandlers {
   // Auto Router
   handleCostBiasChange: (value: number) => Promise<void>;
   handleSpeedBiasChange: (value: number) => Promise<void>;
+  handleEnableModelRecommendationsChange: (checked: boolean) => Promise<void>;
   // Accessibility
   handleHighContrastChange: (checked: boolean) => Promise<void>;
   handleTextScaleChange: (scale: TextScale) => Promise<void>;
@@ -108,6 +110,9 @@ export function useUISettingsState() {
   const prefCustomNoteCategories = useUserPreference("customNoteCategories");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
+  const prefEnableModelRecommendations = useUserPreference(
+    "enableModelRecommendations",
+  );
   const prefHighContrastMode = useUserPreference("highContrastMode");
   const prefTextScale = useUserPreference("textScale");
 
@@ -162,6 +167,8 @@ export function useUISettingsState() {
     useState<number>(prefCostBias);
   const [autoRouterSpeedBias, setAutoRouterSpeedBias] =
     useState<number>(prefSpeedBias);
+  const [enableModelRecommendations, setEnableModelRecommendations] =
+    useState<boolean>(prefEnableModelRecommendations ?? true);
   const [highContrastMode, setHighContrastMode] = useState<boolean>(
     prefHighContrastMode ?? false,
   );
@@ -230,6 +237,10 @@ export function useUISettingsState() {
   );
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
+  useEffect(
+    () => setEnableModelRecommendations(prefEnableModelRecommendations ?? true),
+    [prefEnableModelRecommendations],
+  );
   useEffect(
     () => setHighContrastMode(prefHighContrastMode ?? false),
     [prefHighContrastMode],
@@ -338,6 +349,25 @@ export function useUISettingsState() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
       setAutoRouterSpeedBias(previous);
+    }
+  };
+
+  const handleEnableModelRecommendationsChange = async (checked: boolean) => {
+    const previous = enableModelRecommendations;
+    setEnableModelRecommendations(checked);
+    try {
+      await updatePreferences({
+        preferences: { enableModelRecommendations: checked },
+      });
+      toast.success(
+        checked ? "Recommendations enabled!" : "Recommendations disabled",
+      );
+      analytics.track("enable_model_recommendations_changed", {
+        enabled: checked,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setEnableModelRecommendations(previous);
     }
   };
 
@@ -493,6 +523,7 @@ export function useUISettingsState() {
     // Auto Router
     handleCostBiasChange,
     handleSpeedBiasChange,
+    handleEnableModelRecommendationsChange,
     // Accessibility
     handleHighContrastChange: handleHighContrastChange,
     handleTextScaleChange: handleTextScaleChange,
@@ -522,6 +553,7 @@ export function useUISettingsState() {
     // Auto Router
     autoRouterCostBias,
     autoRouterSpeedBias,
+    enableModelRecommendations,
     // Accessibility
     highContrastMode: highContrastMode,
     textScale: textScale,

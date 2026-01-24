@@ -513,12 +513,21 @@ interface AnalyticsEvent {
     playbackDurationMs?: number;
   };
 
-  // === SETTINGS (12 events) ===
+  // === SETTINGS (14 events) ===
   auto_router_cost_bias_changed: {
     value: number;
   };
   auto_router_speed_bias_changed: {
     value: number;
+  };
+  enable_model_recommendations_changed: {
+    enabled: boolean;
+  };
+  recommendation_disabled_globally: {
+    conversationId: string;
+    currentModel: string;
+    suggestedModel: string;
+    timestamp: number;
   };
   theme_toggled: {
     newTheme: string;

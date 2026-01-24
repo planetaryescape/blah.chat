@@ -3,7 +3,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Clock, Copy, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +38,7 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   const [anonymize, setAnonymize] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [extendExpiresIn, setExtendExpiresIn] = useState<number | undefined>(7);
 
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
   const existingShare = useQuery(api.shares.getByConversation, {
@@ -45,6 +46,11 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
   });
   const createShare = useAction(api.shares.create);
   const toggleShare = useMutation(api.shares.toggle);
+  const extendExpiration = useMutation(api.shares.extendExpiration);
+
+  // Check if share is expired
+  const isExpired =
+    existingShare?.expiresAt && existingShare.expiresAt < Date.now();
 
   // Set share URL if exists
   useEffect(() => {
@@ -89,6 +95,20 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
       await toggleShare({ conversationId, isActive });
     } catch (error) {
       console.error("Failed to toggle share:", error);
+    }
+  };
+
+  const handleExtendExpiration = async () => {
+    try {
+      await extendExpiration({
+        conversationId,
+        expiresIn: extendExpiresIn,
+      });
+      analytics.track("share_expiration_extended", {
+        expiresIn: extendExpiresIn,
+      });
+    } catch (error) {
+      console.error("Failed to extend expiration:", error);
     }
   };
 
@@ -140,7 +160,40 @@ export function ShareDialog({ conversationId }: ShareDialogProps) {
               </Button>
             </div>
 
-            {existingShare?.isActive === false ? (
+            {isExpired ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-amber-500">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    Share expired on{" "}
+                    {new Date(existingShare.expiresAt!).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={extendExpiresIn?.toString() || "never"}
+                    onValueChange={(value) =>
+                      setExtendExpiresIn(
+                        value === "never" ? undefined : Number(value),
+                      )
+                    }
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Extend by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 day</SelectItem>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                      <SelectItem value="never">Never expire</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleExtendExpiration} variant="default">
+                    Extend
+                  </Button>
+                </div>
+              </div>
+            ) : existingShare?.isActive === false ? (
               <p className="text-sm text-destructive">
                 ⚠️ Sharing is disabled. Anyone with the link will see a "revoked"
                 message.

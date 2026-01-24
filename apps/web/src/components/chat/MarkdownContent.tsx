@@ -391,6 +391,24 @@ export function MarkdownContent({
             code: false, // We handle code controls via custom CodeBlock component
             mermaid: false, // We handle mermaid controls via custom MermaidRenderer
           }}
+          linkSafety={{
+            enabled: true,
+            onLinkCheck: (url) => {
+              // Allow bible:// protocol for verse links
+              if (url.startsWith("bible://")) return true;
+              // Allow standard protocols and anchors
+              if (
+                url.startsWith("http://") ||
+                url.startsWith("https://") ||
+                url.startsWith("mailto:") ||
+                url.startsWith("tel:") ||
+                url.startsWith("#")
+              )
+                return true;
+              // Block unknown protocols
+              return false;
+            },
+          }}
         >
           {displayContent}
         </Streamdown>

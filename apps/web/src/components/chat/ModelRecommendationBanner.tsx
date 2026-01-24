@@ -100,6 +100,27 @@ export function ModelRecommendationBanner({
     onPreview(recommendation.suggestedModelId);
   };
 
+  const handleDisableRecommendations = async () => {
+    analytics.track("recommendation_disabled_globally", {
+      conversationId,
+      currentModel: recommendation.currentModelId,
+      suggestedModel: recommendation.suggestedModelId,
+      timestamp: Date.now(),
+    });
+
+    try {
+      await updatePreferences({
+        preferences: { enableModelRecommendations: false },
+      });
+      dismiss({ conversationId });
+    } catch (err) {
+      console.error(
+        "[ModelRecommendationBanner] Failed to disable recommendations:",
+        err,
+      );
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -137,18 +158,28 @@ export function ModelRecommendationBanner({
           </p>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreview}
+                className="h-7 text-xs"
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                Compare
+              </Button>
+              <Button size="sm" onClick={handleSwitch} className="h-7 text-xs">
+                Switch to {suggestedModel.name}
+              </Button>
+            </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={handlePreview}
-              className="h-7 text-xs"
+              onClick={handleDisableRecommendations}
+              className="h-7 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Eye className="h-3 w-3 mr-1" />
-              Compare
-            </Button>
-            <Button size="sm" onClick={handleSwitch} className="h-7 text-xs">
-              Switch to {suggestedModel.name}
+              Don't show again
             </Button>
           </div>
         </div>

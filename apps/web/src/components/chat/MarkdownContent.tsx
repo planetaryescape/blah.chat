@@ -10,12 +10,32 @@ import { findAllVerses, parseVerseReference } from "@/lib/bible/parser";
 import { cn } from "@/lib/utils";
 import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
 import { Component, memo, type ReactNode, useMemo, useRef } from "react";
+import { harden } from "rehype-harden";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import { Streamdown } from "streamdown";
 import { BibleVerseLink } from "./BibleVerseLink";
 import { CodeBlock } from "./CodeBlock";
 import { MathErrorBoundary } from "./MathErrorBoundary";
 import { MathSkeleton } from "./MathSkeleton";
 import { MermaidRenderer } from "./MermaidRenderer";
+
+// Custom rehype plugins with bible: protocol explicitly allowed
+// rehype-harden's wildcard "*" only allows http/https, so we need to explicitly add bible:
+const _customRehypePlugins = [
+  rehypeRaw,
+  [rehypeSanitize, {}],
+  [
+    harden,
+    {
+      allowedImagePrefixes: ["*"],
+      allowedLinkPrefixes: ["*"],
+      allowedProtocols: ["*", "bible:"],
+      defaultOrigin: undefined,
+      allowDataImages: true,
+    },
+  ],
+] as const;
 
 interface CodeBlockErrorBoundaryProps {
   children: ReactNode;
@@ -391,6 +411,7 @@ export function MarkdownContent({
             code: false, // We handle code controls via custom CodeBlock component
             mermaid: false, // We handle mermaid controls via custom MermaidRenderer
           }}
+          rehypePlugins={_customRehypePlugins as any}
           linkSafety={{
             enabled: true,
             onLinkCheck: (url) => {

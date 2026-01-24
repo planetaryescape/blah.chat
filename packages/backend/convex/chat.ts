@@ -5,6 +5,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, mutation } from "./_generated/server";
 import { getCurrentUserOrCreate } from "./lib/userSync";
+import { getUserPreference } from "./users/preferences";
 
 /**
  * Check if user can access a conversation
@@ -326,11 +327,18 @@ export const sendMessage = mutation({
       }
 
       // 7. Trigger model recommendation triage (if expensive model used, skip if auto-selected or comparing)
+      // Also skip if user has disabled recommendations globally
+      const enableRecs = await getUserPreference(
+        ctx,
+        user._id,
+        "enableModelRecommendations",
+      );
       if (
         conversationId &&
         modelsToUse[0] !== "auto" &&
         !comparisonGroupId &&
-        shouldAnalyzeModelFit(modelsToUse[0])
+        shouldAnalyzeModelFit(modelsToUse[0]) &&
+        enableRecs !== false
       ) {
         await ctx.scheduler.runAfter(
           0, // Immediate, non-blocking

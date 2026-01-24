@@ -20,6 +20,7 @@ export const PREFERENCE_DEFAULTS = {
   // Auto Router
   autoRouterCostBias: 50, // 0=quality focus, 100=cheapest possible
   autoRouterSpeedBias: 50, // 0=quality focus, 100=fastest possible
+  enableModelRecommendations: true, // Show suggestions for cheaper models
 
   // Chat
   sendOnEnter: true,
@@ -102,6 +103,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   // Auto Router
   autoRouterCostBias: "models",
   autoRouterSpeedBias: "models",
+  enableModelRecommendations: "models",
 
   // Chat
   sendOnEnter: "chat",

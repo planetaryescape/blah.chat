@@ -252,6 +252,7 @@ function validatePreference(key: string, value: any): void {
     case "showSlides":
     case "showTasks":
     case "showSmartAssistant":
+    case "enableModelRecommendations":
       if (typeof value !== "boolean") {
         throw new Error(`${key} must be a boolean`);
       }

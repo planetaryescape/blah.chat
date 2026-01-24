@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/planetaryescape/blah.chat/compare/v1.9.2...v1.9.3) (2026-01-24)
+
+
+### Bug Fixes
+
+* **markdown:** allow bible:// protocol in rehype-harden ([d458222](https://github.com/planetaryescape/blah.chat/commit/d458222af0c1486e3488a73d9c7dbd9d0673ba1e))
+
 ## [1.9.2](https://github.com/planetaryescape/blah.chat/compare/v1.9.1...v1.9.2) (2026-01-24)
 
 

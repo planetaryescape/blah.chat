@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.4](https://github.com/planetaryescape/blah.chat/compare/v1.9.3...v1.9.4) (2026-01-24)
+
+
+### Bug Fixes
+
+* **markdown:** remove rehypeSanitize blocking bible:// links ([7792a2e](https://github.com/planetaryescape/blah.chat/commit/7792a2e4bd4ac48896ac129c918eaf519feb3504))
+
 ## [1.9.3](https://github.com/planetaryescape/blah.chat/compare/v1.9.2...v1.9.3) (2026-01-24)
 
 

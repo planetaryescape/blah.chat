@@ -12,7 +12,6 @@ import "katex/dist/contrib/mhchem.mjs"; // Chemistry notation support
 import { Component, memo, type ReactNode, useMemo, useRef } from "react";
 import { harden } from "rehype-harden";
 import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
 import { Streamdown } from "streamdown";
 import { BibleVerseLink } from "./BibleVerseLink";
 import { CodeBlock } from "./CodeBlock";
@@ -24,7 +23,6 @@ import { MermaidRenderer } from "./MermaidRenderer";
 // rehype-harden's wildcard "*" only allows http/https, so we need to explicitly add bible:
 const _customRehypePlugins = [
   rehypeRaw,
-  [rehypeSanitize, {}],
   [
     harden,
     {

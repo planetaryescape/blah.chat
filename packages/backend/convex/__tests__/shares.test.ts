@@ -114,7 +114,7 @@ describe("convex/shares", () => {
       // @ts-ignore - Type instantiation too deep with 94+ Convex modules
       const result = await t.query(api.shares.get, { shareId: "expired123" });
 
-      expect(result).toBeNull();
+      expect(result).toEqual({ expired: true, expiresAt: expect.any(Number) });
     });
 
     it("indicates password requirement", async () => {
@@ -214,7 +214,7 @@ describe("convex/shares", () => {
         shareId: "inactive123",
       });
 
-      expect(result).toBeNull();
+      expect(result).toEqual({ revoked: true });
     });
   });
 
@@ -294,7 +294,7 @@ describe("convex/shares", () => {
         shareId: "nomsg123",
       });
 
-      expect(result).toBeNull();
+      expect(result).toEqual({ revoked: true });
     });
   });
 

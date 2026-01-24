@@ -141,7 +141,7 @@ export const get = query({
     }
 
     if (share.expiresAt && share.expiresAt < Date.now()) {
-      return null;
+      return { expired: true, expiresAt: share.expiresAt };
     }
 
     return {
@@ -164,8 +164,11 @@ export const getSharedConversation = query({
       .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
       .first();
 
-    if (!share || !share.isActive) return null;
-    if (share.expiresAt && share.expiresAt < Date.now()) return null;
+    if (!share) return null;
+    if (!share.isActive) return { revoked: true };
+    if (share.expiresAt && share.expiresAt < Date.now()) {
+      return { expired: true, expiresAt: share.expiresAt };
+    }
 
     const conversation = await ctx.db.get(share.conversationId);
     return conversation;
@@ -180,8 +183,11 @@ export const getSharedMessages = query({
       .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
       .first();
 
-    if (!share || !share.isActive) return null;
-    if (share.expiresAt && share.expiresAt < Date.now()) return null;
+    if (!share) return null;
+    if (!share.isActive) return { revoked: true };
+    if (share.expiresAt && share.expiresAt < Date.now()) {
+      return { expired: true, expiresAt: share.expiresAt };
+    }
 
     const messages = await ctx.db
       .query("messages")
@@ -263,6 +269,42 @@ export const toggle = mutation({
 
     await ctx.db.patch(share._id, {
       isActive: args.isActive,
+    });
+
+    return share.shareId;
+  },
+});
+
+export const extendExpiration = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    expiresIn: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUserOrCreate(ctx);
+
+    const share = await ctx.db
+      .query("shares")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .first();
+
+    if (!share) {
+      throw new Error("No share exists for this conversation");
+    }
+
+    if (share.userId !== user._id) {
+      throw new Error("Unauthorized");
+    }
+
+    const expiresAt = args.expiresIn
+      ? Date.now() + args.expiresIn * 24 * 60 * 60 * 1000
+      : undefined;
+
+    await ctx.db.patch(share._id, {
+      expiresAt,
+      isActive: true,
     });
 
     return share.shareId;

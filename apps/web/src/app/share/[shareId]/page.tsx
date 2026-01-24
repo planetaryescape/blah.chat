@@ -6,6 +6,7 @@ import { useAction, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
+  Clock,
   Copy,
   ExternalLink,
   Loader2,
@@ -351,6 +352,75 @@ export default function SharePage({
     );
   }
 
+  if (share && "expired" in share && share.expired) {
+    const expiredDate =
+      "expiresAt" in share && share.expiresAt
+        ? new Date(share.expiresAt).toLocaleDateString()
+        : "an unknown date";
+    return (
+      <div className="flex-1 flex items-center justify-center p-4 min-h-screen bg-background relative">
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
+          className="relative w-full max-w-md"
+        >
+          {/* Ambient Glow */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-amber-500/20 rounded-[2rem] blur-3xl opacity-30 animate-pulse" />
+
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl">
+            {/* Glass Highlight */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
+            <div className="relative p-8 flex flex-col items-center text-center space-y-8">
+              {/* Branding */}
+              <div className="scale-125">
+                <Logo size="lg" />
+              </div>
+
+              <div className="space-y-6 w-full">
+                <div className="relative mx-auto w-fit">
+                  <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
+                  <div className="relative h-20 w-20 rounded-2xl bg-gradient-to-br from-amber-500/10 to-black border border-amber-500/20 flex items-center justify-center shadow-inner mx-auto">
+                    <Clock className="h-10 w-10 text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-display font-bold tracking-tight text-white">
+                    Share Expired
+                  </h2>
+                  <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
+                    This shared conversation expired on {expiredDate}. The owner
+                    can extend the expiration to restore access.
+                  </p>
+                </div>
+              </div>
+
+              <div className="w-full pt-2 space-y-4">
+                <Link href="/" className="w-full block">
+                  <Button
+                    size="lg"
+                    className="w-full rounded-xl bg-white text-black hover:bg-white/90 font-medium transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-[1.02]"
+                  >
+                    Return to Home
+                  </Button>
+                </Link>
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60">
+                  <span>Powered by</span>
+                  <span className="font-semibold text-white/80">blah.chat</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!verified && share?.requiresPassword) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
@@ -425,7 +495,12 @@ export default function SharePage({
     return <NoteShareView noteId={noteShare._id} />;
   }
 
-  if (!conversation || !messages) {
+  // Check if data is valid (not revoked/expired union types)
+  const isValidConversation =
+    conversation && "title" in conversation && !("revoked" in conversation);
+  const isValidMessages = messages && Array.isArray(messages);
+
+  if (!isValidConversation || !isValidMessages) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

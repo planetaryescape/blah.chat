@@ -1,4 +1,4 @@
-import { MotiView } from "moti";
+import { useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,6 +6,11 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { GlassPane } from "./GlassPane";
 
@@ -30,13 +35,24 @@ export function BentoCard({
 }: BentoCardProps) {
   const Container = onPress ? TouchableOpacity : View;
 
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(0.95);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      opacity.value = withTiming(1, { duration: 400 });
+      scale.value = withTiming(1, { duration: 400 });
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [delay, opacity, scale]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <MotiView
-      from={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "timing", duration: 400, delay }}
-      style={[styles.wrapper, style]}
-    >
+    <Animated.View style={[styles.wrapper, style, animatedStyle]}>
       <Container activeOpacity={0.8} style={styles.touchable}>
         <GlassPane
           style={
@@ -52,7 +68,7 @@ export function BentoCard({
           {children}
         </GlassPane>
       </Container>
-    </MotiView>
+    </Animated.View>
   );
 }
 

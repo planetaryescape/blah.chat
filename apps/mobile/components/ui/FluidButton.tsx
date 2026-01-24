@@ -1,6 +1,10 @@
 import * as Haptics from "expo-haptics";
-import { MotiView } from "moti";
 import { Pressable, StyleSheet, Text } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { layout, palette, typography } from "@/lib/theme/designSystem";
 
 interface FluidButtonProps {
@@ -18,6 +22,20 @@ export function FluidButton({
   variant = "primary",
   disabled,
 }: FluidButtonProps) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, { damping: 15 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15 });
+  };
+
   return (
     <Pressable
       onPress={() => {
@@ -25,32 +43,31 @@ export function FluidButton({
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress?.();
       }}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled}
-      style={({ pressed }) => [styles.container, pressed && { opacity: 0.9 }]}
+      style={styles.container}
     >
-      {({ pressed }) => (
-        <MotiView
-          animate={{ scale: pressed ? 0.96 : 1 }}
-          transition={{ type: "spring", damping: 15 }}
+      <Animated.View
+        style={[
+          styles.button,
+          variant === "primary" && styles.primary,
+          variant === "ghost" && styles.ghost,
+          variant === "glass" && styles.glass,
+          disabled && styles.disabled,
+          animatedStyle,
+        ]}
+      >
+        {icon}
+        <Text
           style={[
-            styles.button,
-            variant === "primary" && styles.primary,
-            variant === "ghost" && styles.ghost,
-            variant === "glass" && styles.glass,
-            disabled && styles.disabled,
+            styles.text,
+            variant === "primary" ? styles.textPrimary : styles.textGhost,
           ]}
         >
-          {icon}
-          <Text
-            style={[
-              styles.text,
-              variant === "primary" ? styles.textPrimary : styles.textGhost,
-            ]}
-          >
-            {title}
-          </Text>
-        </MotiView>
-      )}
+          {title}
+        </Text>
+      </Animated.View>
     </Pressable>
   );
 }

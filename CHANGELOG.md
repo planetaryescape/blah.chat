@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2](https://github.com/planetaryescape/blah.chat/compare/v1.9.1...v1.9.2) (2026-01-24)
+
+
+### Bug Fixes
+
+* **shares:** show expired state instead of not found for expired shares ([96c8c89](https://github.com/planetaryescape/blah.chat/commit/96c8c89e4054744861123d647c6a42c25e0cea2f))
+
 ## [1.9.1](https://github.com/planetaryescape/blah.chat/compare/v1.9.0...v1.9.1) (2026-01-24)
 
 

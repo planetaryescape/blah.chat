@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Archive, Bookmark, Copy, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -28,7 +28,7 @@ export function BulkActionToolbar({
   onClearSelection,
   onActionComplete,
 }: BulkActionToolbarProps) {
-  const deleteConversations = useMutation(api.conversations.bulkDelete);
+  const deleteConversations = useAction(api.conversations.bulk.bulkDelete);
   const archiveConversations = useMutation(api.conversations.bulkArchive);
   const createBookmarks = useMutation(api.bookmarks.bulkCreate);
 

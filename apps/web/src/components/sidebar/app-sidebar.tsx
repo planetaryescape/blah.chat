@@ -122,7 +122,7 @@ export function AppSidebar() {
   }, [conversations]);
 
   // Bulk actions mutations
-  const bulkDelete = useMutation(api.conversations.bulkDelete);
+  const bulkDelete = useAction(api.conversations.bulk.bulkDelete);
   const bulkArchive = useMutation(api.conversations.bulkArchive);
   const bulkPin = useMutation(api.conversations.bulkPin);
   const bulkUnpin = useMutation(api.conversations.bulkUnpin);

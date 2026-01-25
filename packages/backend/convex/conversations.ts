@@ -468,10 +468,9 @@ export {
   getParticipants,
 } from "./conversations/branching";
 
-// From bulk.ts
+// From bulk.ts (bulkDelete is now an action, use api.conversations.bulk.bulkDelete)
 export {
   bulkArchive,
-  bulkDelete,
   bulkPin,
   bulkStar,
   bulkUnpin,

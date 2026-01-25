@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.0](https://github.com/planetaryescape/blah.chat/compare/v1.9.4...v1.10.0) (2026-01-25)
+
+
+### Features
+
+* **share:** add dynamic OG metadata to share pages ([f98494d](https://github.com/planetaryescape/blah.chat/commit/f98494d76f6ef698767a6145ef60f303c3931fc1))
+* **shares:** add server-side metadata fetcher for OG tags ([ef05c36](https://github.com/planetaryescape/blah.chat/commit/ef05c36157990cf27fc3d4722b3684daf3673c67))
+
 ## [1.9.4](https://github.com/planetaryescape/blah.chat/compare/v1.9.3...v1.9.4) (2026-01-24)
 
 

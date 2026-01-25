@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.10.0](https://github.com/planetaryescape/blah.chat/compare/v1.9.4...v1.10.0) (2026-01-25)
+
+
+### Features
+
+* **share:** add dynamic OG metadata to share pages ([f98494d](https://github.com/planetaryescape/blah.chat/commit/f98494d76f6ef698767a6145ef60f303c3931fc1))
+* **shares:** add server-side metadata fetcher for OG tags ([ef05c36](https://github.com/planetaryescape/blah.chat/commit/ef05c36157990cf27fc3d4722b3684daf3673c67))
+
+## [1.9.4](https://github.com/planetaryescape/blah.chat/compare/v1.9.3...v1.9.4) (2026-01-24)
+
+
+### Bug Fixes
+
+* **markdown:** remove rehypeSanitize blocking bible:// links ([7792a2e](https://github.com/planetaryescape/blah.chat/commit/7792a2e4bd4ac48896ac129c918eaf519feb3504))
+
+## [1.9.3](https://github.com/planetaryescape/blah.chat/compare/v1.9.2...v1.9.3) (2026-01-24)
+
+
+### Bug Fixes
+
+* **markdown:** allow bible:// protocol in rehype-harden ([d458222](https://github.com/planetaryescape/blah.chat/commit/d458222af0c1486e3488a73d9c7dbd9d0673ba1e))
+
 ## [1.9.2](https://github.com/planetaryescape/blah.chat/compare/v1.9.1...v1.9.2) (2026-01-24)
 
 

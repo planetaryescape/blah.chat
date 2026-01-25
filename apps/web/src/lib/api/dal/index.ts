@@ -8,4 +8,5 @@
 export * from "./conversations";
 export * from "./messages";
 export * from "./preferences";
+export * from "./shares";
 export * from "./users";

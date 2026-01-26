@@ -17,6 +17,16 @@ import {
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,6 +179,7 @@ export default function ModelDetailPage({
 
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load model data into form
   useEffect(() => {
@@ -305,15 +316,16 @@ export default function ModelDetailPage({
     }
   }, [model, reactivateMutation]);
 
-  const handleDelete = useCallback(async () => {
+  const executeDelete = useCallback(async () => {
     if (!model) return;
-    if (!confirm("Are you sure? This cannot be undone.")) return;
     try {
       await removeMutation({ id: model._id });
       toast.success("Model deleted");
       router.push("/admin/models");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete");
+    } finally {
+      setShowDeleteConfirm(false);
     }
   }, [model, removeMutation, router]);
 
@@ -385,7 +397,7 @@ export default function ModelDetailPage({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -819,6 +831,28 @@ export default function ModelDetailPage({
           )}
         </div>
       </ScrollArea>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Model</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this model? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

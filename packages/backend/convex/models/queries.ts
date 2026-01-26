@@ -23,6 +23,16 @@ export const getById = query({
 });
 
 /**
+ * Get a model by its Convex document ID
+ */
+export const getByDbId = query({
+  args: { id: v.id("models") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+/**
  * Get all active models
  * Excludes deprecated models unless includeDeprecated is true
  */

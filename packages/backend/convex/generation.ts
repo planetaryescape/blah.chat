@@ -102,8 +102,11 @@ export const generateResponse = internalAction({
             requiresLongContext: boolean;
             requiresReasoning: boolean;
             confidence: number;
+            recommendedAction?: string;
+            changeReason?: string;
           };
           reasoning: string;
+          isSticky?: boolean;
         }
       | undefined;
 
@@ -187,9 +190,12 @@ export const generateResponse = internalAction({
           requiresLongContext: boolean;
           requiresReasoning: boolean;
           confidence: number;
+          recommendedAction?: string;
+          changeReason?: string;
         };
         reasoning: string;
         candidatesConsidered: number;
+        isSticky?: boolean;
       };
 
       // Use the selected model
@@ -198,6 +204,7 @@ export const generateResponse = internalAction({
         selectedModelId: routerResult.selectedModelId,
         classification: routerResult.classification,
         reasoning: routerResult.reasoning,
+        isSticky: routerResult.isSticky,
       };
 
       logger.info("Auto router selected model", {

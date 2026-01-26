@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.12.0](https://github.com/planetaryescape/blah.chat/compare/v1.11.0...v1.12.0) (2026-01-26)
+
+
+### Features
+
+* **admin:** add models and auto-router admin UI ([2b90b8b](https://github.com/planetaryescape/blah.chat/commit/2b90b8b26409549e04976b0e47ef63bbc749526e))
+* **models:** add database-backed model management ([325cb99](https://github.com/planetaryescape/blah.chat/commit/325cb996cbe076ab621f4c36bbbdcdee86b05b00))
+
+
+### Bug Fixes
+
+* **admin:** address code review feedback ([7d5ab1c](https://github.com/planetaryescape/blah.chat/commit/7d5ab1c2e1a99a31a76016a3f64998e6a14c0398))
+* **admin:** replace native confirm() with AlertDialog ([64967d6](https://github.com/planetaryescape/blah.chat/commit/64967d6d0d7b0602deed314c6f861190af888dae))
+* **admin:** replace native dialogs with shadcn components ([6e19bd8](https://github.com/planetaryescape/blah.chat/commit/6e19bd8f7f267e64fefc00bdf30f41309fbd70ba))
+* **chat:** prevent toolbar buttons from triggering form submission ([808a221](https://github.com/planetaryescape/blah.chat/commit/808a2211f18f0229be0229a2697572096d652677))
+* **models:** cascade delete profiles and safe JSON parsing ([b6b5c4d](https://github.com/planetaryescape/blah.chat/commit/b6b5c4d313ec7bf27c4a7f86db200c76067ccdd8))
+* **models:** fallback to static config when DB is empty ([ae36f2a](https://github.com/planetaryescape/blah.chat/commit/ae36f2ab44bdb0c76cae44681c09fd9d91918202))
+* **router:** improve high-stakes topic detection for medical advice ([2627316](https://github.com/planetaryescape/blah.chat/commit/262731686a785ea3df1e1b6c3b1aa0a6a1813acc))
+* **security:** add admin authorization to admin-only model queries ([547113c](https://github.com/planetaryescape/blah.chat/commit/547113c6931668b44b2af8e2a75a627e5687cfb5))
+* **security:** add input validation for model IDs ([e3eb676](https://github.com/planetaryescape/blah.chat/commit/e3eb676ac3cd851ab05ad056af4a9c0f9d9d0054))
+
 ## [1.11.0](https://github.com/planetaryescape/blah.chat/compare/v1.10.0...v1.11.0) (2026-01-26)
 
 

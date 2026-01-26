@@ -648,8 +648,13 @@ export const generateResponse = internalAction({
       let lastReasoningUpdate = Date.now();
       const UPDATE_INTERVAL = 50; // ms - reduced from 200ms for smoother streaming at high TPS
 
+      // Pure API timing: track time spent waiting for chunks (excludes DB writes, tool execution)
+      let previousIterationEndTime = Date.now();
+      let cumulativeApiWaitMs = 0;
+
       for await (const chunk of result.fullStream) {
         const now = Date.now();
+        const apiWaitMs = now - previousIterationEndTime;
 
         // Check stop every 10ms (decoupled from write throttle for faster response)
         if (now - lastStopCheck >= STOP_CHECK_INTERVAL) {
@@ -773,6 +778,9 @@ export const generateResponse = internalAction({
 
         // Handle text chunks
         if (chunk.type === "text-delta") {
+          // Track pure API wait time (time spent waiting for this chunk, excluding processing)
+          cumulativeApiWaitMs += apiWaitMs;
+
           // Capture first token timestamp and track analytics (deferred from before streaming)
           if (!firstTokenTime && chunk.text.length > 0) {
             firstTokenTime = now;
@@ -819,6 +827,9 @@ export const generateResponse = internalAction({
             lastUpdate = now;
           }
         }
+
+        // Mark end of processing for this iteration (before next await)
+        previousIterationEndTime = Date.now();
       }
 
       // Flush any remaining buffered content
@@ -986,16 +997,46 @@ export const generateResponse = internalAction({
         reasoningTokens,
       });
 
-      // Calculate TPS (tokens per second) - measure from first token, not action start
-      // This excludes setup time (memory fetch, prompt building) for accurate speed display
+      // Calculate TPS (tokens per second) using pure API wait time
+      // This excludes DB writes, tool execution, and other processing overhead
       const endTime = Date.now();
       const generationDuration = firstTokenTime
         ? endTime - firstTokenTime
         : endTime - generationStartTime; // Fallback if no tokens generated
-      const tokensPerSecond =
-        outputTokens && generationDuration > 0
-          ? outputTokens / (generationDuration / 1000)
+
+      // Pure API TPS: tokens / time spent waiting for API (excludes processing)
+      // Minimum 100ms threshold prevents noise from very fast generations
+      const pureApiTps =
+        cumulativeApiWaitMs > 100 && outputTokens > 0
+          ? outputTokens / (cumulativeApiWaitMs / 1000)
           : undefined;
+
+      // Fallback to wall-clock TPS if no pure timing available
+      const tokensPerSecond =
+        pureApiTps ??
+        (outputTokens && generationDuration > 0
+          ? outputTokens / (generationDuration / 1000)
+          : undefined);
+
+      logger.debug("TPS calculation", {
+        tag: "Generation",
+        cumulativeApiWaitMs,
+        wallClockMs: generationDuration,
+        outputTokens,
+        pureApiTps,
+        wallClockTps:
+          outputTokens && generationDuration > 0
+            ? outputTokens / (generationDuration / 1000)
+            : undefined,
+        overheadPercent:
+          generationDuration > 0
+            ? (
+                ((generationDuration - cumulativeApiWaitMs) /
+                  generationDuration) *
+                100
+              ).toFixed(1)
+            : undefined,
+      });
 
       // Extract all tool calls from result.steps
       const steps = (await result.steps) || [];

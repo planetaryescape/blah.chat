@@ -64,8 +64,8 @@ export function useModels(options?: {
       : "skip",
   ) as Doc<"models">[] | undefined;
 
-  // While loading or if DB mode disabled, return static config
-  if (!USE_DB_MODELS || !dbModels) {
+  // While loading, if DB mode disabled, or if DB is empty (not seeded), return static config
+  if (!USE_DB_MODELS || !dbModels || dbModels.length === 0) {
     return filterStaticModels(options);
   }
 

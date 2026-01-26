@@ -51,6 +51,24 @@ const speedTierValidator = v.union(
 
 const gatewayValidator = v.union(v.literal("vercel"), v.literal("openrouter"));
 
+// Security: Validate model IDs to prevent injection attacks
+// Only allows alphanumeric, hyphens, underscores, colons, periods, and forward slashes
+const MODEL_ID_PATTERN = /^[a-zA-Z0-9_\-:./]+$/;
+
+function validateModelId(id: string | undefined, fieldName: string): void {
+  if (!id) return;
+  if (!MODEL_ID_PATTERN.test(id)) {
+    throw new Error(
+      `Invalid ${fieldName}: contains disallowed characters. Only alphanumeric, hyphens, underscores, colons, periods, and forward slashes are allowed.`,
+    );
+  }
+  if (id.length > 200) {
+    throw new Error(
+      `Invalid ${fieldName}: exceeds maximum length of 200 characters.`,
+    );
+  }
+}
+
 /**
  * Create a new model
  * Admin only - creates model and initial history entry
@@ -87,6 +105,13 @@ export const create = mutation({
     if (!user || user.isAdmin !== true) {
       throw new Error("Unauthorized: Admin access required");
     }
+
+    // Security: Validate model IDs to prevent injection
+    validateModelId(args.modelId, "modelId");
+    validateModelId(args.actualModelId, "actualModelId");
+    args.hostOrder?.forEach((host, i) =>
+      validateModelId(host, `hostOrder[${i}]`),
+    );
 
     // Check if model ID already exists
     const existing = await ctx.db
@@ -160,6 +185,12 @@ export const update = mutation({
     if (!user || user.isAdmin !== true) {
       throw new Error("Unauthorized: Admin access required");
     }
+
+    // Security: Validate model IDs to prevent injection
+    validateModelId(args.actualModelId, "actualModelId");
+    args.hostOrder?.forEach((host, i) =>
+      validateModelId(host, `hostOrder[${i}]`),
+    );
 
     const { id, reason, ...updates } = args;
 

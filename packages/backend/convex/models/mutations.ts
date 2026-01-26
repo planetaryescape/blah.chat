@@ -401,10 +401,19 @@ export const remove = mutation({
       throw new Error("Model not found");
     }
 
+    // Cascade delete: remove related modelProfiles
+    const profile = await ctx.db
+      .query("modelProfiles")
+      .withIndex("by_modelId", (q) => q.eq("modelId", model.modelId))
+      .first();
+    if (profile) {
+      await ctx.db.delete(profile._id);
+    }
+
     // Delete the model
     await ctx.db.delete(args.id);
 
-    // Note: History is preserved for audit purposes
+    // Note: History is preserved for audit purposes (can be cleaned via admin tool)
 
     return args.id;
   },

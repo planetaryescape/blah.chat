@@ -11,6 +11,19 @@ import type { ReasoningConfig } from "@/lib/ai/reasoning/types";
 type DbModel = Doc<"models">;
 
 /**
+ * Safely parse JSON with fallback to undefined
+ */
+function safeJsonParse<T>(json: string | undefined): T | undefined {
+  if (!json) return undefined;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    console.error("Failed to parse JSON:", json.slice(0, 100));
+    return undefined;
+  }
+}
+
+/**
  * Transform DB model to ModelConfig
  */
 export function dbToModelConfig(dbModel: DbModel): ModelConfig {
@@ -29,16 +42,14 @@ export function dbToModelConfig(dbModel: DbModel): ModelConfig {
     capabilities: dbModel.capabilities as ModelConfig["capabilities"],
     isLocal: dbModel.isLocal,
     actualModelId: dbModel.actualModelId,
-    reasoning: dbModel.reasoningConfig
-      ? (JSON.parse(dbModel.reasoningConfig) as ReasoningConfig)
-      : undefined,
+    reasoning: safeJsonParse<ReasoningConfig>(dbModel.reasoningConfig),
     hostOrder: dbModel.hostOrder,
     isExperimental: dbModel.isExperimental,
     knowledgeCutoff: dbModel.knowledgeCutoff,
     gateway: dbModel.gateway as ModelConfig["gateway"],
     userFriendlyDescription: dbModel.userFriendlyDescription,
     bestFor: dbModel.bestFor,
-    benchmarks: dbModel.benchmarks ? JSON.parse(dbModel.benchmarks) : undefined,
+    benchmarks: safeJsonParse(dbModel.benchmarks),
     speedTier: dbModel.speedTier as ModelConfig["speedTier"],
     isPro: dbModel.isPro,
     isInternalOnly: dbModel.isInternalOnly,

@@ -34,6 +34,9 @@ export interface TaskClassification {
   confidence: number;
   isHighStakes: boolean;
   highStakesDomain?: HighStakesDomain;
+  // Stickiness evaluation - should we keep the previous model?
+  recommendedAction: "keep" | "change";
+  changeReason?: string;
 }
 
 export interface RouterResult {
@@ -42,6 +45,8 @@ export interface RouterResult {
   reasoning: string;
   candidatesConsidered: number;
   explorationPick?: boolean;
+  /** True when model was kept from previous message (sticky routing) */
+  isSticky?: boolean;
 }
 
 export type TaskCategoryId =

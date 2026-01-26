@@ -54,10 +54,7 @@ import {
   type TaskCategoryId,
   type TaskClassification,
 } from "./modelProfiles";
-import {
-  ROUTER_CLASSIFICATION_PROMPT,
-  ROUTER_REASONING_TEMPLATE,
-} from "./routerPrompts";
+import { ROUTER_REASONING_TEMPLATE } from "./routerPrompts";
 
 /**
  * Router model - fast + intelligent enough for classification
@@ -194,6 +191,9 @@ const classificationSchema = z.object({
   confidence: z.number().min(0).max(1),
   isHighStakes: z.boolean(),
   highStakesDomain: z.enum(HIGH_STAKES_DOMAINS).optional().nullable(),
+  // Stickiness evaluation - should we keep the previous model?
+  recommendedAction: z.enum(["keep", "change"]),
+  changeReason: z.string().optional().nullable(),
 });
 
 /**
@@ -220,16 +220,97 @@ export const routeMessage = internalAction({
     const startTime = Date.now();
 
     try {
-      // 1. Classify the task
+      // Build previous model context for sticky routing evaluation
+      let previousModelContext:
+        | {
+            id: string;
+            name: string;
+            tier: "cheap" | "mid" | "premium";
+            hasVision: boolean;
+            hasReasoning: boolean;
+            maxContextTokens: number;
+          }
+        | undefined;
+
+      if (args.previousSelectedModel) {
+        const prevConfig = MODEL_CONFIG[args.previousSelectedModel];
+        if (prevConfig) {
+          previousModelContext = {
+            id: args.previousSelectedModel,
+            name: prevConfig.name,
+            tier: getCostTier(prevConfig.pricing),
+            hasVision: prevConfig.capabilities.includes("vision"),
+            hasReasoning:
+              prevConfig.capabilities.includes("thinking") ||
+              prevConfig.capabilities.includes("extended-thinking"),
+            maxContextTokens: prevConfig.contextWindow,
+          };
+        }
+      }
+
+      // 1. Classify the task (includes stickiness evaluation)
       const classification = await classifyTask(
         args.userMessage,
         args.hasAttachments,
         args.attachmentTypes,
         ctx,
         args.userId,
+        previousModelContext,
       );
 
-      // 2. Get eligible models (filter by capabilities, context, excluded models, etc.)
+      // 2. STICKY ROUTING: Early exit if classifier recommends keeping previous model
+      if (
+        args.previousSelectedModel &&
+        classification.recommendedAction === "keep" &&
+        !args.excludedModels?.includes(args.previousSelectedModel)
+      ) {
+        const prevConfig = MODEL_CONFIG[args.previousSelectedModel];
+
+        // CRITICAL: Validate previous model still meets new task requirements
+        // Even if classifier says "keep", we must verify capability compatibility
+        const canKeepPreviousModel =
+          prevConfig &&
+          // Vision requirement check
+          (!classification.requiresVision ||
+            prevConfig.capabilities.includes("vision")) &&
+          // Long context requirement check (128K+)
+          (!classification.requiresLongContext ||
+            prevConfig.contextWindow >= 128000) &&
+          // Context window must fit current conversation
+          prevConfig.contextWindow >= (args.currentContextTokens ?? 0) * 1.2;
+
+        if (canKeepPreviousModel) {
+          logger.info("Sticky routing - keeping previous model", {
+            tag: "AutoRouter",
+            conversationId: args.conversationId,
+            selectedModel: args.previousSelectedModel,
+            classification: classification.primaryCategory,
+            complexity: classification.complexity,
+            routingTimeMs: Date.now() - startTime,
+          });
+
+          return {
+            selectedModelId: args.previousSelectedModel,
+            classification,
+            reasoning: `Continuing with ${prevConfig?.name ?? args.previousSelectedModel} - task characteristics unchanged`,
+            candidatesConsidered: 0,
+            isSticky: true,
+          };
+        }
+
+        // Previous model lacks required capabilities - fall through to full routing
+        logger.info("Sticky routing skipped - capability mismatch", {
+          tag: "AutoRouter",
+          conversationId: args.conversationId,
+          previousModel: args.previousSelectedModel,
+          requiresVision: classification.requiresVision,
+          hasVision: prevConfig?.capabilities.includes("vision"),
+          requiresLongContext: classification.requiresLongContext,
+          contextWindow: prevConfig?.contextWindow,
+        });
+      }
+
+      // 3. Get eligible models (filter by capabilities, context, excluded models, etc.)
       const eligibleModels = getEligibleModels(
         classification,
         args.currentContextTokens ?? 0,
@@ -258,7 +339,7 @@ export const routeMessage = internalAction({
         };
       }
 
-      // 3. Score and rank models
+      // 4. Score and rank models
       const scoredModels = scoreModels(
         eligibleModels,
         classification,
@@ -266,10 +347,10 @@ export const routeMessage = internalAction({
         args.previousSelectedModel,
       );
 
-      // 4. Select model with exploration for variety
+      // 5. Select model with exploration for variety
       const selectedModel = selectWithExploration(scoredModels, classification);
 
-      // 5. Generate reasoning
+      // 6. Generate reasoning
       const modelConfig = MODEL_CONFIG[selectedModel.modelId];
       const modelProfile = MODEL_PROFILES[selectedModel.modelId];
       const categoryScore =
@@ -323,6 +404,7 @@ export const routeMessage = internalAction({
           requiresReasoning: false,
           confidence: 0,
           isHighStakes: false,
+          recommendedAction: "change",
         },
         reasoning: "Routing failed, using default model",
         candidatesConsidered: 0,
@@ -333,6 +415,7 @@ export const routeMessage = internalAction({
 
 /**
  * Classify user message into task category
+ * @param previousModelContext - Optional context about the previously selected model for sticky routing
  */
 async function classifyTask(
   message: string,
@@ -340,13 +423,24 @@ async function classifyTask(
   attachmentTypes: string[] | undefined,
   ctx: ActionCtx,
   userId: Id<"users">,
+  previousModelContext?: {
+    id: string;
+    name: string;
+    tier: "cheap" | "mid" | "premium";
+    hasVision: boolean;
+    hasReasoning: boolean;
+    maxContextTokens: number;
+  },
 ): Promise<TaskClassification> {
+  // Import buildClassificationPrompt inline to ensure it's used
+  const { buildClassificationPrompt } = await import("./routerPrompts");
+
   try {
     const response = await generateObject({
       model: getRouterModel(),
       schema: classificationSchema,
       temperature: 0.2,
-      prompt: `${ROUTER_CLASSIFICATION_PROMPT}
+      prompt: `${buildClassificationPrompt(previousModelContext)}
 
 USER MESSAGE:
 ${message}
@@ -390,6 +484,8 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
       confidence: response.object.confidence,
       isHighStakes: response.object.isHighStakes,
       highStakesDomain: response.object.highStakesDomain ?? undefined,
+      recommendedAction: response.object.recommendedAction,
+      changeReason: response.object.changeReason ?? undefined,
     };
   } catch (error) {
     logger.error("Task classification error", {
@@ -397,7 +493,7 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
       error: String(error),
     });
 
-    // Conservative fallback
+    // Conservative fallback - always "change" to trigger full routing
     return {
       primaryCategory: "conversation",
       complexity: "simple",
@@ -406,6 +502,7 @@ ATTACHMENTS: ${hasAttachments ? `Yes (${attachmentTypes?.join(", ") || "files"})
       requiresReasoning: false,
       confidence: 0,
       isHighStakes: false,
+      recommendedAction: "change",
     };
   }
 }

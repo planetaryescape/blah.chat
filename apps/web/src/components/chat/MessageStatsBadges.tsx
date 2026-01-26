@@ -22,6 +22,8 @@ interface MessageStatsBadgesProps {
   showStats: boolean;
   /** If auto-routed, shows "auto → model" with reasoning tooltip */
   routingReasoning?: string;
+  /** If true, model was kept from previous message (sticky routing) */
+  isSticky?: boolean;
 }
 
 /**
@@ -38,6 +40,7 @@ export function MessageStatsBadges({
   status,
   showStats,
   routingReasoning,
+  isSticky,
 }: MessageStatsBadgesProps) {
   const isAutoRouted = !!routingReasoning;
 
@@ -45,26 +48,55 @@ export function MessageStatsBadges({
     <div className="mt-3 pt-3 border-t border-border/10 flex flex-wrap items-center gap-2 transition-opacity duration-300">
       {/* Model name - ALWAYS visible, with auto routing indicator if applicable */}
       {isAutoRouted ? (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground cursor-help"
-              >
-                auto → {modelName}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <div className="text-xs">
-                <div className="font-semibold">Auto-Routed</div>
-                <div className="text-muted-foreground mt-1">
-                  {routingReasoning}
+        isSticky ? (
+          // Sticky routing - model was kept from previous message
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground cursor-help"
+                >
+                  <span className="mr-1">↻</span>
+                  {modelName}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="text-xs">
+                  <div className="font-semibold">
+                    Continuing with {modelName}
+                  </div>
+                  <div className="text-muted-foreground mt-1">
+                    Task characteristics unchanged - keeping same model for
+                    conversation continuity
+                  </div>
                 </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          // Full routing - model was selected based on task
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-5 bg-background/50 backdrop-blur border-border/50 text-muted-foreground cursor-help"
+                >
+                  auto → {modelName}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="text-xs">
+                  <div className="font-semibold">Auto-Routed</div>
+                  <div className="text-muted-foreground mt-1">
+                    {routingReasoning}
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
       ) : (
         <Badge
           variant="outline"

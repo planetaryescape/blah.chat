@@ -554,6 +554,11 @@ export const ChatMessage = memo(
                               ? message.routingDecision?.reasoning
                               : undefined
                           }
+                          isSticky={
+                            "routingDecision" in message
+                              ? message.routingDecision?.isSticky
+                              : undefined
+                          }
                         />
                       )}
                   </div>

@@ -1,7 +1,19 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import {
+  autoRouterConfigTable,
+  modelHistoryTable,
+  modelProfilesTable,
+  modelsTable,
+} from "./schema/models";
 
 export default defineSchema({
+  // AI Model Management (DB-backed configuration)
+  models: modelsTable,
+  modelHistory: modelHistoryTable,
+  autoRouterConfig: autoRouterConfigTable,
+  modelProfiles: modelProfilesTable,
+
   users: defineTable({
     clerkId: v.string(),
     email: v.string(),

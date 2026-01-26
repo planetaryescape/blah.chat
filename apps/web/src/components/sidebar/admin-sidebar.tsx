@@ -4,8 +4,10 @@ import { UserButton } from "@clerk/nextjs";
 import {
   ArrowLeft,
   BarChart3,
+  Bot,
   MessageSquare,
   Settings,
+  Sliders,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +30,8 @@ import {
 const ADMIN_MENU_ITEMS = [
   { icon: MessageSquare, label: "Feedback", href: "/admin/feedback" },
   { icon: Users, label: "Users", href: "/admin/users" },
+  { icon: Bot, label: "Models", href: "/admin/models" },
+  { icon: Sliders, label: "Auto-Router", href: "/admin/auto-router" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
   { icon: BarChart3, label: "Usage", href: "/admin/usage" },
 ];

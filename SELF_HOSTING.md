@@ -236,7 +236,31 @@ To access the admin dashboard (`/admin`), you need to:
 
 **Note**: Future admin role changes via the Admin Dashboard automatically sync to Clerk.
 
-### Step 7: Run Locally
+### Step 7: Seed the Database with Models
+
+**Required**: The models table must be seeded before the app can function. Without this step, the model picker will be empty and chat won't work.
+
+```bash
+# Seed models, profiles, and auto-router config
+bunx convex run models/seed:seedModels
+
+# Or reset and reseed (clears existing model data first)
+bunx convex run models/seed:seedModels '{"clearExisting": true}'
+```
+
+This populates:
+- **40+ AI models** (GPT-5 series, Claude 4.5, Gemini 2.5/3, Grok 4, DeepSeek, etc.)
+- **Model profiles** for auto-router scoring
+- **Auto-router configuration** with default scoring weights and bonuses
+
+**When to reseed:**
+- After running `bunx convex deploy --reset` (which clears all data)
+- When updating to a new version with new models
+- When you want to restore default model configuration
+
+> **Note**: After seeding, you can manage models via the Admin Dashboard (`/admin/models`) without code changes.
+
+### Step 8: Run Locally
 
 ```bash
 bun dev
@@ -244,7 +268,7 @@ bun dev
 
 Visit http://localhost:3000
 
-### Step 8: Deploy to Production
+### Step 9: Deploy to Production
 
 #### Vercel (Recommended)
 ```bash
@@ -411,6 +435,19 @@ bunx convex logout
 bunx convex login
 bunx convex dev
 ```
+
+### Model Picker Empty / No Models Available
+
+**Symptom**: The model picker shows no models, or chat says "no models available".
+
+**Cause**: Database not seeded with models after deployment.
+
+**Fix**:
+```bash
+bunx convex run models/seed:seedModels
+```
+
+This seeds 40+ models, profiles, and auto-router config. Required for new deployments.
 
 ### AI Gateway Not Working
 

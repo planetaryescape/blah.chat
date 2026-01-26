@@ -226,7 +226,31 @@ To access the admin dashboard (`/admin`):
 
 Future admin changes via `/admin/users` auto-sync to Clerk.
 
-### 6. Run Locally
+### 6. Seed the Database with Models
+
+**Required for new deployments**: The models table must be seeded before the app can function.
+
+Run the seed command via Convex dashboard or CLI:
+
+```bash
+# Via Convex CLI (recommended)
+bunx convex run models/seed:seedModels
+
+# Or with clear existing (resets all model data)
+bunx convex run models/seed:seedModels '{"clearExisting": true}'
+```
+
+This inserts:
+- 40+ AI models (GPT-5, Claude, Gemini, etc.)
+- Model profiles for auto-router scoring
+- Default auto-router configuration
+
+**When to seed:**
+- Initial deployment (required)
+- After `bunx convex deploy --reset`
+- When new models are added to `packages/backend/convex/models/seed.ts`
+
+### 7. Run Locally
 
 1. Install dependencies:
 

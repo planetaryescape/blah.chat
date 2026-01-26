@@ -264,6 +264,7 @@ export function QuickModelSwitcher({
       {/* Trigger Button (optional) */}
       {showTrigger && (
         <Button
+          type="button"
           variant="ghost"
           onClick={() => onOpenChange(true)}
           className="h-8 px-2.5 text-sm font-medium bg-transparent hover:bg-muted/50 border-0 transition-all group gap-1.5 min-w-0"

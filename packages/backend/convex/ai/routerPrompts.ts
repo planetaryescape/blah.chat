@@ -6,9 +6,25 @@
  */
 
 /**
- * Main classification prompt for the router LLM
+ * Previous model context for sticky routing evaluation
  */
-export const ROUTER_CLASSIFICATION_PROMPT = `You are a task classifier for an AI routing system. Analyze the user message and determine the best task category and requirements.
+export interface PreviousModelContext {
+  id: string;
+  name: string;
+  tier: "cheap" | "mid" | "premium";
+  hasVision: boolean;
+  hasReasoning: boolean;
+  maxContextTokens: number;
+}
+
+/**
+ * Main classification prompt builder for the router LLM
+ * @param previousModel - Optional context about the previously selected model
+ */
+export function buildClassificationPrompt(
+  previousModel?: PreviousModelContext,
+): string {
+  const basePrompt = `You are a task classifier for an AI routing system. Analyze the user message and determine the best task category and requirements.
 
 ## TASK CATEGORIES
 
@@ -41,27 +57,43 @@ Set these flags based on the task:
 
 ## HIGH-STAKES DETECTION
 
-Set isHighStakes: true ONLY when user seeks actionable advice about:
-- **medical**: Symptoms, diagnoses, treatments, medication, health emergencies
-- **legal**: Legal rights, lawsuits, contracts, criminal matters, liability
-- **financial**: Investments, taxes, retirement, debt decisions, large purchases
-- **safety**: Physical safety, emergencies, dangerous activities
+Set isHighStakes: true when user seeks ACTIONABLE ADVICE about:
+- **medical**: Symptoms, diagnoses, treatments, medication decisions, drug interactions, dosing, health emergencies
+- **legal**: Legal rights, lawsuits, contracts to sign, criminal matters, liability decisions
+- **financial**: Investment decisions, tax strategies, retirement planning, debt management, large purchases
+- **safety**: Physical safety, emergencies, dangerous activities, threats
 - **mental_health**: Suicide ideation, self-harm, severe depression, panic attacks, crisis support
 - **privacy**: Identity theft, stalking, data breaches, account compromise, online harassment
-- **immigration**: Visa status, deportation risk, asylum claims, work permits, citizenship
+- **immigration**: Visa decisions, deportation risk, asylum claims, work permits, citizenship
 - **domestic_abuse**: Abusive relationships, safety planning, leaving abusive situations
 
-RULES:
-1. Must seek ADVICE or ACTION, not just information
-2. "What is a heart attack?" = NOT high stakes (educational)
-3. "Am I having a heart attack?" = HIGH STAKES (medical)
-4. "What does liability mean?" = NOT high stakes (definition)
-5. "Can my employer fire me for this?" = HIGH STAKES (legal)
-6. "I've been thinking about ending it" = HIGH STAKES (mental_health)
-7. "What is depression?" = NOT high stakes (educational)
-8. "Someone is stalking me online" = HIGH STAKES (privacy)
-9. Casual mentions are NOT high stakes
-10. When in doubt, err toward NOT high stakes
+ADVICE-SEEKING SIGNALS (likely HIGH STAKES):
+- "Should I..." / "Can I..." / "Is it safe to..." / "Is it okay to..."
+- Personal pronouns + action: "I take", "my medication", "my symptoms"
+- Decision language: "deciding whether", "considering", "thinking about"
+- Consequence concern: "will it hurt", "could it cause", "what happens if"
+
+EDUCATIONAL SIGNALS (likely NOT high stakes):
+- "What is..." / "What are..." / "How does X work?"
+- "Define..." / "Explain..." / "Tell me about..."
+- No personal context, clearly hypothetical or academic
+
+EXAMPLES:
+1. "What is a heart attack?" = NOT high stakes (educational)
+2. "Am I having a heart attack?" = HIGH STAKES (medical)
+3. "Should I take ibuprofen for a migraine?" = HIGH STAKES (medical) - treatment advice
+4. "What is ibuprofen?" = NOT high stakes (educational)
+5. "Can I take aspirin with blood pressure meds?" = HIGH STAKES (medical) - drug interaction
+6. "How does aspirin work?" = NOT high stakes (mechanism explanation)
+7. "Should I sign this contract?" = HIGH STAKES (legal) - seeking legal guidance
+8. "What is a contract?" = NOT high stakes (definition)
+9. "Should I invest in crypto?" = HIGH STAKES (financial) - investment advice
+10. "What is cryptocurrency?" = NOT high stakes (educational)
+11. "I've been thinking about ending it" = HIGH STAKES (mental_health)
+12. "Someone is stalking me online" = HIGH STAKES (privacy)
+13. Casual mentions are NOT high stakes
+
+RULE: When genuinely uncertain about advice-seeking intent, err toward HIGH STAKES for safety. Better to use a premium model unnecessarily than give poor advice on important topics.
 
 ## IMPORTANT GUIDELINES
 
@@ -70,7 +102,46 @@ RULES:
 3. Simple coding questions are "coding" with "simple" complexity
 4. Research category is ONLY for tasks needing current/real-time information
 5. Multimodal is ONLY when user explicitly mentions images/files
-6. If unsure between categories, prefer the more general one
+6. If unsure between categories, prefer the more general one`;
+
+  // Add stickiness evaluation section when previous model context is provided
+  const stickinessSection = previousModel
+    ? `
+
+## MODEL STICKINESS EVALUATION
+
+The previous message used this model:
+- Model: ${previousModel.name} (${previousModel.id})
+- Cost tier: ${previousModel.tier}
+- Has vision: ${previousModel.hasVision}
+- Has reasoning/thinking: ${previousModel.hasReasoning}
+- Context window: ${previousModel.maxContextTokens.toLocaleString()} tokens
+
+DECIDE whether to KEEP the previous model or CHANGE to a different one.
+
+Set recommendedAction to "keep" if ALL of these are true:
+1. Task category is SIMILAR (same category OR closely related)
+2. Complexity is SAME OR LOWER
+3. Previous model has all required capabilities (vision, reasoning, context)
+4. NOT high-stakes (high-stakes ALWAYS triggers "change" to ensure premium model)
+
+Set recommendedAction to "change" if ANY of these are true:
+1. Task CATEGORY shifted significantly (e.g., coding → creative, conversation → reasoning)
+2. Complexity INCREASED (simple → complex needs a capable model)
+3. HIGH-STAKES detected (always use premium model for safety)
+4. CAPABILITY mismatch (needs vision but previous lacks it, needs reasoning but previous lacks it)
+5. Context requirement exceeds previous model's window
+
+When in doubt, prefer "keep" - continuity improves conversation flow and reduces latency.
+If recommendedAction is "change", provide a brief changeReason explaining why.`
+    : `
+
+## MODEL STICKINESS EVALUATION
+
+No previous model was used - this is the first message in the conversation.
+Set recommendedAction to "change" (full routing required for first message).`;
+
+  const outputFormat = `
 
 ## OUTPUT FORMAT
 
@@ -83,7 +154,15 @@ Return a JSON object with:
 - requiresReasoning: boolean
 - confidence: 0.0-1.0 (how confident you are in this classification)
 - isHighStakes: boolean (true ONLY if user seeks advice on high-stakes domains)
-- highStakesDomain: "medical" | "legal" | "financial" | "safety" | "mental_health" | "privacy" | "immigration" | "domestic_abuse" | null`;
+- highStakesDomain: "medical" | "legal" | "financial" | "safety" | "mental_health" | "privacy" | "immigration" | "domestic_abuse" | null
+- recommendedAction: "keep" | "change" (whether to keep the previous model or select a new one)
+- changeReason: string | null (brief reason if recommending change, null if keeping)`;
+
+  return basePrompt + stickinessSection + outputFormat;
+}
+
+// Legacy export for backwards compatibility (first message scenario)
+export const ROUTER_CLASSIFICATION_PROMPT = buildClassificationPrompt();
 
 import type { HighStakesDomain } from "./modelProfiles";
 

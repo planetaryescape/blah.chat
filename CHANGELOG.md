@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.12.1](https://github.com/planetaryescape/blah.chat/compare/v1.12.0...v1.12.1) (2026-01-26)
+
+
+### Bug Fixes
+
+* **generation:** calculate TPS using pure API wait time ([46354b9](https://github.com/planetaryescape/blah.chat/commit/46354b99647351a8f5d59f2bd96ce50b2356497c))
+* **generation:** include tool-call chunks in TPS wait time ([3376aa3](https://github.com/planetaryescape/blah.chat/commit/3376aa3d5ec12080904bcc1fe12b01351f017c5b))
+
+## [1.12.0](https://github.com/planetaryescape/blah.chat/compare/v1.11.0...v1.12.0) (2026-01-26)
+
+
+### Features
+
+* **admin:** add models and auto-router admin UI ([2b90b8b](https://github.com/planetaryescape/blah.chat/commit/2b90b8b26409549e04976b0e47ef63bbc749526e))
+* **models:** add database-backed model management ([325cb99](https://github.com/planetaryescape/blah.chat/commit/325cb996cbe076ab621f4c36bbbdcdee86b05b00))
+
+
+### Bug Fixes
+
+* **admin:** address code review feedback ([7d5ab1c](https://github.com/planetaryescape/blah.chat/commit/7d5ab1c2e1a99a31a76016a3f64998e6a14c0398))
+* **admin:** replace native confirm() with AlertDialog ([64967d6](https://github.com/planetaryescape/blah.chat/commit/64967d6d0d7b0602deed314c6f861190af888dae))
+* **admin:** replace native dialogs with shadcn components ([6e19bd8](https://github.com/planetaryescape/blah.chat/commit/6e19bd8f7f267e64fefc00bdf30f41309fbd70ba))
+* **chat:** prevent toolbar buttons from triggering form submission ([808a221](https://github.com/planetaryescape/blah.chat/commit/808a2211f18f0229be0229a2697572096d652677))
+* **models:** cascade delete profiles and safe JSON parsing ([b6b5c4d](https://github.com/planetaryescape/blah.chat/commit/b6b5c4d313ec7bf27c4a7f86db200c76067ccdd8))
+* **models:** fallback to static config when DB is empty ([ae36f2a](https://github.com/planetaryescape/blah.chat/commit/ae36f2ab44bdb0c76cae44681c09fd9d91918202))
+* **router:** improve high-stakes topic detection for medical advice ([2627316](https://github.com/planetaryescape/blah.chat/commit/262731686a785ea3df1e1b6c3b1aa0a6a1813acc))
+* **security:** add admin authorization to admin-only model queries ([547113c](https://github.com/planetaryescape/blah.chat/commit/547113c6931668b44b2af8e2a75a627e5687cfb5))
+* **security:** add input validation for model IDs ([e3eb676](https://github.com/planetaryescape/blah.chat/commit/e3eb676ac3cd851ab05ad056af4a9c0f9d9d0054))
+
+## [1.11.0](https://github.com/planetaryescape/blah.chat/compare/v1.10.0...v1.11.0) (2026-01-26)
+
+
+### Features
+
+* **auto-router:** add sticky routing fields to classification schema ([c8dc591](https://github.com/planetaryescape/blah.chat/commit/c8dc591774a745b42b3d1c6604df45eef3a9f0d4))
+* **auto-router:** build dynamic classification prompt with previous model context ([73df0a7](https://github.com/planetaryescape/blah.chat/commit/73df0a7078ddda5a3cbb188ff237f7c47b679481))
+* **auto-router:** implement sticky routing with early exit ([0539dba](https://github.com/planetaryescape/blah.chat/commit/0539dbad94a41e72c4e4b712c46dc8c920060d23))
+* **chat:** display sticky routing indicator in message stats ([6409bbb](https://github.com/planetaryescape/blah.chat/commit/6409bbbd08510c5ac5d2158032e0fe816ffabd6a))
+* **generation:** propagate isSticky field through generation pipeline ([669374a](https://github.com/planetaryescape/blah.chat/commit/669374a596fb5285dc97d5fadca8f7d7279e5d0f))
+
+
+### Bug Fixes
+
+* **auto-router:** validate capabilities before sticky routing ([21399c0](https://github.com/planetaryescape/blah.chat/commit/21399c049f31506de5ddd17ab4d7f3ac06f811de))
+* **conversations:** resolve bulk delete byte limit error ([3ada05d](https://github.com/planetaryescape/blah.chat/commit/3ada05d17e74a00eb0c8550e66c34b50ae6e8268))
+
 ## [1.10.0](https://github.com/planetaryescape/blah.chat/compare/v1.9.4...v1.10.0) (2026-01-25)
 
 

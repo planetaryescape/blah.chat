@@ -180,6 +180,9 @@ import type * as migrations_012_rechunk_knowledge from "../migrations/012_rechun
 import type * as migrations_013_tree_architecture from "../migrations/013_tree_architecture.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
+import type * as models_mutations from "../models/mutations.js";
+import type * as models_queries from "../models/queries.js";
+import type * as models_seed from "../models/seed.js";
 import type * as notes from "../notes.js";
 import type * as notes_embeddings from "../notes/embeddings.js";
 import type * as notes_generateTitle from "../notes/generateTitle.js";
@@ -207,6 +210,7 @@ import type * as schema_index from "../schema/index.js";
 import type * as schema_memories from "../schema/memories.js";
 import type * as schema_messages from "../schema/messages.js";
 import type * as schema_migrations from "../schema/migrations.js";
+import type * as schema_models from "../schema/models.js";
 import type * as schema_notes from "../schema/notes.js";
 import type * as schema_notifications from "../schema/notifications.js";
 import type * as schema_projects from "../schema/projects.js";
@@ -457,6 +461,9 @@ declare const fullApi: ApiFromModules<{
   "migrations/013_tree_architecture": typeof migrations_013_tree_architecture;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
+  "models/mutations": typeof models_mutations;
+  "models/queries": typeof models_queries;
+  "models/seed": typeof models_seed;
   notes: typeof notes;
   "notes/embeddings": typeof notes_embeddings;
   "notes/generateTitle": typeof notes_generateTitle;
@@ -484,6 +491,7 @@ declare const fullApi: ApiFromModules<{
   "schema/memories": typeof schema_memories;
   "schema/messages": typeof schema_messages;
   "schema/migrations": typeof schema_migrations;
+  "schema/models": typeof schema_models;
   "schema/notes": typeof schema_notes;
   "schema/notifications": typeof schema_notifications;
   "schema/projects": typeof schema_projects;

@@ -1,7 +1,19 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import {
+  autoRouterConfigTable,
+  modelHistoryTable,
+  modelProfilesTable,
+  modelsTable,
+} from "./schema/models";
 
 export default defineSchema({
+  // AI Model Management (DB-backed configuration)
+  models: modelsTable,
+  modelHistory: modelHistoryTable,
+  autoRouterConfig: autoRouterConfigTable,
+  modelProfiles: modelProfilesTable,
+
   users: defineTable({
     clerkId: v.string(),
     email: v.string(),
@@ -266,8 +278,13 @@ export default defineSchema({
           // Optional for backward compatibility with existing messages
           isHighStakes: v.optional(v.boolean()),
           highStakesDomain: v.optional(v.string()),
+          // Stickiness evaluation fields (optional for backward compatibility)
+          recommendedAction: v.optional(v.string()),
+          changeReason: v.optional(v.string()),
         }),
         reasoning: v.string(),
+        // True when model was kept from previous message (sticky routing)
+        isSticky: v.optional(v.boolean()),
       }),
     ),
     // DEPRECATED (Phase 2): Source citations migrated to normalized tables

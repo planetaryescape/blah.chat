@@ -1,269 +1,409 @@
 # Phase 5: Remove Static Config
 
 **Estimated Time**: 2 days
-**Prerequisites**: Phase 4 complete (100% traffic on DB)
+**Prerequisites**: Phase 4 complete (100% traffic on DB for 72+ hours)
+**Depends On**: All model lookups working via DB, no fallbacks triggered
 
-## Context
+## What This Phase Does
 
-**Problem**: Static config still exists, causing confusion. Feature flag no longer needed.
+Removes the static `MODEL_CONFIG` object from codebase. Updates all imports to use repository functions. Removes feature flag logic. DB becomes the single source of truth.
 
-**Solution**: Delete `MODEL_CONFIG`, update all imports, remove fallback logic.
+## Why This Is Needed
 
-## Architecture Overview
+- Static config creates confusion (two sources of truth)
+- Feature flag logic adds complexity
+- Keeping dead code is a maintenance burden
+- Clean codebase for future development
+
+## Architecture Change
 
 ```
 BEFORE:
 Repository → Feature Flag → DB or Static
+                          ↓
+                    (fallback path)
 
 AFTER:
 Repository → DB only (no fallback)
 ```
 
+## Files to Modify
+
+Based on codebase scan (~37 files use MODEL_CONFIG):
+
+### High Priority (core functionality)
+
+| File | Changes Needed |
+|------|----------------|
+| `apps/web/src/lib/ai/models.ts` | Remove MODEL_CONFIG, keep types only |
+| `apps/web/src/lib/models/repository.ts` | Remove fallback, remove feature flag |
+| `packages/ai/src/models.ts` | Remove shared MODEL_CONFIG, keep types |
+| `packages/backend/convex/generation.ts` | Use repository imports |
+| `packages/backend/convex/ai/autoRouter.ts` | Use repository imports |
+| `apps/web/src/lib/ai/pricing.ts` | Use repository for model lookup |
+
+### UI Components
+
+| File | Changes Needed |
+|------|----------------|
+| `apps/web/src/components/chat/ModelSelector.tsx` | Use repository |
+| `apps/web/src/components/chat/QuickModelSwitcher.tsx` | Use repository |
+| `apps/web/src/components/chat/ModelDetailCard.tsx` | Use repository |
+| `apps/web/src/components/chat/ComparisonModelSelector.tsx` | Use repository |
+| `apps/web/src/components/chat/ImageGenerateButton.tsx` | Use repository |
+
+### Backend
+
+| File | Changes Needed |
+|------|----------------|
+| `packages/backend/convex/chat.ts` | Use repository |
+| `packages/backend/convex/tokens/service.ts` | Use repository |
+| `packages/backend/convex/generation/image.ts` | Use repository |
+| `packages/backend/convex/ai/modelProfiles.ts` | Use DB profiles |
+
+### API Routes
+
+| File | Changes Needed |
+|------|----------------|
+| `apps/web/src/app/api/v1/models/route.ts` | Use repository |
+| `apps/web/src/app/api/v1/chat/route.ts` | Use repository |
+
 ## Implementation
 
-### Step 1: Identify All Usages
+### Step 1: Update Repository (Remove Fallback)
 
-**Find files using MODEL_CONFIG**:
+**File**: `apps/web/src/lib/models/repository.ts`
 
-```bash
-grep -r "MODEL_CONFIG" src/
-grep -r "from.*models" src/
-grep -r "import.*models" src/
+**Replace**:
+```typescript
+// BEFORE - with fallback
+const USE_DB_MODELS = process.env.NEXT_PUBLIC_USE_DB_MODELS === "true";
+
+export function useModelConfig(id: string): ModelConfig | undefined {
+  if (id === "auto") return AUTO_MODEL as ModelConfig;
+
+  const dbModel = useQuery(
+    api.models.queries.getById,
+    USE_DB_MODELS ? { id } : "skip"
+  );
+
+  if (USE_DB_MODELS && dbModel) {
+    return dbToModelConfig(dbModel);
+  }
+
+  // Fallback to static
+  return STATIC_MODEL_CONFIG[id];
+}
+
+// AFTER - DB only
+export function useModelConfig(id: string): ModelConfig | undefined {
+  if (id === "auto") return AUTO_MODEL as ModelConfig;
+
+  const dbModel = useQuery(api.models.queries.getById, { id });
+
+  if (!dbModel) return undefined;
+  return dbToModelConfig(dbModel);
+}
 ```
 
-**Expected files** (~15 total):
-- `src/components/chat/ModelSelector.tsx`
-- `src/components/chat/ImageGenerateButton.tsx`
-- `src/components/chat/ComparisonModelSelector.tsx`
-- `src/lib/ai/pricing.ts`
-- `convex/generation.ts`
-- `convex/generation/image.ts`
-- `convex/chat.ts`
-- `convex/tokens/service.ts`
-- `src/app/(main)/app/page.tsx`
-- `src/app/(main)/chat/[conversationId]/page.tsx`
-- `src/components/sidebar/app-sidebar.tsx`
-- `src/components/settings/MaintenanceSettings.tsx`
-- Others...
+**Apply same pattern** to:
+- `useAllModels()`
+- `useModelsByProvider()`
+- `useMobileModels()`
+- `getModelConfig()` (async version)
+- `getAllModels()` (async version)
 
-### Step 2: Update Imports
+### Step 2: Create Minimal Types File
 
-**Pattern**:
+**File**: `apps/web/src/lib/ai/models.ts`
+
+**Rename existing to backup** (optional, for reference):
+```bash
+mv apps/web/src/lib/ai/models.ts apps/web/src/lib/ai/models.legacy.ts
+```
+
+**Create new minimal file**:
+```typescript
+/**
+ * Model types and interfaces
+ *
+ * IMPORTANT: Model data is now stored in Convex DB.
+ * Use repository functions for model access:
+ * - import { useModelConfig, useAllModels } from "@/lib/models/repository"
+ *
+ * This file only contains TypeScript types and the AUTO_MODEL constant.
+ */
+
+import type { ReasoningConfig } from "./reasoning/types";
+
+// ============================================================
+// Types
+// ============================================================
+
+export type Provider =
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "xai"
+  | "perplexity"
+  | "groq"
+  | "cerebras"
+  | "minimax"
+  | "deepseek"
+  | "kimi"
+  | "zai"
+  | "meta"
+  | "mistral"
+  | "alibaba"
+  | "zhipu"
+  | "ollama"
+  | "openrouter";
+
+export type SpeedTier = "instant" | "fast" | "moderate" | "slow" | "deliberate";
+
+export type Capability =
+  | "vision"
+  | "function-calling"
+  | "thinking"
+  | "extended-thinking"
+  | "image-generation";
+
+export interface ModelPricing {
+  input: number;  // $ per 1M tokens
+  output: number; // $ per 1M tokens
+  cached?: number;
+  reasoning?: number;
+}
+
+export interface ModelConfig {
+  id: string;
+  provider: Provider;
+  name: string;
+  description?: string;
+  contextWindow: number;
+  pricing: ModelPricing;
+  capabilities: Capability[];
+  isLocal?: boolean;
+  actualModelId?: string;
+  reasoning?: ReasoningConfig;
+
+  // Extended fields
+  gateway?: "vercel" | "openrouter";
+  hostOrder?: string[];
+  knowledgeCutoff?: string;
+  userFriendlyDescription?: string;
+  bestFor?: string;
+  benchmarks?: Record<string, number>;
+  speedTier?: SpeedTier;
+  isPro?: boolean;
+  isInternalOnly?: boolean;
+  isExperimental?: boolean;
+}
+
+// ============================================================
+// AUTO_MODEL (special case - not stored in DB)
+// ============================================================
+
+/**
+ * AUTO_MODEL is a meta-model that routes to real models.
+ * It's not stored in the DB because:
+ * 1. It's not a real model - it routes to other models
+ * 2. Its "configuration" IS the auto-router config (see /admin/auto-router)
+ * 3. It doesn't have pricing (depends on selected model)
+ */
+export const AUTO_MODEL = {
+  id: "auto",
+  provider: "auto" as const,
+  name: "Auto",
+  description: "Automatically selects the best model for your task",
+  contextWindow: 200000, // Maximum across all models
+  pricing: { input: 0, output: 0 }, // Calculated from selected model
+  capabilities: ["vision", "function-calling"] as Capability[],
+  userFriendlyDescription: "Let blah.chat pick the best model for each message",
+  bestFor: "Mixed conversations, unknown requirements",
+};
+
+// ============================================================
+// Deprecated Exports (for migration compatibility)
+// ============================================================
+
+/**
+ * @deprecated Use repository functions instead:
+ * import { useAllModels } from "@/lib/models/repository"
+ */
+export function getModelsByProvider(): Record<string, ModelConfig[]> {
+  console.warn(
+    "getModelsByProvider() is deprecated. Use useModelsByProvider() from repository."
+  );
+  return {};
+}
+
+/**
+ * @deprecated Use repository functions instead:
+ * import { useModelConfig } from "@/lib/models/repository"
+ */
+export function getModelConfig(id: string): ModelConfig | undefined {
+  console.warn(
+    "getModelConfig() from models.ts is deprecated. Use useModelConfig() from repository."
+  );
+  return undefined;
+}
+```
+
+### Step 3: Update Shared Package Types
+
+**File**: `packages/ai/src/models.ts`
+
+Same pattern - keep types, remove static data:
+```typescript
+/**
+ * Shared model types for web and mobile
+ *
+ * Model data is stored in Convex DB, accessed via repository.
+ */
+
+// Re-export types from web (or duplicate if needed for mobile)
+export type {
+  Provider,
+  SpeedTier,
+  Capability,
+  ModelPricing,
+  ModelConfig,
+} from "../../apps/web/src/lib/ai/models"; // Adjust path based on monorepo setup
+
+// OR duplicate types here if cross-package imports are problematic
+```
+
+### Step 4: Update All Import Statements
+
+**Pattern for each file**:
 
 ```typescript
 // BEFORE
 import { MODEL_CONFIG, getModelConfig } from "@/lib/ai/models";
 
-// AFTER
-import { getModelConfig } from "@/lib/models/repository";
-import type { ModelConfig } from "@/lib/ai/models"; // Keep type import
-```
-
-**For each file**, replace:
-1. Remove `MODEL_CONFIG` imports
-2. Change `getModelConfig` import to repository
-3. Keep `ModelConfig` type import (if needed)
-
-### Step 3: Remove Static Config
-
-**File**: `src/lib/ai/models.ts`
-
-**Rename file** (keep for reference):
-
-```bash
-mv src/lib/ai/models.ts src/lib/ai/models.legacy.ts
-```
-
-**Create new minimal `models.ts`**:
-
-```typescript
-import type { ReasoningConfig } from "./reasoning/types";
-
-// TypeScript type definitions only
-// Models are now stored in Convex DB (see docs/models/)
-
-export interface ModelConfig {
-  id: string;
-  provider:
-    | "openai"
-    | "anthropic"
-    | "google"
-    | "xai"
-    | "perplexity"
-    | "ollama"
-    | "openrouter"
-    | "groq";
-  name: string;
-  description?: string;
-  contextWindow: number;
-  pricing: {
-    input: number;
-    output: number;
-    cached?: number;
-    reasoning?: number;
-  };
-  capabilities: (
-    | "vision"
-    | "function-calling"
-    | "thinking"
-    | "extended-thinking"
-    | "image-generation"
-  )[];
-  isLocal?: boolean;
-  actualModelId?: string;
-  reasoning?: ReasoningConfig;
-}
-
-// For type compatibility with existing code
-export function getModelsByProvider(): Record<string, ModelConfig[]> {
-  console.warn("getModelsByProvider() is deprecated. Use repository.getAllModels() instead.");
-  return {};
-}
-
-// DEPRECATED: Use repository functions instead
-export { getModelConfig, getAllModels, getModelsByProvider as getModelsByProviderNew } from "@/lib/models/repository";
-```
-
-### Step 4: Remove Feature Flag Logic
-
-**File**: `src/lib/models/repository.ts`
-
-**Replace**:
-
-```typescript
-// BEFORE
-const USE_DB_MODELS = process.env.NEXT_PUBLIC_USE_DB_MODELS === "true";
-
-export async function getModelConfig(id: string): Promise<ModelConfig | null> {
-  if (USE_DB_MODELS) {
-    try {
-      const dbModel = await fetchQuery(api.models.queries.get, { id });
-      if (dbModel) return dbToModelConfig(dbModel);
-    } catch (error) {
-      console.error(`Failed to fetch model ${id} from DB, falling back to static:`, error);
-    }
-  }
-  // Fallback to static config
-  return MODEL_CONFIG[id] || null;
-}
+const model = MODEL_CONFIG[modelId];
+const config = getModelConfig(modelId);
 
 // AFTER
-export async function getModelConfig(id: string): Promise<ModelConfig | null> {
-  try {
-    const dbModel = await fetchQuery(api.models.queries.get, { id });
-    if (dbModel) {
-      return dbToModelConfig(dbModel);
-    }
-    return null;
-  } catch (error) {
-    console.error(`Failed to fetch model ${id} from DB:`, error);
-    throw error; // No fallback - fail loudly
-  }
-}
-```
+import { useModelConfig, useAllModels } from "@/lib/models/repository";
+import type { ModelConfig } from "@/lib/ai/models";
 
-**Apply same pattern** to `getAllModels()` and `getModelsByProvider()`.
+// In React components:
+const model = useModelConfig(modelId);
+
+// In async functions (Convex actions, API routes):
+const model = await getModelConfigAsync(modelId);
+```
 
 ### Step 5: Remove Environment Variable
 
-**File**: `.env.local`
+**Files to update**:
+- `.env.local` - remove `NEXT_PUBLIC_USE_DB_MODELS`
+- `.env.example` - remove `NEXT_PUBLIC_USE_DB_MODELS`
+- Vercel dashboard - remove the variable
 
-**Delete line**:
-
-```bash
-# Remove this line:
-NEXT_PUBLIC_USE_DB_MODELS=true
-```
-
-### Step 6: Update ModelSelector
-
-**File**: `src/components/chat/ModelSelector.tsx`
-
-**Replace**:
-
-```typescript
-// BEFORE
-const [modelsByProvider, setModelsByProvider] = useState(
-  getModelsByProvider(),
-);
-
-// AFTER
-const [modelsByProvider, setModelsByProvider] = useState<Record<string, ModelConfig[]>>({});
-
-useEffect(() => {
-  async function loadModels() {
-    const all = await getAllModels();
-    const grouped = all.reduce((acc, model) => {
-      if (!acc[model.provider]) acc[model.provider] = [];
-      acc[model.provider].push(model);
-      return acc;
-    }, {} as Record<string, ModelConfig[]>);
-    setModelsByProvider(grouped);
-  }
-  loadModels();
-}, []);
-```
-
-### Step 7: Run TypeScript Check
+### Step 6: Run TypeScript Check
 
 ```bash
 bun run lint
 ```
 
-**Expected**: No errors related to `MODEL_CONFIG`.
+**Expected**: No errors related to `MODEL_CONFIG` or missing imports.
 
-### Step 8: Test All Features
+### Step 7: Test All Features
 
-- [ ] Chat generation works (all models)
-- [ ] Image generation works
-- [ ] Model selector shows all models
+Manual verification:
+
+- [ ] Chat generation works (try multiple models)
+- [ ] Model selector loads and shows all models
 - [ ] Comparison mode works
-- [ ] Reasoning configs applied
+- [ ] Image generation works
+- [ ] Reasoning/thinking models configured correctly
 - [ ] Cost calculations accurate
+- [ ] Admin UI still works
+- [ ] Mobile API returns correct models
 
 ## Validation Checklist
 
-- [ ] `models.legacy.ts` exists (reference only)
+- [ ] `models.legacy.ts` exists (optional backup)
 - [ ] New minimal `models.ts` exports types only
-- [ ] All 15 files updated (imports changed)
+- [ ] `MODEL_CONFIG` not referenced anywhere (grep returns nothing)
 - [ ] Repository has no fallback logic
-- [ ] Feature flag removed from `.env.local`
+- [ ] Feature flag removed from env
 - [ ] TypeScript compiles (`bun run lint`)
 - [ ] All features tested and working
 
 ## Troubleshooting
 
-**Error**: "getModelsByProvider is not a function"
-- Fix: Import from repository, not models
+### Error: "MODEL_CONFIG is not defined"
 
-**Error**: "MODEL_CONFIG is not defined"
-- Fix: Remove import, use repository functions
+**Problem**: Some file still imports the old object.
 
-**Error**: "Cannot read property 'input' of undefined"
-- Fix: Handle null from `getModelConfig()` (model might not exist)
+**Fix**:
+```bash
+grep -r "MODEL_CONFIG" apps/ packages/
+```
+Update each file to use repository.
+
+### Error: "getModelsByProvider is not a function"
+
+**Problem**: Old import still used.
+
+**Fix**: Import from repository:
+```typescript
+import { useModelsByProvider } from "@/lib/models/repository";
+```
+
+### Error: "Cannot read property 'input' of undefined"
+
+**Problem**: Model not found in DB.
+
+**Fix**:
+1. Check model exists in Convex dashboard
+2. Ensure model status is "active"
+3. Handle null case in code
+
+### Error: "useQuery called outside React"
+
+**Problem**: Trying to use React hook in non-component code.
+
+**Fix**: Use async version for server-side:
+```typescript
+// In Convex action or API route:
+import { getModelConfigAsync } from "@/lib/models/repository";
+
+const model = await getModelConfigAsync(modelId);
+```
 
 ## Rollback
 
 **If issues after cleanup**:
 
 ```bash
-# 1. Restore static config
-mv src/lib/ai/models.legacy.ts src/lib/ai/models.ts
+# 1. Restore static config (if backup kept)
+mv apps/web/src/lib/ai/models.legacy.ts apps/web/src/lib/ai/models.ts
 
-# 2. Revert repository changes
-git checkout src/lib/models/repository.ts
-
-# 3. Add feature flag back
+# 2. Re-add feature flag
 echo "NEXT_PUBLIC_USE_DB_MODELS=true" >> .env.local
 
+# 3. Revert repository to dual-read mode
+git checkout apps/web/src/lib/models/repository.ts
+
 # 4. Revert all file imports
-git checkout src/
+git checkout apps/ packages/
 ```
 
-## Next Steps
+**Note**: Rollback is now more complex since static config is removed. Keep backup for 2 weeks before deleting.
 
-**Phase 6** adds performance optimizations (caching, indexes, search, analytics).
+## What Comes Next
+
+**Phase 6** adds performance optimizations:
+- Search query for models
+- Usage analytics tracking
+- Additional indexes if needed
+- Performance benchmarks
 
 ---
 
-**Phase 5 Complete!** ✅ Static config removed, DB is single source of truth. Move to **[phase-6-optimization.md](./phase-6-optimization.md)** next.
+**Phase 5 Complete!** Static config removed, DB is single source of truth. Proceed to **[phase-6-optimization.md](./phase-6-optimization.md)**.

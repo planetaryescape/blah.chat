@@ -6,9 +6,25 @@
  */
 
 /**
- * Main classification prompt for the router LLM
+ * Previous model context for sticky routing evaluation
  */
-export const ROUTER_CLASSIFICATION_PROMPT = `You are a task classifier for an AI routing system. Analyze the user message and determine the best task category and requirements.
+export interface PreviousModelContext {
+  id: string;
+  name: string;
+  tier: "cheap" | "mid" | "premium";
+  hasVision: boolean;
+  hasReasoning: boolean;
+  maxContextTokens: number;
+}
+
+/**
+ * Main classification prompt builder for the router LLM
+ * @param previousModel - Optional context about the previously selected model
+ */
+export function buildClassificationPrompt(
+  previousModel?: PreviousModelContext,
+): string {
+  const basePrompt = `You are a task classifier for an AI routing system. Analyze the user message and determine the best task category and requirements.
 
 ## TASK CATEGORIES
 
@@ -70,7 +86,46 @@ RULES:
 3. Simple coding questions are "coding" with "simple" complexity
 4. Research category is ONLY for tasks needing current/real-time information
 5. Multimodal is ONLY when user explicitly mentions images/files
-6. If unsure between categories, prefer the more general one
+6. If unsure between categories, prefer the more general one`;
+
+  // Add stickiness evaluation section when previous model context is provided
+  const stickinessSection = previousModel
+    ? `
+
+## MODEL STICKINESS EVALUATION
+
+The previous message used this model:
+- Model: ${previousModel.name} (${previousModel.id})
+- Cost tier: ${previousModel.tier}
+- Has vision: ${previousModel.hasVision}
+- Has reasoning/thinking: ${previousModel.hasReasoning}
+- Context window: ${previousModel.maxContextTokens.toLocaleString()} tokens
+
+DECIDE whether to KEEP the previous model or CHANGE to a different one.
+
+Set recommendedAction to "keep" if ALL of these are true:
+1. Task category is SIMILAR (same category OR closely related)
+2. Complexity is SAME OR LOWER
+3. Previous model has all required capabilities (vision, reasoning, context)
+4. NOT high-stakes (high-stakes ALWAYS triggers "change" to ensure premium model)
+
+Set recommendedAction to "change" if ANY of these are true:
+1. Task CATEGORY shifted significantly (e.g., coding → creative, conversation → reasoning)
+2. Complexity INCREASED (simple → complex needs a capable model)
+3. HIGH-STAKES detected (always use premium model for safety)
+4. CAPABILITY mismatch (needs vision but previous lacks it, needs reasoning but previous lacks it)
+5. Context requirement exceeds previous model's window
+
+When in doubt, prefer "keep" - continuity improves conversation flow and reduces latency.
+If recommendedAction is "change", provide a brief changeReason explaining why.`
+    : `
+
+## MODEL STICKINESS EVALUATION
+
+No previous model was used - this is the first message in the conversation.
+Set recommendedAction to "change" (full routing required for first message).`;
+
+  const outputFormat = `
 
 ## OUTPUT FORMAT
 
@@ -83,7 +138,15 @@ Return a JSON object with:
 - requiresReasoning: boolean
 - confidence: 0.0-1.0 (how confident you are in this classification)
 - isHighStakes: boolean (true ONLY if user seeks advice on high-stakes domains)
-- highStakesDomain: "medical" | "legal" | "financial" | "safety" | "mental_health" | "privacy" | "immigration" | "domestic_abuse" | null`;
+- highStakesDomain: "medical" | "legal" | "financial" | "safety" | "mental_health" | "privacy" | "immigration" | "domestic_abuse" | null
+- recommendedAction: "keep" | "change" (whether to keep the previous model or select a new one)
+- changeReason: string | null (brief reason if recommending change, null if keeping)`;
+
+  return basePrompt + stickinessSection + outputFormat;
+}
+
+// Legacy export for backwards compatibility (first message scenario)
+export const ROUTER_CLASSIFICATION_PROMPT = buildClassificationPrompt();
 
 import type { HighStakesDomain } from "./modelProfiles";
 

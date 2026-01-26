@@ -265,22 +265,49 @@ export const routeMessage = internalAction({
         !args.excludedModels?.includes(args.previousSelectedModel)
       ) {
         const prevConfig = MODEL_CONFIG[args.previousSelectedModel];
-        logger.info("Sticky routing - keeping previous model", {
+
+        // CRITICAL: Validate previous model still meets new task requirements
+        // Even if classifier says "keep", we must verify capability compatibility
+        const canKeepPreviousModel =
+          prevConfig &&
+          // Vision requirement check
+          (!classification.requiresVision ||
+            prevConfig.capabilities.includes("vision")) &&
+          // Long context requirement check (128K+)
+          (!classification.requiresLongContext ||
+            prevConfig.contextWindow >= 128000) &&
+          // Context window must fit current conversation
+          prevConfig.contextWindow >= (args.currentContextTokens ?? 0) * 1.2;
+
+        if (canKeepPreviousModel) {
+          logger.info("Sticky routing - keeping previous model", {
+            tag: "AutoRouter",
+            conversationId: args.conversationId,
+            selectedModel: args.previousSelectedModel,
+            classification: classification.primaryCategory,
+            complexity: classification.complexity,
+            routingTimeMs: Date.now() - startTime,
+          });
+
+          return {
+            selectedModelId: args.previousSelectedModel,
+            classification,
+            reasoning: `Continuing with ${prevConfig?.name ?? args.previousSelectedModel} - task characteristics unchanged`,
+            candidatesConsidered: 0,
+            isSticky: true,
+          };
+        }
+
+        // Previous model lacks required capabilities - fall through to full routing
+        logger.info("Sticky routing skipped - capability mismatch", {
           tag: "AutoRouter",
           conversationId: args.conversationId,
-          selectedModel: args.previousSelectedModel,
-          classification: classification.primaryCategory,
-          complexity: classification.complexity,
-          routingTimeMs: Date.now() - startTime,
+          previousModel: args.previousSelectedModel,
+          requiresVision: classification.requiresVision,
+          hasVision: prevConfig?.capabilities.includes("vision"),
+          requiresLongContext: classification.requiresLongContext,
+          contextWindow: prevConfig?.contextWindow,
         });
-
-        return {
-          selectedModelId: args.previousSelectedModel,
-          classification,
-          reasoning: `Continuing with ${prevConfig?.name ?? args.previousSelectedModel} - task characteristics unchanged`,
-          candidatesConsidered: 0,
-          isSticky: true,
-        };
       }
 
       // 3. Get eligible models (filter by capabilities, context, excluded models, etc.)

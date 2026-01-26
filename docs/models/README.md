@@ -1,132 +1,179 @@
-# Database-Backed Model Management
+# Database-Backed Model & Auto-Router Management
 
 **Status**: Implementation Guide
-**Last Updated**: 2025-12-07
+**Last Updated**: 2026-01-26
 **Complexity**: High (production migration)
-**Estimated Time**: ~6 weeks
+**Estimated Time**: ~4 weeks
 
 ## Overview
 
-Self-contained implementation guides for migrating from hardcoded model config to database-backed dynamic management.
+Self-contained implementation guides for migrating from hardcoded model config and auto-router parameters to database-backed dynamic management.
 
-**Current Problem**: 58 models hardcoded in `src/lib/ai/models.ts`. Every model addition, pricing change, or capability update requires code deploy.
+### Current Problems
 
-**Solution**: Convex DB tables + admin UI + gradual Expand-Contract migration (zero downtime).
+1. **Models**: 40+ models hardcoded in `packages/ai/src/models.ts` and `apps/web/src/lib/ai/models.ts`. Every model addition, pricing change, or capability update requires code deploy.
+
+2. **Auto-Router**: Scoring bonuses, cost tier thresholds, model category scores, and other routing parameters are hardcoded in `packages/backend/convex/ai/autoRouter.ts` and `modelProfiles.ts`. Tuning the router requires code changes.
+
+### Solution
+
+- **Part 1**: Convex DB tables for models + admin UI + gradual Expand-Contract migration (zero downtime)
+- **Part 2**: Convex DB tables for auto-router config + admin UI with dials/knobs for tuning
 
 ## Architecture
 
 ```
-Convex DB (models, modelHistory)
-    ↓ stores all model configs
-Repository Pattern (repository.ts)
-    ↓ abstracts DB access, maintains stable API
-Feature Flag (NEXT_PUBLIC_USE_DB_MODELS)
-    ↓ controls gradual rollout
-Admin UI (ModelsSettings.tsx)
-    ↓ CRUD + bulk operations
+┌─────────────────────────────────────────────────────────────────┐
+│                         Admin Dashboard                          │
+├─────────────────────────────────┬───────────────────────────────┤
+│     /admin/models               │     /admin/auto-router        │
+│  - Add/Edit/Delete models       │  - Scoring bonuses (sliders)  │
+│  - Pricing, capabilities        │  - Cost tier thresholds       │
+│  - Bulk import/export           │  - Speed preferences          │
+│  - Version history              │  - Model category scores      │
+└─────────────────────────────────┴───────────────────────────────┘
+                    │                           │
+                    ▼                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Convex Database                               │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────────┐  │
+│  │   models    │  │ modelHistory │  │   autoRouterConfig     │  │
+│  │  (40+ rows) │  │  (versions)  │  │   (singleton row)      │  │
+│  └─────────────┘  └──────────────┘  └────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │                    modelProfiles                           │ │
+│  │          (category scores per model: 21×8 = 168 scores)    │ │
+│  └────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Repository Layer                              │
+│  - Feature flag controls DB vs static source                     │
+│  - Transforms DB records ↔ ModelConfig types                     │
+│  - Convex reactive queries = automatic cache invalidation        │
+└─────────────────────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Application                                   │
+│  - Model picker, generation, cost calculation                    │
+│  - Auto-router uses DB config for scoring                        │
+│  - Mobile app uses same repository                               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Benefits
 
-- **Add model**: DB insert (no code deploy)
+### Model Management
+- **Add model**: DB insert via admin UI (no code deploy)
 - **Update pricing**: DB update (live changes)
 - **Version history**: Track who/when/why for all changes
 - **Bulk ops**: Import/Export JSON, duplicate models
-- **Rollback**: Feature flag = instant revert
+- **Rollback**: Feature flag = instant revert to static config
 
-## Database Schema
+### Auto-Router Configuration
+- **Tune scoring**: Adjust bonuses/penalties via sliders
+- **Cost optimization**: Change tier boundaries on the fly
+- **Model profiles**: Update category scores without deploys
+- **Experimentation**: A/B test different routing strategies
 
-| Table | Purpose |
-|-------|---------|
-| `models` | All ModelConfig properties (58 models) |
-| `modelHistory` | Version tracking (changes, author, timestamp) |
-| `users` | Add `role` field (admin authorization) |
+## Database Schema Summary
 
-**Total**: 3 tables, 2 new + 1 modified
+| Table | Purpose | Rows |
+|-------|---------|------|
+| `models` | All ModelConfig properties | 40+ models |
+| `modelHistory` | Version tracking (changes, author, timestamp) | Grows over time |
+| `autoRouterConfig` | Scoring bonuses, thresholds, settings | 1 (singleton) |
+| `modelProfiles` | Category scores per model (coding, reasoning, etc.) | 21+ models |
 
 ## Implementation Phases
 
-Each phase file is **self-contained** - implement in order:
+Each phase file is **self-contained** with full context. Implement in order:
 
-1. **[phase-1-schema.md](./phase-1-schema.md)** - Foundation
-   ~1 day | Add schema, create seed script, populate DB
+### Part 1: Model Management
 
-2. **[phase-2-repository.md](./phase-2-repository.md)** - Dual Read
-   ~2 days | Repository pattern, queries, feature flag, dual-read logic
+| Phase | File | Duration | Description |
+|-------|------|----------|-------------|
+| 1 | [phase-1-schema.md](./phase-1-schema.md) | 1.5 days | Schema for all tables, seed scripts |
+| 2 | [phase-2-repository.md](./phase-2-repository.md) | 2 days | Repository pattern, queries, feature flag |
+| 3 | [phase-3-admin-ui.md](./phase-3-admin-ui.md) | 3 days | Models admin UI with CRUD + bulk ops |
+| 4 | [phase-4-rollout.md](./phase-4-rollout.md) | 1 week | Gradual feature flag rollout (1%→100%) |
+| 5 | [phase-5-cleanup.md](./phase-5-cleanup.md) | 2 days | Remove static MODEL_CONFIG, update imports |
+| 6 | [phase-6-optimization.md](./phase-6-optimization.md) | 2 days | Search, analytics, performance tuning |
 
-3. **[phase-3-admin-ui.md](./phase-3-admin-ui.md)** - Admin UI
-   ~3 days | Settings tab, CRUD forms, bulk import/export/duplicate
+### Part 2: Auto-Router Configuration
 
-4. **[phase-4-rollout.md](./phase-4-rollout.md)** - Gradual Rollout
-   ~1 week | Feature flag 0% → 1% → 10% → 50% → 100%, monitoring
+| Phase | File | Duration | Description |
+|-------|------|----------|-------------|
+| 7 | [phase-7-autorouter-admin-ui.md](./phase-7-autorouter-admin-ui.md) | 2 days | Auto-router admin UI with dials/knobs |
+| 8 | [phase-8-autorouter-integration.md](./phase-8-autorouter-integration.md) | 1 day | Wire autoRouter.ts to read from DB |
 
-5. **[phase-5-cleanup.md](./phase-5-cleanup.md)** - Remove Static Config
-   ~2 days | Delete MODEL_CONFIG, update 15 files, remove flag
-
-6. **[phase-6-optimization.md](./phase-6-optimization.md)** - Performance
-   ~2 days | Indexes, caching, search, analytics
-
-## Quick Start
-
-```bash
-# 1. Start with Phase 1 (must be first)
-cd docs/models
-
-# 2. Follow phase-1-schema.md step-by-step
-# Creates schema, seeds DB
-
-# 3. Continue through phases 2-6 in order
-# Each file has complete context + copy-paste code
-
-# 4. Validate using checklist in each phase
-
-# 5. Rollback if issues (per-phase instructions)
-```
+**Total: ~4 weeks**
 
 ## What's in Each Phase File?
 
 Every phase file includes:
-- ✅ Estimated time + prerequisites
-- ✅ Problem/solution context
-- ✅ Exact code to write (copy-paste ready)
-- ✅ File paths + line numbers
-- ✅ Validation checklist
-- ✅ Rollback instructions
-- ✅ Next steps
+- Full context (what this is, why, what comes before/after)
+- Prerequisites and dependencies
+- Exact code to write (copy-paste ready)
+- File paths with clear locations
+- Validation checklist
+- Rollback instructions
+- Next steps
 
-## Code Changes Summary
+## Key Design Decisions
 
-**Created** (14 new files):
-- `docs/models/` - This directory (7 files)
-- `convex/models/` - Queries, mutations, seed, bulk, analytics (5 files)
-- `src/lib/models/` - Repository, transforms, validators (3 files)
-- `src/components/settings/ModelsSettings.tsx` - Admin UI
-- `src/components/settings/ModelDialog.tsx` - Create/edit form
+### AUTO_MODEL
+- AUTO_MODEL is a meta-model that routes to real models
+- It stays in code as a special case (not stored in DB)
+- Its "configuration" IS the auto-router config tables
+- The `/admin/auto-router` page IS the AUTO_MODEL configuration
 
-**Modified** (3 files):
-- `convex/schema.ts` - Add `models`, `modelHistory` tables, `users.role`
-- `src/lib/ai/models.ts` - Deprecate static config (Phase 5)
-- 15 files using `MODEL_CONFIG` - Update imports (Phase 5)
+### Mobile App
+- Mobile uses the same repository as web
+- `getMobileModels()` queries DB with `isInternalOnly: false` filter
+- Single source of truth across all platforms
 
-**Total**: ~850 lines added, ~581 lines removed (static config) = net +269 lines
-**Result**: Dynamic, versioned, admin-manageable
+### Feature Flag Strategy
+- `NEXT_PUBLIC_USE_DB_MODELS` controls model source
+- `NEXT_PUBLIC_USE_DB_ROUTER_CONFIG` controls auto-router source
+- Allows independent rollout and instant rollback
 
 ## Success Criteria
 
-**Technical**:
-- ✅ All 58 models in DB
-- ✅ Version history tracking all changes
-- ✅ Feature flag working (instant rollback)
+### Technical
+- All 40+ models in DB with correct data
+- Auto-router config in DB with current hardcoded values
+- Model profiles with all 168 category scores
+- Version history tracking all changes
+- Feature flags working (instant rollback)
 
-**Functional**:
-- ✅ Add model via UI → appears in chat
-- ✅ Update pricing → cost recalculated
-- ✅ Deprecate model → no longer selectable
+### Functional
+- Add model via UI → appears in chat immediately
+- Update pricing → cost recalculated
+- Deprecate model → no longer selectable
+- Adjust scoring bonus → auto-router behavior changes
+- Edit category score → routing shifts accordingly
 
-**Maintainability**:
-- ✅ No code deploy for model changes
-- ✅ Audit trail for compliance
-- ✅ Bulk import/export working
+### Maintainability
+- No code deploy for model changes
+- No code deploy for router tuning
+- Audit trail for compliance
+- Bulk import/export working
+
+## Risk Assessment
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| DB migration breaks prod | High | Feature flag + gradual rollout (0%→100%) |
+| Pricing calculation errors | High | Phase 4 validation (1% traffic first) |
+| Auto-router regression | High | Parallel testing, gradual router rollout |
+| Missing model properties | Medium | Seed script validates all fields |
+| Admin authorization bypass | Medium | Convex auth checks in mutations |
+| JSON import malformed | Low | Zod validation before insert |
+
+**Overall**: MEDIUM - Gradual rollout with monitoring at each tier.
 
 ## Rollback Strategy
 
@@ -137,83 +184,28 @@ Every phase file includes:
 
 **Full rollback** (nuclear option):
 1. Set `NEXT_PUBLIC_USE_DB_MODELS=false` (instant)
-2. `git revert <phase-5-commit>` (restore static config)
-3. Drop `models`, `modelHistory` tables (optional)
-4. Remove `src/lib/models/`, `convex/models/` directories
+2. Set `NEXT_PUBLIC_USE_DB_ROUTER_CONFIG=false` (instant)
+3. All code paths revert to static config immediately
 
-## Risk Assessment
+## Current State Reference
 
-| Risk | Severity | Mitigation |
-|------|----------|------------|
-| DB migration breaks prod | High | Feature flag + gradual rollout (0% → 100%) |
-| Pricing calculation errors | High | Phase 4 validation (1% traffic first) |
-| Missing model properties | Medium | Seed script validates all fields |
-| Admin authorization bypass | Medium | Convex auth checks in mutations |
-| JSON import malformed | Low | Zod validation before insert |
+### Models (packages/ai/src/models.ts)
+- 40+ models across 15 providers
+- Fields: id, provider, name, description, contextWindow, pricing, capabilities, reasoning, gateway, hostOrder, knowledgeCutoff, userFriendlyDescription, bestFor, benchmarks, speedTier, isPro, isInternalOnly, isExperimental
 
-**Overall**: MEDIUM - Gradual rollout with monitoring at each tier.
+### Auto-Router (packages/backend/convex/ai/autoRouter.ts)
+- Task classification via GPT-OSS-120B
+- 8 task categories: coding, reasoning, creative, factual, analysis, conversation, multimodal, research
+- Scoring bonuses: stickiness (+25), reasoning (+15), research (+25)
+- Complexity multipliers: simple (0.7x), complex (1.2x if quality≥85)
+- Cost tiers: cheap (<$1), mid (<$5), premium (≥$5)
+- Sticky routing with capability validation
 
-## Support
-
-**Questions?** Check individual phase files - detailed explanations + examples.
-
-**Issues?** Use rollback instructions in each phase to revert changes.
-
-## Future Additions
-
-**Adding a new model** (after migration):
-
-```typescript
-// Via Admin UI:
-// 1. Click "Add Model" button
-// 2. Fill form (ID, provider, name, pricing, capabilities)
-// 3. Save → appears in chat immediately
-
-// Or via API:
-await createModel({
-  id: "anthropic:claude-opus-5",
-  provider: "anthropic",
-  name: "Claude Opus 5",
-  contextWindow: 200000,
-  pricing: { input: 15, output: 75 },
-  capabilities: ["vision", "thinking"],
-  status: "active",
-});
-```
-
-**Updating pricing** (no code deploy):
-
-```typescript
-// Via Admin UI:
-// 1. Find model in list
-// 2. Click "Edit"
-// 3. Update pricing fields
-// 4. Add reason: "Official price drop"
-// 5. Save → version history created, cost recalculated
-
-// Or via API:
-await updateModel({
-  id: "openai:gpt-4o",
-  updates: {
-    pricing: { input: 2.5, output: 10 }, // Updated prices
-  },
-  reason: "OpenAI announced price reduction",
-});
-```
-
-**Viewing change history**:
-
-```typescript
-// Via Admin UI:
-// 1. Click model row
-// 2. "History" tab shows all versions
-// 3. See who changed what, when, why
-
-// Or via API:
-const history = await getModelHistory({ modelId: "openai:gpt-4o" });
-// Returns: [{ version: 2, changes: [{ field: "pricing.input", oldValue: 5, newValue: 2.5 }], changedBy: "user_...", ... }]
-```
+### Model Profiles (packages/backend/convex/ai/modelProfiles.ts)
+- 21+ models with quality scores
+- 8 category scores per model (0-100)
+- Categories: coding, reasoning, creative, factual, analysis, conversation, multimodal, research
 
 ---
 
-Ready to begin? Start with **[phase-1-schema.md](./phase-1-schema.md)** (must be first, creates foundation).
+Ready to begin? Start with **[phase-1-schema.md](./phase-1-schema.md)**.

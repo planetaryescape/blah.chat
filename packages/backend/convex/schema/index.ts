@@ -37,6 +37,12 @@ export {
   toolCallsTable,
 } from "./messages";
 export { jobsTable, migrationsTable } from "./migrations";
+export {
+  autoRouterConfigTable,
+  modelHistoryTable,
+  modelProfilesTable,
+  modelsTable,
+} from "./models";
 export { notesTable } from "./notes";
 export { notificationsTable } from "./notifications";
 export {

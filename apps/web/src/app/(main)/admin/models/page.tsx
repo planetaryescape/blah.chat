@@ -46,6 +46,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -53,6 +61,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -112,6 +121,9 @@ function ModelsPageContent() {
   const [deleteTarget, setDeleteTarget] = useState<Doc<"models">["_id"] | null>(
     null,
   );
+  const [duplicateTarget, setDuplicateTarget] = useState<ModelRow | null>(null);
+  const [newModelId, setNewModelId] = useState("");
+  const [newModelName, setNewModelName] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -151,26 +163,38 @@ function ModelsPageContent() {
     }
   }, [deleteTarget, removeMutation]);
 
-  const handleDuplicate = useCallback(
-    async (model: ModelRow) => {
-      const newId = prompt("Enter new model ID:", `${model.modelId}-copy`);
-      if (!newId) return;
-      const newName = prompt("Enter new model name:", `${model.name} (Copy)`);
-      if (!newName) return;
+  const openDuplicateDialog = useCallback((model: ModelRow) => {
+    setDuplicateTarget(model);
+    setNewModelId(`${model.modelId}-copy`);
+    setNewModelName(`${model.name} (Copy)`);
+  }, []);
 
-      try {
-        await duplicateMutation({
-          sourceId: model._id,
-          newModelId: newId,
-          newName,
-        });
-        toast.success("Model duplicated");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to duplicate model");
-      }
-    },
-    [duplicateMutation],
-  );
+  const closeDuplicateDialog = useCallback(() => {
+    setDuplicateTarget(null);
+    setNewModelId("");
+    setNewModelName("");
+  }, []);
+
+  const executeDuplicate = useCallback(async () => {
+    if (!duplicateTarget || !newModelId || !newModelName) return;
+    try {
+      await duplicateMutation({
+        sourceId: duplicateTarget._id,
+        newModelId,
+        newName: newModelName,
+      });
+      toast.success("Model duplicated");
+      closeDuplicateDialog();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to duplicate model");
+    }
+  }, [
+    duplicateTarget,
+    newModelId,
+    newModelName,
+    duplicateMutation,
+    closeDuplicateDialog,
+  ]);
 
   const handleExport = useCallback(() => {
     if (!models) return;
@@ -412,7 +436,9 @@ function ModelsPageContent() {
                 <Copy className="mr-2 h-4 w-4" />
                 Copy ID
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDuplicate(row.original)}>
+              <DropdownMenuItem
+                onClick={() => openDuplicateDialog(row.original)}
+              >
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>
@@ -446,7 +472,7 @@ function ModelsPageContent() {
         ),
       },
     ],
-    [router, handleDeprecate, handleReactivate, handleDuplicate],
+    [router, handleDeprecate, handleReactivate, openDuplicateDialog],
   );
 
   const table = useReactTable({
@@ -691,6 +717,52 @@ function ModelsPageContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Duplicate model dialog */}
+      <Dialog
+        open={duplicateTarget !== null}
+        onOpenChange={(open) => !open && closeDuplicateDialog()}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Duplicate Model</DialogTitle>
+            <DialogDescription>
+              Create a copy of {duplicateTarget?.name} with a new ID and name.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="newModelId">Model ID</Label>
+              <Input
+                id="newModelId"
+                value={newModelId}
+                onChange={(e) => setNewModelId(e.target.value)}
+                placeholder="e.g., openai:gpt-5-copy"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="newModelName">Model Name</Label>
+              <Input
+                id="newModelName"
+                value={newModelName}
+                onChange={(e) => setNewModelName(e.target.value)}
+                placeholder="e.g., GPT-5 (Copy)"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDuplicateDialog}>
+              Cancel
+            </Button>
+            <Button
+              onClick={executeDuplicate}
+              disabled={!newModelId || !newModelName}
+            >
+              Duplicate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

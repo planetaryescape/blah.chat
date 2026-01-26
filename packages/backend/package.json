@@ -31,7 +31,7 @@
     "@react-email/components": "^1.0.2",
     "@react-email/render": "^2.0.0",
     "@tavily/ai-sdk": "^0.4.0",
-    "@types/react": "^19.2.8",
+    "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
     "ai": "^6.0.3",
     "convex": "^1.31.2",

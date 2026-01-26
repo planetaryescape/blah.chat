@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.1](https://github.com/planetaryescape/blah.chat/compare/v1.12.0...v1.12.1) (2026-01-26)
+
+
+### Bug Fixes
+
+* **generation:** calculate TPS using pure API wait time ([46354b9](https://github.com/planetaryescape/blah.chat/commit/46354b99647351a8f5d59f2bd96ce50b2356497c))
+* **generation:** include tool-call chunks in TPS wait time ([3376aa3](https://github.com/planetaryescape/blah.chat/commit/3376aa3d5ec12080904bcc1fe12b01351f017c5b))
+
 ## [1.12.0](https://github.com/planetaryescape/blah.chat/compare/v1.11.0...v1.12.0) (2026-01-26)
 
 

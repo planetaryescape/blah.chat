@@ -29,6 +29,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { USE_DB_MODELS, useRouterConfig } from "@/lib/models";
 
+// Safe JSON parse with fallback for malformed data
+function safeJsonParse<T>(json: string | undefined, fallback: T): T {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    console.error("Failed to parse JSON, using fallback:", json);
+    return fallback;
+  }
+}
+
 // Lazy load API to avoid type depth issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _modelsApi: any = null;
@@ -120,12 +131,14 @@ function AutoRouterPageContent() {
           DEFAULT_CONFIG.complexBoostMultiplier,
         cheapThreshold: config.cheapThreshold ?? DEFAULT_CONFIG.cheapThreshold,
         midThreshold: config.midThreshold ?? DEFAULT_CONFIG.midThreshold,
-        tierWeights: config.tierWeights
-          ? JSON.parse(config.tierWeights)
-          : DEFAULT_CONFIG.tierWeights,
-        speedBonuses: config.speedBonuses
-          ? JSON.parse(config.speedBonuses)
-          : DEFAULT_CONFIG.speedBonuses,
+        tierWeights: safeJsonParse(
+          config.tierWeights,
+          DEFAULT_CONFIG.tierWeights,
+        ),
+        speedBonuses: safeJsonParse(
+          config.speedBonuses,
+          DEFAULT_CONFIG.speedBonuses,
+        ),
         routerModelId: config.routerModelId ?? DEFAULT_CONFIG.routerModelId,
         maxRetries: config.maxRetries ?? DEFAULT_CONFIG.maxRetries,
         contextBuffer: config.contextBuffer ?? DEFAULT_CONFIG.contextBuffer,

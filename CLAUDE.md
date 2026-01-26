@@ -439,6 +439,13 @@ src/
 
 Draw inspiration: code editor themes (Rosé Pine, Tokyo Night, Vesper), unique web apps.
 
+### No Native Browser Dialogs
+
+**Never use** `confirm()`, `alert()`, `prompt()`. Use shadcn/ui components instead:
+- `confirm()` → `AlertDialog`
+- `alert()` → `toast` (sonner) or `Alert`
+- `prompt()` → `Dialog` with `Input`
+
 ---
 
 ## AI Components Strategy

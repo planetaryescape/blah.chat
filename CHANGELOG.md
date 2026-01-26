@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.11.0](https://github.com/planetaryescape/blah.chat/compare/v1.10.0...v1.11.0) (2026-01-26)
+
+
+### Features
+
+* **auto-router:** add sticky routing fields to classification schema ([c8dc591](https://github.com/planetaryescape/blah.chat/commit/c8dc591774a745b42b3d1c6604df45eef3a9f0d4))
+* **auto-router:** build dynamic classification prompt with previous model context ([73df0a7](https://github.com/planetaryescape/blah.chat/commit/73df0a7078ddda5a3cbb188ff237f7c47b679481))
+* **auto-router:** implement sticky routing with early exit ([0539dba](https://github.com/planetaryescape/blah.chat/commit/0539dbad94a41e72c4e4b712c46dc8c920060d23))
+* **chat:** display sticky routing indicator in message stats ([6409bbb](https://github.com/planetaryescape/blah.chat/commit/6409bbbd08510c5ac5d2158032e0fe816ffabd6a))
+* **generation:** propagate isSticky field through generation pipeline ([669374a](https://github.com/planetaryescape/blah.chat/commit/669374a596fb5285dc97d5fadca8f7d7279e5d0f))
+
+
+### Bug Fixes
+
+* **auto-router:** validate capabilities before sticky routing ([21399c0](https://github.com/planetaryescape/blah.chat/commit/21399c049f31506de5ddd17ab4d7f3ac06f811de))
+* **conversations:** resolve bulk delete byte limit error ([3ada05d](https://github.com/planetaryescape/blah.chat/commit/3ada05d17e74a00eb0c8550e66c34b50ae6e8268))
+
 ## [1.10.0](https://github.com/planetaryescape/blah.chat/compare/v1.9.4...v1.10.0) (2026-01-25)
 
 

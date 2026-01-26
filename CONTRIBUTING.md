@@ -28,11 +28,16 @@ Thanks for your interest in contributing! This guide will help you get started.
 # Start Convex dev server
 bunx convex dev
 
+# Seed the database with models (required for first-time setup)
+bunx convex run models/seed:seedModels
+
 # In another terminal, start Next.js
 bun dev
 ```
 
 Visit http://localhost:3000
+
+> **Note**: The models seed is required for the app to function. Without it, the model picker will be empty.
 
 ### Environment Variables
 

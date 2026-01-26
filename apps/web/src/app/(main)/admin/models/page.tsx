@@ -33,6 +33,16 @@ import {
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,6 +109,9 @@ function ModelsPageContent() {
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("all");
+  const [deleteTarget, setDeleteTarget] = useState<Doc<"models">["_id"] | null>(
+    null,
+  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,18 +139,17 @@ function ModelsPageContent() {
     [reactivateMutation],
   );
 
-  const handleDelete = useCallback(
-    async (id: Doc<"models">["_id"]) => {
-      if (!confirm("Are you sure? This cannot be undone.")) return;
-      try {
-        await removeMutation({ id });
-        toast.success("Model deleted");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to delete model");
-      }
-    },
-    [removeMutation],
-  );
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      await removeMutation({ id: deleteTarget });
+      toast.success("Model deleted");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete model");
+    } finally {
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget, removeMutation]);
 
   const handleDuplicate = useCallback(
     async (model: ModelRow) => {
@@ -423,7 +435,7 @@ function ModelsPageContent() {
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
-                onClick={() => handleDelete(row.original._id)}
+                onClick={() => setDeleteTarget(row.original._id)}
                 className="text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -434,7 +446,7 @@ function ModelsPageContent() {
         ),
       },
     ],
-    [router, handleDeprecate, handleReactivate, handleDelete, handleDuplicate],
+    [router, handleDeprecate, handleReactivate, handleDuplicate],
   );
 
   const table = useReactTable({
@@ -655,6 +667,30 @@ function ModelsPageContent() {
         className="hidden"
         onChange={handleFileSelect}
       />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Model</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -672,6 +672,9 @@ export const generateResponse = internalAction({
 
         // Handle tool invocations for loading state
         if (chunk.type === "tool-call") {
+          // Track API wait time for tool-call chunks (these tokens are in outputTokens)
+          cumulativeApiWaitMs += apiWaitMs;
+
           toolCallsBuffer.set(chunk.toolCallId, {
             id: chunk.toolCallId,
             name: chunk.toolName,

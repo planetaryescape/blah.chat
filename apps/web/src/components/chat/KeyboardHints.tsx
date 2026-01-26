@@ -25,6 +25,7 @@ export function KeyboardHints({ isEmpty, hasContent }: KeyboardHintsProps) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-muted-foreground/60 hover:text-muted-foreground hover:bg-transparent"

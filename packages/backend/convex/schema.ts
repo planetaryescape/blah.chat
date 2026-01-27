@@ -1640,6 +1640,9 @@ export default defineSchema({
       v.literal("failed"),
     ),
     scopes: v.optional(v.array(v.string())),
+    // CSRF protection: random state generated during OAuth initiation
+    oauthState: v.optional(v.string()),
+    oauthStateExpiresAt: v.optional(v.number()),
     connectedAt: v.optional(v.number()),
     lastUsedAt: v.optional(v.number()),
     lastError: v.optional(v.string()),

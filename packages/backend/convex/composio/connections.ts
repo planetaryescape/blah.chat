@@ -85,9 +85,13 @@ export const createConnection = internalMutation({
     integrationId: v.string(),
     integrationName: v.string(),
     scopes: v.optional(v.array(v.string())),
+    // CSRF protection
+    oauthState: v.string(),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    // State expires in 10 minutes
+    const stateExpiresAt = now + 10 * 60 * 1000;
 
     // Check for existing connection
     const existing = await ctx.db
@@ -104,6 +108,8 @@ export const createConnection = internalMutation({
         composioConnectionId: args.composioConnectionId,
         status: existing.status === "active" ? "active" : "initiated",
         scopes: args.scopes,
+        oauthState: args.oauthState,
+        oauthStateExpiresAt: stateExpiresAt,
         lastError: undefined,
         updatedAt: now,
       });
@@ -118,6 +124,8 @@ export const createConnection = internalMutation({
       integrationName: args.integrationName,
       status: "initiated",
       scopes: args.scopes,
+      oauthState: args.oauthState,
+      oauthStateExpiresAt: stateExpiresAt,
       createdAt: now,
       updatedAt: now,
     });

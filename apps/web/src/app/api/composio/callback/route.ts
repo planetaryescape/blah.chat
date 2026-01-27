@@ -34,6 +34,11 @@ async function getHandler(req: NextRequest, context: AuthContext) {
     searchParams.get("connected_account_id") ||
     searchParams.get("id");
 
+  // CSRF state validation - check URL param or cookie
+  const stateFromUrl = searchParams.get("state");
+  const stateFromCookie = req.cookies.get("composio_oauth_state")?.value;
+  const state = stateFromUrl || stateFromCookie;
+
   if (!connectionId) {
     logger.warn(
       { userId, params: allParams },
@@ -45,16 +50,19 @@ async function getHandler(req: NextRequest, context: AuthContext) {
     );
   }
 
-  logger.info({ userId, connectionId }, "Processing Composio OAuth callback");
+  logger.info(
+    { userId, connectionId, hasState: !!state },
+    "Processing Composio OAuth callback",
+  );
 
   try {
     const convex = getAuthenticatedConvexClient(sessionToken);
 
-    // Verify the connection with Composio
+    // Verify the connection with Composio (includes CSRF state validation)
     const result = (await (convex.action as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
       api.composio.oauth.verifyConnection,
-      { composioConnectionId: connectionId },
+      { composioConnectionId: connectionId, state },
     )) as { status: string; error?: string };
 
     if (result.status === "active") {
@@ -95,16 +103,32 @@ async function getHandler(req: NextRequest, context: AuthContext) {
 
 /**
  * Generate HTML that posts result to parent window (for popup OAuth flow)
+ * SECURITY: Uses script[type=application/json] to prevent XSS from error messages
  */
 function getCallbackHtml(result: {
   success: boolean;
   connectionId?: string;
   error?: string;
 }): string {
-  const message = JSON.stringify({
+  // Sanitize error message to prevent XSS - only allow safe characters
+  const sanitizedResult = {
     type: "composio-oauth-callback",
-    ...result,
-  });
+    success: result.success,
+    connectionId: result.connectionId,
+    // Sanitize error: remove any potential script injection
+    error: result.error
+      ? result.error.replace(/[<>"'&]/g, "").slice(0, 200)
+      : undefined,
+  };
+
+  // Use proper JSON serialization in a data element to prevent XSS
+  const escapedJson = JSON.stringify(sanitizedResult)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+
+  // Get allowed origin from environment or use current origin
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || "";
 
   return `
 <!DOCTYPE html>
@@ -146,8 +170,10 @@ function getCallbackHtml(result: {
     <div class="spinner" id="spinner"></div>
     <p id="status">Verifying connection...</p>
   </div>
+  <script type="application/json" id="result-data">${escapedJson}</script>
   <script>
-    const result = ${message};
+    // Parse result from JSON data element (XSS-safe)
+    const result = JSON.parse(document.getElementById('result-data').textContent);
 
     // Update UI
     document.getElementById('spinner').style.display = 'none';
@@ -160,9 +186,17 @@ function getCallbackHtml(result: {
       status.className = 'error';
     }
 
+    // SECURITY: Use explicit allowed origin for postMessage
+    const allowedOrigin = '${allowedOrigin}' || window.location.origin;
+
     // Post message to opener (popup flow)
-    if (window.opener) {
-      window.opener.postMessage(result, window.location.origin);
+    // SECURITY: Validate opener exists and use explicit origin
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.opener.postMessage(result, allowedOrigin);
+      } catch (e) {
+        console.error('Failed to post message to opener');
+      }
       setTimeout(() => window.close(), 1500);
     } else {
       // Redirect flow - go back to settings

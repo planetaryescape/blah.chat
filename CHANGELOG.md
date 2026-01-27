@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.13.0](https://github.com/planetaryescape/blah.chat/compare/v1.12.1...v1.13.0) (2026-01-27)
+
+
+### Features
+
+* **ai:** add currency converter tool ([d34f493](https://github.com/planetaryescape/blah.chat/commit/d34f4933465c0e731ba3a250ac59b40c7fec8acd))
+
+
+### Bug Fixes
+
+* **ai:** correct Frankfurter API endpoint and add response typing ([0a86ac0](https://github.com/planetaryescape/blah.chat/commit/0a86ac00921109a0bf0c0f083fb0eb6ef887a1bb))
+* **ai:** use URLSearchParams and add 10s timeout for currency converter ([524df55](https://github.com/planetaryescape/blah.chat/commit/524df552fe9b54a4d3d22b1b82ce0982ecafa7ee))
+
 ## [1.12.1](https://github.com/planetaryescape/blah.chat/compare/v1.12.0...v1.12.1) (2026-01-26)
 
 

@@ -2,7 +2,14 @@
  * Model CLI Internal Mutations
  *
  * Internal mutations for CLI-based model management.
- * No auth required - uses Convex deploy key authentication.
+ *
+ * Security: These are `internalMutation`/`internalQuery` which:
+ * - Cannot be called from browser/client (not exposed via public API)
+ * - Can only be called from other Convex functions (server-side)
+ * - CLI access via `bunx convex run` requires CONVEX_DEPLOY_KEY
+ *
+ * This is the standard Convex pattern for admin/CLI tools - equivalent
+ * security to database migrations or seed scripts.
  */
 
 import { v } from "convex/values";
@@ -316,8 +323,8 @@ export const deprecateModel = internalMutation({
  */
 export const listModels = internalQuery({
   args: {
-    provider: v.optional(v.string()),
-    status: v.optional(v.string()),
+    provider: v.optional(providerValidator),
+    status: v.optional(statusValidator),
   },
   handler: async (ctx, args) => {
     let models;

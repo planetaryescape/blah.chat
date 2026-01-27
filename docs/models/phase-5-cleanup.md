@@ -1,8 +1,9 @@
 # Phase 5: Remove Static Config
 
+**Status**: ✅ COMPLETE - Feature flag `NEXT_PUBLIC_USE_DB_MODELS` removed
 **Estimated Time**: 2 days
 **Prerequisites**: Phase 4 complete (100% traffic on DB for 72+ hours)
-**Depends On**: All model lookups working via DB, no fallbacks triggered
+**Note**: The feature flag has been removed. DB-backed models are now the default with static fallback during loading only.
 
 ## What This Phase Does
 

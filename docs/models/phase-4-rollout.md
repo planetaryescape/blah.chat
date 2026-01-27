@@ -1,8 +1,9 @@
 # Phase 4: Gradual Feature Flag Rollout
 
+**Status**: ✅ COMPLETE - Feature flag removed, DB models are now the default
 **Estimated Time**: 1 week
 **Prerequisites**: Phases 1-3 complete (schema, repository, admin UI)
-**Depends On**: Feature flag `NEXT_PUBLIC_USE_DB_MODELS` in repository
+**Note**: The `NEXT_PUBLIC_USE_DB_MODELS` feature flag has been removed. DB-backed models are now the only source.
 
 ## What This Phase Does
 

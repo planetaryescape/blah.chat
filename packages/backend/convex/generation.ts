@@ -274,13 +274,19 @@ export const generateResponse = internalAction({
           api.users.getUserPreferenceByUserId,
           { userId: args.userId, key: "memoryExtractionLevel" },
         ) as Promise<string | null>,
-        // Get active Composio connections for external service tools
+        // Get active Composio connections for external service tools (use internal query with userId)
         (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          api.composio.connections.getActiveConnections,
-          {},
+          internal.composio.connections.getActiveConnectionsInternal,
+          { userId: args.userId },
         ) as Promise<Doc<"composioConnections">[]>,
       ]);
+
+      // Derive connected app names for system prompt (before tools are built)
+      const connectedApps =
+        composioConnections
+          ?.filter((c) => c.status === "active")
+          .map((c) => c.integrationName) ?? [];
 
       // Estimate input tokens for wasted cost tracking (accessible in catch block)
       inputTokenEstimate = messages.reduce(
@@ -391,6 +397,7 @@ export const generateResponse = internalAction({
             prefetchedMemories: null,
             memoryExtractionLevel,
             budgetState,
+            connectedApps,
           });
         }
       } else {
@@ -407,6 +414,7 @@ export const generateResponse = internalAction({
           prefetchedMemories: null,
           memoryExtractionLevel,
           budgetState,
+          connectedApps,
         });
       }
 
@@ -586,7 +594,7 @@ export const generateResponse = internalAction({
       if (shouldEnableTools) {
         // Import dynamically to allow for async tool creation (Composio)
         const { buildToolsAsync } = await import("./generation/tools");
-        options.tools = await buildToolsAsync({
+        const toolsResult = await buildToolsAsync({
           ctx,
           userId: args.userId,
           conversationId: args.conversationId,
@@ -604,6 +612,8 @@ export const generateResponse = internalAction({
           },
           composioConnections: composioConnections ?? [],
         });
+        options.tools = toolsResult.tools;
+        // Note: toolsResult.connectedApps already passed to system prompt earlier
         options.onStepFinish = createOnStepFinish();
       }
 

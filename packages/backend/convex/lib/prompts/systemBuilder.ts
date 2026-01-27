@@ -27,6 +27,8 @@ export interface BuildSystemPromptsArgs {
   memoryExtractionLevel: MemoryExtractionLevel;
   /** Budget state for context-aware prompts (Phase 3) */
   budgetState?: BudgetState;
+  /** Connected Composio integrations (e.g., ["Gmail", "GitHub"]) */
+  connectedApps?: string[];
 }
 
 export interface BuildSystemPromptsResult {
@@ -183,6 +185,28 @@ export async function buildSystemPrompts(
       });
       // Continue without KB prompt (graceful degradation)
     }
+  }
+
+  // === 4.26. CONNECTED INTEGRATIONS (Composio) ===
+  // Tell AI about available external service integrations
+  if (args.connectedApps && args.connectedApps.length > 0) {
+    const integrationsPrompt = `## Connected External Services
+
+The user has connected these external services:
+${args.connectedApps.map((app) => `- ${app}`).join("\n")}
+
+**Tool Naming Convention:** External service tools are named in UPPERCASE with underscores, like \`GMAIL_SEND_EMAIL\`, \`GOOGLE_CALENDAR_FIND_EVENT\`, \`GITHUB_CREATE_ISSUE\`.
+
+**When to use external service tools vs internal search:**
+- Query mentions a connected service (calendar, email, slack, github, etc.) → Use the matching UPPERCASE service tools
+- Query is about notes/tasks/files stored in THIS app → Use internal tools (searchAll, searchNotes, searchTasks)
+
+Internal search tools only search data saved within this application. They cannot access external services like email, calendars, or third-party platforms.`;
+
+    systemMessages.push({
+      role: "system",
+      content: integrationsPrompt,
+    });
   }
 
   // === 4.3. BUDGET AWARENESS (Phase 3) ===

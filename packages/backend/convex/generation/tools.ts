@@ -246,6 +246,15 @@ More thorough but slower. Use only when depth is needed.`,
 }
 
 /**
+ * Result from buildToolsAsync including Composio integration info
+ */
+export interface BuildToolsResult {
+  tools: Record<string, unknown>;
+  /** Names of connected Composio integrations (for system prompt) */
+  connectedApps: string[];
+}
+
+/**
  * Build tools with async Composio integrations
  *
  * Use this version when you need to include Composio tools from external services.
@@ -253,14 +262,36 @@ More thorough but slower. Use only when depth is needed.`,
  */
 export async function buildToolsAsync(
   config: BuildToolsConfig,
-): Promise<Record<string, unknown>> {
+): Promise<BuildToolsResult> {
+  const { logger } = await import("../lib/logger");
+
   // Start with synchronous tools
   const tools = buildTools(config);
+  let connectedApps: string[] = [];
 
   const { ctx, userId, conversation, composioConnections } = config;
   const isIncognito = conversation?.isIncognito ?? false;
 
+  // DEBUG: Log immediately to see what we received
+  logger.warn("COMPOSIO_DEBUG buildToolsAsync START", {
+    tag: "COMPOSIO_DEBUG",
+    composioConnectionsType:
+      composioConnections === undefined
+        ? "UNDEFINED"
+        : composioConnections === null
+          ? "NULL"
+          : `Array`,
+    composioConnectionsLength: composioConnections?.length ?? -1,
+    isIncognito,
+  });
+
   // Add Composio tools if not incognito and connections exist
+  logger.info("Building tools", {
+    tag: "Composio",
+    isIncognito,
+    composioConnectionCount: composioConnections?.length ?? 0,
+  });
+
   if (!isIncognito && composioConnections && composioConnections.length > 0) {
     try {
       // Dynamic import to avoid bundling if not used
@@ -270,22 +301,44 @@ export async function buildToolsAsync(
         (c) => c.status === "active",
       );
 
+      logger.info("Active Composio connections", {
+        tag: "Composio",
+        activeCount: activeConnections.length,
+        integrations: activeConnections.map((c) => c.integrationId).join(", "),
+      });
+
       if (activeConnections.length > 0) {
-        const composioTools = await createComposioTools(ctx, {
+        const composioResult = await createComposioTools(ctx, {
           userId,
           connections: activeConnections,
         });
 
+        logger.info("Composio tools loaded", {
+          tag: "Composio",
+          toolCount: Object.keys(composioResult.tools).length,
+          apps: composioResult.connectedApps.join(", "),
+          toolNames: Object.keys(composioResult.tools).join(", "),
+        });
+
         // Merge Composio tools (they're prefixed with app name, so no collisions)
-        Object.assign(tools, composioTools);
+        Object.assign(tools, composioResult.tools);
+        connectedApps = composioResult.connectedApps;
       }
     } catch (error) {
       // Log but don't fail - Composio tools are enhancement, not critical
-      console.warn("Failed to create Composio tools:", error);
+      logger.warn("Failed to create Composio tools", {
+        tag: "Composio",
+        error: String(error),
+      });
     }
   }
 
-  return tools;
+  logger.info("Final tools built", {
+    tag: "Composio",
+    totalToolCount: Object.keys(tools).length,
+  });
+
+  return { tools, connectedApps };
 }
 
 /**

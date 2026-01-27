@@ -34,10 +34,9 @@ async function getHandler(req: NextRequest, context: AuthContext) {
     searchParams.get("connected_account_id") ||
     searchParams.get("id");
 
-  // CSRF state validation - check URL param or cookie
-  const stateFromUrl = searchParams.get("state");
-  const stateFromCookie = req.cookies.get("composio_oauth_state")?.value;
-  const state = stateFromUrl || stateFromCookie;
+  // CSRF state validation - ONLY accept from URL param (OAuth provider must return it)
+  // Cookie fallback removed to prevent session fixation attacks
+  const state = searchParams.get("state");
 
   if (!connectionId) {
     logger.warn(
@@ -129,7 +128,12 @@ function getCallbackHtml(result: {
 
   // SECURITY: Hardcode production domain - never fall back to window.location.origin
   // which would allow attackers to receive OAuth data on their domain
-  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || "https://blah.chat";
+  const allowedOriginRaw =
+    process.env.NEXT_PUBLIC_APP_URL || "https://blah.chat";
+  // Escape for safe JS string interpolation (prevent XSS if env var contains quotes)
+  const allowedOrigin = allowedOriginRaw
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'");
 
   return `
 <!DOCTYPE html>

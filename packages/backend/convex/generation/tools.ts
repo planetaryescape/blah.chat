@@ -7,6 +7,7 @@ import { createAskForClarificationTool } from "../ai/tools/askForClarification";
 import { createCalculatorTool } from "../ai/tools/calculator";
 import { createCodeExecutionTool } from "../ai/tools/codeExecution";
 import { createDocumentTool } from "../ai/tools/createDocument";
+import { createCurrencyConverterTool } from "../ai/tools/currencyConverter";
 import { createDateTimeTool } from "../ai/tools/datetime";
 import {
   createEnterDocumentModeTool,
@@ -98,6 +99,7 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
 
   // Capability tools: ALWAYS available (stateless, no persistent writes)
   const calculatorTool = createCalculatorTool();
+  const currencyConverterTool = createCurrencyConverterTool();
   const dateTimeTool = createDateTimeTool();
   const urlReaderTool = createUrlReaderTool(ctx);
   const fileDocumentTool = createFileDocumentTool(
@@ -153,6 +155,7 @@ More thorough but slower. Use only when depth is needed.`,
   // Start with capability tools
   const tools: Record<string, any> = {
     calculator: calculatorTool,
+    currencyConverter: currencyConverterTool,
     datetime: dateTimeTool,
     tavilySearch: tavilySearchTool,
     tavilyAdvancedSearch: tavilyAdvancedSearchTool,

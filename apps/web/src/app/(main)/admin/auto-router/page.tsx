@@ -123,7 +123,7 @@ function _AutoRouterPageContent() {
   const [formData, setFormData] = useState(DEFAULT_CONFIG);
 
   // Get sorted model list for the select
-  const modelOptions = Object.entries(models)
+  const modelOptions = Object.entries(models ?? {})
     .filter(([id]) => id !== "auto") // Exclude auto from router model options
     .sort(([, a], [, b]) => a.name.localeCompare(b.name));
   const [isDirty, setIsDirty] = useState(false);

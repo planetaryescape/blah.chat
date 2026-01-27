@@ -36,25 +36,25 @@ function getModelsApi() {
 // ============================================================================
 
 /**
- * Hook to get all available models
- * Uses Convex reactive queries with static fallback during loading
+ * Hook to get all available models from database
+ * Returns undefined while loading, then database models once loaded
  *
  * @param options.includeDeprecated - Include deprecated models
  * @param options.includeInternalOnly - Include internal-only models (admin)
- * @returns Record of model IDs to ModelConfig
+ * @returns Record of model IDs to ModelConfig, or undefined while loading
  */
 export function useModels(options?: {
   includeDeprecated?: boolean;
   includeInternalOnly?: boolean;
-}): Record<string, ModelConfig> {
+}): Record<string, ModelConfig> | undefined {
   const dbModels = typedQuery(getModelsApi().queries.list, {
     includeDeprecated: options?.includeDeprecated,
     includeInternalOnly: options?.includeInternalOnly,
   }) as Doc<"models">[] | undefined;
 
-  // While loading or if DB is empty (not seeded), return static config
-  if (!dbModels || dbModels.length === 0) {
-    return filterStaticModels(options);
+  // While loading, return undefined
+  if (dbModels === undefined) {
+    return undefined;
   }
 
   // Transform DB models and include AUTO_MODEL
@@ -65,8 +65,8 @@ export function useModels(options?: {
 }
 
 /**
- * Hook to get a single model by ID
- * Provides fallback to static config if model not in DB
+ * Hook to get a single model by ID from database
+ * Returns undefined while loading or if model not found
  *
  * @param modelId - Model ID (e.g., "openai:gpt-5")
  * @returns ModelConfig or undefined
@@ -92,8 +92,8 @@ export function useModel(modelId: string | undefined): ModelConfig | undefined {
     return dbToModelConfig(dbModel);
   }
 
-  // Fallback to static for models not yet in DB (or still loading)
-  return MODEL_CONFIG[modelId];
+  // Loading or not found - return undefined (database is authoritative)
+  return undefined;
 }
 
 /**

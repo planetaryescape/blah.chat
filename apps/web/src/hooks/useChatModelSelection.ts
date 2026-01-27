@@ -4,6 +4,7 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { useCallback, useMemo, useState } from "react";
+import type { ModelConfig } from "@/lib/ai/models";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { getModelConfig, isValidModel } from "@/lib/ai/utils";
 import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
@@ -17,6 +18,8 @@ interface UseChatModelSelectionOptions {
   tokenUsage?: { totalTokens: number } | null;
   /** Callback when model switch is blocked due to context exceeding target model's limit */
   onModelBlocked?: (targetModelId: string, targetContextWindow: number) => void;
+  /** Models record from database (optional - will use useModels hook if not provided) */
+  models?: Record<string, ModelConfig>;
 }
 
 interface UseChatModelSelectionReturn {
@@ -44,6 +47,7 @@ export function useChatModelSelection({
   defaultModel,
   tokenUsage,
   onModelBlocked,
+  models,
 }: UseChatModelSelectionOptions): UseChatModelSelectionReturn {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);
@@ -66,11 +70,11 @@ export function useChatModelSelection({
     let finalModel = DEFAULT_MODEL_ID;
 
     // Priority 1: Conversation model (if valid)
-    if (conversation?.model && isValidModel(conversation.model)) {
+    if (conversation?.model && isValidModel(conversation.model, models)) {
       finalModel = conversation.model;
     }
     // Priority 2: User's default model (if valid)
-    else if (defaultModel && isValidModel(defaultModel)) {
+    else if (defaultModel && isValidModel(defaultModel, models)) {
       finalModel = defaultModel;
     }
     // Priority 3: System default (always valid)
@@ -79,7 +83,7 @@ export function useChatModelSelection({
     }
 
     return { selectedModel: finalModel, modelLoading: false };
-  }, [conversation, user, defaultModel]);
+  }, [conversation, user, defaultModel, models]);
 
   // The actual model to display - prefers optimistic updates over stable state
   const displayModel = optimisticModel || selectedModel;
@@ -88,7 +92,7 @@ export function useChatModelSelection({
     async (modelId: string) => {
       // Check if context would exceed target model's limit
       if (tokenUsage && onModelBlocked) {
-        const targetConfig = getModelConfig(modelId);
+        const targetConfig = getModelConfig(modelId, models);
         const targetContextWindow =
           targetConfig?.contextWindow ?? DEFAULT_CONTEXT_WINDOW;
         if (tokenUsage.totalTokens > targetContextWindow) {
@@ -117,7 +121,7 @@ export function useChatModelSelection({
       }
       // New conversations: model saved when first message sent (chat.ts:75)
     },
-    [conversationId, updateModelMutation, tokenUsage, onModelBlocked],
+    [conversationId, updateModelMutation, tokenUsage, onModelBlocked, models],
   );
 
   return {

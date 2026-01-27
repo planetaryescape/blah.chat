@@ -4,17 +4,20 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
+import type { ModelConfig } from "@/lib/ai/models";
 import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 import { isValidModel } from "@/lib/ai/utils";
 import { useUserPreference } from "./useUserPreference";
 
 interface UseChatModelOptions {
   conversationId: Id<"conversations"> | undefined;
+  /** Models record from database (optional - for validation) */
+  models?: Record<string, ModelConfig>;
 }
 
-export function useChatModel({ conversationId }: UseChatModelOptions) {
-  // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+export function useChatModel({ conversationId, models }: UseChatModelOptions) {
   const conversation = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
     api.conversations.get,
     conversationId ? { conversationId } : "skip",
   );
@@ -26,10 +29,10 @@ export function useChatModel({ conversationId }: UseChatModelOptions) {
     // Initialize with conversation model if valid, else user preference if valid, else default
     const conversationModel = conversation?.model;
 
-    if (conversationModel && isValidModel(conversationModel)) {
+    if (conversationModel && isValidModel(conversationModel, models)) {
       return conversationModel;
     }
-    if (userDefaultModel && isValidModel(userDefaultModel)) {
+    if (userDefaultModel && isValidModel(userDefaultModel, models)) {
       return userDefaultModel;
     }
     return DEFAULT_MODEL_ID;
@@ -38,20 +41,20 @@ export function useChatModel({ conversationId }: UseChatModelOptions) {
   // Update local model state when conversation or user data loads
   useEffect(() => {
     // Prioritize conversation model if it's valid
-    if (conversation?.model && isValidModel(conversation.model)) {
+    if (conversation?.model && isValidModel(conversation.model, models)) {
       setSelectedModel(conversation.model);
       return;
     }
 
     // Fall back to user's default if it's valid
-    if (userDefaultModel && isValidModel(userDefaultModel)) {
+    if (userDefaultModel && isValidModel(userDefaultModel, models)) {
       setSelectedModel(userDefaultModel);
       return;
     }
 
     // Ultimate fallback to system default
     setSelectedModel(DEFAULT_MODEL_ID);
-  }, [conversation?.model, userDefaultModel]);
+  }, [conversation?.model, userDefaultModel, models]);
 
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updateModelMutation = useMutation(api.conversations.updateModel);

@@ -20,11 +20,12 @@ import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CATEGORIES } from "@/lib/ai/categories";
-import { AUTO_MODEL, isAutoModel } from "@/lib/ai/models";
+import { AUTO_MODEL, isAutoModel, type ModelConfig } from "@/lib/ai/models";
 import { sortModels } from "@/lib/ai/sortModels";
-import { getModelsByProvider, type ModelConfig } from "@/lib/ai/utils";
+import { getModelsByProvider } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
+import { useModels } from "@/lib/models/repository";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_CONTEXT_WINDOW,
@@ -59,7 +60,11 @@ export function QuickModelSwitcher({
   showTrigger = false,
   currentTokenUsage,
 }: QuickModelSwitcherProps) {
-  const modelsByProvider = getModelsByProvider();
+  const dbModels = useModels();
+  const modelsByProvider = useMemo(
+    () => getModelsByProvider(dbModels),
+    [dbModels],
+  );
   const { favorites, toggleFavorite, isFavorite } = useFavoriteModels();
   const { recents, addRecent } = useRecentModels();
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)

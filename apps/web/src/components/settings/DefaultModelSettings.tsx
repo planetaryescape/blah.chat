@@ -30,6 +30,7 @@ import {
   getModelsByProvider,
   isValidModel,
 } from "@/lib/ai/utils";
+import { useModels } from "@/lib/models/repository";
 
 export function DefaultModelSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
@@ -37,6 +38,9 @@ export function DefaultModelSettings() {
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const updatePrefs = useMutation(api.users.updatePreferences);
   const hasInitialized = useRef(false);
+
+  // Use models from database
+  const dbModels = useModels();
 
   // Phase 4: Use new preference hooks for source of truth
   const prefDefaultModel = useUserPreference("defaultModel");
@@ -51,21 +55,21 @@ export function DefaultModelSettings() {
 
   // Sync from hooks OR auto-save default if not set
   useEffect(() => {
-    // Check if user has a valid default model (exists in MODEL_CONFIG)
+    // Check if user has a valid default model (exists in models)
     if (
       prefDefaultModel &&
       prefDefaultModel.length > 0 &&
-      isValidModel(prefDefaultModel)
+      isValidModel(prefDefaultModel, dbModels)
     ) {
       setSelectedModel(prefDefaultModel);
-    } else if (!hasInitialized.current) {
+    } else if (!hasInitialized.current && dbModels) {
       // User has no default model, it's empty, or it's an invalid/deprecated model
       // Auto-save the system default
       hasInitialized.current = true;
       setSelectedModel(DEFAULT_MODEL_ID);
       updatePrefs({ preferences: { defaultModel: DEFAULT_MODEL_ID } });
     }
-  }, [prefDefaultModel, updatePrefs]);
+  }, [prefDefaultModel, updatePrefs, dbModels]);
 
   // Sync selection mode when hook value changes
   useEffect(() => {
@@ -98,12 +102,12 @@ export function DefaultModelSettings() {
     }
   };
 
-  const modelsByProvider = getModelsByProvider();
+  const modelsByProvider = getModelsByProvider(dbModels);
 
   // Get the most recent model name for display
   const recentModelId = (prefRecentModels ?? [])[0];
   const recentModelName = recentModelId
-    ? getModelConfig(recentModelId)?.name || recentModelId
+    ? getModelConfig(recentModelId, dbModels)?.name || recentModelId
     : "None yet";
 
   return (

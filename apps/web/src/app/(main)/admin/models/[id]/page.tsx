@@ -418,419 +418,452 @@ export default function ModelDetailPage({
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-          {/* Identity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Identity</CardTitle>
-              <CardDescription>Basic model information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="modelId">Model ID</Label>
-                  <Input
-                    id="modelId"
-                    value={formData.modelId}
-                    onChange={(e) => updateField("modelId", e.target.value)}
-                    placeholder="provider:model-name"
-                    disabled={!isNew}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Format: provider:model-name (e.g., openai:gpt-5)
-                  </p>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+            {/* Identity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Identity</CardTitle>
+                <CardDescription>Basic model information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="modelId">Model ID</Label>
+                    <Input
+                      id="modelId"
+                      value={formData.modelId}
+                      onChange={(e) => updateField("modelId", e.target.value)}
+                      placeholder="provider:model-name"
+                      disabled={!isNew}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Format: provider:model-name (e.g., openai:gpt-5)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="provider">Provider</Label>
+                    <Select
+                      value={formData.provider}
+                      onValueChange={(v) => updateField("provider", v)}
+                      disabled={!isNew}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROVIDERS.map((p) => (
+                          <SelectItem key={p} value={p} className="capitalize">
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="provider">Provider</Label>
+                  <Label htmlFor="name">Display Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => updateField("name", e.target.value)}
+                    placeholder="GPT-5"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => updateField("description", e.target.value)}
+                    placeholder="Brief description of the model"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="userFriendlyDescription">
+                    User-Friendly Description
+                  </Label>
+                  <Textarea
+                    id="userFriendlyDescription"
+                    value={formData.userFriendlyDescription || ""}
+                    onChange={(e) =>
+                      updateField("userFriendlyDescription", e.target.value)
+                    }
+                    placeholder="Description shown to users in the model picker"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bestFor">Best For</Label>
+                  <Input
+                    id="bestFor"
+                    value={formData.bestFor || ""}
+                    onChange={(e) => updateField("bestFor", e.target.value)}
+                    placeholder="e.g., Complex reasoning, creative writing"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pricing */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing</CardTitle>
+                <CardDescription>
+                  Cost per 1 million tokens (USD)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="inputCost">Input Cost</Label>
+                    <Input
+                      id="inputCost"
+                      type="number"
+                      step="0.01"
+                      value={formData.inputCost}
+                      onChange={(e) =>
+                        updateField(
+                          "inputCost",
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="outputCost">Output Cost</Label>
+                    <Input
+                      id="outputCost"
+                      type="number"
+                      step="0.01"
+                      value={formData.outputCost}
+                      onChange={(e) =>
+                        updateField(
+                          "outputCost",
+                          parseFloat(e.target.value) || 0,
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cachedInputCost">Cached Input Cost</Label>
+                    <Input
+                      id="cachedInputCost"
+                      type="number"
+                      step="0.01"
+                      value={formData.cachedInputCost || ""}
+                      onChange={(e) =>
+                        updateField(
+                          "cachedInputCost",
+                          e.target.value
+                            ? parseFloat(e.target.value)
+                            : undefined,
+                        )
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reasoningCost">Reasoning Cost</Label>
+                    <Input
+                      id="reasoningCost"
+                      type="number"
+                      step="0.01"
+                      value={formData.reasoningCost || ""}
+                      onChange={(e) =>
+                        updateField(
+                          "reasoningCost",
+                          e.target.value
+                            ? parseFloat(e.target.value)
+                            : undefined,
+                        )
+                      }
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Technical */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Technical</CardTitle>
+                <CardDescription>Model capabilities and limits</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="contextWindow">
+                      Context Window (tokens)
+                    </Label>
+                    <Input
+                      id="contextWindow"
+                      type="number"
+                      value={formData.contextWindow}
+                      onChange={(e) =>
+                        updateField(
+                          "contextWindow",
+                          parseInt(e.target.value, 10) || 0,
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="speedTier">Speed Tier</Label>
+                    <Select
+                      value={formData.speedTier || "none"}
+                      onValueChange={(v) =>
+                        updateField("speedTier", v === "none" ? undefined : v)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select speed tier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {SPEED_TIERS.map((t) => (
+                          <SelectItem key={t} value={t} className="capitalize">
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Capabilities</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {CAPABILITIES.map((cap) => (
+                      <Badge
+                        key={cap}
+                        variant={
+                          formData.capabilities.includes(cap)
+                            ? "default"
+                            : "outline"
+                        }
+                        className="cursor-pointer"
+                        onClick={() => toggleCapability(cap)}
+                      >
+                        {formData.capabilities.includes(cap) && (
+                          <Check className="w-3 h-3 mr-1" />
+                        )}
+                        {cap}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gateway">Gateway</Label>
+                    <Select
+                      value={formData.gateway || "none"}
+                      onValueChange={(v) =>
+                        updateField("gateway", v === "none" ? undefined : v)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gateway" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None (Direct)</SelectItem>
+                        {GATEWAYS.map((g) => (
+                          <SelectItem key={g} value={g} className="capitalize">
+                            {g}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="actualModelId">Actual Model ID</Label>
+                    <Input
+                      id="actualModelId"
+                      value={formData.actualModelId || ""}
+                      onChange={(e) =>
+                        updateField(
+                          "actualModelId",
+                          e.target.value || undefined,
+                        )
+                      }
+                      placeholder="Override model ID for API calls"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="knowledgeCutoff">Knowledge Cutoff</Label>
+                  <Input
+                    id="knowledgeCutoff"
+                    value={formData.knowledgeCutoff || ""}
+                    onChange={(e) =>
+                      updateField(
+                        "knowledgeCutoff",
+                        e.target.value || undefined,
+                      )
+                    }
+                    placeholder="e.g., April 2024"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="reasoningConfig">
+                    Reasoning Config (JSON)
+                  </Label>
+                  <Textarea
+                    id="reasoningConfig"
+                    value={formData.reasoningConfig || ""}
+                    onChange={(e) =>
+                      updateField(
+                        "reasoningConfig",
+                        e.target.value || undefined,
+                      )
+                    }
+                    placeholder='{"type": "enabled", "budgetTokens": 10000}'
+                    rows={3}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Flags */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Flags & Status</CardTitle>
+                <CardDescription>
+                  Access control and visibility settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
                   <Select
-                    value={formData.provider}
-                    onValueChange={(v) => updateField("provider", v)}
-                    disabled={!isNew}
+                    value={formData.status}
+                    onValueChange={(v) =>
+                      updateField("status", v as ModelFormData["status"])
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {PROVIDERS.map((p) => (
-                        <SelectItem key={p} value={p} className="capitalize">
-                          {p}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="beta">Beta</SelectItem>
+                      <SelectItem value="deprecated">Deprecated</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Display Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => updateField("name", e.target.value)}
-                  placeholder="GPT-5"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => updateField("description", e.target.value)}
-                  placeholder="Brief description of the model"
-                  rows={2}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="userFriendlyDescription">
-                  User-Friendly Description
-                </Label>
-                <Textarea
-                  id="userFriendlyDescription"
-                  value={formData.userFriendlyDescription || ""}
-                  onChange={(e) =>
-                    updateField("userFriendlyDescription", e.target.value)
-                  }
-                  placeholder="Description shown to users in the model picker"
-                  rows={2}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bestFor">Best For</Label>
-                <Input
-                  id="bestFor"
-                  value={formData.bestFor || ""}
-                  onChange={(e) => updateField("bestFor", e.target.value)}
-                  placeholder="e.g., Complex reasoning, creative writing"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Pricing */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing</CardTitle>
-              <CardDescription>Cost per 1 million tokens (USD)</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="inputCost">Input Cost</Label>
-                  <Input
-                    id="inputCost"
-                    type="number"
-                    step="0.01"
-                    value={formData.inputCost}
-                    onChange={(e) =>
-                      updateField("inputCost", parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="outputCost">Output Cost</Label>
-                  <Input
-                    id="outputCost"
-                    type="number"
-                    step="0.01"
-                    value={formData.outputCost}
-                    onChange={(e) =>
-                      updateField("outputCost", parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cachedInputCost">Cached Input Cost</Label>
-                  <Input
-                    id="cachedInputCost"
-                    type="number"
-                    step="0.01"
-                    value={formData.cachedInputCost || ""}
-                    onChange={(e) =>
-                      updateField(
-                        "cachedInputCost",
-                        e.target.value ? parseFloat(e.target.value) : undefined,
-                      )
-                    }
-                    placeholder="Optional"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reasoningCost">Reasoning Cost</Label>
-                  <Input
-                    id="reasoningCost"
-                    type="number"
-                    step="0.01"
-                    value={formData.reasoningCost || ""}
-                    onChange={(e) =>
-                      updateField(
-                        "reasoningCost",
-                        e.target.value ? parseFloat(e.target.value) : undefined,
-                      )
-                    }
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Technical */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Technical</CardTitle>
-              <CardDescription>Model capabilities and limits</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contextWindow">Context Window (tokens)</Label>
-                  <Input
-                    id="contextWindow"
-                    type="number"
-                    value={formData.contextWindow}
-                    onChange={(e) =>
-                      updateField(
-                        "contextWindow",
-                        parseInt(e.target.value, 10) || 0,
-                      )
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="speedTier">Speed Tier</Label>
-                  <Select
-                    value={formData.speedTier || "none"}
-                    onValueChange={(v) =>
-                      updateField("speedTier", v === "none" ? undefined : v)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select speed tier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {SPEED_TIERS.map((t) => (
-                        <SelectItem key={t} value={t} className="capitalize">
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Capabilities</Label>
-                <div className="flex flex-wrap gap-2">
-                  {CAPABILITIES.map((cap) => (
-                    <Badge
-                      key={cap}
-                      variant={
-                        formData.capabilities.includes(cap)
-                          ? "default"
-                          : "outline"
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isPro"
+                      checked={formData.isPro}
+                      onCheckedChange={(c) => updateField("isPro", !!c)}
+                    />
+                    <Label htmlFor="isPro" className="cursor-pointer">
+                      Pro Only
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isInternalOnly"
+                      checked={formData.isInternalOnly}
+                      onCheckedChange={(c) =>
+                        updateField("isInternalOnly", !!c)
                       }
-                      className="cursor-pointer"
-                      onClick={() => toggleCapability(cap)}
-                    >
-                      {formData.capabilities.includes(cap) && (
-                        <Check className="w-3 h-3 mr-1" />
-                      )}
-                      {cap}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gateway">Gateway</Label>
-                  <Select
-                    value={formData.gateway || "none"}
-                    onValueChange={(v) =>
-                      updateField("gateway", v === "none" ? undefined : v)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gateway" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None (Direct)</SelectItem>
-                      {GATEWAYS.map((g) => (
-                        <SelectItem key={g} value={g} className="capitalize">
-                          {g}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="actualModelId">Actual Model ID</Label>
-                  <Input
-                    id="actualModelId"
-                    value={formData.actualModelId || ""}
-                    onChange={(e) =>
-                      updateField("actualModelId", e.target.value || undefined)
-                    }
-                    placeholder="Override model ID for API calls"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="knowledgeCutoff">Knowledge Cutoff</Label>
-                <Input
-                  id="knowledgeCutoff"
-                  value={formData.knowledgeCutoff || ""}
-                  onChange={(e) =>
-                    updateField("knowledgeCutoff", e.target.value || undefined)
-                  }
-                  placeholder="e.g., April 2024"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reasoningConfig">Reasoning Config (JSON)</Label>
-                <Textarea
-                  id="reasoningConfig"
-                  value={formData.reasoningConfig || ""}
-                  onChange={(e) =>
-                    updateField("reasoningConfig", e.target.value || undefined)
-                  }
-                  placeholder='{"type": "enabled", "budgetTokens": 10000}'
-                  rows={3}
-                  className="font-mono text-sm"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Flags */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Flags & Status</CardTitle>
-              <CardDescription>
-                Access control and visibility settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(v) =>
-                    updateField("status", v as ModelFormData["status"])
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="beta">Beta</SelectItem>
-                    <SelectItem value="deprecated">Deprecated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-wrap gap-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isPro"
-                    checked={formData.isPro}
-                    onCheckedChange={(c) => updateField("isPro", !!c)}
-                  />
-                  <Label htmlFor="isPro" className="cursor-pointer">
-                    Pro Only
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isInternalOnly"
-                    checked={formData.isInternalOnly}
-                    onCheckedChange={(c) => updateField("isInternalOnly", !!c)}
-                  />
-                  <Label htmlFor="isInternalOnly" className="cursor-pointer">
-                    Internal Only
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isExperimental"
-                    checked={formData.isExperimental}
-                    onCheckedChange={(c) => updateField("isExperimental", !!c)}
-                  />
-                  <Label htmlFor="isExperimental" className="cursor-pointer">
-                    Experimental
-                  </Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* History (only for existing models) */}
-          {!isNew && history && history.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Change History
-                </CardTitle>
-                <CardDescription>Recent changes to this model</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {history.map((h) => (
-                    <div key={h._id} className="border-l-2 pl-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{h.changeType}</Badge>
-                        <span className="text-sm text-muted-foreground">
-                          v{h.version}
-                        </span>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(h.changedAt, {
-                            addSuffix: true,
-                          })}
-                        </span>
-                      </div>
-                      {h.reason && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {h.reason}
-                        </p>
-                      )}
-                      {h.changes && h.changes.length > 0 && (
-                        <div className="mt-2 text-sm">
-                          {h.changes.map((c, i) => (
-                            <div key={i} className="text-muted-foreground">
-                              <span className="font-mono">{c.field}</span>:{" "}
-                              <span className="text-red-500 line-through">
-                                {c.oldValue}
-                              </span>{" "}
-                              →{" "}
-                              <span className="text-green-500">
-                                {c.newValue}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    />
+                    <Label htmlFor="isInternalOnly" className="cursor-pointer">
+                      Internal Only
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isExperimental"
+                      checked={formData.isExperimental}
+                      onCheckedChange={(c) =>
+                        updateField("isExperimental", !!c)
+                      }
+                    />
+                    <Label htmlFor="isExperimental" className="cursor-pointer">
+                      Experimental
+                    </Label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
-      </ScrollArea>
+
+            {/* History (only for existing models) */}
+            {!isNew && history && history.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Change History
+                  </CardTitle>
+                  <CardDescription>
+                    Recent changes to this model
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {history.map((h) => (
+                      <div key={h._id} className="border-l-2 pl-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{h.changeType}</Badge>
+                          <span className="text-sm text-muted-foreground">
+                            v{h.version}
+                          </span>
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDistanceToNow(h.changedAt, {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                        {h.reason && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {h.reason}
+                          </p>
+                        )}
+                        {h.changes && h.changes.length > 0 && (
+                          <div className="mt-2 text-sm">
+                            {h.changes.map((c, i) => (
+                              <div key={i} className="text-muted-foreground">
+                                <span className="font-mono">{c.field}</span>:{" "}
+                                <span className="text-red-500 line-through">
+                                  {c.oldValue}
+                                </span>{" "}
+                                →{" "}
+                                <span className="text-green-500">
+                                  {c.newValue}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

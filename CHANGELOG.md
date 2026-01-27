@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/planetaryescape/blah.chat/compare/v1.15.0...v1.15.1) (2026-01-27)
+
+
+### Bug Fixes
+
+* **composio:** include CSRF state in OAuth callback URL ([acfde25](https://github.com/planetaryescape/blah.chat/commit/acfde253e34dd1acae93d827d08abbe3cc64feef))
+
 ## [1.15.0](https://github.com/planetaryescape/blah.chat/compare/v1.14.0...v1.15.0) (2026-01-27)
 
 

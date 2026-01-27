@@ -146,13 +146,16 @@ export const initiateConnection = action({
     // Generate CSRF state for security
     const oauthState = generateOAuthState();
 
+    // Include state in callback URL so it's returned after OAuth
+    const callbackWithState = `${redirectUrl}${redirectUrl.includes("?") ? "&" : "?"}state=${oauthState}`;
+
     // Initiate connection request
     // allowMultiple: true allows re-connecting (Manage button) or multiple accounts
     const connectionRequest = await composio.connectedAccounts.initiate(
       composioUserId,
       authConfigId,
       {
-        callbackUrl: redirectUrl,
+        callbackUrl: callbackWithState,
         allowMultiple: true,
       },
     );
@@ -366,13 +369,16 @@ export const refreshConnection = action({
     // Generate CSRF state for security
     const oauthState = generateOAuthState();
 
+    // Include state in callback URL so it's returned after OAuth
+    const callbackWithState = `${redirectUrl}${redirectUrl.includes("?") ? "&" : "?"}state=${oauthState}`;
+
     // Initiate new connection request (will replace the old one)
     // allowMultiple: true allows re-connecting expired connections
     const connectionRequest = await composio.connectedAccounts.initiate(
       composioUserId,
       authConfigId,
       {
-        callbackUrl: redirectUrl,
+        callbackUrl: callbackWithState,
         allowMultiple: true,
       },
     );

@@ -235,7 +235,7 @@ export default function UserDetailPage({
   ].filter((item) => item.value > 0);
 
   return (
-    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col relative bg-background overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col relative bg-background overflow-hidden">
       {/* Background gradients */}
       <div className="fixed inset-0 bg-gradient-radial from-violet-500/5 via-transparent to-transparent pointer-events-none" />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-500/5 via-transparent to-transparent pointer-events-none" />

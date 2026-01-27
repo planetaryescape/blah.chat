@@ -506,7 +506,7 @@ function ModelsPageContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-theme(spacing.16))] flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 px-6 pt-6 space-y-4">
         <div className="flex items-center justify-between">

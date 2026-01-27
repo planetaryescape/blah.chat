@@ -42,6 +42,8 @@ export const get = query({
         proModelsEnabled: false,
         tier1DailyProModelLimit: 1,
         tier2MonthlyProModelLimit: 50,
+        // Integration Settings
+        maxActiveIntegrations: 5,
       }
     );
   },
@@ -67,6 +69,8 @@ export const update = mutation({
     proModelsEnabled: v.optional(v.boolean()),
     tier1DailyProModelLimit: v.optional(v.number()),
     tier2MonthlyProModelLimit: v.optional(v.number()),
+    // Integration Settings
+    maxActiveIntegrations: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -123,6 +127,8 @@ export const update = mutation({
         proModelsEnabled: args.proModelsEnabled ?? false,
         tier1DailyProModelLimit: args.tier1DailyProModelLimit ?? 1,
         tier2MonthlyProModelLimit: args.tier2MonthlyProModelLimit ?? 50,
+        // Integration Settings
+        maxActiveIntegrations: args.maxActiveIntegrations ?? 5,
         updatedBy: userId,
         updatedAt: Date.now(),
       });
@@ -168,6 +174,8 @@ export const getWithEnvOverrides = internalQuery({
       proModelsEnabled: false,
       tier1DailyProModelLimit: 1,
       tier2MonthlyProModelLimit: 50,
+      // Integration Settings
+      maxActiveIntegrations: 5,
     };
 
     // Merge: env vars > database > defaults
@@ -189,7 +197,22 @@ export const getWithEnvOverrides = internalQuery({
         ? process.env.BUDGET_HARD_LIMIT_ENABLED === "true"
         : settings.budgetHardLimitEnabled,
       alertEmail: process.env.ALERT_EMAIL || settings.alertEmail,
+      maxActiveIntegrations: process.env.MAX_ACTIVE_INTEGRATIONS
+        ? Number.parseInt(process.env.MAX_ACTIVE_INTEGRATIONS, 10)
+        : (settings.maxActiveIntegrations ?? 5),
     };
+  },
+});
+
+/**
+ * Get max active integrations limit
+ * Used by Composio OAuth flow and connections
+ */
+export const getMaxActiveIntegrations = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const settings = await ctx.db.query("adminSettings").first();
+    return settings?.maxActiveIntegrations ?? 5;
   },
 });
 

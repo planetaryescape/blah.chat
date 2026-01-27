@@ -17,6 +17,7 @@ export const adminSettingsTable = defineTable({
   proModelsEnabled: v.optional(v.boolean()),
   tier1DailyProModelLimit: v.optional(v.number()),
   tier2MonthlyProModelLimit: v.optional(v.number()),
+  maxActiveIntegrations: v.optional(v.number()),
   alertEmail: v.string(),
   instanceId: v.optional(v.string()),
   transcriptProvider: v.optional(v.string()),

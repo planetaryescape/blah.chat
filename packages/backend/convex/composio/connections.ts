@@ -178,6 +178,35 @@ export const getConnectionByComposioId = internalQuery({
 });
 
 /**
+ * Internal: Get active connections for a user (for use in actions where auth may not propagate)
+ */
+export const getActiveConnectionsInternal = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const connections = await ctx.db
+      .query("composioConnections")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    const activeConnections = connections.filter((c) => c.status === "active");
+
+    // Log for debugging - this will appear in Convex logs
+    console.log(
+      JSON.stringify({
+        level: "info",
+        message: "getActiveConnectionsInternal",
+        tag: "Composio",
+        totalConnections: connections.length,
+        activeConnections: activeConnections.length,
+        integrations: activeConnections.map((c) => c.integrationId).join(", "),
+      }),
+    );
+
+    return activeConnections;
+  },
+});
+
+/**
  * Disconnect an integration
  */
 export const disconnectIntegration = mutation({
@@ -213,5 +242,35 @@ export const markConnectionUsed = internalMutation({
     await ctx.db.patch(connectionId, {
       lastUsedAt: Date.now(),
     });
+  },
+});
+
+/**
+ * Get integration limit info for the current user
+ */
+export const getIntegrationLimits = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUserFromCtx(ctx);
+    if (!user) {
+      return { current: 0, max: 5, canAddMore: true };
+    }
+
+    const connections = await ctx.db
+      .query("composioConnections")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const activeCount = connections.filter((c) => c.status === "active").length;
+
+    // Get max from admin settings
+    const adminSettings = await ctx.db.query("adminSettings").first();
+    const maxIntegrations = adminSettings?.maxActiveIntegrations ?? 5;
+
+    return {
+      current: activeCount,
+      max: maxIntegrations,
+      canAddMore: activeCount < maxIntegrations,
+    };
   },
 });

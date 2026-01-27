@@ -1320,6 +1320,9 @@ export default defineSchema({
     tier1DailyProModelLimit: v.optional(v.number()), // Default: 1
     tier2MonthlyProModelLimit: v.optional(v.number()), // Default: 50
 
+    // Integration limits
+    maxActiveIntegrations: v.optional(v.number()), // Default: 5
+
     // Email alerts
     alertEmail: v.string(),
 

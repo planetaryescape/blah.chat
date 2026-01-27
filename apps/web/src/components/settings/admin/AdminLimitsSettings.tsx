@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { DollarSign, Loader2, MessageCircle } from "lucide-react";
+import { DollarSign, Loader2, MessageCircle, Plug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ export function AdminLimitsSettings() {
   const [alertThreshold, setAlertThreshold] = useState(80);
   const [hardLimitEnabled, setHardLimitEnabled] = useState(true);
   const [dailyLimit, setDailyLimit] = useState(50);
+  const [maxIntegrations, setMaxIntegrations] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load settings from query
@@ -37,6 +38,7 @@ export function AdminLimitsSettings() {
       setAlertThreshold((settings.defaultBudgetAlertThreshold ?? 0.8) * 100);
       setHardLimitEnabled(settings.budgetHardLimitEnabled ?? true);
       setDailyLimit(settings.defaultDailyMessageLimit ?? 50);
+      setMaxIntegrations(settings.maxActiveIntegrations ?? 5);
     }
   }, [settings]);
 
@@ -48,6 +50,7 @@ export function AdminLimitsSettings() {
         defaultBudgetAlertThreshold: alertThreshold / 100,
         budgetHardLimitEnabled: hardLimitEnabled,
         defaultDailyMessageLimit: dailyLimit,
+        maxActiveIntegrations: maxIntegrations,
       });
       toast.success("Limits and budget settings saved!");
     } catch (_error) {
@@ -168,6 +171,41 @@ export function AdminLimitsSettings() {
             <p className="text-sm">
               <strong>Note:</strong> Counters reset daily at midnight (user's
               local time).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Integration Limits */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Integration Limits</CardTitle>
+          <CardDescription>
+            Limit how many external service integrations (Composio) each user
+            can connect
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="integrations">
+              Max active integrations per user
+            </Label>
+            <div className="relative">
+              <Plug className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="integrations"
+                type="number"
+                value={maxIntegrations}
+                onChange={(e) => setMaxIntegrations(Number(e.target.value))}
+                min={1}
+                max={20}
+                step={1}
+                className="pl-9"
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Range: 1-20. Each integration adds 10-20 tools to the AI context.
+              Higher limits may reduce model accuracy.
             </p>
           </div>
         </CardContent>

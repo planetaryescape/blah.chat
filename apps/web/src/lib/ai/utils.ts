@@ -1,10 +1,20 @@
 import { MODEL_CONFIG, type ModelConfig } from "./models";
 export type { ModelConfig };
 
-export function getModelConfig(modelId: string): ModelConfig | undefined {
+/**
+ * Get model config by ID.
+ * @param modelId - Model ID (e.g., "openai:gpt-5")
+ * @param models - Optional models record (from useModels() hook). Falls back to static MODEL_CONFIG if not provided.
+ */
+export function getModelConfig(
+  modelId: string,
+  models?: Record<string, ModelConfig>,
+): ModelConfig | undefined {
+  const source = models ?? MODEL_CONFIG;
+
   // Return config if exists
-  if (MODEL_CONFIG[modelId]) {
-    return MODEL_CONFIG[modelId];
+  if (source[modelId]) {
+    return source[modelId];
   }
 
   // Fallback for custom models not in config
@@ -53,10 +63,17 @@ export function getModelConfig(modelId: string): ModelConfig | undefined {
   return undefined;
 }
 
-export function getModelsByProvider() {
+/**
+ * Group models by provider.
+ * @param models - Optional models record (from useModels() hook). Falls back to static MODEL_CONFIG if not provided.
+ */
+export function getModelsByProvider(
+  models?: Record<string, ModelConfig>,
+): Record<string, ModelConfig[]> {
+  const source = models ?? MODEL_CONFIG;
   const grouped: Record<string, ModelConfig[]> = {};
 
-  for (const model of Object.values(MODEL_CONFIG)) {
+  for (const model of Object.values(source)) {
     if (model.isInternalOnly) continue;
     if (!grouped[model.provider]) {
       grouped[model.provider] = [];
@@ -67,6 +84,12 @@ export function getModelsByProvider() {
   return grouped;
 }
 
+/**
+ * Calculate cost for model usage.
+ * @param model - Model ID
+ * @param usage - Token usage counts
+ * @param models - Optional models record (from useModels() hook). Falls back to static MODEL_CONFIG if not provided.
+ */
 export function calculateCost(
   model: string,
   usage: {
@@ -75,8 +98,10 @@ export function calculateCost(
     cachedTokens?: number;
     reasoningTokens?: number;
   },
+  models?: Record<string, ModelConfig>,
 ): number {
-  const config = MODEL_CONFIG[model];
+  const source = models ?? MODEL_CONFIG;
+  const config = source[model];
   if (!config || config.isLocal) return 0;
 
   const inputCost = (usage.inputTokens / 1_000_000) * config.pricing.input;
@@ -90,6 +115,15 @@ export function calculateCost(
   return inputCost + outputCost + cachedCost + reasoningCost;
 }
 
-export function isValidModel(modelId: string): boolean {
-  return modelId in MODEL_CONFIG;
+/**
+ * Check if a model ID is valid.
+ * @param modelId - Model ID to check
+ * @param models - Optional models record (from useModels() hook). Falls back to static MODEL_CONFIG if not provided.
+ */
+export function isValidModel(
+  modelId: string,
+  models?: Record<string, ModelConfig>,
+): boolean {
+  const source = models ?? MODEL_CONFIG;
+  return modelId in source;
 }

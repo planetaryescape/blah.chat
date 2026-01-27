@@ -98,10 +98,11 @@ export const createConnection = internalMutation({
       .first();
 
     if (existing) {
-      // Update existing connection
+      // Update existing connection - preserve active status during re-auth
+      // This prevents losing tool access if user cancels OAuth popup
       await ctx.db.patch(existing._id, {
         composioConnectionId: args.composioConnectionId,
-        status: "initiated",
+        status: existing.status === "active" ? "active" : "initiated",
         scopes: args.scopes,
         lastError: undefined,
         updatedAt: now,

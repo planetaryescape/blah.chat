@@ -25,6 +25,7 @@
     "@ai-sdk/groq": "^3.0.0",
     "@ai-sdk/openai": "^3.0.1",
     "@anthropic-ai/sdk": "^0.71.2",
+    "@base-ui/react": "^1.1.0",
     "@blah-chat/backend": "workspace:*",
     "@blah-chat/byod-schema": "workspace:*",
     "@blah-chat/shared": "workspace:*",

@@ -21,16 +21,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
@@ -596,21 +597,24 @@ function _AutoRouterPageContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="routerModelId">Router Model</Label>
-                    <Select
+                    <Combobox
                       value={formData.routerModelId}
-                      onValueChange={(v) => updateField("routerModelId", v)}
+                      onValueChange={(v) =>
+                        v && updateField("routerModelId", v as string)
+                      }
                     >
-                      <SelectTrigger id="routerModelId">
-                        <SelectValue placeholder="Select a model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {modelOptions.map(([id, model]) => (
-                          <SelectItem key={id} value={id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <ComboboxInput placeholder="Search models..." />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No models found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {modelOptions.map(([id, model]) => (
+                            <ComboboxItem key={id} value={id}>
+                              {model.name}
+                            </ComboboxItem>
+                          ))}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
                     <p className="text-xs text-muted-foreground">
                       Model used for task classification
                     </p>

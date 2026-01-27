@@ -1,10 +1,18 @@
 "use node";
 
+import { randomBytes } from "node:crypto";
 import { Composio } from "@composio/core";
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { INTEGRATIONS_BY_ID } from "./constants";
+
+/**
+ * Generate a cryptographically secure random state for CSRF protection
+ */
+function generateOAuthState(): string {
+  return randomBytes(32).toString("hex");
+}
 
 // Cache for auth configs (integration ID -> auth config ID)
 const authConfigCache = new Map<string, string>();
@@ -135,6 +143,9 @@ export const initiateConnection = action({
     // Create unique user ID for Composio
     const composioUserId = `blahchat_${user._id}`;
 
+    // Generate CSRF state for security
+    const oauthState = generateOAuthState();
+
     // Initiate connection request
     // allowMultiple: true allows re-connecting (Manage button) or multiple accounts
     const connectionRequest = await composio.connectedAccounts.initiate(
@@ -146,7 +157,7 @@ export const initiateConnection = action({
       },
     );
 
-    // Store connection in pending state
+    // Store connection in pending state with CSRF state
     await (
       ctx.runMutation as (ref: unknown, args: unknown) => Promise<unknown>
     )(
@@ -157,12 +168,15 @@ export const initiateConnection = action({
         composioConnectionId: connectionRequest.id,
         integrationId,
         integrationName: integration.name,
+        oauthState,
       },
     );
 
     return {
       redirectUrl: connectionRequest.redirectUrl,
       connectionId: connectionRequest.id,
+      // Return state so frontend can pass it back for validation
+      state: oauthState,
     };
   },
 });
@@ -173,12 +187,65 @@ export const initiateConnection = action({
 export const verifyConnection = action({
   args: {
     composioConnectionId: v.string(),
+    // CSRF state validation
+    state: v.optional(v.string()),
   },
-  handler: async (ctx, { composioConnectionId }) => {
+  handler: async (ctx, { composioConnectionId, state }) => {
     // Get current user
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
+    }
+
+    // Get user from DB to get userId
+    const user = (await (
+      ctx.runQuery as (ref: unknown, args: unknown) => Promise<unknown>
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getUserByClerkId,
+      { clerkId: identity.subject },
+    )) as { _id: string } | null;
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // SECURITY: Verify the connection belongs to this user before updating
+    const existingConnection = (await (
+      ctx.runQuery as (ref: unknown, args: unknown) => Promise<unknown>
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      internal.composio.connections.getConnectionByComposioId,
+      { composioConnectionId },
+    )) as {
+      userId: string;
+      oauthState?: string;
+      oauthStateExpiresAt?: number;
+    } | null;
+
+    if (!existingConnection) {
+      throw new Error("Connection not found");
+    }
+
+    if (existingConnection.userId !== user._id) {
+      throw new Error("Unauthorized: Connection belongs to another user");
+    }
+
+    // SECURITY: Validate CSRF state if present (backwards compatible)
+    if (existingConnection.oauthState) {
+      if (!state) {
+        throw new Error("Missing state parameter");
+      }
+      if (state !== existingConnection.oauthState) {
+        throw new Error("Invalid state parameter - possible CSRF attack");
+      }
+      // Check expiration
+      if (
+        existingConnection.oauthStateExpiresAt &&
+        Date.now() > existingConnection.oauthStateExpiresAt
+      ) {
+        throw new Error("OAuth state expired - please try again");
+      }
     }
 
     // Get Composio API key
@@ -296,6 +363,9 @@ export const refreshConnection = action({
     // Create unique user ID for Composio
     const composioUserId = `blahchat_${user._id}`;
 
+    // Generate CSRF state for security
+    const oauthState = generateOAuthState();
+
     // Initiate new connection request (will replace the old one)
     // allowMultiple: true allows re-connecting expired connections
     const connectionRequest = await composio.connectedAccounts.initiate(
@@ -307,7 +377,7 @@ export const refreshConnection = action({
       },
     );
 
-    // Update existing connection record
+    // Update existing connection record with new state
     await (
       ctx.runMutation as (ref: unknown, args: unknown) => Promise<unknown>
     )(
@@ -318,12 +388,15 @@ export const refreshConnection = action({
         composioConnectionId: connectionRequest.id,
         integrationId,
         integrationName: integration.name,
+        oauthState,
       },
     );
 
     return {
       redirectUrl: connectionRequest.redirectUrl,
       connectionId: connectionRequest.id,
+      // Return state so frontend can pass it back for validation
+      state: oauthState,
     };
   },
 });

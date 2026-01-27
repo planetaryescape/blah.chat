@@ -58,6 +58,10 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
         toast.error(callbackError || "Failed to connect integration");
       }
 
+      // Clean up CSRF state cookie
+      document.cookie =
+        "composio_oauth_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
       // Clean up
       pendingIntegrationRef.current = null;
       if (popupRef.current && !popupRef.current.closed) {
@@ -109,6 +113,13 @@ export function useComposioOAuth(options: UseComposioOAuthOptions = {}) {
 
         if (!result.redirectUrl) {
           throw new Error("No redirect URL returned");
+        }
+
+        // SECURITY: Store CSRF state in cookie for validation
+        if (result.state) {
+          // Set cookie with secure flags (10 min expiry to match backend)
+          const expires = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
+          document.cookie = `composio_oauth_state=${result.state}; path=/; expires=${expires}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
         }
 
         // Try popup flow first

@@ -22,6 +22,7 @@ import type * as ai_tools_askForClarification from "../ai/tools/askForClarificat
 import type * as ai_tools_calculator from "../ai/tools/calculator.js";
 import type * as ai_tools_codeExecution from "../ai/tools/codeExecution.js";
 import type * as ai_tools_createDocument from "../ai/tools/createDocument.js";
+import type * as ai_tools_currencyConverter from "../ai/tools/currencyConverter.js";
 import type * as ai_tools_datetime from "../ai/tools/datetime.js";
 import type * as ai_tools_documentMode from "../ai/tools/documentMode.js";
 import type * as ai_tools_fileDocument from "../ai/tools/fileDocument.js";
@@ -303,6 +304,7 @@ declare const fullApi: ApiFromModules<{
   "ai/tools/calculator": typeof ai_tools_calculator;
   "ai/tools/codeExecution": typeof ai_tools_codeExecution;
   "ai/tools/createDocument": typeof ai_tools_createDocument;
+  "ai/tools/currencyConverter": typeof ai_tools_currencyConverter;
   "ai/tools/datetime": typeof ai_tools_datetime;
   "ai/tools/documentMode": typeof ai_tools_documentMode;
   "ai/tools/fileDocument": typeof ai_tools_fileDocument;

@@ -5,6 +5,7 @@ import {
   CheckSquare,
   Cloud,
   Code,
+  DollarSign,
   ExternalLink,
   Eye,
   FileEdit,
@@ -32,6 +33,8 @@ export function getToolIcon(toolName: string) {
       return Search;
     case "calculator":
       return Calculator;
+    case "currencyConverter":
+      return DollarSign;
     case "datetime":
       return Calendar;
     case "webSearch":
@@ -106,6 +109,10 @@ export function getToolLabel(
       if (isExecuting) return "Calculating...";
       if (result?.success === false) return "Calculation error";
       return `= ${result?.result}`;
+    case "currencyConverter":
+      if (isExecuting) return "Converting currency...";
+      if (result?.success === false) return "Conversion failed";
+      return `${result?.amount} ${result?.from} = ${result?.result} ${result?.to}`;
     case "datetime":
       if (isExecuting) return "Getting date/time...";
       if (result?.success === false) return "Date error";
@@ -248,6 +255,10 @@ export function getToolDescription(
       return parsedArgs?.query || null;
     case "weather":
       return parsedArgs?.location || null;
+    case "currencyConverter":
+      return parsedArgs?.amount
+        ? `${parsedArgs.amount} ${parsedArgs.from} → ${parsedArgs.to}`
+        : null;
     case "youtubeVideo":
       return parsedArgs?.url || parsedArgs?.videoId || null;
     case "codeExecution":

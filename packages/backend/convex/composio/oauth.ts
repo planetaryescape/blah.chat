@@ -20,10 +20,13 @@ async function getOrCreateAuthConfig(
   const cached = authConfigCache.get(integrationId);
   if (cached) return cached;
 
+  // Normalize toolkit name to lowercase (Composio SDK expects lowercase)
+  const normalizedToolkit = integrationId.toLowerCase();
+
   try {
     // Try to list existing auth configs for this toolkit
     const configs = await composio.authConfigs.list({
-      toolkit: integrationId.toUpperCase(),
+      toolkit: normalizedToolkit,
     });
 
     // Use existing config if available
@@ -37,13 +40,10 @@ async function getOrCreateAuthConfig(
   }
 
   // Create auth config using Composio managed auth
-  const config = await composio.authConfigs.create(
-    integrationId.toUpperCase(),
-    {
-      name: `blahchat_${integrationId}`,
-      type: "use_composio_managed_auth",
-    },
-  );
+  const config = await composio.authConfigs.create(normalizedToolkit, {
+    name: `blahchat_${normalizedToolkit}`,
+    type: "use_composio_managed_auth",
+  });
 
   const configId = config.id;
   authConfigCache.set(integrationId, configId);
@@ -85,6 +85,41 @@ export const initiateConnection = action({
       throw new Error(`Unknown integration: ${integrationId}`);
     }
 
+    // Check integration limit (only for new connections, not re-connects)
+    const existingConnection = (await (
+      ctx.runQuery as (ref: unknown, args: unknown) => Promise<unknown>
+    )(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.composio.connections.getConnectionByIntegration,
+      { integrationId },
+    )) as { _id: string } | null;
+
+    if (!existingConnection) {
+      // New connection - check limit
+      const activeConnections = (await (
+        ctx.runQuery as (ref: unknown, args: unknown) => Promise<unknown>
+      )(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        api.composio.connections.getActiveConnections,
+        {},
+      )) as unknown[];
+
+      // Get max integrations from admin settings
+      const maxIntegrations = (await (
+        ctx.runQuery as (ref: unknown, args: unknown) => Promise<number>
+      )(
+        // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+        internal.adminSettings.getMaxActiveIntegrations,
+        {},
+      )) as number;
+
+      if (activeConnections.length >= maxIntegrations) {
+        throw new Error(
+          `Integration limit reached. You can connect up to ${maxIntegrations} integrations. Disconnect one to add another.`,
+        );
+      }
+    }
+
     // Get Composio API key
     const apiKey = process.env.COMPOSIO_API_KEY;
     if (!apiKey) {
@@ -101,11 +136,13 @@ export const initiateConnection = action({
     const composioUserId = `blahchat_${user._id}`;
 
     // Initiate connection request
+    // allowMultiple: true allows re-connecting (Manage button) or multiple accounts
     const connectionRequest = await composio.connectedAccounts.initiate(
       composioUserId,
       authConfigId,
       {
         callbackUrl: redirectUrl,
+        allowMultiple: true,
       },
     );
 
@@ -260,11 +297,13 @@ export const refreshConnection = action({
     const composioUserId = `blahchat_${user._id}`;
 
     // Initiate new connection request (will replace the old one)
+    // allowMultiple: true allows re-connecting expired connections
     const connectionRequest = await composio.connectedAccounts.initiate(
       composioUserId,
       authConfigId,
       {
         callbackUrl: redirectUrl,
+        allowMultiple: true,
       },
     );
 

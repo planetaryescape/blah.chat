@@ -131,75 +131,76 @@ function SettingsContent() {
           </div>
         </div>
       </div>
-      {/* Scrollable Content */}
-      <ScrollArea className="flex-1 w-full min-h-0">
-        <div className="container mx-auto max-w-4xl px-4 py-8">
-          {/* Mobile View: Sectioned List */}
-          <div className="block md:hidden space-y-10">
-            {visibleSections.map((section: any) => (
-              <section key={section.id} className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                    {section.label}
-                  </h2>
-                  <Separator className="flex-1" />
-                </div>
-                <div className="px-1">
+      {/* Mobile View: Scrollable Sectioned List */}
+      <ScrollArea className="flex-1 w-full min-h-0 md:hidden">
+        <div className="container mx-auto max-w-4xl px-4 py-8 space-y-10">
+          {visibleSections.map((section: any) => (
+            <section key={section.id} className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  {section.label}
+                </h2>
+                <Separator className="flex-1" />
+              </div>
+              <div className="px-1">
+                {section.id === "ui" ? (
+                  <UISettings focusSettingKey={focusSetting} />
+                ) : (
+                  <section.component />
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Desktop View: Tabs on left (fixed), Content scrolls */}
+      <div className="hidden md:flex flex-1 min-h-0">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          orientation="vertical"
+          className="w-full flex flex-row container mx-auto max-w-4xl"
+        >
+          {/* Sidebar with vertical tabs - fixed position */}
+          <div className="shrink-0 w-48 py-8 pl-4">
+            <TabsList className="w-full h-fit flex-col items-stretch justify-start p-1.5 bg-muted/50 rounded-lg gap-1">
+              {visibleSections.map((section: any) => (
+                <TabsTrigger
+                  key={section.id}
+                  value={section.id}
+                  className="justify-start px-4 py-2.5 rounded-md text-left data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                >
+                  {section.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+
+          {/* Content area - scrollable */}
+          <ScrollArea className="flex-1 min-w-0">
+            <div className="py-8 px-4 pr-4">
+              {visibleSections.map((section: any) => (
+                <TabsContent
+                  key={section.id}
+                  value={section.id}
+                  className="mt-0"
+                >
                   {section.id === "ui" ? (
-                    <UISettings focusSettingKey={focusSetting} />
+                    <UISettings
+                      focusSettingKey={
+                        activeTab === "ui" ? focusSetting : undefined
+                      }
+                    />
                   ) : (
                     <section.component />
                   )}
-                </div>
-              </section>
-            ))}
-          </div>
-
-          {/* Desktop View: Vertical Tabs */}
-          <div className="hidden md:block">
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              orientation="vertical"
-              className="w-full flex flex-row gap-6"
-            >
-              {/* Sidebar with vertical tabs */}
-              <TabsList className="shrink-0 w-48 h-fit flex-col items-stretch justify-start p-1.5 bg-muted/50 rounded-lg gap-1">
-                {visibleSections.map((section: any) => (
-                  <TabsTrigger
-                    key={section.id}
-                    value={section.id}
-                    className="justify-start px-4 py-2.5 rounded-md text-left data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                  >
-                    {section.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-
-              {/* Content area */}
-              <div className="flex-1 min-h-0">
-                {visibleSections.map((section: any) => (
-                  <TabsContent
-                    key={section.id}
-                    value={section.id}
-                    className="mt-0"
-                  >
-                    {section.id === "ui" ? (
-                      <UISettings
-                        focusSettingKey={
-                          activeTab === "ui" ? focusSetting : undefined
-                        }
-                      />
-                    ) : (
-                      <section.component />
-                    )}
-                  </TabsContent>
-                ))}
-              </div>
-            </Tabs>
-          </div>
-        </div>
-      </ScrollArea>
+                </TabsContent>
+              ))}
+            </div>
+          </ScrollArea>
+        </Tabs>
+      </div>
     </div>
   );
 }

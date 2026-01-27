@@ -22,14 +22,15 @@ async function getHandler(req: NextRequest, context: AuthContext) {
   const { userId, sessionToken } = context;
   const { searchParams } = new URL(req.url);
 
-  // Log all params for debugging
+  // Log all params to verify actual parameter name from Composio
   const allParams = Object.fromEntries(searchParams.entries());
   logger.info({ userId, params: allParams }, "Composio callback received");
 
-  // Composio may use different parameter names
+  // Composio docs don't specify the exact param name - handle common variants
+  // Check logs above to confirm which one Composio actually sends
   const connectionId =
+    searchParams.get("connectedAccountId") || // Primary: matches Composio SDK naming
     searchParams.get("connectionId") ||
-    searchParams.get("connectedAccountId") ||
     searchParams.get("connected_account_id") ||
     searchParams.get("id");
 

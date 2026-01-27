@@ -41,20 +41,14 @@ export function createSearchAllTool(
   },
 ) {
   return tool({
-    description: `Search across ALL resource types (knowledge bank, files, notes, tasks, conversations) in one call.
+    description: `Search across notes, tasks, files, and knowledge bank stored in this app. Does NOT access external services.
 
-✅ USE FOR:
-- Finding information when you don't know which resource type contains it
-- Getting comprehensive context across all sources
-- Answering questions that might span multiple resource types
-- Searching user's saved knowledge base for curated information
-
-Knowledge bank is searched by default and includes user-saved content from PDFs, web pages, YouTube videos, and notes.
+For external services (email, calendars, GitHub, etc), use the matching UPPERCASE service tools instead.
 
 Parameters:
 - query: What to search for (required)
-- projectId: Optional - filter to specific project, omit to search all resources
-- resourceTypes: Optional - which types to search (default: all including knowledgeBank)
+- projectId: Optional project filter
+- resourceTypes: Optional types to search (default: all)
 - limit: Results per type (1-10, default: 3)`,
     inputSchema: z.object({
       query: z.string().describe("What to search for across all resources"),

@@ -127,8 +127,9 @@ function getCallbackHtml(result: {
     .replace(/>/g, "\\u003e")
     .replace(/&/g, "\\u0026");
 
-  // Get allowed origin from environment or use current origin
-  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || "";
+  // SECURITY: Hardcode production domain - never fall back to window.location.origin
+  // which would allow attackers to receive OAuth data on their domain
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || "https://blah.chat";
 
   return `
 <!DOCTYPE html>
@@ -186,8 +187,8 @@ function getCallbackHtml(result: {
       status.className = 'error';
     }
 
-    // SECURITY: Use explicit allowed origin for postMessage
-    const allowedOrigin = '${allowedOrigin}' || window.location.origin;
+    // SECURITY: Use explicit allowed origin for postMessage (no fallback to window.location.origin)
+    const allowedOrigin = '${allowedOrigin}';
 
     // Post message to opener (popup flow)
     // SECURITY: Validate opener exists and use explicit origin

@@ -85,7 +85,7 @@ export const initiateConnection = action({
       throw new Error(`Unknown integration: ${integrationId}`);
     }
 
-    // Check integration limit (only for new connections, not re-connects)
+    // Check if this is a re-connection (existing connection for this integration)
     const existingConnection = (await (
       ctx.runQuery as (ref: unknown, args: unknown) => Promise<unknown>
     )(

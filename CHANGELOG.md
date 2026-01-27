@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.15.0](https://github.com/planetaryescape/blah.chat/compare/v1.14.0...v1.15.0) (2026-01-27)
+
+
+### Features
+
+* **models:** add CLI for model management ([9904426](https://github.com/planetaryescape/blah.chat/commit/9904426d2e2a08aa6ce47fe7cf44fa707b1487b3))
+* **models:** add Kimi K2.5 to static config for UI ([549c9a8](https://github.com/planetaryescape/blah.chat/commit/549c9a88bbce04ae7d12552c9f3be06f4571b8d2))
+* **models:** migrate UI from static MODEL_CONFIG to database ([6fff32f](https://github.com/planetaryescape/blah.chat/commit/6fff32fd5df6be20c87028c96587ec8e9d436a7d))
+
+
+### Bug Fixes
+
+* address CI failures and PR review comments ([ac17973](https://github.com/planetaryescape/blah.chat/commit/ac17973fdcea28b2eae44fe9bd0db586cc3007f4))
+* **composio:** reduce to 10 OAuth integrations for reliability ([dee657b](https://github.com/planetaryescape/blah.chat/commit/dee657b1dd8663acdf7e22812e2885964f72fdf5))
+* **models:** run convex CLI from backend directory ([4385e10](https://github.com/planetaryescape/blah.chat/commit/4385e10df1aeb889fd5ec629c9392d33d040936e))
+
 ## [1.14.0](https://github.com/planetaryescape/blah.chat/compare/v1.13.0...v1.14.0) (2026-01-27)
 
 

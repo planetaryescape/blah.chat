@@ -175,7 +175,8 @@ export function InlineToolCallContent({
           );
         }
 
-        if (segment.type === "tool" && segment.toolCalls) {
+        // Don't render tool calls while streaming - StatusTimeline handles that
+        if (segment.type === "tool" && segment.toolCalls && !isStreaming) {
           return (
             <ToolCallDisplay
               key={`tool-${index}`}

@@ -42,10 +42,18 @@ Supported currencies: AUD, BGN, BRL, CAD, CHF, CNY, CZK, DKK, EUR, GBP, HKD, HUF
     }),
 
     execute: async ({ amount, from, to }) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       try {
-        const res = await fetch(
-          `https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`,
-        );
+        const url = new URL("https://api.frankfurter.app/latest");
+        url.searchParams.set("amount", amount.toString());
+        url.searchParams.set("from", from);
+        url.searchParams.set("to", to);
+
+        const res = await fetch(url.toString(), {
+          signal: controller.signal,
+        });
 
         if (!res.ok) {
           const text = await res.text();
@@ -69,10 +77,18 @@ Supported currencies: AUD, BGN, BRL, CAD, CHF, CNY, CZK, DKK, EUR, GBP, HKD, HUF
           date: data.date,
         };
       } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return {
+            success: false,
+            error: "Request timed out after 10 seconds",
+          };
+        }
         return {
           success: false,
           error: error instanceof Error ? error.message : "Conversion failed",
         };
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
   });

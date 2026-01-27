@@ -973,6 +973,22 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
       "Trillion-parameter model excelling at coding and reasoning benchmarks.",
     bestFor: "Code synthesis, reasoning tasks",
   },
+  "openrouter:kimi-k2.5": {
+    id: "openrouter:kimi-k2.5",
+    provider: "kimi",
+    name: "Kimi K2.5",
+    description:
+      "State-of-the-art visual coding model with self-directed agent swarm paradigm.",
+    contextWindow: 262144,
+    pricing: { input: 0.6, output: 3.0, cached: 0.1 },
+    capabilities: ["vision", "function-calling", "thinking"],
+    actualModelId: "moonshotai/kimi-k2.5",
+    gateway: "openrouter",
+    userFriendlyDescription:
+      "Moonshot flagship visual coding model. Excels at complex coding tasks with strong reasoning and agentic tool-calling.",
+    bestFor: "Visual coding, agentic workflows, complex reasoning tasks",
+    knowledgeCutoff: "January 2026",
+  },
   "openrouter:llama-3.3-70b": {
     id: "openrouter:llama-3.3-70b",
     provider: "meta",

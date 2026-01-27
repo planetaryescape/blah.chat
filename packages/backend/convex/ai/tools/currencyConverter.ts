@@ -1,6 +1,13 @@
 import { tool } from "ai";
 import { z } from "zod";
 
+interface FrankfurterResponse {
+  amount: number;
+  base: string;
+  date: string;
+  rates: Record<string, number>;
+}
+
 /**
  * Currency converter tool using Frankfurter API (ECB exchange rates).
  * Local execution - no backend action needed.
@@ -37,7 +44,7 @@ Supported currencies: AUD, BGN, BRL, CAD, CHF, CNY, CZK, DKK, EUR, GBP, HKD, HUF
     execute: async ({ amount, from, to }) => {
       try {
         const res = await fetch(
-          `https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${from}&to=${to}`,
+          `https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`,
         );
 
         if (!res.ok) {
@@ -45,7 +52,7 @@ Supported currencies: AUD, BGN, BRL, CAD, CHF, CNY, CZK, DKK, EUR, GBP, HKD, HUF
           throw new Error(`API error: ${res.status} - ${text}`);
         }
 
-        const data = await res.json();
+        const data = (await res.json()) as FrankfurterResponse;
         const result = data.rates[to];
 
         if (result === undefined) {

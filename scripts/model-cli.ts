@@ -10,7 +10,12 @@
  *   bun run model:get --id "openai:gpt-5"
  */
 import { execFileSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const _BACKEND_DIR = join(__dirname, "..", "packages", "backend");
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -34,7 +39,7 @@ function runConvex(fn: string, args: Record<string, unknown>): string {
       ["convex", "run", `models/cli:${fn}`, JSON.stringify(args)],
       {
         encoding: "utf-8",
-        cwd: process.cwd(),
+        cwd: _BACKEND_DIR,
       },
     );
     return result.trim();

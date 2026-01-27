@@ -136,9 +136,9 @@ Every phase file includes:
 - Single source of truth across all platforms
 
 ### Feature Flag Strategy
-- `NEXT_PUBLIC_USE_DB_MODELS` controls model source
+- ~~`NEXT_PUBLIC_USE_DB_MODELS`~~ **REMOVED** - DB models are now the default (static fallback during loading only)
 - `NEXT_PUBLIC_USE_DB_ROUTER_CONFIG` controls auto-router source
-- Allows independent rollout and instant rollback
+- Instant rollback via static fallback if DB unavailable
 
 ## Success Criteria
 
@@ -183,9 +183,9 @@ Every phase file includes:
 3. Back to working state in <5 minutes
 
 **Full rollback** (nuclear option):
-1. Set `NEXT_PUBLIC_USE_DB_MODELS=false` (instant)
+1. DB models: Fallback to static config happens automatically if DB unavailable
 2. Set `NEXT_PUBLIC_USE_DB_ROUTER_CONFIG=false` (instant)
-3. All code paths revert to static config immediately
+3. Auto-router reverts to hardcoded values immediately
 
 ## Current State Reference
 

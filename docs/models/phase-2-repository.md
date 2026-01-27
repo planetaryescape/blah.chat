@@ -1,9 +1,10 @@
 # Phase 2: Repository Layer & Feature Flag
 
+**Status**: ✅ COMPLETE - Feature flag removed, DB models are now the default
 **Estimated Time**: 2 days
 **Prerequisites**: Phase 1 (Schema + Seed) complete
 **Depends On**: Phase 1
-**Blocks**: Phase 3 (Admin UI), Phase 4 (Rollout), Phase 5 (Cleanup)
+**Note**: The `NEXT_PUBLIC_USE_DB_MODELS` feature flag has been removed. The repository now always queries DB with static fallback during loading only.
 
 ## Context
 

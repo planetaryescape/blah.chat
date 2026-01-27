@@ -584,7 +584,7 @@ The system now supports:
    - Model category scores
 
 3. **Instant Rollback**
-   - `NEXT_PUBLIC_USE_DB_MODELS=false` for models
+   - Models: Automatic fallback to static config if DB unavailable
    - `NEXT_PUBLIC_USE_DB_ROUTER_CONFIG=false` for router
 
 4. **Gradual Rollout**

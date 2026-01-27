@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ComparisonTrigger } from "./ComparisonTrigger";
+import { IntegrationsIndicator } from "./IntegrationsIndicator";
 import { KeyboardHints } from "./KeyboardHints";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 import {
@@ -122,6 +123,8 @@ export function InputBottomBar({
         )}
 
         <KeyboardHints isEmpty={isEmpty} hasContent={hasContent} />
+
+        <IntegrationsIndicator />
 
         <div className="hidden sm:block">
           <AIInfoTooltip />

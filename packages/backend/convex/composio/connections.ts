@@ -1,13 +1,27 @@
-"use node";
-
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import {
   internalMutation,
   internalQuery,
   mutation,
   query,
 } from "../_generated/server";
-import { getCurrentUser } from "../users";
+
+/**
+ * Helper to get current user from context (inlined to avoid calling registered queries)
+ */
+async function getCurrentUserFromCtx(
+  ctx: QueryCtx | MutationCtx,
+): Promise<Doc<"users"> | null> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) return null;
+
+  return ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .first();
+}
 
 /**
  * Get all Composio connections for the current user
@@ -15,7 +29,7 @@ import { getCurrentUser } from "../users";
 export const listConnections = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUserFromCtx(ctx);
     if (!user) return [];
 
     return ctx.db
@@ -31,7 +45,7 @@ export const listConnections = query({
 export const getActiveConnections = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUserFromCtx(ctx);
     if (!user) return [];
 
     const connections = await ctx.db
@@ -49,7 +63,7 @@ export const getActiveConnections = query({
 export const getConnectionByIntegration = query({
   args: { integrationId: v.string() },
   handler: async (ctx, { integrationId }) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUserFromCtx(ctx);
     if (!user) return null;
 
     return ctx.db
@@ -169,7 +183,7 @@ export const getConnectionByComposioId = internalQuery({
 export const disconnectIntegration = mutation({
   args: { integrationId: v.string() },
   handler: async (ctx, { integrationId }) => {
-    const user = await getCurrentUser(ctx);
+    const user = await getCurrentUserFromCtx(ctx);
     if (!user) throw new Error("Not authenticated");
 
     const connection = await ctx.db

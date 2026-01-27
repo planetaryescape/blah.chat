@@ -1622,4 +1622,28 @@ export default defineSchema({
   })
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"]),
+
+  // Composio integrations - external service connections (OAuth)
+  composioConnections: defineTable({
+    userId: v.id("users"),
+    composioConnectionId: v.string(), // Composio's internal ID
+    integrationId: v.string(), // "github", "gmail", "slack"
+    integrationName: v.string(), // Display name
+    status: v.union(
+      v.literal("pending"),
+      v.literal("initiated"),
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("failed"),
+    ),
+    scopes: v.optional(v.array(v.string())),
+    connectedAt: v.optional(v.number()),
+    lastUsedAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_integration", ["userId", "integrationId"])
+    .index("by_composio_connection", ["composioConnectionId"]),
 });

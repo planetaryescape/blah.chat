@@ -23,6 +23,8 @@
     "@ai-sdk/google": "^3.0.1",
     "@ai-sdk/openai": "^3.0.1",
     "@anthropic-ai/sdk": "^0.71.2",
+    "@composio/core": "^0.5.5",
+    "@composio/vercel": "^0.5.5",
     "@convex-dev/resend": "^0.2.3",
     "@dqbd/tiktoken": "^1.0.22",
     "@e2b/code-interpreter": "^2.3.3",

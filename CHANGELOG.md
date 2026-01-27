@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.14.0](https://github.com/planetaryescape/blah.chat/compare/v1.13.0...v1.14.0) (2026-01-27)
+
+
+### Features
+
+* **admin:** make max active integrations configurable ([7d003c2](https://github.com/planetaryescape/blah.chat/commit/7d003c2da5133ef8749f6f7818ef66a28a74537b))
+* **admin:** replace router model select with combobox ([d47e43f](https://github.com/planetaryescape/blah.chat/commit/d47e43f568ff81aedb222181bb9df9ed07ff2cd4))
+* **admin:** use select dropdown for router model setting ([da87bdf](https://github.com/planetaryescape/blah.chat/commit/da87bdf14656c1c88a2473f0674be95b14604ccb))
+* **composio:** add integrations indicator in chat input ([ebea740](https://github.com/planetaryescape/blah.chat/commit/ebea740883571291ec217ab388ea85b5fd085953))
+* **composio:** add svgl icons and improve settings UI ([0cf2bb5](https://github.com/planetaryescape/blah.chat/commit/0cf2bb571c2e9b6591f93a6d8c8ebf4d774aef3f))
+* **composio:** improve tools integration and logging ([0778292](https://github.com/planetaryescape/blah.chat/commit/0778292e3b5eb57d607a1e47f1be4a8b1c0cb3de))
+* **integrations:** add Composio integration for external service tools ([208d28c](https://github.com/planetaryescape/blah.chat/commit/208d28ca5d4ef45dc123036ae3dfc418b3b436b2))
+
+
+### Bug Fixes
+
+* **admin:** fix page overflow and scrolling issues ([db14be5](https://github.com/planetaryescape/blah.chat/commit/db14be54f047eb561d1fbc97492ab1717457711f))
+* **admin:** wrap ScrollArea properly for correct overflow handling ([f4667cb](https://github.com/planetaryescape/blah.chat/commit/f4667cb14b035dae1d6e0f9667cf7d594c5fb153))
+* **composio:** fix Convex runtime and Composio SDK API issues ([6fea169](https://github.com/planetaryescape/blah.chat/commit/6fea169ff2632953a5cbb9604185fcb084cea844))
+* **composio:** preserve active status during re-auth to prevent tool access loss ([5bc0943](https://github.com/planetaryescape/blah.chat/commit/5bc0943244ce323bb55fe3a83545739ca03d46e7))
+* **composio:** prioritize connectedAccountId param, add verification note ([de7060a](https://github.com/planetaryescape/blah.chat/commit/de7060a562a665277b8b35a546506123a4ed6098))
+* **security:** address critical OAuth vulnerabilities ([a7d6485](https://github.com/planetaryescape/blah.chat/commit/a7d648540f6493c2632fd481fc422ba079c061d5))
+* **security:** hardcode production domain for postMessage origin ([0c32693](https://github.com/planetaryescape/blah.chat/commit/0c326930414dff497bc81eed2f71902c6f43ee2c))
+* **security:** strengthen CSRF and XSS protections ([f726e26](https://github.com/planetaryescape/blah.chat/commit/f726e26a7856685fcddd23700ceb19b8556d6e99))
+* **settings:** sticky tabs and pending connection UX ([0029987](https://github.com/planetaryescape/blah.chat/commit/00299871805b67b46970b49d6f578d3d1ef7ef7d))
+* **ui:** improve tool call display and integrations list ([37fc858](https://github.com/planetaryescape/blah.chat/commit/37fc8581591e7e55b24a1b4bfa53013a2e726324))
+
 ## [1.13.0](https://github.com/planetaryescape/blah.chat/compare/v1.12.1...v1.13.0) (2026-01-27)
 
 

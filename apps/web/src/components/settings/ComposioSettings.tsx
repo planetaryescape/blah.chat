@@ -39,6 +39,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -272,7 +273,7 @@ export function ComposioSettings() {
             </div>
           </div>
 
-          {/* Integration List */}
+          {/* Integration List - ScrollArea for 500+ items */}
           {filteredIntegrations.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
               {statusFilter === "connected" &&
@@ -289,127 +290,136 @@ export function ComposioSettings() {
               )}
             </div>
           ) : (
-            <div className="border rounded-lg divide-y overflow-hidden">
-              {filteredIntegrations.map((integration) => {
-                const connection = getConnection(integration.id);
-                const isConnected = connection?.status === "active";
-                const isExpired = connection?.status === "expired";
-                const isFailed = connection?.status === "failed";
-                const isPending = connection?.status === "initiated";
-                const isConnecting = connectingId === integration.id;
+            <ScrollArea className="h-[400px] border rounded-lg">
+              <div className="divide-y">
+                {filteredIntegrations.map((integration) => {
+                  const connection = getConnection(integration.id);
+                  const isConnected = connection?.status === "active";
+                  const isExpired = connection?.status === "expired";
+                  const isFailed = connection?.status === "failed";
+                  const isPending = connection?.status === "initiated";
+                  const isConnecting = connectingId === integration.id;
 
-                return (
-                  <div
-                    key={integration.id}
-                    className={cn(
-                      "flex items-center gap-3 p-3 transition-colors",
-                      isConnected && "bg-emerald-500/5",
-                      (isExpired || isFailed) && "bg-amber-500/5",
-                      isPending && "bg-blue-500/5",
-                    )}
-                  >
-                    {/* Icon */}
-                    <IntegrationIcon
-                      integrationId={integration.id}
-                      integrationName={integration.name}
-                    />
+                  return (
+                    <div
+                      key={integration.id}
+                      className={cn(
+                        "flex items-center gap-3 p-3 transition-colors",
+                        isConnected && "bg-emerald-500/5",
+                        (isExpired || isFailed) && "bg-amber-500/5",
+                        isPending && "bg-blue-500/5",
+                      )}
+                    >
+                      {/* Icon */}
+                      <IntegrationIcon
+                        integrationId={integration.id}
+                        integrationName={integration.name}
+                      />
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">
-                          {integration.name}
-                        </span>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            {integration.name}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {integration.description}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {integration.description}
-                      </p>
-                    </div>
 
-                    {/* Status & Action */}
-                    <div className="shrink-0 flex items-center gap-2">
-                      {isConnecting ? (
-                        <Button variant="outline" size="sm" disabled>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                          Connecting...
-                        </Button>
-                      ) : isPending ? (
-                        <>
-                          <Badge
-                            variant="secondary"
-                            className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                          >
-                            <Clock className="h-3 w-3 mr-1" />
-                            Pending
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              setDisconnectDialog({
-                                open: true,
-                                integration,
-                                action: "cancel",
-                              })
-                            }
-                          >
-                            Cancel
+                      {/* Status & Action */}
+                      <div className="shrink-0 flex items-center gap-2">
+                        {isConnecting ? (
+                          <Button variant="outline" size="sm" disabled>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                            Connecting...
                           </Button>
-                        </>
-                      ) : isConnected ? (
-                        <>
-                          <Badge
-                            variant="secondary"
-                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                          >
-                            <Check className="h-3 w-3 mr-1" />
-                            Connected
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              setDisconnectDialog({
-                                open: true,
-                                integration,
-                                action: "disconnect",
-                              })
-                            }
-                          >
-                            Disconnect
-                          </Button>
-                        </>
-                      ) : isExpired || isFailed ? (
-                        <>
-                          <Badge
-                            variant="secondary"
-                            className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                          >
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            {isExpired ? "Expired" : "Failed"}
-                          </Badge>
+                        ) : isPending ? (
+                          <>
+                            <Badge
+                              variant="secondary"
+                              className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                            >
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pending
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setDisconnectDialog({
+                                  open: true,
+                                  integration,
+                                  action: "cancel",
+                                })
+                              }
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        ) : isConnected ? (
+                          <>
+                            <Badge
+                              variant="secondary"
+                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Connected
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleConnect(integration.id)}
+                            >
+                              Manage
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setDisconnectDialog({
+                                  open: true,
+                                  integration,
+                                  action: "disconnect",
+                                })
+                              }
+                            >
+                              Disconnect
+                            </Button>
+                          </>
+                        ) : isExpired || isFailed ? (
+                          <>
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                            >
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              {isExpired ? "Expired" : "Failed"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleConnect(integration.id)}
+                            >
+                              Reconnect
+                            </Button>
+                          </>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleConnect(integration.id)}
                           >
-                            Reconnect
+                            Connect
                           </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleConnect(integration.id)}
-                        >
-                          Connect
-                        </Button>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>

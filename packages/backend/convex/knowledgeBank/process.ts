@@ -7,7 +7,10 @@
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { getGatewayOptions } from "@/lib/ai/gateway";
-import { DOCUMENT_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
+import {
+  DOCUMENT_EXTRACTION_MODEL,
+  EMBEDDING_MODEL,
+} from "@/lib/ai/operational-models";
 import { getModel } from "@/lib/ai/registry";
 import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
@@ -20,7 +23,7 @@ import {
   OVERLAP_SIZE_CHARS,
 } from "../files/chunking";
 import { logger } from "../lib/logger";
-import { EMBEDDING_BATCH_SIZE, EMBEDDING_MODEL } from "./constants";
+import { EMBEDDING_BATCH_SIZE } from "./constants";
 import { KNOWLEDGE_BANK_LIMITS } from "./index";
 
 interface ProcessedChunk {
@@ -534,35 +537,15 @@ Be thorough - this will be used for search and retrieval.`,
 }
 
 /**
- * Generate embeddings for text chunks
+ * Generate embeddings for text chunks using AI Gateway
  */
 async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY not configured");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: EMBEDDING_MODEL,
-      input: texts,
-    }),
+  const { embedMany } = await import("ai");
+  const { embeddings } = await embedMany({
+    model: EMBEDDING_MODEL,
+    values: texts,
   });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI embeddings error: ${error}`);
-  }
-
-  const data = (await response.json()) as {
-    data: Array<{ embedding: number[] }>;
-  };
-  return data.data.map((item) => item.embedding);
+  return embeddings;
 }
 
 /**

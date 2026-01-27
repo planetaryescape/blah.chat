@@ -6,6 +6,7 @@
  */
 
 import { v } from "convex/values";
+import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -14,7 +15,6 @@ import {
   internalQuery,
   query,
 } from "../_generated/server";
-import { EMBEDDING_MODEL } from "./constants";
 
 // Search result interface
 export interface KnowledgeSearchResult {
@@ -345,33 +345,13 @@ export const getChunk = internalQuery({
 });
 
 /**
- * Generate embedding for query
+ * Generate embedding for query using AI Gateway
  */
 async function generateEmbedding(text: string): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY not configured");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: EMBEDDING_MODEL,
-      input: text,
-    }),
+  const { embed } = await import("ai");
+  const { embedding } = await embed({
+    model: EMBEDDING_MODEL,
+    value: text,
   });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI embeddings error: ${error}`);
-  }
-
-  const data = (await response.json()) as {
-    data: Array<{ embedding: number[] }>;
-  };
-  return data.data[0].embedding;
+  return embedding;
 }

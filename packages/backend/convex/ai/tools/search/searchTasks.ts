@@ -13,28 +13,13 @@ import type { ActionCtx } from "../../../_generated/server";
 
 export function createSearchTasksTool(ctx: ActionCtx, userId: Id<"users">) {
   return tool({
-    description: `Search tasks using hybrid search (semantic + keyword + status filter).
-
-✅ USE FOR:
-- Finding active work items
-- Listing tasks by status
-- Finding upcoming deadlines
-- Searching tasks by keyword or topic
-- Getting task context for discussions
-
-📎 RESULTS INCLUDE:
-- id, projectId: For reference
-- url: Link to tasks page (use in markdown links)
-- title, status, urgency, deadline, description
-
-When citing results, include the URL so users can navigate to tasks.
-Example: [Task Title](url)
+    description: `Search tasks stored in this app only. For external services (calendars, email, etc), use the UPPERCASE service tools instead.
 
 Parameters:
-- query: Optional - what to search for (semantic + keyword)
-- projectId: Optional - filter to specific project, omit to search all tasks
-- status: Optional - filter by status (suggested, confirmed, in_progress, completed, cancelled)
-- limit: Number of results (1-20, default: 10)`,
+- query: Optional search text
+- projectId: Optional project filter
+- status: Optional status filter
+- limit: Results (1-20, default: 10)`,
     inputSchema: z.object({
       query: z
         .string()

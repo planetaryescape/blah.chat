@@ -57,6 +57,11 @@ export function useModels(options?: {
     return undefined;
   }
 
+  // Handle non-array responses (edge case in tests)
+  if (!Array.isArray(dbModels)) {
+    return { auto: AUTO_MODEL };
+  }
+
   // Transform DB models and include AUTO_MODEL
   const configs = dbModelsToConfigRecord(dbModels);
   configs.auto = AUTO_MODEL;

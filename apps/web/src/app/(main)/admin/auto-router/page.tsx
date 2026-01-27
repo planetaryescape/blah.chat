@@ -24,10 +24,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { useRouterConfig } from "@/lib/models";
+import { useModels, useRouterConfig } from "@/lib/models";
 
 // Safe JSON parse with fallback for malformed data
 function safeJsonParse<T>(json: string | undefined, fallback: T): T {
@@ -106,12 +113,18 @@ function AutoRouterSkeleton() {
 
 function _AutoRouterPageContent() {
   const config = useRouterConfig();
+  const models = useModels({ includeInternalOnly: true });
   // @ts-ignore - Type depth exceeded
   const updateConfigMutation = useMutation(
     getModelsApi().mutations.updateRouterConfig,
   );
 
   const [formData, setFormData] = useState(DEFAULT_CONFIG);
+
+  // Get sorted model list for the select
+  const modelOptions = Object.entries(models)
+    .filter(([id]) => id !== "auto") // Exclude auto from router model options
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name));
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -583,14 +596,21 @@ function _AutoRouterPageContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="routerModelId">Router Model</Label>
-                    <Input
-                      id="routerModelId"
+                    <Select
                       value={formData.routerModelId}
-                      onChange={(e) =>
-                        updateField("routerModelId", e.target.value)
-                      }
-                      placeholder="openai:gpt-oss-120b"
-                    />
+                      onValueChange={(v) => updateField("routerModelId", v)}
+                    >
+                      <SelectTrigger id="routerModelId">
+                        <SelectValue placeholder="Select a model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modelOptions.map(([id, model]) => (
+                          <SelectItem key={id} value={id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground">
                       Model used for task classification
                     </p>

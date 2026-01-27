@@ -554,6 +554,69 @@ All AI model definitions and configuration must live in `src/lib/ai/models.ts`.
 
 ---
 
+## Adding New Models (CLI)
+
+Use the CLI to add/update/deprecate models directly in the database:
+
+```bash
+# Add a new model (JSON with all required fields)
+bun run model:add --json '{
+  "modelId": "openai:gpt-6",
+  "provider": "openai",
+  "name": "GPT-6",
+  "contextWindow": 200000,
+  "inputCost": 2.5,
+  "outputCost": 10,
+  "capabilities": ["vision", "function-calling"],
+  "status": "active"
+}'
+
+# List all models
+bun run model:list
+
+# List by provider or status
+bun run model:list --provider openai
+bun run model:list --status deprecated
+
+# Get a single model
+bun run model:get --id "openai:gpt-5"
+
+# Update model pricing
+bun run model:update --id "openai:gpt-5" --json '{"inputCost": 2.0, "outputCost": 8.0}'
+
+# Deprecate a model
+bun run model:deprecate --id "openai:gpt-4" --reason "Replaced by GPT-5"
+```
+
+**Required fields for add:**
+- `modelId` - Unique ID like "provider:model-name"
+- `provider` - One of: openai, anthropic, google, xai, perplexity, groq, cerebras, minimax, deepseek, kimi, zai, meta, mistral, alibaba, zhipu
+- `name` - Display name
+- `contextWindow` - Max tokens
+- `inputCost` - Cost per 1M input tokens (USD)
+- `outputCost` - Cost per 1M output tokens (USD)
+- `capabilities` - Array of: vision, function-calling, thinking, extended-thinking, image-generation
+- `status` - One of: active, deprecated, beta
+
+**Optional fields:**
+- `description` - Internal description
+- `userFriendlyDescription` - User-facing description
+- `bestFor` - Use case recommendations
+- `knowledgeCutoff` - Knowledge cutoff date
+- `cachedInputCost` - Cost per 1M cached input tokens
+- `reasoningCost` - Cost per 1M reasoning tokens
+- `reasoningConfig` - JSON string for reasoning configuration
+- `gateway` - "vercel" or "openrouter"
+- `hostOrder` - Array of fallback hosts
+- `actualModelId` - Override for API calls
+- `speedTier` - "ultra-fast", "fast", "medium", "slow"
+- `isPro` - Requires tier access
+- `isInternalOnly` - Hidden from model picker
+- `isExperimental` - Preview/beta flag
+- `isLocal` - Ollama models
+
+---
+
 ## Environment Variables
 
 Required for development:

@@ -10,13 +10,11 @@ import {
 import {
   AlertTriangle,
   Check,
-  ChevronRight,
+  Clock,
   Info,
   Loader2,
   Plug2,
-  RefreshCw,
   Search,
-  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { IntegrationIcon } from "@/components/settings/composio/IntegrationIcon";
@@ -52,29 +50,68 @@ import { useComposioOAuth } from "@/hooks/useComposioOAuth";
 import { cn } from "@/lib/utils";
 
 type ComposioConnection = Doc<"composioConnections">;
+type StatusFilter = "all" | "connected" | "needs_attention";
 
 export function ComposioSettings() {
-  const { connections, isLoading, status, connect, disconnect, getConnection } =
+  const { connections, isLoading, connect, disconnect, getConnection } =
     useComposioOAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<
     IntegrationCategory | "all"
   >("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [disconnectDialog, setDisconnectDialog] = useState<{
     open: boolean;
     integration: IntegrationDefinition | null;
-  }>({ open: false, integration: null });
+    action: "disconnect" | "cancel";
+  }>({ open: false, integration: null, action: "disconnect" });
+
+  // Active connections
+  const activeConnections = useMemo(() => {
+    return connections.filter((c: ComposioConnection) => c.status === "active");
+  }, [connections]);
+
+  // Pending connections
+  const pendingConnections = useMemo(() => {
+    return connections.filter(
+      (c: ComposioConnection) => c.status === "initiated",
+    );
+  }, [connections]);
+
+  // Connections needing attention (expired/failed)
+  const needsAttention = useMemo(() => {
+    return connections.filter(
+      (c: ComposioConnection) =>
+        c.status === "expired" || c.status === "failed",
+    );
+  }, [connections]);
 
   // Filter integrations
   const filteredIntegrations = useMemo(() => {
     let filtered = INTEGRATIONS;
 
+    // Category filter
     if (activeCategory !== "all") {
       filtered = filtered.filter((i) => i.category === activeCategory);
     }
 
+    // Status filter
+    if (statusFilter === "connected") {
+      const connectedIds = new Set(
+        activeConnections.map((c: ComposioConnection) => c.integrationId),
+      );
+      filtered = filtered.filter((i) => connectedIds.has(i.id));
+    } else if (statusFilter === "needs_attention") {
+      const attentionIds = new Set([
+        ...needsAttention.map((c: ComposioConnection) => c.integrationId),
+        ...pendingConnections.map((c: ComposioConnection) => c.integrationId),
+      ]);
+      filtered = filtered.filter((i) => attentionIds.has(i.id));
+    }
+
+    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -85,20 +122,14 @@ export function ComposioSettings() {
     }
 
     return filtered;
-  }, [activeCategory, searchQuery]);
-
-  // Active connections
-  const activeConnections = useMemo(() => {
-    return connections.filter((c: ComposioConnection) => c.status === "active");
-  }, [connections]);
-
-  // Connections needing attention
-  const needsAttention = useMemo(() => {
-    return connections.filter(
-      (c: ComposioConnection) =>
-        c.status === "expired" || c.status === "failed",
-    );
-  }, [connections]);
+  }, [
+    activeCategory,
+    statusFilter,
+    searchQuery,
+    activeConnections,
+    needsAttention,
+    pendingConnections,
+  ]);
 
   // Handle connect
   const handleConnect = async (integrationId: string) => {
@@ -110,10 +141,14 @@ export function ComposioSettings() {
     }
   };
 
-  // Handle disconnect
+  // Handle disconnect/cancel
   const handleDisconnect = async (integrationId: string) => {
     await disconnect(integrationId);
-    setDisconnectDialog({ open: false, integration: null });
+    setDisconnectDialog({
+      open: false,
+      integration: null,
+      action: "disconnect",
+    });
   };
 
   if (isLoading) {
@@ -162,76 +197,25 @@ export function ComposioSettings() {
         </CardContent>
       </Card>
 
-      {/* Connected integrations */}
-      {(activeConnections.length > 0 || needsAttention.length > 0) && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-500" />
-                Connected ({activeConnections.length})
-              </CardTitle>
-              {needsAttention.length > 0 && (
-                <Badge
-                  variant="outline"
-                  className="text-amber-500 border-amber-500/30"
-                >
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  {needsAttention.length} need attention
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex flex-wrap gap-2">
-              {activeConnections.map((conn: ComposioConnection) => (
-                <Badge
-                  key={conn._id}
-                  variant="secondary"
-                  className="py-1.5 px-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                >
-                  {conn.integrationName}
-                  <button
-                    onClick={() => {
-                      const integration = INTEGRATIONS.find(
-                        (i) => i.id === conn.integrationId,
-                      );
-                      if (integration) {
-                        setDisconnectDialog({ open: true, integration });
-                      }
-                    }}
-                    className="ml-2 hover:text-red-500 transition-colors"
-                    title="Disconnect"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-              {needsAttention.map((conn: ComposioConnection) => (
-                <Badge
-                  key={conn._id}
-                  variant="secondary"
-                  className="py-1.5 px-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-colors"
-                  onClick={() => handleConnect(conn.integrationId)}
-                  title="Click to reconnect"
-                >
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  {conn.integrationName}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search and filter */}
+      {/* Integrations Card */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Available Integrations</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">All Integrations</CardTitle>
+            {activeConnections.length > 0 && (
+              <Badge
+                variant="secondary"
+                className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+              >
+                <Check className="h-3 w-3 mr-1" />
+                {activeConnections.length} connected
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search and Category Filter */}
-          <div className="flex gap-3">
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -241,37 +225,68 @@ export function ComposioSettings() {
                 className="pl-9"
               />
             </div>
-            <Select
-              value={activeCategory}
-              onValueChange={(v) =>
-                setActiveCategory(v as IntegrationCategory | "all")
-              }
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All ({INTEGRATIONS.length})</SelectItem>
-                {Object.entries(INTEGRATION_CATEGORIES)
-                  .sort((a, b) => a[1].order - b[1].order)
-                  .map(([id, { label }]) => {
-                    const count = INTEGRATIONS.filter(
-                      (i) => i.category === id,
-                    ).length;
-                    return (
-                      <SelectItem key={id} value={id}>
-                        {label} ({count})
-                      </SelectItem>
-                    );
-                  })}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="connected">
+                    Connected ({activeConnections.length})
+                  </SelectItem>
+                  <SelectItem value="needs_attention">
+                    Needs Attention (
+                    {needsAttention.length + pendingConnections.length})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={activeCategory}
+                onValueChange={(v) =>
+                  setActiveCategory(v as IntegrationCategory | "all")
+                }
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {Object.entries(INTEGRATION_CATEGORIES)
+                    .sort((a, b) => a[1].order - b[1].order)
+                    .map(([id, { label }]) => {
+                      const count = INTEGRATIONS.filter(
+                        (i) => i.category === id,
+                      ).length;
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {label} ({count})
+                        </SelectItem>
+                      );
+                    })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Integration List */}
           {filteredIntegrations.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
-              No integrations found matching "{searchQuery}"
+              {statusFilter === "connected" &&
+              activeConnections.length === 0 ? (
+                "No connected integrations yet"
+              ) : statusFilter === "needs_attention" &&
+                needsAttention.length === 0 &&
+                pendingConnections.length === 0 ? (
+                "No integrations need attention"
+              ) : searchQuery ? (
+                <>No integrations found matching &quot;{searchQuery}&quot;</>
+              ) : (
+                "No integrations found"
+              )}
             </div>
           ) : (
             <div className="border rounded-lg divide-y overflow-hidden">
@@ -279,27 +294,19 @@ export function ComposioSettings() {
                 const connection = getConnection(integration.id);
                 const isConnected = connection?.status === "active";
                 const isExpired = connection?.status === "expired";
+                const isFailed = connection?.status === "failed";
                 const isPending = connection?.status === "initiated";
-                const isConnecting =
-                  connectingId === integration.id || status === "connecting";
+                const isConnecting = connectingId === integration.id;
 
                 return (
                   <div
                     key={integration.id}
                     className={cn(
-                      "flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors cursor-pointer",
+                      "flex items-center gap-3 p-3 transition-colors",
                       isConnected && "bg-emerald-500/5",
-                      isExpired && "bg-amber-500/5",
+                      (isExpired || isFailed) && "bg-amber-500/5",
+                      isPending && "bg-blue-500/5",
                     )}
-                    onClick={() => {
-                      if (!isConnecting && !isPending) {
-                        if (isConnected) {
-                          setDisconnectDialog({ open: true, integration });
-                        } else {
-                          handleConnect(integration.id);
-                        }
-                      }
-                    }}
                   >
                     {/* Icon */}
                     <IntegrationIcon
@@ -313,64 +320,89 @@ export function ComposioSettings() {
                         <span className="font-medium text-sm">
                           {integration.name}
                         </span>
-                        {isConnected && (
-                          <Check className="h-3.5 w-3.5 text-emerald-500" />
-                        )}
-                        {isExpired && (
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
                         {integration.description}
                       </p>
                     </div>
 
-                    {/* Action */}
-                    <div className="shrink-0">
+                    {/* Status & Action */}
+                    <div className="shrink-0 flex items-center gap-2">
                       {isConnecting ? (
-                        <Button variant="ghost" size="sm" disabled>
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                        <Button variant="outline" size="sm" disabled>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                          Connecting...
                         </Button>
                       ) : isPending ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-red-500"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDisconnectDialog({ open: true, integration });
-                          }}
-                          title="Cancel pending connection"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                          >
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setDisconnectDialog({
+                                open: true,
+                                integration,
+                                action: "cancel",
+                              })
+                            }
+                          >
+                            Cancel
+                          </Button>
+                        </>
                       ) : isConnected ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-red-500"
-                          onClick={() =>
-                            setDisconnectDialog({ open: true, integration })
-                          }
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      ) : isExpired ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-amber-500 hover:text-amber-600"
-                          onClick={() => handleConnect(integration.id)}
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Badge
+                            variant="secondary"
+                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          >
+                            <Check className="h-3 w-3 mr-1" />
+                            Connected
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setDisconnectDialog({
+                                open: true,
+                                integration,
+                                action: "disconnect",
+                              })
+                            }
+                          >
+                            Disconnect
+                          </Button>
+                        </>
+                      ) : isExpired || isFailed ? (
+                        <>
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {isExpired ? "Expired" : "Failed"}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleConnect(integration.id)}
+                          >
+                            Reconnect
+                          </Button>
+                        </>
                       ) : (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleConnect(integration.id)}
                         >
-                          <ChevronRight className="h-4 w-4" />
+                          Connect
                         </Button>
                       )}
                     </div>
@@ -382,29 +414,32 @@ export function ComposioSettings() {
         </CardContent>
       </Card>
 
-      {/* Disconnect confirmation dialog */}
+      {/* Disconnect/Cancel confirmation dialog */}
       <AlertDialog
         open={disconnectDialog.open}
         onOpenChange={(open) =>
           setDisconnectDialog({
             open,
             integration: disconnectDialog.integration,
+            action: disconnectDialog.action,
           })
         }
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Disconnect {disconnectDialog.integration?.name}?
+              {disconnectDialog.action === "cancel"
+                ? `Cancel ${disconnectDialog.integration?.name} connection?`
+                : `Disconnect ${disconnectDialog.integration?.name}?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will revoke access to your{" "}
-              {disconnectDialog.integration?.name} account. You can reconnect at
-              any time.
+              {disconnectDialog.action === "cancel"
+                ? `This will cancel the pending connection to ${disconnectDialog.integration?.name}. You can try connecting again later.`
+                : `This will revoke access to your ${disconnectDialog.integration?.name} account. You can reconnect at any time.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Keep</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (disconnectDialog.integration) {
@@ -413,7 +448,9 @@ export function ComposioSettings() {
               }}
               className="bg-red-500 hover:bg-red-600"
             >
-              Disconnect
+              {disconnectDialog.action === "cancel"
+                ? "Cancel Connection"
+                : "Disconnect"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

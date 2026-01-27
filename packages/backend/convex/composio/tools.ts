@@ -24,12 +24,6 @@ export async function createComposioTools(
   config: ComposioToolsConfig,
 ): Promise<ComposioToolsResult> {
   const { logger } = await import("../lib/logger");
-
-  logger.info("createComposioTools called", {
-    tag: "Composio",
-    connectionCount: config.connections.length,
-  });
-
   const { userId, connections } = config;
 
   // Filter to active connections only
@@ -62,58 +56,17 @@ export async function createComposioTools(
     );
     const connectedAppNames = activeConnections.map((c) => c.integrationName);
 
-    logger.warn("COMPOSIO_DEBUG About to fetch tools", {
-      tag: "COMPOSIO_DEBUG",
-      entityId,
-      toolkits: connectedToolkits,
-      apiKeyPresent: !!apiKey,
-    });
-
-    logger.info("Fetching Composio tools", {
-      tag: "Composio",
-      entityId,
-      toolkits: connectedToolkits.join(", "),
-    });
-
     // Get tools from Composio for the connected toolkits
-    logger.info("Calling composio.tools.get", {
-      tag: "Composio",
-      entityId,
-      toolkits: connectedToolkits,
-    });
-
     let tools: Record<string, unknown>;
     try {
       tools = await composio.tools.get(entityId, {
         toolkits: connectedToolkits,
-        limit: 100, // Default is 20, need more to get all toolkit tools
-      });
-      logger.warn("COMPOSIO_DEBUG tools.get returned", {
-        tag: "COMPOSIO_DEBUG",
-        toolsType: typeof tools,
-        isNull: tools === null,
-        isUndefined: tools === undefined,
-        keyCount: tools ? Object.keys(tools).length : 0,
-        keys: tools ? Object.keys(tools).slice(0, 5) : [],
-      });
-      logger.info("composio.tools.get returned", {
-        tag: "Composio",
-        toolsType: typeof tools,
-        isNull: tools === null,
-        isUndefined: tools === undefined,
-        keys: tools ? Object.keys(tools).slice(0, 20) : [],
+        limit: 100,
       });
     } catch (toolsError) {
-      logger.error("COMPOSIO_DEBUG tools.get FAILED", {
-        tag: "COMPOSIO_DEBUG",
-        error: String(toolsError),
-      });
-      logger.error("composio.tools.get threw error", {
+      logger.error("Composio tools.get failed", {
         tag: "Composio",
         error: String(toolsError),
-        errorName: toolsError instanceof Error ? toolsError.name : "unknown",
-        errorStack:
-          toolsError instanceof Error ? toolsError.stack?.slice(0, 500) : "",
       });
       return { tools: {}, connectedApps: connectedAppNames };
     }
@@ -126,12 +79,6 @@ export async function createComposioTools(
       });
       return { tools: {}, connectedApps: connectedAppNames };
     }
-
-    logger.info("Composio tools loaded successfully", {
-      tag: "Composio",
-      toolCount: Object.keys(tools).length,
-      toolNames: Object.keys(tools).slice(0, 10).join(", "),
-    });
 
     // Wrap tools to track usage and handle errors
     const wrappedTools: Record<string, unknown> = {};

@@ -20,7 +20,12 @@
     "convex": "bun --filter=@blah-chat/backend run dev",
     "convex:deploy": "bun --filter=@blah-chat/backend run deploy",
     "prepare": "lefthook install",
-    "byod:sync": "bun run scripts/sync-byod-schema.ts"
+    "byod:sync": "bun run scripts/sync-byod-schema.ts",
+    "model:add": "bun run scripts/model-cli.ts add",
+    "model:list": "bun run scripts/model-cli.ts list",
+    "model:get": "bun run scripts/model-cli.ts get",
+    "model:update": "bun run scripts/model-cli.ts update",
+    "model:deprecate": "bun run scripts/model-cli.ts deprecate"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.12",

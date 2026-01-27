@@ -185,6 +185,7 @@ import type * as migrations_012_rechunk_knowledge from "../migrations/012_rechun
 import type * as migrations_013_tree_architecture from "../migrations/013_tree_architecture.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
+import type * as models_cli from "../models/cli.js";
 import type * as models_mutations from "../models/mutations.js";
 import type * as models_queries from "../models/queries.js";
 import type * as models_seed from "../models/seed.js";
@@ -471,6 +472,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/013_tree_architecture": typeof migrations_013_tree_architecture;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
+  "models/cli": typeof models_cli;
   "models/mutations": typeof models_mutations;
   "models/queries": typeof models_queries;
   "models/seed": typeof models_seed;

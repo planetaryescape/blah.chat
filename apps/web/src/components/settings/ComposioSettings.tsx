@@ -143,7 +143,7 @@ export function ComposioSettings() {
         <CardContent className="pt-0">
           <Alert className="bg-muted/50 border-muted">
             <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm text-muted-foreground">
+            <AlertDescription className="text-sm text-muted-foreground block">
               Integrations are powered by{" "}
               <a
                 href="https://composio.dev"
@@ -327,9 +327,22 @@ export function ComposioSettings() {
 
                     {/* Action */}
                     <div className="shrink-0">
-                      {isConnecting || isPending ? (
+                      {isConnecting ? (
                         <Button variant="ghost" size="sm" disabled>
                           <Loader2 className="h-4 w-4 animate-spin" />
+                        </Button>
+                      ) : isPending ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDisconnectDialog({ open: true, integration });
+                          }}
+                          title="Cancel pending connection"
+                        >
+                          <X className="h-4 w-4" />
                         </Button>
                       ) : isConnected ? (
                         <Button

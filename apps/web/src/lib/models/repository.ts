@@ -2,24 +2,17 @@
  * Model Repository
  *
  * Abstraction layer for model configuration.
- * Supports both DB-backed (via Convex) and static sources.
+ * Uses DB-backed storage via Convex with static fallback during loading.
  *
  * Usage:
  * - In React components: use useModels(), useModel(id) hooks
  * - In server code: use getStaticModels() for fallback
- *
- * Feature flag: NEXT_PUBLIC_USE_DB_MODELS=true enables DB-backed models
  */
 
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "@/lib/ai/models";
 import { dbModelsToConfigRecord, dbToModelConfig } from "./transforms";
-
-/**
- * Feature flag for DB-backed models
- */
-export const USE_DB_MODELS = process.env.NEXT_PUBLIC_USE_DB_MODELS === "true";
 
 // Type cast helpers to work around Convex type depth issues with 90+ modules
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +37,7 @@ function getModelsApi() {
 
 /**
  * Hook to get all available models
- * Uses Convex reactive queries when DB mode is enabled
+ * Uses Convex reactive queries with static fallback during loading
  *
  * @param options.includeDeprecated - Include deprecated models
  * @param options.includeInternalOnly - Include internal-only models (admin)
@@ -54,18 +47,13 @@ export function useModels(options?: {
   includeDeprecated?: boolean;
   includeInternalOnly?: boolean;
 }): Record<string, ModelConfig> {
-  const dbModels = typedQuery(
-    getModelsApi().queries.list,
-    USE_DB_MODELS
-      ? {
-          includeDeprecated: options?.includeDeprecated,
-          includeInternalOnly: options?.includeInternalOnly,
-        }
-      : "skip",
-  ) as Doc<"models">[] | undefined;
+  const dbModels = typedQuery(getModelsApi().queries.list, {
+    includeDeprecated: options?.includeDeprecated,
+    includeInternalOnly: options?.includeInternalOnly,
+  }) as Doc<"models">[] | undefined;
 
-  // While loading, if DB mode disabled, or if DB is empty (not seeded), return static config
-  if (!USE_DB_MODELS || !dbModels || dbModels.length === 0) {
+  // While loading or if DB is empty (not seeded), return static config
+  if (!dbModels || dbModels.length === 0) {
     return filterStaticModels(options);
   }
 
@@ -91,13 +79,8 @@ export function useModel(modelId: string | undefined): ModelConfig | undefined {
 
   const dbModel = typedQuery(
     getModelsApi().queries.getById,
-    USE_DB_MODELS && modelId ? { modelId } : "skip",
+    modelId ? { modelId } : "skip",
   ) as Doc<"models"> | null | undefined;
-
-  // If DB mode disabled, use static
-  if (!USE_DB_MODELS) {
-    return modelId ? MODEL_CONFIG[modelId] : undefined;
-  }
 
   // If modelId undefined, return undefined
   if (!modelId) {
@@ -117,20 +100,19 @@ export function useModel(modelId: string | undefined): ModelConfig | undefined {
  * Hook to get model profiles for auto-router
  */
 export function useModelProfiles(): Doc<"modelProfiles">[] | undefined {
-  return typedQuery(
-    getModelsApi().queries.listProfiles,
-    USE_DB_MODELS ? {} : "skip",
-  ) as Doc<"modelProfiles">[] | undefined;
+  return typedQuery(getModelsApi().queries.listProfiles, {}) as
+    | Doc<"modelProfiles">[]
+    | undefined;
 }
 
 /**
  * Hook to get auto-router configuration
  */
 export function useRouterConfig(): Doc<"autoRouterConfig"> | null | undefined {
-  return typedQuery(
-    getModelsApi().queries.getRouterConfig,
-    USE_DB_MODELS ? {} : "skip",
-  ) as Doc<"autoRouterConfig"> | null | undefined;
+  return typedQuery(getModelsApi().queries.getRouterConfig, {}) as
+    | Doc<"autoRouterConfig">
+    | null
+    | undefined;
 }
 
 /**
@@ -142,7 +124,7 @@ export function useModelHistory(
 ): Doc<"modelHistory">[] | undefined {
   return typedQuery(
     getModelsApi().queries.getHistory,
-    USE_DB_MODELS && modelId ? { modelId, limit } : "skip",
+    modelId ? { modelId, limit } : "skip",
   ) as Doc<"modelHistory">[] | undefined;
 }
 
@@ -156,10 +138,7 @@ export function useModelStats():
       byProvider: Record<string, number>;
     }
   | undefined {
-  return typedQuery(
-    getModelsApi().queries.getStats,
-    USE_DB_MODELS ? {} : "skip",
-  ) as
+  return typedQuery(getModelsApi().queries.getStats, {}) as
     | {
         total: number;
         byStatus: { active: number; deprecated: number; beta: number };
@@ -172,10 +151,9 @@ export function useModelStats():
  * Hook to get all models including internal (for admin)
  */
 export function useAllModels(): Doc<"models">[] | undefined {
-  return typedQuery(
-    getModelsApi().queries.listAll,
-    USE_DB_MODELS ? {} : "skip",
-  ) as Doc<"models">[] | undefined;
+  return typedQuery(getModelsApi().queries.listAll, {}) as
+    | Doc<"models">[]
+    | undefined;
 }
 
 // ============================================================================
@@ -199,13 +177,6 @@ export function getStaticModels(options?: {
 export function getStaticModel(modelId: string): ModelConfig | undefined {
   if (modelId === "auto") return AUTO_MODEL;
   return MODEL_CONFIG[modelId];
-}
-
-/**
- * Check if DB models are enabled
- */
-export function isDbModelsEnabled(): boolean {
-  return USE_DB_MODELS;
 }
 
 // ============================================================================

@@ -7,7 +7,6 @@
  *   useModels,
  *   useModel,
  *   getStaticModel,
- *   USE_DB_MODELS,
  * } from "@/lib/models";
  */
 
@@ -18,9 +17,7 @@ export {
   getProviders,
   getStaticModel,
   getStaticModels,
-  isDbModelsEnabled,
   modelExists,
-  USE_DB_MODELS,
   useAllModels,
   useModel,
   useModelHistory,

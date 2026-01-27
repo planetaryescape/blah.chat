@@ -70,7 +70,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { USE_DB_MODELS, useAllModels } from "@/lib/models";
+import { useAllModels } from "@/lib/models";
 import { formatCurrency } from "@/lib/utils/date";
 
 // Lazy load mutations to avoid type depth issues
@@ -500,22 +500,6 @@ function ModelsPageContent() {
       );
     },
   });
-
-  if (!USE_DB_MODELS) {
-    return (
-      <div className="p-6">
-        <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
-          <h2 className="text-lg font-semibold text-yellow-600">
-            DB Models Disabled
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Set <code>NEXT_PUBLIC_USE_DB_MODELS=true</code> to enable
-            database-backed models.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (!models) {
     return <ModelsListSkeleton />;

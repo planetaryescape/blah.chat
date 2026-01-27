@@ -27,7 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
-import { USE_DB_MODELS, useRouterConfig } from "@/lib/models";
+import { useRouterConfig } from "@/lib/models";
 
 // Safe JSON parse with fallback for malformed data
 function safeJsonParse<T>(json: string | undefined, fallback: T): T {
@@ -220,22 +220,6 @@ function AutoRouterPageContent() {
     setFormData(DEFAULT_CONFIG);
     setIsDirty(true);
   }, []);
-
-  if (!USE_DB_MODELS) {
-    return (
-      <div className="p-6">
-        <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
-          <h2 className="text-lg font-semibold text-yellow-600">
-            DB Models Disabled
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Set <code>NEXT_PUBLIC_USE_DB_MODELS=true</code> to enable
-            database-backed auto-router configuration.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (config === undefined) {
     return <AutoRouterSkeleton />;

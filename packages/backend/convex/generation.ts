@@ -12,7 +12,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
-import { buildTools, createOnStepFinish } from "./generation/tools";
+import { createOnStepFinish } from "./generation/tools";
 import { trackServerEvent } from "./lib/analytics";
 import {
   type BudgetState,
@@ -252,25 +252,35 @@ export const generateResponse = internalAction({
 
     try {
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
-      const [messages, conversation, memoryExtractionLevelRaw] =
-        await Promise.all([
-          // Get conversation history - limit to recent 30 messages for faster TTFT
-          // (300ms → 50ms improvement for long conversations)
-          ctx.runQuery(internal.messages.listInternal, {
-            conversationId: args.conversationId,
-            limit: 30,
-          }),
-          // Get conversation for tool filtering
-          ctx.runQuery(internal.conversations.getInternal, {
-            id: args.conversationId,
-          }),
-          // Get user memory preference
-          (ctx.runQuery as any)(
-            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            api.users.getUserPreferenceByUserId,
-            { userId: args.userId, key: "memoryExtractionLevel" },
-          ) as Promise<string | null>,
-        ]);
+      const [
+        messages,
+        conversation,
+        memoryExtractionLevelRaw,
+        composioConnections,
+      ] = await Promise.all([
+        // Get conversation history - limit to recent 30 messages for faster TTFT
+        // (300ms → 50ms improvement for long conversations)
+        ctx.runQuery(internal.messages.listInternal, {
+          conversationId: args.conversationId,
+          limit: 30,
+        }),
+        // Get conversation for tool filtering
+        ctx.runQuery(internal.conversations.getInternal, {
+          id: args.conversationId,
+        }),
+        // Get user memory preference
+        (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.users.getUserPreferenceByUserId,
+          { userId: args.userId, key: "memoryExtractionLevel" },
+        ) as Promise<string | null>,
+        // Get active Composio connections for external service tools
+        (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.composio.connections.getActiveConnections,
+          {},
+        ) as Promise<Doc<"composioConnections">[]>,
+      ]);
 
       // Estimate input tokens for wasted cost tracking (accessible in catch block)
       inputTokenEstimate = messages.reduce(
@@ -574,7 +584,9 @@ export const generateResponse = internalAction({
       const searchCache = new Map<string, unknown>();
 
       if (shouldEnableTools) {
-        options.tools = buildTools({
+        // Import dynamically to allow for async tool creation (Composio)
+        const { buildToolsAsync } = await import("./generation/tools");
+        options.tools = await buildToolsAsync({
           ctx,
           userId: args.userId,
           conversationId: args.conversationId,
@@ -590,6 +602,7 @@ export const generateResponse = internalAction({
               budgetState = newState;
             },
           },
+          composioConnections: composioConnections ?? [],
         });
         options.onStepFinish = createOnStepFinish();
       }

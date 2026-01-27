@@ -61,6 +61,8 @@ export interface BuildToolsConfig {
     current: BudgetState;
     update: (newState: BudgetState) => void;
   };
+  /** Active Composio integrations for external service tools */
+  composioConnections?: Doc<"composioConnections">[];
 }
 
 /**
@@ -238,6 +240,49 @@ More thorough but slower. Use only when depth is needed.`,
       userId,
       conversation?.projectId,
     );
+  }
+
+  return tools;
+}
+
+/**
+ * Build tools with async Composio integrations
+ *
+ * Use this version when you need to include Composio tools from external services.
+ * Falls back to synchronous buildTools when no Composio connections are provided.
+ */
+export async function buildToolsAsync(
+  config: BuildToolsConfig,
+): Promise<Record<string, unknown>> {
+  // Start with synchronous tools
+  const tools = buildTools(config);
+
+  const { ctx, userId, conversation, composioConnections } = config;
+  const isIncognito = conversation?.isIncognito ?? false;
+
+  // Add Composio tools if not incognito and connections exist
+  if (!isIncognito && composioConnections && composioConnections.length > 0) {
+    try {
+      // Dynamic import to avoid bundling if not used
+      const { createComposioTools } = await import("../composio/tools");
+
+      const activeConnections = composioConnections.filter(
+        (c) => c.status === "active",
+      );
+
+      if (activeConnections.length > 0) {
+        const composioTools = await createComposioTools(ctx, {
+          userId,
+          connections: activeConnections,
+        });
+
+        // Merge Composio tools (they're prefixed with app name, so no collisions)
+        Object.assign(tools, composioTools);
+      }
+    } catch (error) {
+      // Log but don't fail - Composio tools are enhancement, not critical
+      console.warn("Failed to create Composio tools:", error);
+    }
   }
 
   return tools;

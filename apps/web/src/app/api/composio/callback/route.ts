@@ -22,10 +22,22 @@ async function getHandler(req: NextRequest, context: AuthContext) {
   const { userId, sessionToken } = context;
   const { searchParams } = new URL(req.url);
 
-  const connectionId = searchParams.get("connectionId");
+  // Log all params for debugging
+  const allParams = Object.fromEntries(searchParams.entries());
+  logger.info({ userId, params: allParams }, "Composio callback received");
+
+  // Composio may use different parameter names
+  const connectionId =
+    searchParams.get("connectionId") ||
+    searchParams.get("connectedAccountId") ||
+    searchParams.get("connected_account_id") ||
+    searchParams.get("id");
 
   if (!connectionId) {
-    logger.warn({ userId }, "Composio callback missing connectionId");
+    logger.warn(
+      { userId, params: allParams },
+      "Composio callback missing connectionId",
+    );
     return new NextResponse(
       getCallbackHtml({ success: false, error: "Missing connection ID" }),
       { headers: { "Content-Type": "text/html" } },

@@ -61,7 +61,9 @@ const baseMarkdownStyles = {
     marginVertical: spacing.sm,
   },
   link: {
-    color: palette.link,
+    color: palette.roseQuartz,
+    textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
   },
   list_item: {
     marginVertical: 2,

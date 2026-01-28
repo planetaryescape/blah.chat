@@ -14,6 +14,14 @@ import { GithubLight } from "@/components/ui/svgs/githubLight";
 import { Gitlab } from "@/components/ui/svgs/gitlab";
 import { Gmail } from "@/components/ui/svgs/gmail";
 import { Google } from "@/components/ui/svgs/google";
+import { GoogleCalendar } from "@/components/ui/svgs/googleCalendar";
+import { GoogleDocs } from "@/components/ui/svgs/googleDocs";
+import { GoogleDrive } from "@/components/ui/svgs/googleDrive";
+import { GoogleMaps } from "@/components/ui/svgs/googleMaps";
+import { GooglePhotos } from "@/components/ui/svgs/googlePhotos";
+import { GoogleSheets } from "@/components/ui/svgs/googleSheets";
+import { GoogleSlides } from "@/components/ui/svgs/googleSlides";
+import { GoogleTasks } from "@/components/ui/svgs/googleTasks";
 import { Linear } from "@/components/ui/svgs/linear";
 import { Microsoft } from "@/components/ui/svgs/microsoft";
 import { MongodbIconDark } from "@/components/ui/svgs/mongodbIconDark";
@@ -41,7 +49,7 @@ interface ThemeAwareIcon {
 }
 
 // Map integration IDs to svgl components
-// Some have theme variants, others are universal
+// IDs use lowercase without underscores (e.g., "googlecalendar" not "google_calendar")
 const ICON_MAP: Record<string, IconComponent | ThemeAwareIcon> = {
   // Development
   github: { light: GithubLight, dark: GithubDark },
@@ -59,17 +67,23 @@ const ICON_MAP: Record<string, IconComponent | ThemeAwareIcon> = {
   telegram: Telegram,
   whatsapp_business: WhatsappIcon,
 
+  // Google services (individual icons)
+  googlecalendar: GoogleCalendar,
+  googledrive: GoogleDrive,
+  googledocs: GoogleDocs,
+  googlesheets: GoogleSheets,
+  googleslides: GoogleSlides,
+  googletasks: GoogleTasks,
+  googlephotos: GooglePhotos,
+  googlemaps: GoogleMaps,
+
   // Productivity
-  google_calendar: Google,
   calendly: Calendly,
   notion: Notion,
   asana: AsanaLogo,
   todoist: Todoist,
-  google_docs: Google,
 
   // Data & Storage
-  google_sheets: Google,
-  google_drive: Google,
   dropbox: Dropbox,
   supabase: Supabase,
   mongodb: { light: MongodbIconLight, dark: MongodbIconDark },
@@ -89,6 +103,9 @@ const ICON_MAP: Record<string, IconComponent | ThemeAwareIcon> = {
   teams: Microsoft,
   outlook_calendar: Microsoft,
   onedrive: Microsoft,
+
+  // Fallback for generic Google (if needed)
+  google: Google,
 };
 
 interface IntegrationIconProps {

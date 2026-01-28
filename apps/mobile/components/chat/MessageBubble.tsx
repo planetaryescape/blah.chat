@@ -84,7 +84,7 @@ const markdownStyles = {
   },
 };
 
-const userMarkdownStyles = {
+const _userMarkdownStyles = {
   ...markdownStyles,
   body: {
     ...markdownStyles.body,
@@ -184,14 +184,16 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
       <View
         style={{
           maxWidth: "80%",
-          backgroundColor: palette.roseQuartz,
+          backgroundColor: "rgba(244, 224, 220, 0.1)", // roseQuartz at 10% opacity
           borderRadius: layout.radius.lg,
           borderBottomRightRadius: layout.radius.xs,
+          borderWidth: 1,
+          borderColor: "rgba(244, 224, 220, 0.2)", // roseQuartz at 20% opacity
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
         }}
       >
-        <Markdown style={userMarkdownStyles}>{content}</Markdown>
+        <Markdown style={markdownStyles}>{content}</Markdown>
       </View>
     </View>
   );

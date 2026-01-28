@@ -187,8 +187,8 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
           backgroundColor: palette.roseQuartz,
           borderRadius: layout.radius.lg,
           borderBottomRightRadius: layout.radius.xs,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xs + 2,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
         }}
       >
         <Markdown style={userMarkdownStyles}>{content}</Markdown>

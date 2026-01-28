@@ -14,7 +14,7 @@ interface MessageBubbleProps {
 const markdownStyles = {
   body: {
     color: palette.starlight,
-    fontFamily: typography.body,
+    fontFamily: typography.bodyMedium,
     fontSize: 15,
     lineHeight: 22,
   },

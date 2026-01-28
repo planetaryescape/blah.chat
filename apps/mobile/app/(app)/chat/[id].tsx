@@ -135,8 +135,7 @@ export default function ChatScreen() {
 
         // Don't clear optimistic messages here - let dedup handle it
         // This ensures smooth transition when real messages arrive
-      } catch (error) {
-        console.error("Failed to send message:", error);
+      } catch {
         haptic.error();
         setOptimisticMessages([]);
       } finally {
@@ -156,8 +155,8 @@ export default function ChatScreen() {
       if (conversationId && modelId !== selectedModel) {
         try {
           await updateModel({ conversationId, model: modelId });
-        } catch (error) {
-          console.error("Failed to update model:", error);
+        } catch {
+          // Silent fail - user can retry
         }
       }
     },

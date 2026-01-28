@@ -188,20 +188,37 @@ export async function buildSystemPrompts(
   }
 
   // === 4.26. CONNECTED INTEGRATIONS (Composio) ===
-  // Tell AI about available external service integrations
+  // Tell AI about available external service integrations with clear tool prioritization
   if (args.connectedApps && args.connectedApps.length > 0) {
-    const integrationsPrompt = `## Connected External Services
+    const integrationsPrompt = `## Available Tools
 
-The user has connected these external services:
-${args.connectedApps.map((app) => `- ${app}`).join("\n")}
+**ALWAYS use tools proactively** when they can help answer the user's query. Don't wait to be asked.
 
-**Tool Naming Convention:** External service tools are named in UPPERCASE with underscores, like \`GMAIL_SEND_EMAIL\`, \`GOOGLE_CALENDAR_FIND_EVENT\`, \`GITHUB_CREATE_ISSUE\`.
+### Internal Tools (camelCase)
+These search data stored IN THIS APP:
+- \`datetime\` - Current time, date calculations
+- \`searchAll\` - Search notes, tasks, files, conversations
+- \`searchMemories\` - Search user's memories and preferences
+- \`calculator\` - Math calculations
+- \`weather\` - Weather information
+- \`urlReader\` - Read web pages
+- \`tavilySearch\` - Web search
 
-**When to use external service tools vs internal search:**
-- Query mentions a connected service (calendar, email, slack, github, etc.) → Use the matching UPPERCASE service tools
-- Query is about notes/tasks/files stored in THIS app → Use internal tools (searchAll, searchNotes, searchTasks)
+### External Service Tools (UPPERCASE)
+Connected services: ${args.connectedApps.join(", ")}
+These access EXTERNAL services (email, calendars, GitHub, etc.):
+${args.connectedApps.map((app) => `- \`${app.toUpperCase()}_*\` tools`).join("\n")}
 
-Internal search tools only search data saved within this application. They cannot access external services like email, calendars, or third-party platforms.`;
+### When to Use Which
+| Query Type | Use |
+|------------|-----|
+| "What time is it?" | \`datetime\` |
+| "Search my notes for X" | \`searchAll\` |
+| "What's the weather?" | \`weather\` |
+| "Check my email" | \`GMAIL_*\` |
+| "What's on my calendar?" | \`GOOGLECALENDAR_*\` |
+
+**Default to internal tools** unless the query explicitly mentions an external service.`;
 
     systemMessages.push({
       role: "system",

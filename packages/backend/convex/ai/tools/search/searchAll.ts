@@ -41,15 +41,15 @@ export function createSearchAllTool(
   },
 ) {
   return tool({
-    description: `Search across notes, tasks, files, and knowledge bank stored in this app. Does NOT access external services.
+    description: `Search user's saved content in this app. Use for questions about the user's own data.
 
-For external services (email, calendars, GitHub, etc), use the matching UPPERCASE service tools instead.
+✅ ALWAYS use when user asks about:
+- Their notes, tasks, or saved files
+- Past conversations or decisions
+- Their knowledge bank (saved PDFs, web pages)
+- Anything they've saved in this app
 
-Parameters:
-- query: What to search for (required)
-- projectId: Optional project filter
-- resourceTypes: Optional types to search (default: all)
-- limit: Results per type (1-10, default: 3)`,
+Note: For external services (email, calendar, GitHub), use UPPERCASE service tools instead.`,
     inputSchema: z.object({
       query: z.string().describe("What to search for across all resources"),
       projectId: z

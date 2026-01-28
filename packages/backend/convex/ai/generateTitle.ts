@@ -129,12 +129,35 @@ ${conversationText}`,
       });
 
       let title = "";
-      for await (const chunk of result.textStream) {
-        title += chunk;
+      try {
+        for await (const chunk of result.textStream) {
+          title += chunk;
+        }
+      } catch (streamError) {
+        // Provider error during streaming - log and bail
+        logger.warn("Title generation stream failed", {
+          tag: "TitleGeneration",
+          conversationId: args.conversationId,
+          error:
+            streamError instanceof Error
+              ? streamError.message
+              : String(streamError),
+        });
+        return; // Keep default title
+      }
+
+      // No title generated - keep default
+      if (!title.trim()) {
+        return;
       }
 
       // Track usage with feature: "chat"
-      const usage = await result.usage;
+      let usage: Awaited<typeof result.usage> | null = null;
+      try {
+        usage = await result.usage;
+      } catch {
+        // Usage fetch failed - continue without tracking
+      }
       if (conversation && usage) {
         const inputTokens = usage.inputTokens ?? 0;
         const outputTokens = usage.outputTokens ?? 0;
@@ -164,11 +187,12 @@ ${conversationText}`,
         title: title.trim(),
       });
     } catch (error) {
-      logger.error("Title generation failed", {
+      // Non-critical feature - log and keep default title
+      logger.warn("Title generation failed", {
         tag: "TitleGeneration",
-        error: String(error),
+        conversationId: args.conversationId,
+        error: error instanceof Error ? error.message : String(error),
       });
-      // Keep default title on failure
     }
   },
 });

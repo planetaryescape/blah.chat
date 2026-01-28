@@ -62,8 +62,40 @@ function createKatexHtml(latex: string, isBlock: boolean): string {
 </html>`;
 }
 
+// Clean up LaTeX for display when WebView unavailable
+function formatLatexFallback(latex: string): string {
+  return latex
+    .replace(/\\mathrm\{([^}]+)\}/g, "$1") // \mathrm{CO} -> CO
+    .replace(/\\text\{([^}]+)\}/g, "$1") // \text{...} -> ...
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1/$2)") // \frac{a}{b} -> (a/b)
+    .replace(/\\sqrt\{([^}]+)\}/g, "√($1)") // \sqrt{x} -> √(x)
+    .replace(/\\pm/g, "±")
+    .replace(/\\times/g, "×")
+    .replace(/\\div/g, "÷")
+    .replace(/\\leq/g, "≤")
+    .replace(/\\geq/g, "≥")
+    .replace(/\\neq/g, "≠")
+    .replace(/\\approx/g, "≈")
+    .replace(/\\infty/g, "∞")
+    .replace(/\\pi/g, "π")
+    .replace(/\\alpha/g, "α")
+    .replace(/\\beta/g, "β")
+    .replace(/\\gamma/g, "γ")
+    .replace(/\\delta/g, "δ")
+    .replace(/\\rightarrow/g, "→")
+    .replace(/\\leftarrow/g, "←")
+    .replace(/\\[,;!]/g, " ") // spacing commands
+    .replace(/_\{([^}]+)\}/g, "₍$1₎") // subscript hint
+    .replace(/\^{([^}]+)\}/g, "^($1)") // superscript hint
+    .replace(/\\_/g, "_")
+    .replace(/\\\\/g, "")
+    .trim();
+}
+
 // Fallback for when WebView is not available (Expo Go)
 function MathFallback({ latex, isBlock }: MathRendererProps) {
+  const displayText = formatLatexFallback(latex);
+
   return (
     <View
       style={{
@@ -82,7 +114,7 @@ function MathFallback({ latex, isBlock }: MathRendererProps) {
           textAlign: isBlock ? "center" : "left",
         }}
       >
-        {latex}
+        {displayText}
       </Text>
     </View>
   );

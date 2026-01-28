@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.16.0](https://github.com/planetaryescape/blah.chat/compare/v1.15.1...v1.16.0) (2026-01-28)
+
+
+### Features
+
+* **composio:** curate integrations to 50 high-value services ([2abf0e2](https://github.com/planetaryescape/blah.chat/commit/2abf0e229e8d75a5c5d55e16ebeefef1d963a780))
+* **composio:** restore 500+ integrations after OAuth fix ([196ceaa](https://github.com/planetaryescape/blah.chat/commit/196ceaadc8479fa45ec7a56d2f257d45872d5dc3))
+* **ui:** add Google service icons for integrations ([9cc4caa](https://github.com/planetaryescape/blah.chat/commit/9cc4caa2edc0434686e2241d63168d49a9227fe0))
+* **ui:** add SVG icons for curated integrations ([bb4f74c](https://github.com/planetaryescape/blah.chat/commit/bb4f74c4a36ea1ed7512dc53d86fc8a6aed9c198))
+
+
+### Bug Fixes
+
+* improve internal tool priority when Composio active ([57911e0](https://github.com/planetaryescape/blah.chat/commit/57911e06ec552525614c85f5fc10378440f20ad5))
+* remove unused Buffer import and mapping ([af0c0de](https://github.com/planetaryescape/blah.chat/commit/af0c0def19d5bc83cb06390f2dcd3122b3cf5edc))
+
 ## [1.15.1](https://github.com/planetaryescape/blah.chat/compare/v1.15.0...v1.15.1) (2026-01-27)
 
 

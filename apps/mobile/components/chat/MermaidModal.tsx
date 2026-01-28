@@ -5,10 +5,12 @@ import {
   Modal,
   Pressable,
   SafeAreaView,
+  ScrollView,
+  Text,
   View,
 } from "react-native";
-import { WebView } from "react-native-webview";
-import { layout, palette, spacing } from "@/lib/theme/designSystem";
+import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { getWebView, webViewAvailable } from "@/lib/webview";
 
 interface MermaidModalProps {
   visible: boolean;
@@ -94,7 +96,6 @@ ${escapedCode}
       },
     });
 
-    // Notify when rendering is complete
     setTimeout(() => {
       window.ReactNativeWebView.postMessage('ready');
     }, 500);
@@ -103,14 +104,67 @@ ${escapedCode}
 </html>`;
 }
 
+// Fallback for when WebView is not available (Expo Go)
+function MermaidFallback({
+  code,
+  onClose,
+}: {
+  code: string;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: spacing.md,
+          borderBottomWidth: 1,
+          borderBottomColor: palette.glassBorder,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: typography.bodySemiBold,
+            fontSize: 16,
+            color: palette.starlight,
+          }}
+        >
+          Mermaid Diagram (Raw)
+        </Text>
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.6 : 1,
+            padding: spacing.sm,
+            backgroundColor: palette.glassMedium,
+            borderRadius: layout.radius.full,
+          })}
+        >
+          <X size={20} color={palette.starlight} />
+        </Pressable>
+      </View>
+      <ScrollView style={{ flex: 1, padding: spacing.md }}>
+        <Text
+          style={{
+            fontFamily: "Courier",
+            fontSize: 12,
+            color: palette.starlightDim,
+          }}
+        >
+          {code}
+        </Text>
+      </ScrollView>
+    </>
+  );
+}
+
 function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
   const [loading, setLoading] = useState(true);
 
-  const html = createMermaidHtml(code);
-
-  const handleMessage = () => {
-    setLoading(false);
-  };
+  // Check WebView availability
+  const WebViewComponent = webViewAvailable ? getWebView() : null;
 
   return (
     <Modal
@@ -120,61 +174,64 @@ function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
       onRequestClose={onClose}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.void }}>
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "flex-end",
-            padding: spacing.md,
-            borderBottomWidth: 1,
-            borderBottomColor: palette.glassBorder,
-          }}
-        >
-          <Pressable
-            onPress={onClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
-              padding: spacing.sm,
-              backgroundColor: palette.glassMedium,
-              borderRadius: layout.radius.full,
-            })}
-          >
-            <X size={20} color={palette.starlight} />
-          </Pressable>
-        </View>
-
-        {/* Diagram */}
-        <View style={{ flex: 1 }}>
-          {loading && (
+        {!WebViewComponent ? (
+          <MermaidFallback code={code} onClose={onClose} />
+        ) : (
+          <>
             <View
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                justifyContent: "center",
-                alignItems: "center",
-                zIndex: 1,
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                padding: spacing.md,
+                borderBottomWidth: 1,
+                borderBottomColor: palette.glassBorder,
               }}
             >
-              <ActivityIndicator size="large" color={palette.roseQuartz} />
+              <Pressable
+                onPress={onClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.6 : 1,
+                  padding: spacing.sm,
+                  backgroundColor: palette.glassMedium,
+                  borderRadius: layout.radius.full,
+                })}
+              >
+                <X size={20} color={palette.starlight} />
+              </Pressable>
             </View>
-          )}
-          <WebView
-            source={{ html }}
-            style={{ flex: 1, backgroundColor: palette.void }}
-            scrollEnabled
-            showsHorizontalScrollIndicator
-            showsVerticalScrollIndicator
-            onMessage={handleMessage}
-            onLoadEnd={() => setLoading(false)}
-            originWhitelist={["*"]}
-            javaScriptEnabled
-            scalesPageToFit
-          />
-        </View>
+            <View style={{ flex: 1 }}>
+              {loading && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    zIndex: 1,
+                  }}
+                >
+                  <ActivityIndicator size="large" color={palette.roseQuartz} />
+                </View>
+              )}
+              <WebViewComponent
+                source={{ html: createMermaidHtml(code) }}
+                style={{ flex: 1, backgroundColor: palette.void }}
+                scrollEnabled
+                showsHorizontalScrollIndicator
+                showsVerticalScrollIndicator
+                onMessage={() => setLoading(false)}
+                onLoadEnd={() => setLoading(false)}
+                originWhitelist={["*"]}
+                javaScriptEnabled
+                scalesPageToFit
+              />
+            </View>
+          </>
+        )}
       </SafeAreaView>
     </Modal>
   );

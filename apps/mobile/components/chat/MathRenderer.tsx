@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { WebView } from "react-native-webview";
+import { ActivityIndicator, Text, View } from "react-native";
 import { palette, spacing } from "@/lib/theme/designSystem";
+import { getWebView, webViewAvailable } from "@/lib/webview";
 
 interface MathRendererProps {
   latex: string;
@@ -49,7 +49,6 @@ function createKatexHtml(latex: string, isBlock: boolean): string {
         trust: true,
         strict: false
       });
-      // Send height to React Native
       setTimeout(() => {
         const height = document.getElementById("math").offsetHeight;
         window.ReactNativeWebView.postMessage(JSON.stringify({ height }));
@@ -63,9 +62,45 @@ function createKatexHtml(latex: string, isBlock: boolean): string {
 </html>`;
 }
 
+// Fallback for when WebView is not available (Expo Go)
+function MathFallback({ latex, isBlock }: MathRendererProps) {
+  return (
+    <View
+      style={{
+        backgroundColor: palette.glassMedium,
+        borderRadius: 4,
+        paddingHorizontal: 8,
+        paddingVertical: isBlock ? 12 : 4,
+        marginVertical: isBlock ? spacing.sm : 0,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: "Courier",
+          fontSize: 13,
+          color: palette.roseQuartz,
+          textAlign: isBlock ? "center" : "left",
+        }}
+      >
+        {latex}
+      </Text>
+    </View>
+  );
+}
+
 function MathRendererComponent({ latex, isBlock = false }: MathRendererProps) {
   const [height, setHeight] = useState(isBlock ? 60 : 30);
   const [loading, setLoading] = useState(true);
+
+  // If WebView is not available, show fallback
+  if (!webViewAvailable) {
+    return <MathFallback latex={latex} isBlock={isBlock} />;
+  }
+
+  const WebViewComponent = getWebView();
+  if (!WebViewComponent) {
+    return <MathFallback latex={latex} isBlock={isBlock} />;
+  }
 
   const html = createKatexHtml(latex, isBlock);
 
@@ -105,7 +140,7 @@ function MathRendererComponent({ latex, isBlock = false }: MathRendererProps) {
           <ActivityIndicator size="small" color={palette.starlightDim} />
         </View>
       )}
-      <WebView
+      <WebViewComponent
         source={{ html }}
         style={{ backgroundColor: "transparent", opacity: loading ? 0 : 1 }}
         scrollEnabled={false}

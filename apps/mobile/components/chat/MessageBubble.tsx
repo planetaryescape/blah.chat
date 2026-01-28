@@ -123,25 +123,13 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
   // Show typing indicator for pending/generating messages with no content
   const showTypingIndicator = (isPending || isGenerating) && !content;
 
-  return (
-    <View
-      style={{
-        alignItems: isUser ? "flex-end" : "flex-start",
-        marginVertical: spacing.xs,
-        paddingHorizontal: spacing.md,
-      }}
-    >
+  // Assistant messages: full width, no bubble
+  if (!isUser) {
+    return (
       <View
         style={{
-          maxWidth: "85%",
-          backgroundColor: isUser ? palette.roseQuartz : palette.glassLow,
-          borderRadius: layout.radius.lg,
-          borderBottomRightRadius: isUser ? layout.radius.xs : layout.radius.lg,
-          borderBottomLeftRadius: isUser ? layout.radius.lg : layout.radius.xs,
+          marginVertical: spacing.sm,
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderWidth: isUser ? 0 : 1,
-          borderColor: palette.glassBorder,
         }}
       >
         {hasError ? (
@@ -157,39 +145,54 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
         ) : showTypingIndicator ? (
           <TypingIndicator />
         ) : (
-          <Markdown style={isUser ? userMarkdownStyles : markdownStyles}>
-            {content}
-          </Markdown>
+          <Markdown style={markdownStyles}>{content}</Markdown>
         )}
 
         {/* Generating indicator while streaming */}
         {isGenerating && content && (
-          <View
-            style={{
-              marginTop: spacing.xs,
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
+          <View style={{ marginTop: spacing.xs }}>
             <TypingIndicator />
           </View>
         )}
-      </View>
 
-      {/* Model indicator for assistant messages */}
-      {!isUser && message.model && (
-        <Text
-          style={{
-            fontFamily: typography.body,
-            fontSize: 11,
-            color: palette.starlightDim,
-            marginTop: 2,
-            marginLeft: spacing.xs,
-          }}
-        >
-          {getModelDisplayName(message.model)}
-        </Text>
-      )}
+        {/* Model indicator */}
+        {message.model && (
+          <Text
+            style={{
+              fontFamily: typography.body,
+              fontSize: 11,
+              color: palette.starlightDim,
+              marginTop: spacing.xs,
+            }}
+          >
+            {getModelDisplayName(message.model)}
+          </Text>
+        )}
+      </View>
+    );
+  }
+
+  // User messages: bubble on right, reduced padding
+  return (
+    <View
+      style={{
+        alignItems: "flex-end",
+        marginVertical: spacing.xs,
+        paddingHorizontal: spacing.md,
+      }}
+    >
+      <View
+        style={{
+          maxWidth: "80%",
+          backgroundColor: palette.roseQuartz,
+          borderRadius: layout.radius.lg,
+          borderBottomRightRadius: layout.radius.xs,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs + 2,
+        }}
+      >
+        <Markdown style={userMarkdownStyles}>{content}</Markdown>
+      </View>
     </View>
   );
 }

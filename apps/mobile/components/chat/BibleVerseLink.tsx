@@ -7,7 +7,16 @@ interface BibleVerseLinkProps {
   children: ReactNode;
 }
 
-function getBibleGatewayUrl(osis: string): string {
+// Validate OSIS format: only allows alphanumeric, dots, and hyphens
+function isValidOsis(osis: string): boolean {
+  return /^[a-zA-Z0-9.-]+$/.test(osis);
+}
+
+function getBibleGatewayUrl(osis: string): string | null {
+  // Validate input to prevent injection
+  if (!isValidOsis(osis)) {
+    return null;
+  }
   // Convert OSIS reference to BibleGateway format
   // e.g., "John.3.16" -> "John+3:16"
   const ref = osis.replace(/\./g, "+").replace(/\+(\d+)\+/g, "+$1:");
@@ -19,7 +28,9 @@ function BibleVerseLinkComponent({ osis, children }: BibleVerseLinkProps) {
 
   const handlePress = () => {
     const url = getBibleGatewayUrl(osis);
-    Linking.openURL(url);
+    if (url) {
+      Linking.openURL(url);
+    }
   };
 
   return (

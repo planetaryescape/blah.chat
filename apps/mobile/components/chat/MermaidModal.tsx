@@ -19,11 +19,18 @@ interface MermaidModalProps {
   onClose: () => void;
 }
 
+// HTML-escape for safe insertion into <pre> tag
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function createMermaidHtml(code: string): string {
-  const escapedCode = code
-    .replace(/\\/g, "\\\\")
-    .replace(/`/g, "\\`")
-    .replace(/\$/g, "\\$");
+  const escapedCode = escapeHtml(code);
 
   return `
 <!DOCTYPE html>
@@ -105,14 +112,6 @@ ${escapedCode}
 </html>`;
 }
 
-// Create mermaid.live URL with encoded diagram
-function _getMermaidLiveUrl(code: string): string {
-  // mermaid.live uses pako-compressed base64 in the URL
-  // For simplicity, use the edit mode which accepts plain text
-  const _encoded = encodeURIComponent(code);
-  return `https://mermaid.live/edit#pako:${btoa(code)}`;
-}
-
 // Fallback for when WebView is not available (Expo Go)
 // Opens diagram in external browser
 function MermaidFallback({
@@ -124,7 +123,6 @@ function MermaidFallback({
 }) {
   const handleOpenInBrowser = () => {
     // Use kroki.io which has a simpler URL format
-    const _encoded = encodeURIComponent(code);
     const url = `https://kroki.io/mermaid/svg/${btoa(code)}`;
     Linking.openURL(url);
   };
@@ -297,7 +295,7 @@ function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
                 showsVerticalScrollIndicator
                 onMessage={handleMessage}
                 onLoadEnd={() => setLoading(false)}
-                originWhitelist={["*"]}
+                originWhitelist={["about:blank"]}
                 javaScriptEnabled
                 scalesPageToFit
               />

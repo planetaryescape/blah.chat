@@ -28,8 +28,9 @@ function BibleVerseLinkComponent({ osis, children }: BibleVerseLinkProps) {
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       style={{
-        color: palette.link,
-        textDecorationLine: pressed ? "underline" : "none",
+        color: palette.roseQuartz,
+        textDecorationLine: "underline",
+        textDecorationStyle: pressed ? "solid" : "dotted",
       }}
     >
       {children}

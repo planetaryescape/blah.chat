@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.17.0](https://github.com/planetaryescape/blah.chat/compare/v1.16.0...v1.17.0) (2026-01-28)
+
+
+### Features
+
+* **mobile:** add rich content rendering to chat messages ([437b03b](https://github.com/planetaryescape/blah.chat/commit/437b03b4d4e994a0a3a475a52c313700be7e201e))
+* **mobile:** add syntax highlighting with react-native-code-highlighter ([15c29c7](https://github.com/planetaryescape/blah.chat/commit/15c29c7e17c860e804662e53488233fd9dd520cd))
+* **mobile:** full-width assistant messages, compact user bubbles ([c3a19b4](https://github.com/planetaryescape/blah.chat/commit/c3a19b4f1c1c76e3d3faf72d389319ed9791a425))
+* **mobile:** haptic feedback when streaming starts ([31f458e](https://github.com/planetaryescape/blah.chat/commit/31f458e1c0db20bba173b62966eee5ca1d8748c2))
+* **mobile:** production-quality chat with dark theme and proper ordering ([cfe6188](https://github.com/planetaryescape/blah.chat/commit/cfe618854fad590a8df8da65134b96edbfc3daba))
+
+
+### Bug Fixes
+
+* **backend:** gracefully handle AI provider errors in title generation ([557a2cf](https://github.com/planetaryescape/blah.chat/commit/557a2cf79fcd32925f084599b2fb340710e51703))
+* **backend:** log usage tracking errors in title generation ([df553fd](https://github.com/planetaryescape/blah.chat/commit/df553fd42384e131ee35b85db44d13a3e9db35b0))
+* **mobile:** add external browser fallback for Mermaid diagrams ([5e1ee8a](https://github.com/planetaryescape/blah.chat/commit/5e1ee8a5a198d9327177ba7448515114bba21e05))
+* **mobile:** address security issues from code review ([de7933e](https://github.com/planetaryescape/blah.chat/commit/de7933e3d00094730a59decaeee978b50ec2dc7e))
+* **mobile:** balance user bubble padding (16h x 8v) ([72915eb](https://github.com/planetaryescape/blah.chat/commit/72915eb39cc7297d41462f45fcf3b1f76abe4b5d))
+* **mobile:** handle Mermaid CDN failure gracefully ([8abce84](https://github.com/planetaryescape/blah.chat/commit/8abce84840eb593395626cd8e6665c1ba0f640db))
+* **mobile:** improve LaTeX detection and fallback rendering ([0b79d8e](https://github.com/planetaryescape/blah.chat/commit/0b79d8e9f7c80cbbb9ac5cbcfa247808f65c8617))
+* **mobile:** improve WebView detection and LaTeX fallback ([31ab479](https://github.com/planetaryescape/blah.chat/commit/31ab4794625d9a1448778b8e954d3558bdd9e9d6))
+* **mobile:** increase chat text weight to medium ([639f98f](https://github.com/planetaryescape/blah.chat/commit/639f98fdeb75cdcfbffcfe3b6b51dce79a14cf22))
+* **mobile:** increase dedup window to 30s for slow networks ([3f64e81](https://github.com/planetaryescape/blah.chat/commit/3f64e81ec8be3dec068acacebc5bed2c92522fdb))
+* **mobile:** make Bible verse links inline with Text onPress ([6be6087](https://github.com/planetaryescape/blah.chat/commit/6be6087c2fa3d55714fbbb66b1ede51184bdf1f4))
+* **mobile:** match Bible verse link color to web primary ([68535e5](https://github.com/planetaryescape/blah.chat/commit/68535e564e9eddde7b5fee3fe6b64aee54965b71))
+* **mobile:** remove console.error in favor of graceful handling ([ab4ef47](https://github.com/planetaryescape/blah.chat/commit/ab4ef477696db0c15d3c6633e10121faa31ebf80))
+* **mobile:** remove unused variables in mathProcessor ([a4f92e5](https://github.com/planetaryescape/blah.chat/commit/a4f92e5c1d8a87d46835c9e08bc590e9acd67b2a))
+* **mobile:** replace broken syntax highlighter with native code display ([bc1ea5e](https://github.com/planetaryescape/blah.chat/commit/bc1ea5edbc16b4dc6a82b6ae68dfcef5201e0564))
+* **mobile:** safely handle WebView native module in Expo Go ([2db784d](https://github.com/planetaryescape/blah.chat/commit/2db784da30a301795626b1c422da8db71b13de12))
+* **mobile:** use glass-style user bubble matching web ([f6c47e4](https://github.com/planetaryescape/blah.chat/commit/f6c47e46c135c92c7bf516e27908200ba2cd2f4c))
+* **mobile:** use inline hljs style for syntax highlighter ([f484f5d](https://github.com/planetaryescape/blah.chat/commit/f484f5d61121187a03274bd331bc41affbd617c3))
+* **mobile:** use primary color for all links in markdown ([31a8413](https://github.com/planetaryescape/blah.chat/commit/31a8413184f8399fa67e127dd7b4ef2b15dbc0d7))
+* **web:** increase assistant message font weight to medium ([84b780c](https://github.com/planetaryescape/blah.chat/commit/84b780cb9ce98adc26cf8210011b5c658715139e))
+* wrap streamText in try/catch, reset haptic ref on conversation change ([44e8321](https://github.com/planetaryescape/blah.chat/commit/44e8321e074bae932395cc2821fb21620217434d))
+
 ## [1.16.0](https://github.com/planetaryescape/blah.chat/compare/v1.15.1...v1.16.0) (2026-01-28)
 
 

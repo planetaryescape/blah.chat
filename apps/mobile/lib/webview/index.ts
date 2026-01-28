@@ -1,14 +1,16 @@
 // Safe WebView import that won't crash in Expo Go
 // WebView requires native modules that aren't available in Expo Go
 
-import { TurboModuleRegistry } from "react-native";
+import { NativeModules, Platform } from "react-native";
 
 // Check if the native WebView module is available
 function isWebViewAvailable(): boolean {
   try {
-    // Try to get the native module - this will return null if not linked
-    const spec = TurboModuleRegistry.get("RNCWebView");
-    return spec !== null;
+    // Check NativeModules - more reliable than TurboModuleRegistry
+    // Module name differs by platform
+    const moduleName =
+      Platform.OS === "ios" ? "RNCWebView" : "RNCWebViewModule";
+    return NativeModules[moduleName] != null;
   } catch {
     return false;
   }

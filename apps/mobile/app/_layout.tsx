@@ -32,8 +32,9 @@ function RootLayoutNav() {
   return (
     // @ts-ignore - React 18/19 type mismatch in monorepo
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(drawer)" />
+      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
     </Stack>
   );
 }

@@ -16,7 +16,7 @@ export default function AuthLayout() {
 
   // Redirect to main app if already signed in
   if (isSignedIn) {
-    return <Redirect href="/(drawer)" />;
+    return <Redirect href="/(app)" />;
   }
 
   return (

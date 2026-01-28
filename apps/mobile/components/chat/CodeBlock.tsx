@@ -4,8 +4,45 @@ import { Check, Copy } from "lucide-react-native";
 import { memo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import SyntaxHighlighter from "react-native-syntax-highlighter";
-import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { layout, palette, spacing } from "@/lib/theme/designSystem";
+
+// Custom dark theme matching our design system (Atom One Dark inspired)
+// react-native-syntax-highlighter uses hljs internally
+const customDarkStyle: Record<string, Record<string, string>> = {
+  hljs: {
+    background: palette.obsidian,
+    color: "#abb2bf",
+  },
+  "hljs-keyword": { color: "#c678dd" },
+  "hljs-built_in": { color: "#e6c07b" },
+  "hljs-type": { color: "#e6c07b" },
+  "hljs-literal": { color: "#56b6c2" },
+  "hljs-number": { color: "#d19a66" },
+  "hljs-operator": { color: "#56b6c2" },
+  "hljs-punctuation": { color: "#abb2bf" },
+  "hljs-property": { color: "#e06c75" },
+  "hljs-regex": { color: "#98c379" },
+  "hljs-string": { color: "#98c379" },
+  "hljs-char": { color: "#98c379" },
+  "hljs-symbol": { color: "#61aeee" },
+  "hljs-name": { color: "#e06c75" },
+  "hljs-variable": { color: "#e06c75" },
+  "hljs-template-variable": { color: "#e06c75" },
+  "hljs-comment": { color: "#5c6370" },
+  "hljs-doctag": { color: "#c678dd" },
+  "hljs-attr": { color: "#d19a66" },
+  "hljs-attribute": { color: "#98c379" },
+  "hljs-function": { color: "#61aeee" },
+  "hljs-title": { color: "#61aeee" },
+  "hljs-params": { color: "#abb2bf" },
+  "hljs-class": { color: "#e6c07b" },
+  "hljs-tag": { color: "#e06c75" },
+  "hljs-selector-tag": { color: "#e06c75" },
+  "hljs-selector-id": { color: "#61aeee" },
+  "hljs-selector-class": { color: "#d19a66" },
+  "hljs-addition": { color: "#98c379" },
+  "hljs-deletion": { color: "#e06c75" },
+};
 
 interface CodeBlockProps {
   code: string;
@@ -100,7 +137,7 @@ function CodeBlockComponent({ code, language }: CodeBlockProps) {
       >
         <SyntaxHighlighter
           language={normalizedLang}
-          style={atomOneDark}
+          style={customDarkStyle}
           highlighter="hljs"
           customStyle={{
             backgroundColor: "transparent",

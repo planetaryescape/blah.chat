@@ -115,27 +115,28 @@ export const generateTitle = internalAction({
       const conversationText = formatConversation(truncated);
 
       // Generate title with full context
-      const result = streamText({
-        model: getModel(TITLE_GENERATION_MODEL.id),
-        prompt: `${CONVERSATION_TITLE_PROMPT}
+      let title = "";
+      let result;
+      try {
+        result = streamText({
+          model: getModel(TITLE_GENERATION_MODEL.id),
+          prompt: `${CONVERSATION_TITLE_PROMPT}
 
 Conversation:
 ${conversationText}`,
-        providerOptions: getGatewayOptions(
-          TITLE_GENERATION_MODEL.id,
-          undefined,
-          ["title-generation"],
-        ),
-      });
+          providerOptions: getGatewayOptions(
+            TITLE_GENERATION_MODEL.id,
+            undefined,
+            ["title-generation"],
+          ),
+        });
 
-      let title = "";
-      try {
         for await (const chunk of result.textStream) {
           title += chunk;
         }
       } catch (streamError) {
-        // Provider error during streaming - log and bail
-        logger.warn("Title generation stream failed", {
+        // Provider error during init or streaming - log and bail
+        logger.warn("Title generation failed", {
           tag: "TitleGeneration",
           conversationId: args.conversationId,
           error:

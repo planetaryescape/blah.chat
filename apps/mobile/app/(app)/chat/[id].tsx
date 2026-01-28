@@ -96,6 +96,11 @@ export default function ChatScreen() {
     }
   }, [messages]);
 
+  // Reset haptic ref when conversation changes
+  useEffect(() => {
+    streamingHapticFiredRef.current = null;
+  }, [conversationId]);
+
   const handleSend = useCallback(
     async (content: string) => {
       if (isSending || !conversationId) return;

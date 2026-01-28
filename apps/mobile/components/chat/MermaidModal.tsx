@@ -31,7 +31,7 @@ function createMermaidHtml(code: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" onerror="window.ReactNativeWebView.postMessage('error:cdn_failed')"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -197,7 +197,7 @@ function MermaidFallback({
             textAlign: "center",
           }}
         >
-          WebView not available in Expo Go.{"\n"}Tap "View" to open in browser.
+          Unable to render diagram.{"\n"}Tap "View" to open in browser.
         </Text>
         <View
           style={{
@@ -223,9 +223,20 @@ function MermaidFallback({
 
 function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
   const [loading, setLoading] = useState(true);
+  const [cdnFailed, setCdnFailed] = useState(false);
 
   // Check WebView availability
   const WebViewComponent = webViewAvailable ? getWebView() : null;
+
+  const handleMessage = (event: { nativeEvent: { data: string } }) => {
+    const message = event.nativeEvent.data;
+    if (message === "error:cdn_failed") {
+      setCdnFailed(true);
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  };
 
   return (
     <Modal
@@ -235,7 +246,7 @@ function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
       onRequestClose={onClose}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.void }}>
-        {!WebViewComponent ? (
+        {!WebViewComponent || cdnFailed ? (
           <MermaidFallback code={code} onClose={onClose} />
         ) : (
           <>
@@ -284,7 +295,7 @@ function MermaidModalComponent({ visible, code, onClose }: MermaidModalProps) {
                 scrollEnabled
                 showsHorizontalScrollIndicator
                 showsVerticalScrollIndicator
-                onMessage={() => setLoading(false)}
+                onMessage={handleMessage}
                 onLoadEnd={() => setLoading(false)}
                 originWhitelist={["*"]}
                 javaScriptEnabled

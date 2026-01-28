@@ -21,22 +21,16 @@ import { z } from "zod";
  */
 export function createDateTimeTool() {
   return tool({
-    description: `Get current date/time and perform calendar calculations.
+    description: `Get current date/time. ALWAYS use this for time-related queries - never guess the date/time.
 
-✅ USE FOR:
-- Current time in any timezone
-- Date arithmetic ("3 weeks from now", "30 days ago")
-- Duration between dates ("days until Christmas")
-- Day of week queries
+Examples of when to use:
+- "What time is it?" → Use this
+- "What's today's date?" → Use this
+- "3 weeks from now" → Use this
+- "Days until Christmas" → Use this
+- Any question involving current time/date → Use this
 
-❌ DO NOT USE FOR:
-- Historical events (use your training)
-- Timezone lookups without calculation
-
-Operations:
-- current: Get current date/time
-- add/subtract: Add or subtract time from a date
-- difference: Calculate time between two dates`,
+Operations: current, add, subtract, difference`,
 
     inputSchema: z.object({
       operation: z

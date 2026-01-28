@@ -154,10 +154,13 @@ ${toneSection}
 
   <tool_usage>
     <philosophy>
-      - DO use tools when they provide information you don't have or could be outdated.
-      - Use minimum number of tools needed—balance efficiency with quality.
-      - When tool output conflicts with training data, prefer tool output for recent/factual matters.
-      - Answer directly from knowledge for timeless, fundamental information.
+      - **PROACTIVELY use tools** - don't wait for explicit requests
+      - If a tool could answer the question better than your knowledge, USE IT
+      - datetime tool: Use for ANY time/date question
+      - searchAll: Use when user asks about THEIR notes, files, tasks, memories
+      - Use minimum number of tools needed—balance efficiency with quality
+      - When tool output conflicts with training data, prefer tool output for recent/factual matters
+      - Answer directly from knowledge for timeless, fundamental information
     </philosophy>
 
     <critical_rule>

@@ -50,14 +50,6 @@ export function extractMathBlocks(text: string): MathExtractionResult {
   // Block math: $$ on its own line, content, $$ on its own line
   // Inline math: $$...$$ on same line as text
 
-  // First, handle block math ($$\n...\n$$)
-  const _blockPattern = /^\$\$\n([\s\S]*?)\n\$\$/gm;
-  // Then inline math ($$...$$)
-  const _inlinePattern = /\$\$([^$]+)\$\$/g;
-
-  const _remaining = text;
-  const _lastIndex = 0;
-
   // Check for block math patterns first (on separate lines)
   const blockMatches = [...text.matchAll(/\n?\$\$\n([\s\S]*?)\n\$\$\n?/g)];
   // Inline math: $$...$$ that may span lines but NOT be block style

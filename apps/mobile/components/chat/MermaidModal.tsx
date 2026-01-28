@@ -1,4 +1,5 @@
-import { X } from "lucide-react-native";
+import * as Linking from "expo-linking";
+import { ExternalLink, X } from "lucide-react-native";
 import { memo, useState } from "react";
 import {
   ActivityIndicator,
@@ -104,7 +105,16 @@ ${escapedCode}
 </html>`;
 }
 
+// Create mermaid.live URL with encoded diagram
+function _getMermaidLiveUrl(code: string): string {
+  // mermaid.live uses pako-compressed base64 in the URL
+  // For simplicity, use the edit mode which accepts plain text
+  const _encoded = encodeURIComponent(code);
+  return `https://mermaid.live/edit#pako:${btoa(code)}`;
+}
+
 // Fallback for when WebView is not available (Expo Go)
+// Opens diagram in external browser
 function MermaidFallback({
   code,
   onClose,
@@ -112,6 +122,13 @@ function MermaidFallback({
   code: string;
   onClose: () => void;
 }) {
+  const handleOpenInBrowser = () => {
+    // Use kroki.io which has a simpler URL format
+    const _encoded = encodeURIComponent(code);
+    const url = `https://kroki.io/mermaid/svg/${btoa(code)}`;
+    Linking.openURL(url);
+  };
+
   return (
     <>
       <View
@@ -131,30 +148,74 @@ function MermaidFallback({
             color: palette.starlight,
           }}
         >
-          Mermaid Diagram (Raw)
+          Mermaid Diagram
         </Text>
-        <Pressable
-          onPress={onClose}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            padding: spacing.sm,
-            backgroundColor: palette.glassMedium,
-            borderRadius: layout.radius.full,
-          })}
-        >
-          <X size={20} color={palette.starlight} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Pressable
+            onPress={handleOpenInBrowser}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.6 : 1,
+              padding: spacing.sm,
+              backgroundColor: palette.roseQuartz,
+              borderRadius: layout.radius.full,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: spacing.xs,
+            })}
+          >
+            <ExternalLink size={16} color={palette.void} />
+            <Text
+              style={{
+                fontFamily: typography.bodySemiBold,
+                fontSize: 12,
+                color: palette.void,
+              }}
+            >
+              View
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onClose}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.6 : 1,
+              padding: spacing.sm,
+              backgroundColor: palette.glassMedium,
+              borderRadius: layout.radius.full,
+            })}
+          >
+            <X size={20} color={palette.starlight} />
+          </Pressable>
+        </View>
       </View>
       <ScrollView style={{ flex: 1, padding: spacing.md }}>
         <Text
           style={{
-            fontFamily: "Courier",
-            fontSize: 12,
+            fontFamily: typography.body,
+            fontSize: 14,
             color: palette.starlightDim,
+            marginBottom: spacing.md,
+            textAlign: "center",
           }}
         >
-          {code}
+          WebView not available in Expo Go.{"\n"}Tap "View" to open in browser.
         </Text>
+        <View
+          style={{
+            backgroundColor: palette.obsidian,
+            borderRadius: layout.radius.sm,
+            padding: spacing.md,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: "Courier",
+              fontSize: 12,
+              color: palette.starlightDim,
+            }}
+          >
+            {code}
+          </Text>
+        </View>
       </ScrollView>
     </>
   );

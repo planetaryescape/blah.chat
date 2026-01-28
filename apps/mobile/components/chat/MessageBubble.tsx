@@ -1,8 +1,11 @@
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { memo } from "react";
 import { Text, View } from "react-native";
-import Markdown from "react-native-markdown-display";
+import Reanimated, { FadeIn } from "react-native-reanimated";
+import { useStreamBuffer } from "@/lib/hooks/useStreamBuffer";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { MarkdownContent } from "./MarkdownContent";
+import { StreamingCursor } from "./StreamingCursor";
 import { TypingIndicator } from "./TypingIndicator";
 
 type Message = Doc<"messages">;
@@ -11,117 +14,25 @@ interface MessageBubbleProps {
   message: Message;
 }
 
-const markdownStyles = {
-  body: {
-    color: palette.starlight,
-    fontFamily: typography.bodyMedium,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  heading1: {
-    color: palette.starlight,
-    fontFamily: typography.heading,
-    fontSize: 22,
-    marginVertical: spacing.sm,
-  },
-  heading2: {
-    color: palette.starlight,
-    fontFamily: typography.heading,
-    fontSize: 18,
-    marginVertical: spacing.sm,
-  },
-  heading3: {
-    color: palette.starlight,
-    fontFamily: typography.bodySemiBold,
-    fontSize: 16,
-    marginVertical: spacing.xs,
-  },
-  code_inline: {
-    backgroundColor: palette.glassMedium,
-    color: palette.roseQuartz,
-    fontFamily: "Courier",
-    fontSize: 14,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  code_block: {
-    backgroundColor: palette.obsidian,
-    borderRadius: layout.radius.sm,
-    padding: spacing.md,
-    fontFamily: "Courier",
-    fontSize: 13,
-    color: palette.starlight,
-  },
-  fence: {
-    backgroundColor: palette.obsidian,
-    borderRadius: layout.radius.sm,
-    padding: spacing.md,
-    fontFamily: "Courier",
-    fontSize: 13,
-    color: palette.starlight,
-    marginVertical: spacing.sm,
-  },
-  blockquote: {
-    backgroundColor: palette.glassLow,
-    borderLeftWidth: 3,
-    borderLeftColor: palette.roseQuartz,
-    paddingLeft: spacing.md,
-    paddingVertical: spacing.xs,
-    marginVertical: spacing.sm,
-  },
-  link: {
-    color: palette.link,
-  },
-  list_item: {
-    marginVertical: 2,
-  },
-  bullet_list: {
-    marginVertical: spacing.xs,
-  },
-  ordered_list: {
-    marginVertical: spacing.xs,
-  },
-};
-
-const _userMarkdownStyles = {
-  ...markdownStyles,
-  body: {
-    ...markdownStyles.body,
-    color: palette.void,
-  },
-  heading1: {
-    ...markdownStyles.heading1,
-    color: palette.void,
-  },
-  heading2: {
-    ...markdownStyles.heading2,
-    color: palette.void,
-  },
-  heading3: {
-    ...markdownStyles.heading3,
-    color: palette.void,
-  },
-  code_inline: {
-    ...markdownStyles.code_inline,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    color: palette.void,
-  },
-  link: {
-    color: palette.void,
-    textDecorationLine: "underline" as const,
-  },
-};
-
 function MessageBubbleComponent({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isPending = message.status === "pending";
   const isGenerating = message.status === "generating";
   const hasError = message.status === "error";
-  const content = message.partialContent || message.content || "";
+  const rawContent = message.partialContent || message.content || "";
+
+  // Use stream buffer for smooth word-by-word reveal
+  const { displayContent, hasBufferedContent } = useStreamBuffer(
+    rawContent,
+    isGenerating,
+    { wordsPerSecond: 30 },
+  );
 
   // Show typing indicator for pending/generating messages with no content
-  const showTypingIndicator = (isPending || isGenerating) && !content;
+  const showTypingIndicator = (isPending || isGenerating) && !rawContent;
+
+  // Show cursor while streaming or buffer is draining
+  const showCursor = isGenerating || hasBufferedContent;
 
   // Assistant messages: full width, no bubble
   if (!isUser) {
@@ -145,28 +56,29 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
         ) : showTypingIndicator ? (
           <TypingIndicator />
         ) : (
-          <Markdown style={markdownStyles}>{content}</Markdown>
-        )}
-
-        {/* Generating indicator while streaming */}
-        {isGenerating && content && (
-          <View style={{ marginTop: spacing.xs }}>
-            <TypingIndicator />
+          <View>
+            <MarkdownContent
+              content={displayContent}
+              isStreaming={isGenerating}
+            />
+            {showCursor && <StreamingCursor />}
           </View>
         )}
 
         {/* Model indicator */}
-        {message.model && (
-          <Text
-            style={{
-              fontFamily: typography.body,
-              fontSize: 11,
-              color: palette.starlightDim,
-              marginTop: spacing.xs,
-            }}
-          >
-            {getModelDisplayName(message.model)}
-          </Text>
+        {message.model && !showTypingIndicator && (
+          <Reanimated.View entering={FadeIn.duration(200)}>
+            <Text
+              style={{
+                fontFamily: typography.body,
+                fontSize: 11,
+                color: palette.starlightDim,
+                marginTop: spacing.xs,
+              }}
+            >
+              {getModelDisplayName(message.model)}
+            </Text>
+          </Reanimated.View>
         )}
       </View>
     );
@@ -184,23 +96,22 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
       <View
         style={{
           maxWidth: "80%",
-          backgroundColor: "rgba(244, 224, 220, 0.1)", // roseQuartz at 10% opacity
+          backgroundColor: "rgba(244, 224, 220, 0.1)",
           borderRadius: layout.radius.lg,
           borderBottomRightRadius: layout.radius.xs,
           borderWidth: 1,
-          borderColor: "rgba(244, 224, 220, 0.2)", // roseQuartz at 20% opacity
+          borderColor: "rgba(244, 224, 220, 0.2)",
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
         }}
       >
-        <Markdown style={markdownStyles}>{content}</Markdown>
+        <MarkdownContent content={rawContent} textColor={palette.starlight} />
       </View>
     </View>
   );
 }
 
 function getModelDisplayName(modelId: string): string {
-  // Extract just the model name from "provider:model-name"
   const parts = modelId.split(":");
   if (parts.length > 1) {
     return parts[1];

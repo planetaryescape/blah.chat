@@ -1,5 +1,5 @@
-import { memo, type ReactNode } from "react";
-import { Linking, Pressable, Text } from "react-native";
+import { memo, type ReactNode, useState } from "react";
+import { Linking, Text } from "react-native";
 import { palette } from "@/lib/theme/designSystem";
 
 interface BibleVerseLinkProps {
@@ -15,24 +15,25 @@ function getBibleGatewayUrl(osis: string): string {
 }
 
 function BibleVerseLinkComponent({ osis, children }: BibleVerseLinkProps) {
+  const [pressed, setPressed] = useState(false);
+
   const handlePress = () => {
     const url = getBibleGatewayUrl(osis);
     Linking.openURL(url);
   };
 
   return (
-    <Pressable onPress={handlePress}>
-      {({ pressed }) => (
-        <Text
-          style={{
-            color: palette.link,
-            textDecorationLine: pressed ? "underline" : "none",
-          }}
-        >
-          {children}
-        </Text>
-      )}
-    </Pressable>
+    <Text
+      onPress={handlePress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={{
+        color: palette.link,
+        textDecorationLine: pressed ? "underline" : "none",
+      }}
+    >
+      {children}
+    </Text>
   );
 }
 

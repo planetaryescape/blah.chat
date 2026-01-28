@@ -52,6 +52,7 @@ export default function ChatScreen() {
   // Track previous message count to detect new assistant messages
   // Must be before early returns to satisfy React hooks rules
   const prevMsgCountRef = useRef(messages?.length ?? 0);
+  const streamingHapticFiredRef = useRef<string | null>(null);
 
   // Clear optimistic messages when real messages arrive
   useEffect(() => {
@@ -79,6 +80,21 @@ export default function ChatScreen() {
 
     prevMsgCountRef.current = currentCount;
   }, [messages, optimisticMessages]);
+
+  // Haptic when streaming starts (status: generating with content)
+  useEffect(() => {
+    if (!messages) return;
+    const latest = messages[messages.length - 1];
+    if (
+      latest?.role === "assistant" &&
+      latest.status === "generating" &&
+      (latest.content || latest.partialContent) &&
+      streamingHapticFiredRef.current !== latest._id
+    ) {
+      haptic.light();
+      streamingHapticFiredRef.current = latest._id;
+    }
+  }, [messages]);
 
   const handleSend = useCallback(
     async (content: string) => {

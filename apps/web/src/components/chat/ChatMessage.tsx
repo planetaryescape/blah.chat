@@ -315,6 +315,7 @@ export const ChatMessage = memo(
       "shadow-sm hover:shadow-md hover:border-primary/20",
       "transition-all duration-300",
       "[&_.prose]:text-foreground",
+      "font-medium",
     );
 
     // Wrapper classes handle alignment and max-width

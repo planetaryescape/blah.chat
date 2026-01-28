@@ -2,7 +2,9 @@ import Clipboard from "@react-native-clipboard/clipboard";
 import { toast } from "burnt";
 import { Check, Copy } from "lucide-react-native";
 import { memo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import CodeHighlighter from "react-native-code-highlighter";
+import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { layout, palette, spacing } from "@/lib/theme/designSystem";
 
 interface CodeBlockProps {
@@ -23,13 +25,11 @@ const languageMap: Record<string, string> = {
 };
 
 function normalizeLanguage(lang?: string): string {
-  if (!lang) return "text";
+  if (!lang) return "plaintext";
   const lower = lang.toLowerCase();
   return languageMap[lower] || lower;
 }
 
-// Simple native code display without syntax highlighting
-// react-native-syntax-highlighter is broken with modern RN (uses DOM elements)
 function CodeBlockComponent({ code, language }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const normalizedLang = normalizeLanguage(language);
@@ -91,30 +91,29 @@ function CodeBlockComponent({ code, language }: CodeBlockProps) {
         </Pressable>
       </View>
 
-      {/* Code - simple monospace display */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ maxHeight: 400 }}
+      {/* Code with syntax highlighting */}
+      <CodeHighlighter
+        hljsStyle={atomOneDark}
+        language={normalizedLang}
+        textStyle={{
+          fontFamily: "Courier",
+          fontSize: 13,
+          lineHeight: 20,
+        }}
+        scrollViewProps={{
+          horizontal: true,
+          showsHorizontalScrollIndicator: false,
+          contentContainerStyle: {
+            padding: spacing.md,
+            minWidth: "100%",
+          },
+          style: {
+            maxHeight: 400,
+          },
+        }}
       >
-        <ScrollView
-          nestedScrollEnabled
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: spacing.md }}
-        >
-          <Text
-            style={{
-              fontFamily: "Courier",
-              fontSize: 13,
-              color: "#abb2bf", // Atom One Dark base color
-              lineHeight: 20,
-            }}
-            selectable
-          >
-            {code}
-          </Text>
-        </ScrollView>
-      </ScrollView>
+        {code}
+      </CodeHighlighter>
     </View>
   );
 }

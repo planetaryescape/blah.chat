@@ -155,8 +155,15 @@ ${conversationText}`,
       let usage: Awaited<typeof result.usage> | null = null;
       try {
         usage = await result.usage;
-      } catch {
-        // Usage fetch failed - continue without tracking
+      } catch (usageError) {
+        logger.warn("Usage tracking failed", {
+          tag: "TitleGeneration",
+          conversationId: args.conversationId,
+          error:
+            usageError instanceof Error
+              ? usageError.message
+              : String(usageError),
+        });
       }
       if (conversation && usage) {
         const inputTokens = usage.inputTokens ?? 0;

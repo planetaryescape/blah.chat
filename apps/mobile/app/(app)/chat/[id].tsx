@@ -229,21 +229,22 @@ export default function ChatScreen() {
   }
 
   // Deduplicate optimistic messages that now appear in real messages
+  // 30s window accommodates slow networks
+  const DEDUP_WINDOW_MS = 30000;
   const filteredOptimistic = optimisticMessages.filter((opt) => {
-    // For user messages: match by role + content + time window
     if (opt.role === "user") {
       const exists = messages?.some(
         (m) =>
           m.role === "user" &&
           m.content === opt.content &&
-          Math.abs(m.createdAt - opt.createdAt) < 10000,
+          Math.abs(m.createdAt - opt.createdAt) < DEDUP_WINDOW_MS,
       );
       return !exists;
     }
-    // For assistant messages: match by role + time window (content starts empty)
     const exists = messages?.some(
       (m) =>
-        m.role === "assistant" && Math.abs(m.createdAt - opt.createdAt) < 10000,
+        m.role === "assistant" &&
+        Math.abs(m.createdAt - opt.createdAt) < DEDUP_WINDOW_MS,
     );
     return !exists;
   });

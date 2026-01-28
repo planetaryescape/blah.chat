@@ -58,9 +58,11 @@ export function extractMathBlocks(text: string): MathExtractionResult {
   const _remaining = text;
   const _lastIndex = 0;
 
-  // Check for block math patterns first
+  // Check for block math patterns first (on separate lines)
   const blockMatches = [...text.matchAll(/\n?\$\$\n([\s\S]*?)\n\$\$\n?/g)];
-  const inlineMatches = [...text.matchAll(/\$\$([^$\n]+)\$\$/g)];
+  // Inline math: $$...$$ that may span lines but NOT be block style
+  // Use [\s\S]*? to match content with newlines (like web does)
+  const inlineMatches = [...text.matchAll(/\$\$([\s\S]*?)\$\$/g)];
 
   if (blockMatches.length === 0 && inlineMatches.length === 0) {
     return { hasMath: false, segments: [{ type: "text", content: text }] };

@@ -96,8 +96,7 @@ export default function NewChatScreen() {
 
         // Navigate to the new conversation
         router.replace(`/(app)/chat/${conversationId}`);
-      } catch (error) {
-        console.error("Failed to send message:", error);
+      } catch {
         haptic.error();
         setOptimisticMessages([]);
       } finally {

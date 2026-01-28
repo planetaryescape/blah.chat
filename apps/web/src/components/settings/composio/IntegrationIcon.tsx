@@ -6,7 +6,6 @@ import type { SVGProps } from "react";
 // Import all available svgl icons
 import { Airtable } from "@/components/ui/svgs/airtable";
 import { AsanaLogo } from "@/components/ui/svgs/asanaLogo";
-import { Buffer } from "@/components/ui/svgs/buffer";
 import { Calendly } from "@/components/ui/svgs/calendly";
 import { Canva } from "@/components/ui/svgs/canva";
 import { Clickup } from "@/components/ui/svgs/clickup";
@@ -140,7 +139,6 @@ const ICON_MAP: Record<string, IconComponent | ThemeAwareIcon> = {
   // Automation
   zapier: Zapier,
   make: Make,
-  buffer: Buffer,
 
   // Microsoft products fallback
   outlook: Microsoft,

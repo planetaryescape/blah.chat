@@ -9,11 +9,8 @@ interface MathRendererProps {
 }
 
 function createKatexHtml(latex: string, isBlock: boolean): string {
-  const displayMode = isBlock ? "true" : "false";
-  const escapedLatex = latex
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n");
+  // Use JSON.stringify for proper JS string escaping (prevents XSS)
+  const safeLatex = JSON.stringify(latex);
 
   return `
 <!DOCTYPE html>
@@ -43,18 +40,18 @@ function createKatexHtml(latex: string, isBlock: boolean): string {
   <div id="math"></div>
   <script>
     try {
-      katex.render("${escapedLatex}", document.getElementById("math"), {
-        displayMode: ${displayMode},
+      katex.render(${safeLatex}, document.getElementById("math"), {
+        displayMode: ${isBlock},
         throwOnError: false,
-        trust: true,
-        strict: false
+        trust: false,
+        strict: "warn"
       });
-      setTimeout(() => {
-        const height = document.getElementById("math").offsetHeight;
-        window.ReactNativeWebView.postMessage(JSON.stringify({ height }));
+      setTimeout(function() {
+        var height = document.getElementById("math").offsetHeight;
+        window.ReactNativeWebView.postMessage(JSON.stringify({ height: height }));
       }, 100);
     } catch (e) {
-      document.getElementById("math").textContent = "${escapedLatex}";
+      document.getElementById("math").textContent = ${safeLatex};
       window.ReactNativeWebView.postMessage(JSON.stringify({ height: 30 }));
     }
   </script>
@@ -273,7 +270,7 @@ function MathRendererComponent({ latex, isBlock = false }: MathRendererProps) {
         showsVerticalScrollIndicator={false}
         onMessage={handleMessage}
         onLoadEnd={() => setLoading(false)}
-        originWhitelist={["*"]}
+        originWhitelist={["about:blank"]}
         javaScriptEnabled
       />
     </View>

@@ -1,7 +1,7 @@
 import Clipboard from "@react-native-clipboard/clipboard";
 import { toast } from "burnt";
 import { Check, Copy } from "lucide-react-native";
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import CodeHighlighter from "react-native-code-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
@@ -32,9 +32,19 @@ function normalizeLanguage(lang?: string): string {
 
 function CodeBlockComponent({ code, language }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const normalizedLang = normalizeLanguage(language);
 
-  const handleCopy = async () => {
+  // Cleanup timeout on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = () => {
     Clipboard.setString(code);
     setCopied(true);
     toast({
@@ -42,7 +52,11 @@ function CodeBlockComponent({ code, language }: CodeBlockProps) {
       preset: "done",
       haptic: "success",
     });
-    setTimeout(() => setCopied(false), 2000);
+    // Clear any existing timeout before setting new one
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   return (

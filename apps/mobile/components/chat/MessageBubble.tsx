@@ -1,10 +1,21 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import { memo } from "react";
-import { Text, View } from "react-native";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import Clipboard from "@react-native-clipboard/clipboard";
+import {
+  Check,
+  Copy,
+  GitBranch,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
+} from "lucide-react-native";
+import { memo, useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import Reanimated, { FadeIn } from "react-native-reanimated";
+import { haptic } from "@/lib/haptics";
 import { useStreamBuffer } from "@/lib/hooks/useStreamBuffer";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 import { MarkdownContent } from "./MarkdownContent";
+import { SiblingNavigator } from "./SiblingNavigator";
 import { StreamingCursor } from "./StreamingCursor";
 import { TypingIndicator } from "./TypingIndicator";
 
@@ -12,14 +23,29 @@ type Message = Doc<"messages">;
 
 interface MessageBubbleProps {
   message: Message;
+  conversationId: Id<"conversations">;
+  onMorePress?: (message: Message) => void;
+  onEdit?: (message: Message) => void;
+  onRegenerate?: (message: Message) => void;
+  onBranch?: (message: Message) => void;
 }
 
-function MessageBubbleComponent({ message }: MessageBubbleProps) {
+function MessageBubbleComponent({
+  message,
+  conversationId,
+  onMorePress,
+  onEdit,
+  onRegenerate,
+  onBranch,
+}: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isPending = message.status === "pending";
   const isGenerating = message.status === "generating";
   const hasError = message.status === "error";
+  const isComplete = message.status === "complete";
   const rawContent = message.partialContent || message.content || "";
+
+  const [copied, setCopied] = useState(false);
 
   // Use stream buffer for smooth word-by-word reveal
   const { displayContent, hasBufferedContent } = useStreamBuffer(
@@ -34,10 +60,48 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
   // Show cursor while streaming or buffer is draining
   const showCursor = isGenerating || hasBufferedContent;
 
+  // Show actions only when message is complete and has content
+  const showActions = isComplete && rawContent.length > 0;
+
+  const handleCopy = () => {
+    Clipboard.setString(message.content || "");
+    haptic.success();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  // Quick action button component
+  const ActionButton = ({
+    icon: Icon,
+    onPress,
+    isActive,
+  }: {
+    icon: typeof Copy;
+    onPress: () => void;
+    isActive?: boolean;
+  }) => (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        padding: spacing.xs,
+        borderRadius: layout.radius.sm,
+        opacity: pressed ? 0.5 : 1,
+      })}
+    >
+      <Icon
+        size={16}
+        color={isActive ? palette.roseQuartz : palette.starlightDim}
+      />
+    </Pressable>
+  );
+
   // Assistant messages: full width, no bubble
   if (!isUser) {
     return (
-      <View
+      <Pressable
+        onLongPress={() => onMorePress?.(message)}
+        delayLongPress={500}
         style={{
           marginVertical: spacing.sm,
           paddingHorizontal: spacing.md,
@@ -65,28 +129,81 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
           </View>
         )}
 
-        {/* Model indicator */}
-        {message.model && !showTypingIndicator && (
-          <Reanimated.View entering={FadeIn.duration(200)}>
-            <Text
+        {/* Model indicator + Actions row */}
+        {!showTypingIndicator && (
+          <Reanimated.View
+            entering={FadeIn.duration(200)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: spacing.xs,
+            }}
+          >
+            {/* Quick Actions + Sibling Navigator on LEFT for assistant */}
+            <View
               style={{
-                fontFamily: typography.body,
-                fontSize: 11,
-                color: palette.starlightDim,
-                marginTop: spacing.xs,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
               }}
             >
-              {getModelDisplayName(message.model)}
-            </Text>
+              {showActions && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.xs,
+                  }}
+                >
+                  <ActionButton
+                    icon={copied ? Check : Copy}
+                    onPress={handleCopy}
+                    isActive={copied}
+                  />
+                  <ActionButton
+                    icon={RotateCcw}
+                    onPress={() => onRegenerate?.(message)}
+                  />
+                  <ActionButton
+                    icon={GitBranch}
+                    onPress={() => onBranch?.(message)}
+                  />
+                  <ActionButton
+                    icon={MoreHorizontal}
+                    onPress={() => onMorePress?.(message)}
+                  />
+                </View>
+              )}
+              <SiblingNavigator
+                message={message}
+                conversationId={conversationId}
+              />
+            </View>
+
+            {/* Model name on RIGHT */}
+            {message.model && (
+              <Text
+                style={{
+                  fontFamily: typography.body,
+                  fontSize: 11,
+                  color: palette.starlightDim,
+                }}
+              >
+                {getModelDisplayName(message.model)}
+              </Text>
+            )}
           </Reanimated.View>
         )}
-      </View>
+      </Pressable>
     );
   }
 
   // User messages: bubble on right, reduced padding
   return (
-    <View
+    <Pressable
+      onLongPress={() => onMorePress?.(message)}
+      delayLongPress={500}
       style={{
         alignItems: "flex-end",
         marginVertical: spacing.xs,
@@ -107,7 +224,46 @@ function MessageBubbleComponent({ message }: MessageBubbleProps) {
       >
         <MarkdownContent content={rawContent} textColor={palette.starlight} />
       </View>
-    </View>
+
+      {/* Quick Actions + Sibling Navigator for user messages */}
+      {(showActions || true) && (
+        <Reanimated.View
+          entering={FadeIn.duration(200)}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
+            marginTop: spacing.xs,
+          }}
+        >
+          <SiblingNavigator message={message} conversationId={conversationId} />
+          {showActions && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.xs,
+              }}
+            >
+              <ActionButton
+                icon={copied ? Check : Copy}
+                onPress={handleCopy}
+                isActive={copied}
+              />
+              <ActionButton icon={Pencil} onPress={() => onEdit?.(message)} />
+              <ActionButton
+                icon={GitBranch}
+                onPress={() => onBranch?.(message)}
+              />
+              <ActionButton
+                icon={MoreHorizontal}
+                onPress={() => onMorePress?.(message)}
+              />
+            </View>
+          )}
+        </Reanimated.View>
+      )}
+    </Pressable>
   );
 }
 

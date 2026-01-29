@@ -1,4 +1,4 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
+import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { FlashList } from "@shopify/flash-list";
 import { memo, useCallback, useEffect, useRef } from "react";
 import { View } from "react-native";
@@ -9,12 +9,22 @@ type Message = Doc<"messages">;
 
 interface MessageListProps {
   messages: Message[];
+  conversationId: Id<"conversations">;
   optimisticMessages?: Message[];
+  onMorePress?: (message: Message) => void;
+  onEdit?: (message: Message) => void;
+  onRegenerate?: (message: Message) => void;
+  onBranch?: (message: Message) => void;
 }
 
 function MessageListComponent({
   messages,
+  conversationId,
   optimisticMessages = [],
+  onMorePress,
+  onEdit,
+  onRegenerate,
+  onBranch,
 }: MessageListProps) {
   const listRef = useRef<FlashList<Message>>(null);
 
@@ -33,9 +43,21 @@ function MessageListComponent({
     }
   }, [allMessages.length]);
 
-  const renderItem = useCallback(({ item }: { item: Message }) => {
-    return <MessageBubble message={item} />;
-  }, []);
+  const renderItem = useCallback(
+    ({ item }: { item: Message }) => {
+      return (
+        <MessageBubble
+          message={item}
+          conversationId={conversationId}
+          onMorePress={onMorePress}
+          onEdit={onEdit}
+          onRegenerate={onRegenerate}
+          onBranch={onBranch}
+        />
+      );
+    },
+    [conversationId, onMorePress, onEdit, onRegenerate, onBranch],
+  );
 
   const keyExtractor = useCallback((item: Message) => item._id, []);
 

@@ -1,3 +1,12 @@
+export {
+  useAddBookmarkTag,
+  useBookmarkByMessage,
+  useBookmarks,
+  useCreateBookmark,
+  useRemoveBookmark,
+  useRemoveBookmarkTag,
+  useUpdateBookmark,
+} from "./useBookmarks";
 export { useConversationSearch } from "./useConversationSearch";
 export {
   useConversation,
@@ -13,5 +22,20 @@ export {
   useSwitchBranch,
 } from "./useMessageActions";
 export { useMessages, useSendMessage } from "./useMessages";
+export {
+  useAcceptNoteTag,
+  useAddNoteTag,
+  useCreateNote,
+  useCreateNoteShare,
+  useDeleteNote,
+  useNote,
+  useNotes,
+  useRemoveNoteTag,
+  useSearchNotes,
+  useToggleNotePin,
+  useToggleNoteShare,
+  useTriggerAutoTag,
+  useUpdateNote,
+} from "./useNotes";
 export { useProjects } from "./useProjects";
 export { useSiblings } from "./useSiblings";

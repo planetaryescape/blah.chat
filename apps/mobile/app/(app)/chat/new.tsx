@@ -196,7 +196,11 @@ export default function NewChatScreen() {
             </Text>
           </View>
         ) : (
-          <MessageList messages={[]} optimisticMessages={optimisticMessages} />
+          <MessageList
+            messages={[]}
+            conversationId={"new" as Id<"conversations">}
+            optimisticMessages={optimisticMessages}
+          />
         )}
 
         {/* Input */}

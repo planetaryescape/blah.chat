@@ -119,22 +119,32 @@ function createRules(textColor: string): RenderRules {
   };
 }
 
+// Skip expensive transforms for large content to avoid blocking main thread
+const LARGE_CONTENT_THRESHOLD = 5000;
+
 function MarkdownContentComponent({
   content,
   isStreaming = false,
   textColor = palette.starlight,
 }: MarkdownContentProps) {
+  const isLargeContent = content.length > LARGE_CONTENT_THRESHOLD;
+
   // Process content: normalize LaTeX, detect Bible verses
+  // Skip for large content to avoid main thread blocking
   const processedContent = useMemo(() => {
+    if (isLargeContent) return content;
     let result = normalizeLatexDelimiters(content);
     result = processBibleVerses(result);
     return result;
-  }, [content]);
+  }, [content, isLargeContent]);
 
-  // Check for math blocks
+  // Check for math blocks - skip for large content
   const { hasMath, segments } = useMemo(
-    () => extractMathBlocks(processedContent),
-    [processedContent],
+    () =>
+      isLargeContent
+        ? { hasMath: false, segments: [] }
+        : extractMathBlocks(processedContent),
+    [processedContent, isLargeContent],
   );
 
   const rules = useMemo(() => createRules(textColor), [textColor]);

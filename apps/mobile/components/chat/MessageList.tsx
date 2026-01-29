@@ -1,6 +1,6 @@
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { FlashList } from "@shopify/flash-list";
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { View } from "react-native";
 import { palette, spacing } from "@/lib/theme/designSystem";
 import { MessageBubble } from "./MessageBubble";
@@ -27,20 +27,21 @@ function MessageListComponent({
   onBranch,
 }: MessageListProps) {
   const listRef = useRef<FlashList<Message>>(null);
+  const prevLengthRef = useRef(0);
 
-  // Combine real messages with optimistic ones, sort by createdAt (oldest first)
-  const allMessages = [...messages, ...optimisticMessages].sort(
-    (a, b) => a.createdAt - b.createdAt,
-  );
+  // Combine real messages with optimistic ones
+  // Messages from Convex already sorted; optimistic always newer, append at end
+  const allMessages = useMemo(() => {
+    if (optimisticMessages.length === 0) return messages;
+    return [...messages, ...optimisticMessages];
+  }, [messages, optimisticMessages]);
 
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    if (allMessages.length > 0 && listRef.current) {
-      // Small delay to ensure list has rendered
-      setTimeout(() => {
-        listRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+  // Auto-scroll when new messages added (not on initial load)
+  const handleContentSizeChange = useCallback(() => {
+    if (allMessages.length > prevLengthRef.current && listRef.current) {
+      listRef.current.scrollToEnd({ animated: true });
     }
+    prevLengthRef.current = allMessages.length;
   }, [allMessages.length]);
 
   const renderItem = useCallback(
@@ -69,6 +70,9 @@ function MessageListComponent({
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         estimatedItemSize={100}
+        drawDistance={250}
+        getItemType={(item) => item.role}
+        onContentSizeChange={handleContentSizeChange}
         contentContainerStyle={{
           paddingTop: spacing.md,
           paddingBottom: spacing.md,

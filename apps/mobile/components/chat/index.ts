@@ -1,4 +1,4 @@
-export { ChatInput } from "./ChatInput";
+export { ChatInput, type ChatInputRef } from "./ChatInput";
 export { EditMessageModal } from "./EditMessageModal";
 export { MessageActionSheet } from "./MessageActionSheet";
 export { MessageBubble } from "./MessageBubble";

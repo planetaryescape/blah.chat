@@ -396,25 +396,37 @@ export default function ChatScreen() {
   }
 
   // Deduplicate optimistic messages that now appear in real messages
-  // 30s window accommodates slow networks
+  // 30s window accommodates slow networks - O(n) via Set lookup
   const DEDUP_WINDOW_MS = 30000;
-  const filteredOptimistic = optimisticMessages.filter((opt) => {
-    if (opt.role === "user") {
-      const exists = messages?.some(
-        (m) =>
-          m.role === "user" &&
-          m.content === opt.content &&
-          Math.abs(m.createdAt - opt.createdAt) < DEDUP_WINDOW_MS,
-      );
-      return !exists;
-    }
-    const exists = messages?.some(
-      (m) =>
-        m.role === "assistant" &&
-        Math.abs(m.createdAt - opt.createdAt) < DEDUP_WINDOW_MS,
+  const WINDOW_BUCKET = DEDUP_WINDOW_MS;
+
+  // Build Set of message keys for O(1) lookups
+  const messageKeys = useMemo(() => {
+    if (!messages) return new Set<string>();
+    return new Set(
+      messages.map((m) => {
+        const timeBucket = Math.floor(m.createdAt / WINDOW_BUCKET);
+        if (m.role === "user") {
+          return `user:${m.content?.slice(0, 50)}:${timeBucket}`;
+        }
+        return `assistant:${timeBucket}`;
+      }),
     );
-    return !exists;
-  });
+  }, [messages]);
+
+  const filteredOptimistic = useMemo(
+    () =>
+      optimisticMessages.filter((opt) => {
+        const timeBucket = Math.floor(opt.createdAt / WINDOW_BUCKET);
+        if (opt.role === "user") {
+          const key = `user:${opt.content?.slice(0, 50)}:${timeBucket}`;
+          return !messageKeys.has(key);
+        }
+        const key = `assistant:${timeBucket}`;
+        return !messageKeys.has(key);
+      }),
+    [optimisticMessages, messageKeys],
+  );
 
   return (
     <SafeAreaView

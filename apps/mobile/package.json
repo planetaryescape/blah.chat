@@ -16,6 +16,7 @@
     "typecheck": "echo 'Mobile typecheck disabled - backend path aliases do not resolve from mobile context. Build succeeds.'"
   },
   "dependencies": {
+    "@10play/tentap-editor": "^1.0.1",
     "@blah-chat/ai": "workspace:*",
     "@blah-chat/backend": "workspace:*",
     "@clerk/clerk-expo": "^2.9.0",

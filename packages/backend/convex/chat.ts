@@ -650,6 +650,32 @@ export const editMessage = mutation({
       updatedAt: Date.now(),
     });
 
+    // Mark all descendants of original message as not on active branch
+    // This ensures messages after the edited one disappear from the new branch
+    const visited = new Set<string>();
+    const queue: Id<"messages">[] = [args.messageId];
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      // Find children by parentMessageId index
+      const children = await ctx.db
+        .query("messages")
+        .withIndex("by_parent", (q) => q.eq("parentMessageId", currentId))
+        .collect();
+
+      for (const child of children) {
+        if (!visited.has(child._id)) {
+          await ctx.db.patch(child._id, {
+            isActiveBranch: false,
+            updatedAt: Date.now(),
+          });
+          queue.push(child._id);
+        }
+      }
+    }
+
     // Derive rootMessageId properly (walk tree if not set)
     const rootMessageId = await _deriveRootMessageId(ctx, message);
 

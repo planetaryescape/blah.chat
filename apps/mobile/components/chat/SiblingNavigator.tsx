@@ -18,7 +18,9 @@ function SiblingNavigatorComponent({
   conversationId,
 }: SiblingNavigatorProps) {
   // Skip query for optimistic messages (IDs starting with "optimistic-")
-  const isOptimistic = message._id.toString().startsWith("optimistic-");
+  // Convex IDs are objects, optimistic IDs are strings
+  const isOptimistic =
+    typeof message._id === "string" && message._id.startsWith("optimistic-");
   const messageId = isOptimistic ? undefined : (message._id as Id<"messages">);
 
   const siblings = useSiblings(messageId);

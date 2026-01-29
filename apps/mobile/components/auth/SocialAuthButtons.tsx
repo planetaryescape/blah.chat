@@ -43,7 +43,7 @@ export function SocialAuthButtons({ onError }: SocialAuthButtonsProps) {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      const redirectUrl = Linking.createURL("/(drawer)");
+      const redirectUrl = Linking.createURL("/(drawer)/chat/new");
 
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: "oauth_google",

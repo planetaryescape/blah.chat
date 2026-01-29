@@ -46,7 +46,7 @@ export default function SignInScreen() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.replace("/(drawer)");
+        router.replace("/(drawer)/chat/new");
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Failed to sign in");

@@ -34,7 +34,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(app)" />
+      <Stack.Screen name="(drawer)" />
     </Stack>
   );
 }
@@ -58,7 +58,6 @@ export default function RootLayout() {
         console.warn("Error loading fonts:", e);
       } finally {
         setFontsLoaded(true);
-        await SplashScreen.hideAsync();
       }
     }
 

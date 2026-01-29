@@ -70,7 +70,7 @@ export default function SignUpScreen() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.replace("/(drawer)");
+        router.replace("/(drawer)/chat/new");
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Invalid verification code");

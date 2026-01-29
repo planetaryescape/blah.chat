@@ -1,3 +1,4 @@
+export { useConversationSearch } from "./useConversationSearch";
 export {
   useConversation,
   useConversations,
@@ -12,4 +13,5 @@ export {
   useSwitchBranch,
 } from "./useMessageActions";
 export { useMessages, useSendMessage } from "./useMessages";
+export { useProjects } from "./useProjects";
 export { useSiblings } from "./useSiblings";

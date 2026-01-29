@@ -10,6 +10,7 @@ import {
 } from "lucide-react-native";
 import { memo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
 import Reanimated, { FadeIn } from "react-native-reanimated";
 import { haptic } from "@/lib/haptics";
 import { useStreamBuffer } from "@/lib/hooks/useStreamBuffer";
@@ -70,7 +71,8 @@ function MessageBubbleComponent({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  // Quick action button component
+  // Quick action button - uses TouchableOpacity from RNGH to avoid
+  // gesture conflicts with parent Pressable's onLongPress
   const ActionButton = ({
     icon: Icon,
     onPress,
@@ -80,20 +82,19 @@ function MessageBubbleComponent({
     onPress: () => void;
     isActive?: boolean;
   }) => (
-    <Pressable
+    <TouchableOpacity
       onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => ({
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      style={{
         padding: spacing.xs,
         borderRadius: layout.radius.sm,
-        opacity: pressed ? 0.5 : 1,
-      })}
+      }}
     >
       <Icon
         size={16}
         color={isActive ? palette.roseQuartz : palette.starlightDim}
       />
-    </Pressable>
+    </TouchableOpacity>
   );
 
   // Assistant messages: full width, no bubble

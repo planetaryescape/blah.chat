@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ChatInput,
@@ -23,7 +24,6 @@ import {
   MessageList,
 } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
-import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { haptic } from "@/lib/haptics";
 import {
   useBranchMessage,
@@ -360,8 +360,11 @@ export default function ChatScreen() {
           >
             Conversation not found
           </Text>
-          <AnimatedPressable
-            onPress={() => router.back()}
+          <TouchableOpacity
+            onPress={() => {
+              haptic.light();
+              router.back();
+            }}
             style={{
               marginTop: spacing.lg,
               paddingHorizontal: spacing.lg,
@@ -379,7 +382,7 @@ export default function ChatScreen() {
             >
               Go back
             </Text>
-          </AnimatedPressable>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -430,12 +433,16 @@ export default function ChatScreen() {
             height: layout.headerHeight,
           }}
         >
-          <AnimatedPressable
-            onPress={handleOpenDrawer}
+          <TouchableOpacity
+            onPress={() => {
+              haptic.light();
+              handleOpenDrawer();
+            }}
             style={{ padding: spacing.xs }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Menu size={24} color={palette.starlight} />
-          </AnimatedPressable>
+          </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: spacing.sm }}>
             <Text
               numberOfLines={1}

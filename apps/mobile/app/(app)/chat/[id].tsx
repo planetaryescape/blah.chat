@@ -1,23 +1,35 @@
 import { getMobileModels } from "@blah-chat/ai";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
+import Clipboard from "@react-native-clipboard/clipboard";
+import { toast } from "burnt";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChatInput, MessageList } from "@/components/chat";
+import {
+  ChatInput,
+  EditMessageModal,
+  MessageActionSheet,
+  MessageList,
+} from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { haptic } from "@/lib/haptics";
 import {
+  useBranchMessage,
   useConversation,
+  useDeleteMessage,
+  useEditMessage,
   useMessages,
+  useRegenerateMessage,
   useSendMessage,
   useUpdateModel,
 } from "@/lib/hooks";
@@ -34,10 +46,21 @@ export default function ChatScreen() {
   const messages = useMessages(conversationId);
   const sendMessage = useSendMessage();
   const updateModel = useUpdateModel();
+  const deleteMessage = useDeleteMessage();
+  const editMessage = useEditMessage();
+  const regenerateMessage = useRegenerateMessage();
+  const branchMessage = useBranchMessage();
 
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [actionSheetMessage, setActionSheetMessage] = useState<Message | null>(
+    null,
+  );
+  const [isRegenerateMode, setIsRegenerateMode] = useState(false);
+  const [editModalMessage, setEditModalMessage] = useState<Message | null>(
+    null,
+  );
 
   const models = useMemo(() => getMobileModels(), []);
   const selectedModel = conversation?.model || "openai:gpt-5-mini";
@@ -173,6 +196,24 @@ export default function ChatScreen() {
   const handleModelSelect = useCallback(
     async (modelId: string) => {
       setIsModelPickerOpen(false);
+
+      // Handle regenerate mode
+      if (isRegenerateMode && actionSheetMessage) {
+        setIsRegenerateMode(false);
+        try {
+          haptic.medium();
+          await regenerateMessage({
+            messageId: actionSheetMessage._id,
+            modelId,
+          });
+          haptic.success();
+        } catch {
+          haptic.error();
+        }
+        setActionSheetMessage(null);
+        return;
+      }
+
       if (conversationId && modelId !== selectedModel) {
         try {
           await updateModel({ conversationId, model: modelId });
@@ -181,7 +222,113 @@ export default function ChatScreen() {
         }
       }
     },
-    [conversationId, selectedModel, updateModel],
+    [
+      conversationId,
+      selectedModel,
+      updateModel,
+      isRegenerateMode,
+      actionSheetMessage,
+      regenerateMessage,
+    ],
+  );
+
+  const handleMessageLongPress = useCallback((message: Message) => {
+    haptic.selection();
+    setActionSheetMessage(message);
+  }, []);
+
+  const handleCloseActionSheet = useCallback(() => {
+    setActionSheetMessage(null);
+  }, []);
+
+  const handleCopy = useCallback((message: Message) => {
+    const content = message.content || "";
+    Clipboard.setString(content);
+    toast({ preset: "done", title: "Copied" });
+    haptic.success();
+    setActionSheetMessage(null);
+  }, []);
+
+  const handleEdit = useCallback((message: Message) => {
+    setActionSheetMessage(null);
+    setEditModalMessage(message);
+  }, []);
+
+  const handleEditSave = useCallback(
+    async (content: string) => {
+      if (!editModalMessage) return;
+      try {
+        haptic.medium();
+        // Let createBranch default to true - creates sibling branch + regenerates
+        await editMessage({
+          messageId: editModalMessage._id,
+          content,
+        });
+        haptic.success();
+      } catch {
+        haptic.error();
+      }
+      setEditModalMessage(null);
+    },
+    [editMessage, editModalMessage],
+  );
+
+  const handleEditCancel = useCallback(() => {
+    setEditModalMessage(null);
+  }, []);
+
+  const handleRegenerate = useCallback((message: Message) => {
+    // Store the message for when model is selected
+    setActionSheetMessage(message);
+    // Open model picker in regenerate mode
+    setIsRegenerateMode(true);
+    setIsModelPickerOpen(true);
+  }, []);
+
+  const handleBranch = useCallback(
+    async (message: Message) => {
+      try {
+        haptic.medium();
+        const result = await branchMessage({ messageId: message._id });
+        haptic.success();
+        toast({ preset: "done", title: "Branch created" });
+        router.push(`/chat/${result.conversationId}`);
+      } catch {
+        haptic.error();
+        toast({ preset: "error", title: "Failed to branch" });
+      }
+      setActionSheetMessage(null);
+    },
+    [branchMessage, router],
+  );
+
+  const handleDelete = useCallback(
+    (message: Message) => {
+      Alert.alert(
+        "Delete Message",
+        "Are you sure you want to delete this message? This will also delete all replies.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                haptic.medium();
+                await deleteMessage({ messageId: message._id });
+                haptic.success();
+                toast({ preset: "done", title: "Deleted" });
+              } catch {
+                haptic.error();
+                toast({ preset: "error", title: "Failed to delete" });
+              }
+            },
+          },
+        ],
+      );
+      setActionSheetMessage(null);
+    },
+    [deleteMessage],
   );
 
   if (isLoading) {
@@ -314,7 +461,12 @@ export default function ChatScreen() {
         {/* Messages */}
         <MessageList
           messages={messages || []}
+          conversationId={conversationId}
           optimisticMessages={filteredOptimistic}
+          onMorePress={handleMessageLongPress}
+          onEdit={handleEdit}
+          onRegenerate={handleRegenerate}
+          onBranch={handleBranch}
         />
 
         {/* Input */}
@@ -329,9 +481,35 @@ export default function ChatScreen() {
         {/* Model Picker */}
         <ModelPicker
           isOpen={isModelPickerOpen}
-          onClose={() => setIsModelPickerOpen(false)}
+          onClose={() => {
+            setIsModelPickerOpen(false);
+            if (isRegenerateMode) {
+              setIsRegenerateMode(false);
+              setActionSheetMessage(null);
+            }
+          }}
           selectedModel={selectedModel}
           onSelectModel={handleModelSelect}
+        />
+
+        {/* Message Action Sheet */}
+        <MessageActionSheet
+          isOpen={!!actionSheetMessage && !isRegenerateMode}
+          onClose={handleCloseActionSheet}
+          message={actionSheetMessage}
+          onCopy={handleCopy}
+          onEdit={handleEdit}
+          onRegenerate={handleRegenerate}
+          onBranch={handleBranch}
+          onDelete={handleDelete}
+        />
+
+        {/* Edit Message Modal */}
+        <EditMessageModal
+          visible={!!editModalMessage}
+          initialContent={editModalMessage?.content || ""}
+          onSave={handleEditSave}
+          onCancel={handleEditCancel}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

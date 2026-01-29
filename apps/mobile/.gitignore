@@ -1,5 +1,6 @@
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
@@ -19,6 +20,9 @@ node_modules/
 npm-debug.*
 *.log
 
+# Metro
+.metro-health-check*
+
 # Environment
 .env
 .env.local
@@ -30,6 +34,9 @@ npm-debug.*
 
 # TypeScript
 *.tsbuildinfo
+
+# EAS
+.eas/
 
 # Generated
 nativewind-env.d.ts

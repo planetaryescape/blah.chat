@@ -3,6 +3,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import {
+  FileText,
   FolderOpen,
   MessageSquarePlus,
   MessagesSquare,
@@ -453,7 +454,7 @@ export function DrawerContent() {
         )}
       </View>
 
-      {/* Settings Footer */}
+      {/* Footer */}
       <View
         style={{
           borderTopWidth: 1,
@@ -461,6 +462,33 @@ export function DrawerContent() {
           paddingVertical: spacing.sm,
         }}
       >
+        {/* Notes */}
+        <AnimatedPressable
+          onPress={() => {
+            haptic.light();
+            router.push("/(drawer)/notes");
+          }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm,
+            gap: spacing.sm,
+          }}
+        >
+          <FileText size={20} color={palette.starlightDim} />
+          <Text
+            style={{
+              fontFamily: typography.body,
+              fontSize: 14,
+              color: palette.starlightDim,
+            }}
+          >
+            Notes
+          </Text>
+        </AnimatedPressable>
+
+        {/* Settings */}
         <AnimatedPressable
           onPress={handleSettings}
           style={{

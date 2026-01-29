@@ -43,13 +43,6 @@ export default function DrawerLayout() {
       initialRouteName="chat/new"
     >
       <Drawer.Screen
-        name="index"
-        options={{
-          drawerLabel: "Conversations",
-          swipeEnabled: true,
-        }}
-      />
-      <Drawer.Screen
         name="chat/new"
         options={{
           drawerLabel: "New Chat",
@@ -61,6 +54,13 @@ export default function DrawerLayout() {
         options={{
           drawerLabel: "Chat",
           swipeEnabled: false,
+        }}
+      />
+      <Drawer.Screen
+        name="notes"
+        options={{
+          drawerLabel: "Notes",
+          swipeEnabled: true,
         }}
       />
     </Drawer>

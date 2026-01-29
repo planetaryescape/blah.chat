@@ -84,9 +84,18 @@ export function MessageActionSheet({
   onDelete,
 }: MessageActionSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const messageRef = useRef<Message | null>(null);
+  const pendingSaveAsNoteRef = useRef(false);
 
   const [showBookmarkSheet, setShowBookmarkSheet] = useState(false);
   const [showSaveAsNote, setShowSaveAsNote] = useState(false);
+
+  // Keep ref in sync with prop - preserves message when parent nulls it
+  useEffect(() => {
+    if (message) {
+      messageRef.current = message;
+    }
+  }, [message]);
 
   // @ts-ignore - Type depth issues with Convex types (85+ modules)
   const bookmark = useBookmarkByMessage(message?._id ?? null);
@@ -108,7 +117,12 @@ export function MessageActionSheet({
   const handleSheetChange = useCallback(
     (index: number) => {
       if (index === -1) {
-        onClose();
+        if (pendingSaveAsNoteRef.current) {
+          pendingSaveAsNoteRef.current = false;
+          setShowSaveAsNote(true);
+        } else {
+          onClose();
+        }
       }
     },
     [onClose],
@@ -141,9 +155,9 @@ export function MessageActionSheet({
   }, [bookmark, message, removeBookmark, onClose]);
 
   const handleSaveAsNote = useCallback(() => {
-    onClose();
-    setShowSaveAsNote(true);
-  }, [onClose]);
+    pendingSaveAsNoteRef.current = true;
+    bottomSheetRef.current?.dismiss();
+  }, []);
 
   if (!message) return null;
 
@@ -257,8 +271,11 @@ export function MessageActionSheet({
       {showSaveAsNote && (
         <SaveAsNoteSheet
           isOpen={showSaveAsNote}
-          onClose={() => setShowSaveAsNote(false)}
-          message={message}
+          onClose={() => {
+            setShowSaveAsNote(false);
+            onClose();
+          }}
+          message={messageRef.current}
         />
       )}
     </>

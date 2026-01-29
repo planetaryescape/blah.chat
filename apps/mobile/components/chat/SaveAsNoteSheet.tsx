@@ -90,8 +90,8 @@ export function SaveAsNoteSheet({
     });
     setTitle("");
     setSelectedProjectId(null);
-    onClose();
     router.push(`/(drawer)/notes/${noteId}`);
+    onClose();
   }, [message, title, selectedProjectId, createNote, onClose, router]);
 
   if (!message) return null;

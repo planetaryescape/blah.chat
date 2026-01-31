@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "eas-build-pre-install": "echo 'Using bun for install' && which bun && bun --version",
     "dev": "turbo dev",
     "build": "turbo build",
     "start": "turbo start",

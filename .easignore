@@ -8,9 +8,6 @@
 node_modules/
 **/node_modules/
 
-# Bun lockfile binary
-bun.lock
-
 # Large web app (not needed for mobile builds)
 apps/web/
 apps/cli/

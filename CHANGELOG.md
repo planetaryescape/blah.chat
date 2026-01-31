@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.18.0](https://github.com/planetaryescape/blah.chat/compare/v1.17.0...v1.18.0) (2026-01-31)
+
+
+### Features
+
+* **mobile:** add bookmark and save-as-note actions to messages ([5ddeedd](https://github.com/planetaryescape/blah.chat/commit/5ddeeddcc168f5f37851d03dfd207bdaacd33c9d))
+* **mobile:** add branch navigation UI components ([9513d7e](https://github.com/planetaryescape/blah.chat/commit/9513d7eded13c1c904b93660da8fb7676c238423))
+* **mobile:** add drawer navigation with conversation search and project filtering ([748ede0](https://github.com/planetaryescape/blah.chat/commit/748ede0bd3ce3b7e7558502078db04c6fd1a1e79))
+* **mobile:** add hooks for bookmarks and notes ([8601c0e](https://github.com/planetaryescape/blah.chat/commit/8601c0eb6e309bd86acf61cc12a317753233410c))
+* **mobile:** add hooks for sibling navigation and message actions ([67cd5d9](https://github.com/planetaryescape/blah.chat/commit/67cd5d9c11ea918c8efad69747af0ec14dd4d36f))
+* **mobile:** add notes navigation to drawer ([3a90e2b](https://github.com/planetaryescape/blah.chat/commit/3a90e2b81e46bd2e01e70db0cb05ee48fd95d697))
+* **mobile:** add notes screens with auto-tag and sharing ([f1b0ba7](https://github.com/planetaryescape/blah.chat/commit/f1b0ba78f1c98e7f517e1698b960465bf17ef377))
+* **mobile:** add notes UI components ([abeca6d](https://github.com/planetaryescape/blah.chat/commit/abeca6df76ad12ef28ed2433f9c1f4bba4241071))
+* **mobile:** filter messages by active branch ([fedc446](https://github.com/planetaryescape/blah.chat/commit/fedc446ccd8cd7466c192ae315b7340c9f0b38e6))
+* **mobile:** integrate branch navigation into message components ([916d976](https://github.com/planetaryescape/blah.chat/commit/916d9762c7986fe44ddf520503290329bfa654af))
+* **mobile:** wire up branch actions in chat screen ([2e53ea3](https://github.com/planetaryescape/blah.chat/commit/2e53ea38af1fdf306cbaf6d4d0694c9a6a13cc77))
+
+
+### Bug Fixes
+
+* **backend:** deactivate descendants when editing message ([fd2ee5f](https://github.com/planetaryescape/blah.chat/commit/fd2ee5fb07f5cfd8659182ebb967b60f0c8db664))
+* **backend:** move native deps to optionalDependencies for mobile builds ([e9fad60](https://github.com/planetaryescape/blah.chat/commit/e9fad60c705ff649b4c112c4d18b5418f5d7e13c))
+* **backend:** query children by both parentMessageIds and parentMessageId ([e4e92de](https://github.com/planetaryescape/blah.chat/commit/e4e92de1bcb54db8103380da5fe249618c28cbc0))
+* configure EAS to use bun install ([91b4abf](https://github.com/planetaryescape/blah.chat/commit/91b4abf447b8122f5e0a885ecc7ecf545a2132a2))
+* **mobile:** add eas-build-pre-install hook for bun detection ([44598b1](https://github.com/planetaryescape/blah.chat/commit/44598b1774ff98e9ec8a1d52b52f7708a6a7a83f))
+* **mobile:** add empty bun.lockb for EAS package manager detection ([e3b3187](https://github.com/planetaryescape/blah.chat/commit/e3b318735005b440accf35f3f23a8c3e7510fc94))
+* **mobile:** check typeof for optimistic ID detection ([6bdbdaf](https://github.com/planetaryescape/blah.chat/commit/6bdbdafa0bc41348bc403fdbb7ac4d7d99fb8cfd))
+* **mobile:** include bun.lock in EAS builds for package manager detection ([1954360](https://github.com/planetaryescape/blah.chat/commit/1954360690aece8380a2049d12311c6be59bca4a))
+* **mobile:** save as note sheet not opening ([8315588](https://github.com/planetaryescape/blah.chat/commit/83155887010d7b8bd450ddb79613749c2829d0bf))
+* **mobile:** use RNGH TouchableOpacity for drawer gesture compatibility ([1e028e8](https://github.com/planetaryescape/blah.chat/commit/1e028e8aaa651ebc933778563d408650dede7ce1))
+* remove invalid install config from eas.json ([16a21e2](https://github.com/planetaryescape/blah.chat/commit/16a21e2cb04ef03888721d97ce1346a8d7c6d78c))
+
+
+### Performance Improvements
+
+* **mobile:** optimize chat rendering and message deduplication ([520b99b](https://github.com/planetaryescape/blah.chat/commit/520b99b13aa0f9230de58777661758017d010001))
+
 ## [1.17.0](https://github.com/planetaryescape/blah.chat/compare/v1.16.0...v1.17.0) (2026-01-28)
 
 

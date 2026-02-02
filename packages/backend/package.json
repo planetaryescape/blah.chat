@@ -24,7 +24,7 @@
     "@ai-sdk/openai": "^3.0.1",
     "@anthropic-ai/sdk": "^0.71.2",
     "@composio/core": "^0.5.5",
-    "@composio/vercel": "^0.5.5",
+    "@composio/vercel": "^0.6.2",
     "@convex-dev/resend": "^0.2.3",
     "@e2b/code-interpreter": "^2.3.3",
     "@google/generative-ai": "^0.24.1",

@@ -14,6 +14,7 @@ import {
   exportConversationToMarkdown,
   generateMarkdownFilename,
 } from "@/lib/export/markdown";
+import logger from "@/lib/logger";
 
 export async function GET(request: Request) {
   const { userId } = await auth();
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
     try {
       convex = getConvexClient();
     } catch (error) {
-      console.error("Missing NEXT_PUBLIC_CONVEX_URL", error);
+      logger.error({ error }, "Missing NEXT_PUBLIC_CONVEX_URL");
       return new NextResponse("Internal Server Error", { status: 500 });
     }
 

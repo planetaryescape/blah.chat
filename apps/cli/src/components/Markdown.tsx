@@ -1,21 +1,7 @@
-/**
- * Markdown Component - Renders markdown content with terminal styling
- *
- * Uses marked + marked-terminal for:
- * - Syntax highlighted code blocks
- * - Styled headers, bold, italic
- * - Lists, blockquotes, tables
- * - Links (blue underlined)
- *
- * Note: FORCE_COLOR=3 is set via tsup banner (tsup.config.ts) to enable chalk colors
- */
-
-import { Text } from "ink";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
-import { useMemo } from "react";
+import { createMemo } from "solid-js";
 
-// Configure marked with terminal renderer (uses chalk defaults)
 marked.use(markedTerminal());
 
 interface MarkdownProps {
@@ -23,20 +9,17 @@ interface MarkdownProps {
   isStreaming?: boolean;
 }
 
-export function Markdown({ content, isStreaming }: MarkdownProps) {
-  const rendered = useMemo(() => {
+export function Markdown(props: MarkdownProps) {
+  const rendered = createMemo(() => {
     try {
-      // For streaming, append cursor indicator
-      const textToRender = isStreaming ? `${content}▌` : content;
-      // Parse markdown and render to ANSI
+      const textToRender = props.isStreaming
+        ? `${props.content}\u258C`
+        : props.content;
       return marked.parse(textToRender, { async: false }) as string;
     } catch {
-      // Fallback to raw content on error
-      return content;
+      return props.content;
     }
-  }, [content, isStreaming]);
+  });
 
-  // marked-terminal outputs ANSI-escaped strings
-  // Ink's Text component will render them correctly
-  return <Text>{rendered}</Text>;
+  return <text>{rendered()}</text>;
 }

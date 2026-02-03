@@ -8,7 +8,6 @@
     "packages/*"
   ],
   "scripts": {
-    "eas-build-pre-install": "rm -f bun.lock bun.lockb",
     "dev": "turbo dev",
     "build": "turbo build",
     "start": "turbo start",

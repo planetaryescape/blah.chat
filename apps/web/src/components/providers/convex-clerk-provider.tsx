@@ -5,24 +5,21 @@ import { dark } from "@clerk/themes";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
-import { useMemo } from "react";
 import { AuthStateListener } from "./AuthStateListener";
 import { CacheProvider } from "./cache-provider";
 
-function createConvexClient(): ConvexReactClient {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) {
-    throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
-  }
-  return new ConvexReactClient(url);
-}
+const convex = process.env.NEXT_PUBLIC_CONVEX_URL
+  ? new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL)
+  : null;
 
 export function ConvexClerkProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const convex = useMemo(() => createConvexClient(), []);
+  if (!convex) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
+  }
 
   return (
     <ClerkProvider

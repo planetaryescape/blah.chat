@@ -3,9 +3,8 @@ import type { WebhookEvent } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
+import { getConvexClient } from "@/lib/api/convex";
 import logger from "@/lib/logger";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -46,6 +45,14 @@ export async function POST(req: Request) {
   const eventType = evt.type;
 
   try {
+    let convex: ConvexHttpClient;
+    try {
+      convex = getConvexClient();
+    } catch (error) {
+      logger.error({ error }, "Missing NEXT_PUBLIC_CONVEX_URL");
+      return new Response("Internal Server Error", { status: 500 });
+    }
+
     if (eventType === "user.created") {
       const { id, email_addresses, first_name, last_name, image_url } =
         evt.data;

@@ -12,6 +12,8 @@ import { JetBrains_Mono, Manrope, Syne } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 const syne = Syne({
   variable: "--font-syne",
   subsets: ["latin"],

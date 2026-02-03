@@ -1,17 +1,4 @@
-/**
- * useFuzzySearch - Client-side fuzzy search hook
- *
- * Uses a simple scoring algorithm inspired by fzy.js:
- * - Consecutive matches score higher
- * - Matches at word boundaries score higher
- * - Case-insensitive by default
- */
-
-import { useMemo, useState } from "react";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+import { createMemo, createSignal } from "solid-js";
 
 interface FuzzyMatch<T> {
   item: T;
@@ -20,27 +7,19 @@ interface FuzzyMatch<T> {
 }
 
 interface UseFuzzySearchOptions<T> {
-  items: T[];
+  items: () => T[];
   getSearchText: (item: T) => string;
   minScore?: number;
 }
 
 interface UseFuzzySearchResult<T> {
-  query: string;
+  query: () => string;
   setQuery: (query: string) => void;
-  results: T[];
-  matches: FuzzyMatch<T>[];
-  isSearching: boolean;
+  results: () => T[];
+  matches: () => FuzzyMatch<T>[];
+  isSearching: () => boolean;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Fuzzy Matching Algorithm
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Score a single match (inspired by fzy.js)
- * Returns score and matching indices, or null if no match
- */
 function fuzzyMatch(
   needle: string,
   haystack: string,
@@ -48,13 +27,8 @@ function fuzzyMatch(
   const needleLower = needle.toLowerCase();
   const haystackLower = haystack.toLowerCase();
 
-  if (needleLower.length === 0) {
-    return { score: 1, indices: [] };
-  }
-
-  if (needleLower.length > haystackLower.length) {
-    return null;
-  }
+  if (needleLower.length === 0) return { score: 1, indices: [] };
+  if (needleLower.length > haystackLower.length) return null;
 
   const indices: number[] = [];
   let score = 0;
@@ -69,19 +43,16 @@ function fuzzyMatch(
       if (haystackLower[haystackIdx] === needleChar) {
         indices.push(haystackIdx);
 
-        // Consecutive match bonus
         if (prevMatchIdx !== -1 && haystackIdx === prevMatchIdx + 1) {
           score += 2;
         } else {
           score += 1;
         }
 
-        // Word boundary bonus (start of string or after space/punctuation)
         if (haystackIdx === 0 || /[\s\-_./]/.test(haystack[haystackIdx - 1])) {
           score += 1;
         }
 
-        // Exact case match bonus
         if (haystack[haystackIdx] === needle[needleIdx]) {
           score += 0.5;
         }
@@ -94,57 +65,47 @@ function fuzzyMatch(
       haystackIdx++;
     }
 
-    if (!found) {
-      return null;
-    }
+    if (!found) return null;
   }
 
-  // Normalize score by needle length and haystack length
-  // Shorter haystacks with more matches score higher
   const normalizedScore =
     score / (needleLower.length + haystackLower.length * 0.1);
-
   return { score: normalizedScore, indices };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Hook
-// ─────────────────────────────────────────────────────────────────────────────
 
 export function useFuzzySearch<T>({
   items,
   getSearchText,
   minScore = 0,
 }: UseFuzzySearchOptions<T>): UseFuzzySearchResult<T> {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = createSignal("");
 
-  const { results, matches, isSearching } = useMemo(() => {
-    const trimmedQuery = query.trim();
+  const computed = createMemo(() => {
+    const trimmedQuery = query().trim();
 
     if (trimmedQuery.length === 0) {
       return {
-        results: items,
-        matches: items.map((item) => ({ item, score: 1, indices: [] })),
+        results: items(),
+        matches: items().map((item) => ({
+          item,
+          score: 1,
+          indices: [] as number[],
+        })),
         isSearching: false,
       };
     }
 
     const matchResults: FuzzyMatch<T>[] = [];
 
-    for (const item of items) {
+    for (const item of items()) {
       const text = getSearchText(item);
       const match = fuzzyMatch(trimmedQuery, text);
 
       if (match && match.score >= minScore) {
-        matchResults.push({
-          item,
-          score: match.score,
-          indices: match.indices,
-        });
+        matchResults.push({ item, score: match.score, indices: match.indices });
       }
     }
 
-    // Sort by score descending
     matchResults.sort((a, b) => b.score - a.score);
 
     return {
@@ -152,13 +113,13 @@ export function useFuzzySearch<T>({
       matches: matchResults,
       isSearching: true,
     };
-  }, [items, query, getSearchText, minScore]);
+  });
 
   return {
     query,
     setQuery,
-    results,
-    matches,
-    isSearching,
+    results: () => computed().results,
+    matches: () => computed().matches,
+    isSearching: () => computed().isSearching,
   };
 }

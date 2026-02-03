@@ -1,29 +1,19 @@
-/**
- * useListNavigation - Keyboard navigation hook for lists
- *
- * Supports:
- * - Arrow up/down, j/k - Navigate
- * - Enter - Select
- * - Escape, q - Cancel/quit
- * - Page up/down - Jump by page
- */
-
-import { useInput } from "ink";
-import { useCallback, useState } from "react";
+import { useKeyboard } from "@opentui/solid";
+import { createSignal } from "solid-js";
 
 export interface UseListNavigationOptions<T> {
-  items: T[];
+  items: () => T[];
   initialIndex?: number;
   pageSize?: number;
   onSelect?: (item: T, index: number) => void;
   onCancel?: () => void;
   onHighlight?: (item: T, index: number) => void;
-  isActive?: boolean;
+  isActive?: () => boolean;
 }
 
 export interface UseListNavigationResult<T> {
-  selectedIndex: number;
-  selectedItem: T | undefined;
+  selectedIndex: () => number;
+  selectedItem: () => T | undefined;
   setSelectedIndex: (index: number) => void;
 }
 
@@ -34,94 +24,94 @@ export function useListNavigation<T>({
   onSelect,
   onCancel,
   onHighlight,
-  isActive = true,
+  isActive = () => true,
 }: UseListNavigationOptions<T>): UseListNavigationResult<T> {
-  const [selectedIndex, setSelectedIndexState] = useState(
-    Math.min(initialIndex, Math.max(0, items.length - 1)),
+  const [selectedIndex, setSelectedIndexRaw] = createSignal(
+    Math.min(initialIndex, Math.max(0, items().length - 1)),
   );
 
-  const setSelectedIndex = useCallback(
-    (index: number) => {
-      const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
-      setSelectedIndexState(clampedIndex);
-      if (items[clampedIndex]) {
-        onHighlight?.(items[clampedIndex], clampedIndex);
-      }
-    },
-    [items, onHighlight],
-  );
+  const setSelectedIndex = (index: number) => {
+    const clamped = Math.max(0, Math.min(index, items().length - 1));
+    setSelectedIndexRaw(clamped);
+    const item = items()[clamped];
+    if (item) onHighlight?.(item, clamped);
+  };
 
-  useInput(
-    (input, key) => {
-      if (items.length === 0) return;
+  useKeyboard((evt) => {
+    if (!isActive()) return;
+    const list = items();
+    if (list.length === 0) return;
 
-      // Navigation
-      if (key.downArrow || input === "j") {
-        setSelectedIndex(selectedIndex + 1);
-        return;
-      }
+    if (evt.name === "down" || evt.name === "j") {
+      evt.preventDefault();
+      setSelectedIndex(selectedIndex() + 1);
+      return;
+    }
 
-      if (key.upArrow || input === "k") {
-        setSelectedIndex(selectedIndex - 1);
-        return;
-      }
+    if (evt.name === "up" || evt.name === "k") {
+      evt.preventDefault();
+      setSelectedIndex(selectedIndex() - 1);
+      return;
+    }
 
-      // Page navigation
-      if (key.pageDown) {
-        setSelectedIndex(selectedIndex + pageSize);
-        return;
-      }
+    if (evt.name === "pagedown") {
+      evt.preventDefault();
+      setSelectedIndex(selectedIndex() + pageSize);
+      return;
+    }
 
-      if (key.pageUp) {
-        setSelectedIndex(selectedIndex - pageSize);
-        return;
-      }
+    if (evt.name === "pageup") {
+      evt.preventDefault();
+      setSelectedIndex(selectedIndex() - pageSize);
+      return;
+    }
 
-      // Half-page navigation (Ctrl+D/U - vim style)
-      const halfPage = Math.floor(pageSize / 2);
-      if (key.ctrl && input === "d") {
-        setSelectedIndex(selectedIndex + halfPage);
-        return;
-      }
+    // Ctrl+D / Ctrl+U half-page
+    if (evt.ctrl && evt.name === "d") {
+      evt.preventDefault();
+      setSelectedIndex(selectedIndex() + Math.floor(pageSize / 2));
+      return;
+    }
 
-      if (key.ctrl && input === "u") {
-        setSelectedIndex(selectedIndex - halfPage);
-        return;
-      }
+    if (evt.ctrl && evt.name === "u") {
+      evt.preventDefault();
+      setSelectedIndex(selectedIndex() - Math.floor(pageSize / 2));
+      return;
+    }
 
-      // Home/End
-      if (input === "g" && key.shift) {
-        // G = go to end
-        setSelectedIndex(items.length - 1);
-        return;
-      }
+    // G = go to end
+    if (evt.shift && evt.name === "g") {
+      evt.preventDefault();
+      setSelectedIndex(list.length - 1);
+      return;
+    }
 
-      if (input === "g") {
-        // gg = go to start (simplified: just g)
-        setSelectedIndex(0);
-        return;
-      }
+    // g = go to start
+    if (evt.name === "g") {
+      evt.preventDefault();
+      setSelectedIndex(0);
+      return;
+    }
 
-      // Select
-      if (key.return) {
-        if (items[selectedIndex]) {
-          onSelect?.(items[selectedIndex], selectedIndex);
-        }
-        return;
-      }
+    // Enter = select
+    if (evt.name === "return") {
+      evt.preventDefault();
+      const item = list[selectedIndex()];
+      if (item) onSelect?.(item, selectedIndex());
+      return;
+    }
 
-      // Cancel
-      if (key.escape || input === "q") {
-        onCancel?.();
-        return;
-      }
-    },
-    { isActive },
-  );
+    // Escape or q = cancel
+    if (evt.name === "escape" || evt.name === "q") {
+      evt.preventDefault();
+      onCancel?.();
+      return;
+    }
+  });
 
   return {
     selectedIndex,
-    selectedItem: items[selectedIndex],
+    selectedItem: () => items()[selectedIndex()],
     setSelectedIndex,
   };
 }

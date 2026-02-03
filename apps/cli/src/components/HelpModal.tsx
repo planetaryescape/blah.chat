@@ -1,15 +1,6 @@
-/**
- * HelpModal Component - Keyboard shortcuts reference
- *
- * Shows all available keybindings in the current context
- */
-
-import { Box, Text, useInput } from "ink";
+import { useKeyboard } from "@opentui/solid";
+import { For } from "solid-js";
 import { symbols } from "../lib/terminal.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface HelpModalProps {
   context: "list" | "chat";
@@ -21,18 +12,14 @@ interface KeyBinding {
   description: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Key Bindings Data
-// ─────────────────────────────────────────────────────────────────────────────
-
 const commonBindings: KeyBinding[] = [
   { key: "q", description: "Quit" },
   { key: "?", description: "Toggle help" },
 ];
 
 const listBindings: KeyBinding[] = [
-  { key: "j / ↓", description: "Move down" },
-  { key: "k / ↑", description: "Move up" },
+  { key: "j / \u2193", description: "Move down" },
+  { key: "k / \u2191", description: "Move up" },
   { key: "g", description: "Go to top" },
   { key: "G", description: "Go to bottom" },
   { key: "Ctrl+D", description: "Half-page down" },
@@ -48,7 +35,7 @@ const chatBindings: KeyBinding[] = [
   { key: "Enter", description: "Send message" },
   { key: "Ctrl+C", description: "Cancel input" },
   { key: "Esc", description: "Enter command mode" },
-  { key: "j / k / ↑ / ↓", description: "Navigate messages" },
+  { key: "j / k / \u2191 / \u2193", description: "Navigate messages" },
   { key: "g / G", description: "Jump to first/last message" },
   { key: "c", description: "Copy selected message" },
   { key: "B", description: "Bookmark selected message" },
@@ -56,81 +43,73 @@ const chatBindings: KeyBinding[] = [
   { key: "m", description: "Change model" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function HelpModal({ context, onClose }: HelpModalProps) {
-  useInput((input, key) => {
-    // Any key closes help
-    if (input || key.return || key.escape) {
-      onClose();
-    }
+export function HelpModal(props: HelpModalProps) {
+  useKeyboard((evt) => {
+    evt.preventDefault();
+    props.onClose();
   });
 
-  const contextBindings = context === "list" ? listBindings : chatBindings;
-  const contextTitle = context === "list" ? "Conversation List" : "Chat View";
+  const contextBindings = () =>
+    props.context === "list" ? listBindings : chatBindings;
+  const contextTitle = () =>
+    props.context === "list" ? "Conversation List" : "Chat View";
 
   return (
-    <Box flexDirection="column" padding={1}>
+    <box flexDirection="column" padding={1}>
       {/* Header */}
-      <Box
+      <box
         marginBottom={1}
-        borderStyle="double"
-        borderColor="cyan"
-        paddingX={2}
-        justifyContent="center"
+        style={{ border: true, borderColor: "cyan" }}
+        paddingLeft={2}
+        paddingRight={2}
       >
-        <Text bold color="cyan">
+        <text fg="cyan" attributes={1}>
           {symbols.info} Keyboard Shortcuts
-        </Text>
-      </Box>
+        </text>
+      </box>
 
-      {/* Context-specific bindings */}
-      <Box marginBottom={1} flexDirection="column">
-        <Box marginBottom={1}>
-          <Text bold underline>
-            {contextTitle}
-          </Text>
-        </Box>
-        {contextBindings.map((binding, i) => (
-          <KeyBindingRow key={i} binding={binding} />
-        ))}
-      </Box>
+      {/* Context bindings */}
+      <box marginBottom={1} flexDirection="column">
+        <box marginBottom={1}>
+          <text attributes={1}>{contextTitle()}</text>
+        </box>
+        <For each={contextBindings()}>
+          {(binding) => (
+            <box paddingLeft={1}>
+              <box width={12}>
+                <text fg="yellow" attributes={1}>
+                  {binding.key}
+                </text>
+              </box>
+              <text>{binding.description}</text>
+            </box>
+          )}
+        </For>
+      </box>
 
       {/* Common bindings */}
-      <Box marginBottom={1} flexDirection="column">
-        <Box marginBottom={1}>
-          <Text bold underline>
-            General
-          </Text>
-        </Box>
-        {commonBindings.map((binding, i) => (
-          <KeyBindingRow key={i} binding={binding} />
-        ))}
-      </Box>
+      <box marginBottom={1} flexDirection="column">
+        <box marginBottom={1}>
+          <text attributes={1}>General</text>
+        </box>
+        <For each={commonBindings}>
+          {(binding) => (
+            <box paddingLeft={1}>
+              <box width={12}>
+                <text fg="yellow" attributes={1}>
+                  {binding.key}
+                </text>
+              </box>
+              <text>{binding.description}</text>
+            </box>
+          )}
+        </For>
+      </box>
 
       {/* Footer */}
-      <Box marginTop={1} justifyContent="center">
-        <Text dimColor>Press any key to close</Text>
-      </Box>
-    </Box>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Key Binding Row
-// ─────────────────────────────────────────────────────────────────────────────
-
-function KeyBindingRow({ binding }: { binding: KeyBinding }) {
-  return (
-    <Box paddingX={1}>
-      <Box width={12}>
-        <Text color="yellow" bold>
-          {binding.key}
-        </Text>
-      </Box>
-      <Text>{binding.description}</Text>
-    </Box>
+      <box marginTop={1} justifyContent="center">
+        <text fg="gray">Press any key to close</text>
+      </box>
+    </box>
   );
 }

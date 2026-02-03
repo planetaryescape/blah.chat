@@ -1,28 +1,10 @@
 #!/usr/bin/env node
-/**
- * blah.chat CLI - Terminal UI client
- *
- * Usage:
- *   blah login    - Authenticate with blah.chat
- *   blah logout   - Clear credentials
- *   blah whoami   - Show current user
- *   blah config   - Manage CLI configuration
- *   blah chat     - View conversations and messages
- *   blah          - Show status
- */
-
 import { program } from "commander";
-import { render } from "ink";
-import { ChatCommand } from "./commands/chat.js";
-import {
-  ConfigPathCommand,
-  ConfigResetCommand,
-  ConfigSetCommand,
-  ConfigShowCommand,
-} from "./commands/config.js";
-import { LoginCommand } from "./commands/login.js";
-import { LogoutCommand } from "./commands/logout.js";
-import { WhoamiCommand } from "./commands/whoami.js";
+import { runChatCommand } from "./commands/chat.js";
+import { runConfigCommand } from "./commands/config.js";
+import { runLoginCommand } from "./commands/login.js";
+import { runLogoutCommand } from "./commands/logout.js";
+import { runWhoamiCommand } from "./commands/whoami.js";
 import { getCredentials } from "./lib/auth.js";
 import { symbols } from "./lib/terminal.js";
 
@@ -34,36 +16,23 @@ program
 program
   .command("login")
   .description("Authenticate with blah.chat")
-  .action(async () => {
-    const { waitUntilExit } = render(<LoginCommand />);
-    await waitUntilExit();
-  });
+  .action(runLoginCommand);
 
 program
   .command("logout")
   .description("Clear stored credentials")
-  .action(async () => {
-    const { waitUntilExit } = render(<LogoutCommand />);
-    await waitUntilExit();
-  });
+  .action(runLogoutCommand);
 
 program
   .command("whoami")
   .description("Show current user")
-  .action(async () => {
-    const { waitUntilExit } = render(<WhoamiCommand />);
-    await waitUntilExit();
-  });
+  .action(runWhoamiCommand);
 
 program
   .command("chat")
   .description("View conversations and messages")
-  .action(async () => {
-    const { waitUntilExit } = render(<ChatCommand />);
-    await waitUntilExit();
-  });
+  .action(runChatCommand);
 
-// Config command with subcommands
 const configCmd = program
   .command("config")
   .description("Manage CLI configuration");
@@ -71,39 +40,25 @@ const configCmd = program
 configCmd
   .command("show", { isDefault: true })
   .description("Show current configuration")
-  .action(async () => {
-    const { waitUntilExit } = render(<ConfigShowCommand />);
-    await waitUntilExit();
-  });
+  .action(() => runConfigCommand("show"));
 
 configCmd
   .command("set <key> <value>")
   .description("Set a configuration value (appUrl, convexUrl, environment)")
-  .action(async (key: string, value: string) => {
-    const { waitUntilExit } = render(
-      <ConfigSetCommand configKey={key} value={value} />,
-    );
-    await waitUntilExit();
-  });
+  .action((key: string, value: string) => runConfigCommand("set", key, value));
 
 configCmd
   .command("reset")
   .description("Reset configuration to production defaults")
-  .action(async () => {
-    const { waitUntilExit } = render(<ConfigResetCommand />);
-    await waitUntilExit();
-  });
+  .action(() => runConfigCommand("reset"));
 
 configCmd
   .command("path")
   .description("Show configuration file path")
-  .action(async () => {
-    const { waitUntilExit } = render(<ConfigPathCommand />);
-    await waitUntilExit();
-  });
+  .action(() => runConfigCommand("path"));
 
-// Default command (no subcommand) - show status or start chat
-program.action(async () => {
+// Default command - show status
+program.action(() => {
   const credentials = getCredentials();
 
   if (!credentials) {

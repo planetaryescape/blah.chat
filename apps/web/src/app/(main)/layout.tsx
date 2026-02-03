@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useConvexAuth } from "convex/react";
 import { Ghost, Keyboard, MoreHorizontal, Plus, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";

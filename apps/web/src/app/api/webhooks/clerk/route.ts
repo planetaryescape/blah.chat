@@ -1,6 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { WebhookEvent } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
+import type { ConvexHttpClient } from "convex/browser";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
 import { getConvexClient } from "@/lib/api/convex";

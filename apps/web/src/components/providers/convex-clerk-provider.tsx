@@ -11,8 +11,6 @@ import { CacheProvider } from "./cache-provider";
 const convex = new ConvexReactClient(
   process.env.NEXT_PUBLIC_CONVEX_URL ?? "http://localhost:3210",
 );
-const clerkPublishableKey =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "pk_test_missing";
 
 export function ConvexClerkProvider({
   children,
@@ -21,7 +19,7 @@ export function ConvexClerkProvider({
 }) {
   return (
     <ClerkProvider
-      publishableKey={clerkPublishableKey}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       appearance={{
         baseTheme: dark,
         variables: {

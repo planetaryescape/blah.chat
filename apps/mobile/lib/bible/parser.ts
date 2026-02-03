@@ -1,6 +1,7 @@
-import { bcv_parser } from "bible-passage-reference-parser/js/en_bcv_parser.js";
+import { bcv_parser } from "bible-passage-reference-parser/esm/bcv_parser.js";
+import * as lang from "bible-passage-reference-parser/esm/lang/en.js";
 
-const bcv = new bcv_parser();
+const bcv = new bcv_parser(lang);
 bcv.set_options({
   osis_compaction_strategy: "b",
   invalid_passage_strategy: "ignore",

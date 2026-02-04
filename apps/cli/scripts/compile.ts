@@ -189,9 +189,18 @@ for (const target of targets) {
     }
   } else {
     const archive = `${target.name}.zip`;
-    const proc = Bun.spawnSync(["zip", "-r", archive, target.name], {
-      cwd: DIST,
-    });
+    // Windows doesn't have zip, use PowerShell's Compress-Archive
+    const isWindows = process.platform === "win32";
+    const proc = isWindows
+      ? Bun.spawnSync(
+          [
+            "powershell",
+            "-Command",
+            `Compress-Archive -Path '${target.name}' -DestinationPath '${archive}'`,
+          ],
+          { cwd: DIST },
+        )
+      : Bun.spawnSync(["zip", "-r", archive, target.name], { cwd: DIST });
     if (proc.exitCode !== 0) {
       console.error(`Failed to create ${archive}:`, proc.stderr.toString());
       process.exit(1);

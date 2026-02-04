@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.3](https://github.com/planetaryescape/blah.chat/compare/v1.18.2...v1.18.3) (2026-02-04)
+
+
+### Bug Fixes
+
+* **ci:** add checkout step to dependabot auto-merge workflow ([5028263](https://github.com/planetaryescape/blah.chat/commit/5028263b9a2e40c46e230d89c66bcfafa082f9a7))
+* **cli:** use PowerShell Compress-Archive on Windows ([e086fb1](https://github.com/planetaryescape/blah.chat/commit/e086fb18e1d3ca4b39c48aa11cc6a140368fa787))
+
 ## [1.18.2](https://github.com/planetaryescape/blah.chat/compare/v1.18.1...v1.18.2) (2026-02-04)
 
 

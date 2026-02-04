@@ -38,6 +38,10 @@ brew install planetaryescape/tap/blah
 ### Usage
 
 ```bash
+# First time: authenticate via browser
+blah login
+
+# Start chatting
 blah "What is the capital of France?"
 blah --model claude-3-opus "Explain quantum computing"
 blah --help

@@ -10,7 +10,7 @@ jobs:
   dry-run:
     name: Convex Dry Run
     if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: staging
 
     steps:
@@ -34,7 +34,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: staging
 
     steps:

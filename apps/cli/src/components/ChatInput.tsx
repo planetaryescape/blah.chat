@@ -1,6 +1,5 @@
 import { useKeyboard } from "@opentui/solid";
-import { createSignal } from "solid-js";
-import { symbols } from "../lib/terminal.js";
+import { createSignal, Show } from "solid-js";
 import { Spinner } from "./Spinner.js";
 
 interface ChatInputProps {
@@ -36,55 +35,46 @@ export function ChatInput(props: ChatInputProps) {
     }
   };
 
-  // Sending state
-  if (props.isSending) {
-    return (
-      <box
-        style={{ border: true, borderColor: "yellow" }}
-        paddingLeft={1}
-        paddingRight={1}
-      >
-        <Spinner color="yellow" label="Sending..." />
-      </box>
-    );
-  }
-
-  // Disabled state
-  if (props.isDisabled) {
-    return (
-      <box
-        style={{ border: true, borderColor: "gray" }}
-        paddingLeft={1}
-        paddingRight={1}
-      >
-        <text fg="gray">{props.placeholder ?? "Type a message..."}</text>
-      </box>
-    );
-  }
+  const borderColor = () => {
+    if (props.isSending) return "#fbbf24";
+    if (props.isDisabled) return "#a1a1aa";
+    return "#60a5fa";
+  };
 
   return (
-    <box flexDirection="column">
-      <box
-        style={{ border: true, borderColor: "cyan" }}
-        paddingLeft={1}
-        paddingRight={1}
+    <box
+      paddingLeft={2}
+      paddingTop={1}
+      paddingBottom={1}
+      style={{
+        border: ["left"] as any,
+        borderStyle: "heavy",
+        borderColor: borderColor(),
+      }}
+    >
+      <Show
+        when={!props.isSending}
+        fallback={<Spinner color="yellow" label="Sending..." />}
       >
-        <text fg="cyan">{symbols.chevronRight} </text>
-        <input
-          ref={(r: any) => {
-            inputRef = r;
-            setTimeout(() => {
-              if (inputRef && !inputRef.isDestroyed) inputRef.focus();
-            }, 1);
-          }}
-          onInput={handleInput}
-          onSubmit={handleSubmit}
-          placeholder={props.placeholder ?? "Type a message..."}
-        />
-      </box>
-      <box paddingLeft={1}>
-        <text fg="gray">Enter send | Esc cancel | Ctrl+C quit</text>
-      </box>
+        <Show
+          when={!props.isDisabled}
+          fallback={
+            <text fg="#a1a1aa">{props.placeholder ?? "Type a message..."}</text>
+          }
+        >
+          <input
+            ref={(r: any) => {
+              inputRef = r;
+              setTimeout(() => {
+                if (inputRef && !inputRef.isDestroyed) inputRef.focus();
+              }, 1);
+            }}
+            onInput={handleInput}
+            onSubmit={handleSubmit}
+            placeholder={props.placeholder ?? "Type a message..."}
+          />
+        </Show>
+      </Show>
     </box>
   );
 }

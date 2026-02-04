@@ -223,6 +223,7 @@ export function ConversationList(props: ConversationListProps) {
         >
           {/* Header */}
           <box
+            flexDirection="row"
             marginBottom={1}
             style={{ border: true, borderColor: "gray" }}
             paddingLeft={1}
@@ -230,17 +231,15 @@ export function ConversationList(props: ConversationListProps) {
           >
             <text attributes={1}>Conversations</text>
             <box flexGrow={1} />
-            <text fg="gray">({conversations().length})</text>
+            <text fg="gray">{`(${conversations().length})`}</text>
           </box>
 
-          {/* Scroll top */}
-          <Show when={startIndex() > 0}>
-            <box justifyContent="center">
-              <text fg="gray">
-                {"\u2191"} {startIndex()} more
-              </text>
-            </box>
-          </Show>
+          {/* Scroll top (always rendered to prevent layout shift) */}
+          <box justifyContent="center">
+            <text fg="gray">
+              {startIndex() > 0 ? `\u2191 ${startIndex()} more` : " "}
+            </text>
+          </box>
 
           {/* List */}
           <box flexDirection="column">
@@ -257,43 +256,41 @@ export function ConversationList(props: ConversationListProps) {
 
                 return (
                   <box
+                    flexDirection="row"
                     paddingLeft={1}
                     paddingRight={1}
-                    style={
-                      isSelected() ? { border: true, borderColor: "cyan" } : {}
-                    }
+                    backgroundColor={isSelected() ? "cyan" : undefined}
                   >
-                    <text fg={isSelected() ? "cyan" : "gray"}>
-                      {isSelected() ? symbols.chevronRight : " "}
+                    <text
+                      fg={isSelected() ? "black" : undefined}
+                      attributes={isSelected() ? 1 : 0}
+                    >
+                      {truncatedTitle()}
                     </text>
-                    <text> {conv.pinned ? "\u{1F4CC}" : "  "} </text>
-                    <box flexGrow={1}>
-                      <text
-                        fg={isSelected() ? "cyan" : undefined}
-                        attributes={isSelected() ? 1 : 0}
-                      >
-                        {truncatedTitle()}
-                      </text>
-                    </box>
-                    <text fg="gray">({messageCount()}) </text>
-                    <text fg="gray">{relTime()}</text>
+                    <text fg={isSelected() ? "black" : "gray"}>
+                      {` (${messageCount()}) `}
+                    </text>
+                    <text fg={isSelected() ? "black" : "gray"}>
+                      {relTime()}
+                    </text>
                   </box>
                 );
               }}
             </For>
           </box>
 
-          {/* Scroll bottom */}
-          <Show when={endIndex() < conversations().length}>
-            <box justifyContent="center">
-              <text fg="gray">
-                {"\u2193"} {conversations().length - endIndex()} more
-              </text>
-            </box>
-          </Show>
+          {/* Scroll bottom (always rendered to prevent layout shift) */}
+          <box justifyContent="center">
+            <text fg="gray">
+              {endIndex() < conversations().length
+                ? `\u2193 ${conversations().length - endIndex()} more`
+                : " "}
+            </text>
+          </box>
 
           {/* Help bar */}
           <box
+            flexDirection="row"
             marginTop={1}
             style={{ border: true, borderColor: "gray" }}
             paddingLeft={1}

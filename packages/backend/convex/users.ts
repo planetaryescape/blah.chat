@@ -175,6 +175,7 @@ export const updatePreferences = mutation({
       ),
       customNoteCategories: v.optional(v.array(v.string())),
       autoCompressContext: v.optional(v.boolean()),
+      autoRouterEnabled: v.optional(v.boolean()),
       autoRouterCostBias: v.optional(v.number()),
       autoRouterSpeedBias: v.optional(v.number()),
       enableModelRecommendations: v.optional(v.boolean()),

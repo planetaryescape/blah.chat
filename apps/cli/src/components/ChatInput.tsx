@@ -69,6 +69,7 @@ export function ChatInput(props: ChatInputProps) {
                 if (inputRef && !inputRef.isDestroyed) inputRef.focus();
               }, 1);
             }}
+            value={value()}
             onInput={handleInput}
             onSubmit={handleSubmit}
             placeholder={props.placeholder ?? "Type a message..."}

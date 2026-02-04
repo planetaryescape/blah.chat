@@ -42,13 +42,24 @@ async function ensurePlatformPackages() {
 
   if (missing.length > 0) {
     console.log(`Installing missing platform packages: ${missing.join(", ")}`);
-    const proc = Bun.spawnSync(["bun", "add", "--no-save", ...missing], {
+    const addProc = Bun.spawnSync(["bun", "add", ...missing], {
       cwd: WORKSPACE_ROOT,
       stdout: "inherit",
       stderr: "inherit",
     });
-    if (proc.exitCode !== 0) {
+    if (addProc.exitCode !== 0) {
       console.error("Failed to install platform packages");
+      process.exit(1);
+    }
+    // Run bun install to ensure packages are properly linked for bundling
+    console.log("Running bun install to link packages...");
+    const installProc = Bun.spawnSync(["bun", "install"], {
+      cwd: WORKSPACE_ROOT,
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    if (installProc.exitCode !== 0) {
+      console.error("Failed to run bun install");
       process.exit(1);
     }
   }

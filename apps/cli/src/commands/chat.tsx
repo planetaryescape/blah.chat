@@ -1,3 +1,4 @@
+import "../lib/tree-sitter-parsers.js";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { render, useRenderer } from "@opentui/solid";
 import { createSignal, Show } from "solid-js";

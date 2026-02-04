@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 import type { Message as MessageType } from "../lib/queries.js";
-import { formatRelativeTime, formatTTFT } from "../lib/terminal.js";
+import { formatTTFT } from "../lib/terminal.js";
 import { Markdown } from "./Markdown.js";
 import { Spinner } from "./Spinner.js";
 
@@ -10,19 +10,20 @@ interface MessageProps {
 }
 
 interface RoleStyle {
-  icon: string;
   label: string;
-  color: string;
+  borderColor: string;
+  backgroundColor?: string;
 }
 
 const roleStyles: Record<string, RoleStyle> = {
-  user: { icon: "\u{1F464}", label: "You", color: "cyan" },
-  assistant: { icon: "\u{1F916}", label: "Assistant", color: "green" },
-  system: { icon: "\u2699\uFE0F", label: "System", color: "gray" },
+  user: { label: "You", borderColor: "#60a5fa", backgroundColor: "#252035" },
+  assistant: { label: "Assistant", borderColor: "#F4E0DC" },
+  system: { label: "System", borderColor: "#a1a1aa" },
 };
 
 export function Message(props: MessageProps) {
   const style = () => roleStyles[props.message.role] || roleStyles.system;
+  const isUser = () => props.message.role === "user";
   const isGenerating = () => props.message.status === "generating";
   const isError = () => props.message.status === "error";
   const isPending = () => props.message.status === "pending";
@@ -32,88 +33,101 @@ export function Message(props: MessageProps) {
       ? props.message.partialContent || "..."
       : props.message.content;
 
-  const timestamp = () => formatRelativeTime(props.message.createdAt);
+  const borderColor = () => style().borderColor;
+
+  const showStats = () =>
+    props.message.role === "assistant" && props.message.status === "complete";
+
+  const statsLine = () => {
+    const parts: string[] = [];
+    const model = props.message.model
+      ? props.message.model.split(":")[1] || props.message.model
+      : null;
+    if (model) parts.push(model);
+    if (props.message.firstTokenAt && props.message.generationStartedAt) {
+      parts.push(
+        `TTFT: ${formatTTFT(props.message.firstTokenAt - props.message.generationStartedAt)}`,
+      );
+    }
+    if (props.message.tokensPerSecond) {
+      parts.push(`${Math.round(props.message.tokensPerSecond)} t/s`);
+    }
+    if (props.message.inputTokens || props.message.outputTokens) {
+      parts.push(
+        `${props.message.inputTokens || 0}/${props.message.outputTokens || 0} tokens`,
+      );
+    }
+    return parts.join(" \u00B7 ");
+  };
 
   return (
     <box
       flexDirection="column"
-      marginBottom={1}
-      paddingLeft={props.isHighlighted ? 1 : 0}
-      style={props.isHighlighted ? { border: true, borderColor: "blue" } : {}}
+      marginTop={1}
+      alignItems={isUser() ? "flex-end" : "stretch"}
     >
-      {/* Header */}
-      <box flexDirection="row">
-        <text fg={style().color}>
-          {style().icon} {style().label}
-        </text>
-        <box flexGrow={1} />
-        <Show when={isGenerating() || isPending()}>
-          <box marginRight={1}>
+      <box
+        flexDirection="column"
+        paddingLeft={2}
+        paddingRight={isUser() ? 2 : 0}
+        paddingTop={1}
+        paddingBottom={1}
+        style={{
+          border: [isUser() ? "right" : "left"] as any,
+          borderStyle: "heavy",
+          borderColor: borderColor(),
+          ...(props.isHighlighted
+            ? { backgroundColor: "#3d3555" }
+            : style().backgroundColor
+              ? { backgroundColor: style().backgroundColor }
+              : {}),
+        }}
+      >
+        {/* Header: role label + status */}
+        <box
+          flexDirection="row"
+          justifyContent={isUser() ? "flex-end" : "flex-start"}
+        >
+          <text fg={borderColor()} attributes={1}>
+            {style().label}
+          </text>
+          <Show when={isGenerating() || isPending()}>
+            <text> </text>
             <Spinner color="yellow" />
             <text fg="yellow">
               {isPending() ? " waiting..." : " generating..."}
             </text>
-          </box>
-        </Show>
-        <Show when={isError()}>
-          <text fg="red">error</text>
-        </Show>
-        <text fg="gray"> {timestamp()}</text>
-      </box>
-
-      {/* Content */}
-      <box marginLeft={3}>
-        <Show
-          when={!isError()}
-          fallback={
-            <text fg="red">{props.message.error || displayContent()}</text>
-          }
-        >
-          <Markdown
-            content={displayContent()}
-            isStreaming={isGenerating() || isPending()}
-          />
-        </Show>
-      </box>
-
-      {/* Stats for assistant messages */}
-      <Show when={props.message.role === "assistant"}>
-        <box marginLeft={3} gap={2}>
-          <text fg="gray">
-            {props.message.model
-              ? props.message.model.split(":")[1] || props.message.model
-              : "(no model)"}
-          </text>
-          <Show when={props.message.status === "complete"}>
-            <Show
-              when={
-                props.message.firstTokenAt && props.message.generationStartedAt
-              }
-            >
-              <text fg="gray">
-                TTFT:{" "}
-                {formatTTFT(
-                  props.message.firstTokenAt! -
-                    props.message.generationStartedAt!,
-                )}
-              </text>
-            </Show>
-            <Show when={props.message.tokensPerSecond}>
-              <text fg="gray">
-                {Math.round(props.message.tokensPerSecond!)} t/s
-              </text>
-            </Show>
-            <Show
-              when={props.message.inputTokens || props.message.outputTokens}
-            >
-              <text fg="gray">
-                {props.message.inputTokens || 0}/
-                {props.message.outputTokens || 0}
-              </text>
-            </Show>
+          </Show>
+          <Show when={isError()}>
+            <text fg="red"> error</text>
           </Show>
         </box>
-      </Show>
+
+        {/* Content */}
+        <box marginTop={1}>
+          <Show
+            when={!isError()}
+            fallback={
+              <text fg="red">{props.message.error || displayContent()}</text>
+            }
+          >
+            <Markdown
+              content={displayContent()}
+              isStreaming={isGenerating() || isPending()}
+            />
+          </Show>
+        </box>
+
+        {/* Stats: single line for complete assistant messages */}
+        <Show when={showStats()}>
+          <box
+            marginTop={1}
+            justifyContent={isUser() ? "flex-end" : "flex-start"}
+          >
+            <text fg="#a1a1aa">{statsLine()}</text>
+          </box>
+        </Show>
+      </box>
     </box>
   );
 }
@@ -135,7 +149,7 @@ export function CompactMessage(props: CompactMessageProps) {
 
   return (
     <box>
-      <text fg={style().color}>{style().icon} </text>
+      <text fg={style().borderColor}>{style().label}: </text>
       <text fg="gray">{truncated().replace(/\n/g, " ")}</text>
     </box>
   );

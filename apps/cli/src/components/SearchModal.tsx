@@ -113,9 +113,7 @@ export function SearchModal(props: SearchModalProps) {
             Search Conversations
           </text>
           <box flexGrow={1} />
-          <Show when={isSearching()}>
-            <text fg="gray">{results().length} results</text>
-          </Show>
+          <text fg="gray">{`${results().length} results`}</text>
         </box>
 
         {/* Search input */}
@@ -143,13 +141,13 @@ export function SearchModal(props: SearchModalProps) {
             </box>
           }
         >
-          <Show when={startIndex() > 0}>
-            <box justifyContent="center">
-              <text fg="gray">
-                {symbols.arrowUp} {startIndex()} more
-              </text>
-            </box>
-          </Show>
+          <box justifyContent="center">
+            <text fg="gray">
+              {startIndex() > 0
+                ? `${symbols.arrowUp} ${startIndex()} more`
+                : " "}
+            </text>
+          </box>
 
           <box flexDirection="column">
             <For each={visibleResults()}>
@@ -164,25 +162,19 @@ export function SearchModal(props: SearchModalProps) {
 
                 return (
                   <box
+                    flexDirection="row"
                     paddingLeft={1}
                     paddingRight={1}
-                    style={
-                      isSelected() ? { border: true, borderColor: "cyan" } : {}
-                    }
+                    backgroundColor={isSelected() ? "cyan" : undefined}
                   >
-                    <text fg={isSelected() ? "cyan" : "gray"}>
-                      {isSelected() ? symbols.chevronRight : " "}
+                    <text
+                      fg={isSelected() ? "black" : undefined}
+                      attributes={isSelected() ? 1 : 0}
+                    >
+                      {truncatedTitle()}
                     </text>
-                    <text> </text>
-                    <box flexGrow={1}>
-                      <text
-                        fg={isSelected() ? "cyan" : undefined}
-                        attributes={isSelected() ? 1 : 0}
-                      >
-                        {truncatedTitle()}
-                      </text>
-                    </box>
-                    <text fg="gray">
+                    <text fg={isSelected() ? "black" : "gray"}>
+                      {" "}
                       ({conv.messageCount || 0}) {relTime()}
                     </text>
                   </box>
@@ -191,13 +183,13 @@ export function SearchModal(props: SearchModalProps) {
             </For>
           </box>
 
-          <Show when={endIndex() < results().length}>
-            <box justifyContent="center">
-              <text fg="gray">
-                {symbols.arrowDown} {results().length - endIndex()} more
-              </text>
-            </box>
-          </Show>
+          <box justifyContent="center">
+            <text fg="gray">
+              {endIndex() < results().length
+                ? `${symbols.arrowDown} ${results().length - endIndex()} more`
+                : " "}
+            </text>
+          </box>
         </Show>
 
         {/* Help bar */}

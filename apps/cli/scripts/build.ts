@@ -5,7 +5,7 @@ await Bun.build({
   outdir: "./dist",
   target: "node",
   format: "esm",
-  external: ["@opentui/core"],
+  external: ["@opentui/core", "tree-sitter-wasms"],
   minify: true,
   conditions: ["browser"],
   plugins: [solidPlugin],

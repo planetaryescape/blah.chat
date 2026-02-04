@@ -1,7 +1,7 @@
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import clipboard from "clipboardy";
-import { createEffect, createSignal, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { useMessages } from "../hooks/useMessages.js";
 import { formatError, requireApiKey, requireClient } from "../lib/client.js";
 import {
@@ -9,7 +9,12 @@ import {
   sendMessage,
   updateConversationModel,
 } from "../lib/mutations.js";
-import { type Conversation, getConversation } from "../lib/queries.js";
+import {
+  type Conversation,
+  getConversation,
+  listMessages,
+  type Message,
+} from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
 import { ChatInput } from "./ChatInput.js";
 import { HelpModal } from "./HelpModal.js";
@@ -41,48 +46,52 @@ export function ChatView(props: ChatViewProps) {
   const [inputMode, setInputMode] = createSignal<InputMode>("typing");
   const [selectedIndex, setSelectedIndex] = createSignal<number | null>(null);
   const [toast, setToast] = createSignal<string | null>(null);
+  const [httpMessages, setHttpMessages] = createSignal<Message[] | null>(null);
 
-  // Subscribe to messages
-  const {
-    data: messages,
-    error: messagesError,
-    isLoading: messagesLoading,
-  } = useMessages(() => props.conversationId);
+  // Subscribe to messages (WebSocket, for real-time updates)
+  const { data: wsMessages, error: messagesError } = useMessages(
+    () => props.conversationId,
+  );
+
+  // Use WebSocket data when available, fall back to HTTP-loaded messages
+  const messages = () => wsMessages() ?? httpMessages();
 
   const isGenerating = () =>
     messages()?.some(
       (m) => m.status === "generating" || m.status === "pending",
     );
 
-  // Load conversation metadata
-  createEffect(() => {
-    (async () => {
-      try {
-        const client = requireClient();
-        const apiKey = requireApiKey();
-        const conv = await getConversation(
-          client,
-          apiKey,
-          props.conversationId,
-        );
-        if (!conv) {
-          setError("Conversation not found or API key invalid");
-          setState("error");
-          return;
-        }
-        setConversation(conv);
-        setState("ready");
-      } catch (err) {
-        setError(formatError(err));
+  // Load conversation metadata + initial messages via HTTP (stateless, resolves immediately)
+  const loadConversation = async (convId: Id<"conversations">) => {
+    try {
+      const client = requireClient();
+      const apiKey = requireApiKey();
+      const [conv, msgs] = await Promise.all([
+        getConversation(client, apiKey, convId),
+        listMessages(client, apiKey, convId),
+      ]);
+      if (!conv) {
+        setError("Conversation not found or API key invalid");
         setState("error");
+        return;
       }
-    })();
+      setConversation(conv);
+      if (msgs) setHttpMessages(msgs);
+      setState("ready");
+    } catch (err) {
+      setError(formatError(err));
+      setState("error");
+    }
+  };
+
+  createEffect(() => {
+    loadConversation(props.conversationId);
   });
 
-  // Handle message errors
+  // Handle message subscription errors (non-fatal, we have HTTP fallback)
   createEffect(() => {
     const err = messagesError();
-    if (err) {
+    if (err && !messages()) {
       setError(formatError(err));
       setState("error");
     }
@@ -93,7 +102,7 @@ export function ChatView(props: ChatViewProps) {
     const t = toast();
     if (t) {
       const timer = setTimeout(() => setToast(null), 2000);
-      return () => clearTimeout(timer);
+      onCleanup(() => clearTimeout(timer));
     }
   });
 
@@ -184,17 +193,24 @@ export function ChatView(props: ChatViewProps) {
 
   // Keyboard shortcuts
   useKeyboard((evt) => {
-    if (state() !== "ready") return;
-
+    // Escape and quit must work in ALL states (loading, error, etc.)
     if (evt.name === "escape") {
       evt.preventDefault();
-      if (inputMode() === "typing") {
+      if (state() === "ready" && inputMode() === "typing") {
         setInputMode("command");
       } else {
         props.onBack();
       }
       return;
     }
+
+    if (evt.name === "q" && state() !== "ready") {
+      evt.preventDefault();
+      renderer.destroy();
+      return;
+    }
+
+    if (state() !== "ready") return;
 
     if (inputMode() === "typing") return;
 
@@ -280,7 +296,14 @@ export function ChatView(props: ChatViewProps) {
   const totalMessages = () => messages()?.length ?? 0;
 
   return (
-    <box flexDirection="column" padding={1}>
+    <box
+      flexDirection="column"
+      paddingBottom={1}
+      paddingTop={1}
+      paddingLeft={2}
+      paddingRight={2}
+      gap={1}
+    >
       <Show when={state() === "help"}>
         <HelpModal context="chat" onClose={() => setState("ready")} />
       </Show>
@@ -293,7 +316,7 @@ export function ChatView(props: ChatViewProps) {
         />
       </Show>
 
-      <Show when={state() === "loading" || (messagesLoading() && !messages())}>
+      <Show when={state() === "loading"}>
         <Spinner label="Loading conversation..." />
       </Show>
 
@@ -304,21 +327,27 @@ export function ChatView(props: ChatViewProps) {
           </text>
         </box>
         <box marginTop={1}>
-          <text fg="gray">Press 'b' to go back or 'q' to quit</text>
+          <text fg="#a1a1aa">Press 'b' to go back or 'q' to quit</text>
         </box>
       </Show>
 
       <Show when={state() === "ready" || state() === "sending"}>
         {/* Header */}
         <box
-          marginBottom={1}
-          style={{ border: true, borderColor: "gray" }}
-          paddingLeft={1}
-          paddingRight={1}
+          flexDirection="row"
+          paddingTop={1}
+          paddingBottom={1}
+          style={{
+            border: ["left"] as any,
+            borderStyle: "heavy",
+            borderColor: "#F4E0DC",
+          }}
         >
-          <text attributes={1}>{conversation()?.title || "Chat"}</text>
+          <text attributes={1} fg="#F4E0DC">
+            {conversation()?.title || "Chat"}
+          </text>
           <box flexGrow={1} />
-          <text fg="gray">{totalMessages()} messages</text>
+          <text fg="#a1a1aa">{`${totalMessages()}`}</text>
         </box>
 
         {/* Messages */}
@@ -327,53 +356,50 @@ export function ChatView(props: ChatViewProps) {
           selectedIndex={selectedIndex()}
         />
 
-        {/* Toast */}
-        <Show when={toast()}>
-          <box justifyContent="center" marginBottom={1}>
-            <text>{toast()}</text>
-          </box>
-        </Show>
+        {/* Toast + Input */}
+        <box flexShrink={0}>
+          <Show when={toast()}>
+            <box>
+              <text>{toast()}</text>
+            </box>
+          </Show>
 
-        {/* Input */}
-        <ChatInput
-          onSubmit={handleSend}
-          onCancel={() => setInputMode("command")}
-          isSending={state() === "sending"}
-          isDisabled={isGenerating() || inputMode() === "command"}
-          placeholder={
-            isGenerating()
-              ? "Waiting for response..."
-              : inputMode() === "command"
-                ? "Press any key to type..."
-                : "Type a message..."
-          }
-        />
+          <ChatInput
+            onSubmit={handleSend}
+            onCancel={() => setInputMode("command")}
+            isSending={state() === "sending"}
+            isDisabled={isGenerating() || inputMode() === "command"}
+            placeholder={
+              isGenerating()
+                ? "Waiting for response..."
+                : inputMode() === "command"
+                  ? "Press any key to type..."
+                  : "Type a message..."
+            }
+          />
+        </box>
 
         {/* Status bar */}
-        <box marginTop={1}>
-          <text fg="gray">
-            {symbols.chevronRight}{" "}
-            <Show
-              when={inputMode() === "command"}
-              fallback={
-                <>
-                  <text fg="cyan">[TYPE]</text> Esc for commands
-                </>
-              }
-            >
-              <text fg="yellow">[CMD]</text> j/k nav | c copy | B bookmark | b
-              back | ? help
-              <Show when={selectedIndex() !== null}>
-                <text fg="cyan">
-                  {" "}
-                  [{(selectedIndex() ?? 0) + 1}/{totalMessages()}]
-                </text>
-              </Show>
+        <box flexDirection="row">
+          <Show when={inputMode() === "command"}>
+            <text fg="#fbbf24">[CMD]</text>
+            <text fg="#a1a1aa">{` j/k \u00B7 c copy \u00B7 B mark \u00B7 ? help`}</text>
+            <Show when={selectedIndex() !== null}>
+              <text fg="#60a5fa">
+                {` \u00B7 ${(selectedIndex() ?? 0) + 1}/${totalMessages()}`}
+              </text>
             </Show>
-            <Show when={conversation()?.model}>
-              {` | ${conversation()!.model}`}
-            </Show>
-          </text>
+          </Show>
+          <Show when={inputMode() === "typing"}>
+            <text fg="#60a5fa">[TYPE]</text>
+            <text fg="#a1a1aa"> Esc for commands</text>
+          </Show>
+          <Show when={conversation()?.model}>
+            <box flexGrow={1} />
+            <text fg="#a1a1aa">
+              {conversation()!.model.split(":")[1] || conversation()!.model}
+            </text>
+          </Show>
         </box>
       </Show>
     </box>

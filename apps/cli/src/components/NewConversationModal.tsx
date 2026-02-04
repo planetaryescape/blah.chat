@@ -172,13 +172,11 @@ export function NewConversationModal(props: NewConversationModalProps) {
           <text>{title().trim() || "Untitled"}</text>
         </box>
 
-        <Show when={startIndex() > 0}>
-          <box justifyContent="center">
-            <text fg="gray">
-              {symbols.arrowUp} {startIndex()} more
-            </text>
-          </box>
-        </Show>
+        <box justifyContent="center">
+          <text fg="gray">
+            {startIndex() > 0 ? `${symbols.arrowUp} ${startIndex()} more` : " "}
+          </text>
+        </box>
 
         <box flexDirection="column">
           <For each={visibleModels()}>
@@ -189,25 +187,24 @@ export function NewConversationModal(props: NewConversationModalProps) {
                 <box
                   paddingLeft={1}
                   paddingRight={1}
-                  style={
-                    isSelected() ? { border: true, borderColor: "cyan" } : {}
-                  }
+                  backgroundColor={isSelected() ? "cyan" : undefined}
                 >
-                  <text fg={isSelected() ? "cyan" : "gray"}>
-                    {isSelected() ? symbols.chevronRight : " "}
-                  </text>
-                  <text> </text>
                   <box flexGrow={1}>
                     <text
-                      fg={isSelected() ? "cyan" : undefined}
+                      fg={isSelected() ? "black" : undefined}
                       attributes={isSelected() ? 1 : 0}
                     >
                       {model.name}
                     </text>
                   </box>
-                  <text fg="gray">{model.provider}</text>
+                  <text fg={isSelected() ? "black" : "gray"}>
+                    {model.provider}
+                  </text>
                   <Show when={model.isPro}>
-                    <text fg="yellow"> {symbols.star}</text>
+                    <text fg={isSelected() ? "black" : "yellow"}>
+                      {" "}
+                      {symbols.star}
+                    </text>
                   </Show>
                 </box>
               );
@@ -215,13 +212,13 @@ export function NewConversationModal(props: NewConversationModalProps) {
           </For>
         </box>
 
-        <Show when={endIndex() < models().length}>
-          <box justifyContent="center">
-            <text fg="gray">
-              {symbols.arrowDown} {models().length - endIndex()} more
-            </text>
-          </box>
-        </Show>
+        <box justifyContent="center">
+          <text fg="gray">
+            {endIndex() < models().length
+              ? `${symbols.arrowDown} ${models().length - endIndex()} more`
+              : " "}
+          </text>
+        </box>
 
         <box
           marginTop={1}

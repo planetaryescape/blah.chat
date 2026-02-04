@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.2](https://github.com/planetaryescape/blah.chat/compare/v1.18.1...v1.18.2) (2026-02-04)
+
+
+### Bug Fixes
+
+* **cli:** use native runners for cross-platform builds ([45148d5](https://github.com/planetaryescape/blah.chat/commit/45148d5302307ae0d5c6a5396603d969b80ed1a5))
+
 ## [1.18.1](https://github.com/planetaryescape/blah.chat/compare/v1.18.0...v1.18.1) (2026-02-04)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.1](https://github.com/planetaryescape/blah.chat/compare/v1.18.0...v1.18.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* **cli:** install cross-platform opentui binaries before compile ([917e656](https://github.com/planetaryescape/blah.chat/commit/917e65656379b92bfac1e6cb4b8cb638613d368e))
+
 ## [1.18.0](https://github.com/planetaryescape/blah.chat/compare/v1.17.0...v1.18.0) (2026-02-04)
 
 

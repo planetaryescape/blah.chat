@@ -17,6 +17,7 @@
   "scripts": {
     "dev": "bun --watch src/index.tsx",
     "build": "bun run scripts/build.ts",
+    "compile": "bun run scripts/compile.ts",
     "typecheck": "echo 'CLI typecheck disabled - backend path aliases do not resolve from CLI context. Build succeeds.'",
     "lint": "biome check .",
     "format": "biome format --write ."
@@ -33,7 +34,8 @@
     "convex": "^1.17.0",
     "marked": "12",
     "marked-terminal": "^7.3.0",
-    "open": "^11.0.0"
+    "open": "^11.0.0",
+    "tree-sitter-wasms": "^0.1.13"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

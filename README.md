@@ -18,6 +18,31 @@ Personal AI chat assistant with access to all models (OpenAI, Gemini, Claude, xA
 - **Cost Tracking**: Per-message token usage and cost breakdown
 - **Real-Time Collaboration**: Multi-user projects with live sync (via Convex)
 
+## 💻 CLI
+
+Chat with AI models directly from your terminal.
+
+### Install
+
+```bash
+# Shell (macOS/Linux)
+curl -fsSL https://blah.chat/install | bash
+
+# npm
+npm i -g @blah-chat/cli
+
+# Homebrew (coming soon)
+brew install planetaryescape/tap/blah
+```
+
+### Usage
+
+```bash
+blah "What is the capital of France?"
+blah --model claude-3-opus "Explain quantum computing"
+blah --help
+```
+
 ## 📸 Preview
 
 <table>

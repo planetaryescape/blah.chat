@@ -1,10 +1,57 @@
-import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
-import { join, resolve } from "node:path";
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import solidPlugin from "@opentui/solid/bun-plugin";
 
 const DIST = resolve(import.meta.dirname, "../dist/release");
 const ASSETS_DIR = resolve(import.meta.dirname, "../assets/tree-sitter");
 const ENTRYPOINT = resolve(import.meta.dirname, "../src/index.tsx");
+
+// @opentui/core uses dynamic imports for platform-specific native binaries.
+// Only the current platform's package is installed by default (optionalDependencies).
+// For cross-compilation, we need all target platforms' packages available.
+const OPENTUI_PLATFORMS = [
+  "darwin-arm64",
+  "darwin-x64",
+  "linux-x64",
+  "linux-arm64",
+  "win32-x64",
+] as const;
+
+async function ensurePlatformPackages() {
+  const corePath = dirname(require.resolve("@opentui/core"));
+  const coreVersion = JSON.parse(
+    readFileSync(join(corePath, "package.json"), "utf8"),
+  ).version;
+  const missing: string[] = [];
+
+  for (const plat of OPENTUI_PLATFORMS) {
+    try {
+      require.resolve(`@opentui/core-${plat}`);
+    } catch {
+      missing.push(`@opentui/core-${plat}@${coreVersion}`);
+    }
+  }
+
+  if (missing.length > 0) {
+    console.log(`Installing missing platform packages: ${missing.join(", ")}`);
+    const proc = Bun.spawnSync(["bun", "add", "--no-save", ...missing], {
+      cwd: resolve(import.meta.dirname, ".."),
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    if (proc.exitCode !== 0) {
+      console.error("Failed to install platform packages");
+      process.exit(1);
+    }
+  }
+}
 
 const LANGUAGES = [
   "python",
@@ -74,6 +121,8 @@ function currentTarget(): Target {
 
 const singleMode = process.argv.includes("--single");
 const targets = singleMode ? [currentTarget()] : ALL_TARGETS;
+
+if (!singleMode) await ensurePlatformPackages();
 
 if (existsSync(DIST)) rmSync(DIST, { recursive: true });
 mkdirSync(DIST, { recursive: true });

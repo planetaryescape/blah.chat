@@ -18,6 +18,7 @@
     "dev": "bun --watch src/index.tsx",
     "build": "bun run scripts/build.ts",
     "compile": "bun run scripts/compile.ts",
+    "publish:npm": "bun run scripts/publish.ts",
     "typecheck": "echo 'CLI typecheck disabled - backend path aliases do not resolve from CLI context. Build succeeds.'",
     "lint": "biome check .",
     "format": "biome format --write ."

@@ -71,3 +71,34 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           REPO: ${{ github.repository }}
         run: gh release upload "$RELEASE_TAG" artifacts/* --clobber --repo "$REPO"
+
+  publish-npm:
+    name: Publish to npm
+    needs: upload-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          bun run apps/cli/scripts/publish.ts --version "$VERSION"

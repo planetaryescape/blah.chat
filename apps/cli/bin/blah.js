@@ -43,22 +43,31 @@ function getPlatformPackageName() {
 
 function findBinaryPath() {
   const packageName = getPlatformPackageName();
-  // Extract "cli-darwin-arm64" from "@blah-chat/cli-darwin-arm64"
-  const unscopedName = packageName.split("/").pop();
+  // Split "@blah-chat/cli-darwin-arm64" into ["@blah-chat", "cli-darwin-arm64"]
+  const packageParts = packageName.split("/");
+  const unscopedName = packageParts[1];
 
   // Try to find the platform-specific package
   const possiblePaths = [
-    // Installed as a dependency
-    join(__dirname, "..", "node_modules", packageName, "blah"),
-    join(__dirname, "..", "node_modules", packageName, "blah.exe"),
+    // Installed as a dependency (nested node_modules)
+    join(__dirname, "..", "node_modules", ...packageParts, "blah"),
+    join(__dirname, "..", "node_modules", ...packageParts, "blah.exe"),
     // Sibling under same scope (global npm, workspaces)
     // __dirname = node_modules/@blah-chat/cli/bin/
     // target = node_modules/@blah-chat/cli-darwin-arm64/blah
     join(__dirname, "..", "..", unscopedName, "blah"),
     join(__dirname, "..", "..", unscopedName, "blah.exe"),
     // Root node_modules with full scoped name
-    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah"),
-    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah.exe"),
+    join(__dirname, "..", "..", "..", "node_modules", ...packageParts, "blah"),
+    join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "node_modules",
+      ...packageParts,
+      "blah.exe",
+    ),
   ];
 
   for (const binaryPath of possiblePaths) {

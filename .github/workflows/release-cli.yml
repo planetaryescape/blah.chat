@@ -54,6 +54,7 @@ jobs:
   upload-release:
     name: Upload Release Assets
     needs: build-cli
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     permissions:
       contents: write

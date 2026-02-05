@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.19.0](https://github.com/planetaryescape/blah.chat/compare/v1.18.3...v1.19.0) (2026-02-05)
+
+
+### Features
+
+* **cli:** add multi-platform distribution support ([98feff1](https://github.com/planetaryescape/blah.chat/commit/98feff15dfb5da02146f89bd1e47e71ea6019935))
+
+
+### Bug Fixes
+
+* add autoRouterEnabled and showSlides to preferences schema ([37e7fbb](https://github.com/planetaryescape/blah.chat/commit/37e7fbb6639e4f1561d464ae1c78000a9e70497d))
+* **backend:** add missing getUserPreferenceState query ([ba4908d](https://github.com/planetaryescape/blah.chat/commit/ba4908dcca7f9864b92abaf1a2b51531628c70a4))
+* **ci:** use macos-15-large for darwin-x64 (macos-13 retired) ([cf707a0](https://github.com/planetaryescape/blah.chat/commit/cf707a0a9bbe7f46bb644f7e262383c46977b5b5))
+* **cli:** address PR review issues ([6651ee7](https://github.com/planetaryescape/blah.chat/commit/6651ee7afe5ed735cd7d2129f87083bea0cb2566))
+* **cli:** split scoped package name in postinstall path join ([a84c231](https://github.com/planetaryescape/blah.chat/commit/a84c231256576ccde60969967e79205a85dc2f89))
+* **cli:** split scoped package name into path segments for join() ([b81c5d6](https://github.com/planetaryescape/blah.chat/commit/b81c5d69ffdb37928f386937c42c273114b28450))
+* **install:** use INSTALL_DIR for PATH instead of hardcoded path ([fd2497a](https://github.com/planetaryescape/blah.chat/commit/fd2497afb1a93a7e8c327cce8720936b64f79bd4))
+* **test:** add missing get/put mocks to userPreferences cache ([7cbea3f](https://github.com/planetaryescape/blah.chat/commit/7cbea3ff1bbab9c79948d64e8ef98bb15b4b8eae))
+* **web:** escape &gt; characters in JSX DialogDescription ([fee5383](https://github.com/planetaryescape/blah.chat/commit/fee5383da3fe9b9fcb37ff671e42eff4a4577c8b))
+
 ## [1.18.3](https://github.com/planetaryescape/blah.chat/compare/v1.18.2...v1.18.3) (2026-02-04)
 
 

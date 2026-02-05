@@ -425,6 +425,36 @@ export const getUserPreferenceByUserId = query({
   },
 });
 
+/**
+ * Check if a preference exists and return its state
+ * Used for onboarding flows that need to distinguish "not set" from "set to null/false"
+ */
+export const getUserPreferenceState = query({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first();
+
+    if (!user) return null;
+
+    const pref = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_user_key", (q) => q.eq("userId", user._id).eq("key", key))
+      .first();
+
+    if (!pref) {
+      return { exists: false };
+    }
+
+    return { exists: true, value: pref.value };
+  },
+});
+
 // ========================================
 // GDPR: Data Export & Deletion
 // ========================================

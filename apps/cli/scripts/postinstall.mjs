@@ -42,18 +42,28 @@ function main() {
   }
 
   const packageName = `@blah-chat/cli-${os}-${cpu}`;
-  const unscopedName = `cli-${os}-${cpu}`;
+  // Split "@blah-chat/cli-darwin-arm64" into ["@blah-chat", "cli-darwin-arm64"]
+  const packageParts = packageName.split("/");
+  const unscopedName = packageParts[1];
 
   // Try to find the binary
   const possiblePaths = [
-    join(__dirname, "..", "node_modules", packageName, "blah"),
-    join(__dirname, "..", "node_modules", packageName, "blah.exe"),
+    join(__dirname, "..", "node_modules", ...packageParts, "blah"),
+    join(__dirname, "..", "node_modules", ...packageParts, "blah.exe"),
     // Sibling under same scope
     join(__dirname, "..", "..", unscopedName, "blah"),
     join(__dirname, "..", "..", unscopedName, "blah.exe"),
     // Root node_modules
-    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah"),
-    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah.exe"),
+    join(__dirname, "..", "..", "..", "node_modules", ...packageParts, "blah"),
+    join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "node_modules",
+      ...packageParts,
+      "blah.exe",
+    ),
   ];
 
   let found = false;

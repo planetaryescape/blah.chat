@@ -68,7 +68,7 @@ download() {
 # Add to PATH in shell config
 add_to_path() {
   local shell_config=""
-  local path_line="export PATH=\"\$HOME/.blah/bin:\$PATH\""
+  local path_line="export PATH=\"$INSTALL_DIR:\$PATH\""
 
   # Detect shell config file
   if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$SHELL" = "/usr/bin/zsh" ]; then
@@ -86,12 +86,12 @@ add_to_path() {
   fi
 
   # Check if already in PATH
-  if echo "$PATH" | grep -q "$HOME/.blah/bin"; then
+  if echo "$PATH" | grep -q "$INSTALL_DIR"; then
     return 0
   fi
 
   # Check if already in config
-  if [ -f "$shell_config" ] && grep -q ".blah/bin" "$shell_config"; then
+  if [ -f "$shell_config" ] && grep -qF "$INSTALL_DIR" "$shell_config"; then
     return 0
   fi
 

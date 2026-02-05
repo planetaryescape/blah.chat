@@ -1,8 +1,12 @@
 name: Release CLI
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 0.1.0)"
+        required: true
+        type: string
 
 jobs:
   build-cli:
@@ -51,8 +55,8 @@ jobs:
           path: apps/cli/dist/release/${{ matrix.archive }}
           retention-days: 1
 
-  upload-release:
-    name: Upload Release Assets
+  create-release:
+    name: Create Release
     needs: build-cli
     if: always() && !cancelled()
     runs-on: ubuntu-latest
@@ -66,16 +70,48 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Upload to release
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          VERSION: ${{ inputs.version }}
           REPO: ${{ github.repository }}
-        run: gh release upload "$RELEASE_TAG" artifacts/* --clobber --repo "$REPO"
+        run: |
+          gh release create "cli-v$VERSION" \
+            --repo "$REPO" \
+            --draft \
+            --title "blah CLI v$VERSION" \
+            --notes "## blah CLI v$VERSION
+
+          ### Installation
+
+          **Homebrew (macOS/Linux)**
+          \`\`\`bash
+          brew install planetaryescape/tap/blah
+          \`\`\`
+
+          **Direct Download**
+          Download the appropriate binary for your platform from the assets below."
+
+      - name: Upload assets to draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          REPO: ${{ github.repository }}
+        run: gh release upload "cli-v$VERSION" artifacts/* --repo "$REPO"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          REPO: ${{ github.repository }}
+        run: gh release edit "cli-v$VERSION" --draft=false --repo "$REPO"
 
   publish-npm:
     name: Publish to npm
-    needs: upload-release
+    needs: create-release
     runs-on: ubuntu-latest
 
     steps:
@@ -99,7 +135,5 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          VERSION="${RELEASE_TAG#v}"
-          bun run apps/cli/scripts/publish.ts --version "$VERSION"
+          VERSION: ${{ inputs.version }}
+        run: bun run apps/cli/scripts/publish.ts --version "$VERSION"

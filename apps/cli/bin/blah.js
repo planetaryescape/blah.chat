@@ -2,8 +2,11 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const require = createRequire(import.meta.url);
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -12,6 +15,7 @@ function getPlatformPackageName() {
   const arch = process.arch;
 
   // Map Node.js platform/arch to our package naming
+  // Note: Package names use human-friendly "windows", while npm's os field uses "win32"
   const platformMap = {
     darwin: "darwin",
     linux: "linux",
@@ -39,18 +43,22 @@ function getPlatformPackageName() {
 
 function findBinaryPath() {
   const packageName = getPlatformPackageName();
+  // Extract "cli-darwin-arm64" from "@blah-chat/cli-darwin-arm64"
+  const unscopedName = packageName.split("/").pop();
 
   // Try to find the platform-specific package
   const possiblePaths = [
     // Installed as a dependency
     join(__dirname, "..", "node_modules", packageName, "blah"),
     join(__dirname, "..", "node_modules", packageName, "blah.exe"),
-    // Hoisted to root node_modules
-    join(__dirname, "..", "..", packageName, "blah"),
-    join(__dirname, "..", "..", packageName, "blah.exe"),
-    // pnpm/bun style
-    join(__dirname, "..", "..", "..", packageName, "blah"),
-    join(__dirname, "..", "..", "..", packageName, "blah.exe"),
+    // Sibling under same scope (global npm, workspaces)
+    // __dirname = node_modules/@blah-chat/cli/bin/
+    // target = node_modules/@blah-chat/cli-darwin-arm64/blah
+    join(__dirname, "..", "..", unscopedName, "blah"),
+    join(__dirname, "..", "..", unscopedName, "blah.exe"),
+    // Root node_modules with full scoped name
+    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah"),
+    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah.exe"),
   ];
 
   for (const binaryPath of possiblePaths) {

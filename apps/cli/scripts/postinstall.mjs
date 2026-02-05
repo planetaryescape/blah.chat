@@ -6,11 +6,15 @@
  */
 
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const require = createRequire(import.meta.url);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Package names use human-friendly "windows", npm's os field uses "win32"
 const PLATFORM_MAP = {
   darwin: "darwin",
   linux: "linux",
@@ -38,15 +42,18 @@ function main() {
   }
 
   const packageName = `@blah-chat/cli-${os}-${cpu}`;
+  const unscopedName = `cli-${os}-${cpu}`;
 
   // Try to find the binary
   const possiblePaths = [
     join(__dirname, "..", "node_modules", packageName, "blah"),
     join(__dirname, "..", "node_modules", packageName, "blah.exe"),
-    join(__dirname, "..", "..", packageName, "blah"),
-    join(__dirname, "..", "..", packageName, "blah.exe"),
-    join(__dirname, "..", "..", "..", packageName, "blah"),
-    join(__dirname, "..", "..", "..", packageName, "blah.exe"),
+    // Sibling under same scope
+    join(__dirname, "..", "..", unscopedName, "blah"),
+    join(__dirname, "..", "..", unscopedName, "blah.exe"),
+    // Root node_modules
+    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah"),
+    join(__dirname, "..", "..", "..", "node_modules", packageName, "blah.exe"),
   ];
 
   let found = false;

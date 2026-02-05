@@ -174,7 +174,10 @@ function createPlatformPackage(
   // Copy assets if present
   const assetsPath = join(downloadDir, platform.archiveName, "assets");
   if (existsSync(assetsPath)) {
-    Bun.spawnSync(["cp", "-r", assetsPath, packageDir]);
+    const result = Bun.spawnSync(["cp", "-r", assetsPath, packageDir]);
+    if (result.exitCode !== 0) {
+      throw new Error(`Failed to copy assets: ${result.stderr.toString()}`);
+    }
   }
 
   // Create package.json
@@ -304,6 +307,12 @@ async function publishPackage(
   dryRun: boolean,
   tag: string,
 ): Promise<void> {
+  if (!Bun.which("npm")) {
+    throw new Error(
+      "npm not found on PATH. Install Node.js or ensure npm is available.",
+    );
+  }
+
   const packageJson = JSON.parse(
     readFileSync(join(packageDir, "package.json"), "utf8"),
   );

@@ -16,22 +16,31 @@ const runGit = (gitArgs: string[]): string =>
 
 const tryRunGit = (gitArgs: string[]): string | null => {
   try {
-    return runGit(gitArgs);
+    return execFileSync("git", gitArgs, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
   } catch {
     return null;
   }
 };
 
-const changed = runGit([
-  "diff",
-  "--name-only",
-  `${baseRef}...HEAD`,
-  "--",
-  "packages/sdk",
-])
-  .split("\n")
-  .map((file) => file.trim())
-  .filter(Boolean);
+const getChangedSdkFiles = (): string[] => {
+  const readDiff = (range: string) =>
+    runGit(["diff", "--name-only", range, "--", "packages/sdk"])
+      .split("\n")
+      .map((file) => file.trim())
+      .filter(Boolean);
+
+  try {
+    return readDiff(`${baseRef}...HEAD`);
+  } catch {
+    // In shallow CI clones, merge-base can be missing; fall back to direct range.
+    return readDiff(`${baseRef}..HEAD`);
+  }
+};
+
+const changed = getChangedSdkFiles();
 
 if (changed.length === 0) {
   console.log(`No SDK changes detected vs ${baseRef}.`);

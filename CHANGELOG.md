@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.2](https://github.com/planetaryescape/blah.chat/compare/v1.19.1...v1.19.2) (2026-02-06)
+
+
+### Bug Fixes
+
+* **cli:** resolve TreeSitter worker path in compiled binary ([247c92c](https://github.com/planetaryescape/blah.chat/commit/247c92cc03b68b9d9b55c82ccc3f5e5b5a8aa429))
+* **cli:** use cli-v tag format and remove darwin-x64 ([68dd7ad](https://github.com/planetaryescape/blah.chat/commit/68dd7ad762a3bbb252ea3449872a3fa675edacd6))
+
 ## [1.19.1](https://github.com/planetaryescape/blah.chat/compare/v1.19.0...v1.19.1) (2026-02-06)
 
 

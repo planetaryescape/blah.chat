@@ -50,14 +50,7 @@ const PLATFORMS: Platform[] = [
     os: "darwin",
     cpu: "arm64",
   },
-  {
-    name: "darwin-x64",
-    archiveName: "blah-cli-darwin-x64",
-    archiveExt: "tar.gz",
-    binaryName: "blah",
-    os: "darwin",
-    cpu: "x64",
-  },
+  // darwin-x64 disabled - requires paid CI runner
   {
     name: "linux-x64",
     archiveName: "blah-cli-linux-x64",
@@ -116,7 +109,7 @@ async function downloadBinary(
   version: string,
   destDir: string,
 ): Promise<void> {
-  const url = `https://github.com/${REPO}/releases/download/v${version}/${platform.archiveName}.${platform.archiveExt}`;
+  const url = `https://github.com/${REPO}/releases/download/cli-v${version}/${platform.archiveName}.${platform.archiveExt}`;
   const archivePath = join(
     destDir,
     `${platform.archiveName}.${platform.archiveExt}`,

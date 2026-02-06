@@ -5,6 +5,7 @@ on:
     branches: [main]
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -36,6 +37,7 @@ jobs:
         run: bun install --no-frozen-lockfile
 
       - name: Commit and push if changed
+        id: commit
         env:
           LEFTHOOK: "0"
         run: |
@@ -43,8 +45,26 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet bun.lock; then
             echo "No lockfile changes"
+            echo "lockfile_changed=false" >> "$GITHUB_OUTPUT"
           else
             git add bun.lock
             git commit -m "chore: update bun.lock"
             git push
+            echo "lockfile_changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Trigger CI on updated branch
+        if: steps.commit.outputs.lockfile_changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: gh workflow run ci.yml --repo "$REPO" --ref "$HEAD_REF"
+
+      - name: Trigger deploy dry-run on updated branch
+        if: steps.commit.outputs.lockfile_changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: gh workflow run deploy.yml --repo "$REPO" --ref "$HEAD_REF"

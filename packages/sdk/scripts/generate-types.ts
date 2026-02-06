@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,5 +22,9 @@ await writeFile(
   `/* eslint-disable */\n/* biome-ignore-all lint: generated file */\n${content}`,
   "utf8",
 );
+
+execFileSync("bunx", ["biome", "format", "--write", outputPath], {
+  stdio: "inherit",
+});
 
 console.log(`Generated ${outputPath}`);

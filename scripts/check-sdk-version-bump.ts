@@ -14,6 +14,14 @@ const runGit = (gitArgs: string[]): string =>
     encoding: "utf8",
   }).trim();
 
+const tryRunGit = (gitArgs: string[]): string | null => {
+  try {
+    return runGit(gitArgs);
+  } catch {
+    return null;
+  }
+};
+
 const changed = runGit([
   "diff",
   "--name-only",
@@ -59,17 +67,31 @@ const sdkPkgPath = resolve(process.cwd(), "packages/sdk/package.json");
 const headPackageJson = JSON.parse(readFileSync(sdkPkgPath, "utf8")) as {
   version?: string;
 };
+const headVersion = headPackageJson.version;
 
-const basePackageJson = JSON.parse(
-  runGit(["show", `${baseRef}:packages/sdk/package.json`]),
-) as {
+if (!headVersion) {
+  console.error("Unable to determine SDK version from head package.json");
+  process.exit(1);
+}
+
+const basePackageJsonRaw = tryRunGit([
+  "show",
+  `${baseRef}:packages/sdk/package.json`,
+]);
+if (!basePackageJsonRaw) {
+  console.log(
+    `SDK package does not exist on ${baseRef}; treating this as initial SDK introduction.`,
+  );
+  console.log(`SDK version present on head: ${headVersion}`);
+  process.exit(0);
+}
+
+const basePackageJson = JSON.parse(basePackageJsonRaw) as {
   version?: string;
 };
-
-const headVersion = headPackageJson.version;
 const baseVersion = basePackageJson.version;
 
-if (!headVersion || !baseVersion) {
+if (!baseVersion) {
   console.error("Unable to determine SDK versions from package.json");
   process.exit(1);
 }

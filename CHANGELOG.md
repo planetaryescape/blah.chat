@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.1](https://github.com/planetaryescape/blah.chat/compare/v1.20.0...v1.20.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* **cli:** await async actions and add --api-key login option ([4f67ad9](https://github.com/planetaryescape/blah.chat/commit/4f67ad94fc952171a0841bea552a28683b0421d6))
+
 ## [1.20.0](https://github.com/planetaryescape/blah.chat/compare/v1.19.2...v1.20.0) (2026-02-06)
 
 

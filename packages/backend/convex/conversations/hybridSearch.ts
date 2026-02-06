@@ -1,10 +1,10 @@
-import { embed } from "ai";
-import { v } from "convex/values";
 import {
   calculateEmbeddingCost,
   EMBEDDING_MODEL,
   EMBEDDING_PRICING,
-} from "@/lib/ai/operational-models";
+} from "@blah-chat/ai/operational-models";
+import { embed } from "ai";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { action, internalQuery } from "../_generated/server";

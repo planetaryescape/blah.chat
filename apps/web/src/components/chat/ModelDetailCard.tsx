@@ -1,11 +1,11 @@
 "use client";
 
+import { getModelMetrics } from "@blah-chat/ai/models";
+import { getModelConfig } from "@blah-chat/ai/utils";
 import { Eye, FunctionSquare, Image, Sparkles, Zap } from "lucide-react";
 import { useMemo } from "react";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { getProviderIcon } from "@/lib/ai/icons";
-import { getModelMetrics } from "@/lib/ai/models";
-import { getModelConfig } from "@/lib/ai/utils";
 import { ModelMetricsBadge } from "./model-metrics-badge";
 
 interface ModelDetailCardProps {

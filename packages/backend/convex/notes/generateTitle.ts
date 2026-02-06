@@ -1,9 +1,9 @@
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { TITLE_GENERATION_MODEL } from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost } from "@blah-chat/ai/utils";
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { TITLE_GENERATION_MODEL } from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
-import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
 import { logger } from "../lib/logger";

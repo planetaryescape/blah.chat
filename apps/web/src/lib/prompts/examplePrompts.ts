@@ -1,4 +1,4 @@
-import { getModelConfig } from "@/lib/ai/utils";
+import { getModelConfig } from "@blah-chat/ai/utils";
 
 // Exact model matches (top models)
 const SUGGESTED_PROMPTS: Record<string, readonly string[]> = {

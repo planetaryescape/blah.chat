@@ -5,9 +5,9 @@
  * Follows pattern from convex/lib/helpers.ts.
  */
 
+import { EMBEDDING_MODEL } from "@blah-chat/ai/operational-models";
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { internalAction, internalQuery } from "../../_generated/server";

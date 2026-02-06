@@ -1,5 +1,6 @@
 "use client";
 
+import { getModelsByProvider } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
@@ -23,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getModelsByProvider } from "@/lib/ai/utils";
 import { useModels } from "@/lib/models/repository";
 
 type SelectionMode = "auto" | "manual" | null;

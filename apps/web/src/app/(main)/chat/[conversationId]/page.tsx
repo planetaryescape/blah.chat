@@ -1,5 +1,7 @@
 "use client";
 
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useQuery as useConvexQuery } from "convex/react";
@@ -47,8 +49,6 @@ import { useModelRecommendation } from "@/hooks/useModelRecommendation";
 import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
 import { useTemplateInsertion } from "@/hooks/useTemplateInsertion";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { MODEL_CONFIG } from "@/lib/ai/models";
-import { getModelConfig } from "@/lib/ai/utils";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
 
 function ChatPageContent({

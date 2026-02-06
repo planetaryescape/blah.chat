@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { useRecentModels } from "./useRecentModels";
 import { useUserPreference } from "./useUserPreference";
 

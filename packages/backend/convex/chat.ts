@@ -1,5 +1,5 @@
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { v } from "convex/values";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";

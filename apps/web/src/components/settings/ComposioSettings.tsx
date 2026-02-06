@@ -6,7 +6,7 @@ import {
   INTEGRATIONS,
   type IntegrationCategory,
   type IntegrationDefinition,
-} from "@blah-chat/backend/convex/composio/constants";
+} from "@blah-chat/shared/integrations";
 import {
   AlertTriangle,
   Check,

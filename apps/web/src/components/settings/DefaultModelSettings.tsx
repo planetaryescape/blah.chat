@@ -1,5 +1,11 @@
 "use client";
 
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
+import {
+  getModelConfig,
+  getModelsByProvider,
+  isValidModel,
+} from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { Clock, Pin } from "lucide-react";
@@ -24,12 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUserPreference } from "@/hooks/useUserPreference";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
-import {
-  getModelConfig,
-  getModelsByProvider,
-  isValidModel,
-} from "@/lib/ai/utils";
 import { useModels } from "@/lib/models/repository";
 
 export function DefaultModelSettings() {

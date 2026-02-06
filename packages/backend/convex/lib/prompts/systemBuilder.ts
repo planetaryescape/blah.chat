@@ -1,7 +1,7 @@
 "use node";
 
+import type { ModelConfig } from "@blah-chat/ai/utils";
 import type { ModelMessage } from "ai";
-import type { ModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";

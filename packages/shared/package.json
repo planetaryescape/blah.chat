@@ -7,13 +7,18 @@
   "exports": {
     ".": "./src/index.ts",
     "./byod": "./src/byod/index.ts",
-    "./utils": "./src/utils/index.ts"
+    "./utils": "./src/utils/index.ts",
+    "./preferences": "./src/preferences.ts",
+    "./limits": "./src/limits.ts",
+    "./integrations": "./src/integrations.ts",
+    "./canvas": "./src/canvas/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "date-fns": "^4.1.0"
+    "date-fns": "^4.1.0",
+    "diff": "^8.0.2"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

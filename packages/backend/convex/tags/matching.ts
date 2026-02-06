@@ -8,13 +8,12 @@
  */
 
 import { openai } from "@ai-sdk/openai";
-import { embed } from "ai";
 import {
   calculateEmbeddingCost,
   EMBEDDING_PRICING,
-} from "@/lib/ai/operational-models";
-import { levenshteinDistance } from "@/lib/utils/stringUtils";
-import { normalizeTagSlug } from "@/lib/utils/tagUtils";
+} from "@blah-chat/ai/operational-models";
+import { levenshteinDistance, normalizeTagSlug } from "@blah-chat/shared/utils";
+import { embed } from "ai";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";

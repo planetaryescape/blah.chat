@@ -1,6 +1,6 @@
 "use node";
 
-import { BYOD_SCHEMA_VERSION } from "@/lib/byod/version";
+import { BYOD_SCHEMA_VERSION } from "@blah-chat/shared/byod";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action } from "../_generated/server";

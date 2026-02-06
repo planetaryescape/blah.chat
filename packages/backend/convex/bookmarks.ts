@@ -286,7 +286,7 @@ export const addTag = mutation({
     if (currentTags.includes(cleanTag)) return;
 
     // NEW SYSTEM: Get or create tag
-    const { normalizeTagSlug } = await import("@/lib/utils/tagUtils");
+    const { normalizeTagSlug } = await import("@blah-chat/shared/utils");
     const slug = normalizeTagSlug(tag);
 
     let centralTag = await ctx.db
@@ -359,7 +359,7 @@ export const removeTag = mutation({
     }
 
     // NEW SYSTEM: Find and delete junction entry
-    const { normalizeTagSlug } = await import("@/lib/utils/tagUtils");
+    const { normalizeTagSlug } = await import("@blah-chat/shared/utils");
     const slug = normalizeTagSlug(tag);
 
     const centralTag = await ctx.db

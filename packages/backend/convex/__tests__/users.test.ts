@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createMockIdentity, createTestUserData } from "@/lib/test/factories";
 import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
+import { createMockIdentity, createTestUserData } from "../lib/test/factories";
 import schema from "../schema";
 
 describe("convex/users", () => {

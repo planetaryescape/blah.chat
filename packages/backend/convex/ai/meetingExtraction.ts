@@ -1,14 +1,14 @@
-import { generateObject } from "ai";
-import { v } from "convex/values";
-import { z } from "zod";
-import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import {
   DEADLINE_PARSING_MODEL,
   MEETING_EXTRACTION_MODEL,
-} from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
-import { MEETING_EXTRACTION_PROMPT } from "@/lib/prompts/meetingExtraction";
-import { DEADLINE_PARSING_PROMPT } from "@/lib/prompts/taskExtraction";
+} from "@blah-chat/ai/operational-models";
+import { MEETING_EXTRACTION_PROMPT } from "@blah-chat/ai/prompts/meetingExtraction";
+import { DEADLINE_PARSING_PROMPT } from "@blah-chat/ai/prompts/taskExtraction";
+import { getModel } from "@blah-chat/ai/registry";
+import { generateObject } from "ai";
+import { v } from "convex/values";
+import { z } from "zod";
 import { action } from "../_generated/server";
 import { logger } from "../lib/logger";
 

@@ -3,7 +3,7 @@
  * Migrates tags from 4 entities (bookmarks, snippets, notes, feedback) to centralized tags table
  */
 
-import { normalizeTagSlug } from "@/lib/utils/tagUtils";
+import { normalizeTagSlug } from "@blah-chat/shared/utils";
 import { internal } from "../_generated/api";
 import { internalAction, internalMutation } from "../_generated/server";
 import { logger } from "../lib/logger";

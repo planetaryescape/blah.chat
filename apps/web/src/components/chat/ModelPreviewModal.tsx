@@ -1,5 +1,6 @@
 "use client";
 
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation } from "convex/react";
@@ -14,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
 import { MarkdownContent } from "./MarkdownContent";
 

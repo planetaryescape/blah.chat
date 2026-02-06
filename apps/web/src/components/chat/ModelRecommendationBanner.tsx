@@ -1,5 +1,6 @@
 "use client";
 
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
@@ -7,7 +8,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Eye, Lightbulb, X } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
 
 interface Props {

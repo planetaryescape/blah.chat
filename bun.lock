@@ -164,6 +164,7 @@
         "@ai-sdk/openai": "^3.0.1",
         "@anthropic-ai/sdk": "^0.72.1",
         "@base-ui/react": "^1.1.0",
+        "@blah-chat/ai": "workspace:*",
         "@blah-chat/backend": "workspace:*",
         "@blah-chat/byod-schema": "workspace:*",
         "@blah-chat/sdk": "workspace:*",
@@ -334,6 +335,25 @@
     "packages/ai": {
       "name": "@blah-chat/ai",
       "version": "0.0.0",
+      "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.1",
+        "@ai-sdk/cerebras": "^2.0.2",
+        "@ai-sdk/gateway": "^3.0.2",
+        "@ai-sdk/google": "^3.0.1",
+        "@ai-sdk/groq": "^3.0.0",
+        "@ai-sdk/openai": "^3.0.1",
+        "@openrouter/ai-sdk-provider": "^1.5.4",
+        "ai": "^6.0.3",
+        "lucide-react": "^0.563.0",
+      },
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/auto-router": {
+      "name": "@blah-chat/auto-router",
+      "version": "0.0.0",
       "devDependencies": {
         "@blah-chat/config": "workspace:*",
         "typescript": "^5.9.3",
@@ -348,6 +368,9 @@
         "@ai-sdk/google": "^3.0.1",
         "@ai-sdk/openai": "^3.0.1",
         "@anthropic-ai/sdk": "^0.71.2",
+        "@blah-chat/ai": "workspace:*",
+        "@blah-chat/auto-router": "workspace:*",
+        "@blah-chat/shared": "workspace:*",
         "@composio/core": "^0.5.5",
         "@composio/vercel": "^0.6.2",
         "@convex-dev/resend": "^0.2.3",
@@ -423,6 +446,7 @@
       "version": "0.0.0",
       "dependencies": {
         "date-fns": "^4.1.0",
+        "diff": "^8.0.2",
       },
       "devDependencies": {
         "typescript": "^5.9.3",
@@ -688,6 +712,8 @@
 
     "@blah-chat/ai": ["@blah-chat/ai@workspace:packages/ai"],
 
+    "@blah-chat/auto-router": ["@blah-chat/auto-router@workspace:packages/auto-router"],
+
     "@blah-chat/backend": ["@blah-chat/backend@workspace:packages/backend"],
 
     "@blah-chat/byod-schema": ["@blah-chat/byod-schema@workspace:packages/byod-schema"],
@@ -748,7 +774,7 @@
 
     "@composio/json-schema-to-zod": ["@composio/json-schema-to-zod@0.1.19", "", { "peerDependencies": { "zod": ">=3.25.76 <4 || >=4.1 <5" } }, "sha512-OynnORVWjsqDv13EvFa4Bb+B1SzBqpkWGi6qXm4vpB3EG65o3T9FbhDCqWB3ZufnMmH1T/NYS526O0lnn2LoCQ=="],
 
-    "@composio/vercel": ["@composio/vercel@0.6.2", "", { "peerDependencies": { "@composio/core": "0.6.2", "ai": "^5.0.0 || ^6.0.0" } }, "sha512-H8GEr0BrsCljzc/F1khF66Bb07/oD/OV41xfQY8thqXRLFauVoO270+xrJI+AcrhA/8EH4c9NqudM9auLu3CtA=="],
+    "@composio/vercel": ["@composio/vercel@0.6.3", "", { "peerDependencies": { "@composio/core": "0.6.3", "ai": "^5.0.0 || ^6.0.0" } }, "sha512-hwtqufR2mWNwdATsRfrAuWRjPVZG4maRcqWZB4jDLpuIZU1NEBMLmL2Ae7b/QFXvNYXibA4w0Ug8XavV4Zkxlg=="],
 
     "@connectrpc/connect": ["@connectrpc/connect@2.0.0-rc.3", "", { "peerDependencies": { "@bufbuild/protobuf": "^2.2.0" } }, "sha512-ARBt64yEyKbanyRETTjcjJuHr2YXorzQo0etyS5+P6oSeW8xEuzajA9g+zDnMcj1hlX2dQE93foIWQGfpru7gQ=="],
 
@@ -1210,7 +1236,7 @@
 
     "@oclif/plugin-not-found": ["@oclif/plugin-not-found@3.2.74", "", { "dependencies": { "@inquirer/prompts": "^7.10.1", "@oclif/core": "^4.8.0", "ansis": "^3.17.0", "fast-levenshtein": "^3.0.0" } }, "sha512-6RD/EuIUGxAYR45nMQg+nw+PqwCXUxkR6Eyn+1fvbVjtb9d+60OPwB77LCRUI4zKNI+n0LOFaMniEdSpb+A7kQ=="],
 
-    "@openrouter/ai-sdk-provider": ["@openrouter/ai-sdk-provider@2.1.1", "", { "peerDependencies": { "ai": "^6.0.0", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-UypPbVnSExxmG/4Zg0usRiit3auvQVrjUXSyEhm0sZ9GQnW/d8p/bKgCk2neh1W5YyRSo7PNQvCrAEBHZnqQkQ=="],
+    "@openrouter/ai-sdk-provider": ["@openrouter/ai-sdk-provider@1.5.4", "", { "dependencies": { "@openrouter/sdk": "^0.1.27" }, "peerDependencies": { "ai": "^5.0.0", "zod": "^3.24.1 || ^v4" } }, "sha512-xrSQPUIH8n9zuyYZR0XK7Ba0h2KsjJcMkxnwaYfmv13pKs3sDkjPzVPPhlhzqBGddHb5cFEwJ9VFuFeDcxCDSw=="],
 
     "@openrouter/sdk": ["@openrouter/sdk@0.1.27", "", { "dependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-RH//L10bSmc81q25zAZudiI4kNkLgxF2E+WU42vghp3N6TEvZ6F0jK7uT3tOxkEn91gzmMw9YVmDENy7SJsajQ=="],
 
@@ -4624,6 +4650,8 @@
 
     "@base-org/account/zustand": ["zustand@5.0.3", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg=="],
 
+    "@blah-chat/backend/@openrouter/ai-sdk-provider": ["@openrouter/ai-sdk-provider@2.1.1", "", { "peerDependencies": { "ai": "^6.0.0", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-UypPbVnSExxmG/4Zg0usRiit3auvQVrjUXSyEhm0sZ9GQnW/d8p/bKgCk2neh1W5YyRSo7PNQvCrAEBHZnqQkQ=="],
+
     "@blah-chat/cli/marked": ["marked@12.0.2", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-qXUm7e/YKFoqFPYPa3Ukg9xlI5cyAtGmyEIzMfW//m6kXwCy2Ps9DYf5ioijFKQ8qyuscrHoY04iJGctu2Kg0Q=="],
 
     "@blah-chat/mobile/react": ["react@19.1.0", "", {}, "sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg=="],
@@ -4631,8 +4659,6 @@
     "@blah-chat/mobile/react-dom": ["react-dom@19.1.0", "", { "dependencies": { "scheduler": "^0.26.0" }, "peerDependencies": { "react": "^19.1.0" } }, "sha512-Xs1hdnE+DyKgeHJeJznQmYMIBG3TKIHJJT95Q58nHLSrElKlGQqDTR2HQ9fx5CN/Gk6Vh/kupBTDLU11/nDk/g=="],
 
     "@blah-chat/web/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.72.1", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-MiUnue7qN7DvLIoYHgkedN2z05mRf2CutBzjXXY2krzOhG2r/rIfISS2uVkNLikgToB5hYIzw+xp2jdOtRkqYQ=="],
-
-    "@blah-chat/web/@openrouter/ai-sdk-provider": ["@openrouter/ai-sdk-provider@1.5.4", "", { "dependencies": { "@openrouter/sdk": "^0.1.27" }, "peerDependencies": { "ai": "^5.0.0", "zod": "^3.24.1 || ^v4" } }, "sha512-xrSQPUIH8n9zuyYZR0XK7Ba0h2KsjJcMkxnwaYfmv13pKs3sDkjPzVPPhlhzqBGddHb5cFEwJ9VFuFeDcxCDSw=="],
 
     "@blah-chat/web/tailwindcss": ["tailwindcss@4.1.18", "", {}, "sha512-4+Z+0yiYyEtUVCScyfHCxOYP06L5Ne+JiHhY2IjR2KWMIWhJOYZKLSGZaP5HkZ8+bY0cxfzwDE5uOmzFXyIwxw=="],
 

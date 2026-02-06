@@ -6,12 +6,12 @@
  * Merges results with RRF and optional LLM reranking.
  */
 
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { MEMORY_RERANK_MODEL } from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost } from "@blah-chat/ai/utils";
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { MEMORY_RERANK_MODEL } from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
-import { calculateCost } from "@/lib/ai/utils";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import type { ActionCtx } from "../../_generated/server";

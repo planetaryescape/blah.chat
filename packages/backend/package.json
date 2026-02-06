@@ -18,6 +18,9 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@blah-chat/ai": "workspace:*",
+    "@blah-chat/auto-router": "workspace:*",
+    "@blah-chat/shared": "workspace:*",
     "@ai-sdk/anthropic": "^3.0.1",
     "@ai-sdk/gateway": "^3.0.2",
     "@ai-sdk/google": "^3.0.1",

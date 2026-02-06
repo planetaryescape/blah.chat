@@ -1,4 +1,4 @@
-import type { ModelConfig } from "@/lib/ai/utils";
+import type { ModelConfig } from "@blah-chat/ai/utils";
 
 export function sortModels(
   models: ModelConfig[],

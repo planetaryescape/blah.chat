@@ -4,9 +4,9 @@
  * Transform between DB model format and ModelConfig interface.
  */
 
+import type { ModelConfig } from "@blah-chat/ai/models";
+import type { ReasoningConfig } from "@blah-chat/ai/reasoning";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
-import type { ModelConfig } from "@/lib/ai/models";
-import type { ReasoningConfig } from "@/lib/ai/reasoning/types";
 
 type DbModel = Doc<"models">;
 

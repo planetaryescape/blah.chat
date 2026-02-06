@@ -1,25 +1,11 @@
-/**
- * NewConversationModal Component - Create a new conversation
- *
- * Features:
- * - Title input (optional)
- * - Model selection
- * - Create and cancel actions
- */
-
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { Box, Text, useInput } from "ink";
-import Spinner from "ink-spinner";
-import TextInput from "ink-text-input";
-import { useCallback, useEffect, useState } from "react";
+import { useKeyboard } from "@opentui/solid";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { formatError, requireApiKey, requireClient } from "../lib/client.js";
 import { createConversation } from "../lib/mutations.js";
 import { listModels, type Model } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+import type { Id } from "../lib/types.js";
+import { Spinner } from "./Spinner.js";
 
 interface NewConversationModalProps {
   onCreated: (conversationId: Id<"conversations">) => void;
@@ -28,246 +14,224 @@ interface NewConversationModalProps {
 
 type Step = "title" | "model" | "creating";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
+export function NewConversationModal(props: NewConversationModalProps) {
+  const [step, setStep] = createSignal<Step>("title");
+  const [title, setTitle] = createSignal("");
+  const [models, setModels] = createSignal<Model[]>([]);
+  const [selectedModelIndex, setSelectedModelIndex] = createSignal(0);
+  const [error, setError] = createSignal<string | null>(null);
 
-export function NewConversationModal({
-  onCreated,
-  onCancel,
-}: NewConversationModalProps) {
-  const [step, setStep] = useState<Step>("title");
-  const [title, setTitle] = useState("");
-  const [models, setModels] = useState<Model[]>([]);
-  const [selectedModelIndex, setSelectedModelIndex] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load available models
-  useEffect(() => {
-    async function load() {
+  // Load models
+  createEffect(() => {
+    (async () => {
       try {
         const client = requireClient();
         const apiKey = requireApiKey();
         const modelList = await listModels(client, apiKey);
-        if (modelList) {
-          setModels(modelList);
-        }
+        if (modelList) setModels(modelList);
       } catch (err) {
         setError(formatError(err));
       }
-    }
-    load();
-  }, []);
+    })();
+  });
 
-  // Create conversation
-  const handleCreate = useCallback(async () => {
+  const handleCreate = async () => {
     setStep("creating");
     try {
       const client = requireClient();
       const apiKey = requireApiKey();
-      const selectedModel = models[selectedModelIndex];
+      const selectedModel = models()[selectedModelIndex()];
       const result = await createConversation(client, apiKey, {
-        title: title.trim() || undefined,
+        title: title().trim() || undefined,
         model: selectedModel?.id,
       });
-      onCreated(result.conversationId);
+      props.onCreated(result.conversationId);
     } catch (err) {
       setError(formatError(err));
       setStep("model");
     }
-  }, [title, models, selectedModelIndex, onCreated]);
+  };
 
-  // Handle title input
-  useInput(
-    (input, key) => {
-      if (step !== "title") return;
-
-      // Enter to continue to model selection
-      if (key.return) {
+  useKeyboard((evt) => {
+    if (step() === "title") {
+      if (evt.name === "return") {
+        evt.preventDefault();
         setStep("model");
         return;
       }
-
-      // Escape to cancel
-      if (key.escape) {
-        onCancel();
+      if (evt.name === "escape") {
+        evt.preventDefault();
+        props.onCancel();
         return;
       }
-    },
-    { isActive: step === "title" },
-  );
+    }
 
-  // Handle model selection
-  useInput(
-    (input, key) => {
-      if (step !== "model") return;
-
-      // Navigation
-      if (key.downArrow || input === "j") {
-        setSelectedModelIndex((i) => Math.min(i + 1, models.length - 1));
+    if (step() === "model") {
+      if (evt.name === "down" || evt.name === "j") {
+        evt.preventDefault();
+        setSelectedModelIndex((i) => Math.min(i + 1, models().length - 1));
         return;
       }
-
-      if (key.upArrow || input === "k") {
+      if (evt.name === "up" || evt.name === "k") {
+        evt.preventDefault();
         setSelectedModelIndex((i) => Math.max(i - 1, 0));
         return;
       }
-
-      // Enter to create
-      if (key.return) {
+      if (evt.name === "return") {
+        evt.preventDefault();
         handleCreate();
         return;
       }
-
-      // Escape or b to go back
-      if (key.escape || input === "b") {
+      if (evt.name === "escape" || evt.name === "b") {
+        evt.preventDefault();
         setStep("title");
         return;
       }
-
-      // q to cancel
-      if (input === "q") {
-        onCancel();
+      if (evt.name === "q") {
+        evt.preventDefault();
+        props.onCancel();
         return;
       }
-    },
-    { isActive: step === "model" },
+    }
+  });
+
+  // Window calculations for model list
+  const windowSize = 8;
+  const startIndex = createMemo(() => {
+    const half = Math.floor(windowSize / 2);
+    return Math.max(0, selectedModelIndex() - half);
+  });
+  const endIndex = createMemo(() =>
+    Math.min(models().length, startIndex() + windowSize),
+  );
+  const visibleModels = createMemo(() =>
+    models().slice(startIndex(), endIndex()),
   );
 
-  // Error state
-  if (error) {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box>
-          <Text color="red">{symbols.error} </Text>
-          <Text color="red">{error}</Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text dimColor>Press any key to go back</Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Creating state
-  if (step === "creating") {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box>
-          <Text color="cyan">
-            <Spinner type="dots" />
-          </Text>
-          <Text> Creating conversation...</Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Title input step
-  if (step === "title") {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box
-          marginBottom={1}
-          borderStyle="single"
-          borderColor="cyan"
-          paddingX={1}
-        >
-          <Text bold color="cyan">
-            New Conversation
-          </Text>
-        </Box>
-
-        <Box marginBottom={1}>
-          <Text>Title (optional): </Text>
-          <TextInput value={title} onChange={setTitle} placeholder="Untitled" />
-        </Box>
-
-        <Box marginTop={1}>
-          <Text dimColor>Enter to continue | Escape to cancel</Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Model selection step
-  const windowSize = 8;
-  const halfWindow = Math.floor(windowSize / 2);
-  const startIndex = Math.max(0, selectedModelIndex - halfWindow);
-  const endIndex = Math.min(models.length, startIndex + windowSize);
-  const visibleModels = models.slice(startIndex, endIndex);
-
   return (
-    <Box flexDirection="column" padding={1}>
-      <Box
-        marginBottom={1}
-        borderStyle="single"
-        borderColor="cyan"
-        paddingX={1}
-      >
-        <Text bold color="cyan">
-          Select Model
-        </Text>
-      </Box>
+    <box flexDirection="column" padding={1}>
+      <Show when={error()}>
+        <box>
+          <text fg="red">
+            {symbols.error} {error()}
+          </text>
+        </box>
+        <box marginTop={1}>
+          <text fg="gray">Press any key to go back</text>
+        </box>
+      </Show>
 
-      {/* Title preview */}
-      <Box marginBottom={1} paddingX={1}>
-        <Text dimColor>Title: </Text>
-        <Text>{title.trim() || "Untitled"}</Text>
-      </Box>
+      <Show when={step() === "creating"}>
+        <Spinner label="Creating conversation..." />
+      </Show>
 
-      {/* Scroll indicator (top) */}
-      {startIndex > 0 && (
-        <Box justifyContent="center">
-          <Text dimColor>
-            {symbols.arrowUp} {startIndex} more
-          </Text>
-        </Box>
-      )}
+      <Show when={step() === "title" && !error()}>
+        <box
+          marginBottom={1}
+          style={{ border: true, borderColor: "cyan" }}
+          paddingLeft={1}
+          paddingRight={1}
+        >
+          <text fg="cyan" attributes={1}>
+            New Conversation
+          </text>
+        </box>
 
-      {/* Model list */}
-      <Box flexDirection="column">
-        {visibleModels.map((model, i) => {
-          const actualIndex = startIndex + i;
-          const isSelected = actualIndex === selectedModelIndex;
-          return (
-            <Box
-              key={model.id}
-              paddingX={1}
-              borderStyle={isSelected ? "single" : undefined}
-              borderColor={isSelected ? "cyan" : undefined}
-            >
-              <Text color={isSelected ? "cyan" : "gray"}>
-                {isSelected ? symbols.chevronRight : " "}
-              </Text>
-              <Text> </Text>
-              <Box flexGrow={1}>
-                <Text color={isSelected ? "cyan" : undefined} bold={isSelected}>
-                  {model.name}
-                </Text>
-              </Box>
-              <Text dimColor>{model.provider}</Text>
-              {model.isPro && <Text color="yellow"> {symbols.star}</Text>}
-            </Box>
-          );
-        })}
-      </Box>
+        <box marginBottom={1}>
+          <text>Title (optional): </text>
+          <input
+            onInput={(e: string) => setTitle(e)}
+            placeholder="Untitled"
+            ref={(r: any) => {
+              setTimeout(() => {
+                if (r && !r.isDestroyed) r.focus();
+              }, 1);
+            }}
+          />
+        </box>
 
-      {/* Scroll indicator (bottom) */}
-      {endIndex < models.length && (
-        <Box justifyContent="center">
-          <Text dimColor>
-            {symbols.arrowDown} {models.length - endIndex} more
-          </Text>
-        </Box>
-      )}
+        <box marginTop={1}>
+          <text fg="gray">Enter to continue | Escape to cancel</text>
+        </box>
+      </Show>
 
-      {/* Help bar */}
-      <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
-        <Text dimColor>
-          {symbols.chevronRight} ↑↓/jk select | Enter create | b back | q cancel
-        </Text>
-      </Box>
-    </Box>
+      <Show when={step() === "model" && !error()}>
+        <box
+          marginBottom={1}
+          style={{ border: true, borderColor: "cyan" }}
+          paddingLeft={1}
+          paddingRight={1}
+        >
+          <text fg="cyan" attributes={1}>
+            Select Model
+          </text>
+        </box>
+
+        <box marginBottom={1} paddingLeft={1}>
+          <text fg="gray">Title: </text>
+          <text>{title().trim() || "Untitled"}</text>
+        </box>
+
+        <box justifyContent="center">
+          <text fg="gray">
+            {startIndex() > 0 ? `${symbols.arrowUp} ${startIndex()} more` : " "}
+          </text>
+        </box>
+
+        <box flexDirection="column">
+          <For each={visibleModels()}>
+            {(model, i) => {
+              const actualIndex = () => startIndex() + i();
+              const isSelected = () => actualIndex() === selectedModelIndex();
+              return (
+                <box
+                  paddingLeft={1}
+                  paddingRight={1}
+                  backgroundColor={isSelected() ? "cyan" : undefined}
+                >
+                  <box flexGrow={1}>
+                    <text
+                      fg={isSelected() ? "black" : undefined}
+                      attributes={isSelected() ? 1 : 0}
+                    >
+                      {model.name}
+                    </text>
+                  </box>
+                  <text fg={isSelected() ? "black" : "gray"}>
+                    {model.provider}
+                  </text>
+                  <Show when={model.isPro}>
+                    <text fg={isSelected() ? "black" : "yellow"}>
+                      {" "}
+                      {symbols.star}
+                    </text>
+                  </Show>
+                </box>
+              );
+            }}
+          </For>
+        </box>
+
+        <box justifyContent="center">
+          <text fg="gray">
+            {endIndex() < models().length
+              ? `${symbols.arrowDown} ${models().length - endIndex()} more`
+              : " "}
+          </text>
+        </box>
+
+        <box
+          marginTop={1}
+          style={{ border: true, borderColor: "gray" }}
+          paddingLeft={1}
+          paddingRight={1}
+        >
+          <text fg="gray">
+            {symbols.chevronRight} {"\u2191\u2193"}/jk select | Enter create | b
+            back | q cancel
+          </text>
+        </box>
+      </Show>
+    </box>
   );
 }

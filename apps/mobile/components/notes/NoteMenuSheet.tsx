@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
@@ -7,6 +6,7 @@ import { Pin, PinOff, Trash2 } from "lucide-react-native";
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Text } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
@@ -67,7 +67,7 @@ export function NoteMenuSheet({
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            haptic.heavy();
+            haptic.medium();
             onDelete();
             bottomSheetRef.current?.close();
           },

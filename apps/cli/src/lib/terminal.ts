@@ -112,9 +112,9 @@ export const symbols = {
   radioSelected: "●",
 
   // Messages
-  user: "👤",
-  assistant: "🤖",
-  system: "⚙",
+  user: "▸",
+  assistant: "▣",
+  system: "◆",
 
   // Actions
   star: "★",

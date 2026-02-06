@@ -54,6 +54,7 @@ const SETTING_TO_SECTION: Record<string, string> = {
   // Comparison
   showModelNamesDuringComparison: "comparison",
   // Auto Router
+  autoRouterEnabled: "auto-router",
   autoRouterCostBias: "auto-router",
   autoRouterSpeedBias: "auto-router",
   enableModelRecommendations: "auto-router",
@@ -114,7 +115,7 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [focusSettingKey, isLoading, expandedSections.includes]);
+  }, [focusSettingKey, isLoading, expandedSections]);
 
   if (isLoading) {
     return (
@@ -211,9 +212,11 @@ export function UISettings({ focusSettingKey }: UISettingsProps) {
           />
 
           <AutoRouterSection
+            autoRouterEnabled={state.autoRouterEnabled}
             costBias={state.autoRouterCostBias}
             speedBias={state.autoRouterSpeedBias}
             enableModelRecommendations={state.enableModelRecommendations}
+            onAutoRouterEnabledChange={handlers.handleAutoRouterEnabledChange}
             onCostBiasChange={handlers.handleCostBiasChange}
             onSpeedBiasChange={handlers.handleSpeedBiasChange}
             onEnableModelRecommendationsChange={

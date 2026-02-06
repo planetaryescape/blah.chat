@@ -1,8 +1,8 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { Pin } from "lucide-react-native";
 import { Text, View } from "react-native";
 import removeMarkdown from "remove-markdown";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc } from "@/lib/convex";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 type Note = Doc<"notes">;
@@ -45,7 +45,9 @@ export function NoteListItem({
   onLongPress,
 }: NoteListItemProps) {
   const preview = getPreview(note.content);
-  const tags = note.tags || [];
+  const tags = Array.isArray(note.tags)
+    ? (note.tags as string[])
+    : ([] as string[]);
   const hasPreview = preview.length > 0;
   const hasTags = tags.length > 0;
 

@@ -55,6 +55,20 @@ const MAX_TOOL_STEPS = 15;
  */
 const _MAX_AUTO_RETRY_ATTEMPTS = 3;
 
+function resolveOperationalFallbackModelId(): string {
+  const firstConfiguredModel = Object.keys(MODEL_CONFIG).find(
+    (modelId) => modelId !== "auto",
+  );
+
+  if (!firstConfiguredModel) {
+    throw new Error(
+      "No configured model available for manual routing fallback",
+    );
+  }
+
+  return firstConfiguredModel;
+}
+
 // Minimal message shape for fast inference (client sends, server skips DB fetch)
 const passedMessageValidator = v.object({
   role: v.union(v.literal("user"), v.literal("assistant")),
@@ -111,119 +125,160 @@ export const generateResponse = internalAction({
       | undefined;
 
     if (modelId === "auto") {
-      // Get user's router preferences
-      const [costBias, speedBias] = await Promise.all([
-        (ctx.runQuery as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          api.users.getUserPreferenceByUserId,
-          { userId: args.userId, key: "autoRouterCostBias" },
-        ) as Promise<number | null>,
-        (ctx.runQuery as any)(
-          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          api.users.getUserPreferenceByUserId,
-          { userId: args.userId, key: "autoRouterSpeedBias" },
-        ) as Promise<number | null>,
-      ]);
-
-      // Get the last user message for classification
-      const lastUserMessage = args.passedMessages
-        ?.filter((m) => m.role === "user")
-        .pop();
-      const userMessageContent = lastUserMessage?.content ?? "";
-
-      // Check if conversation has any attachments (for routing decision)
-      const recentMessages = await (ctx.runQuery as any)(
-        // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
-        internal.messages.listInternal,
-        { conversationId: args.conversationId, limit: 10 },
-      );
-      const recentMessageIds = recentMessages.map(
-        (m: { _id: Id<"messages"> }) => m._id,
-      );
-      const attachments =
-        recentMessageIds.length > 0
-          ? await ctx.runQuery(
-              internal.lib.helpers.getAttachmentsByMessageIds,
-              {
-                messageIds: recentMessageIds,
-              },
-            )
-          : [];
-      const hasAttachments = attachments.length > 0;
-
-      // Get previous routing decision for stickiness bias
-      const previousSelectedModel = (
-        recentMessages as Array<{
-          role: string;
-          routingDecision?: { selectedModelId: string };
-        }>
-      )
-        .filter(
-          (m) => m.role === "assistant" && m.routingDecision?.selectedModelId,
-        )
-        .pop()?.routingDecision?.selectedModelId;
-
-      // Route the message
-      const routerResult = (await ctx.runAction(
+      const autoRouterEnabled = (await (ctx.runQuery as any)(
         // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-        internal.ai.autoRouter.routeMessage,
-        {
-          userMessage: userMessageContent,
-          conversationId: args.conversationId,
-          userId: args.userId,
-          hasAttachments,
-          currentContextTokens: 0, // Will be calculated from messages
-          preferences: {
-            costBias: costBias ?? 50,
-            speedBias: speedBias ?? 50,
-          },
-          previousSelectedModel,
-          excludedModels: args.excludedModels,
-        },
-      )) as {
-        selectedModelId: string;
-        classification: {
-          primaryCategory: string;
-          secondaryCategory?: string;
-          complexity: string;
-          requiresVision: boolean;
-          requiresLongContext: boolean;
-          requiresReasoning: boolean;
-          confidence: number;
-          recommendedAction?: string;
-          changeReason?: string;
-        };
-        reasoning: string;
-        candidatesConsidered: number;
-        isSticky?: boolean;
-      };
+        api.users.getUserPreferenceByUserId,
+        { userId: args.userId, key: "autoRouterEnabled" },
+      )) as boolean | null;
 
-      // Use the selected model
-      modelId = routerResult.selectedModelId;
-      routingDecision = {
-        selectedModelId: routerResult.selectedModelId,
-        classification: routerResult.classification,
-        reasoning: routerResult.reasoning,
-        isSticky: routerResult.isSticky,
-      };
-
-      logger.info("Auto router selected model", {
-        conversationId: args.conversationId,
-        selectedModel: modelId,
-        classification: routerResult.classification.primaryCategory,
-      });
-
-      // Update existing message with routing decision if it was pre-created
-      if (args.existingMessageId) {
-        await (ctx.runMutation as any)(
+      if (autoRouterEnabled === false) {
+        const defaultModel = (await (ctx.runQuery as any)(
           // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-          internal.messages.updateRoutingDecision,
-          {
-            messageId: args.existingMessageId,
-            model: modelId,
-            routingDecision,
-          },
+          api.users.getUserPreferenceByUserId,
+          { userId: args.userId, key: "defaultModel" },
+        )) as string | null;
+        const fallbackModelId = resolveOperationalFallbackModelId();
+        const resolvedModelId =
+          defaultModel &&
+          defaultModel !== "auto" &&
+          MODEL_CONFIG[defaultModel as keyof typeof MODEL_CONFIG]
+            ? defaultModel
+            : fallbackModelId;
+
+        modelId = resolvedModelId;
+
+        if (args.existingMessageId) {
+          await (ctx.runMutation as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.updateModel,
+            {
+              messageId: args.existingMessageId,
+              model: modelId,
+            },
+          );
+        }
+
+        logger.info("Auto router disabled, using manual default model", {
+          conversationId: args.conversationId,
+          selectedModel: modelId,
+          defaultModel,
+          fallbackUsed: resolvedModelId === fallbackModelId,
+        });
+      } else {
+        // Get user's router preferences
+        const [costBias, speedBias] = await Promise.all([
+          (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            api.users.getUserPreferenceByUserId,
+            { userId: args.userId, key: "autoRouterCostBias" },
+          ) as Promise<number | null>,
+          (ctx.runQuery as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            api.users.getUserPreferenceByUserId,
+            { userId: args.userId, key: "autoRouterSpeedBias" },
+          ) as Promise<number | null>,
+        ]);
+
+        // Get the last user message for classification
+        const lastUserMessage = args.passedMessages
+          ?.filter((m) => m.role === "user")
+          .pop();
+        const userMessageContent = lastUserMessage?.content ?? "";
+
+        // Check if conversation has any attachments (for routing decision)
+        const recentMessages = await (ctx.runQuery as any)(
+          // @ts-ignore - TypeScript recursion limit with 84+ Convex modules
+          internal.messages.listInternal,
+          { conversationId: args.conversationId, limit: 10 },
         );
+        const recentMessageIds = recentMessages.map(
+          (m: { _id: Id<"messages"> }) => m._id,
+        );
+        const attachments =
+          recentMessageIds.length > 0
+            ? await ctx.runQuery(
+                internal.lib.helpers.getAttachmentsByMessageIds,
+                {
+                  messageIds: recentMessageIds,
+                },
+              )
+            : [];
+        const hasAttachments = attachments.length > 0;
+
+        // Get previous routing decision for stickiness bias
+        const previousSelectedModel = (
+          recentMessages as Array<{
+            role: string;
+            routingDecision?: { selectedModelId: string };
+          }>
+        )
+          .filter(
+            (m) => m.role === "assistant" && m.routingDecision?.selectedModelId,
+          )
+          .pop()?.routingDecision?.selectedModelId;
+
+        // Route the message
+        const routerResult = (await ctx.runAction(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          internal.ai.autoRouter.routeMessage,
+          {
+            userMessage: userMessageContent,
+            conversationId: args.conversationId,
+            userId: args.userId,
+            hasAttachments,
+            currentContextTokens: 0, // Will be calculated from messages
+            preferences: {
+              costBias: costBias ?? 50,
+              speedBias: speedBias ?? 50,
+            },
+            previousSelectedModel,
+            excludedModels: args.excludedModels,
+          },
+        )) as {
+          selectedModelId: string;
+          classification: {
+            primaryCategory: string;
+            secondaryCategory?: string;
+            complexity: string;
+            requiresVision: boolean;
+            requiresLongContext: boolean;
+            requiresReasoning: boolean;
+            confidence: number;
+            recommendedAction?: string;
+            changeReason?: string;
+          };
+          reasoning: string;
+          candidatesConsidered: number;
+          isSticky?: boolean;
+        };
+
+        // Use the selected model
+        modelId = routerResult.selectedModelId;
+        routingDecision = {
+          selectedModelId: routerResult.selectedModelId,
+          classification: routerResult.classification,
+          reasoning: routerResult.reasoning,
+          isSticky: routerResult.isSticky,
+        };
+
+        logger.info("Auto router selected model", {
+          conversationId: args.conversationId,
+          selectedModel: modelId,
+          classification: routerResult.classification.primaryCategory,
+        });
+
+        // Update existing message with routing decision if it was pre-created
+        if (args.existingMessageId) {
+          await (ctx.runMutation as any)(
+            // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+            internal.messages.updateRoutingDecision,
+            {
+              messageId: args.existingMessageId,
+              model: modelId,
+              routingDecision,
+            },
+          );
+        }
       }
     }
 

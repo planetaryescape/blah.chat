@@ -2,7 +2,8 @@ import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { usePaginatedQuery } from "convex/react";
-import { useApiClient } from "@/lib/api/client";
+import { useSDKClient } from "@/lib/api/sdkClient";
+import { fromConvexMessages, fromHttpMessages } from "@/lib/transport/chat";
 import { shouldUseConvex } from "@/lib/utils/platform";
 
 export interface UseMessagesOptions {
@@ -19,7 +20,7 @@ export interface UseMessagesOptions {
 export function useMessages(options: UseMessagesOptions) {
   const { conversationId, page = 1, pageSize = 50 } = options;
   const useConvexMode = shouldUseConvex();
-  const apiClient = useApiClient();
+  const sdk = useSDKClient();
 
   // Convex WebSocket subscription (web desktop)
   const convexData = usePaginatedQuery(
@@ -36,9 +37,8 @@ export function useMessages(options: UseMessagesOptions) {
         page: String(page),
         pageSize: String(pageSize),
       });
-      return apiClient.get(
-        `/conversations/${conversationId}/messages?${params}`,
-      );
+      void params;
+      return sdk.listMessages(conversationId);
     },
     enabled: !useConvexMode,
     staleTime: 30_000, // 30s (matches CachePresets.LIST)
@@ -48,15 +48,10 @@ export function useMessages(options: UseMessagesOptions) {
   if (useConvexMode) {
     return {
       data: convexData.results
-        ? {
-            items: convexData.results,
-            pagination: {
-              page: 1,
-              pageSize: convexData.results.length,
-              total: convexData.results.length,
-              hasNext: convexData.status === "CanLoadMore",
-            },
-          }
+        ? fromConvexMessages(
+            convexData.results,
+            convexData.status === "CanLoadMore",
+          )
         : undefined,
       isLoading: convexData.results === undefined,
       error: null,
@@ -66,7 +61,7 @@ export function useMessages(options: UseMessagesOptions) {
   }
 
   return {
-    data: restQuery.data,
+    data: restQuery.data ? fromHttpMessages(restQuery.data) : undefined,
     isLoading: restQuery.isLoading,
     error: restQuery.error,
     loadMore: () => {}, // Not applicable for REST mode

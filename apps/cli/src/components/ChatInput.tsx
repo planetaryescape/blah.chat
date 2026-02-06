@@ -1,22 +1,6 @@
-/**
- * ChatInput Component - Text input for sending messages
- *
- * Features:
- * - Multi-line aware (single line input)
- * - Enter to send
- * - Escape to cancel/blur
- * - Shows sending state
- */
-
-import { Box, Text, useInput } from "ink";
-import Spinner from "ink-spinner";
-import TextInput from "ink-text-input";
-import { useState } from "react";
-import { symbols } from "../lib/terminal.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+import { useKeyboard } from "@opentui/solid";
+import { createSignal, Show } from "solid-js";
+import { Spinner } from "./Spinner.js";
 
 interface ChatInputProps {
   onSubmit: (content: string) => void;
@@ -26,72 +10,72 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
+export function ChatInput(props: ChatInputProps) {
+  const [value, setValue] = createSignal("");
+  let inputRef: any;
 
-export function ChatInput({
-  onSubmit,
-  onCancel,
-  isDisabled = false,
-  isSending = false,
-  placeholder = "Type a message...",
-}: ChatInputProps) {
-  const [value, setValue] = useState("");
+  useKeyboard((evt) => {
+    if (props.isDisabled || props.isSending) return;
 
-  // Handle escape key
-  useInput(
-    (input, key) => {
-      if (key.escape && onCancel) {
-        onCancel();
-      }
-    },
-    { isActive: !isDisabled && !isSending },
-  );
+    if (evt.name === "escape" && props.onCancel) {
+      evt.preventDefault();
+      props.onCancel();
+    }
+  });
 
-  const handleSubmit = (text: string) => {
-    const trimmed = text.trim();
-    if (trimmed && !isSending) {
-      onSubmit(trimmed);
+  const handleInput = (text: string) => {
+    setValue(text);
+  };
+
+  const handleSubmit = () => {
+    const trimmed = value().trim();
+    if (trimmed && !props.isSending) {
+      props.onSubmit(trimmed);
       setValue("");
     }
   };
 
-  // Sending state
-  if (isSending) {
-    return (
-      <Box borderStyle="single" borderColor="yellow" paddingX={1} paddingY={0}>
-        <Text color="yellow">
-          <Spinner type="dots" />
-        </Text>
-        <Text color="yellow"> Sending...</Text>
-      </Box>
-    );
-  }
-
-  // Disabled state
-  if (isDisabled) {
-    return (
-      <Box borderStyle="single" borderColor="gray" paddingX={1} paddingY={0}>
-        <Text dimColor>{placeholder}</Text>
-      </Box>
-    );
-  }
+  const borderColor = () => {
+    if (props.isSending) return "#fbbf24";
+    if (props.isDisabled) return "#a1a1aa";
+    return "#60a5fa";
+  };
 
   return (
-    <Box flexDirection="column">
-      <Box borderStyle="single" borderColor="cyan" paddingX={1} paddingY={0}>
-        <Text color="cyan">{symbols.chevronRight} </Text>
-        <TextInput
-          value={value}
-          onChange={setValue}
-          onSubmit={handleSubmit}
-          placeholder={placeholder}
-        />
-      </Box>
-      <Box paddingX={1}>
-        <Text dimColor>Enter send | Esc cancel | Ctrl+C quit</Text>
-      </Box>
-    </Box>
+    <box
+      paddingLeft={2}
+      paddingTop={1}
+      paddingBottom={1}
+      style={{
+        border: ["left"] as any,
+        borderStyle: "heavy",
+        borderColor: borderColor(),
+      }}
+    >
+      <Show
+        when={!props.isSending}
+        fallback={<Spinner color="yellow" label="Sending..." />}
+      >
+        <Show
+          when={!props.isDisabled}
+          fallback={
+            <text fg="#a1a1aa">{props.placeholder ?? "Type a message..."}</text>
+          }
+        >
+          <input
+            ref={(r: any) => {
+              inputRef = r;
+              setTimeout(() => {
+                if (inputRef && !inputRef.isDestroyed) inputRef.focus();
+              }, 1);
+            }}
+            value={value()}
+            onInput={handleInput}
+            onSubmit={handleSubmit}
+            placeholder={props.placeholder ?? "Type a message..."}
+          />
+        </Show>
+      </Show>
+    </box>
   );
 }

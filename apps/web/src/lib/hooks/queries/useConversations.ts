@@ -1,8 +1,14 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
-import { useApiClient } from "@/lib/api/client";
+import { anyApi } from "convex/server";
+import { useSDKClient } from "@/lib/api/sdkClient";
+import {
+  fromConvexConversations,
+  fromHttpConversations,
+} from "@/lib/transport/chat";
 import { shouldUseConvex } from "@/lib/utils/platform";
+
+const api = anyApi as any;
 
 export interface UseConversationsOptions {
   page?: number;
@@ -18,7 +24,7 @@ export interface UseConversationsOptions {
 export function useConversations(options: UseConversationsOptions = {}) {
   const { page = 1, pageSize = 20, archived = false } = options;
   const useConvexMode = shouldUseConvex();
-  const apiClient = useApiClient();
+  const sdk = useSDKClient();
 
   // Convex WebSocket subscription (web desktop)
   // Note: api.conversations.list doesn't support archived param (hardcoded to false)
@@ -33,11 +39,14 @@ export function useConversations(options: UseConversationsOptions = {}) {
     queryKey: ["conversations", { page, pageSize, archived }],
     queryFn: async () => {
       const params = new URLSearchParams({
-        page: String(page),
-        pageSize: String(pageSize),
+        limit: String(pageSize),
         archived: String(archived),
       });
-      return apiClient.get(`/conversations?${params}`);
+      const response = await sdk.listConversations({
+        limit: Number.parseInt(params.get("limit") || "20", 10),
+        archived,
+      });
+      return response;
     },
     enabled: !useConvexMode,
     staleTime: 30_000, // 30s (matches CachePresets.LIST)
@@ -46,17 +55,7 @@ export function useConversations(options: UseConversationsOptions = {}) {
   // Return unified interface
   if (useConvexMode) {
     return {
-      data: convexData
-        ? {
-            items: convexData,
-            pagination: {
-              page: 1,
-              pageSize: convexData.length,
-              total: convexData.length,
-              hasNext: false,
-            },
-          }
-        : undefined,
+      data: convexData ? fromConvexConversations(convexData) : undefined,
       isLoading: convexData === undefined,
       error: null,
       refetch: () => Promise.resolve(),
@@ -64,7 +63,7 @@ export function useConversations(options: UseConversationsOptions = {}) {
   }
 
   return {
-    data: restQuery.data,
+    data: restQuery.data ? fromHttpConversations(restQuery.data) : undefined,
     isLoading: restQuery.isLoading,
     error: restQuery.error,
     refetch: restQuery.refetch,

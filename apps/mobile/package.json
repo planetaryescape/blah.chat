@@ -14,12 +14,15 @@
     "prebuild:android": "expo prebuild --platform android",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "typecheck": "echo 'Mobile typecheck disabled - backend path aliases do not resolve from mobile context. Build succeeds.'"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@10play/tentap-editor": "^1.0.1",
+    "@babel/plugin-transform-class-properties": "^7.28.6",
+    "@babel/plugin-transform-private-methods": "^7.28.6",
+    "@babel/plugin-transform-private-property-in-object": "^7.28.6",
     "@blah-chat/ai": "workspace:*",
-    "@blah-chat/backend": "workspace:*",
+    "@blah-chat/sdk": "workspace:*",
     "@clerk/clerk-expo": "^2.9.0",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/syne": "^0.4.2",

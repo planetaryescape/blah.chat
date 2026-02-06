@@ -38,6 +38,7 @@ export interface UISettingsState {
   noteCategoryMode: "fixed" | "ai-suggested";
   customNoteCategories: string[];
   // Auto Router
+  autoRouterEnabled: boolean;
   autoRouterCostBias: number;
   autoRouterSpeedBias: number;
   enableModelRecommendations: boolean;
@@ -70,6 +71,7 @@ export interface UISettingsHandlers {
   ) => Promise<void>;
   handleCustomNoteCategoriesChange: (categories: string[]) => Promise<void>;
   // Auto Router
+  handleAutoRouterEnabledChange: (checked: boolean) => Promise<void>;
   handleCostBiasChange: (value: number) => Promise<void>;
   handleSpeedBiasChange: (value: number) => Promise<void>;
   handleEnableModelRecommendationsChange: (checked: boolean) => Promise<void>;
@@ -108,6 +110,7 @@ export function useUISettingsState() {
   const prefShowSmartAssistant = useUserPreference("showSmartAssistant");
   const prefNoteCategoryMode = useUserPreference("noteCategoryMode");
   const prefCustomNoteCategories = useUserPreference("customNoteCategories");
+  const prefAutoRouterEnabled = useUserPreference("autoRouterEnabled");
   const prefCostBias = useUserPreference("autoRouterCostBias");
   const prefSpeedBias = useUserPreference("autoRouterSpeedBias");
   const prefEnableModelRecommendations = useUserPreference(
@@ -162,6 +165,9 @@ export function useUISettingsState() {
   >(prefNoteCategoryMode as "fixed" | "ai-suggested");
   const [customNoteCategories, setCustomNoteCategories] = useState<string[]>(
     prefCustomNoteCategories as string[],
+  );
+  const [autoRouterEnabled, setAutoRouterEnabled] = useState<boolean>(
+    prefAutoRouterEnabled ?? true,
   );
   const [autoRouterCostBias, setAutoRouterCostBias] =
     useState<number>(prefCostBias);
@@ -234,6 +240,10 @@ export function useUISettingsState() {
   useEffect(
     () => setCustomNoteCategories(prefCustomNoteCategories as string[]),
     [prefCustomNoteCategories],
+  );
+  useEffect(
+    () => setAutoRouterEnabled(prefAutoRouterEnabled ?? true),
+    [prefAutoRouterEnabled],
   );
   useEffect(() => setAutoRouterCostBias(prefCostBias), [prefCostBias]);
   useEffect(() => setAutoRouterSpeedBias(prefSpeedBias), [prefSpeedBias]);
@@ -322,6 +332,22 @@ export function useUISettingsState() {
     }
   };
 
+  const handleAutoRouterEnabledChange = async (checked: boolean) => {
+    const previous = autoRouterEnabled;
+    setAutoRouterEnabled(checked);
+    try {
+      await updatePreferences({
+        preferences: { autoRouterEnabled: checked },
+      });
+      toast.success(checked ? "Auto Router enabled" : "Auto Router disabled");
+      analytics.track("auto_router_enabled_changed", {
+        enabled: checked,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
+      setAutoRouterEnabled(previous);
+    }
+  };
   const handleCostBiasChange = async (value: number) => {
     const previous = autoRouterCostBias;
     setAutoRouterCostBias(value);
@@ -521,6 +547,7 @@ export function useUISettingsState() {
     handleNoteCategoryModeChange,
     handleCustomNoteCategoriesChange,
     // Auto Router
+    handleAutoRouterEnabledChange,
     handleCostBiasChange,
     handleSpeedBiasChange,
     handleEnableModelRecommendationsChange,
@@ -551,6 +578,7 @@ export function useUISettingsState() {
     noteCategoryMode,
     customNoteCategories,
     // Auto Router
+    autoRouterEnabled,
     autoRouterCostBias,
     autoRouterSpeedBias,
     enableModelRecommendations,

@@ -10,18 +10,22 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
 interface AutoRouterSectionProps {
+  autoRouterEnabled: boolean;
   costBias: number;
   speedBias: number;
   enableModelRecommendations: boolean;
+  onAutoRouterEnabledChange: (checked: boolean) => Promise<void>;
   onCostBiasChange: (value: number) => Promise<void>;
   onSpeedBiasChange: (value: number) => Promise<void>;
   onEnableModelRecommendationsChange: (checked: boolean) => Promise<void>;
 }
 
 export function AutoRouterSection({
+  autoRouterEnabled,
   costBias,
   speedBias,
   enableModelRecommendations,
+  onAutoRouterEnabledChange,
   onCostBiasChange,
   onSpeedBiasChange,
   onEnableModelRecommendationsChange,
@@ -34,6 +38,24 @@ export function AutoRouterSection({
           When using Auto mode, these preferences influence which model is
           selected for each message.
         </p>
+
+        <div
+          id="setting-autoRouterEnabled"
+          className="flex items-center justify-between"
+        >
+          <div className="space-y-0.5">
+            <Label htmlFor="auto-router-enabled">Use Auto Router</Label>
+            <p className="text-xs text-muted-foreground">
+              Turn this off to skip routing latency and use your selected model
+              directly.
+            </p>
+          </div>
+          <Switch
+            id="auto-router-enabled"
+            checked={autoRouterEnabled}
+            onCheckedChange={onAutoRouterEnabledChange}
+          />
+        </div>
 
         {/* Cost Bias Slider */}
         <div className="space-y-3">
@@ -51,6 +73,7 @@ export function AutoRouterSection({
             step={5}
             onValueCommit={(value) => onCostBiasChange(value[0])}
             className="w-full"
+            disabled={!autoRouterEnabled}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Quality focus</span>
@@ -78,6 +101,7 @@ export function AutoRouterSection({
             step={5}
             onValueCommit={(value) => onSpeedBiasChange(value[0])}
             className="w-full"
+            disabled={!autoRouterEnabled}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Quality focus</span>
@@ -118,6 +142,7 @@ export function AutoRouterSection({
             id="enable-model-recommendations"
             checked={enableModelRecommendations}
             onCheckedChange={onEnableModelRecommendationsChange}
+            disabled={!autoRouterEnabled}
           />
         </div>
       </AccordionContent>

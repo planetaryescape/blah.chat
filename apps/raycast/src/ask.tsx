@@ -172,7 +172,6 @@ export default function AskCommand(
       const apiKey = getApiKey();
 
       await sendMessage(client, apiKey, {
-        // @ts-expect-error - Id type
         conversationId: conversationId,
         content: values.message,
         modelId: values.model,
@@ -194,7 +193,6 @@ export default function AskCommand(
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      // @ts-expect-error - Id type
       const messages = await listMessages(client, apiKey, convoId);
       if (!messages || messages.length === 0) {
         attempts++;
@@ -249,7 +247,6 @@ export default function AskCommand(
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      // @ts-expect-error - Id type
       const messages = await listMessages(client, apiKey, convoId);
       if (!messages || messages.length === 0) {
         attempts++;
@@ -393,7 +390,6 @@ export default function AskCommand(
       await createNote(client, apiKey, {
         content: response,
         title: userMessage.slice(0, 50) || "Chat response",
-        // @ts-expect-error - Id type
         sourceConversationId: conversationId,
       });
       showToast({ style: Toast.Style.Success, title: "Saved as note" });
@@ -420,9 +416,7 @@ export default function AskCommand(
       const client = getClient();
       const apiKey = getApiKey();
       await createBookmark(client, apiKey, {
-        // @ts-expect-error - Id type
         messageId: lastAssistantMessageId,
-        // @ts-expect-error - Id type
         conversationId: conversationId,
         note: userMessage.slice(0, 100) || undefined,
       });

@@ -1,0 +1,156 @@
+"use client";
+
+import { api } from "@blah-chat/backend/convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getModelsByProvider } from "@/lib/ai/utils";
+import { useModels } from "@/lib/models/repository";
+
+type SelectionMode = "auto" | "manual" | null;
+
+export function AutoRouterPreferenceModal() {
+  const prefState = useQuery(
+    // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
+    api.users.getUserPreferenceState,
+    { key: "autoRouterEnabled" },
+  );
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updatePreferences = useMutation(api.users.updatePreferences);
+
+  const [selection, setSelection] = useState<SelectionMode>(null);
+  const [manualModel, setManualModel] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const dbModels = useModels();
+  const modelsByProvider = useMemo(() => {
+    const grouped = getModelsByProvider(dbModels);
+    const { auto: _auto, ...restGrouped } = grouped;
+    for (const [provider, models] of Object.entries(restGrouped)) {
+      restGrouped[provider] = models.filter((model) => model.id !== "auto");
+    }
+    return restGrouped;
+  }, [dbModels]);
+
+  const shouldOpen = prefState?.exists === false;
+
+  const handleSave = async () => {
+    if (!selection) {
+      toast.error("Choose an option to continue");
+      return;
+    }
+    if (selection === "manual" && !manualModel) {
+      toast.error("Select a default model");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (selection === "auto") {
+        await updatePreferences({
+          preferences: { autoRouterEnabled: true },
+        });
+      } else {
+        await updatePreferences({
+          preferences: {
+            autoRouterEnabled: false,
+            defaultModel: manualModel,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("[AutoRouterPreferenceModal] Failed to save:", error);
+      toast.error("Failed to save preference");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={shouldOpen} onOpenChange={() => {}}>
+      <DialogContent
+        showCloseButton={false}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>Auto Router or Manual?</DialogTitle>
+          <DialogDescription>
+            Auto Router picks the best model per message. Manual skips the extra
+            routing latency. You can change this anytime in Settings → UI → Auto
+            Router.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <Button
+            type="button"
+            variant={selection === "auto" ? "default" : "outline"}
+            className="w-full justify-start"
+            onClick={() => setSelection("auto")}
+          >
+            Use Auto Router
+          </Button>
+          <Button
+            type="button"
+            variant={selection === "manual" ? "default" : "outline"}
+            className="w-full justify-start"
+            onClick={() => setSelection("manual")}
+          >
+            Pick my own models
+          </Button>
+        </div>
+
+        {selection === "manual" && (
+          <div className="space-y-2">
+            <Label>Default model</Label>
+            <Select value={manualModel} onValueChange={setManualModel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(modelsByProvider).map(([provider, models]) => (
+                  <SelectGroup key={provider}>
+                    <SelectLabel>
+                      {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                    </SelectLabel>
+                    {models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

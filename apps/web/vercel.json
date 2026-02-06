@@ -5,6 +5,13 @@
   "buildCommand": "cd ../.. && bun run build --filter=@blah-chat/web",
   "installCommand": "cd ../.. && bun install",
   "regions": ["lhr1"],
+  "redirects": [
+    {
+      "source": "/install",
+      "destination": "https://raw.githubusercontent.com/planetaryescape/blah.chat/main/install",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

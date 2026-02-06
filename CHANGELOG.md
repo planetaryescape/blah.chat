@@ -1,5 +1,140 @@
 # Changelog
 
+## [1.21.0](https://github.com/planetaryescape/blah.chat/compare/v1.20.1...v1.21.0) (2026-02-06)
+
+
+### Features
+
+* **cli:** add debug command and fix search query param ([d270926](https://github.com/planetaryescape/blah.chat/commit/d2709268110dac3475c2dc5f06783a56f9a1f029))
+
+## [1.20.1](https://github.com/planetaryescape/blah.chat/compare/v1.20.0...v1.20.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* **cli:** await async actions and add --api-key login option ([4f67ad9](https://github.com/planetaryescape/blah.chat/commit/4f67ad94fc952171a0841bea552a28683b0421d6))
+
+## [1.20.0](https://github.com/planetaryescape/blah.chat/compare/v1.19.2...v1.20.0) (2026-02-06)
+
+
+### Features
+
+* add auto router enabled setting with analytics ([efaad60](https://github.com/planetaryescape/blah.chat/commit/efaad60bfa4255f3d41d6b6c97d0c687041ffcc0))
+
+
+### Bug Fixes
+
+* **ci:** use tab delimiter when parsing gh release list ([f3de5bc](https://github.com/planetaryescape/blah.chat/commit/f3de5bcc41fb8465197bcbe28cdc091db2f28b90))
+* **cli:** resolve parser.worker.js from package root ([9882e32](https://github.com/planetaryescape/blah.chat/commit/9882e3231d94bbaa64640590e1754a2a3f45a240))
+
+## [1.19.2](https://github.com/planetaryescape/blah.chat/compare/v1.19.1...v1.19.2) (2026-02-06)
+
+
+### Bug Fixes
+
+* **cli:** resolve TreeSitter worker path in compiled binary ([247c92c](https://github.com/planetaryescape/blah.chat/commit/247c92cc03b68b9d9b55c82ccc3f5e5b5a8aa429))
+* **cli:** use cli-v tag format and remove darwin-x64 ([68dd7ad](https://github.com/planetaryescape/blah.chat/commit/68dd7ad762a3bbb252ea3449872a3fa675edacd6))
+
+## [1.19.1](https://github.com/planetaryescape/blah.chat/compare/v1.19.0...v1.19.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* **ci:** use draft-then-publish for immutable releases ([8056fc7](https://github.com/planetaryescape/blah.chat/commit/8056fc773a4ec30aa5b02b85ed072e397cf4727f))
+* **ci:** use macos-13 for darwin-x64 CLI builds ([#276](https://github.com/planetaryescape/blah.chat/issues/276)) ([801280d](https://github.com/planetaryescape/blah.chat/commit/801280d63addc175130d3637e3e059024e2da087))
+* **ci:** use macos-15-large for darwin-x64 CLI builds ([382be1b](https://github.com/planetaryescape/blah.chat/commit/382be1b224d538482c3cd5161e3f2dc28432e2d4))
+* validate fallback model and sync pre-created message model ([3692f65](https://github.com/planetaryescape/blah.chat/commit/3692f65e4b590118d993b2cf403fd814df0b542e))
+
+## [1.19.0](https://github.com/planetaryescape/blah.chat/compare/v1.18.3...v1.19.0) (2026-02-05)
+
+
+### Features
+
+* **cli:** add multi-platform distribution support ([98feff1](https://github.com/planetaryescape/blah.chat/commit/98feff15dfb5da02146f89bd1e47e71ea6019935))
+
+
+### Bug Fixes
+
+* add autoRouterEnabled and showSlides to preferences schema ([37e7fbb](https://github.com/planetaryescape/blah.chat/commit/37e7fbb6639e4f1561d464ae1c78000a9e70497d))
+* **backend:** add missing getUserPreferenceState query ([ba4908d](https://github.com/planetaryescape/blah.chat/commit/ba4908dcca7f9864b92abaf1a2b51531628c70a4))
+* **ci:** use macos-15-large for darwin-x64 (macos-13 retired) ([cf707a0](https://github.com/planetaryescape/blah.chat/commit/cf707a0a9bbe7f46bb644f7e262383c46977b5b5))
+* **cli:** address PR review issues ([6651ee7](https://github.com/planetaryescape/blah.chat/commit/6651ee7afe5ed735cd7d2129f87083bea0cb2566))
+* **cli:** split scoped package name in postinstall path join ([a84c231](https://github.com/planetaryescape/blah.chat/commit/a84c231256576ccde60969967e79205a85dc2f89))
+* **cli:** split scoped package name into path segments for join() ([b81c5d6](https://github.com/planetaryescape/blah.chat/commit/b81c5d69ffdb37928f386937c42c273114b28450))
+* **install:** use INSTALL_DIR for PATH instead of hardcoded path ([fd2497a](https://github.com/planetaryescape/blah.chat/commit/fd2497afb1a93a7e8c327cce8720936b64f79bd4))
+* **test:** add missing get/put mocks to userPreferences cache ([7cbea3f](https://github.com/planetaryescape/blah.chat/commit/7cbea3ff1bbab9c79948d64e8ef98bb15b4b8eae))
+* **web:** escape &gt; characters in JSX DialogDescription ([fee5383](https://github.com/planetaryescape/blah.chat/commit/fee5383da3fe9b9fcb37ff671e42eff4a4577c8b))
+
+## [1.18.3](https://github.com/planetaryescape/blah.chat/compare/v1.18.2...v1.18.3) (2026-02-04)
+
+
+### Bug Fixes
+
+* **ci:** add checkout step to dependabot auto-merge workflow ([5028263](https://github.com/planetaryescape/blah.chat/commit/5028263b9a2e40c46e230d89c66bcfafa082f9a7))
+* **cli:** use PowerShell Compress-Archive on Windows ([e086fb1](https://github.com/planetaryescape/blah.chat/commit/e086fb18e1d3ca4b39c48aa11cc6a140368fa787))
+
+## [1.18.2](https://github.com/planetaryescape/blah.chat/compare/v1.18.1...v1.18.2) (2026-02-04)
+
+
+### Bug Fixes
+
+* **cli:** use native runners for cross-platform builds ([45148d5](https://github.com/planetaryescape/blah.chat/commit/45148d5302307ae0d5c6a5396603d969b80ed1a5))
+
+## [1.18.1](https://github.com/planetaryescape/blah.chat/compare/v1.18.0...v1.18.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* **cli:** install cross-platform opentui binaries before compile ([917e656](https://github.com/planetaryescape/blah.chat/commit/917e65656379b92bfac1e6cb4b8cb638613d368e))
+
+## [1.18.0](https://github.com/planetaryescape/blah.chat/compare/v1.17.0...v1.18.0) (2026-02-04)
+
+
+### Features
+
+* **cli:** add release workflow and compile script ([85e1f09](https://github.com/planetaryescape/blah.chat/commit/85e1f09ace8a72d74eb66d0de9181ace3c72c650))
+* **cli:** add tree-sitter syntax highlighting support ([e4bc651](https://github.com/planetaryescape/blah.chat/commit/e4bc651c1b7c43c4798151c3db343fbe68cc112d))
+* **cli:** improve components for OpenTUI rewrite ([14f5f03](https://github.com/planetaryescape/blah.chat/commit/14f5f035a0b19e698ad3daf9a0297da401cee688))
+* **mobile:** add Android project scaffolding ([f5b31e5](https://github.com/planetaryescape/blah.chat/commit/f5b31e5e402156df73014d73335f59a7d2405f5f))
+* **mobile:** add bookmark and save-as-note actions to messages ([5ddeedd](https://github.com/planetaryescape/blah.chat/commit/5ddeeddcc168f5f37851d03dfd207bdaacd33c9d))
+* **mobile:** add branch navigation UI components ([9513d7e](https://github.com/planetaryescape/blah.chat/commit/9513d7eded13c1c904b93660da8fb7676c238423))
+* **mobile:** add drawer navigation with conversation search and project filtering ([748ede0](https://github.com/planetaryescape/blah.chat/commit/748ede0bd3ce3b7e7558502078db04c6fd1a1e79))
+* **mobile:** add hooks for bookmarks and notes ([8601c0e](https://github.com/planetaryescape/blah.chat/commit/8601c0eb6e309bd86acf61cc12a317753233410c))
+* **mobile:** add hooks for sibling navigation and message actions ([67cd5d9](https://github.com/planetaryescape/blah.chat/commit/67cd5d9c11ea918c8efad69747af0ec14dd4d36f))
+* **mobile:** add notes navigation to drawer ([3a90e2b](https://github.com/planetaryescape/blah.chat/commit/3a90e2b81e46bd2e01e70db0cb05ee48fd95d697))
+* **mobile:** add notes screens with auto-tag and sharing ([f1b0ba7](https://github.com/planetaryescape/blah.chat/commit/f1b0ba78f1c98e7f517e1698b960465bf17ef377))
+* **mobile:** add notes UI components ([abeca6d](https://github.com/planetaryescape/blah.chat/commit/abeca6df76ad12ef28ed2433f9c1f4bba4241071))
+* **mobile:** filter messages by active branch ([fedc446](https://github.com/planetaryescape/blah.chat/commit/fedc446ccd8cd7466c192ae315b7340c9f0b38e6))
+* **mobile:** integrate branch navigation into message components ([916d976](https://github.com/planetaryescape/blah.chat/commit/916d9762c7986fe44ddf520503290329bfa654af))
+* **mobile:** wire up branch actions in chat screen ([2e53ea3](https://github.com/planetaryescape/blah.chat/commit/2e53ea38af1fdf306cbaf6d4d0694c9a6a13cc77))
+
+
+### Bug Fixes
+
+* **backend:** deactivate descendants when editing message ([fd2ee5f](https://github.com/planetaryescape/blah.chat/commit/fd2ee5fb07f5cfd8659182ebb967b60f0c8db664))
+* **backend:** move native deps to optionalDependencies for mobile builds ([e9fad60](https://github.com/planetaryescape/blah.chat/commit/e9fad60c705ff649b4c112c4d18b5418f5d7e13c))
+* **backend:** query children by both parentMessageIds and parentMessageId ([e4e92de](https://github.com/planetaryescape/blah.chat/commit/e4e92de1bcb54db8103380da5fe249618c28cbc0))
+* **cli:** bind chat input value so it clears after send ([7a0314c](https://github.com/planetaryescape/blah.chat/commit/7a0314c3ec3c5559b08e3143c6fd5c1397d0ee79))
+* **cli:** use Bun.build with solid plugin for JSX transform ([5d4de40](https://github.com/planetaryescape/blah.chat/commit/5d4de402e563233aecf62a95a57c812b08927cef))
+* configure EAS to use bun install ([91b4abf](https://github.com/planetaryescape/blah.chat/commit/91b4abf447b8122f5e0a885ecc7ecf545a2132a2))
+* **mobile:** add eas-build-pre-install hook for bun detection ([44598b1](https://github.com/planetaryescape/blah.chat/commit/44598b1774ff98e9ec8a1d52b52f7708a6a7a83f))
+* **mobile:** add eas-build-pre-install to mobile package.json ([f3fd53c](https://github.com/planetaryescape/blah.chat/commit/f3fd53c94b15e56acbacaba9eb61e38e9341bd87))
+* **mobile:** add empty bun.lockb for EAS package manager detection ([e3b3187](https://github.com/planetaryescape/blah.chat/commit/e3b318735005b440accf35f3f23a8c3e7510fc94))
+* **mobile:** check typeof for optimistic ID detection ([6bdbdaf](https://github.com/planetaryescape/blah.chat/commit/6bdbdafa0bc41348bc403fdbb7ac4d7d99fb8cfd))
+* **mobile:** delete lockfile in pre-install to bypass frozen-lockfile ([b10f696](https://github.com/planetaryescape/blah.chat/commit/b10f696c9a21822b74906ac2fe21ca3d09ac41aa))
+* **mobile:** include bun.lock in EAS builds for package manager detection ([1954360](https://github.com/planetaryescape/blah.chat/commit/1954360690aece8380a2049d12311c6be59bca4a))
+* **mobile:** regenerate bun.lock for EAS frozen lockfile ([8047960](https://github.com/planetaryescape/blah.chat/commit/80479609f0c6b218fd4697953a382b7a65b0d4d5))
+* **mobile:** save as note sheet not opening ([8315588](https://github.com/planetaryescape/blah.chat/commit/83155887010d7b8bd450ddb79613749c2829d0bf))
+* **mobile:** sync bun version to 1.3.5 across all configs ([2c55cd1](https://github.com/planetaryescape/blah.chat/commit/2c55cd1165a9bf1f9c559f3f60a898a5285db19a))
+* **mobile:** transpile bible-passage-reference-parser private class fields ([c85efc3](https://github.com/planetaryescape/blah.chat/commit/c85efc397b1597efe4cd41b255b7ec2b7831bc5e))
+* **mobile:** use RNGH TouchableOpacity for drawer gesture compatibility ([1e028e8](https://github.com/planetaryescape/blah.chat/commit/1e028e8aaa651ebc933778563d408650dede7ce1))
+* remove invalid install config from eas.json ([16a21e2](https://github.com/planetaryescape/blah.chat/commit/16a21e2cb04ef03888721d97ce1346a8d7c6d78c))
+
+
+### Performance Improvements
+
+* **mobile:** optimize chat rendering and message deduplication ([520b99b](https://github.com/planetaryescape/blah.chat/commit/520b99b13aa0f9230de58777661758017d010001))
+
 ## [1.17.0](https://github.com/planetaryescape/blah.chat/compare/v1.16.0...v1.17.0) (2026-01-28)
 
 

@@ -55,7 +55,7 @@ export default function Command() {
     <List isLoading={isLoading} searchBarPlaceholder="Search memories...">
       {memories.length === 0 && !isLoading ? (
         <List.EmptyView
-          icon={Icon.Brain}
+          icon={Icon.Circle}
           title="No Memories"
           description="Your AI memories will appear here"
         />
@@ -82,7 +82,7 @@ export default function Command() {
               { date: new Date(memory.createdAt) },
             ]}
             icon={{
-              source: Icon.Brain,
+              source: Icon.Circle,
               tintColor: categoryColors[memory.category] || Color.SecondaryText,
             }}
             actions={

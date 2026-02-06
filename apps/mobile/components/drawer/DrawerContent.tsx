@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useUser } from "@clerk/clerk-expo";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
@@ -14,6 +13,7 @@ import { useCallback, useState } from "react";
 import { Image, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
   useConversationSearch,
@@ -448,7 +448,6 @@ export function DrawerContent() {
                 onPress={() => handleConversationPress(item._id)}
               />
             )}
-            estimatedItemSize={48}
             keyExtractor={(item) => item._id}
           />
         )}

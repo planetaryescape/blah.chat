@@ -30,7 +30,12 @@ vi.mock("@/lib/cache", () => ({
     attachments: { bulkPut: vi.fn(), where: vi.fn() },
     toolCalls: { bulkPut: vi.fn(), where: vi.fn() },
     sources: { bulkPut: vi.fn(), where: vi.fn() },
-    userPreferences: { bulkPut: vi.fn(), where: vi.fn() },
+    userPreferences: {
+      bulkPut: vi.fn(),
+      where: vi.fn(),
+      get: vi.fn(async () => null),
+      put: vi.fn(async () => {}),
+    },
   },
 }));
 

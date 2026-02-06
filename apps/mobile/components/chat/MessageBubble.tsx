@@ -1,4 +1,3 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import Clipboard from "@react-native-clipboard/clipboard";
 import {
   Check,
@@ -12,6 +11,7 @@ import { memo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Reanimated, { FadeIn } from "react-native-reanimated";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useStreamBuffer } from "@/lib/hooks/useStreamBuffer";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";

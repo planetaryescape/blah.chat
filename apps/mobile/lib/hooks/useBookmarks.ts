@@ -1,6 +1,6 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
+import type { Id } from "@/lib/convex";
+import { api } from "@/lib/convex";
 
 export function useBookmarkByMessage(messageId: Id<"messages"> | null) {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)

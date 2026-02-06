@@ -1,13 +1,18 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation, useQuery } from "convex/react";
+import type { Doc, Id } from "@/lib/convex";
+import { api } from "@/lib/convex";
+
+type Note = Doc<"notes">;
 
 export function useNotes() {
-  return useQuery(api.notes.list);
+  return useQuery(api.notes.list) as Note[] | undefined;
 }
 
 export function useNote(noteId: Id<"notes"> | null) {
-  return useQuery(api.notes.getNote, noteId ? { noteId } : "skip");
+  return useQuery(api.notes.getNote, noteId ? { noteId } : "skip") as
+    | Note
+    | null
+    | undefined;
 }
 
 export function useSearchNotes(
@@ -23,7 +28,7 @@ export function useSearchNotes(
     projectId: options?.projectId,
     filterPinned: options?.filterPinned,
     filterTags: options?.filterTags,
-  });
+  }) as Note[] | undefined;
 }
 
 export function useCreateNote() {

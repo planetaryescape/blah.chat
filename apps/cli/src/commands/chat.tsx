@@ -1,147 +1,143 @@
-/**
- * Chat Command - Main chat interface
- *
- * Flow:
- * 1. Show conversation list
- * 2. Select conversation → interactive chat view
- * 3. Send messages and see streaming responses
- * 4. Press 'b' to go back to list
- * 5. Press 'q' to quit
- */
-
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
-import { useCallback, useState } from "react";
+import "../lib/tree-sitter-parsers.js";
+import { render, useRenderer } from "@opentui/solid";
+import { createSignal, Show } from "solid-js";
 import { ChatView } from "../components/ChatView.js";
 import { ConversationList } from "../components/ConversationList.js";
 import { SearchModal } from "../components/SearchModal.js";
-import { ConvexProvider } from "../context/ConvexContext.js";
+import { Spinner } from "../components/Spinner.js";
 import { getCredentials } from "../lib/auth.js";
-import { formatError, requireApiKey, requireClient } from "../lib/client.js";
+import {
+  formatError,
+  requireApiKey,
+  requireClient,
+  validateApiKey,
+} from "../lib/client.js";
+import { getConfig } from "../lib/config.js";
 import { createConversation } from "../lib/mutations.js";
 import { getUserDefaultModel } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+import type { Id } from "../lib/types.js";
+import { KeybindProvider } from "../providers/KeybindProvider.js";
+import { ThemeProvider } from "../providers/ThemeProvider.js";
 
 type View = "list" | "chat" | "search" | "creating";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function ChatCommand() {
-  const [view, setView] = useState<View>("list");
+function ChatApp() {
+  const renderer = useRenderer();
+  const [view, setView] = createSignal<View>("list");
   const [selectedConversationId, setSelectedConversationId] =
-    useState<Id<"conversations"> | null>(null);
-  const [error, setError] = useState<string | null>(null);
+    createSignal<Id<"conversations"> | null>(null);
+  const [error, setError] = createSignal<string | null>(null);
 
-  // Check if logged in
-  const credentials = getCredentials();
-  if (!credentials) {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box>
-          <Text color="yellow">{symbols.warning} </Text>
-          <Text color="yellow">Not logged in</Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text dimColor>Run: </Text>
-          <Text>blah login</Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  // Handle conversation selection
   const handleSelectConversation = (conversationId: Id<"conversations">) => {
     setSelectedConversationId(conversationId);
     setView("chat");
   };
 
-  // Handle going back to list
   const handleBack = () => {
     setView("list");
     setSelectedConversationId(null);
     setError(null);
   };
 
-  // Handle new conversation - create instantly with defaults
-  const handleNewConversation = useCallback(async () => {
+  const handleNewConversation = async () => {
     setView("creating");
     setError(null);
-
     try {
       const client = requireClient();
       const apiKey = requireApiKey();
-
-      // Get user's default model
       const defaultModel = await getUserDefaultModel(client, apiKey);
-
-      // Create conversation with defaults (title auto-generated after first response)
       const result = await createConversation(client, apiKey, {
         title: "New Chat",
         model: defaultModel,
       });
-
-      // Navigate to new conversation
       setSelectedConversationId(result.conversationId);
       setView("chat");
     } catch (err) {
       setError(formatError(err));
       setView("list");
     }
-  }, []);
-
-  // Handle search
-  const handleSearch = () => {
-    setView("search");
   };
 
-  // Render based on current view
-  if (view === "search") {
-    return (
-      <SearchModal onSelect={handleSelectConversation} onCancel={handleBack} />
-    );
-  }
-
-  if (view === "creating") {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box>
-          <Text color="cyan">
-            <Spinner type="dots" />
-          </Text>
-          <Text> Creating new conversation...</Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (view === "chat" && selectedConversationId) {
-    return (
-      <ConvexProvider>
-        <ChatView conversationId={selectedConversationId} onBack={handleBack} />
-      </ConvexProvider>
-    );
-  }
+  const handleSearch = () => setView("search");
+  const handleQuit = () => renderer.destroy();
 
   return (
-    <Box flexDirection="column">
-      {error && (
-        <Box padding={1}>
-          <Text color="red">{symbols.error} </Text>
-          <Text color="red">{error}</Text>
-        </Box>
-      )}
-      <ConversationList
-        onSelect={handleSelectConversation}
-        onNewConversation={handleNewConversation}
-        onSearch={handleSearch}
-      />
-    </Box>
+    <box flexDirection="column">
+      <Show when={error()}>
+        <box padding={1}>
+          <text fg="red">
+            {symbols.error} {error()}
+          </text>
+        </box>
+      </Show>
+
+      <Show when={view() === "search"}>
+        <SearchModal
+          onSelect={handleSelectConversation}
+          onCancel={handleBack}
+        />
+      </Show>
+
+      <Show when={view() === "creating"}>
+        <box padding={1}>
+          <Spinner label="Creating new conversation..." />
+        </box>
+      </Show>
+
+      <Show when={view() === "chat" && selectedConversationId()}>
+        <ChatView
+          conversationId={selectedConversationId()!}
+          onBack={handleBack}
+        />
+      </Show>
+
+      <Show when={view() === "list"}>
+        <ConversationList
+          onSelect={handleSelectConversation}
+          onNewConversation={handleNewConversation}
+          onSearch={handleSearch}
+          onQuit={handleQuit}
+        />
+      </Show>
+    </box>
+  );
+}
+
+export async function runChatCommand() {
+  const credentials = getCredentials();
+  if (!credentials) {
+    console.log(`${symbols.warning} Not logged in`);
+    console.log("  Run: blah login");
+    return;
+  }
+
+  try {
+    const user = await validateApiKey();
+    if (!user) {
+      console.log(`${symbols.error} API key invalid or revoked`);
+      console.log("  Run: blah login");
+      return;
+    }
+  } catch (err) {
+    console.log(`${symbols.error} Unable to connect to blah.chat server`);
+    console.log(`  URL: ${getConfig().appUrl}`);
+    console.log(`  Error: ${formatError(err)}`);
+    console.log("  Run: blah debug");
+    return;
+  }
+
+  await render(
+    () => (
+      <ThemeProvider>
+        <KeybindProvider>
+          <ChatApp />
+        </KeybindProvider>
+      </ThemeProvider>
+    ),
+    {
+      targetFps: 60,
+      exitOnCtrlC: true,
+    },
   );
 }

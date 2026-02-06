@@ -1,0 +1,35 @@
+{
+  "name": "@blah-chat/sdk",
+  "version": "0.2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./openapi": "./openapi/openapi.json"
+  },
+  "files": [
+    "dist",
+    "openapi",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "generate": "bun run scripts/generate-types.ts",
+    "build": "bunx tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "eventsource-parser": "^3.0.6",
+    "openapi-fetch": "^0.15.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}

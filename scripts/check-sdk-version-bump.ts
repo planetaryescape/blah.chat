@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const args = process.argv.slice(2);
-const baseArgIndex = args.findIndex((arg) => arg === "--base");
+const baseArgIndex = args.indexOf("--base");
 const baseRef =
   baseArgIndex >= 0 && args[baseArgIndex + 1]
     ? args[baseArgIndex + 1]

@@ -178,7 +178,9 @@ for (const target of targets) {
   }
 
   // Copy tree-sitter worker file (Web Workers can't be bundled into Bun binary)
-  const workerSrc = require.resolve("@opentui/core/parser.worker.js");
+  // Get package root and construct path (exports field points to wrong location)
+  const corePackage = dirname(require.resolve("@opentui/core"));
+  const workerSrc = join(corePackage, "parser.worker.js");
   copyFileSync(workerSrc, join(dir, "assets", "parser.worker.js"));
 
   // Create archive

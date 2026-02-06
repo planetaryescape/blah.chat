@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.20.0](https://github.com/planetaryescape/blah.chat/compare/v1.19.2...v1.20.0) (2026-02-06)
+
+
+### Features
+
+* add auto router enabled setting with analytics ([efaad60](https://github.com/planetaryescape/blah.chat/commit/efaad60bfa4255f3d41d6b6c97d0c687041ffcc0))
+
+
+### Bug Fixes
+
+* **ci:** use tab delimiter when parsing gh release list ([f3de5bc](https://github.com/planetaryescape/blah.chat/commit/f3de5bcc41fb8465197bcbe28cdc091db2f28b90))
+* **cli:** resolve parser.worker.js from package root ([9882e32](https://github.com/planetaryescape/blah.chat/commit/9882e3231d94bbaa64640590e1754a2a3f45a240))
+
 ## [1.19.2](https://github.com/planetaryescape/blah.chat/compare/v1.19.1...v1.19.2) (2026-02-06)
 
 

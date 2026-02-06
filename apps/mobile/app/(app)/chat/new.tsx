@@ -1,5 +1,4 @@
 import { getMobileModels } from "@blah-chat/ai";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useRouter } from "expo-router";
 import { ArrowLeft, MessagesSquare } from "lucide-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -8,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ChatInput, MessageList } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateConversation, useSendMessage } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";

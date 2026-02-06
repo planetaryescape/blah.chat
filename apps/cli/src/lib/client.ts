@@ -1,61 +1,48 @@
 /**
- * Convex HTTP Client wrapper for CLI
+ * SDK client wrapper for CLI.
  *
- * Uses ConvexHttpClient (not React hooks) for direct queries/mutations.
- * Authenticates using API key stored from CLI login.
- * Note: CLI uses public queries in cliAuth.ts that accept API key as parameter.
+ * Default transport is HTTP/SSE via /api/v1 using scoped API keys.
  */
 
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
+import {
+  type BlahClient,
+  BlahSDKError,
+  createBlahClient,
+} from "@blah-chat/sdk";
 import { clearCredentials, getCredentials } from "./auth.js";
 import { getConfig } from "./config.js";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Configuration
-// ─────────────────────────────────────────────────────────────────────────────
+let clientInstance: BlahClient | null = null;
+let currentCacheKey: string | null = null;
 
-// Convex URL - resolved via config (env > user config > bundled default)
-function getConvexUrl(): string {
-  return getConfig().convexUrl;
+function getServerBaseUrl(): string {
+  return getConfig().appUrl;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Client Creation
-// ─────────────────────────────────────────────────────────────────────────────
-
-let clientInstance: ConvexHttpClient | null = null;
-
-/**
- * Get the API key from stored credentials.
- * Returns null if not logged in.
- */
 export function getApiKey(): string | null {
   const credentials = getCredentials();
   return credentials?.apiKey ?? null;
 }
 
-/**
- * Get a Convex client (no auth - CLI endpoints accept API key as param).
- * Returns null if not logged in.
- */
-export function getClient(): ConvexHttpClient | null {
+export function getClient(): BlahClient | null {
   const credentials = getCredentials();
   if (!credentials) {
     return null;
   }
 
-  if (!clientInstance) {
-    clientInstance = new ConvexHttpClient(getConvexUrl());
+  const cacheKey = `${getServerBaseUrl()}::${credentials.apiKey}`;
+  if (!clientInstance || currentCacheKey !== cacheKey) {
+    clientInstance = createBlahClient({
+      baseUrl: getServerBaseUrl(),
+      apiKey: credentials.apiKey,
+    });
+    currentCacheKey = cacheKey;
   }
 
   return clientInstance;
 }
 
-/**
- * Get a Convex client or throw if not logged in.
- */
-export function requireClient(): ConvexHttpClient {
+export function requireClient(): BlahClient {
   const client = getClient();
   if (!client) {
     throw new Error("Not logged in. Run: blah login");
@@ -63,9 +50,6 @@ export function requireClient(): ConvexHttpClient {
   return client;
 }
 
-/**
- * Require API key or throw.
- */
 export function requireApiKey(): string {
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -74,51 +58,36 @@ export function requireApiKey(): string {
   return apiKey;
 }
 
-/**
- * Validate the stored API key is still valid (not revoked).
- * Returns user info if valid, null if invalid.
- */
 export async function validateApiKey(): Promise<{
   userId: string;
   email: string;
   name: string;
 } | null> {
-  const apiKey = getApiKey();
-  if (!apiKey) return null;
-
   const client = getClient();
   if (!client) return null;
 
-  const result = await client.query(api.cliAuth.validate, { key: apiKey });
-
-  if (!result) {
-    // Key is revoked or invalid - clear local credentials
-    clearCredentials();
-    return null;
+  try {
+    const result = await client.cliRpc("validateApiKey", undefined);
+    return result;
+  } catch (error) {
+    if (error instanceof BlahSDKError && error.status === 401) {
+      clearCredentials();
+      return null;
+    }
+    throw error;
   }
-
-  return {
-    userId: result.userId as string,
-    email: result.email ?? "",
-    name: result.name ?? "",
-  };
 }
 
-/**
- * Clear the client instance (e.g., on logout).
- */
 export function clearClient(): void {
   clientInstance = null;
+  currentCacheKey = null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Error Handling
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Check if an error is an authentication error (API key revoked/invalid).
- */
 export function isAuthError(error: unknown): boolean {
+  if (error instanceof BlahSDKError) {
+    return error.status === 401 || error.code === "MISSING_API_KEY";
+  }
+
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
     return (
@@ -129,45 +98,30 @@ export function isAuthError(error: unknown): boolean {
       msg.includes("not logged in")
     );
   }
+
   return false;
 }
 
-/**
- * Format error message, with special handling for auth errors.
- */
 export function formatError(error: unknown): string {
   if (isAuthError(error)) {
     return "API key invalid or revoked. Run: blah login";
   }
-  if (error instanceof Error) {
-    // Clean up Convex error messages
-    const msg = error.message;
-    // Extract just the message part if it's a JSON error
-    try {
-      const parsed = JSON.parse(msg);
-      if (parsed.message) return parsed.message;
-    } catch {
-      // Not JSON, use as-is
-    }
-    return msg;
+
+  if (error instanceof BlahSDKError) {
+    return error.message;
   }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
   return String(error);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper Functions
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Sleep for a specified duration.
- */
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Retry a function with exponential backoff.
- */
 export async function retry<T>(
   fn: () => Promise<T>,
   options: {

@@ -152,7 +152,17 @@ export function getStoredConfig(): Partial<CLIConfig> {
   for (const key of CONFIG_KEYS) {
     const value = stored[key];
     if (value !== undefined) {
-      filtered[key] = value;
+      switch (key) {
+        case "appUrl":
+          filtered.appUrl = value as string;
+          break;
+        case "convexUrl":
+          filtered.convexUrl = value as string;
+          break;
+        case "environment":
+          filtered.environment = value as Environment;
+          break;
+      }
     }
   }
 

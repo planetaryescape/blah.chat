@@ -1,10 +1,10 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useKeyboard } from "@opentui/solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { formatError, requireApiKey, requireClient } from "../lib/client.js";
 import { createConversation } from "../lib/mutations.js";
 import { listModels, type Model } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
+import type { Id } from "../lib/types.js";
 import { Spinner } from "./Spinner.js";
 
 interface NewConversationModalProps {

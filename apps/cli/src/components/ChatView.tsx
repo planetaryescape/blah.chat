@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import clipboard from "clipboardy";
 import { createEffect, createSignal, onCleanup, Show } from "solid-js";
@@ -16,6 +15,7 @@ import {
   type Message,
 } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
+import type { Id } from "../lib/types.js";
 import { ChatInput } from "./ChatInput.js";
 import { HelpModal } from "./HelpModal.js";
 import { MessageList } from "./MessageList.js";
@@ -396,9 +396,7 @@ export function ChatView(props: ChatViewProps) {
           </Show>
           <Show when={conversation()?.model}>
             <box flexGrow={1} />
-            <text fg="#a1a1aa">
-              {conversation()!.model.split(":")[1] || conversation()!.model}
-            </text>
+            <text fg="#a1a1aa">{conversation()?.model ?? ""}</text>
           </Show>
         </box>
       </Show>

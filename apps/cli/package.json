@@ -19,12 +19,12 @@
     "build": "bun run scripts/build.ts",
     "compile": "bun run scripts/compile.ts",
     "publish:npm": "bun run scripts/publish.ts",
-    "typecheck": "echo 'CLI typecheck disabled - backend path aliases do not resolve from CLI context. Build succeeds.'",
+    "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@blah-chat/backend": "workspace:*",
+    "@blah-chat/sdk": "workspace:*",
     "@blah-chat/shared": "workspace:*",
     "@opentui/core": "^0.1.74",
     "@opentui/solid": "^0.1.72",

@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import { MessageSquarePlus, MessagesSquare } from "lucide-react-native";
@@ -6,6 +5,7 @@ import { useCallback, useState } from "react";
 import { RefreshControl, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useConversations } from "@/lib/hooks";
 import {
@@ -194,7 +194,8 @@ function getTimeAgo(timestamp: number): string {
 }
 
 export default function ConversationsScreen() {
-  const conversations = useConversations();
+  const conversationsQuery = useConversations();
+  const conversations = (conversationsQuery ?? []) as Conversation[];
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
@@ -203,8 +204,8 @@ export default function ConversationsScreen() {
     setTimeout(() => setRefreshing(false), 500);
   }, []);
 
-  const isLoading = conversations === undefined;
-  const isEmpty = conversations?.length === 0;
+  const isLoading = conversationsQuery === undefined;
+  const isEmpty = conversations.length === 0;
 
   return (
     <SafeAreaView
@@ -250,10 +251,9 @@ export default function ConversationsScreen() {
       ) : isEmpty ? (
         <EmptyState />
       ) : (
-        <FlashList
+        <FlashList<Conversation>
           data={conversations}
           renderItem={({ item }) => <ConversationItem conversation={item} />}
-          estimatedItemSize={80}
           contentContainerStyle={{
             paddingTop: spacing.md,
             paddingBottom: 100,

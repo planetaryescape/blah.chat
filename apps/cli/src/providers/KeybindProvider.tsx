@@ -7,7 +7,7 @@ interface KeybindContextValue {
 }
 
 export const { provider: KeybindProvider, use: useKeybind } =
-  createSimpleContext<KeybindContextValue, Record<string, never>>({
+  createSimpleContext<KeybindContextValue, object>({
     name: "Keybind",
     init: () => {
       const [inputMode, setInputMode] = createSignal<"typing" | "command">(

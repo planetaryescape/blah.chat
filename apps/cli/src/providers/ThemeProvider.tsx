@@ -7,7 +7,7 @@ interface ThemeContextValue {
 
 export const { provider: ThemeProvider, use: useTheme } = createSimpleContext<
   ThemeContextValue,
-  Record<string, never>
+  object
 >({
   name: "Theme",
   init: () => ({

@@ -223,6 +223,22 @@ export const create = internalMutation({
 });
 
 /**
+ * Update message model when generation resolves away from "auto" on a pre-created row.
+ */
+export const updateModel = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    model: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      model: args.model,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
  * Update message with routing decision after auto router selects a model.
  * Called from generation.ts when a pre-created message needs routing info.
  */

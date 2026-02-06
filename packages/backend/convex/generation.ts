@@ -55,6 +55,20 @@ const MAX_TOOL_STEPS = 15;
  */
 const _MAX_AUTO_RETRY_ATTEMPTS = 3;
 
+function resolveOperationalFallbackModelId(): string {
+  const firstConfiguredModel = Object.keys(MODEL_CONFIG).find(
+    (modelId) => modelId !== "auto",
+  );
+
+  if (!firstConfiguredModel) {
+    throw new Error(
+      "No configured model available for manual routing fallback",
+    );
+  }
+
+  return firstConfiguredModel;
+}
+
 // Minimal message shape for fast inference (client sends, server skips DB fetch)
 const passedMessageValidator = v.object({
   role: v.union(v.literal("user"), v.literal("assistant")),
@@ -123,30 +137,24 @@ export const generateResponse = internalAction({
           api.users.getUserPreferenceByUserId,
           { userId: args.userId, key: "defaultModel" },
         )) as string | null;
-
-        // Fallback must be validated against MODEL_CONFIG
-        const fallbackModelId = "openai:gpt-4.1-mini";
-        const validatedFallback = MODEL_CONFIG[
-          fallbackModelId as keyof typeof MODEL_CONFIG
-        ]
-          ? fallbackModelId
-          : Object.keys(MODEL_CONFIG)[0]; // Ultimate fallback: first configured model
-
+        const fallbackModelId = resolveOperationalFallbackModelId();
         const resolvedModelId =
           defaultModel &&
           defaultModel !== "auto" &&
           MODEL_CONFIG[defaultModel as keyof typeof MODEL_CONFIG]
             ? defaultModel
-            : validatedFallback;
+            : fallbackModelId;
 
         modelId = resolvedModelId;
 
-        // Update pre-created message model if it exists (fixes model mismatch)
         if (args.existingMessageId) {
           await (ctx.runMutation as any)(
             // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
-            internal.messages.updateMessageModel,
-            { messageId: args.existingMessageId, model: modelId },
+            internal.messages.updateModel,
+            {
+              messageId: args.existingMessageId,
+              model: modelId,
+            },
           );
         }
 
@@ -154,7 +162,7 @@ export const generateResponse = internalAction({
           conversationId: args.conversationId,
           selectedModel: modelId,
           defaultModel,
-          fallbackUsed: resolvedModelId === validatedFallback,
+          fallbackUsed: resolvedModelId === fallbackModelId,
         });
       } else {
         // Get user's router preferences

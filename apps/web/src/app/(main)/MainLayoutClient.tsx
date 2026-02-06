@@ -12,6 +12,7 @@ import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { KeyboardShortcutsManager } from "@/components/KeyboardShortcutsManager";
 import { OfflineQueueIndicator } from "@/components/layout/OfflineQueueIndicator";
 import { NotificationBell } from "@/components/notifications";
+import { AutoRouterPreferenceModal } from "@/components/onboarding/AutoRouterPreferenceModal";
 import { OnboardingWrapper } from "@/components/onboarding/OnboardingTour";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -171,6 +172,7 @@ export default function MainLayout({
                 <KeyboardHelpManager />
                 <SelectionContextMenu />
                 <OfflineQueueIndicator />
+                {!isAdminRoute && <AutoRouterPreferenceModal />}
               </OnboardingWrapper>
             </SidebarProvider>
           )}

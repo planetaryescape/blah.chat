@@ -513,7 +513,10 @@ interface AnalyticsEvent {
     playbackDurationMs?: number;
   };
 
-  // === SETTINGS (14 events) ===
+  // === SETTINGS (15 events) ===
+  auto_router_enabled_changed: {
+    enabled: boolean;
+  };
   auto_router_cost_bias_changed: {
     value: number;
   };

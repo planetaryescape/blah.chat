@@ -1,16 +1,97 @@
 name: Release CLI
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/cli/**"
+      - "packages/shared/**"
+      - "packages/backend/convex/_generated/**"
+      - ".github/workflows/release-cli.yml"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g., 0.1.0)"
-        required: true
+        description: "Version override (leave empty for auto-increment)"
+        required: false
         type: string
 
 jobs:
+  check-release:
+    name: Check if release needed
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for CLI changes since last release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get latest CLI release tag
+          LAST_TAG=$(gh release list --limit 100 | grep "^blah CLI" | head -1 | awk '{print $3}')
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous CLI release found, will release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Last CLI release: $LAST_TAG"
+
+          # Check if there are CLI changes since last tag
+          CHANGES=$(git diff --name-only "$LAST_TAG"..HEAD -- apps/cli/ packages/shared/ packages/backend/convex/_generated/ 2>/dev/null || echo "")
+
+          if [ -n "$CHANGES" ]; then
+            echo "CLI changes detected since $LAST_TAG:"
+            echo "$CHANGES"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "No CLI changes since $LAST_TAG"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine version
+        id: version
+        if: steps.check.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "Using manual version: $INPUT_VERSION"
+            echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Get latest CLI version and increment patch
+          LAST_TAG=$(gh release list --limit 100 | grep "^blah CLI" | head -1 | awk '{print $3}')
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "version=0.1.0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Extract version number (cli-v0.2.0 -> 0.2.0)
+          LAST_VERSION=${LAST_TAG#cli-v}
+
+          # Increment patch version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VERSION"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+
+          echo "Auto-incremented version: $LAST_VERSION -> $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
   build-cli:
     name: Build CLI (${{ matrix.platform }})
+    needs: check-release
+    if: needs.check-release.outputs.should_release == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -19,7 +100,6 @@ jobs:
             os: macos-14
             archive: blah-cli-darwin-arm64.tar.gz
           # darwin-x64 disabled - requires paid macos-15-large runner
-          # Re-enable when billing configured or cross-compilation added
           - platform: linux-x64
             os: ubuntu-latest
             archive: blah-cli-linux-x64.tar.gz
@@ -56,8 +136,8 @@ jobs:
 
   create-release:
     name: Create Release
-    needs: build-cli
-    if: always() && !cancelled()
+    needs: [check-release, build-cli]
+    if: always() && needs.check-release.outputs.should_release == 'true' && !cancelled()
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -75,7 +155,7 @@ jobs:
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.check-release.outputs.version }}
           REPO: ${{ github.repository }}
         run: |
           gh release create "cli-v$VERSION" \
@@ -97,20 +177,94 @@ jobs:
       - name: Upload assets to draft
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.check-release.outputs.version }}
           REPO: ${{ github.repository }}
         run: gh release upload "cli-v$VERSION" artifacts/* --repo "$REPO"
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.check-release.outputs.version }}
           REPO: ${{ github.repository }}
         run: gh release edit "cli-v$VERSION" --draft=false --repo "$REPO"
 
+  update-homebrew:
+    name: Update Homebrew Formula
+    needs: [check-release, create-release]
+    if: always() && needs.check-release.outputs.should_release == 'true' && needs.create-release.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for release assets
+        run: sleep 10
+
+      - name: Calculate checksums and update formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ needs.check-release.outputs.version }}
+        run: |
+          # Download and checksum each binary
+          BASE_URL="https://github.com/planetaryescape/blah.chat/releases/download/cli-v$VERSION"
+
+          DARWIN_ARM64_SHA=$(curl -sL "$BASE_URL/blah-cli-darwin-arm64.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+          LINUX_ARM64_SHA=$(curl -sL "$BASE_URL/blah-cli-linux-arm64.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+          LINUX_X64_SHA=$(curl -sL "$BASE_URL/blah-cli-linux-x64.tar.gz" | shasum -a 256 | cut -d' ' -f1)
+
+          echo "darwin-arm64: $DARWIN_ARM64_SHA"
+          echo "linux-arm64: $LINUX_ARM64_SHA"
+          echo "linux-x64: $LINUX_X64_SHA"
+
+          # Clone homebrew-tap repo
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/planetaryescape/homebrew-tap.git" tap
+          cd tap
+
+          # Update formula
+          cat > Formula/blah.rb << EOF
+          class Blah < Formula
+            desc "Terminal client for blah.chat AI assistant"
+            homepage "https://blah.chat"
+            version "$VERSION"
+            license "MIT"
+
+            on_macos do
+              on_arm do
+                url "https://github.com/planetaryescape/blah.chat/releases/download/cli-v#{version}/blah-cli-darwin-arm64.tar.gz"
+                sha256 "$DARWIN_ARM64_SHA"
+              end
+              # Intel Mac (darwin-x64) temporarily unsupported - requires paid CI runner
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/planetaryescape/blah.chat/releases/download/cli-v#{version}/blah-cli-linux-arm64.tar.gz"
+                sha256 "$LINUX_ARM64_SHA"
+              end
+              on_intel do
+                url "https://github.com/planetaryescape/blah.chat/releases/download/cli-v#{version}/blah-cli-linux-x64.tar.gz"
+                sha256 "$LINUX_X64_SHA"
+              end
+            end
+
+            def install
+              bin.install "blah"
+            end
+
+            test do
+              system "#{bin}/blah", "--version"
+            end
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/blah.rb
+          git commit -m "release: blah CLI v$VERSION"
+          git push
+
   publish-npm:
     name: Publish to npm
-    needs: create-release
+    needs: [check-release, create-release]
+    if: always() && needs.check-release.outputs.should_release == 'true' && needs.create-release.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -134,5 +288,5 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ needs.check-release.outputs.version }}
         run: bun run apps/cli/scripts/publish.ts --version "$VERSION"

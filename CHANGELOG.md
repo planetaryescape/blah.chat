@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.19.1](https://github.com/planetaryescape/blah.chat/compare/v1.19.0...v1.19.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* **ci:** use draft-then-publish for immutable releases ([8056fc7](https://github.com/planetaryescape/blah.chat/commit/8056fc773a4ec30aa5b02b85ed072e397cf4727f))
+* **ci:** use macos-13 for darwin-x64 CLI builds ([#276](https://github.com/planetaryescape/blah.chat/issues/276)) ([801280d](https://github.com/planetaryescape/blah.chat/commit/801280d63addc175130d3637e3e059024e2da087))
+* **ci:** use macos-15-large for darwin-x64 CLI builds ([382be1b](https://github.com/planetaryescape/blah.chat/commit/382be1b224d538482c3cd5161e3f2dc28432e2d4))
+* validate fallback model and sync pre-created message model ([3692f65](https://github.com/planetaryescape/blah.chat/commit/3692f65e4b590118d993b2cf403fd814df0b542e))
+
 ## [1.19.0](https://github.com/planetaryescape/blah.chat/compare/v1.18.3...v1.19.0) (2026-02-05)
 
 

@@ -37,6 +37,25 @@ jobs:
             exit 1
           fi
 
+      - name: Verify SDK OpenAPI types are in sync
+        run: |
+          bun run sdk:generate
+          if ! git diff --exit-code packages/sdk/src/generated/openapi.ts; then
+            echo "::error::SDK OpenAPI types are out of sync! Run 'bun run sdk:generate'."
+            exit 1
+          fi
+
+      - name: Enforce SDK version bump for contract/runtime changes
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch origin "$BASE_REF" --depth=1
+          bun run sdk:version-check --base "origin/$BASE_REF"
+
+      - name: Enforce portable client boundaries
+        run: bun run portable:check
+
       - name: Convex typecheck
         if: github.actor != 'dependabot[bot]'
         run: bun run deploy -- --dry-run --typecheck enable

@@ -33,8 +33,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get latest CLI release tag
-          LAST_TAG=$(gh release list --limit 100 | grep "^blah CLI" | head -1 | awk '{print $3}')
+          # Get latest CLI release tag (gh output is tab-delimited: title, latest, tag, date)
+          LAST_TAG=$(gh release list --limit 100 | grep "^blah CLI" | head -1 | awk -F'\t' '{print $3}')
 
           if [ -z "$LAST_TAG" ]; then
             echo "No previous CLI release found, will release"
@@ -69,8 +69,8 @@ jobs:
             exit 0
           fi
 
-          # Get latest CLI version and increment patch
-          LAST_TAG=$(gh release list --limit 100 | grep "^blah CLI" | head -1 | awk '{print $3}')
+          # Get latest CLI version and increment patch (gh output is tab-delimited)
+          LAST_TAG=$(gh release list --limit 100 | grep "^blah CLI" | head -1 | awk -F'\t' '{print $3}')
 
           if [ -z "$LAST_TAG" ]; then
             echo "version=0.1.0" >> $GITHUB_OUTPUT

@@ -16,6 +16,7 @@ program
 program
   .command("login")
   .description("Authenticate with blah.chat")
+  .option("-k, --api-key <key>", "Login with API key instead of browser")
   .action(runLoginCommand);
 
 program
@@ -91,4 +92,4 @@ program.action(() => {
   console.log(`  ${symbols.chevronRight} blah config  - Manage configuration`);
 });
 
-program.parse();
+program.parseAsync();

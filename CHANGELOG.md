@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.0](https://github.com/planetaryescape/blah.chat/compare/v1.20.1...v1.21.0) (2026-02-06)
+
+
+### Features
+
+* **cli:** add debug command and fix search query param ([d270926](https://github.com/planetaryescape/blah.chat/commit/d2709268110dac3475c2dc5f06783a56f9a1f029))
+
 ## [1.20.1](https://github.com/planetaryescape/blah.chat/compare/v1.20.0...v1.20.1) (2026-02-06)
 
 

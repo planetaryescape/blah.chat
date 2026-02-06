@@ -442,6 +442,19 @@ export const updateStatus = internalMutation({
   },
 });
 
+export const updateMessageModel = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    model: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      model: args.model,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 const TERMINAL_STATUSES = new Set(["complete", "stopped", "error"]);
 
 export const updatePartialContent = internalMutation({

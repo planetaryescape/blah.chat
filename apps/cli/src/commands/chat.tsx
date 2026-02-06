@@ -1,5 +1,4 @@
 import "../lib/tree-sitter-parsers.js";
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { render, useRenderer } from "@opentui/solid";
 import { createSignal, Show } from "solid-js";
 import { ChatView } from "../components/ChatView.js";
@@ -17,7 +16,7 @@ import { getConfig } from "../lib/config.js";
 import { createConversation } from "../lib/mutations.js";
 import { getUserDefaultModel } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
-import { ConvexProvider } from "../providers/ConvexProvider.js";
+import type { Id } from "../lib/types.js";
 import { KeybindProvider } from "../providers/KeybindProvider.js";
 import { ThemeProvider } from "../providers/ThemeProvider.js";
 
@@ -121,8 +120,8 @@ export async function runChatCommand() {
       return;
     }
   } catch (err) {
-    console.log(`${symbols.error} Unable to connect to Convex`);
-    console.log(`  URL: ${getConfig().convexUrl}`);
+    console.log(`${symbols.error} Unable to connect to blah.chat server`);
+    console.log(`  URL: ${getConfig().appUrl}`);
     console.log(`  Error: ${formatError(err)}`);
     console.log("  Run: blah debug");
     return;
@@ -131,11 +130,9 @@ export async function runChatCommand() {
   await render(
     () => (
       <ThemeProvider>
-        <ConvexProvider>
-          <KeybindProvider>
-            <ChatApp />
-          </KeybindProvider>
-        </ConvexProvider>
+        <KeybindProvider>
+          <ChatApp />
+        </KeybindProvider>
       </ThemeProvider>
     ),
     {

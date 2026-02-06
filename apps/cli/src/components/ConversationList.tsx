@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useKeyboard } from "@opentui/solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { useListNavigation } from "../hooks/useListNavigation.js";
@@ -6,6 +5,7 @@ import { formatError, requireApiKey, requireClient } from "../lib/client.js";
 import { archiveConversation, deleteConversation } from "../lib/mutations.js";
 import { type Conversation, listConversations } from "../lib/queries.js";
 import { formatRelativeTime, symbols } from "../lib/terminal.js";
+import type { Id } from "../lib/types.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { HelpModal } from "./HelpModal.js";
 import { Spinner } from "./Spinner.js";
@@ -258,7 +258,9 @@ export function ConversationList(props: ConversationListProps) {
                   title().length > 35 ? `${title().slice(0, 35)}...` : title();
                 const messageCount = () => conv.messageCount || 0;
                 const relTime = () =>
-                  formatRelativeTime(conv.lastMessageAt || conv.createdAt);
+                  formatRelativeTime(
+                    conv.lastMessageAt || conv.createdAt || Date.now(),
+                  );
 
                 return (
                   <box

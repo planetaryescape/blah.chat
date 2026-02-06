@@ -1,7 +1,7 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { memo } from "react";
 import { Pressable, Text, View } from "react-native";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useSiblings, useSwitchBranch } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";

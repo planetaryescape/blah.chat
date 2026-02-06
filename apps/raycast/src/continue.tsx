@@ -67,7 +67,6 @@ export default function ContinueCommand() {
     try {
       const client = getClient();
       const apiKey = getApiKey();
-      // @ts-expect-error - Id type
       const msgs = await listMessages(client, apiKey, convo._id);
       if (msgs) setMessages(msgs);
     } catch (_error) {
@@ -91,14 +90,12 @@ export default function ContinueCommand() {
       const apiKey = getApiKey();
 
       await sendMessage(client, apiKey, {
-        // @ts-expect-error - Id type
         conversationId: selectedConvo._id,
         content: values.message,
         modelId: values.model || selectedConvo.model || undefined,
       });
 
       // Poll for completion
-      // @ts-expect-error - Id type
       await pollForCompletion(selectedConvo._id);
     } catch (error) {
       showToast({
@@ -118,7 +115,6 @@ export default function ContinueCommand() {
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      // @ts-expect-error - Id type
       const msgs = await listMessages(client, apiKey, convoId);
       if (msgs) {
         setMessages(msgs);

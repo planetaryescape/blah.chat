@@ -1,10 +1,10 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useKeyboard } from "@opentui/solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { useFuzzySearch } from "../hooks/useFuzzySearch.js";
 import { formatError, requireApiKey, requireClient } from "../lib/client.js";
 import { type Conversation, listConversations } from "../lib/queries.js";
 import { formatRelativeTime, symbols } from "../lib/terminal.js";
+import type { Id } from "../lib/types.js";
 import { Spinner } from "./Spinner.js";
 
 interface SearchModalProps {
@@ -158,7 +158,9 @@ export function SearchModal(props: SearchModalProps) {
                 const truncatedTitle = () =>
                   title().length > 40 ? `${title().slice(0, 40)}...` : title();
                 const relTime = () =>
-                  formatRelativeTime(conv.lastMessageAt || conv.createdAt);
+                  formatRelativeTime(
+                    conv.lastMessageAt || conv.createdAt || Date.now(),
+                  );
 
                 return (
                   <box

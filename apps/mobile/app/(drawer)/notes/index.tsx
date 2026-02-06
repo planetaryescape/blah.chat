@@ -1,4 +1,3 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { DrawerActions } from "@react-navigation/native";
 import { FlashList } from "@shopify/flash-list";
 import { useNavigation, useRouter } from "expo-router";
@@ -13,6 +12,7 @@ import {
   NoteListItem,
   NoteMenuSheet,
 } from "@/components/notes";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
   useCreateNote,
@@ -54,7 +54,7 @@ export default function NotesListScreen() {
 
   const filteredNotes =
     selectedProjectId === "none"
-      ? notes?.filter((note) => !note.projectId)
+      ? notes?.filter((note: Note) => !note.projectId)
       : notes;
 
   const handleOpenDrawer = useCallback(() => {
@@ -268,7 +268,6 @@ export default function NotesListScreen() {
               onLongPress={() => handleNoteLongPress(item)}
             />
           )}
-          estimatedItemSize={80}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{
             paddingVertical: spacing.sm,

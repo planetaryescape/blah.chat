@@ -49,8 +49,8 @@ export async function runDebugCommand() {
   console.log(`  Created: ${new Date(credentials.createdAt).toLocaleString()}`);
   console.log();
 
-  // 3. Test Convex connection
-  console.log("Testing Convex connection...");
+  // 3. Test server/API connection
+  console.log("Testing server connection...");
   const client = getClient();
   const apiKey = getApiKey();
 
@@ -80,7 +80,7 @@ export async function runDebugCommand() {
     console.log();
     console.log("Troubleshooting:");
     console.log("  1. Check your internet connection");
-    console.log("  2. Verify the Convex URL is correct");
+    console.log("  2. Verify the App URL is correct");
     console.log("  3. Try: blah config reset (if using custom config)");
     console.log("  4. Try: blah login (to refresh credentials)");
   }

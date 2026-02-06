@@ -1,7 +1,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
 import { useQuery as useConvexQuery } from "convex/react";
-import { useApiClient } from "@/lib/api/client";
+import { useSDKClient } from "@/lib/api/sdkClient";
 import { shouldUseConvex } from "@/lib/utils/platform";
 
 /**
@@ -11,7 +11,7 @@ import { shouldUseConvex } from "@/lib/utils/platform";
  */
 export function usePreferences() {
   const useConvexMode = shouldUseConvex();
-  const apiClient = useApiClient();
+  const sdk = useSDKClient();
 
   // Convex WebSocket subscription (web desktop)
   const convexData = useConvexQuery(
@@ -22,7 +22,7 @@ export function usePreferences() {
   // REST API query (mobile)
   const restQuery = useQuery({
     queryKey: ["preferences"],
-    queryFn: () => apiClient.get("/preferences"),
+    queryFn: () => sdk.getPreferences(),
     enabled: !useConvexMode,
     staleTime: 60 * 60 * 1000, // 1h (matches CachePresets.STATIC)
   });

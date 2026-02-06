@@ -1,7 +1,7 @@
-import { api } from "@blah-chat/backend/convex/_generated/api";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Doc, Id } from "@/lib/convex";
+import { api } from "@/lib/convex";
 
 type Conversation = Doc<"conversations">;
 

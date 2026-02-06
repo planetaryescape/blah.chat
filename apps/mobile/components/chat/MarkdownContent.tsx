@@ -62,8 +62,8 @@ const baseMarkdownStyles = {
   },
   link: {
     color: palette.roseQuartz,
-    textDecorationLine: "underline",
-    textDecorationStyle: "dotted",
+    textDecorationLine: "underline" as const,
+    textDecorationStyle: "dotted" as const,
   },
   list_item: {
     marginVertical: 2,
@@ -85,8 +85,8 @@ const baseMarkdownStyles = {
 function createRules(textColor: string): RenderRules {
   return {
     fence: (node, children, parent, styles) => {
-      const language = node.sourceInfo || "";
-      const code = node.content || "";
+      const language = (node as any).sourceInfo || "";
+      const code = (node as any).content || "";
 
       // Handle Mermaid diagrams
       if (language === "mermaid") {
@@ -96,7 +96,7 @@ function createRules(textColor: string): RenderRules {
       return <CodeBlock key={node.key} code={code} language={language} />;
     },
     code_block: (node, children, parent, styles) => {
-      const code = node.content || "";
+      const code = (node as any).content || "";
       return <CodeBlock key={node.key} code={code} />;
     },
     // Override link to handle Bible verses

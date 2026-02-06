@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
-    "jsxImportSource": "solid-js",
+    "jsxImportSource": "@opentui/solid",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],

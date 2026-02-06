@@ -1,5 +1,6 @@
 "use client";
 
+import type { ModelConfig } from "@blah-chat/ai/models";
 import { Info } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -8,7 +9,6 @@ import {
   getIntelligenceText,
   getSpeedText,
 } from "@/lib/ai/benchmarks";
-import type { ModelConfig } from "@/lib/ai/models";
 import type { ComputedMetrics } from "@/lib/ai/types";
 import { cn } from "@/lib/utils";
 

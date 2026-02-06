@@ -1,13 +1,13 @@
-import { embed, generateText } from "ai";
-import { v } from "convex/values";
-import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import {
   calculateEmbeddingCost,
   EMBEDDING_MODEL,
   EMBEDDING_PRICING,
   EMBEDDING_SUMMARIZATION_MODEL,
-} from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
+} from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { embed, generateText } from "ai";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import {

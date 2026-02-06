@@ -1,9 +1,9 @@
-import { v } from "convex/values";
 import {
   applyDiffOperations,
   type DiffOperation,
   validateDiffOperations,
-} from "@/lib/canvas/diff";
+} from "@blah-chat/shared/canvas";
+import { v } from "convex/values";
 import {
   internalMutation,
   internalQuery,

@@ -6,9 +6,9 @@
  * Pattern: Follow convex/search/semantic.ts for vector search patterns.
  */
 
+import { EMBEDDING_MODEL } from "@blah-chat/ai/operational-models";
 import { embed } from "ai";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, internalAction, internalQuery } from "../_generated/server";

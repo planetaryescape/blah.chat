@@ -1,8 +1,8 @@
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { FEEDBACK_TRIAGE_MODEL } from "@blah-chat/ai/operational-models";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { FEEDBACK_TRIAGE_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";
@@ -41,8 +41,8 @@ const triageSchema = z.object({
     .describe("Any additional context or recommendations for the team"),
 });
 
-import { getModel } from "@/lib/ai/registry";
-import { TRIAGE_PROMPT } from "@/lib/prompts/triage";
+import { TRIAGE_PROMPT } from "@blah-chat/ai/prompts/triage";
+import { getModel } from "@blah-chat/ai/registry";
 
 // ============================================================================
 // AUTO-TRIAGE ACTION

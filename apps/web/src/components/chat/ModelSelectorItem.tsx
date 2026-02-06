@@ -1,5 +1,6 @@
 "use client";
 
+import type { ModelConfig } from "@blah-chat/ai/utils";
 import { Check, ChevronRight, Crown, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandItem } from "@/components/ui/command";
@@ -9,7 +10,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { getModelCategories } from "@/lib/ai/categories";
-import type { ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 import { ModelDetailCard } from "./ModelDetailCard";
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import type { OptimisticMessage } from "@/types/optimistic";
 
 type ConsolidationMode = "same-chat" | "new-chat";

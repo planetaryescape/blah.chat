@@ -9,9 +9,13 @@
  * - In server code: use getStaticModels() for fallback
  */
 
+import {
+  AUTO_MODEL,
+  MODEL_CONFIG,
+  type ModelConfig,
+} from "@blah-chat/ai/models";
 import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
-import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "@/lib/ai/models";
 import { dbModelsToConfigRecord, dbToModelConfig } from "./transforms";
 
 // Type cast helpers to work around Convex type depth issues with 90+ modules

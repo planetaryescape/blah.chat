@@ -1,21 +1,32 @@
 /**
- * @blah-chat/ai - Shared AI model configuration
+ * @blah-chat/ai
  *
- * Used by both web and mobile apps for consistent model handling
+ * Shared AI config + runtime helpers across web/backend/mobile.
  */
 
-export {
-  getMobileModels,
-  getModelTier,
-  getProviderDisplayName,
-  MODEL_CONFIG,
-} from "./models";
-
+export { getGatewayOptions, getHostOrder } from "./gateway";
 export type {
   Capability,
-  CostTier,
   ModelConfig,
   ModelTier,
   Provider,
-  SpeedTier,
-} from "./types";
+} from "./models";
+export {
+  AUTO_MODEL,
+  getMobileModels,
+  getModelMetrics,
+  getModelTier,
+  getProviderDisplayName,
+  isAutoModel,
+  MODEL_CONFIG,
+} from "./models";
+export * from "./operational-models";
+export * from "./reasoning";
+export { getModel, getModelWithGateway } from "./registry";
+export type { BenchmarkScores, ComputedMetrics, ModelCategory } from "./types";
+export {
+  calculateCost,
+  getModelConfig,
+  getModelsByProvider,
+  isValidModel,
+} from "./utils";

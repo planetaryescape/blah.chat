@@ -5,8 +5,8 @@
  * Searches both user-level and project-level knowledge when projectId is provided.
  */
 
+import { EMBEDDING_MODEL } from "@blah-chat/ai/operational-models";
 import { v } from "convex/values";
-import { EMBEDDING_MODEL } from "@/lib/ai/operational-models";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {

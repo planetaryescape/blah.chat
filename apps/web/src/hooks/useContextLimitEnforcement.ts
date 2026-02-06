@@ -1,7 +1,7 @@
 "use client";
 
+import { getModelConfig } from "@blah-chat/ai/utils";
 import { useMemo } from "react";
-import { getModelConfig } from "@/lib/ai/utils";
 import { DEFAULT_CONTEXT_WINDOW } from "@/lib/utils/formatMetrics";
 import type { TokenUsage } from "@/types/tokenUsage";
 

@@ -1,6 +1,6 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { NextRequest } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import {
@@ -15,9 +15,11 @@ async function getHandler(
   req: NextRequest,
   {
     userId,
+    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
+    sessionToken: string;
   },
 ) {
   const startTime = Date.now();
@@ -27,14 +29,18 @@ async function getHandler(
     "GET /api/v1/preferences/stream - SSE stream started",
   );
 
-  const convex = getConvexClient();
+  const convex = getAuthenticatedConvexClient(sessionToken);
 
   // Create SSE connection
   const { response, send, sendError, close, isClosed } = createSSEResponse();
 
   try {
     // Send initial snapshot (all user preferences in single object)
-    const initialData = await convex.query(api.users.getAllUserPreferences);
+    const initialData = (await (convex.query as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.users.getAllUserPreferences,
+      {},
+    )) as any;
 
     await send("snapshot", {
       preferences: initialData,
@@ -47,7 +53,11 @@ async function getHandler(
       async () => {
         if (isClosed()) return null;
 
-        const preferences = await convex.query(api.users.getAllUserPreferences);
+        const preferences = (await (convex.query as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.users.getAllUserPreferences,
+          {},
+        )) as any;
 
         return { preferences };
       },

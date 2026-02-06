@@ -1,7 +1,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { NextRequest } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import {
@@ -17,9 +17,11 @@ async function getHandler(
   {
     params,
     userId,
+    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
+    sessionToken: string;
   },
 ) {
   const startTime = Date.now();
@@ -30,15 +32,23 @@ async function getHandler(
     "GET /api/v1/messages/stream/[conversationId] - SSE stream started",
   );
 
-  const convex = getConvexClient();
+  const convex = getAuthenticatedConvexClient(sessionToken);
 
-  // Verify user owns the conversation
-  // @ts-ignore - Type depth exceeded
-  const conversation = await convex.query(api.conversations.get, {
-    conversationId: conversationId as Id<"conversations">,
-  });
+  // Verify user owns the conversation using server-side clerk verification
+  const conversation = (await (convex.query as any)(
+    // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+    api.conversations.getWithClerkVerification,
+    {
+      conversationId: conversationId as Id<"conversations">,
+      clerkId: userId,
+    },
+  )) as any;
 
-  if (!conversation || conversation.userId !== userId) {
+  if (!conversation) {
+    logger.warn(
+      { userId, conversationId },
+      "SSE denied: conversation not found",
+    );
     return new Response("Not found", { status: 404 });
   }
 
@@ -46,24 +56,23 @@ async function getHandler(
   const { response, send, sendError, close, isClosed } = createSSEResponse();
 
   try {
-    // Send initial snapshot (50 messages, paginated)
-    // @ts-ignore - Type depth exceeded
-    const initialData = await convex.query(api.messages.listPaginated, {
-      conversationId: conversationId as Id<"conversations">,
-      paginationOpts: {
-        numItems: 50,
-        cursor: null,
+    // Send initial snapshot
+    const initialMessages = (await (convex.query as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.messages.list,
+      {
+        conversationId: conversationId as Id<"conversations">,
       },
-    });
+    )) as any[];
 
     await send("snapshot", {
-      messages: initialData.page,
-      hasMore: !initialData.isDone,
-      cursor: initialData.continueCursor,
+      messages: initialMessages,
+      hasMore: false,
+      cursor: null,
     });
 
     logger.info(
-      { userId, conversationId, messageCount: initialData.page.length },
+      { userId, conversationId, messageCount: initialMessages.length },
       "SSE snapshot sent",
     );
 
@@ -72,9 +81,13 @@ async function getHandler(
       async () => {
         if (isClosed()) return null;
 
-        const messages = await convex.query(api.messages.list, {
-          conversationId: conversationId as Id<"conversations">,
-        });
+        const messages = (await (convex.query as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.messages.list,
+          {
+            conversationId: conversationId as Id<"conversations">,
+          },
+        )) as any[];
 
         return { messages };
       },

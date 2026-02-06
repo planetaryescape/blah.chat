@@ -155,7 +155,7 @@ export async function searchConversations(
 ): Promise<Conversation[] | null> {
   return client.query(api.cliAuth.searchConversations, {
     apiKey,
-    query: options.query,
+    searchQuery: options.query,
     limit: options.limit,
   });
 }

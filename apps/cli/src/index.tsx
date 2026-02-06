@@ -2,6 +2,7 @@
 import { program } from "commander";
 import { runChatCommand } from "./commands/chat.js";
 import { runConfigCommand } from "./commands/config.js";
+import { runDebugCommand } from "./commands/debug.js";
 import { runLoginCommand } from "./commands/login.js";
 import { runLogoutCommand } from "./commands/logout.js";
 import { runWhoamiCommand } from "./commands/whoami.js";
@@ -57,6 +58,11 @@ configCmd
   .command("path")
   .description("Show configuration file path")
   .action(() => runConfigCommand("path"));
+
+program
+  .command("debug")
+  .description("Debug CLI connectivity and configuration")
+  .action(runDebugCommand);
 
 // Default command - show status
 program.action(() => {

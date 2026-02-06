@@ -9,9 +9,16 @@ const targets = [
 ];
 const pattern = "@blah-chat/backend/convex/_generated";
 
-const result = spawnSync("rg", ["-n", pattern, ...targets], {
-  encoding: "utf8",
-});
+const runCheck = (command: string, args: string[]) =>
+  spawnSync(command, args, {
+    encoding: "utf8",
+  });
+
+let result = runCheck("rg", ["-n", "-F", pattern, ...targets]);
+
+if (result.error && (result.error as NodeJS.ErrnoException).code === "ENOENT") {
+  result = runCheck("git", ["grep", "-n", "-F", pattern, "--", ...targets]);
+}
 
 if (result.status === 0) {
   console.error("Portable client import guard failed.");

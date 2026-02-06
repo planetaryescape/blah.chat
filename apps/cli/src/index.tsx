@@ -46,7 +46,9 @@ configCmd
 
 configCmd
   .command("set <key> <value>")
-  .description("Set a configuration value (appUrl, convexUrl, environment)")
+  .description(
+    "Set a configuration value (appUrl, convexUrl for BYOD/custom deployment, environment)",
+  )
   .action((key: string, value: string) => runConfigCommand("set", key, value));
 
 configCmd

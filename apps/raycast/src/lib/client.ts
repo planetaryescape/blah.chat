@@ -1,7 +1,7 @@
 import { getPreferenceValues } from "@raycast/api";
 import { ConvexHttpClient } from "convex/browser";
 
-const DEFAULT_CONVEX_URL = "https://intent-coyote-706.convex.cloud";
+const DEFAULT_CONVEX_URL = "https://compassionate-bee-117.convex.cloud";
 
 interface Preferences {
   apiKey: string;

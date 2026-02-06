@@ -52,11 +52,7 @@ function showConfig() {
     {
       label: "convexUrl",
       value: config.convexUrl,
-      source: stored.convexUrl
-        ? "user"
-        : process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL
-          ? "env"
-          : "default",
+      source: stored.convexUrl ? "user" : "default",
     },
     {
       label: "environment",
@@ -101,8 +97,38 @@ function setConfigValue(key: string, value: string) {
     }
   }
 
+  if (key === "convexUrl") {
+    validateConvexUrl(value);
+  }
+
   setConfig({ [key]: value } as Partial<CLIConfig>);
   console.log(`${symbols.success} Set ${key} = ${value}`);
+}
+
+function validateConvexUrl(value: string) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    console.error(
+      `${symbols.error} Invalid convexUrl: must be a valid URL (for BYOD/custom deployments).`,
+    );
+    process.exit(1);
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    console.error(
+      `${symbols.error} Invalid convexUrl: protocol must be http or https.`,
+    );
+    process.exit(1);
+  }
+
+  if (!url.hostname.endsWith(".convex.cloud")) {
+    console.error(
+      `${symbols.error} Invalid convexUrl: must end with .convex.cloud (BYOD/custom deployment URL).`,
+    );
+    process.exit(1);
+  }
 }
 
 function doResetConfig() {

@@ -18,13 +18,11 @@ export async function runDebugCommand() {
   console.log(`  App URL: ${config.appUrl}`);
   console.log(`  Convex URL: ${config.convexUrl}`);
   console.log(`  Environment: ${config.environment}`);
+  if (storedConfig.convexUrl) {
+    console.log(`  ${symbols.info} Using custom Convex URL override`);
+  }
 
   // Check for env overrides
-  if (process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL) {
-    console.log(
-      `  ${symbols.warning} Convex URL from env: ${process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL}`,
-    );
-  }
   if (process.env.BLAH_APP_URL) {
     console.log(
       `  ${symbols.warning} App URL from env: ${process.env.BLAH_APP_URL}`,

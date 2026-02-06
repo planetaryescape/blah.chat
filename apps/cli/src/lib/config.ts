@@ -2,7 +2,7 @@
  * CLI Configuration Management
  *
  * Hierarchical config priority (highest wins):
- * 1. Environment variables (BLAH_APP_URL, BLAH_CONVEX_URL, CONVEX_URL)
+ * 1. Environment variables (BLAH_APP_URL)
  * 2. User config file (~/.config/blah-chat/config.json)
  * 3. Bundled production defaults
  */
@@ -31,7 +31,7 @@ const CONFIG_KEYS: (keyof CLIConfig)[] = ["appUrl", "convexUrl", "environment"];
 
 const PRODUCTION_DEFAULTS: CLIConfig = {
   appUrl: "https://blah.chat",
-  convexUrl: "https://intent-coyote-706.convex.cloud",
+  convexUrl: "https://compassionate-bee-117.convex.cloud",
   environment: "production",
 };
 
@@ -81,7 +81,6 @@ function detectDevelopmentMode(): boolean {
 export function getConfig(): CLIConfig {
   // Environment variables (highest priority)
   const envAppUrl = process.env.BLAH_APP_URL;
-  const envConvexUrl = process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL;
 
   // User config file
   const stored = configStore.store;
@@ -94,8 +93,7 @@ export function getConfig(): CLIConfig {
   // Merge with priority: env > stored > defaults
   return {
     appUrl: envAppUrl || stored.appUrl || PRODUCTION_DEFAULTS.appUrl,
-    convexUrl:
-      envConvexUrl || stored.convexUrl || PRODUCTION_DEFAULTS.convexUrl,
+    convexUrl: stored.convexUrl || PRODUCTION_DEFAULTS.convexUrl,
     environment,
   };
 }

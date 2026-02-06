@@ -18,9 +18,10 @@ export const PREFERENCE_DEFAULTS = {
   newChatModelSelection: "recent" as const,
 
   // Auto Router
+  autoRouterEnabled: true as boolean, // Use auto router vs manual model selection
   autoRouterCostBias: 50, // 0=quality focus, 100=cheapest possible
   autoRouterSpeedBias: 50, // 0=quality focus, 100=fastest possible
-  enableModelRecommendations: true, // Show suggestions for cheaper models
+  enableModelRecommendations: true as boolean, // Show suggestions for cheaper models
 
   // Chat
   sendOnEnter: true,
@@ -49,6 +50,7 @@ export const PREFERENCE_DEFAULTS = {
   showProjects: true,
   showBookmarks: true,
   showTasks: true,
+  showSlides: true as boolean,
   showSmartAssistant: true,
 
   // Smart Assistant
@@ -101,6 +103,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   newChatModelSelection: "models",
 
   // Auto Router
+  autoRouterEnabled: "models",
   autoRouterCostBias: "models",
   autoRouterSpeedBias: "models",
   enableModelRecommendations: "models",
@@ -132,6 +135,7 @@ export const PREFERENCE_CATEGORIES: Record<string, string> = {
   showProjects: "advanced",
   showBookmarks: "advanced",
   showTasks: "advanced",
+  showSlides: "advanced",
   showSmartAssistant: "advanced",
 
   // Smart Assistant

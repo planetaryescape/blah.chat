@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -16,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateNoteShare, useToggleNoteShare } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";

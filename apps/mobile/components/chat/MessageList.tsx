@@ -1,7 +1,7 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { FlashList } from "@shopify/flash-list";
 import { memo, useCallback, useMemo, useRef } from "react";
 import { View } from "react-native";
+import type { Doc, Id } from "@/lib/convex";
 import { palette, spacing } from "@/lib/theme/designSystem";
 import { MessageBubble } from "./MessageBubble";
 
@@ -26,7 +26,7 @@ function MessageListComponent({
   onRegenerate,
   onBranch,
 }: MessageListProps) {
-  const listRef = useRef<FlashList<Message>>(null);
+  const listRef = useRef<any>(null);
   const prevLengthRef = useRef(0);
 
   // Combine real messages with optimistic ones
@@ -69,7 +69,6 @@ function MessageListComponent({
         data={allMessages}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        estimatedItemSize={100}
         drawDistance={250}
         getItemType={(item) => item.role}
         onContentSizeChange={handleContentSizeChange}

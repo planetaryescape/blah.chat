@@ -1,7 +1,7 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import type { NextRequest } from "next/server";
-import { getConvexClient } from "@/lib/api/convex";
+import { getAuthenticatedConvexClient } from "@/lib/api/convex";
 import { withAuth } from "@/lib/api/middleware/auth";
 import { withErrorHandling } from "@/lib/api/middleware/errors";
 import {
@@ -16,9 +16,11 @@ async function getHandler(
   req: NextRequest,
   {
     userId,
+    sessionToken,
   }: {
     params: Promise<Record<string, string | string[]>>;
     userId: string;
+    sessionToken: string;
   },
 ) {
   const startTime = Date.now();
@@ -36,23 +38,27 @@ async function getHandler(
     "GET /api/v1/conversations/stream - SSE stream started",
   );
 
-  const convex = getConvexClient();
+  const convex = getAuthenticatedConvexClient(sessionToken);
 
   // Create SSE connection
   const { response, send, sendError, close, isClosed } = createSSEResponse();
 
   try {
     // Send initial snapshot
-    const initialData = await convex.query(api.conversations.list, {
-      searchQuery,
-      limit,
-      projectId:
-        projectId === "none"
-          ? ("none" as const)
-          : projectId
-            ? (projectId as Id<"projects">)
-            : undefined,
-    });
+    const initialData = (await (convex.query as any)(
+      // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+      api.conversations.list,
+      {
+        searchQuery,
+        limit,
+        projectId:
+          projectId === "none"
+            ? ("none" as const)
+            : projectId
+              ? (projectId as Id<"projects">)
+              : undefined,
+      },
+    )) as any[];
 
     await send("snapshot", {
       conversations: initialData,
@@ -68,16 +74,20 @@ async function getHandler(
       async () => {
         if (isClosed()) return null;
 
-        const conversations = await convex.query(api.conversations.list, {
-          searchQuery,
-          limit,
-          projectId:
-            projectId === "none"
-              ? ("none" as const)
-              : projectId
-                ? (projectId as Id<"projects">)
-                : undefined,
-        });
+        const conversations = (await (convex.query as any)(
+          // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
+          api.conversations.list,
+          {
+            searchQuery,
+            limit,
+            projectId:
+              projectId === "none"
+                ? ("none" as const)
+                : projectId
+                  ? (projectId as Id<"projects">)
+                  : undefined,
+          },
+        )) as any[];
 
         return { conversations };
       },

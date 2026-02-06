@@ -1,6 +1,6 @@
 {
   "name": "blah-chat",
-  "version": "1.17.0",
+  "version": "1.21.0",
   "private": true,
   "packageManager": "bun@1.3.5",
   "workspaces": [
@@ -8,7 +8,6 @@
     "packages/*"
   ],
   "scripts": {
-    "eas-build-pre-install": "rm -f bun.lock bun.lockb",
     "dev": "turbo dev",
     "build": "turbo build",
     "start": "turbo start",
@@ -22,6 +21,10 @@
     "convex:deploy": "bun --filter=@blah-chat/backend run deploy",
     "prepare": "lefthook install",
     "byod:sync": "bun run scripts/sync-byod-schema.ts",
+    "sdk:generate": "bun --filter=@blah-chat/sdk run generate",
+    "sdk:check": "bun run sdk:generate && git diff --exit-code packages/sdk/src/generated/openapi.ts",
+    "sdk:version-check": "bun run scripts/check-sdk-version-bump.ts",
+    "portable:check": "bun run scripts/check-portable-imports.ts",
     "model:add": "bun run scripts/model-cli.ts add",
     "model:list": "bun run scripts/model-cli.ts list",
     "model:get": "bun run scripts/model-cli.ts get",

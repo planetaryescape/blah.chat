@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -39,6 +38,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MarkdownContent } from "@/components/chat/MarkdownContent";
 import { NoteShareSheet, TagInput } from "@/components/notes";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
   useAcceptNoteTag,
@@ -54,6 +54,7 @@ import {
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 const AUTOSAVE_DELAY = 2000;
+type Project = Doc<"projects">;
 
 export default function NoteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -296,7 +297,9 @@ export default function NoteDetailScreen() {
     setIsPreviewMode((prev) => !prev);
   }, []);
 
-  const selectedProject = projects?.find((p) => p._id === note?.projectId);
+  const selectedProject = projects?.find(
+    (p: Project) => p._id === note?.projectId,
+  );
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -823,7 +826,7 @@ export default function NoteDetailScreen() {
           </AnimatedPressable>
 
           {/* Projects */}
-          {projects?.map((project) => {
+          {projects?.map((project: Project) => {
             const isSelected = note.projectId === project._id;
 
             return (

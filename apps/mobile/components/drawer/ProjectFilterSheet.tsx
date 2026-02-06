@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -7,6 +6,7 @@ import { Check, FolderOpen, Inbox } from "lucide-react-native";
 import { useCallback, useMemo, useRef } from "react";
 import { Text, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc } from "@/lib/convex";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 type Project = Doc<"projects">;

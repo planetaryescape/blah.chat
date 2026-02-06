@@ -68,6 +68,9 @@ export function ModelPicker({ current, onSelect }: ModelPickerProps) {
     },
     {} as Record<string, Model[]>,
   );
+  const modelEntries = Object.entries(groupedModels) as Array<
+    [string, Model[]]
+  >;
 
   return (
     <List
@@ -75,7 +78,7 @@ export function ModelPicker({ current, onSelect }: ModelPickerProps) {
       searchBarPlaceholder="Search models..."
       navigationTitle="Select Model"
     >
-      {Object.entries(groupedModels).map(([provider, providerModels]) => (
+      {modelEntries.map(([provider, providerModels]) => (
         <List.Section
           key={provider}
           title={`${PROVIDER_ICONS[provider] || "🤖"} ${provider}`}

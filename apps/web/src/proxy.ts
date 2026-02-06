@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { buildCorsHeaders } from "@/lib/api/cors";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -10,9 +11,21 @@ const isPublicRoute = createRouteMatcher([
   "/terms",
   "/api/webhooks/clerk", // Clerk webhooks
   "/api/code-execution", // Allow Convex internal calls
+  "/api/v1/health",
+  "/api/v1/doc",
+  "/api/v1/openapi.json",
+  "/api/v1/cli(.*)",
 ]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 export default clerkMiddleware(async (auth, req) => {
+  // CORS preflight for cross-origin API clients
+  if (req.nextUrl.pathname.startsWith("/api/v1") && req.method === "OPTIONS") {
+    return new NextResponse(null, {
+      status: 204,
+      headers: buildCorsHeaders(req),
+    });
+  }
+
   const { userId, sessionClaims } = await auth();
 
   // Redirect authenticated users from / to /app
@@ -52,6 +65,16 @@ export default clerkMiddleware(async (auth, req) => {
     // For other protected routes, use protect
     await auth.protect();
   }
+
+  const response = NextResponse.next();
+  if (req.nextUrl.pathname.startsWith("/api/v1")) {
+    const corsHeaders = buildCorsHeaders(req);
+    for (const [key, value] of corsHeaders.entries()) {
+      response.headers.set(key, value);
+    }
+  }
+
+  return response;
 });
 
 export const config = {

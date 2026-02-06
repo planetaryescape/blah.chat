@@ -8,13 +8,19 @@ import { ConvexQueryCacheProvider } from "convex-helpers/react/cache";
 import { AuthStateListener } from "./AuthStateListener";
 import { CacheProvider } from "./cache-provider";
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+const convex = process.env.NEXT_PUBLIC_CONVEX_URL
+  ? new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL)
+  : null;
 
 export function ConvexClerkProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  if (!convex) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL not configured");
+  }
+
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}

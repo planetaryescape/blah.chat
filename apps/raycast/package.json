@@ -1,7 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "blah-chat",
-  "title": "blah.chat",
+  "type": "module",
+  "title": "Blah.chat",
   "description": "AI chat assistant with access to all models",
   "icon": "icon.png",
   "author": "bhekanik",
@@ -13,7 +14,7 @@
   "commands": [
     {
       "name": "ask",
-      "title": "Ask blah",
+      "title": "Ask Blah",
       "subtitle": "blah.chat",
       "description": "Ask a quick question",
       "mode": "view",
@@ -101,17 +102,24 @@
     {
       "name": "convexUrl",
       "title": "Convex URL",
-      "description": "Convex deployment URL (leave empty for default production)",
+      "description": "Convex deployment URL (fallback/default for direct mode)",
       "type": "textfield",
       "required": false,
       "placeholder": "https://your-deployment.convex.cloud"
+    },
+    {
+      "name": "appUrl",
+      "title": "Server URL",
+      "description": "blah.chat server URL for HTTP API (leave empty for production)",
+      "type": "textfield",
+      "required": false,
+      "placeholder": "https://blah.chat"
     }
   ],
   "dependencies": {
     "@raycast/api": "^1.87.0",
     "@raycast/utils": "^2.2.2",
-    "@blah-chat/backend": "workspace:*",
-    "convex": "^1.17.0"
+    "@blah-chat/sdk": "workspace:*"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.11",
@@ -124,10 +132,10 @@
   "scripts": {
     "build": "ray build --skip-types -e dist -o dist",
     "dev": "ray develop",
-    "fix-lint": "ray lint --fix",
-    "lint": "ray lint",
-    "typecheck": "echo 'Raycast typecheck disabled - backend path aliases do not resolve. Build succeeds with --skip-types.'",
+    "fix-lint": "ray lint --relaxed --fix",
+    "lint": "ray lint --relaxed --non-interactive",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
-    "publish": "npx @raycast/api@latest publish"
+    "publish": "bunx @raycast/api@latest publish"
   }
 }

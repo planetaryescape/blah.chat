@@ -11,7 +11,7 @@ permissions:
 jobs:
   update-lockfile:
     name: Update Lockfile
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
 
     steps:

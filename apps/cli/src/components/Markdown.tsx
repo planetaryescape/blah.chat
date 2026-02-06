@@ -1,6 +1,13 @@
 import { getTreeSitterClient, SyntaxStyle } from "@opentui/core";
 
-const treeSitterClient = getTreeSitterClient();
+// Lazily create client to allow env vars to be set first
+let _treeSitterClient: ReturnType<typeof getTreeSitterClient> | null = null;
+function _getClient() {
+  if (!_treeSitterClient) {
+    _treeSitterClient = getTreeSitterClient();
+  }
+  return _treeSitterClient;
+}
 
 const defaultStyle = SyntaxStyle.fromTheme([
   {
@@ -82,7 +89,7 @@ export function Markdown(props: MarkdownProps) {
   return (
     <markdown
       syntaxStyle={defaultStyle}
-      treeSitterClient={treeSitterClient}
+      treeSitterClient={_getClient()}
       streaming={props.isStreaming ?? false}
       content={props.content}
     />

@@ -6,6 +6,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const binDir = dirname(process.execPath);
 const isCompiled = __dirname.startsWith("/$bunfs/");
 
+// Set worker path for compiled binary (Web Workers can't resolve /$bunfs/ paths)
+// Must be set before TreeSitterClient is instantiated
+if (isCompiled) {
+  process.env.OTUI_TREE_SITTER_WORKER_PATH = resolve(
+    binDir,
+    "assets/parser.worker.js",
+  );
+}
+
 const assetsDir = isCompiled
   ? resolve(binDir, "assets/tree-sitter")
   : resolve(__dirname, "../../assets/tree-sitter");

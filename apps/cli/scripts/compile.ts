@@ -177,6 +177,10 @@ for (const target of targets) {
     copyFileSync(src, join(wasmOut, `tree-sitter-${lang}.wasm`));
   }
 
+  // Copy tree-sitter worker file (Web Workers can't be bundled into Bun binary)
+  const workerSrc = require.resolve("@opentui/core/parser.worker.js");
+  copyFileSync(workerSrc, join(dir, "assets", "parser.worker.js"));
+
   // Create archive
   if (target.archiveType === "tar") {
     const archive = `${target.name}.tar.gz`;

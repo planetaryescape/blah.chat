@@ -640,11 +640,6 @@ export const ChatInput = memo(function ChatInput({
                   onCompositionEnd={() => setIsComposing(false)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
-                  onClick={() => {
-                    if (isTouchDevice && textareaRef.current) {
-                      requestAnimationFrame(() => textareaRef.current?.focus());
-                    }
-                  }}
                   placeholder={getPlaceholder()}
                   aria-label="Message input"
                   aria-describedby="input-hint"

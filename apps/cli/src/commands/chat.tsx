@@ -7,7 +7,13 @@ import { ConversationList } from "../components/ConversationList.js";
 import { SearchModal } from "../components/SearchModal.js";
 import { Spinner } from "../components/Spinner.js";
 import { getCredentials } from "../lib/auth.js";
-import { formatError, requireApiKey, requireClient } from "../lib/client.js";
+import {
+  formatError,
+  requireApiKey,
+  requireClient,
+  validateApiKey,
+} from "../lib/client.js";
+import { getConfig } from "../lib/config.js";
 import { createConversation } from "../lib/mutations.js";
 import { getUserDefaultModel } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
@@ -107,6 +113,21 @@ export async function runChatCommand() {
     return;
   }
 
+  try {
+    const user = await validateApiKey();
+    if (!user) {
+      console.log(`${symbols.error} API key invalid or revoked`);
+      console.log("  Run: blah login");
+      return;
+    }
+  } catch (err) {
+    console.log(`${symbols.error} Unable to connect to Convex`);
+    console.log(`  URL: ${getConfig().convexUrl}`);
+    console.log(`  Error: ${formatError(err)}`);
+    console.log("  Run: blah debug");
+    return;
+  }
+
   await render(
     () => (
       <ThemeProvider>
@@ -119,7 +140,7 @@ export async function runChatCommand() {
     ),
     {
       targetFps: 60,
-      exitOnCtrlC: false,
+      exitOnCtrlC: true,
     },
   );
 }

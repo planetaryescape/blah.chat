@@ -54,7 +54,7 @@ function showConfig() {
       value: config.convexUrl,
       source: stored.convexUrl
         ? "user"
-        : process.env.NEXT_PUBLIC_CONVEX_URL || process.env.CONVEX_URL
+        : process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL
           ? "env"
           : "default",
     },

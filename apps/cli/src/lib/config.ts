@@ -2,7 +2,7 @@
  * CLI Configuration Management
  *
  * Hierarchical config priority (highest wins):
- * 1. Environment variables (BLAH_APP_URL, CONVEX_URL)
+ * 1. Environment variables (BLAH_APP_URL, BLAH_CONVEX_URL, CONVEX_URL)
  * 2. User config file (~/.config/blah-chat/config.json)
  * 3. Bundled production defaults
  */
@@ -22,6 +22,8 @@ export interface CLIConfig {
   convexUrl: string; // Convex deployment URL
   environment: Environment;
 }
+
+const CONFIG_KEYS: (keyof CLIConfig)[] = ["appUrl", "convexUrl", "environment"];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Production Defaults (bundled at build time)
@@ -79,8 +81,7 @@ function detectDevelopmentMode(): boolean {
 export function getConfig(): CLIConfig {
   // Environment variables (highest priority)
   const envAppUrl = process.env.BLAH_APP_URL;
-  const envConvexUrl =
-    process.env.NEXT_PUBLIC_CONVEX_URL || process.env.CONVEX_URL;
+  const envConvexUrl = process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL;
 
   // User config file
   const stored = configStore.store;
@@ -139,7 +140,7 @@ export function getConfigFilePath(): string {
  * Check if config has been customized from defaults.
  */
 export function isConfigCustomized(): boolean {
-  return Object.keys(configStore.store).length > 0;
+  return Object.keys(getStoredConfig()).length > 0;
 }
 
 /**
@@ -147,5 +148,15 @@ export function isConfigCustomized(): boolean {
  * Useful for showing what user has explicitly set.
  */
 export function getStoredConfig(): Partial<CLIConfig> {
-  return { ...configStore.store };
+  const stored = configStore.store;
+  const filtered: Partial<CLIConfig> = {};
+
+  for (const key of CONFIG_KEYS) {
+    const value = stored[key];
+    if (value !== undefined) {
+      filtered[key] = value;
+    }
+  }
+
+  return filtered;
 }

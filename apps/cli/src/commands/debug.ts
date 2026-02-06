@@ -20,9 +20,9 @@ export async function runDebugCommand() {
   console.log(`  Environment: ${config.environment}`);
 
   // Check for env overrides
-  if (process.env.NEXT_PUBLIC_CONVEX_URL || process.env.CONVEX_URL) {
+  if (process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL) {
     console.log(
-      `  ${symbols.warning} Convex URL from env: ${process.env.NEXT_PUBLIC_CONVEX_URL || process.env.CONVEX_URL}`,
+      `  ${symbols.warning} Convex URL from env: ${process.env.BLAH_CONVEX_URL || process.env.CONVEX_URL}`,
     );
   }
   if (process.env.BLAH_APP_URL) {

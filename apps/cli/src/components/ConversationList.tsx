@@ -93,6 +93,12 @@ export function ConversationList(props: ConversationListProps) {
 
   // Additional key handlers
   useKeyboard((evt) => {
+    if (evt.name === "q") {
+      evt.preventDefault();
+      props.onQuit();
+      return;
+    }
+
     if (
       state() !== "ready" ||
       dialog() !== "none" ||

@@ -1,4 +1,3 @@
-import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -8,6 +7,7 @@ import { Bookmark } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateBookmark } from "@/lib/hooks/useBookmarks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";

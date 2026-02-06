@@ -1,4 +1,3 @@
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -9,6 +8,7 @@ import { FileText, FolderOpen } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, Text, TextInput, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateNote } from "@/lib/hooks/useNotes";
 import { useProjects } from "@/lib/hooks/useProjects";
@@ -229,7 +229,6 @@ export function SaveAsNoteSheet({
                 key={project._id}
                 onPress={() => {
                   haptic.light();
-                  // @ts-expect-error - Type depth issues with Convex types (85+ modules)
                   setSelectedProjectId(project._id);
                 }}
                 style={{

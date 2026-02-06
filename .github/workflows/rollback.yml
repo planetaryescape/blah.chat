@@ -11,7 +11,7 @@ on:
 jobs:
   rollback-convex:
     name: Rollback Convex Production
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
 
     steps:
@@ -36,7 +36,7 @@ jobs:
 
   rollback-vercel:
     name: Rollback Vercel Production
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: rollback-convex
 
@@ -69,7 +69,7 @@ jobs:
 
   rollback-byod:
     name: Rollback BYOD Instances
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: rollback-vercel
 

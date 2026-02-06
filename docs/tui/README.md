@@ -206,6 +206,14 @@ packages/
 
 **Settings stored in**: `~/.blah/config.json`
 
+### Convex Deployment URL
+
+- Default CLI/Raycast deployment is bundled to production.
+- To use a different deployment (dev/BYOD/custom), set:
+  - `blah config set convexUrl https://your-deployment.convex.cloud`
+- Reset to bundled production default:
+  - `blah config reset`
+
 ## Dependencies
 
 ### Shared Hooks Package

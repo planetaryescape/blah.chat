@@ -31,10 +31,29 @@ export interface Credentials {
 // Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-const config = new Conf<{ credentials?: Credentials }>({
+const authStore = new Conf<{ credentials?: Credentials }>({
   projectName: "blah-chat",
   projectVersion: "1.0.0",
+  configName: "auth", // ~/.config/blah-chat/auth.json
 });
+
+// Legacy shared store (used before auth/config split)
+const legacyConfigStore = new Conf<{ credentials?: Credentials }>({
+  projectName: "blah-chat",
+  projectVersion: "1.0.0",
+  configName: "config", // ~/.config/blah-chat/config.json
+});
+
+function migrateLegacyCredentials(): void {
+  const existing = authStore.get("credentials");
+  if (existing) return;
+
+  const legacy = legacyConfigStore.get("credentials");
+  if (!legacy) return;
+
+  authStore.set("credentials", legacy);
+  legacyConfigStore.delete("credentials");
+}
 
 // Web app URL - resolved via config (env > user config > bundled default)
 function getAppUrl(): string {
@@ -55,7 +74,8 @@ const CALLBACK_PATH = "/oauth/callback";
  * API keys don't expire - revocation is checked at validation time.
  */
 export function getCredentials(): Credentials | null {
-  const creds = config.get("credentials");
+  migrateLegacyCredentials();
+  const creds = authStore.get("credentials");
   if (!creds) return null;
   return creds;
 }
@@ -64,21 +84,23 @@ export function getCredentials(): Credentials | null {
  * Save credentials to local storage.
  */
 export function saveCredentials(credentials: Credentials): void {
-  config.set("credentials", credentials);
+  authStore.set("credentials", credentials);
+  legacyConfigStore.delete("credentials");
 }
 
 /**
  * Clear stored credentials.
  */
 export function clearCredentials(): void {
-  config.delete("credentials");
+  authStore.delete("credentials");
+  legacyConfigStore.delete("credentials");
 }
 
 /**
  * Get the path to the config file.
  */
 export function getConfigPath(): string {
-  return config.path;
+  return authStore.path;
 }
 
 /**

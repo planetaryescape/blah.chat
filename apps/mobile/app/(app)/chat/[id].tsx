@@ -1,5 +1,4 @@
 import { getMobileModels } from "@blah-chat/ai";
-import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import Clipboard from "@react-native-clipboard/clipboard";
 import { toast } from "burnt";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -22,6 +21,7 @@ import {
 } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
   useBranchMessage,
@@ -399,12 +399,13 @@ export default function ChatScreen() {
   // 30s window accommodates slow networks - O(n) via Set lookup
   const DEDUP_WINDOW_MS = 30000;
   const WINDOW_BUCKET = DEDUP_WINDOW_MS;
+  const currentMessages = (messages ?? []) as Message[];
 
   // Build Set of message keys for O(1) lookups
   const messageKeys = useMemo(() => {
-    if (!messages) return new Set<string>();
+    if (currentMessages.length === 0) return new Set<string>();
     return new Set(
-      messages.map((m) => {
+      currentMessages.map((m: Message) => {
         const timeBucket = Math.floor(m.createdAt / WINDOW_BUCKET);
         if (m.role === "user") {
           return `user:${m.content?.slice(0, 50)}:${timeBucket}`;
@@ -412,7 +413,7 @@ export default function ChatScreen() {
         return `assistant:${timeBucket}`;
       }),
     );
-  }, [messages]);
+  }, [currentMessages]);
 
   const filteredOptimistic = useMemo(
     () =>

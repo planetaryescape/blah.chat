@@ -1,8 +1,9 @@
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
+import type { ConvexHttpClient } from "convex/browser";
 import { NextResponse } from "next/server";
+import { getConvexClient } from "@/lib/api/convex";
 import {
   exportToChatGPTFormat,
   generateChatGPTFilename,
@@ -13,8 +14,7 @@ import {
   exportConversationToMarkdown,
   generateMarkdownFilename,
 } from "@/lib/export/markdown";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import logger from "@/lib/logger";
 
 export async function GET(request: Request) {
   const { userId } = await auth();
@@ -27,6 +27,14 @@ export async function GET(request: Request) {
   const conversationId = searchParams.get("conversationId");
 
   try {
+    let convex: ConvexHttpClient;
+    try {
+      convex = getConvexClient();
+    } catch (error) {
+      logger.error({ error }, "Missing NEXT_PUBLIC_CONVEX_URL");
+      return new NextResponse("Internal Server Error", { status: 500 });
+    }
+
     // Get user from Convex
     // @ts-ignore - Type depth exceeded with 94+ Convex modules
     const user: any = await (convex.query as any)(api.users.getCurrentUser, {});

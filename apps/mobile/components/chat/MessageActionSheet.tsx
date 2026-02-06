@@ -1,4 +1,3 @@
-import type { Doc } from "@blah-chat/backend/convex/_generated/dataModel";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
@@ -17,6 +16,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
   useBookmarkByMessage,
@@ -263,7 +263,6 @@ export function MessageActionSheet({
         <BookmarkSheet
           isOpen={showBookmarkSheet}
           onClose={() => setShowBookmarkSheet(false)}
-          // @ts-expect-error - Type depth issues with Convex types (85+ modules)
           messageId={message._id}
         />
       )}

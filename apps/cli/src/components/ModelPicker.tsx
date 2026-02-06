@@ -1,22 +1,10 @@
-/**
- * ModelPicker Component - Select an AI model
- *
- * Features:
- * - Keyboard navigation (j/k, arrows)
- * - Shows model name, provider, and pro indicator
- * - Enter to select, Escape to cancel
- */
-
-import { Box, Text, useInput } from "ink";
-import Spinner from "ink-spinner";
-import { useEffect, useState } from "react";
+import { useKeyboard } from "@opentui/solid";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { useFuzzySearch } from "../hooks/useFuzzySearch.js";
 import { formatError, requireApiKey, requireClient } from "../lib/client.js";
 import { listModels, type Model } from "../lib/queries.js";
 import { symbols } from "../lib/terminal.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+import { Spinner } from "./Spinner.js";
 
 interface ModelPickerProps {
   currentModel?: string;
@@ -24,229 +12,245 @@ interface ModelPickerProps {
   onCancel: () => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
+type DisplayItem =
+  | { type: "header"; provider: string }
+  | { type: "model"; model: Model };
 
-export function ModelPicker({
-  currentModel,
-  onSelect,
-  onCancel,
-}: ModelPickerProps) {
-  const [models, setModels] = useState<Model[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function ModelPicker(props: ModelPickerProps) {
+  const [models, setModels] = createSignal<Model[]>([]);
+  const [selectedIndex, setSelectedIndex] = createSignal(0);
+  const [isLoading, setIsLoading] = createSignal(true);
+  const [error, setError] = createSignal<string | null>(null);
 
-  // Load available models
-  useEffect(() => {
-    async function load() {
+  const { setQuery, results, isSearching } = useFuzzySearch({
+    items: models,
+    getSearchText: (m) => `${m.name} ${m.provider}`,
+  });
+
+  // Load models
+  createEffect(() => {
+    (async () => {
       try {
         const client = requireClient();
         const apiKey = requireApiKey();
         const modelList = await listModels(client, apiKey);
-        if (modelList) {
-          setModels(modelList);
-          // Set initial selection to current model if provided
-          if (currentModel) {
-            const idx = modelList.findIndex((m) => m.id === currentModel);
-            if (idx >= 0) {
-              setSelectedIndex(idx);
-            }
-          }
-        }
+        if (modelList) setModels(modelList);
       } catch (err) {
         setError(formatError(err));
       } finally {
         setIsLoading(false);
       }
+    })();
+  });
+
+  // Reset selection when results change
+  createEffect(() => {
+    results();
+    setSelectedIndex(0);
+  });
+
+  // Build display list: grouped with headers when not searching, flat when searching
+  const displayItems = createMemo<DisplayItem[]>(() => {
+    const r = results();
+    if (isSearching()) {
+      return r.map((model) => ({ type: "model" as const, model }));
     }
-    load();
-  }, [currentModel]);
 
-  // Handle keyboard input
-  useInput(
-    (input, key) => {
-      if (isLoading) return;
+    // Group by provider, current model's provider first
+    const grouped = new Map<string, Model[]>();
+    for (const model of r) {
+      const existing = grouped.get(model.provider);
+      if (existing) existing.push(model);
+      else grouped.set(model.provider, [model]);
+    }
 
-      // Navigation
-      if (key.downArrow || input === "j") {
-        setSelectedIndex((i) => Math.min(i + 1, models.length - 1));
-        return;
+    const currentProvider = props.currentModel?.split(":")[0]?.toLowerCase();
+    const providers = [...grouped.keys()].sort((a, b) => {
+      const aMatch = currentProvider && a.toLowerCase() === currentProvider;
+      const bMatch = currentProvider && b.toLowerCase() === currentProvider;
+      if (aMatch && !bMatch) return -1;
+      if (bMatch && !aMatch) return 1;
+      return a.localeCompare(b);
+    });
+
+    const items: DisplayItem[] = [];
+    for (const provider of providers) {
+      items.push({ type: "header", provider });
+      for (const model of grouped.get(provider)!) {
+        items.push({ type: "model", model });
       }
+    }
+    return items;
+  });
 
-      if (key.upArrow || input === "k") {
-        setSelectedIndex((i) => Math.max(i - 1, 0));
-        return;
-      }
-
-      // Page navigation
-      if (key.pageDown) {
-        setSelectedIndex((i) => Math.min(i + 5, models.length - 1));
-        return;
-      }
-
-      if (key.pageUp) {
-        setSelectedIndex((i) => Math.max(i - 5, 0));
-        return;
-      }
-
-      // Home/End
-      if (input === "g") {
-        setSelectedIndex(0);
-        return;
-      }
-
-      if (input === "G") {
-        setSelectedIndex(models.length - 1);
-        return;
-      }
-
-      // Select
-      if (key.return) {
-        const selected = models[selectedIndex];
-        if (selected) {
-          onSelect(selected.id);
-        }
-        return;
-      }
-
-      // Cancel
-      if (key.escape || input === "q") {
-        onCancel();
-        return;
-      }
-    },
-    { isActive: !isLoading },
+  // Indices of navigable (model) items within displayItems
+  const navigableIndices = createMemo(() =>
+    displayItems()
+      .map((item, i) => (item.type === "model" ? i : -1))
+      .filter((i) => i !== -1),
   );
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box>
-          <Text color="cyan">
-            <Spinner type="dots" />
-          </Text>
-          <Text> Loading models...</Text>
-        </Box>
-      </Box>
-    );
-  }
+  // Map selectedIndex (into navigable list) to actual displayItems index
+  const selectedDisplayIndex = createMemo(() => {
+    const indices = navigableIndices();
+    const idx = selectedIndex();
+    return indices[Math.min(idx, indices.length - 1)] ?? -1;
+  });
 
-  // Error state
-  if (error) {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box>
-          <Text color="red">{symbols.error} </Text>
-          <Text color="red">{error}</Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text dimColor>Press Escape to go back</Text>
-        </Box>
-      </Box>
-    );
-  }
+  useKeyboard((evt) => {
+    if (isLoading()) return;
 
-  // Calculate visible window
-  const windowSize = 10;
-  const halfWindow = Math.floor(windowSize / 2);
-  const startIndex = Math.max(0, selectedIndex - halfWindow);
-  const endIndex = Math.min(models.length, startIndex + windowSize);
-  const visibleModels = models.slice(startIndex, endIndex);
+    const maxNav = navigableIndices().length - 1;
+
+    if (evt.name === "down" || (evt.ctrl && evt.name === "n")) {
+      evt.preventDefault();
+      setSelectedIndex((i) => Math.min(i + 1, maxNav));
+      return;
+    }
+    if (evt.name === "up" || (evt.ctrl && evt.name === "p")) {
+      evt.preventDefault();
+      setSelectedIndex((i) => Math.max(i - 1, 0));
+      return;
+    }
+    if (evt.name === "return") {
+      evt.preventDefault();
+      const dispIdx = selectedDisplayIndex();
+      const item = displayItems()[dispIdx];
+      if (item?.type === "model") props.onSelect(item.model.id);
+      return;
+    }
+    if (evt.name === "escape") {
+      evt.preventDefault();
+      props.onCancel();
+      return;
+    }
+  });
 
   return (
-    <Box flexDirection="column" padding={1}>
-      {/* Header */}
-      <Box
-        marginBottom={1}
-        borderStyle="single"
-        borderColor="cyan"
-        paddingX={1}
-      >
-        <Text bold color="cyan">
-          Select Model
-        </Text>
-        <Box flexGrow={1} />
-        <Text dimColor>({models.length} available)</Text>
-      </Box>
+    <box flexDirection="column" padding={1}>
+      <Show when={isLoading()}>
+        <Spinner label="Loading models..." />
+      </Show>
 
-      {/* Current model indicator */}
-      {currentModel && (
-        <Box marginBottom={1} paddingX={1}>
-          <Text dimColor>Current: </Text>
-          <Text color="yellow">{currentModel}</Text>
-        </Box>
-      )}
+      <Show when={error()}>
+        <box>
+          <text fg="red">
+            {symbols.error} {error()}
+          </text>
+        </box>
+        <box marginTop={1}>
+          <text fg="#a1a1aa">Press Escape to go back</text>
+        </box>
+      </Show>
 
-      {/* Scroll indicator (top) */}
-      {startIndex > 0 && (
-        <Box justifyContent="center">
-          <Text dimColor>
-            {symbols.arrowUp} {startIndex} more
-          </Text>
-        </Box>
-      )}
+      <Show when={!isLoading() && !error()}>
+        {/* Header */}
+        <box paddingLeft={4} paddingRight={4}>
+          <text fg="#808080">{`(${results().length} available)`}</text>
+          <box flexGrow={1} />
+          <text fg="#808080">esc</text>
+        </box>
 
-      {/* Model list */}
-      <Box flexDirection="column">
-        {visibleModels.map((model, i) => {
-          const actualIndex = startIndex + i;
-          const isSelected = actualIndex === selectedIndex;
-          const isCurrent = model.id === currentModel;
+        {/* Search input */}
+        <box marginBottom={1} paddingLeft={4}>
+          <input
+            onInput={(e: string) => setQuery(e)}
+            placeholder="Type to search..."
+            ref={(r: any) => {
+              setTimeout(() => {
+                if (r && !r.isDestroyed) r.focus();
+              }, 1);
+            }}
+          />
+        </box>
 
-          return (
-            <Box
-              key={model.id}
-              paddingX={1}
-              borderStyle={isSelected ? "single" : undefined}
-              borderColor={isSelected ? "cyan" : undefined}
-            >
-              {/* Selection indicator */}
-              <Text color={isSelected ? "cyan" : "gray"}>
-                {isSelected ? symbols.chevronRight : " "}
-              </Text>
-              <Text> </Text>
+        <Show when={props.currentModel}>
+          <box marginBottom={1} paddingLeft={2}>
+            <text fg="#fab283">{props.currentModel}</text>
+          </box>
+        </Show>
 
-              {/* Current indicator */}
-              <Text color={isCurrent ? "green" : undefined}>
-                {isCurrent ? symbols.active : symbols.pending}
-              </Text>
-              <Text> </Text>
+        {/* Model list */}
+        <Show
+          when={navigableIndices().length > 0}
+          fallback={
+            <box paddingLeft={1}>
+              <text fg="#a1a1aa">
+                {isSearching() ? "No matches found" : "No models available"}
+              </text>
+            </box>
+          }
+        >
+          <scrollbox flexGrow={1}>
+            <For each={displayItems()}>
+              {(item, i) => {
+                if (item.type === "header") {
+                  return (
+                    <box paddingLeft={2} marginTop={i() > 0 ? 1 : 0}>
+                      <text fg="#9d7cd8" attributes={1}>
+                        {item.provider}
+                      </text>
+                    </box>
+                  );
+                }
 
-              {/* Model name */}
-              <Box flexGrow={1}>
-                <Text color={isSelected ? "cyan" : undefined} bold={isSelected}>
-                  {model.name}
-                </Text>
-              </Box>
+                const isSelected = () => i() === selectedDisplayIndex();
+                const isCurrent = () => item.model.id === props.currentModel;
 
-              {/* Provider */}
-              <Text dimColor>{model.provider}</Text>
+                return (
+                  <box
+                    paddingLeft={isCurrent() ? 2 : isSearching() ? 2 : 4}
+                    paddingRight={1}
+                    backgroundColor={isSelected() ? "#fab283" : undefined}
+                  >
+                    <Show when={isCurrent()}>
+                      <text fg={isSelected() ? "#1a1a2e" : "#fab283"}>
+                        {symbols.active}{" "}
+                      </text>
+                    </Show>
+                    <box flexGrow={1}>
+                      <text
+                        fg={isSelected() ? "#1a1a2e" : "#eeeeee"}
+                        attributes={isSelected() ? 1 : 0}
+                      >
+                        {item.model.name}
+                      </text>
+                      <Show when={isSearching()}>
+                        <text fg={isSelected() ? "#1a1a2e" : "#808080"}>
+                          {" "}
+                          {item.model.provider}
+                        </text>
+                      </Show>
+                    </box>
+                    <Show when={item.model.isPro}>
+                      <text fg={isSelected() ? "#1a1a2e" : "#fbbf24"}>
+                        {" "}
+                        {symbols.star}
+                      </text>
+                    </Show>
+                  </box>
+                );
+              }}
+            </For>
+          </scrollbox>
+        </Show>
 
-              {/* Pro indicator */}
-              {model.isPro && <Text color="yellow"> {symbols.star}</Text>}
-            </Box>
-          );
-        })}
-      </Box>
-
-      {/* Scroll indicator (bottom) */}
-      {endIndex < models.length && (
-        <Box justifyContent="center">
-          <Text dimColor>
-            {symbols.arrowDown} {models.length - endIndex} more
-          </Text>
-        </Box>
-      )}
-
-      {/* Help bar */}
-      <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
-        <Text dimColor>
-          {symbols.chevronRight} ↑↓/jk nav | Enter select | q cancel
-        </Text>
-      </Box>
-    </Box>
+        {/* Help bar */}
+        <box paddingLeft={4} paddingRight={2} paddingTop={1}>
+          <text fg="#808080" attributes={1}>
+            {"\u2191\u2193"}
+          </text>
+          <text fg="#808080"> navigate {symbols.bullet} </text>
+          <text fg="#808080" attributes={1}>
+            Enter
+          </text>
+          <text fg="#808080"> select {symbols.bullet} </text>
+          <text fg="#808080" attributes={1}>
+            Esc
+          </text>
+          <text fg="#808080"> cancel</text>
+        </box>
+      </Show>
+    </box>
   );
 }

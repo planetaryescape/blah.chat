@@ -1,15 +1,17 @@
+import { type BlahClient, createBlahClient } from "@blah-chat/sdk";
 import { getPreferenceValues } from "@raycast/api";
-import { ConvexHttpClient } from "convex/browser";
 
-const DEFAULT_CONVEX_URL = "https://intent-coyote-706.convex.cloud";
+const DEFAULT_CONVEX_URL = "https://compassionate-bee-117.convex.cloud";
+const DEFAULT_APP_URL = "https://blah.chat";
 
 interface Preferences {
   apiKey: string;
   convexUrl?: string;
+  appUrl?: string;
 }
 
-let client: ConvexHttpClient | null = null;
-let currentConvexUrl: string | null = null;
+let client: BlahClient | null = null;
+let currentCacheKey: string | null = null;
 
 export function getApiKey(): string {
   return getPreferenceValues<Preferences>().apiKey;
@@ -20,12 +22,23 @@ export function getConvexUrl(): string {
   return prefs.convexUrl?.trim() || DEFAULT_CONVEX_URL;
 }
 
-export function getClient(): ConvexHttpClient {
-  const url = getConvexUrl();
-  // Recreate client if URL changed
-  if (!client || currentConvexUrl !== url) {
-    client = new ConvexHttpClient(url);
-    currentConvexUrl = url;
+export function getAppUrl(): string {
+  const prefs = getPreferenceValues<Preferences>();
+  return prefs.appUrl?.trim() || DEFAULT_APP_URL;
+}
+
+export function getClient(): BlahClient {
+  const baseUrl = getAppUrl();
+  const apiKey = getApiKey();
+  const cacheKey = `${baseUrl}::${apiKey}`;
+
+  if (!client || currentCacheKey !== cacheKey) {
+    client = createBlahClient({
+      baseUrl,
+      apiKey,
+    });
+    currentCacheKey = cacheKey;
   }
+
   return client;
 }

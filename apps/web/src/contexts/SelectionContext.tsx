@@ -38,7 +38,7 @@ const EMPTY_SELECTION: SelectionState = {
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<SelectionState>(EMPTY_SELECTION);
-  const { isMobile } = useMobileDetect();
+  const { isMobile, isTouchDevice } = useMobileDetect();
   const lastSelectionTimeRef = useRef<number>(0);
   const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -48,7 +48,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
 
   const clearSelection = useCallback(() => {
     setSelection(EMPTY_SELECTION);
-    if (isMobile) {
+    if (isMobile || isTouchDevice) {
       return;
     }
     const activeElement = document.activeElement as HTMLElement | null;
@@ -61,12 +61,12 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     }
     // Clear browser's native text selection
     window.getSelection()?.removeAllRanges();
-  }, [isMobile]);
+  }, [isMobile, isTouchDevice]);
 
   const handleSelectionChange = useCallback(
     (mouseEvent: MouseEvent) => {
       // Skip on mobile devices - use native selection
-      if (isMobile) {
+      if (isMobile || isTouchDevice) {
         clearSelectionState();
         return;
       }
@@ -154,11 +154,11 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
         });
       }, 150); // 150ms delay to stabilize selection after mouseup
     },
-    [isMobile, clearSelection, clearSelectionState],
+    [isMobile, isTouchDevice, clearSelection, clearSelectionState],
   );
 
   useEffect(() => {
-    if (isMobile) {
+    if (isMobile || isTouchDevice) {
       return;
     }
 
@@ -201,7 +201,13 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [isMobile, handleSelectionChange, selection.isActive, clearSelection]);
+  }, [
+    isMobile,
+    isTouchDevice,
+    handleSelectionChange,
+    selection.isActive,
+    clearSelection,
+  ]);
 
   return (
     <SelectionContext.Provider value={{ selection, clearSelection }}>

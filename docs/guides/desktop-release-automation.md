@@ -16,6 +16,11 @@ This repo now supports automated desktop releases with no manual tag cutting.
    - `apps/desktop/src-tauri/tauri.conf.json`
    - `apps/desktop/src-tauri/Cargo.toml`
 
+Local build note:
+
+1. `apps/desktop` default `build` runs with `--no-bundle` for fast CI/pre-push stability.
+2. Release workflow uses `build:bundle` for signed/notarized DMG + updater artifacts.
+
 ## One-time setup
 
 ### 1) Apple signing cert secret

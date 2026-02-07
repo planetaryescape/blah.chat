@@ -7,8 +7,13 @@ on:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - uses: googleapis/release-please-action@v4
         with:
-          release-type: node
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json

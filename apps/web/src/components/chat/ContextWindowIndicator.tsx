@@ -1,5 +1,7 @@
 "use client";
 
+import { isAutoModel } from "@blah-chat/ai/models";
+import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
@@ -9,8 +11,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { isAutoModel } from "@/lib/ai/models";
-import { getModelConfig } from "@/lib/ai/utils";
 
 interface ContextWindowIndicatorProps {
   conversationId: Id<"conversations">;

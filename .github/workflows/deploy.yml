@@ -3,13 +3,16 @@ name: Deploy Convex Staging
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
   push:
     branches: [main]
 
 jobs:
   dry-run:
     name: Convex Dry Run
-    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    if: >
+      (github.event_name == 'pull_request' && github.actor != 'dependabot[bot]') ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: staging
 

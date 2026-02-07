@@ -20,7 +20,7 @@ export const analyzeVideo = internalAction({
     question: v.string(),
   },
   handler: async (_ctx, { url }) => {
-    // TODO: Implement when @/lib/ai/* imports are fixed for Convex backend
+    // TODO: Implement once shared AI imports are finalized for Convex backend
     logger.warn("Tool not implemented - imports need to be fixed", {
       tag: "YouTubeVideo",
     });

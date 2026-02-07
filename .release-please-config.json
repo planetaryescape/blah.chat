@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "include-component-in-tag": false
+    },
+    "packages/sdk": {
+      "release-type": "node",
+      "component": "sdk",
+      "package-name": "@blah-chat/sdk",
+      "include-component-in-tag": true
+    },
+    "apps/cli": {
+      "release-type": "simple",
+      "component": "cli",
+      "include-component-in-tag": true
+    },
+    "apps/desktop": {
+      "release-type": "simple",
+      "component": "desktop",
+      "include-component-in-tag": true
+    }
+  }
+}

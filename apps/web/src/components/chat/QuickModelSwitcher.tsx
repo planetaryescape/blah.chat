@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  AUTO_MODEL,
+  isAutoModel,
+  type ModelConfig,
+} from "@blah-chat/ai/models";
+import { getModelsByProvider } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import commandScore from "command-score";
 import { useQuery } from "convex/react";
@@ -20,9 +26,7 @@ import { useFavoriteModels } from "@/hooks/useFavoriteModels";
 import { useRecentModels } from "@/hooks/useRecentModels";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import { MODEL_CATEGORIES } from "@/lib/ai/categories";
-import { AUTO_MODEL, isAutoModel, type ModelConfig } from "@/lib/ai/models";
 import { sortModels } from "@/lib/ai/sortModels";
-import { getModelsByProvider } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useApiKeyValidation } from "@/lib/hooks/useApiKeyValidation";
 import { useModels } from "@/lib/models/repository";

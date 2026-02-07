@@ -1,9 +1,9 @@
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { TAG_EXTRACTION_MODEL } from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { TAG_EXTRACTION_MODEL } from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation } from "../_generated/server";

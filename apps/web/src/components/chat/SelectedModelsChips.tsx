@@ -1,9 +1,9 @@
 "use client";
 
+import type { ModelConfig } from "@blah-chat/ai/utils";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ModelConfig } from "@/lib/ai/utils";
 
 interface SelectedModelsChipsProps {
   selectedIds: string[];

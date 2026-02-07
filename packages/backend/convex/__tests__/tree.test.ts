@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { convexTest } from "../../__tests__/testSetup";
+import type { Id } from "../_generated/dataModel";
 import {
   createTestConversationData,
   createTestMessageData,
   createTestUserData,
-} from "@/lib/test/factories";
-import { convexTest } from "../../__tests__/testSetup";
-import type { Id } from "../_generated/dataModel";
+} from "../lib/test/factories";
 import {
   buildTree,
   deactivateSubtree,

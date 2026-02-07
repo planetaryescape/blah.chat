@@ -1,25 +1,25 @@
 "use node";
 
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import type { ModelConfig } from "@blah-chat/ai/models";
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { MODEL_TRIAGE_PROMPT } from "@blah-chat/ai/prompts/modelTriage";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost } from "@blah-chat/ai/utils";
+import {
+  MODEL_PROFILES,
+  ROUTER_CLASSIFICATION_PROMPT,
+  TASK_CATEGORIES,
+  type TaskCategoryId,
+} from "@blah-chat/auto-router";
 import { generateObject, generateText } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import type { ModelConfig } from "@/lib/ai/models";
-import { MODEL_CONFIG } from "@/lib/ai/models";
-import { getModel } from "@/lib/ai/registry";
-import { calculateCost } from "@/lib/ai/utils";
-import { MODEL_TRIAGE_PROMPT } from "@/lib/prompts/modelTriage";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { action, internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";
-import {
-  MODEL_PROFILES,
-  TASK_CATEGORIES,
-  type TaskCategoryId,
-} from "./modelProfiles";
-import { ROUTER_CLASSIFICATION_PROMPT } from "./routerPrompts";
 
 /**
  * Cost threshold for triggering triage analysis

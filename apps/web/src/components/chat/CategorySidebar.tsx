@@ -1,7 +1,7 @@
 "use client";
 
+import type { ModelConfig } from "@blah-chat/ai/utils";
 import { countModelsInCategory, MODEL_CATEGORIES } from "@/lib/ai/categories";
-import type { ModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 
 interface CategorySidebarProps {

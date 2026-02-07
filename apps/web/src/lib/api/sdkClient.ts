@@ -1,6 +1,7 @@
 import { createBlahClient } from "@blah-chat/sdk";
 import { useAuth } from "@clerk/nextjs";
 import { useMemo } from "react";
+import { getDesktopClientHeaders } from "@/lib/platform/desktopShell";
 
 function getBaseUrl(): string {
   if (typeof window !== "undefined") {
@@ -18,6 +19,7 @@ export function useSDKClient() {
       createBlahClient({
         baseUrl: getBaseUrl(),
         getAccessToken: getToken,
+        headers: getDesktopClientHeaders(),
       }),
     [getToken],
   );

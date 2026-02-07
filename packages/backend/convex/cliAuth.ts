@@ -7,8 +7,8 @@
  * Uses Web Crypto API (works in Convex runtime, no "use node" needed)
  */
 
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { v } from "convex/values";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalQuery, mutation, query } from "./_generated/server";

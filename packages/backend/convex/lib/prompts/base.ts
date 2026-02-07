@@ -1,4 +1,4 @@
-import type { ModelConfig } from "@/lib/ai/models";
+import type { ModelConfig } from "@blah-chat/ai/models";
 import type { MemoryExtractionLevel } from "./operational/memoryExtraction";
 import { VISUAL_FORMATTING_PROMPT } from "./operational/visualFormatting";
 

@@ -1,5 +1,5 @@
+import { BYOD_SCHEMA_VERSION } from "@blah-chat/shared/byod";
 import { v } from "convex/values";
-import { BYOD_SCHEMA_VERSION } from "@/lib/byod/version";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { action, query } from "../_generated/server";

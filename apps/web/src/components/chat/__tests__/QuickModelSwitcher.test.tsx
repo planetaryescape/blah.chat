@@ -35,7 +35,7 @@ vi.mock("@/lib/analytics", () => ({
 }));
 
 // Mock models - provide minimal set
-vi.mock("@/lib/ai/utils", () => ({
+vi.mock("@blah-chat/ai/utils", () => ({
   getModelsByProvider: () => ({
     openai: [
       { id: "openai:gpt-4o", name: "GPT-4o", provider: "openai", isPro: false },

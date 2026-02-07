@@ -1,12 +1,12 @@
 "use node";
 
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
+import { buildReasoningOptions } from "@blah-chat/ai/reasoning";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost, getModelConfig } from "@blah-chat/ai/utils";
 import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { MODEL_CONFIG } from "@/lib/ai/models";
-import { buildReasoningOptions } from "@/lib/ai/reasoning";
-import { getModel } from "@/lib/ai/registry";
-import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";

@@ -7,7 +7,7 @@
  */
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
-import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
+import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
 import { useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";

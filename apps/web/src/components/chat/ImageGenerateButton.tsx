@@ -1,5 +1,6 @@
 "use client";
 
+import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useAction, useMutation } from "convex/react";
@@ -24,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MODEL_CONFIG } from "@/lib/ai/models";
 import { analytics } from "@/lib/analytics";
 import { QuickModelSwitcher } from "./QuickModelSwitcher";
 

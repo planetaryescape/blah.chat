@@ -1,5 +1,5 @@
+import { normalizeTagSlug } from "@blah-chat/shared/utils";
 import { v } from "convex/values";
-import { normalizeTagSlug } from "@/lib/utils/tagUtils";
 import type { QueryCtx } from "../_generated/server";
 import { query } from "../_generated/server";
 

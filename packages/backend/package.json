@@ -25,7 +25,7 @@
     "@ai-sdk/gateway": "^3.0.2",
     "@ai-sdk/google": "^3.0.1",
     "@ai-sdk/openai": "^3.0.1",
-    "@anthropic-ai/sdk": "^0.71.2",
+    "@anthropic-ai/sdk": "^0.73.0",
     "@composio/core": "^0.5.5",
     "@composio/vercel": "^0.6.2",
     "@convex-dev/resend": "^0.2.3",

@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.22.0](https://github.com/planetaryescape/blah.chat/compare/v1.21.0...v1.22.0) (2026-02-07)
+
+
+### Features
+
+* add desktop app shell and automated release pipeline ([6dddde1](https://github.com/planetaryescape/blah.chat/commit/6dddde1e62a3d520e3d3e4a856f88e10ff74fe4c))
+* **api:** harden authz and portable SSE ([3467a01](https://github.com/planetaryescape/blah.chat/commit/3467a014321477240fa8884a25959f6b1b4ecfe1))
+* **clients:** migrate clients to SDK transport ([864908c](https://github.com/planetaryescape/blah.chat/commit/864908c29f8957c854c28b0e98f7b5771164bd66))
+* **sdk:** add publish-ready typed SDK ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
+
+
+### Bug Fixes
+
+* add head_sha fallback for dependabot PR lookup ([f47ad3a](https://github.com/planetaryescape/blah.chat/commit/f47ad3a25bc1843ca477fe34d7ba3a7cf0c84880))
+* **ci:** fallback portable check when rg missing ([de77b42](https://github.com/planetaryescape/blah.chat/commit/de77b427ab1d440253b7bd5b04ada88e30b3666a))
+* **ci:** handle shallow sdk version check ([998441c](https://github.com/planetaryescape/blah.chat/commit/998441c2931e35f2f60724a97e550eee1306df8e))
+* **ci:** stabilize failing PR checks ([cc2412f](https://github.com/planetaryescape/blah.chat/commit/cc2412f40e66e4d8c3be060b60a0e392ca3e70b6))
+* detect dependabot PR number from workflow_run payload ([4f2dc10](https://github.com/planetaryescape/blah.chat/commit/4f2dc1035b052ffe1be1f11ffdea403f2904f3f0))
+* **raycast:** relax lint for bun-only workspace ([1f50881](https://github.com/planetaryescape/blah.chat/commit/1f5088133d507159514cc83fbb67f98e570b9d05))
+* repair dependabot merge automation ([b1e1ee6](https://github.com/planetaryescape/blah.chat/commit/b1e1ee6542c9e509a49baa5be5c82403fafee812))
+* skip desktop build on non-mac CI hosts ([60fe91e](https://github.com/planetaryescape/blah.chat/commit/60fe91e009ce38e39717c0ac0cfab2d89f6800a7))
+* stabilize desktop build and updater defaults ([00f91cf](https://github.com/planetaryescape/blah.chat/commit/00f91cf01701a6a78ebbed1daf65f3b0aff2c097))
+* stabilize iOS mobile chat input focus ([4e920ab](https://github.com/planetaryescape/blah.chat/commit/4e920ab9a5565a0c4b4d7fe73a5818b1e5c7f2dd))
+
 ## [1.22.0](https://github.com/planetaryescape/blah.chat/compare/v1.21.0...v1.22.0) (2026-02-06)
 
 

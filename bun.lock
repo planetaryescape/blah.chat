@@ -381,7 +381,7 @@
         "@blah-chat/ai": "workspace:*",
         "@blah-chat/auto-router": "workspace:*",
         "@blah-chat/shared": "workspace:*",
-        "@composio/core": "^0.5.5",
+        "@composio/core": "^0.6.3",
         "@composio/vercel": "^0.6.2",
         "@convex-dev/resend": "^0.2.3",
         "@e2b/code-interpreter": "^2.3.3",
@@ -782,9 +782,9 @@
 
     "@composio/client": ["@composio/client@0.1.0-alpha.56", "", {}, "sha512-hNgChB5uhdvT4QXNzzfUuvtG6vrfanQQFY2hPyKwbeR4x6mEmIGFiZ4y2qynErdUWldAZiB/7pY/MBMg6Q9E0g=="],
 
-    "@composio/core": ["@composio/core@0.5.5", "", { "dependencies": { "@composio/client": "0.1.0-alpha.56", "@composio/json-schema-to-zod": "0.1.19", "@types/json-schema": "^7.0.15", "chalk": "^4.1.2", "openai": "^6.16.0", "pusher-js": "^8.4.0", "semver": "^7.7.2", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "zod": "^3.25 || ^4" } }, "sha512-W5G+3yrP6MyHICwHkBvWI9EQwYxALGy/xpTW8zwgvcz1tE5sncTbOI6XZJTOMjmpCEIYgI4OjGR2WVHrn/vWHQ=="],
+    "@composio/core": ["@composio/core@0.6.3", "", { "dependencies": { "@composio/client": "0.1.0-alpha.56", "@composio/json-schema-to-zod": "0.1.20", "@types/json-schema": "^7.0.15", "chalk": "^4.1.2", "openai": "^6.16.0", "pusher-js": "^8.4.0", "semver": "^7.7.2", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "zod": "^3.25 || ^4" } }, "sha512-PZm4LQGMaaDFHWUouMHqKPg5fNfgjM2l0zF0Vw/vfWJ34KYyo1ne6YjhGvBDmOIKPByT6Dal4/ff7AHpjedL/w=="],
 
-    "@composio/json-schema-to-zod": ["@composio/json-schema-to-zod@0.1.19", "", { "peerDependencies": { "zod": ">=3.25.76 <4 || >=4.1 <5" } }, "sha512-OynnORVWjsqDv13EvFa4Bb+B1SzBqpkWGi6qXm4vpB3EG65o3T9FbhDCqWB3ZufnMmH1T/NYS526O0lnn2LoCQ=="],
+    "@composio/json-schema-to-zod": ["@composio/json-schema-to-zod@0.1.20", "", { "peerDependencies": { "zod": ">=3.25.76 <5" } }, "sha512-d4V34itLrUWG/VBh7ciznKcxF/T22MBLHmuEzHoX0zsBOHsUmjYz5qtDh20S2p3FE+HHvLZxpXiv8yfdd4yI+Q=="],
 
     "@composio/vercel": ["@composio/vercel@0.6.3", "", { "peerDependencies": { "@composio/core": "0.6.3", "ai": "^5.0.0 || ^6.0.0" } }, "sha512-hwtqufR2mWNwdATsRfrAuWRjPVZG4maRcqWZB4jDLpuIZU1NEBMLmL2Ae7b/QFXvNYXibA4w0Ug8XavV4Zkxlg=="],
 

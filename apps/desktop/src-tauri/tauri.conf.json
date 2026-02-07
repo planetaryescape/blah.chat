@@ -40,7 +40,8 @@
       }
     },
     "updater": {
-      "active": false
+      "active": false,
+      "pubkey": "REPLACE_WITH_DESKTOP_UPDATER_PUBLIC_KEY"
     }
   }
 }

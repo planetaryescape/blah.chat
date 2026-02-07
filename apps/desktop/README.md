@@ -13,6 +13,7 @@ Tauri v2 desktop shell for blah.chat.
 ```bash
 bun --filter=@blah-chat/desktop run dev
 bun --filter=@blah-chat/desktop run build
+bun --filter=@blah-chat/desktop run build:bundle
 source "$HOME/.cargo/env" && cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
 ```
 

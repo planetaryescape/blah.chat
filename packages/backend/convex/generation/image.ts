@@ -1,9 +1,9 @@
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { buildReasoningOptions } from "@blah-chat/ai/reasoning";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost, getModelConfig } from "@blah-chat/ai/utils";
 import { streamText } from "ai";
 import { v } from "convex/values";
-import { getGatewayOptions } from "@/lib/ai/gateway";
-import { buildReasoningOptions } from "@/lib/ai/reasoning";
-import { getModel } from "@/lib/ai/registry";
-import { calculateCost, getModelConfig } from "@/lib/ai/utils";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
 import { logger } from "../lib/logger";

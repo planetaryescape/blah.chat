@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "blah.chat",
+  "version": "0.1.0",
+  "identifier": "chat.blah.desktop",
+  "build": {
+    "beforeDevCommand": "bun --filter=@blah-chat/web run dev",
+    "devUrl": "http://localhost:3000/app",
+    "frontendDist": "https://blah.chat/app"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "blah.chat",
+        "url": "https://blah.chat/app",
+        "width": 1360,
+        "height": 920,
+        "minWidth": 980,
+        "minHeight": 640,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null,
+      "capabilities": ["desktop-shell"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["dmg"],
+    "icon": ["../../raycast/assets/icon.png"]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["blahchat"]
+      }
+    },
+    "updater": {
+      "active": false,
+      "pubkey": "REPLACE_WITH_DESKTOP_UPDATER_PUBLIC_KEY"
+    }
+  }
+}

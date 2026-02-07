@@ -1,12 +1,12 @@
 "use client";
 
+import type { ModelConfig } from "@blah-chat/ai/models";
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
+import { isValidModel } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
-import type { ModelConfig } from "@/lib/ai/models";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
-import { isValidModel } from "@/lib/ai/utils";
 import { useUserPreference } from "./useUserPreference";
 
 interface UseChatModelOptions {

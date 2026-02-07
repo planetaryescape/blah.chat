@@ -8,3 +8,8 @@ export {
   isBYODExcludedField,
 } from "./excluded-fields";
 export { BYOD_TABLES, type BYODTable, isBYODTable } from "./tables";
+export {
+  BYOD_SCHEMA_VERSION,
+  getSchemaVersion,
+  SCHEMA_CHANGELOG,
+} from "./version";

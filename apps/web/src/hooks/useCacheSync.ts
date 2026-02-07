@@ -2,7 +2,7 @@
 
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
-import { PREFERENCE_DEFAULTS } from "@blah-chat/backend/convex/users/constants";
+import { PREFERENCE_DEFAULTS } from "@blah-chat/shared/preferences";
 import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useRef } from "react";

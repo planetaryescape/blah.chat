@@ -1,0 +1,18 @@
+{
+  "name": "@blah-chat/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev --config src-tauri/tauri.conf.json",
+    "build": "if [ \"$(uname -s)\" != \"Darwin\" ]; then echo \"Skipping @blah-chat/desktop build on non-macOS host\"; exit 0; fi; tauri build --no-bundle --config src-tauri/tauri.conf.json",
+    "build:bundle": "tauri build --config src-tauri/tauri.conf.json",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.1"
+  }
+}

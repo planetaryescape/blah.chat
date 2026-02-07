@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_MODEL_ID } from "@blah-chat/ai/operational-models";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { Ghost, Search, Sparkles, Timer } from "lucide-react";
@@ -24,7 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/operational-models";
 
 interface NewIncognitoDialogProps {
   open: boolean;

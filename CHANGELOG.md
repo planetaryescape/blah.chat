@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.22.0](https://github.com/planetaryescape/blah.chat/compare/v1.21.0...v1.22.0) (2026-02-06)
+
+
+### Features
+
+* **api:** harden authz and portable SSE ([3467a01](https://github.com/planetaryescape/blah.chat/commit/3467a014321477240fa8884a25959f6b1b4ecfe1))
+* **clients:** migrate clients to SDK transport ([864908c](https://github.com/planetaryescape/blah.chat/commit/864908c29f8957c854c28b0e98f7b5771164bd66))
+* **sdk:** add publish-ready typed SDK ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
+
+
+### Bug Fixes
+
+* **ci:** fallback portable check when rg missing ([de77b42](https://github.com/planetaryescape/blah.chat/commit/de77b427ab1d440253b7bd5b04ada88e30b3666a))
+* **ci:** handle shallow sdk version check ([998441c](https://github.com/planetaryescape/blah.chat/commit/998441c2931e35f2f60724a97e550eee1306df8e))
+* **ci:** stabilize failing PR checks ([cc2412f](https://github.com/planetaryescape/blah.chat/commit/cc2412f40e66e4d8c3be060b60a0e392ca3e70b6))
+* **raycast:** relax lint for bun-only workspace ([1f50881](https://github.com/planetaryescape/blah.chat/commit/1f5088133d507159514cc83fbb67f98e570b9d05))
+
 ## [1.21.0](https://github.com/planetaryescape/blah.chat/compare/v1.20.1...v1.21.0) (2026-02-06)
 
 

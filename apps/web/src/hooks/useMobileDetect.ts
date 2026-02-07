@@ -10,7 +10,12 @@ export function useMobileDetect() {
     const checkMobile = () => {
       const mobile = window.matchMedia("(max-width: 768px)").matches;
       const touch = window.matchMedia("(pointer: coarse)").matches;
-      setState({ isMobile: mobile, isTouchDevice: touch });
+      setState((prev) => {
+        if (prev.isMobile === mobile && prev.isTouchDevice === touch) {
+          return prev;
+        }
+        return { isMobile: mobile, isTouchDevice: touch };
+      });
     };
 
     checkMobile();

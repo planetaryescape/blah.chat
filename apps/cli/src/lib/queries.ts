@@ -1,8 +1,17 @@
 /**
- * SDK Query wrappers for CLI.
+ * SDK query wrappers for CLI.
  */
 
-import type { BlahClient, Conversation, Message, Model } from "@blah-chat/sdk";
+import type { BlahClient } from "@blah-chat/sdk";
+import type { Conversation, Message, Model } from "@blah-chat/sdk/rpc";
+import {
+  getConversation as getConversationRpc,
+  getUserDefaultModel as getUserDefaultModelRpc,
+  listConversations as listConversationsRpc,
+  listMessages as listMessagesRpc,
+  listModels as listModelsRpc,
+  searchConversations as searchConversationsRpc,
+} from "@blah-chat/sdk/rpc";
 import type { Id } from "./types.js";
 
 export type { Conversation, Message, Model };
@@ -18,56 +27,46 @@ export interface SearchConversationsOptions {
 
 export async function listConversations(
   client: BlahClient,
-  _apiKey: string,
+  apiKey: string,
   options: ListConversationsOptions = {},
 ): Promise<Conversation[] | null> {
-  return client.cliRpc("listConversations", {
-    limit: options.limit,
-  });
+  return listConversationsRpc(client, apiKey, options);
 }
 
 export async function getConversation(
   client: BlahClient,
-  _apiKey: string,
+  apiKey: string,
   conversationId: Id<"conversations">,
 ): Promise<Conversation | null> {
-  return client.cliRpc("getConversation", {
-    conversationId,
-  });
+  return getConversationRpc(client, apiKey, conversationId);
 }
 
 export async function listMessages(
   client: BlahClient,
-  _apiKey: string,
+  apiKey: string,
   conversationId: Id<"conversations">,
 ): Promise<Message[] | null> {
-  return client.cliRpc("listMessages", {
-    conversationId,
-  });
+  return listMessagesRpc(client, apiKey, conversationId);
 }
 
 export async function listModels(
   client: BlahClient,
-  _apiKey: string,
+  apiKey: string,
 ): Promise<Model[] | null> {
-  return client.cliRpc("listModels", undefined);
+  return listModelsRpc(client, apiKey);
 }
 
 export async function getUserDefaultModel(
   client: BlahClient,
-  _apiKey: string,
+  apiKey: string,
 ): Promise<string> {
-  const result = await client.cliRpc("getUserDefaultModel", undefined);
-  return result || "openai:gpt-5-mini";
+  return getUserDefaultModelRpc(client, apiKey);
 }
 
 export async function searchConversations(
   client: BlahClient,
-  _apiKey: string,
+  apiKey: string,
   options: SearchConversationsOptions,
 ): Promise<Conversation[] | null> {
-  return client.cliRpc("searchConversations", {
-    query: options.query,
-    limit: options.limit,
-  });
+  return searchConversationsRpc(client, apiKey, options);
 }

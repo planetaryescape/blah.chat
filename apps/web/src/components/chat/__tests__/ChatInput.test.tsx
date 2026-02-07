@@ -20,8 +20,9 @@ vi.mock("@/lib/hooks/mutations", () => ({
 }));
 
 // Mock hooks that interact with browser APIs
+let mobileDetectState = { isMobile: false, isTouchDevice: false };
 vi.mock("@/hooks/useMobileDetect", () => ({
-  useMobileDetect: () => ({ isMobile: false, isTouchDevice: false }),
+  useMobileDetect: () => mobileDetectState,
 }));
 
 vi.mock("@/hooks/useBrowserFeature", () => ({
@@ -52,6 +53,7 @@ const defaultProps = {
 describe("ChatInput", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mobileDetectState = { isMobile: false, isTouchDevice: false };
   });
 
   it("displays input value when user types", async () => {
@@ -127,6 +129,20 @@ describe("ChatInput", () => {
     render(<ChatInput {...defaultProps} attachments={attachments} />);
 
     expect(screen.getByText("test.pdf")).toBeInTheDocument();
+  });
+
+  it("keeps focus and input value stable on mobile touch typing", async () => {
+    mobileDetectState = { isMobile: true, isTouchDevice: true };
+    const user = userEvent.setup();
+    render(<ChatInput {...defaultProps} />);
+
+    const input = screen.getByLabelText("Message input");
+    await user.click(input);
+    expect(input).toHaveFocus();
+
+    await user.type(input, "Mobile typing");
+    expect(input).toHaveValue("Mobile typing");
+    expect(input).toHaveFocus();
   });
 
   it("removes attachment when remove button is clicked", async () => {

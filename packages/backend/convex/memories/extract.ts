@@ -1,14 +1,14 @@
-import { embedMany, generateObject } from "ai";
-import { v } from "convex/values";
-import { z } from "zod";
-import { getGatewayOptions } from "@/lib/ai/gateway";
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import {
   calculateEmbeddingCost,
   EMBEDDING_MODEL,
   EMBEDDING_PRICING,
   MEMORY_EXTRACTION_MODEL,
-} from "@/lib/ai/operational-models";
-import { getModel } from "@/lib/ai/registry";
+} from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { embedMany, generateObject } from "ai";
+import { v } from "convex/values";
+import { z } from "zod";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalQuery } from "../_generated/server";

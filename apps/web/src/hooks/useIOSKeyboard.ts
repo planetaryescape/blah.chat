@@ -14,7 +14,6 @@ interface UseIOSKeyboardOptions {
 }
 
 const KEYBOARD_THRESHOLD = 150;
-const KEYBOARD_ANIMATION_DELAY = 300;
 
 function isIOS(): boolean {
   if (typeof window === "undefined") return false;
@@ -28,7 +27,7 @@ function isIOS(): boolean {
 export function useIOSKeyboard(
   options: UseIOSKeyboardOptions = {},
 ): IOSKeyboardState {
-  const { inputRef, onKeyboardShow, onKeyboardHide } = options;
+  const { onKeyboardShow, onKeyboardHide } = options;
   const [state, setState] = useState<IOSKeyboardState>({
     keyboardVisible: false,
     keyboardHeight: 0,
@@ -45,18 +44,6 @@ export function useIOSKeyboard(
 
     const viewport = window.visualViewport;
     if (!viewport) return;
-
-    const scrollInputIntoView = () => {
-      if (!inputRef?.current || !mountedRef.current) return;
-
-      setTimeout(() => {
-        if (!mountedRef.current) return;
-        inputRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, KEYBOARD_ANIMATION_DELAY);
-    };
 
     const handleResize = () => {
       if (!mountedRef.current) return;
@@ -79,7 +66,6 @@ export function useIOSKeyboard(
 
         if (keyboardVisible && !wasVisible) {
           onKeyboardShow?.(keyboardHeight);
-          scrollInputIntoView();
         } else if (!keyboardVisible && wasVisible) {
           onKeyboardHide?.();
         }
@@ -87,16 +73,14 @@ export function useIOSKeyboard(
     };
 
     viewport.addEventListener("resize", handleResize);
-    viewport.addEventListener("scroll", handleResize);
 
     handleResize();
 
     return () => {
       mountedRef.current = false;
       viewport.removeEventListener("resize", handleResize);
-      viewport.removeEventListener("scroll", handleResize);
     };
-  }, [inputRef, onKeyboardShow, onKeyboardHide]);
+  }, [onKeyboardShow, onKeyboardHide]);
 
   return state;
 }

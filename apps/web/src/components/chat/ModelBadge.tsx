@@ -1,9 +1,9 @@
 "use client";
 
+import { getModelConfig } from "@blah-chat/ai/utils";
 import { Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getModelIcon } from "@/lib/ai/icons";
-import { getModelConfig } from "@/lib/ai/utils";
 import { cn } from "@/lib/utils";
 
 interface ModelBadgeProps {

@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/nextjs";
+import { getDesktopClientHeaders } from "@/lib/platform/desktopShell";
 import type { ApiResponse } from "./types";
 
 export class ApiClientError extends Error {
@@ -25,6 +26,7 @@ async function fetchWithAuth<T>(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      ...getDesktopClientHeaders(),
       ...options.headers,
     },
   });

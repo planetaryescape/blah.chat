@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { convexTest } from "../../__tests__/testSetup";
+import { internal } from "../_generated/api";
 import {
   createTestConversationData,
   createTestMessageData,
   createTestUserData,
-} from "@/lib/test/factories";
-import { convexTest } from "../../__tests__/testSetup";
-import { internal } from "../_generated/api";
+} from "../lib/test/factories";
 import schema from "../schema";
 
 describe("convex/messages/toolCalls", () => {

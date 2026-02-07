@@ -1,5 +1,6 @@
 "use client";
 
+import { getModelConfig } from "@blah-chat/ai/utils";
 import { api } from "@blah-chat/backend/convex/_generated/api";
 import type { Id } from "@blah-chat/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
@@ -20,7 +21,6 @@ import { useChatInputKeyboard } from "@/hooks/useChatInputKeyboard";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useIOSKeyboard } from "@/hooks/useIOSKeyboard";
 import { useMobileDetect } from "@/hooks/useMobileDetect";
-import { getModelConfig } from "@/lib/ai/utils";
 import { analytics } from "@/lib/analytics";
 import { useSendMessage } from "@/lib/hooks/mutations";
 import { cn } from "@/lib/utils";
@@ -640,11 +640,6 @@ export const ChatInput = memo(function ChatInput({
                   onCompositionEnd={() => setIsComposing(false)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setIsFocused(false)}
-                  onClick={() => {
-                    if (isTouchDevice && textareaRef.current) {
-                      requestAnimationFrame(() => textareaRef.current?.focus());
-                    }
-                  }}
                   placeholder={getPlaceholder()}
                   aria-label="Message input"
                   aria-describedby="input-hint"

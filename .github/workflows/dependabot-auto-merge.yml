@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
+      (github.event.workflow_run.event == 'pull_request' ||
+      github.event.workflow_run.event == 'workflow_dispatch')
 
     steps:
       - name: Checkout
@@ -24,8 +25,13 @@ jobs:
       - name: Get PR number
         id: pr
         run: |
-          PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --json number --jq '.[0].number')
+          PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --json number --jq '.[0].number // ""')
           echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "author=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
           echo "author=$PR_AUTHOR" >> $GITHUB_OUTPUT
@@ -36,7 +42,7 @@ jobs:
 
       - name: Check if dependabot PR
         id: check
-        if: steps.pr.outputs.author == 'dependabot[bot]'
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.author == 'dependabot[bot]'
         run: echo "is_dependabot=true" >> $GITHUB_OUTPUT
 
       - name: Dependabot metadata
@@ -56,7 +62,7 @@ jobs:
 
       - name: Merge patch/minor updates
         if: steps.check.outputs.is_dependabot == 'true' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
-        run: gh pr merge --squash "$PR_NUMBER" --repo "$REPO"
+        run: gh pr merge --auto --rebase "$PR_NUMBER" --repo "$REPO"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}

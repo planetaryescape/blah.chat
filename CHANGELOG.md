@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.22.1](https://github.com/planetaryescape/blah.chat/compare/v1.22.0...v1.22.1) (2026-02-07)
+
+
+### Bug Fixes
+
+* add head_sha fallback for dependabot PR lookup ([f47ad3a](https://github.com/planetaryescape/blah.chat/commit/f47ad3a25bc1843ca477fe34d7ba3a7cf0c84880))
+* detect dependabot PR number from workflow_run payload ([4f2dc10](https://github.com/planetaryescape/blah.chat/commit/4f2dc1035b052ffe1be1f11ffdea403f2904f3f0))
+* preserve mobile chat input caret focus ([7b76569](https://github.com/planetaryescape/blah.chat/commit/7b76569e287ea4d45e88fa526f99436e2c84f9b2))
+
 ## [1.22.0](https://github.com/planetaryescape/blah.chat/compare/v1.21.0...v1.22.0) (2026-02-07)
 
 

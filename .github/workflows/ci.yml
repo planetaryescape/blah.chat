@@ -53,6 +53,9 @@ jobs:
           git fetch origin "$BASE_REF" --depth=1
           bun run sdk:version-check --base "origin/$BASE_REF"
 
+      - name: Enforce desktop version sync
+        run: bun run desktop:version-check
+
       - name: Enforce portable client boundaries
         run: bun run portable:check
 

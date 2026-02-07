@@ -7,6 +7,7 @@
 // BYOD configuration
 export * from "./byod";
 export * from "./canvas";
+export * from "./desktop";
 export * from "./integrations";
 export * from "./limits";
 // Shared domain constants

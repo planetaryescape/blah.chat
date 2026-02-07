@@ -25,6 +25,7 @@
     "sdk:check": "bun run sdk:generate && git diff --exit-code packages/sdk/src/generated/openapi.ts",
     "sdk:version:auto": "bun run scripts/auto-bump-sdk-version.ts",
     "sdk:version-check": "bun run scripts/check-sdk-version-bump.ts",
+    "desktop:version-check": "bun run scripts/check-desktop-version-sync.ts",
     "portable:check": "bun run scripts/check-portable-imports.ts",
     "model:add": "bun run scripts/model-cli.ts add",
     "model:list": "bun run scripts/model-cli.ts list",

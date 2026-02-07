@@ -25,7 +25,7 @@
     "@ai-sdk/google": "^3.0.1",
     "@ai-sdk/groq": "^3.0.0",
     "@ai-sdk/openai": "^3.0.1",
-    "@openrouter/ai-sdk-provider": "^1.5.4",
+    "@openrouter/ai-sdk-provider": "^2.1.1",
     "ai": "^6.0.3",
     "lucide-react": "^0.563.0"
   },

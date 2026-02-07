@@ -42,17 +42,32 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   const lastSelectionTimeRef = useRef<number>(0);
   const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  const clearSelectionState = useCallback(() => {
+    setSelection(EMPTY_SELECTION);
+  }, []);
+
   const clearSelection = useCallback(() => {
     setSelection(EMPTY_SELECTION);
+    if (isMobile) {
+      return;
+    }
+    const activeElement = document.activeElement as HTMLElement | null;
+    if (
+      activeElement?.tagName === "INPUT" ||
+      activeElement?.tagName === "TEXTAREA" ||
+      activeElement?.isContentEditable
+    ) {
+      return;
+    }
     // Clear browser's native text selection
     window.getSelection()?.removeAllRanges();
-  }, []);
+  }, [isMobile]);
 
   const handleSelectionChange = useCallback(
     (mouseEvent: MouseEvent) => {
       // Skip on mobile devices - use native selection
       if (isMobile) {
-        clearSelection();
+        clearSelectionState();
         return;
       }
 
@@ -139,10 +154,14 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
         });
       }, 150); // 150ms delay to stabilize selection after mouseup
     },
-    [isMobile, clearSelection],
+    [isMobile, clearSelection, clearSelectionState],
   );
 
   useEffect(() => {
+    if (isMobile) {
+      return;
+    }
+
     // Listen to mouseup events (only trigger when selection is complete)
     document.addEventListener("mouseup", handleSelectionChange);
 
@@ -182,7 +201,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [handleSelectionChange, selection.isActive, clearSelection]);
+  }, [isMobile, handleSelectionChange, selection.isActive, clearSelection]);
 
   return (
     <SelectionContext.Provider value={{ selection, clearSelection }}>

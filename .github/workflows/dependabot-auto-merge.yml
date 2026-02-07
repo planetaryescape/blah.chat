@@ -25,7 +25,12 @@ jobs:
       - name: Get PR number
         id: pr
         run: |
-          PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --json number --jq '.[0].number // ""')
+          PR_NUMBER=$(jq -r '.workflow_run.pull_requests[0].number // ""' "$GITHUB_EVENT_PATH")
+
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --json number --jq '.[0].number // ""')
+          fi
+
           echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
           if [ -z "$PR_NUMBER" ]; then

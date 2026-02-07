@@ -15,6 +15,11 @@
       "release-type": "simple",
       "component": "cli",
       "include-component-in-tag": true
+    },
+    "apps/desktop": {
+      "release-type": "simple",
+      "component": "desktop",
+      "include-component-in-tag": true
     }
   }
 }

@@ -1,0 +1,65 @@
+name: Release Please Auto-Merge
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge release-please PRs
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve PR metadata
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          PR_NUMBER=$(gh pr list --repo "$REPO" --head "$HEAD_BRANCH" --state open --json number --jq '.[0].number')
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "should_merge=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No open PR for branch $HEAD_BRANCH"
+            exit 0
+          fi
+
+          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
+          HAS_PENDING_LABEL=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '[.labels[].name] | index("autorelease: pending") != null')
+
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+          if [ "$PR_AUTHOR" = "release-please[bot]" ] && [ "$HAS_PENDING_LABEL" = "true" ]; then
+            echo "should_merge=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Auto-merging release-please PR #$PR_NUMBER"
+          else
+            echo "should_merge=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping PR #$PR_NUMBER (author=$PR_AUTHOR label=$HAS_PENDING_LABEL)"
+          fi
+
+      - name: Approve release PR
+        if: steps.pr.outputs.should_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: gh pr review --approve "$PR_NUMBER" --repo "$REPO"
+
+      - name: Merge release PR
+        if: steps.pr.outputs.should_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: gh pr merge --squash --delete-branch "$PR_NUMBER" --repo "$REPO"

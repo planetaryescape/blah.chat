@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev --config src-tauri/tauri.conf.json",
-    "build": "tauri build --no-bundle --config src-tauri/tauri.conf.json",
+    "build": "if [ \"$(uname -s)\" != \"Darwin\" ]; then echo \"Skipping @blah-chat/desktop build on non-macOS host\"; exit 0; fi; tauri build --no-bundle --config src-tauri/tauri.conf.json",
     "build:bundle": "tauri build --config src-tauri/tauri.conf.json",
     "tauri": "tauri"
   },

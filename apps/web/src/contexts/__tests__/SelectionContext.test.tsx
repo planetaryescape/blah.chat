@@ -1,0 +1,65 @@
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SelectionProvider, useSelection } from "../SelectionContext";
+
+let mobileState = { isMobile: false, isTouchDevice: false };
+
+vi.mock("@/hooks/useMobileDetect", () => ({
+  useMobileDetect: () => mobileState,
+}));
+
+function TestHarness() {
+  return (
+    <SelectionProvider>
+      <SelectionConsumer />
+      <textarea data-testid="chat-input" />
+    </SelectionProvider>
+  );
+}
+
+let clearSelectionRef: (() => void) | null = null;
+
+function SelectionConsumer() {
+  const { clearSelection } = useSelection();
+  clearSelectionRef = clearSelection;
+  return null;
+}
+
+describe("SelectionContext mobile focus safety", () => {
+  beforeEach(() => {
+    mobileState = { isMobile: false, isTouchDevice: false };
+    clearSelectionRef = null;
+  });
+
+  it("does not clear native selection on mobile mouseup", () => {
+    mobileState = { isMobile: true, isTouchDevice: true };
+    const removeAllRanges = vi.fn();
+    vi.spyOn(window, "getSelection").mockReturnValue({
+      removeAllRanges,
+    } as unknown as Selection);
+
+    render(<TestHarness />);
+
+    const input = screen.getByTestId("chat-input");
+    fireEvent.mouseUp(input);
+
+    expect(removeAllRanges).not.toHaveBeenCalled();
+  });
+
+  it("does not clear textarea caret when clearSelection is called", () => {
+    const removeAllRanges = vi.fn();
+    vi.spyOn(window, "getSelection").mockReturnValue({
+      removeAllRanges,
+    } as unknown as Selection);
+
+    render(<TestHarness />);
+
+    const input = screen.getByTestId("chat-input");
+    (input as HTMLTextAreaElement).focus();
+    expect(document.activeElement).toBe(input);
+
+    act(() => clearSelectionRef?.());
+
+    expect(removeAllRanges).not.toHaveBeenCalled();
+  });
+});

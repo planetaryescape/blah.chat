@@ -533,7 +533,7 @@ export const ChatInput = memo(function ChatInput({
         aria-label="Send message to AI"
         className={cn(
           "relative flex flex-col gap-2 p-2 sm:p-4 transition-all duration-300 ease-out",
-          "bg-background/90 backdrop-blur-xl",
+          isTouchDevice ? "bg-background" : "bg-background/90 backdrop-blur-xl",
           "border border-white/15 dark:border-white/10",
           "rounded-xl",
           "shadow-lg",
@@ -644,7 +644,7 @@ export const ChatInput = memo(function ChatInput({
                   aria-label="Message input"
                   aria-describedby="input-hint"
                   aria-multiline="true"
-                  className="resize-none min-h-[50px] max-h-[200px] py-3 px-2 pr-8 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50"
+                  className="block [field-sizing:fixed] resize-none min-h-[50px] max-h-[200px] py-3 px-2 pr-8 bg-transparent border-0 shadow-none focus-visible:ring-0 text-base placeholder:text-muted-foreground/50"
                   rows={1}
                   disabled={isSending || uploading}
                   data-tour="input"

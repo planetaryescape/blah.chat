@@ -46,6 +46,21 @@ describe("SelectionContext mobile focus safety", () => {
     expect(removeAllRanges).not.toHaveBeenCalled();
   });
 
+  it("does not clear native selection on touch devices with desktop width", () => {
+    mobileState = { isMobile: false, isTouchDevice: true };
+    const removeAllRanges = vi.fn();
+    vi.spyOn(window, "getSelection").mockReturnValue({
+      removeAllRanges,
+    } as unknown as Selection);
+
+    render(<TestHarness />);
+
+    const input = screen.getByTestId("chat-input");
+    fireEvent.mouseUp(input);
+
+    expect(removeAllRanges).not.toHaveBeenCalled();
+  });
+
   it("does not clear textarea caret when clearSelection is called", () => {
     const removeAllRanges = vi.fn();
     vi.spyOn(window, "getSelection").mockReturnValue({

@@ -1,6 +1,6 @@
 {
-  ".": "1.21.0",
-  "packages/sdk": "0.2.1",
-  "apps/cli": "0.2.5",
-  "apps/desktop": "0.1.0"
+  ".": "1.22.0",
+  "packages/sdk": "0.3.0",
+  "apps/cli": "0.3.0",
+  "apps/desktop": "0.2.0"
 }

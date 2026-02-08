@@ -2,5 +2,5 @@
   ".": "1.23.0",
   "packages/sdk": "0.3.0",
   "apps/cli": "0.3.0",
-  "apps/desktop": "0.2.2"
+  "apps/desktop": "0.2.3"
 }

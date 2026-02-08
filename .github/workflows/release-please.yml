@@ -101,6 +101,25 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$PENDING_MERGED_COUNT" -gt 0 ]; then
-            echo "::error::Detected $PENDING_MERGED_COUNT merged release PR(s) still labeled autorelease: pending."
-            exit 1
+            mapfile -t PENDING_PRS < <(gh pr list \
+              --repo "$REPO" \
+              --state merged \
+              --search 'head:release-please--branches--main label:"autorelease: pending"' \
+              --json number \
+              --jq '.[].number')
+
+            ACTUAL=0
+            for PR in "${PENDING_PRS[@]}"; do
+              HAS=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '[.labels[].name] | index("autorelease: pending") != null')
+              if [ "$HAS" = "true" ]; then
+                ACTUAL=$((ACTUAL + 1))
+              fi
+            done
+
+            if [ "$ACTUAL" -gt 0 ]; then
+              echo "::error::Detected $ACTUAL merged release PR(s) still labeled autorelease: pending."
+              exit 1
+            fi
+
+            echo "::notice::GitHub search returned merged pending PR(s), but none still have the label (search index delay)."
           fi

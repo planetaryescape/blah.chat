@@ -67,3 +67,11 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: gh pr merge --squash --delete-branch "$PR_NUMBER" --repo "$REPO"
+
+      - name: Remove pending label
+        if: steps.pr.outputs.should_merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autorelease: pending" || true

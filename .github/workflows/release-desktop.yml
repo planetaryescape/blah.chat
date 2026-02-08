@@ -186,13 +186,18 @@ jobs:
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
+
           ASSET_ROOT="apps/desktop/src-tauri/target/release/bundle"
-          mapfile -t ASSETS < <(find "$ASSET_ROOT" -type f \( \
+          ASSETS=()
+          while IFS= read -r -d '' f; do
+            ASSETS+=("$f")
+          done < <(find "$ASSET_ROOT" -type f \( \
             -name "*.dmg" -o \
             -name "*.app.tar.gz" -o \
             -name "*.app.tar.gz.sig" -o \
             -name "latest*.json" \
-          \))
+          \) -print0)
 
           if [ ${#ASSETS[@]} -eq 0 ]; then
             echo "::error::No desktop release assets found under $ASSET_ROOT"

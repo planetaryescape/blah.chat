@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.22.2](https://github.com/planetaryescape/blah.chat/compare/v1.22.1...v1.22.2) (2026-02-08)
+
+
+### Bug Fixes
+
+* add outbound tool-name diagnostics on generation failures ([3a60fbe](https://github.com/planetaryescape/blah.chat/commit/3a60fbec3b257b87c5f726ae2c7303e3e84f6e91))
+* enforce tool name limits at generation preflight ([59a311c](https://github.com/planetaryescape/blah.chat/commit/59a311c61325481f6c3cb53550dd8f84113a7d87))
+* harden tool name collision handling ([edc26a7](https://github.com/planetaryescape/blah.chat/commit/edc26a7caa929c12cc511354aad363be75c11938))
+* harden touch chat input focus stability ([5291ac0](https://github.com/planetaryescape/blah.chat/commit/5291ac08abd9464c6cf9fe9a430e10c3969a8831))
+* normalize tool names to satisfy provider limits ([867257e](https://github.com/planetaryescape/blah.chat/commit/867257e644563b51ffd8ae0d1994d37f48420900))
+* use legacy bible parser bundle in mobile build ([39a5acd](https://github.com/planetaryescape/blah.chat/commit/39a5acdffdce07439babdbdf38b8a1cc978b421d))
+
 ## [1.22.1](https://github.com/planetaryescape/blah.chat/compare/v1.22.0...v1.22.1) (2026-02-07)
 
 

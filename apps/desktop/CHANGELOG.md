@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.2.1...desktop-v0.2.2) (2026-02-08)
+
+
+### Bug Fixes
+
+* require Developer ID cert for desktop release ([08877a8](https://github.com/planetaryescape/blah.chat/commit/08877a81c8adc1e892c4177978a0372174502b95))
+
 ## [0.2.1](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.2.0...desktop-v0.2.1) (2026-02-08)
 
 

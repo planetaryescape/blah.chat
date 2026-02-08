@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.3](https://github.com/planetaryescape/blah.chat/compare/v1.22.2...v1.22.3) (2026-02-08)
+
+
+### Bug Fixes
+
+* harden desktop release checks and docs ([c3370ea](https://github.com/planetaryescape/blah.chat/commit/c3370eab3a770ff9ee9b4a9360894d69bc2b3bf0))
+
 ## [1.22.2](https://github.com/planetaryescape/blah.chat/compare/v1.22.1...v1.22.2) (2026-02-08)
 
 

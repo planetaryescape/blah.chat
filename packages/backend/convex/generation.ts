@@ -36,6 +36,7 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
 } from "./lib/prompts/operational/summarization";
 import { buildSystemPrompts } from "./lib/prompts/systemBuilder";
+import { MAX_TOOL_NAME_LENGTH, normalizeToolRecordKeys } from "./lib/toolNames";
 import { StreamingTextBuffer } from "./lib/utils/utf8Safe";
 import {
   calculateConversationTokensAsync,
@@ -668,6 +669,58 @@ export const generateResponse = internalAction({
           composioConnections: composioConnections ?? [],
         });
         options.tools = toolsResult.tools;
+
+        // Defensive preflight: normalize again immediately before streamText and log exact offenders.
+        // This catches any future tool source that bypasses buildToolsAsync normalization.
+        const { normalizedTools, renames: preflightRenames } =
+          normalizeToolRecordKeys(options.tools as Record<string, unknown>);
+        options.tools = normalizedTools;
+
+        if (preflightRenames.length > 0) {
+          logger.warn("Tool names normalized in generation preflight", {
+            tag: "Generation",
+            conversationId: args.conversationId,
+            renameCount: preflightRenames.length,
+            sampleRenames: preflightRenames.slice(0, 5),
+          });
+        }
+
+        const toolEntries = Object.entries(
+          options.tools as Record<string, unknown>,
+        );
+        const invalidToolEntries = toolEntries
+          .map(([key, value]) => {
+            const internalName =
+              value &&
+              typeof value === "object" &&
+              typeof (value as { name?: unknown }).name === "string"
+                ? ((value as { name: string }).name ?? null)
+                : null;
+            return {
+              key,
+              keyLength: key.length,
+              internalName,
+              internalNameLength: internalName?.length ?? null,
+            };
+          })
+          .filter(
+            (entry) =>
+              entry.keyLength > MAX_TOOL_NAME_LENGTH ||
+              (entry.internalNameLength !== null &&
+                entry.internalNameLength > MAX_TOOL_NAME_LENGTH),
+          );
+
+        if (invalidToolEntries.length > 0) {
+          logger.error("Tool preflight found invalid tool names", {
+            tag: "Generation",
+            conversationId: args.conversationId,
+            invalidCount: invalidToolEntries.length,
+            sampleInvalidTools: invalidToolEntries.slice(0, 10),
+          });
+          throw new Error(
+            "Tool name preflight failed: at least one tool name exceeds provider limits",
+          );
+        }
         // Note: toolsResult.connectedApps already passed to system prompt earlier
         options.onStepFinish = createOnStepFinish();
       }

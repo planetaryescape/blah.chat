@@ -157,7 +157,7 @@ jobs:
           perl -0pi -e "s/^version = \"[^\"]+\"/version = \"$VERSION\"/m" apps/desktop/src-tauri/Cargo.toml
 
       - name: Build signed + notarized desktop artifacts
-        uses: nick-fields/retry@v3
+        shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -167,21 +167,53 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          retry_wait_seconds: 120
-          command: |
-            set -euo pipefail
-            cd apps/desktop
-            curl -sSIL \
-              --retry 10 \
-              --retry-all-errors \
-              --retry-delay 5 \
-              --connect-timeout 10 \
-              --max-time 60 \
-              https://appstoreconnect.apple.com/ >/dev/null
-            bun run build:bundle
+        run: |
+          set -euo pipefail
+          cd apps/desktop
+
+          for i in 1 2 3 4 5; do
+            if curl -sSIL --connect-timeout 10 --max-time 30 https://appstoreconnect.apple.com/ >/dev/null; then
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "::error::No network route to Apple (appstoreconnect.apple.com); notarization cannot proceed."
+              exit 1
+            fi
+            sleep 10
+          done
+
+          max_attempts=3
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "::notice::Attempt $attempt/$max_attempts: bun run build:bundle (timeout 45m)"
+            if python3 - <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          timeout_seconds = 45 * 60
+          p = subprocess.Popen(["bun", "run", "build:bundle"], env=os.environ)
+          try:
+            sys.exit(p.wait(timeout=timeout_seconds))
+          except subprocess.TimeoutExpired:
+            p.kill()
+            try:
+              p.wait(timeout=30)
+            except Exception:
+              pass
+            print("::error::Timed out after 45m during build/notarization. Likely Apple notarization hang; retrying.")
+            sys.exit(124)
+          PY
+            then
+              exit 0
+            fi
+
+            if [ "$attempt" -ne "$max_attempts" ]; then
+              sleep 120
+            fi
+          done
+
+          echo "::error::Desktop bundle failed after $max_attempts attempts."
+          exit 1
 
       - name: Ensure GitHub release exists
         env:

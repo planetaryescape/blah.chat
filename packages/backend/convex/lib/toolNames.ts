@@ -75,6 +75,25 @@ function ensureUniqueName(
   }
 }
 
+function syncToolInternalName<T>(tool: T, normalizedName: string): T {
+  if (!tool || typeof tool !== "object") {
+    return tool;
+  }
+
+  const toolRecord = tool as Record<string, unknown>;
+  if (
+    typeof toolRecord.name !== "string" ||
+    toolRecord.name === normalizedName
+  ) {
+    return tool;
+  }
+
+  return {
+    ...toolRecord,
+    name: normalizedName,
+  } as T;
+}
+
 export function normalizeToolName(name: string): string {
   return normalizeToolNameWithReason(name).name;
 }
@@ -96,7 +115,7 @@ export function normalizeToolRecordKeys<T>(tools: Record<string, T>): {
       usedNames,
     );
     usedNames.add(uniqueName);
-    normalizedTools[uniqueName] = tool;
+    normalizedTools[uniqueName] = syncToolInternalName(tool, uniqueName);
 
     if (uniqueName !== originalName) {
       renames.push({

@@ -132,4 +132,25 @@ describe("normalizeToolRecordKeys", () => {
     expect(new Set(keys).size).toBe(200);
     expect(keys.every((key) => key.length <= MAX_TOOL_NAME_LENGTH)).toBe(true);
   });
+
+  it("syncs internal tool.name with normalized key when present", () => {
+    const toolA = {
+      name: "name with spaces and way too long ".repeat(3),
+      execute: () => "ok",
+    };
+    const toolB = {
+      name: "still invalid !!",
+      execute: () => "ok",
+    };
+
+    const { normalizedTools } = normalizeToolRecordKeys({
+      "invalid name": toolA,
+      "invalid-name": toolB,
+    });
+
+    for (const [key, value] of Object.entries(normalizedTools)) {
+      expect((value as { name?: string }).name).toBe(key);
+      expect(key.length).toBeLessThanOrEqual(MAX_TOOL_NAME_LENGTH);
+    }
+  });
 });

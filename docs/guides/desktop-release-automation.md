@@ -84,6 +84,12 @@ Already configured:
 4. GitHub release `desktop-vX.Y.Z` is published automatically.
 5. `release-desktop.yml` runs and uploads signed/notarized artifacts.
 
+Desktop cadence notes:
+
+1. Desktop releases are independent from root `vX.Y.Z` app releases.
+2. Desktop `docs:`/`chore:` changes alone do not create `desktop-v*` releases.
+3. Expect new `desktop-v*` only for releasable desktop commits (`feat`, `fix`, breaking).
+
 No manual `git tag` or `gh release create` needed.
 
 If your repo rules block bot merges, grant `GITHUB_TOKEN` PR merge permission or disable that workflow and merge release PR manually.
@@ -122,10 +128,18 @@ If you need to re-run a specific tag release:
 1. Open Actions -> `Release Desktop` -> `Run workflow`
 2. Provide `tag` as `desktop-vX.Y.Z`
 
+CLI equivalent:
+
+```bash
+gh workflow run "Release Desktop" --repo planetaryescape/blah.chat -f tag=desktop-vX.Y.Z
+gh run list --repo planetaryescape/blah.chat --workflow "Release Desktop" --limit 5
+```
+
 ## Debug checklist
 
 1. Missing secret error: check `Validate desktop release secrets` step output.
-2. Notarization failure: verify `APPLE_ID`, app-specific password, team id, cert identity match.
-3. No artifacts uploaded: check `apps/desktop/src-tauri/target/release/bundle`.
-4. Wrong version in bundle: workflow syncs version from tag before build; verify tag format is exact `desktop-vX.Y.Z`.
-5. CI version drift failure: run `bun run desktop:version-check`, align desktop versions in the 3 files listed above.
+2. Notarization auth failure (`401 Invalid credentials`): verify `APPLE_ID`, `APPLE_PASSWORD` (must be app-specific password), and `APPLE_TEAM_ID`.
+3. Signing identity mismatch: cert subject in `APPLE_CERTIFICATE` must match `APPLE_SIGNING_IDENTITY`.
+4. No artifacts uploaded: check `apps/desktop/src-tauri/target/release/bundle`.
+5. Wrong version in bundle: workflow syncs version from tag before build; verify tag format is exact `desktop-vX.Y.Z`.
+6. CI version drift failure: run `bun run desktop:version-check`, align desktop versions in the 3 files listed above.

@@ -36,6 +36,7 @@ import { createYoutubeVideoTool } from "../ai/tools/youtubeVideo";
 import { createSearchKnowledgeBankTool } from "../knowledgeBank/tool";
 import type { BudgetState } from "../lib/budgetTracker";
 import type { MemoryExtractionLevel } from "../lib/prompts/operational/memoryExtraction";
+import { normalizeToolRecordKeys } from "../lib/toolNames";
 
 /**
  * Configuration for building AI tools
@@ -296,12 +297,27 @@ export async function buildToolsAsync(
     }
   }
 
+  const { normalizedTools, renames } = normalizeToolRecordKeys(tools);
+  if (renames.length > 0) {
+    const maxOriginalNameLength = Object.keys(tools).reduce(
+      (maxLength, name) => Math.max(maxLength, name.length),
+      0,
+    );
+
+    logger.warn("Tool names normalized for provider compatibility", {
+      tag: "Composio",
+      renameCount: renames.length,
+      maxOriginalNameLength,
+      sampleRenames: renames.slice(0, 5),
+    });
+  }
+
   logger.info("Final tools built", {
     tag: "Composio",
-    totalToolCount: Object.keys(tools).length,
+    totalToolCount: Object.keys(normalizedTools).length,
   });
 
-  return { tools, connectedApps };
+  return { tools: normalizedTools, connectedApps };
 }
 
 /**

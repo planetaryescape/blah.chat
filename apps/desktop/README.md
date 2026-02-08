@@ -8,6 +8,19 @@ Tauri v2 desktop shell for blah.chat.
 - Main app window (`/app`) + companion quick window (`/desktop/quick`).
 - Native hooks: global shortcut, deep links, notifications.
 
+## Install Released App (macOS)
+
+1. Open [Desktop Releases](https://github.com/planetaryescape/blah.chat/releases?q=desktop-v&expanded=true).
+2. Open latest `desktop-v*` release.
+3. Download `.dmg` from **Assets**.
+4. Open `.dmg`, drag `blah.chat.app` to `Applications`.
+5. First launch: right-click app -> `Open` (Gatekeeper prompt), then sign in.
+
+Notes:
+
+- Desktop builds are currently macOS-only.
+- New builds are published as `desktop-vX.Y.Z` releases.
+
 ## Commands
 
 ```bash

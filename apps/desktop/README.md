@@ -67,7 +67,7 @@ Required GitHub secrets:
 
 - `APPLE_CERTIFICATE`
 - `APPLE_CERTIFICATE_PASSWORD`
-- `APPLE_SIGNING_IDENTITY`
+- `APPLE_SIGNING_IDENTITY` (must be `Developer ID Application: ...`)
 - `APPLE_ID`
 - `APPLE_PASSWORD` (Apple app-specific password, not account password)
 - `APPLE_TEAM_ID`

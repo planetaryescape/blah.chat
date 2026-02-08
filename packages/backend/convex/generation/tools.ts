@@ -36,7 +36,7 @@ import { createYoutubeVideoTool } from "../ai/tools/youtubeVideo";
 import { createSearchKnowledgeBankTool } from "../knowledgeBank/tool";
 import type { BudgetState } from "../lib/budgetTracker";
 import type { MemoryExtractionLevel } from "../lib/prompts/operational/memoryExtraction";
-import { normalizeToolRecordKeys } from "../lib/toolNames";
+import { normalizeToolRecordKeys, type ToolRename } from "../lib/toolNames";
 
 /**
  * Configuration for building AI tools
@@ -253,6 +253,8 @@ export interface BuildToolsResult {
   tools: Record<string, unknown>;
   /** Names of connected Composio integrations (for system prompt) */
   connectedApps: string[];
+  /** Original-to-normalized tool name mappings (when any renames occurred) */
+  toolRenames: ToolRename[];
 }
 
 /**
@@ -317,7 +319,7 @@ export async function buildToolsAsync(
     totalToolCount: Object.keys(normalizedTools).length,
   });
 
-  return { tools: normalizedTools, connectedApps };
+  return { tools: normalizedTools, connectedApps, toolRenames: renames };
 }
 
 /**

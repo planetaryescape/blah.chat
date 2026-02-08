@@ -102,6 +102,11 @@ jobs:
             exit 1
           fi
 
+          if ! printf '%s' "$APPLE_SIGNING_IDENTITY" | grep -Eq '^Developer ID Application:'; then
+            echo "::error::APPLE_SIGNING_IDENTITY must be a Developer ID Application identity (not Apple Development)."
+            exit 1
+          fi
+
           if [ -n "${DESKTOP_UPDATER_CONFIG_JSON:-}" ]; then
             echo "$DESKTOP_UPDATER_CONFIG_JSON" | jq -e '
               type == "object" and

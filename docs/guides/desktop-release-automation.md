@@ -25,7 +25,8 @@ Local build note:
 
 ### 1) Apple signing cert secret
 
-1. Export your `Developer ID Application` cert as `.p12` from Keychain Access.
+1. Create a **Developer ID Application** certificate in Apple Developer.
+2. Export your **Developer ID Application** cert as `.p12` from Keychain Access.
 2. Base64 it:
 
 ```bash
@@ -35,7 +36,11 @@ base64 -i DeveloperID.p12 | pbcopy
 3. Add GitHub secret:
    - `APPLE_CERTIFICATE` = base64 output
    - `APPLE_CERTIFICATE_PASSWORD` = p12 export password
-   - `APPLE_SIGNING_IDENTITY` = full cert identity string
+   - `APPLE_SIGNING_IDENTITY` = full cert identity string (must start with `Developer ID Application:`)
+
+Notes:
+
+- `Apple Development` certificates will fail notarization (not valid for distribution).
 
 Find identity string:
 

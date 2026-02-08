@@ -12,8 +12,95 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: googleapis/release-please-action@v4
+      - name: Collect Release Baseline Diagnostics
+        id: baseline
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          LATEST_ROOT_TAG=$(gh release list --repo "$REPO" --limit 200 | awk '$1 ~ /^v[0-9]/ {print $1; exit}')
+          if [ -z "$LATEST_ROOT_TAG" ]; then
+            LATEST_ROOT_TAG="none"
+          fi
+
+          PENDING_MERGED_COUNT=$(gh pr list \
+            --repo "$REPO" \
+            --state merged \
+            --search 'head:release-please--branches--main label:"autorelease: pending"' \
+            --json number \
+            --jq 'length')
+
+          echo "latest_root_tag=$LATEST_ROOT_TAG" >> "$GITHUB_OUTPUT"
+          echo "pending_merged_count=$PENDING_MERGED_COUNT" >> "$GITHUB_OUTPUT"
+
+      - id: release_please
+        uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Emit Release Diagnostics
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASELINE_ROOT_TAG: ${{ steps.baseline.outputs.latest_root_tag }}
+          BASELINE_PENDING_MERGED: ${{ steps.baseline.outputs.pending_merged_count }}
+          PRS_CREATED: ${{ steps.release_please.outputs.prs_created }}
+          RELEASES_CREATED: ${{ steps.release_please.outputs.releases_created }}
+        run: |
+          LATEST_ROOT_TAG=$(gh release list --repo "$REPO" --limit 200 | awk '$1 ~ /^v[0-9]/ {print $1; exit}')
+          if [ -z "$LATEST_ROOT_TAG" ]; then
+            LATEST_ROOT_TAG="none"
+          fi
+
+          PENDING_MERGED_COUNT=$(gh pr list \
+            --repo "$REPO" \
+            --state merged \
+            --search 'head:release-please--branches--main label:"autorelease: pending"' \
+            --json number \
+            --jq 'length')
+
+          OPEN_RELEASE_PR_COUNT=$(gh pr list \
+            --repo "$REPO" \
+            --state open \
+            --search 'head:release-please--branches--main' \
+            --json number \
+            --jq 'length')
+
+          RELEASE_PR_STATUS="skipped"
+          if [ "$OPEN_RELEASE_PR_COUNT" -gt 0 ]; then
+            OPEN_PR_CREATED_AT=$(gh pr list \
+              --repo "$REPO" \
+              --state open \
+              --search 'head:release-please--branches--main' \
+              --json createdAt \
+              --jq '.[0].createdAt')
+            OPEN_PR_CREATED_EPOCH=$(date -u -d "$OPEN_PR_CREATED_AT" +%s)
+            NOW_EPOCH=$(date -u +%s)
+            AGE_SECONDS=$((NOW_EPOCH - OPEN_PR_CREATED_EPOCH))
+
+            if [ "$AGE_SECONDS" -le 900 ]; then
+              RELEASE_PR_STATUS="created"
+            else
+              RELEASE_PR_STATUS="updated"
+            fi
+          fi
+
+          {
+            echo "### Release Please Diagnostics"
+            echo ""
+            echo "- Latest root tag (before run): \`$BASELINE_ROOT_TAG\`"
+            echo "- Latest root tag (after run): \`$LATEST_ROOT_TAG\`"
+            echo "- Outstanding merged release PRs (before run): \`$BASELINE_PENDING_MERGED\`"
+            echo "- Outstanding merged release PRs (after run): \`$PENDING_MERGED_COUNT\`"
+            echo "- Release PR result: \`$RELEASE_PR_STATUS\`"
+            echo "- release-please output \`prs_created\`: \`${PRS_CREATED:-unset}\`"
+            echo "- release-please output \`releases_created\`: \`${RELEASES_CREATED:-unset}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$PENDING_MERGED_COUNT" -gt 0 ]; then
+            echo "::error::Detected $PENDING_MERGED_COUNT merged release PR(s) still labeled autorelease: pending."
+            exit 1
+          fi

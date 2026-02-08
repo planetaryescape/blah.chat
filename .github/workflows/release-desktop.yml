@@ -156,15 +156,12 @@ jobs:
 
           perl -0pi -e "s/^version = \"[^\"]+\"/version = \"$VERSION\"/m" apps/desktop/src-tauri/Cargo.toml
 
-      - name: Build signed + notarized desktop artifacts
+      - name: Build signed desktop artifacts
         shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
@@ -200,7 +197,7 @@ jobs:
               p.wait(timeout=30)
             except Exception:
               pass
-            print("::error::Timed out after 45m during build/notarization. Likely Apple notarization hang; retrying.")
+            print("::error::Timed out after 45m during build. Likely hang; retrying.")
             sys.exit(124)
           PY
             then
@@ -213,6 +210,42 @@ jobs:
           done
 
           echo "::error::Desktop bundle failed after $max_attempts attempts."
+          exit 1
+
+      - name: Notarize desktop dmg (notarytool)
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          DMG="$(find apps/desktop/src-tauri/target/release/bundle -type f -name '*.dmg' | head -n 1 || true)"
+          if [ -z "${DMG:-}" ]; then
+            echo "::error::No .dmg found after build."
+            exit 1
+          fi
+
+          max_attempts=3
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "::notice::Attempt $attempt/$max_attempts: notarytool submit (timeout 45m)"
+            if xcrun notarytool submit "$DMG" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait \
+              --timeout 45m; then
+              xcrun stapler staple -v "$DMG"
+              exit 0
+            fi
+
+            if [ "$attempt" -ne "$max_attempts" ]; then
+              sleep 120
+            fi
+          done
+
+          echo "::error::Notarization failed after $max_attempts attempts."
           exit 1
 
       - name: Ensure GitHub release exists

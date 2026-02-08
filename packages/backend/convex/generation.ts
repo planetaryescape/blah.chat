@@ -305,6 +305,7 @@ export const generateResponse = internalAction({
     // Declared outside try so they're accessible in catch for wasted cost calculation
     let accumulated = "";
     let inputTokenEstimate = 0;
+    let toolNameDebugSnapshot: Array<{ name: string; length: number }> = [];
 
     try {
       // PARALLEL QUERIES: Batch all initial queries for faster TTFT
@@ -688,6 +689,21 @@ export const generateResponse = internalAction({
         const toolEntries = Object.entries(
           options.tools as Record<string, unknown>,
         );
+        toolNameDebugSnapshot = toolEntries
+          .map(([key]) => ({ name: key, length: key.length }))
+          .sort((left, right) => right.length - left.length);
+
+        const maxToolNameLength = toolNameDebugSnapshot[0]?.length ?? 0;
+        if (maxToolNameLength >= MAX_TOOL_NAME_LENGTH - 2) {
+          logger.warn("Tool preflight near limit", {
+            tag: "Generation",
+            conversationId: args.conversationId,
+            toolCount: toolNameDebugSnapshot.length,
+            maxToolNameLength,
+            topToolNames: toolNameDebugSnapshot.slice(0, 10),
+          });
+        }
+
         const invalidToolEntries = toolEntries
           .map(([key, value]) => {
             const internalName =
@@ -1531,6 +1547,25 @@ export const generateResponse = internalAction({
         tag: "Generation",
         error: String(error),
       });
+
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        toolNameDebugSnapshot.length > 0 &&
+        errorMessage.includes("Invalid 'tools[") &&
+        errorMessage.includes(".name")
+      ) {
+        logger.error("Tool name diagnostics at failure", {
+          tag: "Generation",
+          conversationId: args.conversationId,
+          toolCount: toolNameDebugSnapshot.length,
+          maxToolNameLength: toolNameDebugSnapshot[0]?.length ?? 0,
+          overLimitTools: toolNameDebugSnapshot
+            .filter((toolInfo) => toolInfo.length > MAX_TOOL_NAME_LENGTH)
+            .slice(0, 10),
+          topToolNames: toolNameDebugSnapshot.slice(0, 20),
+        });
+      }
 
       // Extract and log full responseBody from gateway errors for debugging
       const causeObj = (error as any)?.cause || {};

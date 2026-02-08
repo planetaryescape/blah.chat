@@ -158,97 +158,14 @@ jobs:
           perl -0pi -e "s/^version = \"[^\"]+\"/version = \"$VERSION\"/m" apps/desktop/src-tauri/Cargo.toml
 
       - name: Build signed desktop artifacts
-        shell: bash
+        working-directory: apps/desktop
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          cd apps/desktop
-
-          for i in 1 2 3 4 5; do
-            if curl -sSIL --connect-timeout 10 --max-time 30 https://appstoreconnect.apple.com/ >/dev/null; then
-              break
-            fi
-            if [ "$i" -eq 5 ]; then
-              echo "::error::No network route to Apple (appstoreconnect.apple.com); notarization cannot proceed."
-              exit 1
-            fi
-            sleep 10
-          done
-
-          max_attempts=3
-          for attempt in $(seq 1 "$max_attempts"); do
-            echo "::notice::Attempt $attempt/$max_attempts: bun run build:bundle (timeout 45m)"
-            if python3 - <<'PY'
-          import os
-          import subprocess
-          import sys
-
-          timeout_seconds = 45 * 60
-          p = subprocess.Popen(["bun", "run", "build:bundle"], env=os.environ)
-          try:
-            sys.exit(p.wait(timeout=timeout_seconds))
-          except subprocess.TimeoutExpired:
-            p.kill()
-            try:
-              p.wait(timeout=30)
-            except Exception:
-              pass
-            print("::error::Timed out after 45m during build. Likely hang; retrying.")
-            sys.exit(124)
-          PY
-            then
-              exit 0
-            fi
-
-            if [ "$attempt" -ne "$max_attempts" ]; then
-              sleep 120
-            fi
-          done
-
-          echo "::error::Desktop bundle failed after $max_attempts attempts."
-          exit 1
-
-      - name: Notarize desktop dmg (notarytool)
-        continue-on-error: true
-        shell: bash
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          set -euo pipefail
-
-          DMG="$(find apps/desktop/src-tauri/target/release/bundle -type f -name '*.dmg' | head -n 1 || true)"
-          if [ -z "${DMG:-}" ]; then
-            echo "::error::No .dmg found after build."
-            exit 1
-          fi
-
-          max_attempts=3
-          for attempt in $(seq 1 "$max_attempts"); do
-            echo "::notice::Attempt $attempt/$max_attempts: notarytool submit (timeout 45m)"
-            if xcrun notarytool submit "$DMG" \
-              --apple-id "$APPLE_ID" \
-              --password "$APPLE_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID" \
-              --wait \
-              --timeout 45m; then
-              xcrun stapler staple -v "$DMG"
-              exit 0
-            fi
-
-            if [ "$attempt" -ne "$max_attempts" ]; then
-              sleep 120
-            fi
-          done
-
-          echo "::error::Notarization failed after $max_attempts attempts."
-          exit 1
+        run: bun run build:bundle
 
       - name: Ensure GitHub release exists
         env:
@@ -283,3 +200,34 @@ jobs:
           fi
 
           gh release upload "$TAG" "${ASSETS[@]}" --repo "$REPO" --clobber
+
+      - name: Notarize desktop dmg (notarytool)
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+
+          DMG="$(find apps/desktop/src-tauri/target/release/bundle -type f -name '*.dmg' | head -n 1 || true)"
+          if [ -z "${DMG:-}" ]; then
+            echo "::error::No .dmg found after upload."
+            exit 1
+          fi
+
+          if xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --timeout 10m; then
+            xcrun stapler staple -v "$DMG"
+            gh release upload "$TAG" "$DMG" --repo "$REPO" --clobber
+          else
+            echo "::warning::Notarization not completed (timeout/backlog/offline). Signed DMG already uploaded."
+          fi

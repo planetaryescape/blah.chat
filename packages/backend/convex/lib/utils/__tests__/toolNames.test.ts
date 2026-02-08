@@ -49,7 +49,7 @@ describe("normalizeToolRecordKeys", () => {
     expect(entries).toHaveLength(2);
     expect(entries[0][0]).toBe("tool_name");
     expect(entries[0][1]).toBe(toolA);
-    expect(entries[1][0]).toMatch(/^tool_name_[a-f0-9]{8}$/);
+    expect(entries[1][0]).toMatch(/^tool_name_[a-f0-9]{6}[0-9a-z]+$/);
     expect(entries[1][1]).toBe(toolB);
 
     expect(renames).toEqual([
@@ -108,12 +108,28 @@ describe("normalizeToolRecordKeys", () => {
 
     const keys = Object.keys(normalizedTools);
     expect(keys[0]).toBe("tool");
-    expect(keys[1]).toMatch(/^tool_[a-f0-9]{8}$/);
+    expect(keys[1]).toMatch(/^tool_[a-f0-9]{6}[0-9a-z]+$/);
     expect(normalizedTools.tool).toBe(first);
     expect(normalizedTools[keys[1]]).toBe(second);
     expect(renames).toEqual([
       { from: "!!!", to: "tool", reason: "empty" },
       { from: "???", to: keys[1], reason: "collision" },
     ]);
+  });
+
+  it("supports more than 128 collisions without throwing", () => {
+    const tools = Object.fromEntries(
+      Array.from({ length: 200 }, (_value, index) => [
+        "!".repeat(index + 1),
+        { id: index },
+      ]),
+    );
+
+    const { normalizedTools } = normalizeToolRecordKeys(tools);
+    const keys = Object.keys(normalizedTools);
+
+    expect(keys).toHaveLength(200);
+    expect(new Set(keys).size).toBe(200);
+    expect(keys.every((key) => key.length <= MAX_TOOL_NAME_LENGTH)).toBe(true);
   });
 });

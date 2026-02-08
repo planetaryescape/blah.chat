@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 
 export const MAX_TOOL_NAME_LENGTH = 64;
 const DEFAULT_TOOL_NAME = "tool";
-const COLLISION_ATTEMPT_LIMIT = 128;
 
 type RenameReason = "invalid_chars" | "too_long" | "collision" | "empty";
 
@@ -66,21 +65,14 @@ function ensureUniqueName(
     return baseName;
   }
 
-  const nameHash = sha1(originalName);
-  for (const attempt of Array.from(
-    { length: COLLISION_ATTEMPT_LIMIT },
-    (_unused, index) => index,
-  )) {
-    const suffix = sha1(`${nameHash}:${attempt}`).slice(0, 8);
+  const hashPrefix = sha1(originalName).slice(0, 6);
+  for (let attempt = 0; ; attempt += 1) {
+    const suffix = `${hashPrefix}${attempt.toString(36)}`;
     const candidate = withSuffix(baseName, suffix);
     if (!usedNames.has(candidate)) {
       return candidate;
     }
   }
-
-  throw new Error(
-    `Unable to build unique tool name for "${originalName}" after ${COLLISION_ATTEMPT_LIMIT} attempts`,
-  );
 }
 
 export function normalizeToolName(name: string): string {

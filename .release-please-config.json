@@ -19,7 +19,9 @@
     "apps/desktop": {
       "release-type": "simple",
       "component": "desktop",
-      "include-component-in-tag": true
+      "include-component-in-tag": true,
+      "draft": true,
+      "force-tag-creation": true
     }
   }
 }

@@ -1,9 +1,8 @@
 name: Release Desktop
 
 on:
-  push:
-    tags:
-      - "desktop-v*"
+  release:
+    types: [created]
   workflow_dispatch:
     inputs:
       tag:
@@ -24,7 +23,7 @@ jobs:
         id: parse
         shell: bash
         run: |
-          TAG="${{ github.ref_name }}"
+          TAG="${{ github.event.release.tag_name }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
           fi
@@ -177,36 +176,19 @@ jobs:
         run: |
           set -euo pipefail
 
-          # GitHub "immutable releases" prevents editing/uploading assets after publish.
-          # Strategy: ensure we have a mutable *draft* release before uploading assets.
-          SKIP_UPLOAD=false
-          NOTES_FILE="$(mktemp)"
-
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            ASSET_COUNT="$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets | length')"
-            if [ "${ASSET_COUNT:-0}" -eq 0 ]; then
-              gh release view "$TAG" --repo "$REPO" --json body --jq '.body' > "$NOTES_FILE" || true
-              gh release delete "$TAG" --repo "$REPO" --yes
-            else
-              echo "::notice::Release already has ${ASSET_COUNT} assets; skipping upload."
-              SKIP_UPLOAD=true
+            IS_DRAFT="$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft')"
+            if [ "${IS_DRAFT:-false}" != "true" ]; then
+              echo "::error::Release $TAG is already published (immutable). Can't upload assets. Cut a new desktop version tag."
+              exit 1
             fi
+          else
+            gh release create "$TAG" \
+              --repo "$REPO" \
+              --title "Desktop $TAG" \
+              --notes "blah.chat desktop release ($TAG)" \
+              --draft
           fi
-
-          if [ "$SKIP_UPLOAD" = true ]; then
-            echo "skip_upload=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [ ! -s "$NOTES_FILE" ]; then
-            printf '%s\n' "blah.chat desktop release ($TAG)" > "$NOTES_FILE"
-          fi
-
-          gh release create "$TAG" \
-            --repo "$REPO" \
-            --title "Desktop $TAG" \
-            --notes-file "$NOTES_FILE" \
-            --draft
 
           echo "skip_upload=false" >> "$GITHUB_OUTPUT"
 

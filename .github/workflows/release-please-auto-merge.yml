@@ -35,17 +35,21 @@ jobs:
             exit 0
           fi
 
-          PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
+          IS_RELEASE_PLEASE_BRANCH="false"
+          if printf '%s' "$HEAD_BRANCH" | grep -Eq '^release-please--'; then
+            IS_RELEASE_PLEASE_BRANCH="true"
+          fi
+
           HAS_PENDING_LABEL=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '[.labels[].name] | index("autorelease: pending") != null')
 
           echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
-          if [ "$PR_AUTHOR" = "release-please[bot]" ] && [ "$HAS_PENDING_LABEL" = "true" ]; then
+          if [ "$IS_RELEASE_PLEASE_BRANCH" = "true" ] && [ "$HAS_PENDING_LABEL" = "true" ]; then
             echo "should_merge=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Auto-merging release-please PR #$PR_NUMBER"
           else
             echo "should_merge=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping PR #$PR_NUMBER (author=$PR_AUTHOR label=$HAS_PENDING_LABEL)"
+            echo "::notice::Skipping PR #$PR_NUMBER (releaseBranch=$IS_RELEASE_PLEASE_BRANCH label=$HAS_PENDING_LABEL)"
           fi
 
       - name: Approve release PR

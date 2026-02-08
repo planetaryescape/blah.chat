@@ -56,6 +56,9 @@ Examples:
 Workflow: `.github/workflows/release-desktop.yml`
 
 - Triggered automatically from `release-please` desktop tags (`desktop-vX.Y.Z`) when a release is published.
+- Desktop tags are independent of root app tags (`vX.Y.Z`).
+- New desktop tags are cut from desktop releasable commits (`feat`, `fix`, `!`) under `apps/desktop`.
+- `docs:` / `chore:` desktop-only commits do not create a new `desktop-v*` release.
 - Builds signed + notarized macOS bundle.
 - Uploads DMG + updater artifacts (`latest*.json`, `.app.tar.gz`, signatures) to the GitHub release.
 - Manual fallback: workflow dispatch with explicit `desktop-vX.Y.Z`.
@@ -66,7 +69,7 @@ Required GitHub secrets:
 - `APPLE_CERTIFICATE_PASSWORD`
 - `APPLE_SIGNING_IDENTITY`
 - `APPLE_ID`
-- `APPLE_PASSWORD`
+- `APPLE_PASSWORD` (Apple app-specific password, not account password)
 - `APPLE_TEAM_ID`
 - `TAURI_SIGNING_PRIVATE_KEY`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
@@ -80,3 +83,10 @@ Updater note:
 Detailed setup + automation runbook:
 
 - `docs/guides/desktop-release-automation.md`
+
+Manual rerun CLI:
+
+```bash
+gh workflow run "Release Desktop" --repo planetaryescape/blah.chat -f tag=desktop-vX.Y.Z
+gh run list --repo planetaryescape/blah.chat --workflow "Release Desktop" --limit 5
+```

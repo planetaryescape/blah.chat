@@ -111,6 +111,20 @@ jobs:
             ' >/dev/null
           fi
 
+      - name: Validate Apple notarization credentials
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if ! xcrun notarytool history \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" >/dev/null; then
+            echo "::error::Apple notarization auth failed. Verify APPLE_ID, APPLE_PASSWORD (app-specific password), and APPLE_TEAM_ID."
+            exit 1
+          fi
+
       - name: Sync desktop versions + updater config from release metadata
         shell: bash
         env:

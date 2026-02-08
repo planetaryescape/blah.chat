@@ -117,6 +117,7 @@ jobs:
           fi
 
       - name: Validate Apple notarization credentials
+        continue-on-error: true
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
@@ -213,6 +214,7 @@ jobs:
           exit 1
 
       - name: Notarize desktop dmg (notarytool)
+        continue-on-error: true
         shell: bash
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}

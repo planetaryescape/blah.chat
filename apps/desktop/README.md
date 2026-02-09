@@ -55,12 +55,13 @@ Examples:
 
 Workflow: `.github/workflows/release-desktop.yml`
 
-- Triggered automatically from `release-please` desktop tags (`desktop-vX.Y.Z`) when a release is published.
+- Triggered automatically from `release-please` desktop tags (`desktop-vX.Y.Z`) when a draft release is created.
 - Desktop tags are independent of root app tags (`vX.Y.Z`).
 - New desktop tags are cut from desktop releasable commits (`feat`, `fix`, `!`) under `apps/desktop`.
 - `docs:` / `chore:` desktop-only commits do not create a new `desktop-v*` release.
-- Builds signed + notarized macOS bundle.
-- Uploads DMG + updater artifacts (`latest*.json`, `.app.tar.gz`, signatures) to the GitHub release.
+- Builds signed macOS bundle + uploads artifacts to a **draft** GitHub release.
+- Submits notarization **async** (no waiting) and records the submission id in the release notes.
+- Publish is done later via `.github/workflows/release-desktop-finalize.yml` once notarization is `Accepted` (staples DMG, re-uploads, publishes).
 - Manual fallback: workflow dispatch with explicit `desktop-vX.Y.Z`.
 
 Required GitHub secrets:
@@ -89,4 +90,11 @@ Manual rerun CLI:
 ```bash
 gh workflow run "Release Desktop" --repo planetaryescape/blah.chat -f tag=desktop-vX.Y.Z
 gh run list --repo planetaryescape/blah.chat --workflow "Release Desktop" --limit 5
+```
+
+Finalize + publish (after notarization is accepted):
+
+```bash
+gh workflow run "Finalize Desktop Notarization" --repo planetaryescape/blah.chat -f tag=desktop-vX.Y.Z
+gh run list --repo planetaryescape/blah.chat --workflow "Finalize Desktop Notarization" --limit 5
 ```

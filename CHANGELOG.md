@@ -113,7 +113,7 @@
 * **scroll:** add scroll position restoration per conversation ([8f7a603](https://github.com/planetaryescape/blah.chat/commit/8f7a603c7d8bd844ba4d05337880fb4d18c59abd))
 * **scroll:** add smooth scrolling animations ([65facdd](https://github.com/planetaryescape/blah.chat/commit/65facdd9b6095ab6b1170ad32d4039ba9e7deb60))
 * **scroll:** add velocity-based scroll intent detection ([9a873a8](https://github.com/planetaryescape/blah.chat/commit/9a873a898207693d2a5e38375fd729211895fa5b))
-* **sdk:** add publish-ready typed SDK ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
+* **api-client:** add publish-ready typed API client ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
 * **settings:** add haptic feedback toggle to UI settings ([ce2a3f4](https://github.com/planetaryescape/blah.chat/commit/ce2a3f4e9bd4c0425a9f6958b1820a22f974e0be))
 * **settings:** wire hapticFeedbackEnabled to settings state ([4b23804](https://github.com/planetaryescape/blah.chat/commit/4b23804ee509deb1d62572859efca60ef8743177))
 * **share:** add dynamic OG metadata to share pages ([f98494d](https://github.com/planetaryescape/blah.chat/commit/f98494d76f6ef698767a6145ef60f303c3931fc1))
@@ -368,7 +368,7 @@
 * add desktop app shell and automated release pipeline ([6dddde1](https://github.com/planetaryescape/blah.chat/commit/6dddde1e62a3d520e3d3e4a856f88e10ff74fe4c))
 * **api:** harden authz and portable SSE ([3467a01](https://github.com/planetaryescape/blah.chat/commit/3467a014321477240fa8884a25959f6b1b4ecfe1))
 * **clients:** migrate clients to SDK transport ([864908c](https://github.com/planetaryescape/blah.chat/commit/864908c29f8957c854c28b0e98f7b5771164bd66))
-* **sdk:** add publish-ready typed SDK ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
+* **api-client:** add publish-ready typed API client ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
 
 
 ### Bug Fixes
@@ -391,7 +391,7 @@
 
 * **api:** harden authz and portable SSE ([3467a01](https://github.com/planetaryescape/blah.chat/commit/3467a014321477240fa8884a25959f6b1b4ecfe1))
 * **clients:** migrate clients to SDK transport ([864908c](https://github.com/planetaryescape/blah.chat/commit/864908c29f8957c854c28b0e98f7b5771164bd66))
-* **sdk:** add publish-ready typed SDK ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
+* **api-client:** add publish-ready typed API client ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
 
 
 ### Bug Fixes

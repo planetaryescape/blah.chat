@@ -5,10 +5,10 @@
       "release-type": "node",
       "include-component-in-tag": false
     },
-    "packages/sdk": {
+    "packages/api-client": {
       "release-type": "node",
-      "component": "sdk",
-      "package-name": "@blah-chat/sdk",
+      "component": "api-client",
+      "package-name": "@blah-chat/api-client",
       "include-component-in-tag": true
     },
     "apps/cli": {

@@ -1,4 +1,4 @@
-import openApiSpec from "@blah-chat/sdk/openapi";
+import openApiSpec from "@blah-chat/api-client/openapi";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 

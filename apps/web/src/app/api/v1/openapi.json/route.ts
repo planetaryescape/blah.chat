@@ -1,4 +1,4 @@
-import openApiSpec from "@blah-chat/sdk/openapi";
+import openApiSpec from "@blah-chat/api-client/openapi";
 import { NextResponse } from "next/server";
 
 export function GET() {

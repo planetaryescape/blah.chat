@@ -1,11 +1,11 @@
 # Changelog
 
-## [0.3.0](https://github.com/planetaryescape/blah.chat/compare/sdk-v0.2.1...sdk-v0.3.0) (2026-02-07)
+## 0.3.0 (2026-02-07)
 
 
 ### Features
 
-* **sdk:** add publish-ready typed SDK ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
+* **api-client:** add publish-ready typed API client ([002152b](https://github.com/planetaryescape/blah.chat/commit/002152ba3a0c276316d11f5327067efc43cb9a37))
 
 
 ### Bug Fixes
@@ -15,9 +15,9 @@
 ## 0.2.0 - 2026-02-06
 
 - Added OpenAPI doc serving endpoints for API consumers (`/api/v1/openapi.json`, `/api/v1/doc`).
-- Added SDK release automation workflow for merge-to-main publishing.
-- Added merge guard to require SDK version bumps when contract/runtime files change.
-- Added expanded README with concrete SDK usage patterns and project ideas.
+- Added API client release automation workflow for merge-to-main publishing.
+- Added merge guard to require API client version bumps when contract/runtime files change.
+- Added expanded README with concrete API client usage patterns and project ideas.
 - Switched published SDK artifact to compiled `dist` output (`.js` + `.d.ts`) for external consumers.
 
 ## 0.1.0 - 2026-02-06

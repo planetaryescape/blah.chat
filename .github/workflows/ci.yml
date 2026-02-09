@@ -38,21 +38,21 @@ jobs:
             exit 1
           fi
 
-      - name: Verify SDK OpenAPI types are in sync
+      - name: Verify API client OpenAPI types are in sync
         run: |
-          bun run sdk:generate
-          if ! git diff --exit-code packages/sdk/src/generated/openapi.ts; then
-            echo "::error::SDK OpenAPI types are out of sync! Run 'bun run sdk:generate'."
+          bun run api-client:generate
+          if ! git diff --exit-code packages/api-client/src/generated/openapi.ts; then
+            echo "::error::API client OpenAPI types are out of sync! Run 'bun run api-client:generate'."
             exit 1
           fi
 
-      - name: Enforce SDK version bump for contract/runtime changes
+      - name: Enforce API client version bump for contract/runtime changes
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch origin "$BASE_REF" --depth=1
-          bun run sdk:version-check --base "origin/$BASE_REF"
+          bun run api-client:version-check --base "origin/$BASE_REF"
 
       - name: Enforce desktop version sync
         run: bun run desktop:version-check

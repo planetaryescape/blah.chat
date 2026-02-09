@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/raycast/**"
-      - "packages/sdk/**"
+      - "packages/api-client/**"
       - ".github/workflows/release-raycast.yml"
   workflow_dispatch:
 

@@ -22,7 +22,7 @@
     "@babel/plugin-transform-private-methods": "^7.28.6",
     "@babel/plugin-transform-private-property-in-object": "^7.28.6",
     "@blah-chat/ai": "workspace:*",
-    "@blah-chat/sdk": "workspace:*",
+    "@blah-chat/api-client": "workspace:*",
     "@clerk/clerk-expo": "^2.9.0",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/syne": "^0.4.2",

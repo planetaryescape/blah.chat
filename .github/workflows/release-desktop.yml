@@ -117,19 +117,8 @@ jobs:
           fi
 
       - name: Validate Apple notarization credentials
-        continue-on-error: true
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if ! xcrun notarytool history \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" >/dev/null; then
-            echo "::error::Apple notarization auth failed. Verify APPLE_ID, APPLE_PASSWORD (app-specific password), and APPLE_TEAM_ID."
-            exit 1
-          fi
+          echo "::notice::Skipping preflight notarization auth check; notarization is submitted async later and finalized in a separate workflow."
 
       - name: Sync desktop versions + updater config from release metadata
         shell: bash
@@ -165,7 +154,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: bun run build:bundle
+        run: bun run build:bundle -- --skip-stapling
 
       - name: Ensure GitHub release exists
         id: release

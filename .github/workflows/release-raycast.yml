@@ -26,11 +26,16 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build api-client (workspace dependency)
+        run: bun --filter=@blah-chat/api-client run build
+
       - name: Lint Raycast extension
-        run: bun --filter=@blah-chat/raycast run lint
+        working-directory: apps/raycast
+        run: bun run lint
 
       - name: Build Raycast extension
-        run: bun --filter=@blah-chat/raycast run build
+        working-directory: apps/raycast
+        run: bun run build
 
   publish:
     name: Publish to Raycast Store
@@ -66,6 +71,9 @@ jobs:
             echo "::error::Non-interactive publish requires owner-mode extension publishing."
             exit 1
           fi
+
+      - name: Build api-client (workspace dependency)
+        run: bun --filter=@blah-chat/api-client run build
 
       - name: Prepare owner-mode manifest for CI publish
         env:

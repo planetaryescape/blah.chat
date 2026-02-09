@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.24.0](https://github.com/planetaryescape/blah.chat/compare/v1.23.0...v1.24.0) (2026-02-09)
+
+
+### Features
+
+* desktop companion controls ([503fe2e](https://github.com/planetaryescape/blah.chat/commit/503fe2e9aea9ad48b9d1f948914470113df77b00))
+
+
+### Bug Fixes
+
+* async desktop notarization finalize ([#307](https://github.com/planetaryescape/blah.chat/issues/307)) ([2889a04](https://github.com/planetaryescape/blah.chat/commit/2889a042ce91a5071988e1404b0dff492df2d84f))
+* async desktop notarization without wait ([2889a04](https://github.com/planetaryescape/blah.chat/commit/2889a042ce91a5071988e1404b0dff492df2d84f))
+* avoid waiting for desktop notarization ([6a8841d](https://github.com/planetaryescape/blah.chat/commit/6a8841d2a8534c85923c15866283e6b2418494ac))
+* publish desktop releases with DMG (immutable releases) ([#304](https://github.com/planetaryescape/blah.chat/issues/304)) ([85a3a6c](https://github.com/planetaryescape/blah.chat/commit/85a3a6c5d990d755d9442197110fbe89c473ebe3))
+
 ## [1.23.0](https://github.com/planetaryescape/blah.chat/compare/v1.22.4...v1.23.0) (2026-02-08)
 
 

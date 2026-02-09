@@ -344,7 +344,7 @@
     },
     "packages/ai": {
       "name": "@blah-chat/ai",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.1",
         "@ai-sdk/cerebras": "^2.0.2",
@@ -358,6 +358,8 @@
       },
       "devDependencies": {
         "@blah-chat/config": "workspace:*",
+        "@types/node": "^25.0.10",
+        "tsup": "^8.5.0",
         "typescript": "^5.9.3",
       },
     },
@@ -374,11 +376,30 @@
         "typescript": "^5.9.3",
       },
     },
-    "packages/auto-router": {
-      "name": "@blah-chat/auto-router",
-      "version": "0.0.0",
+    "packages/api-envelope": {
+      "name": "@blah-chat/api-envelope",
+      "version": "0.1.0",
       "devDependencies": {
         "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/assistant-tools-core": {
+      "name": "@blah-chat/assistant-tools-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/auto-router": {
+      "name": "@blah-chat/auto-router",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
         "typescript": "^5.9.3",
       },
     },
@@ -440,6 +461,24 @@
         "xlsx": "^0.18.5",
       },
     },
+    "packages/bible-core": {
+      "name": "@blah-chat/bible-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/bible-service": {
+      "name": "@blah-chat/bible-service",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/byod-schema": {
       "name": "@blah-chat/byod-schema",
       "version": "1.0.0",
@@ -447,18 +486,167 @@
         "convex": "^1.17.0",
       },
     },
+    "packages/code-execution-core": {
+      "name": "@blah-chat/code-execution-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/config": {
       "name": "@blah-chat/config",
-      "version": "0.0.0",
+      "version": "0.1.0",
+    },
+    "packages/content-core": {
+      "name": "@blah-chat/content-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/content-ingest": {
+      "name": "@blah-chat/content-ingest",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/crypto-core": {
+      "name": "@blah-chat/crypto-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/diagrams-mermaid": {
+      "name": "@blah-chat/diagrams-mermaid",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/integrations-composio": {
+      "name": "@blah-chat/integrations-composio",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/jobs": {
+      "name": "@blah-chat/jobs",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/markdown-web": {
+      "name": "@blah-chat/markdown-web",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/notes-core": {
+      "name": "@blah-chat/notes-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/persistence-convex": {
+      "name": "@blah-chat/persistence-convex",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/rag-core": {
+      "name": "@blah-chat/rag-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/sdk": {
+      "name": "@blah-chat/sdk",
+      "version": "0.1.0",
+    },
+    "packages/search-core": {
+      "name": "@blah-chat/search-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/search-tools": {
+      "name": "@blah-chat/search-tools",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
     },
     "packages/shared": {
       "name": "@blah-chat/shared",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "date-fns": "^4.1.0",
         "diff": "^8.0.2",
       },
       "devDependencies": {
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/speech": {
+      "name": "@blah-chat/speech",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/storage": {
+      "name": "@blah-chat/storage",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/streaming-core": {
+      "name": "@blah-chat/streaming-core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@blah-chat/config": "workspace:*",
+        "tsup": "^8.5.0",
         "typescript": "^5.9.3",
       },
     },
@@ -724,21 +912,63 @@
 
     "@blah-chat/api-client": ["@blah-chat/api-client@workspace:packages/api-client"],
 
+    "@blah-chat/api-envelope": ["@blah-chat/api-envelope@workspace:packages/api-envelope"],
+
+    "@blah-chat/assistant-tools-core": ["@blah-chat/assistant-tools-core@workspace:packages/assistant-tools-core"],
+
     "@blah-chat/auto-router": ["@blah-chat/auto-router@workspace:packages/auto-router"],
 
     "@blah-chat/backend": ["@blah-chat/backend@workspace:packages/backend"],
+
+    "@blah-chat/bible-core": ["@blah-chat/bible-core@workspace:packages/bible-core"],
+
+    "@blah-chat/bible-service": ["@blah-chat/bible-service@workspace:packages/bible-service"],
 
     "@blah-chat/byod-schema": ["@blah-chat/byod-schema@workspace:packages/byod-schema"],
 
     "@blah-chat/cli": ["@blah-chat/cli@workspace:apps/cli"],
 
+    "@blah-chat/code-execution-core": ["@blah-chat/code-execution-core@workspace:packages/code-execution-core"],
+
     "@blah-chat/config": ["@blah-chat/config@workspace:packages/config"],
+
+    "@blah-chat/content-core": ["@blah-chat/content-core@workspace:packages/content-core"],
+
+    "@blah-chat/content-ingest": ["@blah-chat/content-ingest@workspace:packages/content-ingest"],
+
+    "@blah-chat/crypto-core": ["@blah-chat/crypto-core@workspace:packages/crypto-core"],
 
     "@blah-chat/desktop": ["@blah-chat/desktop@workspace:apps/desktop"],
 
+    "@blah-chat/diagrams-mermaid": ["@blah-chat/diagrams-mermaid@workspace:packages/diagrams-mermaid"],
+
+    "@blah-chat/integrations-composio": ["@blah-chat/integrations-composio@workspace:packages/integrations-composio"],
+
+    "@blah-chat/jobs": ["@blah-chat/jobs@workspace:packages/jobs"],
+
+    "@blah-chat/markdown-web": ["@blah-chat/markdown-web@workspace:packages/markdown-web"],
+
     "@blah-chat/mobile": ["@blah-chat/mobile@workspace:apps/mobile"],
 
+    "@blah-chat/notes-core": ["@blah-chat/notes-core@workspace:packages/notes-core"],
+
+    "@blah-chat/persistence-convex": ["@blah-chat/persistence-convex@workspace:packages/persistence-convex"],
+
+    "@blah-chat/rag-core": ["@blah-chat/rag-core@workspace:packages/rag-core"],
+
+    "@blah-chat/sdk": ["@blah-chat/sdk@workspace:packages/sdk"],
+
+    "@blah-chat/search-core": ["@blah-chat/search-core@workspace:packages/search-core"],
+
+    "@blah-chat/search-tools": ["@blah-chat/search-tools@workspace:packages/search-tools"],
+
     "@blah-chat/shared": ["@blah-chat/shared@workspace:packages/shared"],
+
+    "@blah-chat/speech": ["@blah-chat/speech@workspace:packages/speech"],
+
+    "@blah-chat/storage": ["@blah-chat/storage@workspace:packages/storage"],
+
+    "@blah-chat/streaming-core": ["@blah-chat/streaming-core@workspace:packages/streaming-core"],
 
     "@blah-chat/web": ["@blah-chat/web@workspace:apps/web"],
 

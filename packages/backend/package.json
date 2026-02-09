@@ -11,9 +11,9 @@
     "./convex/_generated/dataModel": "./convex/_generated/dataModel.d.ts"
   },
   "scripts": {
-    "dev": "convex dev",
-    "deploy": "convex deploy",
-    "generate": "convex codegen",
+    "dev": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && convex dev",
+    "deploy": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && convex deploy",
+    "generate": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && convex codegen",
     "test": "vitest",
     "test:run": "vitest run"
   },

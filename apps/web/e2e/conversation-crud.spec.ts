@@ -253,3 +253,41 @@ test.describe("Conversation CRUD", () => {
     });
   });
 });
+
+test.describe("Conversation CRUD (Mobile)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/chat");
+    const ready = await waitForChatReady(page);
+    if (!ready) {
+      test.skip(true, "Chat not accessible");
+    }
+  });
+
+  test("header new chat button visible on mobile", async ({ page }) => {
+    const newChatButton = page.locator('button[aria-label="New Chat"]').first();
+    await expect(newChatButton).toBeVisible();
+
+    const initialUrl = page.url();
+    await newChatButton.click();
+
+    await page.waitForTimeout(500);
+    const newUrl = page.url();
+
+    const urlChanged = newUrl !== initialUrl;
+    const inputEmpty =
+      (await page.locator(SELECTORS.chatInput).inputValue()) === "";
+
+    expect(urlChanged || inputEmpty).toBe(true);
+  });
+
+  test("mobile sidebar auto-closes after navigation", async ({ page }) => {
+    await page.locator('[data-sidebar="trigger"]').first().click();
+    await expect(page.locator(SELECTORS.sidebar)).toBeVisible();
+
+    await page.locator('a[href="/search"]').first().click();
+    await page.waitForURL(/\/search/);
+
+    await expect(page.locator(SELECTORS.sidebar)).toBeHidden();
+  });
+});

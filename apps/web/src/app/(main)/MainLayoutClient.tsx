@@ -33,20 +33,31 @@ import { SelectionProvider } from "@/contexts/SelectionContext";
 import { useNewChat } from "@/hooks/useNewChat";
 
 function Header() {
-  const { open } = useSidebar();
+  const { open, isMobile, openMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
   const { startNewChat } = useNewChat();
   const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
 
   const handleNewChat = () => {
+    if (isMobile && openMobile) setOpenMobile(false);
     startNewChat();
+  };
+
+  const handleOpenIncognito = () => {
+    if (isMobile && openMobile) setOpenMobile(false);
+    setShowIncognitoDialog(true);
+  };
+
+  const handleSearch = () => {
+    if (isMobile && openMobile) setOpenMobile(false);
+    router.push("/search");
   };
 
   return (
     <>
       <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-all duration-300 ease-in-out">
         <SidebarTrigger />
-        {!open && (
+        {(isMobile || !open) && (
           <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
             <Button
               variant="ghost"
@@ -61,8 +72,8 @@ function Header() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowIncognitoDialog(true)}
-              className="hidden sm:inline-flex h-8 w-8 text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
+              onClick={handleOpenIncognito}
+              className="h-8 w-8 text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
               aria-label="New Incognito Chat"
               title="New Incognito Chat (Shift+Alt+N)"
             >
@@ -71,7 +82,7 @@ function Header() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/search")}
+              onClick={handleSearch}
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               aria-label="Search conversations"
             >
@@ -99,7 +110,7 @@ function Header() {
                 Keyboard Shortcuts
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setShowIncognitoDialog(true)}
+                onClick={handleOpenIncognito}
                 className="sm:hidden"
               >
                 <Ghost className="h-4 w-4 mr-2 text-violet-400" />

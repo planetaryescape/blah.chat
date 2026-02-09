@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.1](https://github.com/planetaryescape/blah.chat/compare/v1.24.0...v1.24.1) (2026-02-09)
+
+
+### Bug Fixes
+
+* mobile new chat access ([98f0012](https://github.com/planetaryescape/blah.chat/commit/98f0012af9489acefc9c37a8fbb7315459553e4d))
+* unblock CI convex dry run + sdk build ([db0fc2a](https://github.com/planetaryescape/blah.chat/commit/db0fc2ad2cf648f16c447940668d820198341636))
+
 ## [1.24.0](https://github.com/planetaryescape/blah.chat/compare/v1.23.0...v1.24.0) (2026-02-09)
 
 

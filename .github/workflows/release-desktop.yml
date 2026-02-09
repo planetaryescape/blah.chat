@@ -117,19 +117,8 @@ jobs:
           fi
 
       - name: Validate Apple notarization credentials
-        continue-on-error: true
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if ! xcrun notarytool history \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" >/dev/null; then
-            echo "::error::Apple notarization auth failed. Verify APPLE_ID, APPLE_PASSWORD (app-specific password), and APPLE_TEAM_ID."
-            exit 1
-          fi
+          echo "::notice::Skipping preflight notarization auth check; notarization is submitted async later and finalized in a separate workflow."
 
       - name: Sync desktop versions + updater config from release metadata
         shell: bash
@@ -165,7 +154,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: bun run build:bundle
+        run: bun run build:bundle -- --skip-stapling
 
       - name: Ensure GitHub release exists
         id: release
@@ -221,7 +210,6 @@ jobs:
 
       - name: Notarize desktop dmg (notarytool)
         if: steps.release.outputs.skip_upload != 'true'
-        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -239,22 +227,29 @@ jobs:
             exit 1
           fi
 
-          if xcrun notarytool submit "$DMG" \
+          # Async submit only (no --wait). Avoid burning macOS runner minutes polling.
+          SUBMISSION_JSON="$(xcrun notarytool submit "$DMG" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait \
-            --timeout 10m; then
-            xcrun stapler staple -v "$DMG"
-            gh release upload "$TAG" "$DMG" --repo "$REPO" --clobber
-          else
-            echo "::warning::Notarization not completed (timeout/backlog/offline). Signed DMG already uploaded."
+            --no-wait \
+            --no-progress \
+            -f json)"
+
+          SUBMISSION_ID="$(python3 - <<'PY'\nimport json, re, sys\ns=sys.stdin.read().strip()\ntry:\n  j=json.loads(s)\nexcept Exception:\n  j=s\n\ndef walk(x):\n  if isinstance(x, dict):\n    for k,v in x.items():\n      yield k, v\n      yield from walk(v)\n  elif isinstance(x, list):\n    for v in x:\n      yield from walk(v)\n\ncand=None\nif isinstance(j, dict):\n  for k,v in walk(j):\n    if k.lower() in (\"id\",\"uuid\",\"submissionid\",\"submission_id\") and isinstance(v,str):\n      cand=v\n      break\nif not cand:\n  m=re.search(r\"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\", s)\n  cand=m.group(0) if m else \"\"\nprint(cand)\nPY\n<<<\"$SUBMISSION_JSON\")"
+
+          if [ -z "${SUBMISSION_ID:-}" ]; then
+            echo "::error::Failed to parse notarization submission ID."
+            echo "$SUBMISSION_JSON"
+            exit 1
           fi
 
-      - name: Publish GitHub release
-        if: steps.release.outputs.skip_upload != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.prepare.outputs.tag }}
-          REPO: ${{ github.repository }}
-        run: gh release edit "$TAG" --repo "$REPO" --draft=false
+          BODY_FILE="$(mktemp)"
+          gh release view "$TAG" --repo "$REPO" --json body --jq '.body // ""' > "$BODY_FILE" || true
+
+          if ! grep -Fq "$SUBMISSION_ID" "$BODY_FILE"; then
+            printf '\nNotarization submission id: %s\n' "$SUBMISSION_ID" >> "$BODY_FILE"
+            gh release edit "$TAG" --repo "$REPO" --notes-file "$BODY_FILE"
+          fi
+
+          echo "::notice::Notarization submitted async. Release remains draft until finalize workflow runs."

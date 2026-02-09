@@ -5,12 +5,17 @@ This repo now supports automated desktop releases with no manual tag cutting.
 ## What is automated now
 
 1. `release-please` tracks `apps/desktop` and creates `desktop-vX.Y.Z` releases.
-2. `.github/workflows/release-desktop.yml` auto-builds/signs/notarizes on published `desktop-v*`.
-3. Artifacts are uploaded to that GitHub release:
+2. `.github/workflows/release-desktop.yml` auto-builds/signs on draft `desktop-v*`, uploads artifacts, and submits notarization **async** (no waiting).
+3. Artifacts are uploaded to the **draft** GitHub release:
    - `.dmg`
    - `.app.tar.gz`
    - `.app.tar.gz.sig`
    - `latest*.json` (updater manifests)
+4. `.github/workflows/release-desktop-finalize.yml` is run later (manual) to:
+   - check notarization status (no wait)
+   - staple + verify DMG
+   - re-upload DMG
+   - publish the release (makes it visible on the Releases page)
 4. CI enforces desktop version sync across:
    - `apps/desktop/package.json`
    - `apps/desktop/src-tauri/tauri.conf.json`
@@ -19,7 +24,7 @@ This repo now supports automated desktop releases with no manual tag cutting.
 Local build note:
 
 1. `apps/desktop` default `build` runs with `--no-bundle` for fast CI/pre-push stability.
-2. Release workflow uses `build:bundle` for signed/notarized DMG + updater artifacts.
+2. Release workflow uses `build:bundle` for signed DMG + updater artifacts (notarization submitted async; stapling + publish happens in finalize workflow).
 
 ## One-time setup
 
@@ -86,8 +91,9 @@ Already configured:
 1. Merge desktop changes to `main` using conventional commits (`feat:`, `fix:`).
 2. `release-please` opens/updates release PR.
 3. `.github/workflows/release-please-auto-merge.yml` auto-merges release PR after CI passes.
-4. GitHub release `desktop-vX.Y.Z` is published automatically.
-5. `release-desktop.yml` runs and uploads signed/notarized artifacts.
+4. GitHub **draft** release `desktop-vX.Y.Z` is created automatically.
+5. `release-desktop.yml` runs, uploads signed artifacts to the draft release, and submits notarization async.
+6. Run `Finalize Desktop Notarization` once notarization is `Accepted` to staple + publish (makes it visible publicly).
 
 Desktop cadence notes:
 
@@ -128,7 +134,7 @@ Disable updater again:
 
 ## Manual fallback
 
-If you need to re-run a specific tag release:
+If you need to re-run a specific tag build (draft release assets + notarization submission):
 
 1. Open Actions -> `Release Desktop` -> `Run workflow`
 2. Provide `tag` as `desktop-vX.Y.Z`
@@ -138,6 +144,13 @@ CLI equivalent:
 ```bash
 gh workflow run "Release Desktop" --repo planetaryescape/blah.chat -f tag=desktop-vX.Y.Z
 gh run list --repo planetaryescape/blah.chat --workflow "Release Desktop" --limit 5
+```
+
+Finalize (staple + publish) after notarization is accepted:
+
+```bash
+gh workflow run "Finalize Desktop Notarization" --repo planetaryescape/blah.chat -f tag=desktop-vX.Y.Z
+gh run list --repo planetaryescape/blah.chat --workflow "Finalize Desktop Notarization" --limit 5
 ```
 
 ## Debug checklist

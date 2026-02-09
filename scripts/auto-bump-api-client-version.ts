@@ -18,38 +18,38 @@ const tryRunGit = (gitArgs: string[]): string | null => {
   }
 };
 
-const stagedSdkFiles = runGit([
+const stagedApiClientFiles = runGit([
   "diff",
   "--name-only",
   "--cached",
   "--",
-  "packages/sdk",
+  "packages/api-client",
 ])
   .split("\n")
   .map((file) => file.trim())
   .filter(Boolean);
 
-if (stagedSdkFiles.length === 0) {
+if (stagedApiClientFiles.length === 0) {
   process.exit(0);
 }
 
 const docsOnlyPrefixes = [
-  "packages/sdk/README.md",
-  "packages/sdk/CHANGELOG.md",
-  "packages/sdk/examples/",
+  "packages/api-client/README.md",
+  "packages/api-client/CHANGELOG.md",
+  "packages/api-client/examples/",
 ];
 const requiresBumpPrefixes = [
-  "packages/sdk/src/",
-  "packages/sdk/openapi/",
-  "packages/sdk/scripts/",
-  "packages/sdk/tsconfig.json",
-  "packages/sdk/package.json",
+  "packages/api-client/src/",
+  "packages/api-client/openapi/",
+  "packages/api-client/scripts/",
+  "packages/api-client/tsconfig.json",
+  "packages/api-client/package.json",
 ];
 
-const requiresBump = stagedSdkFiles.some((file) =>
+const requiresBump = stagedApiClientFiles.some((file) =>
   requiresBumpPrefixes.some((prefix) => file.startsWith(prefix)),
 );
-const docsOnly = stagedSdkFiles.every((file) =>
+const docsOnly = stagedApiClientFiles.every((file) =>
   docsOnlyPrefixes.some((prefix) => file.startsWith(prefix)),
 );
 
@@ -68,13 +68,16 @@ const getVersion = (packageJsonRaw: string): string | null => {
 
 const headPackageJsonRaw = tryRunGit([
   "show",
-  "HEAD:packages/sdk/package.json",
+  "HEAD:packages/api-client/package.json",
 ]);
 if (!headPackageJsonRaw) {
   process.exit(0);
 }
 
-const indexPackageJsonRaw = tryRunGit(["show", ":packages/sdk/package.json"]);
+const indexPackageJsonRaw = tryRunGit([
+  "show",
+  ":packages/api-client/package.json",
+]);
 if (!indexPackageJsonRaw) {
   process.exit(0);
 }
@@ -83,7 +86,7 @@ const headVersion = getVersion(headPackageJsonRaw);
 const indexVersion = getVersion(indexPackageJsonRaw);
 
 if (!headVersion || !indexVersion) {
-  console.error("Unable to determine SDK version for auto-bump.");
+  console.error("Unable to determine API client version for auto-bump.");
   process.exit(1);
 }
 
@@ -94,19 +97,24 @@ if (indexVersion !== headVersion) {
 const versionMatch = indexVersion.match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
 if (!versionMatch) {
   console.error(
-    `Unable to auto-bump SDK version "${indexVersion}". Use semver x.y.z format.`,
+    `Unable to auto-bump API client version "${indexVersion}". Use semver x.y.z format.`,
   );
   process.exit(1);
 }
 
 const nextVersion = `${versionMatch[1]}.${versionMatch[2]}.${Number(versionMatch[3]) + 1}`;
 
-const sdkPkgPath = resolve(process.cwd(), "packages/sdk/package.json");
-const packageJson = JSON.parse(readFileSync(sdkPkgPath, "utf8")) as {
+const apiClientPkgPath = resolve(
+  process.cwd(),
+  "packages/api-client/package.json",
+);
+const packageJson = JSON.parse(readFileSync(apiClientPkgPath, "utf8")) as {
   version?: string;
 };
 packageJson.version = nextVersion;
-writeFileSync(sdkPkgPath, `${JSON.stringify(packageJson, null, 2)}\n`);
-runGit(["add", "packages/sdk/package.json"]);
+writeFileSync(apiClientPkgPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+runGit(["add", "packages/api-client/package.json"]);
 
-console.log(`Auto-bumped SDK version: ${indexVersion} -> ${nextVersion}`);
+console.log(
+  `Auto-bumped API client version: ${indexVersion} -> ${nextVersion}`,
+);

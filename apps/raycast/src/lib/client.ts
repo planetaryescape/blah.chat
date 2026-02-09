@@ -1,4 +1,4 @@
-import { type BlahClient, createBlahClient } from "@blah-chat/sdk";
+import { type BlahClient, createBlahClient } from "@blah-chat/api-client";
 import { getPreferenceValues } from "@raycast/api";
 
 const DEFAULT_CONVEX_URL = "https://compassionate-bee-117.convex.cloud";

@@ -7,7 +7,7 @@ pre-commit:
   commands:
     lint:
       glob: "*.{js,ts,cjs,mjs,jsx,tsx,json,jsonc}"
-      run: bun run sdk:version:auto && bun run biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      run: bun run api-client:version:auto && bun run biome check --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
     typecheck:
       glob: "*.{ts,tsx}"

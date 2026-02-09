@@ -1,1 +1,1 @@
-export * from "@blah-chat/sdk/rpc";
+export * from "@blah-chat/api-client/rpc";

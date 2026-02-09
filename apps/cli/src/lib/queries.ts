@@ -1,9 +1,9 @@
 /**
- * SDK query wrappers for CLI.
+ * API client query wrappers for CLI.
  */
 
-import type { BlahClient } from "@blah-chat/sdk";
-import type { Conversation, Message, Model } from "@blah-chat/sdk/rpc";
+import type { BlahClient } from "@blah-chat/api-client";
+import type { Conversation, Message, Model } from "@blah-chat/api-client/rpc";
 import {
   getConversation as getConversationRpc,
   getUserDefaultModel as getUserDefaultModelRpc,
@@ -11,7 +11,7 @@ import {
   listMessages as listMessagesRpc,
   listModels as listModelsRpc,
   searchConversations as searchConversationsRpc,
-} from "@blah-chat/sdk/rpc";
+} from "@blah-chat/api-client/rpc";
 import type { Id } from "./types.js";
 
 export type { Conversation, Message, Model };

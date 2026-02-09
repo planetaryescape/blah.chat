@@ -11,6 +11,7 @@ import { ComposioSettings } from "@/components/settings/ComposioSettings";
 import { CustomInstructionsForm } from "@/components/settings/CustomInstructionsForm";
 import { DangerZoneSettings } from "@/components/settings/DangerZoneSettings";
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings";
+import { DesktopAppSettings } from "@/components/settings/DesktopAppSettings";
 import { KnowledgeBankSettings } from "@/components/settings/KnowledgeBankSettings";
 import { MaintenanceSettings } from "@/components/settings/MaintenanceSettings";
 import { MemorySettings } from "@/components/settings/MemorySettings";
@@ -22,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFeatureFlag } from "@/hooks/usePostHogFeatureFlag";
+import { isDesktopShell } from "@/lib/desktop/ipc";
 
 const SETTINGS_SECTIONS = [
   {
@@ -58,6 +60,11 @@ const SETTINGS_SECTIONS = [
     id: "maintenance",
     label: "Maintenance",
     component: MaintenanceSettings,
+  },
+  {
+    id: "desktop",
+    label: "Desktop",
+    component: DesktopAppSettings,
   },
   {
     id: "shortcuts",
@@ -99,6 +106,7 @@ function SettingsContent() {
   );
   const [focusSetting] = useQueryState("focus", parseAsString);
   const isBYODEnabled = useFeatureFlag("byod");
+  const desktopShell = isDesktopShell();
 
   // Filter sections based on feature flags
   const visibleSections = useMemo(() => {
@@ -106,9 +114,12 @@ function SettingsContent() {
       if (section.id === "database") {
         return isBYODEnabled === true;
       }
+      if (section.id === "desktop") {
+        return desktopShell === true;
+      }
       return true;
     });
-  }, [isBYODEnabled]);
+  }, [desktopShell, isBYODEnabled]);
 
   return (
     <div className="h-[calc(100vh-(--spacing(16)))] flex flex-col relative bg-background overflow-hidden">

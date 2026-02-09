@@ -31,6 +31,22 @@ export function getDesktopSettingsDefaults(): DesktopSettings {
   return DEFAULT_DESKTOP_SETTINGS;
 }
 
+export async function getDesktopSettings(): Promise<DesktopSettings | null> {
+  const core = getTauriCore();
+  if (!core) return null;
+  return await core.invoke<DesktopSettings>("get_desktop_settings");
+}
+
+export async function setDesktopSettings(
+  settings: Partial<DesktopSettings>,
+): Promise<DesktopSettings | null> {
+  const core = getTauriCore();
+  if (!core) return null;
+  return await core.invoke<DesktopSettings>("set_desktop_settings", {
+    settings,
+  });
+}
+
 export async function openMainWindow(route?: string): Promise<boolean> {
   const core = getTauriCore();
   if (!core) return false;

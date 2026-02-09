@@ -15,12 +15,15 @@ const createSchema = z.object({
   systemPrompt: z.string().optional(),
 });
 
-async function postHandler(req: NextRequest, { userId }: { userId: string }) {
+async function postHandler(
+  req: NextRequest,
+  { userId, sessionToken }: { userId: string; sessionToken: string },
+) {
   const startTime = performance.now();
   logger.info({ userId }, "POST /api/v1/conversations");
 
   const body = await parseBody(req, createSchema);
-  const result = await conversationsDAL.create(userId, body);
+  const result = await conversationsDAL.create(userId, body, sessionToken);
 
   const duration = performance.now() - startTime;
 
@@ -36,14 +39,22 @@ async function postHandler(req: NextRequest, { userId }: { userId: string }) {
   return NextResponse.json(result, { status: 201 });
 }
 
-async function getHandler(req: NextRequest, { userId }: { userId: string }) {
+async function getHandler(
+  req: NextRequest,
+  { userId, sessionToken }: { userId: string; sessionToken: string },
+) {
   const startTime = performance.now();
   logger.info({ userId }, "GET /api/v1/conversations");
 
   const limit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
   const archived = getQueryParam(req, "archived") === "true";
 
-  const conversations = await conversationsDAL.list(userId, limit, archived);
+  const conversations = await conversationsDAL.list(
+    userId,
+    limit,
+    archived,
+    sessionToken,
+  );
 
   const duration = performance.now() - startTime;
 

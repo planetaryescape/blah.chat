@@ -7,6 +7,7 @@
  * Change models here - no need to hunt through the codebase!
  */
 
+import type { EmbeddingModel } from "ai";
 import { AUTO_MODEL, MODEL_CONFIG, type ModelConfig } from "./models";
 import { vercel } from "./providers/gateway";
 
@@ -131,9 +132,9 @@ export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
  * Embedding model for vector search (memories, messages, conversations).
  * Used to generate embeddings for semantic search across the application.
  */
-export const EMBEDDING_MODEL = vercel.textEmbeddingModel(
+export const EMBEDDING_MODEL: EmbeddingModel = vercel.textEmbeddingModel(
   "openai/text-embedding-3-small",
-);
+) as unknown as EmbeddingModel;
 
 /**
  * Embedding model pricing (per 1M tokens).
@@ -159,7 +160,26 @@ export function calculateEmbeddingCost(tokenCount: number): number {
 /**
  * All operational models in one object for easy iteration/validation.
  */
-export const OPERATIONAL_MODELS = {
+export type OperationalModels = {
+  default: ModelConfig;
+  titleGeneration: ModelConfig;
+  memoryExtraction: ModelConfig;
+  memoryProcessing: ModelConfig;
+  tagExtraction: ModelConfig;
+  summarization: ModelConfig;
+  embeddingSummarization: ModelConfig;
+  memoryRerank: ModelConfig;
+  feedbackTriage: ModelConfig;
+  taskExtraction: ModelConfig;
+  deadlineParsing: ModelConfig;
+  meetingExtraction: ModelConfig;
+  documentExtraction: ModelConfig;
+  designSystemGeneration: ModelConfig;
+  templateAnalysis: ModelConfig;
+  embedding: EmbeddingModel;
+};
+
+export const OPERATIONAL_MODELS: OperationalModels = {
   default: DEFAULT_MODEL,
   titleGeneration: TITLE_GENERATION_MODEL,
   memoryExtraction: MEMORY_EXTRACTION_MODEL,
@@ -176,4 +196,4 @@ export const OPERATIONAL_MODELS = {
   designSystemGeneration: DESIGN_SYSTEM_GENERATION_MODEL,
   templateAnalysis: TEMPLATE_ANALYSIS_MODEL,
   embedding: EMBEDDING_MODEL,
-} as const;
+};

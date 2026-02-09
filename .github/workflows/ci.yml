@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verify publishable packages have docs + publish config
+        run: bun run package-docs:check
+
       - name: Run Biome check (lint + format)
         run: bun run lint
 

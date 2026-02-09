@@ -96,6 +96,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         25,
         false,
+        "test-session-token",
       );
     });
 
@@ -110,6 +111,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         true,
+        "test-session-token",
       );
     });
 
@@ -124,6 +126,7 @@ describe("/api/v1/conversations", () => {
         "test-user-id",
         50,
         false,
+        "test-session-token",
       );
     });
 
@@ -184,11 +187,15 @@ describe("/api/v1/conversations", () => {
       });
       await POST(req, { params: Promise.resolve({}) });
 
-      expect(conversationsDAL.create).toHaveBeenCalledWith("test-user-id", {
-        model: "gpt-4o",
-        title: "Test Conversation",
-        systemPrompt: "You are a helpful assistant",
-      });
+      expect(conversationsDAL.create).toHaveBeenCalledWith(
+        "test-user-id",
+        {
+          model: "gpt-4o",
+          title: "Test Conversation",
+          systemPrompt: "You are a helpful assistant",
+        },
+        "test-session-token",
+      );
     });
 
     it("rejects request missing required model field", async () => {

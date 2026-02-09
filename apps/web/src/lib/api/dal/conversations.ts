@@ -28,9 +28,10 @@ export const conversationsDAL = {
   create: async (
     _userId: string,
     data: z.infer<typeof createConversationSchema>,
+    sessionToken: string,
   ) => {
     const validated = createConversationSchema.parse(data);
-    const convex = getConvexClient();
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     const conversationId = (await (convex.mutation as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules
@@ -82,8 +83,13 @@ export const conversationsDAL = {
   /**
    * List conversations (paginated)
    */
-  list: async (_userId: string, limit = 50, archived = false) => {
-    const convex = getConvexClient();
+  list: async (
+    _userId: string,
+    limit = 50,
+    archived = false,
+    sessionToken: string,
+  ) => {
+    const convex = getAuthenticatedConvexClient(sessionToken);
 
     const conversations = (await (convex.query as any)(
       // @ts-ignore - TypeScript recursion limit with 94+ Convex modules

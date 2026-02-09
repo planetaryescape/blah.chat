@@ -2,16 +2,20 @@
 
 use std::sync::Mutex;
 
+use serde::{Deserialize, Serialize};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Listener, Manager, WebviewUrl, WebviewWindow};
+#[cfg(debug_assertions)]
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_store::StoreExt;
 use url::Url;
 
 const DEFAULT_WEB_ORIGIN: &str = "https://blah.chat";
 const DEFAULT_SHORTCUT: &str = "Alt+Space";
+const SETTINGS_STORE_FILE: &str = "desktop-settings.json";
 const MAIN_LABEL: &str = "main";
 const COMPANION_LABEL: &str = "companion";
 const TRAY_ID: &str = "desktop-tray";
@@ -24,9 +28,36 @@ const TRAY_MENU_OPEN_COMPANION_ID: &str = "tray.open_companion";
 const TRAY_MENU_SEARCH_ID: &str = "tray.search";
 const TRAY_MENU_QUIT_ID: &str = "tray.quit";
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopSettings {
+  companion_enabled: bool,
+  companion_shortcut: String,
+  companion_always_on_top: bool,
+}
+
+impl Default for DesktopSettings {
+  fn default() -> Self {
+    Self {
+      companion_enabled: true,
+      companion_shortcut: DEFAULT_SHORTCUT.to_string(),
+      companion_always_on_top: true,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PartialDesktopSettings {
+  companion_enabled: Option<bool>,
+  companion_shortcut: Option<String>,
+  companion_always_on_top: Option<bool>,
+}
+
 #[derive(Default)]
 struct DesktopState {
   shortcut: Mutex<String>,
+  settings: Mutex<DesktopSettings>,
 }
 
 fn web_origin() -> String {
@@ -80,9 +111,18 @@ fn ensure_main_window(app: &AppHandle, route: Option<String>) -> Result<(), Stri
 
 fn ensure_companion_window(app: &AppHandle, route: Option<String>) -> Result<(), String> {
   let target = build_app_url(route.as_deref().unwrap_or("/desktop/quick"));
+  let settings = app
+    .state::<DesktopState>()
+    .settings
+    .lock()
+    .map_err(|err| err.to_string())?
+    .clone();
 
   if let Some(window) = app.get_webview_window(COMPANION_LABEL) {
     navigate_window(&window, &target)?;
+    window
+      .set_always_on_top(settings.companion_always_on_top)
+      .map_err(|err| err.to_string())?;
     window.show().map_err(|err| err.to_string())?;
     window.set_focus().map_err(|err| err.to_string())?;
     return Ok(());
@@ -96,7 +136,7 @@ fn ensure_companion_window(app: &AppHandle, route: Option<String>) -> Result<(),
   .title("blah.chat Quick")
   .inner_size(520.0, 680.0)
   .min_inner_size(420.0, 480.0)
-  .always_on_top(true)
+  .always_on_top(settings.companion_always_on_top)
   .visible(true)
   .resizable(true)
   .build()
@@ -106,6 +146,24 @@ fn ensure_companion_window(app: &AppHandle, route: Option<String>) -> Result<(),
 }
 
 fn toggle_companion_window(app: &AppHandle) -> Result<(), String> {
+  let settings = app
+    .state::<DesktopState>()
+    .settings
+    .lock()
+    .map_err(|err| err.to_string())?
+    .clone();
+
+  if settings.companion_enabled != true {
+    app
+      .notification()
+      .builder()
+      .title("Companion disabled")
+      .body("Enable it in Settings > Desktop")
+      .show()
+      .map_err(|err| err.to_string())?;
+    return Ok(());
+  }
+
   if let Some(window) = app.get_webview_window(COMPANION_LABEL) {
     if window.is_visible().map_err(|err| err.to_string())? {
       window.hide().map_err(|err| err.to_string())?;
@@ -146,7 +204,25 @@ fn deep_link_to_route(payload: &str) -> Option<String> {
 fn handle_menu_action(app: &AppHandle, menu_id: &str) -> Result<(), String> {
   match menu_id {
     MENU_NEW_CHAT_ID | TRAY_MENU_NEW_CHAT_ID => ensure_main_window(app, Some("/app".to_string())),
-    MENU_OPEN_COMPANION_ID | TRAY_MENU_OPEN_COMPANION_ID => toggle_companion_window(app),
+    MENU_OPEN_COMPANION_ID | TRAY_MENU_OPEN_COMPANION_ID => {
+      let enabled = app
+        .state::<DesktopState>()
+        .settings
+        .lock()
+        .map_err(|err| err.to_string())?
+        .companion_enabled;
+      if enabled != true {
+        app
+          .notification()
+          .builder()
+          .title("Companion disabled")
+          .body("Enable it in Settings > Desktop")
+          .show()
+          .map_err(|err| err.to_string())?;
+        return Ok(());
+      }
+      toggle_companion_window(app)
+    }
     MENU_SEARCH_ID | TRAY_MENU_SEARCH_ID => ensure_main_window(app, Some("/search".to_string())),
     MENU_QUIT_ID | TRAY_MENU_QUIT_ID => {
       app.exit(0);
@@ -169,7 +245,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     MENU_OPEN_COMPANION_ID,
     "Open Companion",
     true,
-    Some("Alt+Space"),
+    None::<&str>,
   )?;
   let search = MenuItem::with_id(app, MENU_SEARCH_ID, "Search", true, Some("CmdOrCtrl+K"))?;
   let file_separator = PredefinedMenuItem::separator(app)?;
@@ -233,7 +309,18 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
       } = event
       {
         if button == MouseButton::Left && button_state == MouseButtonState::Up {
-          let _ = toggle_companion_window(tray.app_handle());
+          let app = tray.app_handle();
+          let enabled = app
+            .state::<DesktopState>()
+            .settings
+            .lock()
+            .map(|settings| settings.companion_enabled)
+            .unwrap_or(true);
+          if enabled != true {
+            let _ = ensure_main_window(app, Some("/app".to_string()));
+            return;
+          }
+          let _ = toggle_companion_window(app);
         }
       }
     })
@@ -249,6 +336,22 @@ fn open_main_window(app: AppHandle, route: Option<String>) -> Result<(), String>
 
 #[tauri::command]
 fn open_companion(app: AppHandle, route: Option<String>) -> Result<(), String> {
+  let enabled = app
+    .state::<DesktopState>()
+    .settings
+    .lock()
+    .map_err(|err| err.to_string())?
+    .companion_enabled;
+  if enabled != true {
+    app
+      .notification()
+      .builder()
+      .title("Companion disabled")
+      .body("Enable it in Settings > Desktop")
+      .show()
+      .map_err(|err| err.to_string())?;
+    return Ok(());
+  }
   ensure_companion_window(&app, route)
 }
 
@@ -263,31 +366,172 @@ fn show_notification(app: AppHandle, title: String, body: String) -> Result<(), 
     .map_err(|err| err.to_string())
 }
 
+fn load_settings(app: &AppHandle) -> Result<DesktopSettings, String> {
+  let store = app
+    .store(SETTINGS_STORE_FILE)
+    .map_err(|err| err.to_string())?;
+
+  let mut settings = DesktopSettings::default();
+  if let Some(value) = store.get("companionEnabled").and_then(|v| v.as_bool()) {
+    settings.companion_enabled = value;
+  }
+  if let Some(value) = store.get("companionShortcut") {
+    if let Some(value) = value.as_str() {
+      settings.companion_shortcut = value.to_string();
+    }
+  }
+  if let Some(value) = store
+    .get("companionAlwaysOnTop")
+    .and_then(|v| v.as_bool())
+  {
+    settings.companion_always_on_top = value;
+  }
+
+  Ok(settings)
+}
+
+fn persist_settings(app: &AppHandle, settings: &DesktopSettings) -> Result<(), String> {
+  let store = app
+    .store(SETTINGS_STORE_FILE)
+    .map_err(|err| err.to_string())?;
+  store.set(
+    "companionEnabled".to_string(),
+    serde_json::json!(settings.companion_enabled),
+  );
+  store.set(
+    "companionShortcut".to_string(),
+    serde_json::json!(settings.companion_shortcut),
+  );
+  store.set(
+    "companionAlwaysOnTop".to_string(),
+    serde_json::json!(settings.companion_always_on_top),
+  );
+  store.save().map_err(|err| err.to_string())
+}
+
+fn unregister_current_shortcut(app: &AppHandle, state: &DesktopState) -> Result<(), String> {
+  let manager = app.global_shortcut();
+  let mut current = state.shortcut.lock().map_err(|err| err.to_string())?;
+
+  if current.is_empty() {
+    return Ok(());
+  }
+
+  let old: Shortcut = current
+    .parse()
+    .map_err(|err| format!("invalid existing shortcut {}: {err}", *current))?;
+
+  if manager.is_registered(old) {
+    manager.unregister(old).map_err(|err| err.to_string())?;
+  }
+
+  current.clear();
+  Ok(())
+}
+
+fn register_shortcut_impl(
+  app: &AppHandle,
+  shortcut: &str,
+  state: &DesktopState,
+) -> Result<(), String> {
+  let parsed: Shortcut = shortcut
+    .parse()
+    .map_err(|err| format!("invalid shortcut {shortcut}: {err}"))?;
+
+  unregister_current_shortcut(app, state)?;
+
+  let manager = app.global_shortcut();
+  manager.register(parsed).map_err(|err| err.to_string())?;
+
+  let mut current = state.shortcut.lock().map_err(|err| err.to_string())?;
+  *current = shortcut.to_string();
+  Ok(())
+}
+
+fn apply_settings(
+  app: &AppHandle,
+  settings: &DesktopSettings,
+  state: &DesktopState,
+) -> Result<(), String> {
+  if settings.companion_enabled != true {
+    unregister_current_shortcut(app, state)?;
+    if let Some(window) = app.get_webview_window(COMPANION_LABEL) {
+      let _ = window.close();
+    }
+    return Ok(());
+  }
+
+  register_shortcut_impl(app, settings.companion_shortcut.as_str(), state)?;
+  if let Some(window) = app.get_webview_window(COMPANION_LABEL) {
+    window
+      .set_always_on_top(settings.companion_always_on_top)
+      .map_err(|err| err.to_string())?;
+  }
+  Ok(())
+}
+
+#[tauri::command]
+fn get_desktop_settings(state: tauri::State<'_, DesktopState>) -> Result<DesktopSettings, String> {
+  state
+    .settings
+    .lock()
+    .map(|settings| settings.clone())
+    .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+fn set_desktop_settings(
+  app: AppHandle,
+  settings: PartialDesktopSettings,
+  state: tauri::State<'_, DesktopState>,
+) -> Result<DesktopSettings, String> {
+  let current = state
+    .settings
+    .lock()
+    .map(|settings| settings.clone())
+    .map_err(|err| err.to_string())?;
+
+  let mut next = current.clone();
+  if let Some(enabled) = settings.companion_enabled {
+    next.companion_enabled = enabled;
+  }
+  if let Some(shortcut) = settings.companion_shortcut {
+    next.companion_shortcut = shortcut;
+  }
+  if let Some(always) = settings.companion_always_on_top {
+    next.companion_always_on_top = always;
+  }
+
+  // Validate shortcut before applying/persisting.
+  if next.companion_enabled == true {
+    let _: Shortcut = next
+      .companion_shortcut
+      .parse()
+      .map_err(|err| format!("invalid shortcut {}: {err}", next.companion_shortcut))?;
+  }
+
+  apply_settings(&app, &next, state.inner())?;
+  persist_settings(&app, &next)?;
+
+  let mut locked = state.settings.lock().map_err(|err| err.to_string())?;
+  *locked = next.clone();
+  Ok(next)
+}
+
 #[tauri::command]
 fn register_shortcut(
   app: AppHandle,
   shortcut: String,
   state: tauri::State<'_, DesktopState>,
 ) -> Result<(), String> {
-  let parsed: Shortcut = shortcut
-    .parse()
-    .map_err(|err| format!("invalid shortcut {shortcut}: {err}"))?;
-
-  let manager = app.global_shortcut();
-  let mut current = state.shortcut.lock().map_err(|err| err.to_string())?;
-
-  if !current.is_empty() {
-    let old: Shortcut = current
-      .parse()
-      .map_err(|err| format!("invalid existing shortcut {}: {err}", *current))?;
-
-    if manager.is_registered(old) {
-      manager.unregister(old).map_err(|err| err.to_string())?;
-    }
-  }
-
-  manager.register(parsed).map_err(|err| err.to_string())?;
-  *current = shortcut;
+  let _ = set_desktop_settings(
+    app,
+    PartialDesktopSettings {
+      companion_shortcut: Some(shortcut),
+      ..Default::default()
+    },
+    state,
+  )?;
   Ok(())
 }
 
@@ -311,9 +555,11 @@ fn main() {
     })
     .manage(DesktopState {
       shortcut: Mutex::new(DEFAULT_SHORTCUT.to_string()),
+      settings: Mutex::new(DesktopSettings::default()),
     })
     .plugin(tauri_plugin_deep_link::init())
     .plugin(tauri_plugin_notification::init())
+    .plugin(tauri_plugin_store::Builder::default().build())
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(shortcut_plugin)
     .setup(|app| {
@@ -323,6 +569,15 @@ fn main() {
       }
 
       setup_tray(&app.handle())?;
+
+      let handle = app.handle().clone();
+      let state = handle.state::<DesktopState>();
+      if let Ok(settings) = load_settings(&handle) {
+        if let Ok(mut locked) = state.settings.lock() {
+          *locked = settings.clone();
+        }
+        let _ = apply_settings(&handle, &settings, state.inner());
+      }
 
       let handle = app.handle().clone();
       app.listen("deep-link://new-url", move |event| {
@@ -339,6 +594,8 @@ fn main() {
       open_main_window,
       open_companion,
       show_notification,
+      get_desktop_settings,
+      set_desktop_settings,
       register_shortcut
     ])
     .run(tauri::generate_context!())

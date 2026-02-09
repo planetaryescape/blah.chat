@@ -25,9 +25,9 @@ const tryRunGit = (gitArgs: string[]): string | null => {
   }
 };
 
-const getChangedSdkFiles = (): string[] => {
+const getChangedApiClientFiles = (): string[] => {
   const readDiff = (range: string) =>
-    runGit(["diff", "--name-only", range, "--", "packages/sdk"])
+    runGit(["diff", "--name-only", range, "--", "packages/api-client"])
       .split("\n")
       .map((file) => file.trim())
       .filter(Boolean);
@@ -40,24 +40,24 @@ const getChangedSdkFiles = (): string[] => {
   }
 };
 
-const changed = getChangedSdkFiles();
+const changed = getChangedApiClientFiles();
 
 if (changed.length === 0) {
-  console.log(`No SDK changes detected vs ${baseRef}.`);
+  console.log(`No API client changes detected vs ${baseRef}.`);
   process.exit(0);
 }
 
 const docsOnlyPrefixes = [
-  "packages/sdk/README.md",
-  "packages/sdk/CHANGELOG.md",
-  "packages/sdk/examples/",
+  "packages/api-client/README.md",
+  "packages/api-client/CHANGELOG.md",
+  "packages/api-client/examples/",
 ];
 const requiresBumpPrefixes = [
-  "packages/sdk/src/",
-  "packages/sdk/openapi/",
-  "packages/sdk/scripts/",
-  "packages/sdk/tsconfig.json",
-  "packages/sdk/package.json",
+  "packages/api-client/src/",
+  "packages/api-client/openapi/",
+  "packages/api-client/scripts/",
+  "packages/api-client/tsconfig.json",
+  "packages/api-client/package.json",
 ];
 
 const requiresBump = changed.some((file) =>
@@ -68,30 +68,37 @@ const docsOnly = changed.every((file) =>
 );
 
 if (!requiresBump || docsOnly) {
-  console.log("SDK changes are docs/examples only; version bump not required.");
+  console.log(
+    "API client changes are docs/examples only; version bump not required.",
+  );
   process.exit(0);
 }
 
-const sdkPkgPath = resolve(process.cwd(), "packages/sdk/package.json");
-const headPackageJson = JSON.parse(readFileSync(sdkPkgPath, "utf8")) as {
+const apiClientPkgPath = resolve(
+  process.cwd(),
+  "packages/api-client/package.json",
+);
+const headPackageJson = JSON.parse(readFileSync(apiClientPkgPath, "utf8")) as {
   version?: string;
 };
 const headVersion = headPackageJson.version;
 
 if (!headVersion) {
-  console.error("Unable to determine SDK version from head package.json");
+  console.error(
+    "Unable to determine API client version from head package.json",
+  );
   process.exit(1);
 }
 
 const basePackageJsonRaw = tryRunGit([
   "show",
-  `${baseRef}:packages/sdk/package.json`,
+  `${baseRef}:packages/api-client/package.json`,
 ]);
 if (!basePackageJsonRaw) {
   console.log(
-    `SDK package does not exist on ${baseRef}; treating this as initial SDK introduction.`,
+    `API client package does not exist on ${baseRef}; treating this as initial introduction.`,
   );
-  console.log(`SDK version present on head: ${headVersion}`);
+  console.log(`API client version present on head: ${headVersion}`);
   process.exit(0);
 }
 
@@ -101,12 +108,12 @@ const basePackageJson = JSON.parse(basePackageJsonRaw) as {
 const baseVersion = basePackageJson.version;
 
 if (!baseVersion) {
-  console.error("Unable to determine SDK versions from package.json");
+  console.error("Unable to determine API client versions from package.json");
   process.exit(1);
 }
 
 if (headVersion === baseVersion) {
-  console.error("SDK version bump required.");
+  console.error("API client version bump required.");
   console.error(`Base version: ${baseVersion}`);
   console.error(`Head version: ${headVersion}`);
   console.error("Changed files:");
@@ -114,9 +121,11 @@ if (headVersion === baseVersion) {
     console.error(`- ${file}`);
   }
   console.error(
-    "Bump packages/sdk/package.json version when SDK runtime/contract changes.",
+    "Bump packages/api-client/package.json version when API client runtime/contract changes.",
   );
   process.exit(1);
 }
 
-console.log(`SDK version bump verified: ${baseVersion} -> ${headVersion}`);
+console.log(
+  `API client version bump verified: ${baseVersion} -> ${headVersion}`,
+);

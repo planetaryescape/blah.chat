@@ -1,6 +1,6 @@
 "use client";
 
-import type { Conversation } from "@blah-chat/sdk";
+import type { Conversation } from "@blah-chat/api-client";
 import { Loader2, MessageSquare, Search, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";

@@ -1,5 +1,5 @@
 /**
- * SDK client wrapper for CLI.
+ * API client wrapper for CLI.
  *
  * Default transport is HTTP/SSE via /api/v1 using scoped API keys.
  */
@@ -8,7 +8,7 @@ import {
   type BlahClient,
   BlahSDKError,
   createBlahClient,
-} from "@blah-chat/sdk";
+} from "@blah-chat/api-client";
 import { clearCredentials, getCredentials } from "./auth.js";
 import { getConfig } from "./config.js";
 

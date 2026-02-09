@@ -119,7 +119,7 @@
   "dependencies": {
     "@raycast/api": "^1.87.0",
     "@raycast/utils": "^2.2.2",
-    "@blah-chat/sdk": "workspace:*"
+    "@blah-chat/api-client": "workspace:*"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.11",

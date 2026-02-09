@@ -1,6 +1,6 @@
-# @blah-chat/sdk
+# @blah-chat/api-client
 
-Type-safe blah.chat client for HTTP + SSE transports.
+Type-safe blah.chat API client for HTTP + SSE transports.
 
 ## Features
 
@@ -12,7 +12,7 @@ Type-safe blah.chat client for HTTP + SSE transports.
 ## Usage
 
 ```ts
-import { createBlahClient } from "@blah-chat/sdk";
+import { createBlahClient } from "@blah-chat/api-client";
 
 const client = createBlahClient({
   baseUrl: "https://blah.chat",
@@ -38,7 +38,7 @@ const conversations = await client.listConversations({ limit: 20 });
 1. User JWT flow: web/mobile apps calling `/api/v1` with bearer auth.
 2. API key flow: server-to-server, CLI, Raycast, cron/automation workers.
 3. Realtime flow: initial HTTP fetch + SSE stream (`snapshot|update|heartbeat|error`).
-4. Hybrid flow: Convex-reactive UI where available, SDK transport for portable clients.
+4. Hybrid flow: Convex-reactive UI where available, API client transport for portable clients.
 
 ## Versioning
 
@@ -50,10 +50,10 @@ const conversations = await client.listConversations({ limit: 20 });
 ## Release Workflow
 
 1. Update `openapi/openapi.json`
-2. Run `bun --filter=@blah-chat/sdk run generate`
-3. Run `bun --filter=@blah-chat/sdk run build`
+2. Run `bun --filter=@blah-chat/api-client run generate`
+3. Run `bun --filter=@blah-chat/api-client run build`
 4. Update `CHANGELOG.md`
-5. Publish dry-run with `bun publish --dry-run` from `packages/sdk`
+5. Publish dry-run with `bun publish --dry-run` from `packages/api-client`
 
 ## Deprecation Policy
 

@@ -1,4 +1,4 @@
-import { createBlahClient } from "@blah-chat/sdk";
+import { createBlahClient } from "@blah-chat/api-client";
 import { useAuth } from "@clerk/nextjs";
 import { useMemo } from "react";
 import { getDesktopClientHeaders } from "@/lib/platform/desktopShell";

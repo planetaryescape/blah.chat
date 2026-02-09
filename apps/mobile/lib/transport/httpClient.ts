@@ -1,4 +1,4 @@
-import { createBlahClient } from "@blah-chat/sdk";
+import { createBlahClient } from "@blah-chat/api-client";
 
 const DEFAULT_APP_URL = "https://blah.chat";
 

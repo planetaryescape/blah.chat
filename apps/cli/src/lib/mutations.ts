@@ -1,8 +1,8 @@
 /**
- * SDK mutation wrappers for CLI.
+ * API client mutation wrappers for CLI.
  */
 
-import type { BlahClient } from "@blah-chat/sdk";
+import type { BlahClient } from "@blah-chat/api-client";
 import type { Id } from "./types.js";
 
 export interface SendMessageArgs {

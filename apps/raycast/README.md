@@ -1,6 +1,6 @@
 # Raycast Extension CI Publish
 
-`release-raycast.yml` publishes on `main` when `apps/raycast/**` or `packages/sdk/**` changes.
+`release-raycast.yml` publishes on `main` when `apps/raycast/**` or `packages/api-client/**` changes.
 
 Required GitHub Actions secrets:
 

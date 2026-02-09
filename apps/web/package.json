@@ -29,7 +29,7 @@
     "@blah-chat/backend": "workspace:*",
     "@blah-chat/ai": "workspace:*",
     "@blah-chat/byod-schema": "workspace:*",
-    "@blah-chat/sdk": "workspace:*",
+    "@blah-chat/api-client": "workspace:*",
     "@blah-chat/shared": "workspace:*",
     "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/nextjs": "^6.36.5",

@@ -1,0 +1,29 @@
+{
+  "name": "@blah-chat/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./rpc": {
+      "types": "./dist/rpc.d.ts",
+      "import": "./dist/rpc.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node -e \"const fs=require('node:fs'); ['dist/index.js','dist/index.d.ts','dist/rpc.js','dist/rpc.d.ts'].forEach(p=>{if(!fs.existsSync(p)) throw new Error('missing '+p)});\"",
+    "prepublishOnly": "bun run build"
+  }
+}

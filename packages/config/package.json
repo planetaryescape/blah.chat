@@ -1,5 +1,13 @@
 {
   "name": "@blah-chat/config",
-  "version": "0.0.0",
-  "private": true
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "tsconfig.base.json",
+    "README.md",
+    "CHANGELOG.md",
+    "package.json"
+  ]
 }

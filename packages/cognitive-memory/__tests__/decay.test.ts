@@ -74,6 +74,24 @@ describe("decay", () => {
     expect(high).toBeGreaterThan(low);
   });
 
+  test("higher accessCount slows decay (frequency boost)", () => {
+    const low = calculateRetention({
+      stability: 0.5,
+      importance: 0.5,
+      accessCount: 0,
+      lastAccessed: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      memoryType: "semantic",
+    });
+    const high = calculateRetention({
+      stability: 0.5,
+      importance: 0.5,
+      accessCount: 100,
+      lastAccessed: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      memoryType: "semantic",
+    });
+    expect(high).toBeGreaterThan(low);
+  });
+
   test("updateStability increases correctly + caps at 1.0", () => {
     expect(updateStability(0.3, 1)).toBeCloseTo(0.314, 3);
     expect(updateStability(0.3, 7)).toBeCloseTo(0.4, 6);

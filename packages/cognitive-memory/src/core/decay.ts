@@ -57,11 +57,21 @@ export function calculateRetention(params: DecayParameters): number {
   // Importance boosts decay resistance (multiplier: 1.0 to 3.0)
   const importanceBoost = 1.0 + importance * 2.0;
 
+  // Access frequency boosts decay resistance with diminishing returns.
+  const accessCountRaw =
+    typeof params.accessCount === "number" &&
+    Number.isFinite(params.accessCount)
+      ? params.accessCount
+      : 0;
+  const accessCount = Math.max(0, accessCountRaw);
+  const frequencyBoost = Math.min(2.0, 1.0 + Math.log1p(accessCount) * 0.1);
+
   // Get base decay rate for memory type
   const baseDecay = BASE_DECAY_RATES[memoryType];
 
   // Combined decay constant
-  const decayConstant = stability * importanceBoost * baseDecay;
+  const decayConstant =
+    stability * importanceBoost * frequencyBoost * baseDecay;
 
   // Prevent division by zero / degenerate cases
   if (decayConstant < 0.1) {

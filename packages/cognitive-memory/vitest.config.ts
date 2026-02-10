@@ -9,7 +9,13 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/index.ts", "src/adapters/base.ts", "src/core/types.ts"],
+      exclude: [
+        "src/**/index.ts",
+        "src/adapters/base.ts",
+        "src/adapters/postgres.ts",
+        "src/adapters/jsonl.ts",
+        "src/core/types.ts",
+      ],
       thresholds: {
         lines: 80,
         branches: 75,

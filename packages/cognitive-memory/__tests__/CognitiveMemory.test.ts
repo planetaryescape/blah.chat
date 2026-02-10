@@ -312,6 +312,31 @@ describe("CognitiveMemory", () => {
     expect(m?.accessCount).toBe(1);
   });
 
+  test("queryMemories() strengthens returned memories", async () => {
+    const adapter = new InMemoryAdapter();
+    const embeddings = new Map<string, number[]>([["x", [1, 0]]]);
+    const memory = new CognitiveMemory({
+      adapter,
+      embeddingProvider: providerFromMap(embeddings),
+      userId: "u1",
+    });
+    const id = await adapter.createMemory({
+      userId: "u1",
+      content: "x",
+      embedding: embeddings.get("x")!,
+      memoryType: "semantic",
+      importance: 0.5,
+      stability: 0.5,
+      accessCount: 0,
+      lastAccessed: Date.now() - 10_000,
+      retention: 1,
+    });
+
+    await memory.queryMemories({ limit: 10 });
+    const m = await adapter.getMemory(id);
+    expect(m?.accessCount).toBe(1);
+  });
+
   test("update() regenerates embedding", async () => {
     const adapter = new InMemoryAdapter();
     const embeddings = new Map<string, number[]>([
@@ -375,7 +400,7 @@ describe("CognitiveMemory", () => {
       importance: 0.5,
       stability: 0.3,
       accessCount: 0,
-      lastAccessed: now - 31 * 24 * 60 * 60 * 1000,
+      lastAccessed: now - 200 * 24 * 60 * 60 * 1000,
       retention: 0.01,
     });
 
@@ -383,6 +408,30 @@ describe("CognitiveMemory", () => {
     expect(result.compressed.length).toBe(1);
     expect(result.deleted).toBe(1);
     expect(await adapter.getMemory(staleId)).toBeNull();
+  });
+
+  test("consolidate() refreshes retention before finding fading memories", async () => {
+    const adapter = new InMemoryAdapter();
+    const memory = new CognitiveMemory({
+      adapter,
+      embeddingProvider: { embed: async () => [0, 0] },
+      userId: "u1",
+    });
+
+    const id = await adapter.createMemory({
+      userId: "u1",
+      content: "x",
+      embedding: [1, 0],
+      memoryType: "semantic",
+      importance: 0.5,
+      stability: 0.3,
+      accessCount: 0,
+      lastAccessed: Date.now() - 100 * 24 * 60 * 60 * 1000,
+      retention: 1,
+    });
+
+    const result = await memory.consolidate();
+    expect(result.decayed.map((d) => d.id)).toContain(id);
   });
 
   test("link() validates strength", async () => {

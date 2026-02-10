@@ -5,7 +5,7 @@
  * and associative linking.
  */
 
-import type { MemoryAdapter } from "../adapters/base";
+import type { MemoryAdapter, MemoryFilters } from "../adapters/base";
 import { cosineSimilarity } from "../utils/embeddings";
 import { extractTopics } from "../utils/scoring";
 import { updateStability } from "./decay";
@@ -172,6 +172,7 @@ export class CognitiveMemory {
         const retention = this.calculateRetentionFor({
           stability: m.stability,
           importance: m.importance,
+          accessCount: m.accessCount,
           lastAccessed: m.lastAccessed,
           memoryType: m.memoryType,
         });
@@ -199,6 +200,7 @@ export class CognitiveMemory {
           const retention = this.calculateRetentionFor({
             stability: assoc.stability,
             importance: assoc.importance,
+            accessCount: assoc.accessCount,
             lastAccessed: assoc.lastAccessed,
             memoryType: assoc.memoryType,
           });
@@ -243,6 +245,23 @@ export class CognitiveMemory {
   }
 
   /**
+   * Query memories for this user
+   *
+   * Note: this strengthens returned memories (accessCount/lastAccessed/stability)
+   * so decay + reinforcement reflect actual usage.
+   */
+  async queryMemories(filters: MemoryFilters): Promise<Memory[]> {
+    const memories = await this.adapter.queryMemories({
+      ...filters,
+      userId: this.config.userId,
+    });
+    if (memories.length > 0) {
+      await this.strengthenMemories(memories);
+    }
+    return memories;
+  }
+
+  /**
    * Update a memory's content
    *
    * Regenerates embedding and updates metadata.
@@ -283,6 +302,8 @@ export class CognitiveMemory {
       promotionCandidates: [],
       deleted: 0,
     };
+
+    await this.refreshRetentionScores();
 
     // 1. Find fading memories (retention < 0.2)
     const fading = await this.adapter.findFadingMemories(
@@ -352,7 +373,10 @@ export class CognitiveMemory {
     const toDelete = veryFaded.filter((m) => {
       const daysSinceAccess =
         (Date.now() - m.lastAccessed) / (1000 * 60 * 60 * 24);
-      return m.retention < 0.05 && daysSinceAccess > 30;
+      const supersededBy = (
+        m.metadata as { supersededBy?: unknown } | undefined
+      )?.supersededBy;
+      return m.retention < 0.05 && daysSinceAccess > 30 && !supersededBy;
     });
 
     if (toDelete.length > 0) {
@@ -361,6 +385,31 @@ export class CognitiveMemory {
     }
 
     return result;
+  }
+
+  /**
+   * Recompute + persist retention for all memories for this user.
+   *
+   * Useful before consolidation and for periodic background refresh.
+   */
+  async refreshRetentionScores(): Promise<void> {
+    const memories = await this.adapter.queryMemories({
+      userId: this.config.userId,
+      minRetention: 0,
+    });
+
+    const updates = new Map<string, number>();
+    for (const m of memories) {
+      const retention = this.calculateRetentionFor({
+        stability: m.stability,
+        importance: m.importance,
+        accessCount: m.accessCount,
+        lastAccessed: m.lastAccessed,
+        memoryType: m.memoryType,
+      });
+      updates.set(m.id, retention);
+    }
+    if (updates.size > 0) await this.adapter.updateRetentionScores(updates);
   }
 
   /**
@@ -407,6 +456,7 @@ export class CognitiveMemory {
       const newRetention = this.calculateRetentionFor({
         stability: newStability,
         importance: memory.importance,
+        accessCount: memory.accessCount + 1,
         lastAccessed: now,
         memoryType: memory.memoryType,
       });
@@ -472,10 +522,12 @@ export class CognitiveMemory {
   private calculateRetentionFor(params: {
     stability: number;
     importance: number;
+    accessCount: number;
     lastAccessed: number;
     memoryType: Memory["memoryType"];
   }): number {
-    const { stability, importance, lastAccessed, memoryType } = params;
+    const { stability, importance, accessCount, lastAccessed, memoryType } =
+      params;
 
     // Use config override if provided (defaults are present in merged config).
     const baseDecay = this.config.decayRates[memoryType];
@@ -492,7 +544,12 @@ export class CognitiveMemory {
       (Date.now() - lastAccessed) / (1000 * 60 * 60 * 24),
     );
     const importanceBoost = 1.0 + importance * 2.0;
-    const decayConstant = stability * importanceBoost * baseDecay;
+    const frequencyBoost = Math.min(
+      2.0,
+      1.0 + Math.log1p(Math.max(0, accessCount)) * 0.1,
+    );
+    const decayConstant =
+      stability * importanceBoost * frequencyBoost * baseDecay;
     if (decayConstant < 0.1) {
       return Math.max(0, 1.0 - daysSinceAccess / 10);
     }

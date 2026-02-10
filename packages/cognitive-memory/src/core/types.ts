@@ -164,6 +164,9 @@ export interface DecayParameters {
   /** Importance score (0.0-1.0) */
   importance: number;
 
+  /** Number of times accessed (frequency signal) */
+  accessCount?: number;
+
   /** Timestamp of last access */
   lastAccessed: number;
 

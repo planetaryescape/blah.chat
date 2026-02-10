@@ -1,0 +1,51 @@
+{
+  "name": "@blah-chat/cognitive-memory",
+  "version": "0.1.0",
+  "description": "Human-like memory for AI agents with Ebbinghaus decay, spaced repetition, and associative linking",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "ai",
+    "memory",
+    "cognitive",
+    "ebbinghaus",
+    "spaced-repetition",
+    "forgetting-curve",
+    "associative-memory",
+    "llm",
+    "chatbot"
+  ],
+  "author": "Bhekani Khumalo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/planetaryescape/blah.chat",
+    "directory": "packages/cognitive-memory"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.0.0"
+  }
+}

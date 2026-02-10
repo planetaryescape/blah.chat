@@ -68,6 +68,22 @@ describe("PostgresAdapter", () => {
     expect(clientRelease).toHaveBeenCalledTimes(1);
   });
 
+  test("getLinkedMemoriesMultiple emits both directions when querying multiple ids", async () => {
+    const pool = makePool();
+    const adapter = new PostgresAdapter({ pool });
+
+    await adapter.getLinkedMemoriesMultiple(["a", "b"], 0.3);
+    const [sql, params] = (pool as any).query.mock.calls[0] as [
+      string,
+      unknown[],
+    ];
+    expect(String(sql)).toContain("UNION ALL");
+    expect(String(sql)).toContain("WHERE source_id = ANY($1::text[])");
+    expect(String(sql)).toContain("WHERE target_id = ANY($1::text[])");
+    expect(params[0]).toEqual(["a", "b"]);
+    expect(params[1]).toBe(0.3);
+  });
+
   test("markSuperseded writes metadata.supersededBy", async () => {
     const pool = makePool();
     const adapter = new PostgresAdapter({ pool });

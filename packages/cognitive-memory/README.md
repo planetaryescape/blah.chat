@@ -1,24 +1,158 @@
 # @blah-chat/cognitive-memory
 
-Human-like memory for AI agents with **Ebbinghaus decay curves**, **spaced repetition**, and **associative linking**.
+Human-like memory for AI systems: remember what matters, forget what does not, and surface useful associations.
 
-## Why This Exists
+Pure TypeScript core. No runtime deps required. Optional Convex adapter.
 
-Most AI memory is either:
-1. **Stateless** (forgets everything)
-2. **Append-only** (remembers everything equally, forever)
-3. **Simple RAG** (vector search with no cognitive model)
+## What It Is
 
-None of these reflect how human memory actually works. We built a system that does.
+A small memory SDK built around 3 behaviors:
 
-## Features
+1. Forgetting: memories decay over time (Ebbinghaus curve).
+2. Retrieval strengthening: using a memory makes it more stable (spaced repetition).
+3. Association: memories retrieved together become linked, so they can co-surface later.
 
-- **🧠 Ebbinghaus Forgetting Curve**: Memories decay exponentially over time
-- **💪 Retrieval Strengthening**: Accessing memories makes them stronger (spaced repetition)
-- **🔗 Associative Linking**: Related memories surface together
-- **📊 Memory Types**: Episodic (events), Semantic (facts), Procedural (skills) with different decay rates
-- **♻️ Automatic Consolidation**: Compress fading memories, clean up stale data
-- **🔌 Adapter Pattern**: Bring your own database (Convex, Postgres, etc.)
+It is not “vector search with a database” and it is not “store everything forever”.
+
+## Why It Exists (Trade-Offs)
+
+Most memory systems pick one extreme:
+
+1. Stateless: no persistence, no long-term recall.
+2. Append-only: everything stays equally important forever.
+3. Simple RAG: semantic similarity only, no decay, no strengthening, no associative linking.
+
+This SDK makes a different choice: add a lightweight cognitive model so recency, importance, and access patterns matter as much as similarity.
+
+## Mental Model
+
+Each `Memory` is `content` + `embedding` + cognitive fields.
+
+| Field | Range | Meaning | Used for |
+|---|---:|---|---|
+| `importance` | 0..1 | significance | slows forgetting |
+| `stability` | 0..1 | “how learned” | grows on retrieval; slows forgetting |
+| `lastAccessed` | ms | last retrieval time | drives decay |
+| `accessCount` | int | usage count | consolidation heuristics |
+| `retention` | 0..1 | cached decay score | downranks stale memories |
+
+Retrieval score is `relevance * retention`. “Relevant but stale” gets pushed down.
+
+## Core Concepts
+
+### Memory Types
+
+| `memoryType` | Meaning | Base decay | Examples |
+|---|---|---:|---|
+| `episodic` | events w time/place context | 30 days | “Yesterday I met Sarah” |
+| `semantic` | facts/preferences | 90 days | “User prefers dark mode” |
+| `procedural` | skills/how-to | Infinity | “How to format code” |
+
+Procedural memories do not decay (retention is always 1.0).
+
+### Retention (Forgetting Curve)
+
+Retention is exponential decay:
+
+```ts
+retention = exp(-t / (S * I * D))
+```
+
+Where:
+
+- `t` = days since last access (clamped at 0)
+- `S` = stability (0..1)
+- `I` = importance boost = `1 + (importance * 2)` (range 1..3)
+- `D` = base decay in days (by memory type)
+
+Edge case:
+
+- if `S * I * D < 0.1`, the implementation falls back to a simple linear drop to avoid divide-by-near-zero.
+
+### Stability Update (Spaced Repetition)
+
+Each retrieval strengthens stability based on spacing:
+
+```ts
+spacingBonus = min(2.0, daysSinceLastAccess / 7)
+newStability = min(1.0, oldStability + 0.1 * spacingBonus)
+```
+
+Longer gaps produce larger strengthening, capped.
+
+### Retrieval Scoring
+
+Base scoring:
+
+```ts
+finalScore = cosineSimilarity(queryEmbedding, memoryEmbedding) * retention
+```
+
+Associations add an alternate relevance channel:
+
+```ts
+relevance = max(cosineSimilarity(query, memory), linkStrength)
+final = relevance * retention
+```
+
+This allows strongly-linked memories to co-surface while still being penalized if they have decayed.
+
+## What The SDK Does (Lifecycle)
+
+### store()
+
+`store({ content, ... })`:
+
+1. Embeds `content`.
+2. Applies defaults if omitted:
+   - `memoryType`: `"semantic"`
+   - `importance`: `config.defaultImportance` (default 0.5)
+   - `stability`: `config.defaultStability` (default 0.3)
+   - `accessCount`: 0
+   - `lastAccessed`: now
+   - `retention`: 1.0
+3. Persists via adapter.
+
+### retrieve()
+
+`retrieve({ query, ... })`:
+
+1. Embeds the query.
+2. Vector-searches candidates (overfetches by `limit * 3`).
+3. Recomputes retention for candidates.
+4. Scores `relevance * retention`, filters by `minRetention`, sorts.
+5. If `includeAssociations`:
+   - fetches linked memories (min strength 0.3)
+   - scores them using `max(cosine, linkStrength) * retention`
+   - merges + dedupes + re-sorts
+6. Strengthens all returned memories:
+   - updates `stability`, increments `accessCount`, sets `lastAccessed`, recomputes `retention`
+7. Strengthens links between co-retrieved memories:
+   - all pairs get `+0.1` strength (capped at 1.0)
+
+### get()
+
+`get(id)` loads a single memory and strengthens it if found.
+
+### update()
+
+`update(id, content)` regenerates embedding and updates content.
+
+### link()
+
+`link(sourceId, targetId, strength?)` creates or strengthens a link (strength in 0..1).
+
+### consolidate()
+
+`consolidate()` is a background cleanup/compression pass:
+
+1. Finds fading memories (retention < 0.2).
+2. Groups by topics (simple heuristic).
+3. For groups of 5+, stores a summary memory and marks originals superseded.
+4. Returns promotion candidates (stable + frequently used).
+5. Deletes very stale memories (retention < 0.05 for 30+ days).
+
+v1 uses a heuristic summary (concat + truncate), not an LLM.
 
 ## Installation
 
@@ -26,14 +160,111 @@ None of these reflect how human memory actually works. We built a system that do
 bun add @blah-chat/cognitive-memory
 ```
 
-## Quick Start
+## Quick Start (SDK Only)
 
-```typescript
+You provide:
+
+- an `embeddingProvider` (`embed(text) -> number[]`)
+- an adapter (Convex adapter exists; you can implement your own)
+
+```ts
+import { CognitiveMemory } from "@blah-chat/cognitive-memory";
+
+const memory = new CognitiveMemory({
+  adapter: myAdapter,
+  embeddingProvider: { embed: async (text) => myEmbeddings(text) },
+  userId: "user-123",
+});
+
+await memory.store({ content: "User prefers dark mode", importance: 0.7 });
+
+const results = await memory.retrieve({ query: "UI preferences", limit: 5 });
+for (const m of results) console.log(m.content, m.finalScore);
+```
+
+## Embedding Provider Guide
+
+### Contract
+
+Your `embed()` must:
+
+- return a numeric vector
+- return the same vector length for every call
+- use the same embedding model for both stored memories and queries
+
+The SDK validates vector lengths when computing similarity.
+
+### Example: OpenAI embeddings (optional)
+
+Example only. The SDK does not bundle this client.
+
+```ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+export const embeddingProvider = {
+  embed: async (text: string) => {
+    const r = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text,
+    });
+    return r.data[0].embedding;
+  },
+};
+```
+
+## Convex Integration
+
+This package ships `ConvexAdapter`, but you must also implement matching Convex backend functions and schema.
+
+If you are in the `blah.chat` monorepo, the reference implementation is:
+
+- `packages/backend/convex/memories/cognitive.ts`
+- `packages/backend/convex/memoryLinks.ts`
+- `packages/backend/convex/schema.ts`
+- `packages/backend/convex/migrations/add_cognitive_memory_fields.ts`
+
+### Deploy Schema + Functions
+
+From `packages/backend`:
+
+```bash
+bun --filter=@blah-chat/backend run deploy
+```
+
+Non-interactive Convex CLI:
+
+```bash
+./node_modules/.bin/convex deploy -y
+```
+
+### Backfill Existing Memories (One-Time)
+
+Safe to re-run. Skips rows that already have `memoryType`.
+
+```bash
+./node_modules/.bin/convex run --prod migrations/add_cognitive_memory_fields:migrate '{}'
+```
+
+Optional retention recompute:
+
+```bash
+./node_modules/.bin/convex run --prod migrations/add_cognitive_memory_fields:backfillRetentionScores '{}'
+```
+
+### Wire The Adapter
+
+You pass function references explicitly:
+
+```ts
+import { ConvexClient } from "convex/browser";
+import { api } from "../convex/_generated/api";
 import { CognitiveMemory, ConvexAdapter } from "@blah-chat/cognitive-memory";
-// Provide your Convex function references (from your project's convex/_generated/api).
-// Example (this repo): import { api } from "@blah-chat/backend/convex/_generated/api";
+
+const client = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
 const functions = {
-  // memories/cognitive.ts
   createCognitiveMemory: api.memories.cognitive.createCognitiveMemory,
   updateCognitiveMemory: api.memories.cognitive.updateCognitiveMemory,
   deleteCognitiveMemory: api.memories.cognitive.deleteCognitiveMemory,
@@ -46,8 +277,6 @@ const functions = {
   markSuperseded: api.memories.cognitive.markSuperseded,
   batchUpdateRetention: api.memories.cognitive.batchUpdateRetention,
   cognitiveVectorSearch: api.memories.cognitive.cognitiveVectorSearch,
-
-  // memoryLinks.ts
   createOrStrengthenLink: api.memoryLinks.createOrStrengthenLink,
   getLinkedMemories: api.memoryLinks.getLinkedMemories,
   getLinkedMemoriesMultiple: api.memoryLinks.getLinkedMemoriesMultiple,
@@ -55,354 +284,108 @@ const functions = {
 };
 
 const memory = new CognitiveMemory({
-  adapter: new ConvexAdapter({ client: convexClient, functions }),
-  embeddingProvider: {
-    embed: async (text) => {
-      // Your embedding logic (OpenAI, Cohere, etc.)
-      return await openai.embeddings.create({ input: text });
-    }
-  },
-  userId: 'user-123'
-});
-
-// Store memory
-await memory.store({
-  content: "User prefers dark mode and hates bright colors",
-  memoryType: 'semantic',  // 'episodic' | 'semantic' | 'procedural'
-  importance: 0.7          // 0.0-1.0
-});
-
-// Retrieve with decay weighting
-const results = await memory.retrieve({
-  query: "What are the user's UI preferences?",
-  limit: 5,
-  includeAssociations: true  // Surface related memories
-});
-
-// Results are scored by relevance × retention
-for (const memory of results) {
-  console.log(memory.content, {
-    relevance: memory.relevanceScore,
-    retention: memory.retention,
-    finalScore: memory.finalScore
-  });
-}
-
-// Run consolidation (daily cron job)
-const consolidation = await memory.consolidate();
-console.log(`Compressed ${consolidation.compressed.length} memory groups`);
-```
-
-## How It Works
-
-### Decay Formula
-
-Memories decay exponentially based on time, stability, and importance:
-
-```typescript
-retention = e^(-t / (S × importance_boost × base_decay))
-```
-
-Where:
-- `t` = days since last access
-- `S` = stability (0.0-1.0, grows with retrievals)
-- `importance_boost` = 1 + (importance × 2)
-- `base_decay` = memory type specific (30/90/∞ days)
-
-**Example:**
-- Fresh episodic memory (stability 0.3, importance 0.5): 50% after ~9 days
-- Reinforced semantic memory (stability 0.8, importance 0.9): 50% after ~67 days
-
-### Retrieval Strengthening
-
-Every access increases stability (spaced repetition):
-
-```typescript
-new_stability = min(1.0, old_stability + 0.1 × spacing_bonus)
-spacing_bonus = min(2.0, days_since_last_access / 7)
-```
-
-Longer gaps between retrievals = bigger stability boost.
-
-### Associative Linking
-
-Memories retrieved together automatically link:
-
-```typescript
-// When memories A, B, C are retrieved together
-link(A, B, strength: 0.1)  // or strengthen if exists
-link(A, C, strength: 0.1)
-link(B, C, strength: 0.1)
-```
-
-Future retrievals include linked memories with strength > 0.3.
-
-### Consolidation
-
-Background process (run daily):
-
-1. **Find fading memories** (retention < 0.2)
-2. **Group similar memories** by topic/embedding
-3. **Compress 5+ similar memories** into one summary
-4. **Promote stable memories** (stability > 0.9, accessed 10+ times)
-5. **Delete very stale memories** (retention < 0.05 for 30+ days)
-
-## Memory Types
-
-| Type | Use For | Base Decay | Example |
-|------|---------|------------|---------|
-| `episodic` | Events with time/place | 30 days | "Yesterday I had coffee with Sarah" |
-| `semantic` | Facts, preferences | 90 days | "Paris is the capital of France" |
-| `procedural` | Skills, how-to | Never* | "How to ride a bicycle" |
-
-*Procedural memories are updated by correction, not decay.
-
-## API Reference
-
-### `CognitiveMemory`
-
-Main class for memory management.
-
-#### Constructor
-
-```typescript
-new CognitiveMemory({
-  adapter: MemoryAdapter;
-  embeddingProvider: EmbeddingProvider;
-  userId: string;
-  config?: {
-    defaultImportance?: number;      // default: 0.5
-    defaultStability?: number;        // default: 0.3
-    minRetention?: number;            // default: 0.2
-    decayRates?: {
-      episodic?: number;              // default: 30
-      semantic?: number;              // default: 90
-      procedural?: number;            // default: Infinity
-    };
-  };
-})
-```
-
-#### Methods
-
-**`store(input: MemoryInput): Promise<string>`**
-
-Store a new memory. Returns memory ID.
-
-```typescript
-await memory.store({
-  content: string;
-  memoryType?: 'episodic' | 'semantic' | 'procedural';
-  importance?: number;  // 0.0-1.0, auto-scored if omitted
-  stability?: number;   // initial stability, default 0.3
-  metadata?: Record<string, any>;
+  adapter: new ConvexAdapter({ client, functions }),
+  embeddingProvider: { embed: async (text) => myEmbeddings(text) },
+  userId: "user-123",
 });
 ```
 
-**`retrieve(query: RetrievalQuery): Promise<ScoredMemory[]>`**
+### Convex Notes
 
-Retrieve relevant memories, sorted by `relevance × retention`.
+Importance scale mapping:
 
-```typescript
-await memory.retrieve({
-  query: string;
-  limit?: number;                      // default: 5
-  minRetention?: number;               // default: from config
-  memoryTypes?: MemoryType[];          // filter by type
-  includeAssociations?: boolean;       // default: true
-});
-```
+- SDK: `importance` is 0..1
+- Convex: `metadata.importance` is 1..10
+- Adapter maps both directions
 
-**`get(id: string): Promise<Memory | null>`**
+Ownership/auth:
 
-Get a single memory by ID. Triggers retrieval strengthening.
+- Convex backend enforces ownership on reads/writes.
+- Your SDK `userId` must match the owner id used by your Convex schema.
 
-**`update(id: string, content: string): Promise<void>`**
+## Public API (Exports)
 
-Update memory content (regenerates embedding).
-
-**`delete(id: string): Promise<void>`**
-
-Delete a memory.
-
-**`consolidate(): Promise<ConsolidationResult>`**
-
-Run consolidation process (compression, cleanup, promotion).
-
-**`link(sourceId: string, targetId: string, strength?: number): Promise<void>`**
-
-Manually create or strengthen a link between memories.
-
-### Adapters
-
-Implement `MemoryAdapter` interface for your database:
-
-```typescript
-import { BaseMemoryAdapter } from '@blah-chat/cognitive-memory';
-
-class MyAdapter extends BaseMemoryAdapter {
-  async createMemory(memory) { /* ... */ }
-  async getMemory(id) { /* ... */ }
-  async vectorSearch(embedding, filters) { /* ... */ }
-  // ... implement other methods
-}
-```
-
-See `src/adapters/base.ts` for full interface.
-
-## Utilities
-
-### Decay Calculations
-
-```typescript
+```ts
 import {
+  CognitiveMemory,
+  ConvexAdapter,
+  BASE_DECAY_RATES,
   calculateRetention,
-  updateStability
-} from "@blah-chat/cognitive-memory";
-
-// Calculate current retention
-const retention = calculateRetention({
-  stability: 0.5,
-  importance: 0.7,
-  lastAccessed: Date.now() - (10 * 24 * 60 * 60 * 1000), // 10 days ago
-  memoryType: 'semantic'
-});
-
-// Calculate new stability after retrieval
-const newStability = updateStability(currentStability, daysSinceAccess);
-```
-
-### Scoring
-
-```typescript
-import {
-  scoreImportance,
-  categorizeMemoryType,
-  extractTopics
-} from '@blah-chat/cognitive-memory';
-
-// Heuristic importance scoring (0.0-1.0)
-const importance = scoreImportance("I decided to buy a house");
-
-// Categorize memory type
-const type = categorizeMemoryType("Yesterday I went to the store");
-
-// Extract topics/keywords
-const topics = extractTopics("Machine learning and AI are transforming...");
-```
-
-### Embeddings
-
-```typescript
-import {
+  updateStability,
   cosineSimilarity,
   euclideanDistance,
-  normalizeVector
+  normalizeVector,
+  scoreImportance,
+  categorizeMemoryType,
+  extractTopics,
 } from "@blah-chat/cognitive-memory";
-
-// Similarity between vectors
-const similarity = cosineSimilarity(vectorA, vectorB);
-
-// Distance between vectors
-const distance = euclideanDistance(vectorA, vectorB);
-
-// Normalize vector to unit length
-const normalized = normalizeVector(vector);
 ```
 
-## Examples
+### CognitiveMemory
 
-### With OpenAI Embeddings
+Public methods:
 
-```typescript
-import { CognitiveMemory } from "@blah-chat/cognitive-memory";
-import OpenAI from "openai";
+- `store(input): Promise<string>`
+- `retrieve(query): Promise<ScoredMemory[]>`
+- `get(id): Promise<Memory | null>`
+- `update(id, content): Promise<void>`
+- `consolidate(): Promise<ConsolidationResult>`
+- `link(sourceId, targetId, strength?): Promise<void>`
 
-const openai = new OpenAI();
+Behavior notes:
 
-const memory = new CognitiveMemory({
-  adapter: myAdapter,
-  embeddingProvider: {
-    embed: async (text) => {
-      const response = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: text
-      });
-      return response.data[0].embedding;
-    }
-  },
-  userId: "user-123"
-});
-```
+- Public methods validate ranges and throw on invalid input.
+- Embedding calls retry up to 3 attempts with exponential backoff.
+- Timestamps are milliseconds since epoch.
 
-### Daily Consolidation Cron
+## Troubleshooting
 
-```typescript
-// Run daily at 2am
-import { CognitiveMemory } from '@blah-chat/cognitive-memory';
+### “No results” or results feel stale
 
-async function runConsolidation() {
-  const userIds = await getAllUserIds();
-  
-  for (const userId of userIds) {
-    const memory = new CognitiveMemory({
-      adapter: myAdapter,
-      embeddingProvider: myProvider,
-      userId
-    });
-    
-    const result = await memory.consolidate();
-    
-    console.log(`User ${userId}:`, {
-      decayed: result.decayed.length,
-      compressed: result.compressed.length,
-      deleted: result.deleted
-    });
-  }
-}
-```
+Checklist:
 
-## Prior Art & References
+- Embedding vectors are consistent length.
+- `minRetention` is not too high (default 0.2).
+- Your stored memories have `lastAccessed` and `stability` in valid ranges.
 
-- **Stanford Generative Agents** (Park et al., 2023): Memory streams with importance scoring
-- **Ebbinghaus Forgetting Curve** (1885): Exponential memory decay over time
-- **Spaced Repetition**: SuperMemo, Anki algorithms for optimal review scheduling
+### Convex vector search “works” but `relevanceScore` looks wrong
 
-Our contribution:
-- Explicit Ebbinghaus decay curves (vs. simple recency)
-- Retrieval strengthening mechanics (spaced repetition for AI)
-- Associative memory graph with link strengthening
-- Production-ready implementation for chat apps
+Checklist:
+
+- Your backend action returns the `_score` from `ctx.vectorSearch` as `relevanceScore`.
+- Your vector index name matches what your backend uses (reference uses `by_embedding`).
+
+### Importance feels ignored
+
+Likely:
+
+- You never set `importance` and the heuristic scorer does not match your domain.
+
+Fixes:
+
+- set `importance` explicitly on `store()`
+- replace the heuristic with your own policy or an LLM-based scorer
+
+### Procedural memories never disappear
+
+By design:
+
+- procedural retention is always 1.0
+
+If you want them to fade:
+
+- store as `semantic`, or periodically delete superseded procedural memories in your app layer
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Build
-pnpm build
-
-# Type check
-pnpm typecheck
-
-# Test
-pnpm test
+bun install
+bun --filter=@blah-chat/cognitive-memory run build
+bun --filter=@blah-chat/cognitive-memory run typecheck
+bun --filter=@blah-chat/cognitive-memory run test:run
 ```
 
 ## License
 
-MIT © Bhekani Khumalo
+MIT
 
-## Contributing
-
-PRs welcome! See [CONTRIBUTING.md](../../CONTRIBUTING.md).
-
-For bugs or feature requests, please [open an issue](https://github.com/planetaryescape/blah.chat/issues).
-
----
-
-**Related:**
-- [blah.chat](https://blah.chat) - First chat app with cognitive memory
-- [Blog post](https://bhekani.com/posts/cognitive-memory-for-ai-agents) - Deep dive into the architecture
-- [Research repo](https://github.com/bhekanik/cognitive-memory-skill) - Original Python implementation

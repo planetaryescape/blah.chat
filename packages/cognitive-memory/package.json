@@ -43,7 +43,16 @@
     "url": "https://github.com/planetaryescape/blah.chat",
     "directory": "packages/cognitive-memory"
   },
+  "peerDependencies": {
+    "convex": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "convex": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "convex": "^1.0.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^3.0.0"

@@ -57,6 +57,7 @@ export type {
 
 // Adapters
 export { MemoryAdapter, BaseMemoryAdapter } from './adapters/base';
+export { ConvexAdapter } from './adapters/convex';
 export type { MemoryFilters } from './adapters/base';
 
 // Utils

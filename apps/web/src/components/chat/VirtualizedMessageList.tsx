@@ -71,6 +71,9 @@ export function VirtualizedMessageList({
   const [_atBottom, setAtBottom] = useState(true);
   const lastPinnedAppliedRef = useRef<string | null>(null);
   const [pinFooterHeight, setPinFooterHeight] = useState(0);
+  const pinFooterTargetRef = useRef<{ token: string; height: number } | null>(
+    null,
+  );
 
   // Velocity-based scroll intent detection
   const { escapedFromBottom, enableAutoScroll } = useScrollIntent({
@@ -107,15 +110,19 @@ export function VirtualizedMessageList({
     return best ? best.index : -1;
   }, [grouped, pinnedId, pinnedSignature]);
 
-  const computePinFooter = useCallback(
-    (container: HTMLElement, top: number) => {
-      const maxScroll = container.scrollHeight - container.clientHeight;
-      const needed = Math.max(0, Math.ceil(top - maxScroll));
-      setPinFooterHeight((prev) => (prev === needed ? prev : needed));
-      return needed;
-    },
-    [],
-  );
+  useEffect(() => {
+    const token = pinnedKey ?? pinnedId;
+    if (!token) {
+      setPinFooterHeight(0);
+      pinFooterTargetRef.current = null;
+      return;
+    }
+
+    if (pinFooterTargetRef.current?.token !== token) {
+      setPinFooterHeight(0);
+      pinFooterTargetRef.current = null;
+    }
+  }, [pinnedKey, pinnedId]);
 
   // Scroll anchoring fallback for Safari (only in simple mode, Virtuoso handles its own)
   useScrollAnchor(scrollContainerRef, !useVirtualization);
@@ -288,8 +295,18 @@ export function VirtualizedMessageList({
         }
 
         const scroller = scrollerRef.current;
-        if (pinFooterHeight === 0 && scroller) {
-          setPinFooterHeight(scroller.clientHeight);
+        if (!pinFooterTargetRef.current && scroller) {
+          pinFooterTargetRef.current = { token, height: scroller.clientHeight };
+          if (pinFooterTargetRef.current.height !== pinFooterHeight) {
+            setPinFooterHeight(pinFooterTargetRef.current.height);
+          }
+          if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
+          return;
+        }
+
+        const footerTarget = pinFooterTargetRef.current?.height ?? 0;
+        if (footerTarget > pinFooterHeight) {
+          setPinFooterHeight(footerTarget);
           if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
           return;
         }
@@ -326,18 +343,28 @@ export function VirtualizedMessageList({
               (element.getBoundingClientRect().top -
                 container.getBoundingClientRect().top);
 
-        const needed = computePinFooter(container, targetTop);
+        if (!pinFooterTargetRef.current) {
+          // Compute minimal spacer needed once per send, so targetTop is reachable.
+          const baseScrollHeight = container.scrollHeight - pinFooterHeight;
+          const baseMaxScroll = baseScrollHeight - container.clientHeight;
+          const needed = Math.max(0, Math.ceil(targetTop - baseMaxScroll));
+          pinFooterTargetRef.current = { token, height: needed };
+
+          if (needed > pinFooterHeight) {
+            setPinFooterHeight(needed);
+            if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
+            return;
+          }
+        } else if (pinFooterTargetRef.current.height > pinFooterHeight) {
+          setPinFooterHeight(pinFooterTargetRef.current.height);
+          if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
+          return;
+        }
+
         container.scrollTop = targetTop;
         requestAnimationFrame(() => {
           container.scrollTop = targetTop;
         });
-
-        if (Math.abs(container.scrollTop - targetTop) > 2) {
-          if (needed > 0 && attempts++ < maxAttempts) {
-            setTimeout(tryScroll, 50);
-          }
-          return;
-        }
       } else {
         element.scrollIntoView({ behavior: "auto", block: "start" });
       }
@@ -359,35 +386,7 @@ export function VirtualizedMessageList({
     grouped.length,
     useVirtualization,
     _reducedMotion,
-    computePinFooter,
     pinFooterHeight,
-  ]);
-
-  // As content grows under the pinned item, reduce/remove footer once it's no longer needed.
-  useEffect(() => {
-    const token = pinnedKey ?? pinnedId;
-    if (!token) return;
-    if (pinnedIndex === -1) return;
-    if (useVirtualization) return;
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const element = document.getElementById(`message-group-${pinnedIndex}`);
-    if (!element) return;
-
-    const targetTop =
-      element.offsetParent === container
-        ? element.offsetTop
-        : container.scrollTop +
-          (element.getBoundingClientRect().top -
-            container.getBoundingClientRect().top);
-    computePinFooter(container, targetTop);
-  }, [
-    pinnedKey,
-    pinnedId,
-    pinnedIndex,
-    grouped,
-    useVirtualization,
-    computePinFooter,
   ]);
 
   const scrollToBottom = useCallback(() => {

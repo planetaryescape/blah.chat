@@ -377,16 +377,22 @@ export class PostgresAdapter extends MemoryAdapter {
     if (memoryIds.length === 0) return [];
 
     const res = await this.db.query(
-      `WITH links AS (
-         SELECT
-           CASE
-             WHEN source_id = ANY($1::text[]) THEN target_id
-             ELSE source_id
-           END AS other_id,
-           MAX(strength) AS link_strength
+      `WITH link_edges AS (
+         SELECT target_id AS other_id, strength AS link_strength
          FROM ${this.lnk}
-         WHERE (source_id = ANY($1::text[]) OR target_id = ANY($1::text[]))
+         WHERE source_id = ANY($1::text[])
            AND strength >= $2
+
+         UNION ALL
+
+         SELECT source_id AS other_id, strength AS link_strength
+         FROM ${this.lnk}
+         WHERE target_id = ANY($1::text[])
+           AND strength >= $2
+       ),
+       links AS (
+         SELECT other_id, MAX(link_strength) AS link_strength
+         FROM link_edges
          GROUP BY other_id
        )
        SELECT m.*, l.link_strength

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JsonlFileAdapter } from "../../src/adapters/jsonl";
@@ -103,5 +103,41 @@ describe("JsonlFileAdapter", () => {
       results[0].relevanceScore * results[0].retention,
       8,
     );
+  });
+
+  test("rollover preserves history and replays across rotated logs", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "cm-jsonl-"));
+    const path = join(dir, "memories.jsonl");
+
+    const a1 = new JsonlFileAdapter({ path, rollover: { maxLines: 2 } });
+    const m1 = await a1.createMemory({
+      userId: "u1",
+      content: "a",
+      embedding: [1, 0],
+      memoryType: "semantic",
+      importance: 0.5,
+      stability: 0.3,
+      accessCount: 0,
+      lastAccessed: 1,
+      retention: 1,
+    });
+    const m2 = await a1.createMemory({
+      userId: "u1",
+      content: "b",
+      embedding: [0, 1],
+      memoryType: "semantic",
+      importance: 0.5,
+      stability: 0.3,
+      accessCount: 0,
+      lastAccessed: 1,
+      retention: 1,
+    });
+
+    const files = await readdir(dir);
+    expect(files.some((f) => f.startsWith("memories.jsonl."))).toBe(true);
+
+    const a2 = new JsonlFileAdapter({ path, rollover: { maxLines: 2 } });
+    expect((await a2.getMemory(m1))?.content).toBe("a");
+    expect((await a2.getMemory(m2))?.content).toBe("b");
   });
 });

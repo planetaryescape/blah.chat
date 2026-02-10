@@ -68,7 +68,7 @@ export function VirtualizedMessageList({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
-  const [scrollerNonce, setScrollerNonce] = useState(0);
+  const [scrollerReady, setScrollerReady] = useState(false);
   const [_atBottom, setAtBottom] = useState(true);
   const lastPinnedAppliedRef = useRef<string | null>(null);
   const [pinFooterHeight, setPinFooterHeight] = useState(0);
@@ -84,6 +84,15 @@ export function VirtualizedMessageList({
   const grouped = useMessageGrouping(messages ?? [], conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
   const _reducedMotion = usePrefersReducedMotion();
+
+  useEffect(() => {
+    if (scrollerReady) return;
+    if (useVirtualization) {
+      if (scrollerRef.current) setScrollerReady(true);
+      return;
+    }
+    if (scrollContainerRef.current) setScrollerReady(true);
+  }, [scrollerReady, useVirtualization, grouped.length]);
 
   const pinnedIndex = useMemo(() => {
     if (grouped.length === 0) return -1;
@@ -279,6 +288,7 @@ export function VirtualizedMessageList({
     if (grouped.length === 0) return;
     if (pinnedIndex === -1) return;
     if (lastPinnedAppliedRef.current === token) return;
+    if (!scrollerReady) return;
 
     if (useVirtualization) {
       const virtuoso = virtuosoRef.current;
@@ -360,7 +370,7 @@ export function VirtualizedMessageList({
     pinnedIndex,
     grouped.length,
     useVirtualization,
-    scrollerNonce,
+    scrollerReady,
     pinFooterHeight,
   ]);
 
@@ -391,10 +401,7 @@ export function VirtualizedMessageList({
         <div
           ref={(el) => {
             scrollContainerRef.current = el;
-            if (scrollerRef.current !== el) {
-              scrollerRef.current = el;
-              setScrollerNonce((n) => n + 1);
-            }
+            scrollerRef.current = el;
           }}
           id="chat-messages"
           className="messages-container flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
@@ -458,11 +465,7 @@ export function VirtualizedMessageList({
       <Virtuoso
         ref={virtuosoRef}
         scrollerRef={(el) => {
-          const next = el instanceof HTMLElement ? el : null;
-          if (scrollerRef.current !== next) {
-            scrollerRef.current = next;
-            setScrollerNonce((n) => n + 1);
-          }
+          scrollerRef.current = el instanceof HTMLElement ? el : null;
         }}
         data={grouped}
         computeItemKey={(index, item) => {

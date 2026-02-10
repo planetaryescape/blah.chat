@@ -32,17 +32,29 @@ const MATCH_PAST_WINDOW_MS = 1_000;
 function compareMessages(a: MessageWithOptimistic, b: MessageWithOptimistic) {
   const aCreated = Number.isFinite(a.createdAt) ? a.createdAt : 0;
   const bCreated = Number.isFinite(b.createdAt) ? b.createdAt : 0;
-  if (aCreated !== bCreated) return aCreated - bCreated;
 
-  // If createdAt ties (common: Date.now() resolution), keep user before assistant.
+  // Prefer Convex insertion order when available.
+  const aAny = a as any;
+  const bAny = b as any;
+  const aCT =
+    typeof aAny._creationTime === "number" &&
+    Number.isFinite(aAny._creationTime)
+      ? aAny._creationTime
+      : aCreated;
+  const bCT =
+    typeof bAny._creationTime === "number" &&
+    Number.isFinite(bAny._creationTime)
+      ? bAny._creationTime
+      : bCreated;
+  if (aCT !== bCT) return aCT - bCT;
+
+  // If time ties (common: Date.now() resolution), keep user before assistant.
   const roleRank = (role: string) => (role === "user" ? 0 : 1);
   const aRole = roleRank(a.role);
   const bRole = roleRank(b.role);
   if (aRole !== bRole) return aRole - bRole;
 
   // Stable ordering for multi-model assistant siblings.
-  const aAny = a as any;
-  const bAny = b as any;
   if (
     a.role === "assistant" &&
     b.role === "assistant" &&
@@ -55,18 +67,6 @@ function compareMessages(a: MessageWithOptimistic, b: MessageWithOptimistic) {
       typeof bAny.siblingIndex === "number" ? bAny.siblingIndex : 0;
     if (aSibling !== bSibling) return aSibling - bSibling;
   }
-
-  const aCT =
-    typeof aAny._creationTime === "number" &&
-    Number.isFinite(aAny._creationTime)
-      ? aAny._creationTime
-      : aCreated;
-  const bCT =
-    typeof bAny._creationTime === "number" &&
-    Number.isFinite(bAny._creationTime)
-      ? bAny._creationTime
-      : bCreated;
-  if (aCT !== bCT) return aCT - bCT;
 
   const aId = String(aAny._id);
   const bId = String(bAny._id);
@@ -89,7 +89,7 @@ function mergeWithOptimisticMessages(
   };
 
   // Sort for deterministic matching
-  serverByRole.user.sort((a, b) => a.createdAt - b.createdAt);
+  serverByRole.user.sort(compareMessages);
 
   const remainingOptimistic: OptimisticMessage[] = [];
   const sortedOptimistic = [...optimisticMessages].sort(

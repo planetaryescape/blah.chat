@@ -68,6 +68,7 @@ export function VirtualizedMessageList({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
+  const [scrollerNonce, setScrollerNonce] = useState(0);
   const [_atBottom, setAtBottom] = useState(true);
   const lastPinnedAppliedRef = useRef<string | null>(null);
   const [pinFooterHeight, setPinFooterHeight] = useState(0);
@@ -279,113 +280,87 @@ export function VirtualizedMessageList({
     if (pinnedIndex === -1) return;
     if (lastPinnedAppliedRef.current === token) return;
 
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 10;
+    if (useVirtualization) {
+      const virtuoso = virtuosoRef.current;
+      if (!virtuoso) return;
 
-    const tryScroll = () => {
-      if (cancelled) return;
-      if (lastPinnedAppliedRef.current === token) return;
-
-      if (useVirtualization) {
-        const virtuoso = virtuosoRef.current;
-        if (!virtuoso) {
-          if (attempts++ < maxAttempts) requestAnimationFrame(tryScroll);
-          return;
+      const scroller = scrollerRef.current;
+      if (!pinFooterTargetRef.current && scroller) {
+        pinFooterTargetRef.current = { token, height: scroller.clientHeight };
+        if (pinFooterTargetRef.current.height !== pinFooterHeight) {
+          setPinFooterHeight(pinFooterTargetRef.current.height);
         }
+        return;
+      }
 
-        const scroller = scrollerRef.current;
-        if (!pinFooterTargetRef.current && scroller) {
-          pinFooterTargetRef.current = { token, height: scroller.clientHeight };
-          if (pinFooterTargetRef.current.height !== pinFooterHeight) {
-            setPinFooterHeight(pinFooterTargetRef.current.height);
-          }
-          if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
-          return;
-        }
+      const footerTarget = pinFooterTargetRef.current?.height ?? 0;
+      if (footerTarget > pinFooterHeight) {
+        setPinFooterHeight(footerTarget);
+        return;
+      }
 
-        const footerTarget = pinFooterTargetRef.current?.height ?? 0;
-        if (footerTarget > pinFooterHeight) {
-          setPinFooterHeight(footerTarget);
-          if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
-          return;
-        }
-
+      virtuoso.scrollToIndex({
+        index: pinnedIndex,
+        align: "start",
+        behavior: "auto",
+      });
+      requestAnimationFrame(() => {
         virtuoso.scrollToIndex({
           index: pinnedIndex,
           align: "start",
           behavior: "auto",
         });
-        requestAnimationFrame(() => {
-          virtuoso.scrollToIndex({
-            index: pinnedIndex,
-            align: "start",
-            behavior: "auto",
-          });
-        });
-        lastPinnedAppliedRef.current = token;
-        return;
-      }
-
-      const element = document.getElementById(`message-group-${pinnedIndex}`);
-      if (!element) {
-        if (attempts++ < maxAttempts) requestAnimationFrame(tryScroll);
-        return;
-      }
-
-      // Don't rely on scrollIntoView picking the right ancestor when we know the scroller.
-      const container = scrollContainerRef.current;
-      if (container) {
-        const targetTop =
-          element.offsetParent === container
-            ? element.offsetTop
-            : container.scrollTop +
-              (element.getBoundingClientRect().top -
-                container.getBoundingClientRect().top);
-
-        if (!pinFooterTargetRef.current) {
-          // Compute minimal spacer needed once per send, so targetTop is reachable.
-          const baseScrollHeight = container.scrollHeight - pinFooterHeight;
-          const baseMaxScroll = baseScrollHeight - container.clientHeight;
-          const needed = Math.max(0, Math.ceil(targetTop - baseMaxScroll));
-          pinFooterTargetRef.current = { token, height: needed };
-
-          if (needed > pinFooterHeight) {
-            setPinFooterHeight(needed);
-            if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
-            return;
-          }
-        } else if (pinFooterTargetRef.current.height > pinFooterHeight) {
-          setPinFooterHeight(pinFooterTargetRef.current.height);
-          if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
-          return;
-        }
-
-        container.scrollTop = targetTop;
-        requestAnimationFrame(() => {
-          container.scrollTop = targetTop;
-        });
-      } else {
-        element.scrollIntoView({ behavior: "auto", block: "start" });
-      }
-
+      });
       lastPinnedAppliedRef.current = token;
-    };
+      return;
+    }
 
-    tryScroll();
-    requestAnimationFrame(tryScroll);
-    setTimeout(tryScroll, 50);
+    const element = document.getElementById(`message-group-${pinnedIndex}`);
+    if (!element) return;
 
-    return () => {
-      cancelled = true;
-    };
+    // Don't rely on scrollIntoView picking the right ancestor when we know the scroller.
+    const container = scrollContainerRef.current;
+    if (!container) {
+      element.scrollIntoView({ behavior: "auto", block: "start" });
+      lastPinnedAppliedRef.current = token;
+      return;
+    }
+
+    const targetTop =
+      element.offsetParent === container
+        ? element.offsetTop
+        : container.scrollTop +
+          (element.getBoundingClientRect().top -
+            container.getBoundingClientRect().top);
+
+    if (!pinFooterTargetRef.current) {
+      // Compute minimal spacer needed once per send, so targetTop is reachable.
+      const baseScrollHeight = container.scrollHeight - pinFooterHeight;
+      const baseMaxScroll = baseScrollHeight - container.clientHeight;
+      const needed = Math.max(0, Math.ceil(targetTop - baseMaxScroll));
+      pinFooterTargetRef.current = { token, height: needed };
+
+      if (needed > pinFooterHeight) {
+        setPinFooterHeight(needed);
+        return;
+      }
+    } else if (pinFooterTargetRef.current.height > pinFooterHeight) {
+      setPinFooterHeight(pinFooterTargetRef.current.height);
+      return;
+    }
+
+    container.scrollTop = targetTop;
+    requestAnimationFrame(() => {
+      container.scrollTop = targetTop;
+    });
+    lastPinnedAppliedRef.current = token;
   }, [
     pinnedKey,
     pinnedId,
     pinnedIndex,
     grouped.length,
     useVirtualization,
-    _reducedMotion,
+    scrollerNonce,
     pinFooterHeight,
   ]);
 
@@ -416,7 +391,10 @@ export function VirtualizedMessageList({
         <div
           ref={(el) => {
             scrollContainerRef.current = el;
-            scrollerRef.current = el;
+            if (scrollerRef.current !== el) {
+              scrollerRef.current = el;
+              setScrollerNonce((n) => n + 1);
+            }
           }}
           id="chat-messages"
           className="messages-container flex-1 w-full min-w-0 min-h-0 overflow-y-auto"
@@ -480,7 +458,11 @@ export function VirtualizedMessageList({
       <Virtuoso
         ref={virtuosoRef}
         scrollerRef={(el) => {
-          scrollerRef.current = el instanceof HTMLElement ? el : null;
+          const next = el instanceof HTMLElement ? el : null;
+          if (scrollerRef.current !== next) {
+            scrollerRef.current = next;
+            setScrollerNonce((n) => n + 1);
+          }
         }}
         data={grouped}
         computeItemKey={(index, item) => {

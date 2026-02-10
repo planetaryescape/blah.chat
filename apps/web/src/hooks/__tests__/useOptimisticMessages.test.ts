@@ -4,6 +4,40 @@ import { createOptimisticMessage } from "@/lib/test/factories";
 import { useOptimisticMessages } from "../useOptimisticMessages";
 
 describe("useOptimisticMessages", () => {
+  it("orders by _creationTime over createdAt (server insertion order)", () => {
+    const now = Date.now();
+    const user = {
+      _id: "u-1",
+      _creationTime: now,
+      conversationId: "c-1",
+      userId: "user-1",
+      role: "user",
+      content: "Hello",
+      status: "complete",
+      createdAt: now + 1000,
+      updatedAt: now + 1000,
+    } as any;
+
+    const assistant = {
+      _id: "a-1",
+      _creationTime: now + 1,
+      conversationId: "c-1",
+      userId: "user-1",
+      role: "assistant",
+      content: "Hi",
+      status: "complete",
+      createdAt: now,
+      updatedAt: now,
+    } as any;
+
+    const { result } = renderHook(() =>
+      useOptimisticMessages({ serverMessages: [assistant, user] }),
+    );
+
+    const roles = (result.current.messages ?? []).map((m: any) => m.role);
+    expect(roles).toEqual(["user", "assistant"]);
+  });
+
   it("orders user before assistant when createdAt ties", () => {
     const now = Date.now();
     const assistant = {

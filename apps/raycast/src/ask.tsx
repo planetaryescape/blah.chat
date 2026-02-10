@@ -160,12 +160,8 @@ export default function AskCommand(
 
     setView("response");
     setIsLoading(true);
-
-    // Append user message to display
-    setResponse(
-      (prev) =>
-        `${prev}\n\n---\n\n**You**\n\n${values.message}\n\n**Assistant**\n\n_Thinking..._`,
-    );
+    setUserMessage(values.message);
+    setResponse("Thinking...");
 
     try {
       const client = getClient();
@@ -177,7 +173,7 @@ export default function AskCommand(
         modelId: values.model,
       });
 
-      await pollForCompletionWithHistory(conversationId);
+      await pollForCompletion(conversationId);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
       showToast({ style: Toast.Style.Failure, title: "Error", message: msg });
@@ -200,81 +196,54 @@ export default function AskCommand(
         continue;
       }
 
-      const assistantMessage = messages.find(
-        (m: Message) => m.role === "assistant",
-      );
-      if (!assistantMessage) {
+      let lastUser: Message | undefined;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i]?.role === "user") {
+          lastUser = messages[i];
+          break;
+        }
+      }
+
+      let pinnedAssistant: Message | undefined;
+      if (lastUser) {
+        const userIndex = messages.indexOf(lastUser);
+        for (let i = userIndex + 1; i < messages.length; i++) {
+          if (messages[i]?.role === "assistant") pinnedAssistant = messages[i];
+        }
+      }
+
+      if (!pinnedAssistant) {
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i]?.role === "assistant") {
+            pinnedAssistant = messages[i];
+            break;
+          }
+        }
+      }
+
+      if (!pinnedAssistant) {
         attempts++;
         await sleep(500);
         continue;
       }
 
+      if (lastUser?.content) setUserMessage(lastUser.content);
+
       const content =
-        assistantMessage.content || assistantMessage.partialContent || "";
+        pinnedAssistant.content || pinnedAssistant.partialContent || "";
       setResponse(content || "Generating...");
 
       if (
-        assistantMessage.status === "complete" ||
-        assistantMessage.status === "error" ||
-        assistantMessage.status === "stopped"
+        pinnedAssistant.status === "complete" ||
+        pinnedAssistant.status === "error" ||
+        pinnedAssistant.status === "stopped"
       ) {
-        if (assistantMessage.status === "error") {
-          setResponse(
-            `Error: ${assistantMessage.error || "Generation failed"}`,
-          );
+        if (pinnedAssistant.status === "error") {
+          setResponse(`Error: ${pinnedAssistant.error || "Generation failed"}`);
         } else {
           setResponse(content);
-          setLastAssistantMessageId(assistantMessage._id);
+          setLastAssistantMessageId(pinnedAssistant._id);
         }
-        return;
-      }
-
-      attempts++;
-      await sleep(500);
-    }
-
-    showToast({
-      style: Toast.Style.Failure,
-      title: "Timeout",
-      message: "Response took too long",
-    });
-  }
-
-  async function pollForCompletionWithHistory(convoId: string) {
-    const client = getClient();
-    const apiKey = getApiKey();
-    const maxAttempts = 120;
-    let attempts = 0;
-
-    while (attempts < maxAttempts) {
-      const messages = await listMessages(client, apiKey, convoId);
-      if (!messages || messages.length === 0) {
-        attempts++;
-        await sleep(500);
-        continue;
-      }
-
-      // Format full conversation
-      const formatted = messages
-        .map((m: Message) => {
-          const role = m.role === "user" ? "**You**" : "**Assistant**";
-          const content = m.content || m.partialContent || "_Generating..._";
-          return `${role}\n\n${content}`;
-        })
-        .join("\n\n---\n\n");
-
-      setResponse(formatted);
-
-      // Check if latest assistant message is done
-      const lastAssistant = [...messages]
-        .reverse()
-        .find((m: Message) => m.role === "assistant");
-      if (
-        lastAssistant &&
-        (lastAssistant.status === "complete" ||
-          lastAssistant.status === "error" ||
-          lastAssistant.status === "stopped")
-      ) {
         return;
       }
 
@@ -434,7 +403,7 @@ export default function AskCommand(
   return (
     <Detail
       isLoading={isLoading}
-      markdown={response}
+      markdown={`**You**\n\n${userMessage || "_No user message_"}\n\n---\n\n**Assistant**\n\n${response || "_Generating..._"}`}
       actions={
         <ActionPanel>
           <ActionPanel.Section>

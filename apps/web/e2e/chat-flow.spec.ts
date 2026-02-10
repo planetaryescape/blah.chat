@@ -22,6 +22,57 @@ test.describe("Chat Message Flow", () => {
     }
   });
 
+  test("sending pins user message to top; streaming does not auto-scroll", async ({
+    page,
+  }) => {
+    // Seed: ensure we have enough content to make the list scrollable.
+    await sendMessage(
+      page,
+      "Write 3 short paragraphs about test automation. Keep it under 250 words.",
+    );
+    await waitForResponse(page, 60000);
+
+    const virtuosoScroller = page.locator(
+      "#chat-messages [data-virtuoso-scroller]",
+    );
+    const scroller =
+      (await virtuosoScroller.count()) > 0
+        ? virtuosoScroller.first()
+        : page.locator("#chat-messages").first();
+
+    // Start from bottom to mimic typical send-at-bottom behavior.
+    await scroller.evaluate((el) => {
+      (el as HTMLElement).scrollTop = (el as HTMLElement).scrollHeight;
+    });
+
+    await page.fill(SELECTORS.chatInput, "Pin-to-top test");
+    await page.click(SELECTORS.sendButton);
+
+    const lastUserMessage = page
+      .locator('[data-testid="message"][data-message-role="user"]')
+      .last();
+    await expect(lastUserMessage).toBeVisible({ timeout: 5000 });
+
+    const scrollerBox = await scroller.boundingBox();
+    const userBox = await lastUserMessage.boundingBox();
+    expect(scrollerBox).toBeTruthy();
+    expect(userBox).toBeTruthy();
+
+    // User message should be near the top of the scroll viewport.
+    expect(Math.abs(userBox!.y - scrollerBox!.y)).toBeLessThan(40);
+
+    // While generating, the viewport should not drift.
+    await page.waitForSelector(SELECTORS.statusGenerating, { timeout: 15000 });
+    const scrollTopBefore = await scroller.evaluate(
+      (el) => (el as HTMLElement).scrollTop,
+    );
+    await page.waitForTimeout(2000);
+    const scrollTopAfter = await scroller.evaluate(
+      (el) => (el as HTMLElement).scrollTop,
+    );
+    expect(Math.abs(scrollTopAfter - scrollTopBefore)).toBeLessThan(3);
+  });
+
   test("message appears immediately (optimistic UI)", async ({ page }) => {
     const startTime = Date.now();
 

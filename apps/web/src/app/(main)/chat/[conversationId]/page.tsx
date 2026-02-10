@@ -50,6 +50,7 @@ import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
 import { useTemplateInsertion } from "@/hooks/useTemplateInsertion";
 import { useUserPreference } from "@/hooks/useUserPreference";
 import type { ChatWidth } from "@/lib/utils/chatWidth";
+import type { OptimisticMessage } from "@/types/optimistic";
 
 function ChatPageContent({
   params,
@@ -107,6 +108,55 @@ function ChatPageContent({
   const { messages, addOptimisticMessages } = useOptimisticMessages({
     serverMessages,
   });
+
+  const [pinnedMessage, setPinnedMessage] = useState<{
+    id: string;
+    createdAt: number;
+    content: string;
+  } | null>(null);
+
+  useEffect(() => {
+    setPinnedMessage(null);
+  }, [conversationId]);
+
+  const handleOptimisticUpdate = useCallback(
+    (msgs: OptimisticMessage[]) => {
+      addOptimisticMessages(msgs);
+      const lastUser = [...msgs].reverse().find((m) => m.role === "user");
+      if (!lastUser) return;
+      setPinnedMessage({
+        id: String(lastUser._id),
+        createdAt: lastUser.createdAt,
+        content: lastUser.content,
+      });
+    },
+    [addOptimisticMessages],
+  );
+
+  // Swap temp pinned id → real message id once server-confirmed user msg exists.
+  useEffect(() => {
+    if (!pinnedMessage) return;
+    if (!pinnedMessage.id.startsWith("temp-")) return;
+    if (!messages || messages.length === 0) return;
+
+    let best: { id: string; diff: number } | null = null;
+    for (const m of messages) {
+      if (m.role !== "user") continue;
+      if (String(m._id).startsWith("temp-")) continue;
+      if (m.content !== pinnedMessage.content) continue;
+      const diff = Math.abs(m.createdAt - pinnedMessage.createdAt);
+      if (diff > 10_000) continue;
+      if (!best || diff < best.diff) best = { id: String(m._id), diff };
+    }
+
+    if (!best) return;
+    setPinnedMessage((prev) => {
+      if (!prev) return prev;
+      if (!prev.id.startsWith("temp-")) return prev;
+      if (prev.id === best.id) return prev;
+      return { ...prev, id: best.id };
+    });
+  }, [messages, pinnedMessage]);
 
   // Announce new messages to screen readers
   const { announcerRef } = useMessageAnnouncer(messages);
@@ -534,6 +584,7 @@ function ChatPageContent({
                         conversationId={validConversationId!}
                         messages={messages ?? []}
                         chatWidth={chatWidth}
+                        pinnedMessageId={pinnedMessage?.id}
                         onVote={handleVote}
                         onConsolidate={handleConsolidate}
                         onToggleModelNames={() =>
@@ -697,7 +748,7 @@ function ChatPageContent({
                   onModelSelectorOpenChange={setModelSelectorOpen}
                   comparisonDialogOpen={comparisonDialogOpen}
                   onComparisonDialogOpenChange={setComparisonDialogOpen}
-                  onOptimisticUpdate={addOptimisticMessages}
+                  onOptimisticUpdate={handleOptimisticUpdate}
                 />
               </div>
             </div>

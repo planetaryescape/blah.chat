@@ -57,6 +57,7 @@ export default function ChatScreen() {
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
   const [actionSheetMessage, setActionSheetMessage] = useState<Message | null>(
     null,
   );
@@ -120,6 +121,10 @@ export default function ChatScreen() {
     streamingHapticFiredRef.current = null;
   }, [conversationId]);
 
+  useEffect(() => {
+    setPinnedMessageId(null);
+  }, [conversationId]);
+
   const handleSend = useCallback(
     async (content: string) => {
       if (isSending || !conversationId) return;
@@ -163,6 +168,7 @@ export default function ChatScreen() {
           optimisticUserMessage,
           optimisticAssistantMessage,
         ]);
+        setPinnedMessageId(String(optimisticUserMessage._id));
 
         await sendMessage({
           conversationId,
@@ -463,6 +469,7 @@ export default function ChatScreen() {
           messages={messages || []}
           conversationId={conversationId}
           optimisticMessages={filteredOptimistic}
+          pinnedMessageId={pinnedMessageId ?? undefined}
           onMorePress={handleMessageLongPress}
           onEdit={handleEdit}
           onRegenerate={handleRegenerate}

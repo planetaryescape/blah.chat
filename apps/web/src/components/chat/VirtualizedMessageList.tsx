@@ -34,6 +34,7 @@ type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   conversationId: Id<"conversations">;
+  pinnedMessageId?: string;
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -49,6 +50,7 @@ interface VirtualizedMessageListProps {
 export function VirtualizedMessageList({
   messages,
   conversationId,
+  pinnedMessageId,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -63,10 +65,12 @@ export function VirtualizedMessageList({
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollerRef = useRef<HTMLElement | null>(null);
   const [_atBottom, setAtBottom] = useState(true);
+  const lastPinnedAppliedRef = useRef<string | null>(null);
 
   // Velocity-based scroll intent detection
-  const { escapedFromBottom, autoScrollEnabled, enableAutoScroll } =
-    useScrollIntent({ scrollerRef });
+  const { escapedFromBottom, enableAutoScroll } = useScrollIntent({
+    scrollerRef,
+  });
 
   const grouped = useMessageGrouping(messages ?? [], conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
@@ -219,6 +223,48 @@ export function VirtualizedMessageList({
     }
   }, [highlightMessageId, grouped, useVirtualization, _reducedMotion]);
 
+  // Pin just-sent user message to top of viewport. Retry until group exists, apply once per id.
+  useEffect(() => {
+    if (!pinnedMessageId) return;
+    if (grouped.length === 0) return;
+    if (lastPinnedAppliedRef.current === pinnedMessageId) return;
+
+    const index = grouped.findIndex((item) => {
+      if (item.type === "message") {
+        return String(item.data._id) === pinnedMessageId;
+      }
+      return String(item.userMessage._id) === pinnedMessageId;
+    });
+    if (index === -1) return;
+
+    lastPinnedAppliedRef.current = pinnedMessageId;
+
+    if (useVirtualization) {
+      const scrollToPinned = () => {
+        virtuosoRef.current?.scrollToIndex({
+          index,
+          align: "start",
+          behavior: _reducedMotion ? "auto" : "smooth",
+        });
+      };
+      scrollToPinned();
+      requestAnimationFrame(scrollToPinned);
+      setTimeout(scrollToPinned, 50);
+      setTimeout(scrollToPinned, 150);
+    } else {
+      const scrollToPinned = () => {
+        const element = document.getElementById(`message-group-${index}`);
+        element?.scrollIntoView({
+          behavior: _reducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      };
+      scrollToPinned();
+      requestAnimationFrame(scrollToPinned);
+      setTimeout(scrollToPinned, 50);
+    }
+  }, [pinnedMessageId, grouped, useVirtualization, _reducedMotion]);
+
   const scrollToBottom = useCallback(() => {
     if (useVirtualization) {
       virtuosoRef.current?.scrollToIndex({
@@ -307,9 +353,7 @@ export function VirtualizedMessageList({
         increaseViewportBy={{ top: 300, bottom: 300 }}
         initialTopMostItemIndex={grouped.length - 1}
         alignToBottom
-        followOutput={(isAtBottom) =>
-          autoScrollEnabled && isAtBottom ? "smooth" : false
-        }
+        followOutput={false}
         atBottomStateChange={setAtBottom}
         atBottomThreshold={100}
         id="chat-messages"

@@ -25,6 +25,7 @@ export default function NewChatScreen() {
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
   const pendingNavigationRef = useRef<Id<"conversations"> | null>(null);
 
   const models = useMemo(() => getMobileModels(), []);
@@ -79,6 +80,7 @@ export default function NewChatScreen() {
           optimisticUserMessage,
           optimisticAssistantMessage,
         ]);
+        setPinnedMessageId(String(optimisticUserMessage._id));
 
         // Create conversation first
         const conversationId = await createConversation({
@@ -200,6 +202,7 @@ export default function NewChatScreen() {
             messages={[]}
             conversationId={"new" as Id<"conversations">}
             optimisticMessages={optimisticMessages}
+            pinnedMessageId={pinnedMessageId ?? undefined}
           />
         )}
 

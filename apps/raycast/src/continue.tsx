@@ -138,13 +138,38 @@ export default function ContinueCommand() {
   function formatMarkdown(): string {
     if (messages.length === 0) return "*No messages yet*";
 
-    return messages
-      .map((msg) => {
-        const role = msg.role === "user" ? "**You**" : "**Assistant**";
-        const content = msg.content || msg.partialContent || "_Generating..._";
-        return `${role}\n\n${content}`;
-      })
-      .join("\n\n---\n\n");
+    let lastUser: Message | undefined;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i]?.role === "user") {
+        lastUser = messages[i];
+        break;
+      }
+    }
+
+    let lastAssistant: Message | undefined;
+    if (lastUser) {
+      const userIndex = messages.indexOf(lastUser);
+      for (let i = userIndex + 1; i < messages.length; i++) {
+        if (messages[i]?.role === "assistant") lastAssistant = messages[i];
+      }
+    }
+
+    if (!lastAssistant) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i]?.role === "assistant") {
+          lastAssistant = messages[i];
+          break;
+        }
+      }
+    }
+
+    const userContent = lastUser?.content || "_No user message_";
+    const assistantContent =
+      lastAssistant?.content ||
+      lastAssistant?.partialContent ||
+      "_Generating..._";
+
+    return `**You**\n\n${userContent}\n\n---\n\n**Assistant**\n\n${assistantContent}`;
   }
 
   // Conversation list view

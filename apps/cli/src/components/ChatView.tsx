@@ -47,6 +47,9 @@ export function ChatView(props: ChatViewProps) {
   const [selectedIndex, setSelectedIndex] = createSignal<number | null>(null);
   const [toast, setToast] = createSignal<string | null>(null);
   const [httpMessages, setHttpMessages] = createSignal<Message[] | null>(null);
+  const [pinnedMessageId, setPinnedMessageId] = createSignal<string | null>(
+    null,
+  );
 
   // Subscribe to messages (WebSocket, for real-time updates)
   const { data: wsMessages, error: messagesError } = useMessages(
@@ -86,6 +89,7 @@ export function ChatView(props: ChatViewProps) {
 
   createEffect(() => {
     loadConversation(props.conversationId);
+    setPinnedMessageId(null);
   });
 
   // Handle message subscription errors (non-fatal, we have HTTP fallback)
@@ -117,10 +121,11 @@ export function ChatView(props: ChatViewProps) {
     try {
       const client = requireClient();
       const apiKey = requireApiKey();
-      await sendMessage(client, apiKey, {
+      const result = await sendMessage(client, apiKey, {
         conversationId: props.conversationId,
         content,
       });
+      setPinnedMessageId(String(result.userMessageId));
       setState("ready");
     } catch (err) {
       setError(formatError(err));
@@ -354,6 +359,7 @@ export function ChatView(props: ChatViewProps) {
         <MessageList
           messages={messages() ?? []}
           selectedIndex={selectedIndex()}
+          pinnedMessageId={pinnedMessageId() ?? undefined}
         />
 
         {/* Toast + Input */}

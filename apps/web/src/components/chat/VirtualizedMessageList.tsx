@@ -72,9 +72,7 @@ export function VirtualizedMessageList({
   const [_atBottom, setAtBottom] = useState(true);
   const lastPinnedAppliedRef = useRef<string | null>(null);
   const [pinFooterHeight, setPinFooterHeight] = useState(0);
-  const pinFooterTargetRef = useRef<{ token: string; height: number } | null>(
-    null,
-  );
+  const pinTokenRef = useRef<string | null>(null);
 
   // Velocity-based scroll intent detection
   const { escapedFromBottom, enableAutoScroll } = useScrollIntent({
@@ -119,20 +117,6 @@ export function VirtualizedMessageList({
     }
     return best ? best.index : -1;
   }, [grouped, pinnedId, pinnedSignature]);
-
-  useEffect(() => {
-    const token = pinnedKey ?? pinnedId;
-    if (!token) {
-      setPinFooterHeight(0);
-      pinFooterTargetRef.current = null;
-      return;
-    }
-
-    if (pinFooterTargetRef.current?.token !== token) {
-      setPinFooterHeight(0);
-      pinFooterTargetRef.current = null;
-    }
-  }, [pinnedKey, pinnedId]);
 
   // Scroll anchoring fallback for Safari (only in simple mode, Virtuoso handles its own)
   useScrollAnchor(scrollContainerRef, !useVirtualization);
@@ -290,24 +274,18 @@ export function VirtualizedMessageList({
     if (lastPinnedAppliedRef.current === token) return;
     if (!scrollerReady) return;
 
+    if (pinTokenRef.current !== token) {
+      pinTokenRef.current = token;
+      setPinFooterHeight(0);
+      return;
+    }
+
+    let cancelled = false;
+
     if (useVirtualization) {
       const virtuoso = virtuosoRef.current;
-      if (!virtuoso) return;
-
       const scroller = scrollerRef.current;
-      if (!pinFooterTargetRef.current && scroller) {
-        pinFooterTargetRef.current = { token, height: scroller.clientHeight };
-        if (pinFooterTargetRef.current.height !== pinFooterHeight) {
-          setPinFooterHeight(pinFooterTargetRef.current.height);
-        }
-        return;
-      }
-
-      const footerTarget = pinFooterTargetRef.current?.height ?? 0;
-      if (footerTarget > pinFooterHeight) {
-        setPinFooterHeight(footerTarget);
-        return;
-      }
+      if (!virtuoso || !scroller) return;
 
       virtuoso.scrollToIndex({
         index: pinnedIndex,
@@ -315,14 +293,30 @@ export function VirtualizedMessageList({
         behavior: "auto",
       });
       requestAnimationFrame(() => {
+        if (cancelled) return;
+
+        const el = document.getElementById(`message-group-${pinnedIndex}`);
+        if (!el) return;
+
+        const topDelta = Math.round(
+          el.getBoundingClientRect().top - scroller.getBoundingClientRect().top,
+        );
+
+        if (topDelta > 2) {
+          setPinFooterHeight((h) => h + topDelta);
+          return;
+        }
+
         virtuoso.scrollToIndex({
           index: pinnedIndex,
           align: "start",
           behavior: "auto",
         });
+        lastPinnedAppliedRef.current = token;
       });
-      lastPinnedAppliedRef.current = token;
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     const element = document.getElementById(`message-group-${pinnedIndex}`);
@@ -343,27 +337,28 @@ export function VirtualizedMessageList({
           (element.getBoundingClientRect().top -
             container.getBoundingClientRect().top);
 
-    if (!pinFooterTargetRef.current) {
-      // Compute minimal spacer needed once per send, so targetTop is reachable.
-      const baseScrollHeight = container.scrollHeight - pinFooterHeight;
-      const baseMaxScroll = baseScrollHeight - container.clientHeight;
-      const needed = Math.max(0, Math.ceil(targetTop - baseMaxScroll));
-      pinFooterTargetRef.current = { token, height: needed };
-
-      if (needed > pinFooterHeight) {
-        setPinFooterHeight(needed);
-        return;
-      }
-    } else if (pinFooterTargetRef.current.height > pinFooterHeight) {
-      setPinFooterHeight(pinFooterTargetRef.current.height);
-      return;
-    }
-
     container.scrollTop = targetTop;
     requestAnimationFrame(() => {
+      if (cancelled) return;
+
       container.scrollTop = targetTop;
+
+      const topDelta = Math.round(
+        element.getBoundingClientRect().top -
+          container.getBoundingClientRect().top,
+      );
+
+      if (topDelta > 2) {
+        setPinFooterHeight((h) => h + topDelta);
+        return;
+      }
+
+      lastPinnedAppliedRef.current = token;
     });
-    lastPinnedAppliedRef.current = token;
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     pinnedKey,
     pinnedId,

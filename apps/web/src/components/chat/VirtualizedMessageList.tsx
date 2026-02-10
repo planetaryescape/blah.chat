@@ -227,42 +227,74 @@ export function VirtualizedMessageList({
   useEffect(() => {
     if (!pinnedMessageId) return;
     if (grouped.length === 0) return;
-    if (lastPinnedAppliedRef.current === pinnedMessageId) return;
+    const targetId = pinnedMessageId;
+    if (lastPinnedAppliedRef.current === targetId) return;
 
-    const index = grouped.findIndex((item) => {
-      if (item.type === "message") {
-        return String(item.data._id) === pinnedMessageId;
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const tryScroll = () => {
+      if (cancelled) return;
+      if (lastPinnedAppliedRef.current === targetId) return;
+
+      const index = grouped.findIndex((item) => {
+        if (item.type === "message") {
+          return String(item.data._id) === targetId;
+        }
+        return String(item.userMessage._id) === targetId;
+      });
+
+      if (index === -1) {
+        if (attempts++ < maxAttempts) setTimeout(tryScroll, 50);
+        return;
       }
-      return String(item.userMessage._id) === pinnedMessageId;
-    });
-    if (index === -1) return;
 
-    lastPinnedAppliedRef.current = pinnedMessageId;
+      const behavior = _reducedMotion ? "auto" : "smooth";
 
-    if (useVirtualization) {
-      const scrollToPinned = () => {
-        virtuosoRef.current?.scrollToIndex({
+      if (useVirtualization) {
+        const virtuoso = virtuosoRef.current;
+        if (!virtuoso) {
+          if (attempts++ < maxAttempts) requestAnimationFrame(tryScroll);
+          return;
+        }
+
+        virtuoso.scrollToIndex({
           index,
           align: "start",
-          behavior: _reducedMotion ? "auto" : "smooth",
+          behavior,
         });
-      };
-      scrollToPinned();
-      requestAnimationFrame(scrollToPinned);
-      setTimeout(scrollToPinned, 50);
-      setTimeout(scrollToPinned, 150);
-    } else {
-      const scrollToPinned = () => {
-        const element = document.getElementById(`message-group-${index}`);
-        element?.scrollIntoView({
-          behavior: _reducedMotion ? "auto" : "smooth",
-          block: "start",
-        });
-      };
-      scrollToPinned();
-      requestAnimationFrame(scrollToPinned);
-      setTimeout(scrollToPinned, 50);
-    }
+        lastPinnedAppliedRef.current = targetId;
+        return;
+      }
+
+      const element = document.getElementById(`message-group-${index}`);
+      if (!element) {
+        if (attempts++ < maxAttempts) requestAnimationFrame(tryScroll);
+        return;
+      }
+
+      // Don't rely on scrollIntoView picking the right ancestor when we know the scroller.
+      const container = scrollContainerRef.current;
+      if (container) {
+        const containerTop = container.getBoundingClientRect().top;
+        const elementTop = element.getBoundingClientRect().top;
+        const nextTop = container.scrollTop + (elementTop - containerTop);
+        container.scrollTo({ top: nextTop, behavior });
+      } else {
+        element.scrollIntoView({ behavior, block: "start" });
+      }
+
+      lastPinnedAppliedRef.current = targetId;
+    };
+
+    tryScroll();
+    requestAnimationFrame(tryScroll);
+    setTimeout(tryScroll, 50);
+
+    return () => {
+      cancelled = true;
+    };
   }, [pinnedMessageId, grouped, useVirtualization, _reducedMotion]);
 
   const scrollToBottom = useCallback(() => {

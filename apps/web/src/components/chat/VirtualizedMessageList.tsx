@@ -118,6 +118,37 @@ export function VirtualizedMessageList({
     return best ? best.index : -1;
   }, [grouped, pinnedId, pinnedSignature]);
 
+  // If assistant growth makes the pinned item reachable without spacer, drop spacer to avoid empty scroll space.
+  useEffect(() => {
+    const token = pinnedKey ?? pinnedId;
+    const scroller = scrollerRef.current;
+    if (!token || !scrollerReady || !scroller) return;
+    if (pinFooterHeight === 0) return;
+    if (lastPinnedAppliedRef.current !== token) return;
+    if (pinnedIndex === -1) return;
+
+    const el = document.getElementById(`message-group-${pinnedIndex}`);
+    if (!el) return;
+
+    const scrollerRect = scroller.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const targetTop = scroller.scrollTop + (elRect.top - scrollerRect.top);
+    const maxScrollWithoutSpacer =
+      scroller.scrollHeight - pinFooterHeight - scroller.clientHeight;
+
+    if (targetTop <= maxScrollWithoutSpacer + 2) {
+      setPinFooterHeight(0);
+      pinTokenRef.current = null;
+    }
+  }, [
+    pinnedKey,
+    pinnedId,
+    pinnedIndex,
+    grouped.length,
+    scrollerReady,
+    pinFooterHeight,
+  ]);
+
   // If user scrolls back to bottom after a pin, drop the spacer so the bottom doesn't have empty scroll space.
   useEffect(() => {
     const token = pinnedKey ?? pinnedId;
@@ -324,7 +355,8 @@ export function VirtualizedMessageList({
         );
 
         if (topDelta > 2) {
-          setPinFooterHeight((h) => h + topDelta);
+          const maxExtra = scroller.clientHeight;
+          setPinFooterHeight((h) => h + Math.min(topDelta, maxExtra));
           return;
         }
 
@@ -370,7 +402,8 @@ export function VirtualizedMessageList({
       );
 
       if (topDelta > 2) {
-        setPinFooterHeight((h) => h + topDelta);
+        const maxExtra = container.clientHeight;
+        setPinFooterHeight((h) => h + Math.min(topDelta, maxExtra));
         return;
       }
 

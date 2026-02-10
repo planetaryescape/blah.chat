@@ -118,6 +118,27 @@ export function VirtualizedMessageList({
     return best ? best.index : -1;
   }, [grouped, pinnedId, pinnedSignature]);
 
+  // If user scrolls back to bottom after a pin, drop the spacer so the bottom doesn't have empty scroll space.
+  useEffect(() => {
+    const token = pinnedKey ?? pinnedId;
+    const scroller = scrollerRef.current;
+    if (!token || !scrollerReady || !scroller) return;
+    if (pinFooterHeight === 0) return;
+    if (lastPinnedAppliedRef.current !== token) return;
+
+    const onScroll = () => {
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      const distanceFromBottom = maxScroll - scroller.scrollTop;
+      if (distanceFromBottom < 5) {
+        setPinFooterHeight(0);
+        pinTokenRef.current = null;
+      }
+    };
+
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [pinnedKey, pinnedId, scrollerReady, pinFooterHeight]);
+
   // Scroll anchoring fallback for Safari (only in simple mode, Virtuoso handles its own)
   useScrollAnchor(scrollContainerRef, !useVirtualization);
 

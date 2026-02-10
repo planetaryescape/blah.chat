@@ -29,11 +29,58 @@ interface UseOptimisticMessagesReturn {
 const MATCH_FUTURE_WINDOW_MS = 10_000;
 const MATCH_PAST_WINDOW_MS = 1_000;
 
+function compareMessages(a: MessageWithOptimistic, b: MessageWithOptimistic) {
+  const aCreated = Number.isFinite(a.createdAt) ? a.createdAt : 0;
+  const bCreated = Number.isFinite(b.createdAt) ? b.createdAt : 0;
+  if (aCreated !== bCreated) return aCreated - bCreated;
+
+  // If createdAt ties (common: Date.now() resolution), keep user before assistant.
+  const roleRank = (role: string) => (role === "user" ? 0 : 1);
+  const aRole = roleRank(a.role);
+  const bRole = roleRank(b.role);
+  if (aRole !== bRole) return aRole - bRole;
+
+  // Stable ordering for multi-model assistant siblings.
+  const aAny = a as any;
+  const bAny = b as any;
+  if (
+    a.role === "assistant" &&
+    b.role === "assistant" &&
+    aAny.comparisonGroupId &&
+    aAny.comparisonGroupId === bAny.comparisonGroupId
+  ) {
+    const aSibling =
+      typeof aAny.siblingIndex === "number" ? aAny.siblingIndex : 0;
+    const bSibling =
+      typeof bAny.siblingIndex === "number" ? bAny.siblingIndex : 0;
+    if (aSibling !== bSibling) return aSibling - bSibling;
+  }
+
+  const aCT =
+    typeof aAny._creationTime === "number" &&
+    Number.isFinite(aAny._creationTime)
+      ? aAny._creationTime
+      : aCreated;
+  const bCT =
+    typeof bAny._creationTime === "number" &&
+    Number.isFinite(bAny._creationTime)
+      ? bAny._creationTime
+      : bCreated;
+  if (aCT !== bCT) return aCT - bCT;
+
+  const aId = String(aAny._id);
+  const bId = String(bAny._id);
+  if (aId < bId) return -1;
+  if (aId > bId) return 1;
+  return 0;
+}
+
 function mergeWithOptimisticMessages(
   serverMessages: MessageWithOptimistic[],
   optimisticMessages: OptimisticMessage[],
 ): MessageWithOptimistic[] {
-  if (optimisticMessages.length === 0) return serverMessages;
+  if (optimisticMessages.length === 0)
+    return [...serverMessages].sort(compareMessages);
 
   // Group server messages by role for matching (only user messages are optimistic)
   const serverByRole: Record<"user" | "assistant", MessageWithOptimistic[]> = {
@@ -70,9 +117,7 @@ function mergeWithOptimisticMessages(
     candidates.splice(matchIndex, 1);
   }
 
-  return [...serverMessages, ...remainingOptimistic].sort(
-    (a, b) => a.createdAt - b.createdAt,
-  );
+  return [...serverMessages, ...remainingOptimistic].sort(compareMessages);
 }
 
 /**

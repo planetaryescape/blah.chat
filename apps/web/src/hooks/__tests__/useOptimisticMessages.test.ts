@@ -4,6 +4,41 @@ import { createOptimisticMessage } from "@/lib/test/factories";
 import { useOptimisticMessages } from "../useOptimisticMessages";
 
 describe("useOptimisticMessages", () => {
+  it("orders user before assistant when createdAt ties", () => {
+    const now = Date.now();
+    const assistant = {
+      _id: "a-1",
+      _creationTime: now,
+      conversationId: "c-1",
+      userId: "u-1",
+      role: "assistant",
+      content: "Hi",
+      status: "complete",
+      createdAt: now,
+      updatedAt: now,
+    } as any;
+
+    const user = {
+      _id: "u-2",
+      _creationTime: now,
+      conversationId: "c-1",
+      userId: "u-1",
+      role: "user",
+      content: "Hello",
+      status: "complete",
+      createdAt: now,
+      updatedAt: now,
+    } as any;
+
+    const { result } = renderHook(() =>
+      useOptimisticMessages({ serverMessages: [assistant, user] }),
+    );
+
+    const roles = (result.current.messages ?? []).map((m: any) => m.role);
+    expect(roles[0]).toBe("user");
+    expect(roles[1]).toBe("assistant");
+  });
+
   it("does not drop optimistic msg when server msg is within time window but content differs", () => {
     const now = Date.now();
     const optimistic = createOptimisticMessage({

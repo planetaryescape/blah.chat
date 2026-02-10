@@ -497,15 +497,15 @@ export default defineSchema({
     // Cognitive Memory Fields (Ebbinghaus decay + spaced repetition)
     memoryType: v.optional(
       v.union(
-        v.literal("episodic"),   // Events with time/place (30-day decay)
-        v.literal("semantic"),   // Facts without temporal context (90-day decay)
+        v.literal("episodic"), // Events with time/place (30-day decay)
+        v.literal("semantic"), // Facts without temporal context (90-day decay)
         v.literal("procedural"), // Skills, how-to (no decay)
       ),
     ),
-    stability: v.optional(v.number()),      // 0.0-1.0, grows with retrievals
-    accessCount: v.optional(v.number()),    // Number of times accessed
-    lastAccessed: v.optional(v.number()),   // Timestamp of last access
-    retention: v.optional(v.number()),      // 0.0-1.0, cached decay score
+    stability: v.optional(v.number()), // 0.0-1.0, grows with retrievals
+    accessCount: v.optional(v.number()), // Number of times accessed
+    lastAccessed: v.optional(v.number()), // Timestamp of last access
+    retention: v.optional(v.number()), // 0.0-1.0, cached decay score
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -535,8 +535,7 @@ export default defineSchema({
   })
     .index("by_source", ["sourceId"])
     .index("by_target", ["targetId"])
-    .index("by_source_strength", ["sourceId", "strength"])
-    .index("by_target_strength", ["targetId", "strength"]),
+    .index("by_source_strength", ["sourceId", "strength"]),
 
   projects: defineTable({
     userId: v.id("users"),

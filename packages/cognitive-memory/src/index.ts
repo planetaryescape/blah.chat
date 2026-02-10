@@ -1,74 +1,28 @@
-/**
- * @blah-chat/cognitive-memory
- * 
- * Human-like memory for AI agents with Ebbinghaus decay curves,
- * spaced repetition, and associative linking.
- * 
- * @example
- * ```typescript
- * import { CognitiveMemory, ConvexAdapter } from '@blah-chat/cognitive-memory';
- * 
- * const memory = new CognitiveMemory({
- *   adapter: new ConvexAdapter(convexClient),
- *   embeddingProvider: openai.embeddings,
- *   userId: 'user-123'
- * });
- * 
- * // Store memory
- * await memory.store({
- *   content: "User prefers dark mode",
- *   memoryType: 'semantic',
- *   importance: 0.7
- * });
- * 
- * // Retrieve with decay weighting
- * const results = await memory.retrieve({
- *   query: "UI preferences",
- *   limit: 5
- * });
- * 
- * // Run consolidation (background job)
- * await memory.consolidate();
- * ```
- */
-
-// Core
-export { CognitiveMemory } from './core/CognitiveMemory';
-export {
-  calculateRetention,
-  updateStability,
-  daysUntilRetention,
-  predictRetention,
-  calculateReviewSchedule,
-  BASE_DECAY_RATES,
-} from './core/decay';
+export type { ConvexAdapterFunctions, MemoryFilters } from "./adapters";
+export { ConvexAdapter, MemoryAdapter } from "./adapters";
 export type {
-  Memory,
-  MemoryType,
-  MemoryInput,
-  MemoryLink,
-  ScoredMemory,
-  RetrievalQuery,
+  CognitiveMemoryConfig,
   ConsolidationResult,
   DecayParameters,
-  CognitiveMemoryConfig,
   EmbeddingProvider,
-} from './core/types';
-
-// Adapters
-export { MemoryAdapter, BaseMemoryAdapter } from './adapters/base';
-export { ConvexAdapter } from './adapters/convex';
-export type { MemoryFilters } from './adapters/base';
-
-// Utils
+  Memory,
+  MemoryInput,
+  MemoryLink,
+  MemoryType,
+  RetrievalQuery,
+  ScoredMemory,
+} from "./core";
 export {
+  BASE_DECAY_RATES,
+  CognitiveMemory,
+  calculateRetention,
+  updateStability,
+} from "./core";
+export {
+  categorizeMemoryType,
   cosineSimilarity,
   euclideanDistance,
-  normalizeVector,
-  createEmbeddingProvider,
-} from './utils/embeddings';
-export {
-  scoreImportance,
-  categorizeMemoryType,
   extractTopics,
-} from './utils/scoring';
+  normalizeVector,
+  scoreImportance,
+} from "./utils";

@@ -11,15 +11,16 @@
     "./convex/_generated/dataModel": "./convex/_generated/dataModel.d.ts"
   },
   "scripts": {
-    "dev": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && convex dev",
-    "deploy": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && convex deploy",
-    "generate": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && convex codegen",
+    "dev": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && bun --filter=@blah-chat/cognitive-memory run build && convex dev",
+    "deploy": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && bun --filter=@blah-chat/cognitive-memory run build && convex deploy",
+    "generate": "bun --filter=@blah-chat/ai run build && bun --filter=@blah-chat/shared run build && bun --filter=@blah-chat/auto-router run build && bun --filter=@blah-chat/cognitive-memory run build && convex codegen",
     "test": "vitest",
     "test:run": "vitest run"
   },
   "dependencies": {
     "@blah-chat/ai": "workspace:*",
     "@blah-chat/auto-router": "workspace:*",
+    "@blah-chat/cognitive-memory": "workspace:*",
     "@blah-chat/shared": "workspace:*",
     "@ai-sdk/anthropic": "^3.0.1",
     "@ai-sdk/gateway": "^3.0.2",

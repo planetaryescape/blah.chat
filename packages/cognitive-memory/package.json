@@ -23,6 +23,7 @@
     "build": "tsup src/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
+    "test:run": "vitest run --coverage",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
@@ -52,9 +53,10 @@
     }
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "convex": "^1.0.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.0.0"
+    "vitest": "^4.0.18"
   }
 }

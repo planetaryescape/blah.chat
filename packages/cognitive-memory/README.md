@@ -55,7 +55,7 @@ Procedural memories do not decay (retention is always 1.0).
 Retention is exponential decay:
 
 ```ts
-retention = exp(-t / (S * I * D))
+retention = exp(-t / (S * I * F * D))
 ```
 
 Where:
@@ -63,6 +63,7 @@ Where:
 - `t` = days since last access (clamped at 0)
 - `S` = stability (0..1)
 - `I` = importance boost = `1 + (importance * 2)` (range 1..3)
+- `F` = frequency boost = `min(2.0, 1 + log1p(accessCount) * 0.1)` (range 1..2)
 - `D` = base decay in days (by memory type)
 
 Edge case:
@@ -134,6 +135,10 @@ This allows strongly-linked memories to co-surface while still being penalized i
 
 `get(id)` loads a single memory and strengthens it if found.
 
+### queryMemories()
+
+`queryMemories(filters)` loads memories for the user and strengthens the returned set (same reinforcement as `get`/`retrieve`).
+
 ### update()
 
 `update(id, content)` regenerates embedding and updates content.
@@ -146,6 +151,7 @@ This allows strongly-linked memories to co-surface while still being penalized i
 
 `consolidate()` is a background cleanup/compression pass:
 
+0. Refreshes retention scores for all memories (recompute + persist).
 1. Finds fading memories (retention < 0.2).
 2. Groups by topics (simple heuristic).
 3. For groups of 5+, stores a summary memory and marks originals superseded.
@@ -303,6 +309,52 @@ Ownership/auth:
 - Convex backend enforces ownership on reads/writes.
 - Your SDK `userId` must match the owner id used by your Convex schema.
 
+## Postgres Adapter (pg + pgvector)
+
+Node-only. Install:
+
+```bash
+bun add pg
+```
+
+DB setup (run once):
+
+```ts
+import { postgresSchemaSql } from "@blah-chat/cognitive-memory/adapters/postgres";
+console.log(postgresSchemaSql()); // includes: CREATE EXTENSION vector;
+```
+
+Usage:
+
+```ts
+import { Pool } from "pg";
+import { CognitiveMemory } from "@blah-chat/cognitive-memory";
+import { PostgresAdapter } from "@blah-chat/cognitive-memory/adapters/postgres";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+const memory = new CognitiveMemory({
+  adapter: new PostgresAdapter({ pool }),
+  embeddingProvider: { embed: async (t) => myEmbeddings(t) },
+  userId: "user-123",
+});
+```
+
+## JSONL File Adapter
+
+Node-only. Append-only `.jsonl` file (replayed on startup).
+
+```ts
+import { CognitiveMemory } from "@blah-chat/cognitive-memory";
+import { JsonlFileAdapter } from "@blah-chat/cognitive-memory/adapters/jsonl";
+
+const memory = new CognitiveMemory({
+  adapter: new JsonlFileAdapter({ path: "./memories.jsonl" }),
+  embeddingProvider: { embed: async (t) => myEmbeddings(t) },
+  userId: "user-123",
+});
+```
+
 ## Public API (Exports)
 
 ```ts
@@ -328,8 +380,10 @@ Public methods:
 - `store(input): Promise<string>`
 - `retrieve(query): Promise<ScoredMemory[]>`
 - `get(id): Promise<Memory | null>`
+- `queryMemories(filters): Promise<Memory[]>`
 - `update(id, content): Promise<void>`
 - `consolidate(): Promise<ConsolidationResult>`
+- `refreshRetentionScores(): Promise<void>`
 - `link(sourceId, targetId, strength?): Promise<void>`
 
 Behavior notes:
@@ -337,6 +391,7 @@ Behavior notes:
 - Public methods validate ranges and throw on invalid input.
 - Embedding calls retry up to 3 attempts with exponential backoff.
 - Timestamps are milliseconds since epoch.
+- Adapters are pure on reads; reinforcement happens via `get`/`retrieve`/`queryMemories`.
 
 ## Troubleshooting
 
@@ -388,4 +443,3 @@ bun --filter=@blah-chat/cognitive-memory run test:run
 ## License
 
 MIT
-

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.25.0](https://github.com/planetaryescape/blah.chat/compare/v1.24.1...v1.25.0) (2026-02-10)
+
+
+### Features
+
+* cognitive memory v1 ([21e8bb7](https://github.com/planetaryescape/blah.chat/commit/21e8bb7b4026a5975b02209a8b9d0f1b0eb0be62))
+
+
+### Bug Fixes
+
+* raycast ci filter ([2376e8c](https://github.com/planetaryescape/blah.chat/commit/2376e8cb9061faa118cdded97e1a82982d0cf1ce))
+* raycast ci install ([0ee90a9](https://github.com/planetaryescape/blah.chat/commit/0ee90a979f8a924377f4c36e64c7ae08f3779471))
+
 ## [1.24.1](https://github.com/planetaryescape/blah.chat/compare/v1.24.0...v1.24.1) (2026-02-09)
 
 

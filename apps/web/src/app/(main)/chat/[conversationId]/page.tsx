@@ -109,14 +109,16 @@ function ChatPageContent({
     serverMessages,
   });
 
-  const [pinnedMessage, setPinnedMessage] = useState<{
-    id: string;
+  const [pinnedTurn, setPinnedTurn] = useState<{
+    key: string;
+    tempId: string;
     createdAt: number;
     content: string;
+    resolvedId?: string;
   } | null>(null);
 
   useEffect(() => {
-    setPinnedMessage(null);
+    setPinnedTurn(null);
   }, [conversationId]);
 
   const handleOptimisticUpdate = useCallback(
@@ -124,8 +126,15 @@ function ChatPageContent({
       addOptimisticMessages(msgs);
       const lastUser = [...msgs].reverse().find((m) => m.role === "user");
       if (!lastUser) return;
-      setPinnedMessage({
-        id: String(lastUser._id),
+      let key = "";
+      try {
+        key = crypto.randomUUID();
+      } catch {
+        key = `${Date.now()}-${Math.random()}`;
+      }
+      setPinnedTurn({
+        key,
+        tempId: String(lastUser._id),
         createdAt: lastUser.createdAt,
         content: lastUser.content,
       });
@@ -133,30 +142,32 @@ function ChatPageContent({
     [addOptimisticMessages],
   );
 
-  // Swap temp pinned id → real message id once server-confirmed user msg exists.
+  // Resolve optimistic temp id → real id (keep pinned key stable to avoid scroll/jank).
   useEffect(() => {
-    if (!pinnedMessage) return;
-    if (!pinnedMessage.id.startsWith("temp-")) return;
+    if (!pinnedTurn) return;
+    if (!pinnedTurn.tempId.startsWith("temp-")) return;
+    if (pinnedTurn.resolvedId) return;
     if (!messages || messages.length === 0) return;
 
     let best: { id: string; diff: number } | null = null;
     for (const m of messages) {
       if (m.role !== "user") continue;
       if (String(m._id).startsWith("temp-")) continue;
-      if (m.content !== pinnedMessage.content) continue;
-      const diff = Math.abs(m.createdAt - pinnedMessage.createdAt);
+      if (m.content !== pinnedTurn.content) continue;
+      const diff = Math.abs(m.createdAt - pinnedTurn.createdAt);
       if (diff > 10_000) continue;
       if (!best || diff < best.diff) best = { id: String(m._id), diff };
     }
 
     if (!best) return;
-    setPinnedMessage((prev) => {
+    setPinnedTurn((prev) => {
       if (!prev) return prev;
-      if (!prev.id.startsWith("temp-")) return prev;
-      if (prev.id === best.id) return prev;
-      return { ...prev, id: best.id };
+      if (!prev.tempId.startsWith("temp-")) return prev;
+      if (prev.resolvedId) return prev;
+      if (prev.resolvedId === best.id) return prev;
+      return { ...prev, resolvedId: best.id };
     });
-  }, [messages, pinnedMessage]);
+  }, [messages, pinnedTurn]);
 
   // Announce new messages to screen readers
   const { announcerRef } = useMessageAnnouncer(messages);
@@ -584,7 +595,16 @@ function ChatPageContent({
                         conversationId={validConversationId!}
                         messages={messages ?? []}
                         chatWidth={chatWidth}
-                        pinnedMessageId={pinnedMessage?.id}
+                        pinnedKey={pinnedTurn?.key}
+                        pinnedId={pinnedTurn?.resolvedId ?? pinnedTurn?.tempId}
+                        pinnedSignature={
+                          pinnedTurn
+                            ? {
+                                createdAt: pinnedTurn.createdAt,
+                                content: pinnedTurn.content,
+                              }
+                            : undefined
+                        }
                         onVote={handleVote}
                         onConsolidate={handleConsolidate}
                         onToggleModelNames={() =>

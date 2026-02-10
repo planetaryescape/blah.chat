@@ -53,6 +53,7 @@ function mergeWithOptimisticMessages(
     // Only user messages are optimistic (server creates assistant messages)
     const candidates = serverByRole[opt.role] || [];
     const matchIndex = candidates.findIndex((serverMsg) => {
+      if (serverMsg.content !== opt.content) return false;
       // Time window check - match if server message arrived within window
       const timeDiff = serverMsg.createdAt - opt.createdAt;
       return (

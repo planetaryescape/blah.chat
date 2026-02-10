@@ -34,7 +34,9 @@ type MessageWithUser = (Doc<"messages"> | OptimisticMessage) & {
 interface VirtualizedMessageListProps {
   messages: MessageWithUser[];
   conversationId: Id<"conversations">;
-  pinnedMessageId?: string;
+  pinnedKey?: string;
+  pinnedId?: string;
+  pinnedSignature?: { createdAt: number; content: string };
   onVote?: (winnerId: string, rating: string) => void;
   onConsolidate?: (model: string, mode: "same-chat" | "new-chat") => void;
   onToggleModelNames?: () => void;
@@ -50,7 +52,9 @@ interface VirtualizedMessageListProps {
 export function VirtualizedMessageList({
   messages,
   conversationId,
-  pinnedMessageId,
+  pinnedKey,
+  pinnedId,
+  pinnedSignature,
   onVote,
   onConsolidate,
   onToggleModelNames,
@@ -66,6 +70,7 @@ export function VirtualizedMessageList({
   const scrollerRef = useRef<HTMLElement | null>(null);
   const [_atBottom, setAtBottom] = useState(true);
   const lastPinnedAppliedRef = useRef<string | null>(null);
+  const [pinFooterHeight, setPinFooterHeight] = useState(0);
 
   // Velocity-based scroll intent detection
   const { escapedFromBottom, enableAutoScroll } = useScrollIntent({
@@ -75,6 +80,42 @@ export function VirtualizedMessageList({
   const grouped = useMessageGrouping(messages ?? [], conversationId);
   const useVirtualization = grouped.length >= VIRTUALIZATION_THRESHOLD;
   const _reducedMotion = usePrefersReducedMotion();
+
+  const pinnedIndex = useMemo(() => {
+    if (grouped.length === 0) return -1;
+
+    if (pinnedId) {
+      const byId = grouped.findIndex((item) => {
+        if (item.type === "message") return String(item.data._id) === pinnedId;
+        return String(item.userMessage._id) === pinnedId;
+      });
+      if (byId !== -1) return byId;
+    }
+
+    if (!pinnedSignature) return -1;
+
+    let best: { index: number; diff: number } | null = null;
+    for (let i = 0; i < grouped.length; i++) {
+      const item = grouped[i];
+      const m = item.type === "message" ? item.data : item.userMessage;
+      if (m.role !== "user") continue;
+      if (m.content !== pinnedSignature.content) continue;
+      const diff = Math.abs(m.createdAt - pinnedSignature.createdAt);
+      if (diff > 10_000) continue;
+      if (!best || diff < best.diff) best = { index: i, diff };
+    }
+    return best ? best.index : -1;
+  }, [grouped, pinnedId, pinnedSignature]);
+
+  const computePinFooter = useCallback(
+    (container: HTMLElement, top: number) => {
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      const needed = Math.max(0, Math.ceil(top - maxScroll));
+      setPinFooterHeight((prev) => (prev === needed ? prev : needed));
+      return needed;
+    },
+    [],
+  );
 
   // Scroll anchoring fallback for Safari (only in simple mode, Virtuoso handles its own)
   useScrollAnchor(scrollContainerRef, !useVirtualization);
@@ -225,10 +266,11 @@ export function VirtualizedMessageList({
 
   // Pin just-sent user message to top of viewport. Retry until group exists, apply once per id.
   useEffect(() => {
-    if (!pinnedMessageId) return;
+    const token = pinnedKey ?? pinnedId;
+    if (!token) return;
     if (grouped.length === 0) return;
-    const targetId = pinnedMessageId;
-    if (lastPinnedAppliedRef.current === targetId) return;
+    if (pinnedIndex === -1) return;
+    if (lastPinnedAppliedRef.current === token) return;
 
     let cancelled = false;
     let attempts = 0;
@@ -236,21 +278,7 @@ export function VirtualizedMessageList({
 
     const tryScroll = () => {
       if (cancelled) return;
-      if (lastPinnedAppliedRef.current === targetId) return;
-
-      const index = grouped.findIndex((item) => {
-        if (item.type === "message") {
-          return String(item.data._id) === targetId;
-        }
-        return String(item.userMessage._id) === targetId;
-      });
-
-      if (index === -1) {
-        if (attempts++ < maxAttempts) setTimeout(tryScroll, 50);
-        return;
-      }
-
-      const behavior = _reducedMotion ? "auto" : "smooth";
+      if (lastPinnedAppliedRef.current === token) return;
 
       if (useVirtualization) {
         const virtuoso = virtuosoRef.current;
@@ -259,16 +287,30 @@ export function VirtualizedMessageList({
           return;
         }
 
+        const scroller = scrollerRef.current;
+        if (pinFooterHeight === 0 && scroller) {
+          setPinFooterHeight(scroller.clientHeight);
+          if (attempts++ < maxAttempts) setTimeout(tryScroll, 0);
+          return;
+        }
+
         virtuoso.scrollToIndex({
-          index,
+          index: pinnedIndex,
           align: "start",
-          behavior,
+          behavior: "auto",
         });
-        lastPinnedAppliedRef.current = targetId;
+        requestAnimationFrame(() => {
+          virtuoso.scrollToIndex({
+            index: pinnedIndex,
+            align: "start",
+            behavior: "auto",
+          });
+        });
+        lastPinnedAppliedRef.current = token;
         return;
       }
 
-      const element = document.getElementById(`message-group-${index}`);
+      const element = document.getElementById(`message-group-${pinnedIndex}`);
       if (!element) {
         if (attempts++ < maxAttempts) requestAnimationFrame(tryScroll);
         return;
@@ -277,15 +319,30 @@ export function VirtualizedMessageList({
       // Don't rely on scrollIntoView picking the right ancestor when we know the scroller.
       const container = scrollContainerRef.current;
       if (container) {
-        const containerTop = container.getBoundingClientRect().top;
-        const elementTop = element.getBoundingClientRect().top;
-        const nextTop = container.scrollTop + (elementTop - containerTop);
-        container.scrollTo({ top: nextTop, behavior });
+        const targetTop =
+          element.offsetParent === container
+            ? element.offsetTop
+            : container.scrollTop +
+              (element.getBoundingClientRect().top -
+                container.getBoundingClientRect().top);
+
+        const needed = computePinFooter(container, targetTop);
+        container.scrollTop = targetTop;
+        requestAnimationFrame(() => {
+          container.scrollTop = targetTop;
+        });
+
+        if (Math.abs(container.scrollTop - targetTop) > 2) {
+          if (needed > 0 && attempts++ < maxAttempts) {
+            setTimeout(tryScroll, 50);
+          }
+          return;
+        }
       } else {
-        element.scrollIntoView({ behavior, block: "start" });
+        element.scrollIntoView({ behavior: "auto", block: "start" });
       }
 
-      lastPinnedAppliedRef.current = targetId;
+      lastPinnedAppliedRef.current = token;
     };
 
     tryScroll();
@@ -295,7 +352,43 @@ export function VirtualizedMessageList({
     return () => {
       cancelled = true;
     };
-  }, [pinnedMessageId, grouped, useVirtualization, _reducedMotion]);
+  }, [
+    pinnedKey,
+    pinnedId,
+    pinnedIndex,
+    grouped.length,
+    useVirtualization,
+    _reducedMotion,
+    computePinFooter,
+    pinFooterHeight,
+  ]);
+
+  // As content grows under the pinned item, reduce/remove footer once it's no longer needed.
+  useEffect(() => {
+    const token = pinnedKey ?? pinnedId;
+    if (!token) return;
+    if (pinnedIndex === -1) return;
+    if (useVirtualization) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const element = document.getElementById(`message-group-${pinnedIndex}`);
+    if (!element) return;
+
+    const targetTop =
+      element.offsetParent === container
+        ? element.offsetTop
+        : container.scrollTop +
+          (element.getBoundingClientRect().top -
+            container.getBoundingClientRect().top);
+    computePinFooter(container, targetTop);
+  }, [
+    pinnedKey,
+    pinnedId,
+    pinnedIndex,
+    grouped,
+    useVirtualization,
+    computePinFooter,
+  ]);
 
   const scrollToBottom = useCallback(() => {
     if (useVirtualization) {
@@ -335,7 +428,13 @@ export function VirtualizedMessageList({
         >
           {grouped.map((item, index) => (
             <MessageItemContent
-              key={item.type === "comparison" ? item.id : String(item.data._id)}
+              key={
+                pinnedKey && pinnedIndex === index
+                  ? pinnedKey
+                  : item.type === "comparison"
+                    ? item.id
+                    : String(item.data._id)
+              }
               item={item}
               index={index}
               grouped={grouped}
@@ -349,6 +448,13 @@ export function VirtualizedMessageList({
               conversation={conversation}
             />
           ))}
+          {pinFooterHeight > 0 && (
+            <div
+              aria-hidden="true"
+              className="scroll-anchor-ignore"
+              style={{ height: pinFooterHeight }}
+            />
+          )}
         </div>
         {escapedFromBottom && (
           <Button
@@ -378,9 +484,20 @@ export function VirtualizedMessageList({
           scrollerRef.current = el instanceof HTMLElement ? el : null;
         }}
         data={grouped}
-        computeItemKey={(index, item) =>
-          item.type === "comparison" ? item.id : item.data._id
-        }
+        computeItemKey={(index, item) => {
+          if (pinnedKey && pinnedIndex === index) return pinnedKey;
+          return item.type === "comparison" ? item.id : item.data._id;
+        }}
+        components={{
+          Footer: () =>
+            pinFooterHeight > 0 ? (
+              <div
+                aria-hidden="true"
+                className="scroll-anchor-ignore"
+                style={{ height: pinFooterHeight }}
+              />
+            ) : null,
+        }}
         defaultItemHeight={190}
         increaseViewportBy={{ top: 300, bottom: 300 }}
         initialTopMostItemIndex={grouped.length - 1}

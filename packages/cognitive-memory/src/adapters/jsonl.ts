@@ -11,11 +11,12 @@ import {
   appendFile,
   mkdir,
   open,
+  readdir,
   rename,
   stat,
   writeFile,
 } from "node:fs/promises";
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
 import * as readline from "node:readline";
 import type { Memory, ScoredMemory } from "../core/types";
 import { cosineSimilarity } from "../utils/embeddings";
@@ -49,7 +50,8 @@ function linkKey(a: string, b: string): string {
 export type JsonlFileAdapterOptions = {
   path: string;
   fsync?: boolean;
-  compact?: { maxLines?: number; onStart?: boolean };
+  rollover?: { maxLines?: number; enabled?: boolean };
+  compact?: { maxLines?: number; onStart?: boolean }; // maxLines kept for backward-compat
   now?: () => number;
   idFactory?: () => string;
 };
@@ -58,6 +60,7 @@ export class JsonlFileAdapter extends MemoryAdapter {
   private path: string;
   private fsync: boolean;
   private maxLines: number;
+  private rolloverEnabled: boolean;
   private compactOnStart: boolean;
   private now: () => number;
   private idFactory: () => string;
@@ -74,7 +77,9 @@ export class JsonlFileAdapter extends MemoryAdapter {
     super();
     this.path = options.path;
     this.fsync = options.fsync ?? false;
-    this.maxLines = options.compact?.maxLines ?? 200_000;
+    this.maxLines =
+      options.rollover?.maxLines ?? options.compact?.maxLines ?? 200_000;
+    this.rolloverEnabled = options.rollover?.enabled ?? true;
     this.compactOnStart = options.compact?.onStart ?? false;
     this.now = options.now ?? Date.now;
     this.idFactory = options.idFactory ?? randomUUID;
@@ -318,20 +323,25 @@ export class JsonlFileAdapter extends MemoryAdapter {
       await writeFile(this.path, `${JSON.stringify(meta)}\n`, "utf8");
     }
 
-    const rl = readline.createInterface({
-      input: createReadStream(this.path, { encoding: "utf8" }),
-      crlfDelay: Number.POSITIVE_INFINITY,
-    });
+    const files = await this.listLogFiles();
+    let baseLines = 0;
+    for (const file of files) {
+      const rl = readline.createInterface({
+        input: createReadStream(file, { encoding: "utf8" }),
+        crlfDelay: Number.POSITIVE_INFINITY,
+      });
 
-    let lines = 0;
-    for await (const line of rl) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      lines += 1;
-      const evt = JSON.parse(trimmed) as MemoryEvent;
-      this.apply(evt);
+      let lines = 0;
+      for await (const line of rl) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        lines += 1;
+        const evt = JSON.parse(trimmed) as MemoryEvent;
+        this.apply(evt);
+      }
+      if (file === this.path) baseLines = lines;
     }
-    this.lineCount = lines;
+    this.lineCount = baseLines;
     this.loaded = true;
 
     if (this.compactOnStart) {
@@ -396,12 +406,17 @@ export class JsonlFileAdapter extends MemoryAdapter {
       await appendFile(this.path, line, "utf8");
     }
     this.lineCount += 1;
-    if (this.lineCount >= this.maxLines) {
-      await this.compact();
+    if (this.rolloverEnabled && this.lineCount >= this.maxLines) {
+      await this.rollover();
     }
   }
 
   private async compact(): Promise<void> {
+    // Snapshot current state into a fresh base log, but keep the previous base log
+    // by rotating it. This preserves full history by default.
+    const archive = await this.nextArchivePath();
+    await rename(this.path, archive);
+
     const tmp = `${this.path}.tmp`;
     const meta: MemoryEvent = {
       type: "meta",
@@ -430,5 +445,56 @@ export class JsonlFileAdapter extends MemoryAdapter {
     await writeFile(tmp, `${lines.join("\n")}\n`, "utf8");
     await rename(tmp, this.path);
     this.lineCount = lines.length;
+  }
+
+  private async rollover(): Promise<void> {
+    const archive = await this.nextArchivePath();
+    await rename(this.path, archive);
+    const meta: MemoryEvent = {
+      type: "meta",
+      version: 1,
+      createdAt: this.now(),
+    };
+    await writeFile(this.path, `${JSON.stringify(meta)}\n`, "utf8");
+    this.lineCount = 1;
+  }
+
+  private async listLogFiles(): Promise<string[]> {
+    const dir = dirname(this.path);
+    const base = basename(this.path);
+    const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`^${escaped}(?:\\.(\\d+)(?:\\.(\\d+))?)?$`);
+
+    const entries = await readdir(dir, { withFileTypes: true });
+    const matches = entries
+      .filter((e) => e.isFile())
+      .map((e) => e.name)
+      .map((name) => ({ name, m: re.exec(name) }))
+      .filter((x) => x.m)
+      .map((x) => ({
+        name: x.name,
+        ts: x.m?.[1] ? Number.parseInt(x.m[1], 10) : Number.NaN,
+        seq: x.m?.[2] ? Number.parseInt(x.m[2], 10) : 0,
+      }));
+
+    const rotated = matches
+      .filter((x) => Number.isFinite(x.ts))
+      .sort((a, b) => a.ts! - b.ts! || a.seq - b.seq)
+      .map((x) => `${dir}/${x.name}`);
+
+    return [...rotated, this.path];
+  }
+
+  private async nextArchivePath(): Promise<string> {
+    const baseTs = this.now();
+    for (let seq = 0; seq < 1000; seq += 1) {
+      const candidate = `${this.path}.${baseTs}.${seq}`;
+      try {
+        await stat(candidate);
+      } catch {
+        return candidate;
+      }
+    }
+    return `${this.path}.${baseTs}.${randomUUID()}`;
   }
 }

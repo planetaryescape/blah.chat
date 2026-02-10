@@ -349,7 +349,10 @@ import { CognitiveMemory } from "@blah-chat/cognitive-memory";
 import { JsonlFileAdapter } from "@blah-chat/cognitive-memory/adapters/jsonl";
 
 const memory = new CognitiveMemory({
-  adapter: new JsonlFileAdapter({ path: "./memories.jsonl" }),
+  adapter: new JsonlFileAdapter({
+    path: "./memories.jsonl",
+    rollover: { maxLines: 200_000 }, // rotates to ./memories.jsonl.<ts>.<seq>
+  }),
   embeddingProvider: { embed: async (t) => myEmbeddings(t) },
   userId: "user-123",
 });

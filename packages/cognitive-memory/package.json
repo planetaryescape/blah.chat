@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./adapters/postgres": {
+      "types": "./dist/adapters/postgres.d.ts",
+      "import": "./dist/adapters/postgres.js"
+    },
+    "./adapters/jsonl": {
+      "types": "./dist/adapters/jsonl.d.ts",
+      "import": "./dist/adapters/jsonl.js"
     }
   },
   "files": [
@@ -20,7 +28,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean",
+    "build": "tsup src/index.ts src/adapters/postgres.ts src/adapters/jsonl.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run --coverage",
@@ -45,16 +53,23 @@
     "directory": "packages/cognitive-memory"
   },
   "peerDependencies": {
-    "convex": ">=1.0.0"
+    "convex": ">=1.0.0",
+    "pg": ">=8.0.0"
   },
   "peerDependenciesMeta": {
     "convex": {
+      "optional": true
+    },
+    "pg": {
       "optional": true
     }
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
+    "@types/node": "^22.19.0",
+    "@types/pg": "^8.15.5",
     "convex": "^1.0.0",
+    "pg": "^8.16.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

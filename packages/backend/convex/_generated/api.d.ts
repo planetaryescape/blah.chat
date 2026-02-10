@@ -145,6 +145,8 @@ import type * as lib_prompts_operational_titleGeneration from "../lib/prompts/op
 import type * as lib_prompts_operational_visualFormatting from "../lib/prompts/operational/visualFormatting.js";
 import type * as lib_prompts_systemBuilder from "../lib/prompts/systemBuilder.js";
 import type * as lib_prompts_templates_builtIn from "../lib/prompts/templates/builtIn.js";
+import type * as lib_test_factories from "../lib/test/factories.js";
+import type * as lib_toolNames from "../lib/toolNames.js";
 import type * as lib_tree from "../lib/tree.js";
 import type * as lib_userSync from "../lib/userSync.js";
 import type * as lib_utils_cascade from "../lib/utils/cascade.js";
@@ -152,6 +154,7 @@ import type * as lib_utils_memory from "../lib/utils/memory.js";
 import type * as lib_utils_search from "../lib/utils/search.js";
 import type * as lib_utils_utf8Safe from "../lib/utils/utf8Safe.js";
 import type * as memories from "../memories.js";
+import type * as memories_cognitive from "../memories/cognitive.js";
 import type * as memories_consolidation from "../memories/consolidation.js";
 import type * as memories_delete from "../memories/delete.js";
 import type * as memories_expiration from "../memories/expiration.js";
@@ -160,6 +163,7 @@ import type * as memories_mutations from "../memories/mutations.js";
 import type * as memories_queries from "../memories/queries.js";
 import type * as memories_save from "../memories/save.js";
 import type * as memories_search from "../memories/search.js";
+import type * as memoryLinks from "../memoryLinks.js";
 import type * as messages from "../messages.js";
 import type * as messages_attachments from "../messages/attachments.js";
 import type * as messages_embeddings from "../messages/embeddings.js";
@@ -183,6 +187,7 @@ import type * as migrations_010_fix_gemini_image_pricing from "../migrations/010
 import type * as migrations_011_migrate_project_files_to_kb from "../migrations/011_migrate_project_files_to_kb.js";
 import type * as migrations_012_rechunk_knowledge from "../migrations/012_rechunk_knowledge.js";
 import type * as migrations_013_tree_architecture from "../migrations/013_tree_architecture.js";
+import type * as migrations_add_cognitive_memory_fields from "../migrations/add_cognitive_memory_fields.js";
 import type * as migrations_backfill_memory_extraction from "../migrations/backfill_memory_extraction.js";
 import type * as migrations_verify_dual_write from "../migrations/verify_dual_write.js";
 import type * as models_cli from "../models/cli.js";
@@ -432,6 +437,8 @@ declare const fullApi: ApiFromModules<{
   "lib/prompts/operational/visualFormatting": typeof lib_prompts_operational_visualFormatting;
   "lib/prompts/systemBuilder": typeof lib_prompts_systemBuilder;
   "lib/prompts/templates/builtIn": typeof lib_prompts_templates_builtIn;
+  "lib/test/factories": typeof lib_test_factories;
+  "lib/toolNames": typeof lib_toolNames;
   "lib/tree": typeof lib_tree;
   "lib/userSync": typeof lib_userSync;
   "lib/utils/cascade": typeof lib_utils_cascade;
@@ -439,6 +446,7 @@ declare const fullApi: ApiFromModules<{
   "lib/utils/search": typeof lib_utils_search;
   "lib/utils/utf8Safe": typeof lib_utils_utf8Safe;
   memories: typeof memories;
+  "memories/cognitive": typeof memories_cognitive;
   "memories/consolidation": typeof memories_consolidation;
   "memories/delete": typeof memories_delete;
   "memories/expiration": typeof memories_expiration;
@@ -447,6 +455,7 @@ declare const fullApi: ApiFromModules<{
   "memories/queries": typeof memories_queries;
   "memories/save": typeof memories_save;
   "memories/search": typeof memories_search;
+  memoryLinks: typeof memoryLinks;
   messages: typeof messages;
   "messages/attachments": typeof messages_attachments;
   "messages/embeddings": typeof messages_embeddings;
@@ -470,6 +479,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/011_migrate_project_files_to_kb": typeof migrations_011_migrate_project_files_to_kb;
   "migrations/012_rechunk_knowledge": typeof migrations_012_rechunk_knowledge;
   "migrations/013_tree_architecture": typeof migrations_013_tree_architecture;
+  "migrations/add_cognitive_memory_fields": typeof migrations_add_cognitive_memory_fields;
   "migrations/backfill_memory_extraction": typeof migrations_backfill_memory_extraction;
   "migrations/verify_dual_write": typeof migrations_verify_dual_write;
   "models/cli": typeof models_cli;

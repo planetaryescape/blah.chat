@@ -23,21 +23,39 @@ None of these reflect how human memory actually works. We built a system that do
 ## Installation
 
 ```bash
-npm install @blah-chat/cognitive-memory
-# or
-pnpm add @blah-chat/cognitive-memory
-# or
 bun add @blah-chat/cognitive-memory
 ```
 
 ## Quick Start
 
 ```typescript
-import { CognitiveMemory } from '@blah-chat/cognitive-memory';
-import { ConvexAdapter } from '@blah-chat/cognitive-memory/adapters/convex'; // TODO: implement
+import { CognitiveMemory, ConvexAdapter } from "@blah-chat/cognitive-memory";
+// Provide your Convex function references (from your project's convex/_generated/api).
+// Example (this repo): import { api } from "@blah-chat/backend/convex/_generated/api";
+const functions = {
+  // memories/cognitive.ts
+  createCognitiveMemory: api.memories.cognitive.createCognitiveMemory,
+  updateCognitiveMemory: api.memories.cognitive.updateCognitiveMemory,
+  deleteCognitiveMemory: api.memories.cognitive.deleteCognitiveMemory,
+  deleteCognitiveMemories: api.memories.cognitive.deleteCognitiveMemories,
+  getCognitiveMemory: api.memories.cognitive.getCognitiveMemory,
+  getCognitiveMemories: api.memories.cognitive.getCognitiveMemories,
+  queryCognitiveMemories: api.memories.cognitive.queryCognitiveMemories,
+  findFadingMemories: api.memories.cognitive.findFadingMemories,
+  findStableMemories: api.memories.cognitive.findStableMemories,
+  markSuperseded: api.memories.cognitive.markSuperseded,
+  batchUpdateRetention: api.memories.cognitive.batchUpdateRetention,
+  cognitiveVectorSearch: api.memories.cognitive.cognitiveVectorSearch,
+
+  // memoryLinks.ts
+  createOrStrengthenLink: api.memoryLinks.createOrStrengthenLink,
+  getLinkedMemories: api.memoryLinks.getLinkedMemories,
+  getLinkedMemoriesMultiple: api.memoryLinks.getLinkedMemoriesMultiple,
+  deleteLink: api.memoryLinks.deleteLink,
+};
 
 const memory = new CognitiveMemory({
-  adapter: new ConvexAdapter(convexClient),
+  adapter: new ConvexAdapter({ client: convexClient, functions }),
   embeddingProvider: {
     embed: async (text) => {
       // Your embedding logic (OpenAI, Cohere, etc.)
@@ -239,11 +257,8 @@ See `src/adapters/base.ts` for full interface.
 ```typescript
 import {
   calculateRetention,
-  updateStability,
-  daysUntilRetention,
-  predictRetention,
-  calculateReviewSchedule
-} from '@blah-chat/cognitive-memory';
+  updateStability
+} from "@blah-chat/cognitive-memory";
 
 // Calculate current retention
 const retention = calculateRetention({
@@ -255,15 +270,6 @@ const retention = calculateRetention({
 
 // Calculate new stability after retrieval
 const newStability = updateStability(currentStability, daysSinceAccess);
-
-// When will retention drop to 50%?
-const days = daysUntilRetention(params, 0.5);
-
-// Predict future retention
-const futureRetention = predictRetention(params, 30); // 30 days from now
-
-// Optimal review schedule
-const schedule = calculateReviewSchedule(params, 0.8, 5); // 5 review times
 ```
 
 ### Scoring
@@ -291,9 +297,8 @@ const topics = extractTopics("Machine learning and AI are transforming...");
 import {
   cosineSimilarity,
   euclideanDistance,
-  normalizeVector,
-  createEmbeddingProvider
-} from '@blah-chat/cognitive-memory';
+  normalizeVector
+} from "@blah-chat/cognitive-memory";
 
 // Similarity between vectors
 const similarity = cosineSimilarity(vectorA, vectorB);
@@ -303,11 +308,6 @@ const distance = euclideanDistance(vectorA, vectorB);
 
 // Normalize vector to unit length
 const normalized = normalizeVector(vector);
-
-// Create embedding provider from function
-const provider = createEmbeddingProvider(async (text) => {
-  return await myEmbeddingService.embed(text);
-});
 ```
 
 ## Examples
@@ -315,8 +315,8 @@ const provider = createEmbeddingProvider(async (text) => {
 ### With OpenAI Embeddings
 
 ```typescript
-import { CognitiveMemory } from '@blah-chat/cognitive-memory';
-import OpenAI from 'openai';
+import { CognitiveMemory } from "@blah-chat/cognitive-memory";
+import OpenAI from "openai";
 
 const openai = new OpenAI();
 
@@ -325,13 +325,13 @@ const memory = new CognitiveMemory({
   embeddingProvider: {
     embed: async (text) => {
       const response = await openai.embeddings.create({
-        model: 'text-embedding-3-small',
+        model: "text-embedding-3-small",
         input: text
       });
       return response.data[0].embedding;
     }
   },
-  userId: 'user-123'
+  userId: "user-123"
 });
 ```
 

@@ -365,7 +365,7 @@
     },
     "packages/api-client": {
       "name": "@blah-chat/api-client",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "eventsource-parser": "^3.0.6",
         "openapi-fetch": "^0.15.0",
@@ -414,6 +414,7 @@
         "@anthropic-ai/sdk": "^0.73.0",
         "@blah-chat/ai": "workspace:*",
         "@blah-chat/auto-router": "workspace:*",
+        "@blah-chat/cognitive-memory": "workspace:*",
         "@blah-chat/shared": "workspace:*",
         "@composio/core": "^0.6.3",
         "@composio/vercel": "^0.6.2",
@@ -494,6 +495,23 @@
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
       },
+    },
+    "packages/cognitive-memory": {
+      "name": "@blah-chat/cognitive-memory",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@vitest/coverage-v8": "^4.0.18",
+        "convex": "^1.0.0",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.18",
+      },
+      "peerDependencies": {
+        "convex": ">=1.0.0",
+      },
+      "optionalPeers": [
+        "convex",
+      ],
     },
     "packages/config": {
       "name": "@blah-chat/config",
@@ -591,7 +609,14 @@
     },
     "packages/sdk": {
       "name": "@blah-chat/sdk",
-      "version": "0.1.0",
+      "version": "0.2.0",
+      "dependencies": {
+        "@blah-chat/api-client": "workspace:*",
+      },
+      "devDependencies": {
+        "tsup": "^8.5.1",
+        "typescript": "^5.9.3",
+      },
     },
     "packages/search-core": {
       "name": "@blah-chat/search-core",
@@ -613,7 +638,7 @@
     },
     "packages/shared": {
       "name": "@blah-chat/shared",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "date-fns": "^4.1.0",
         "diff": "^8.0.2",
@@ -929,6 +954,8 @@
     "@blah-chat/cli": ["@blah-chat/cli@workspace:apps/cli"],
 
     "@blah-chat/code-execution-core": ["@blah-chat/code-execution-core@workspace:packages/code-execution-core"],
+
+    "@blah-chat/cognitive-memory": ["@blah-chat/cognitive-memory@workspace:packages/cognitive-memory"],
 
     "@blah-chat/config": ["@blah-chat/config@workspace:packages/config"],
 

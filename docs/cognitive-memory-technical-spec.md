@@ -767,6 +767,7 @@ Must include:
 
 ### 12.2 Formatting
 
+- Note (blah.chat repo): we use **Biome** for lint/format (not Prettier). Behavior/semantics remain per spec.
 - Use Prettier with project config
 - 2-space indentation
 - Single quotes for strings

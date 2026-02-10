@@ -1,47 +1,92 @@
 /**
  * Convex Adapter for Cognitive Memory
- * 
+ *
  * Implements MemoryAdapter interface for Convex database.
  */
 
 import type { ConvexClient } from "convex/browser";
 import type { FunctionReference } from "convex/server";
-import { BaseMemoryAdapter, type MemoryFilters } from './base';
-import type { Memory, ScoredMemory } from '../core/types';
-import { calculateRetention } from '../core/decay';
+import type { Memory, MemoryType, ScoredMemory } from "../core/types";
+import { MemoryAdapter, type MemoryFilters } from "./base";
 
-/**
- * Convex adapter for cognitive memory
- * 
- * Requires Convex schema extensions:
- * - memories table with cognitive fields (memoryType, stability, accessCount, lastAccessed, retention)
- * - memoryLinks table for associative memory
- * 
- * @example
- * ```typescript
- * const adapter = new ConvexAdapter(convexClient);
- * 
- * const memory = new CognitiveMemory({
- *   adapter,
- *   embeddingProvider: myProvider,
- *   userId: 'user-123'
- * });
- * ```
- */
-export class ConvexAdapter extends BaseMemoryAdapter {
+type PublicQueryRef<A extends Record<string, unknown>, R> = FunctionReference<
+  "query",
+  "public",
+  A,
+  R
+>;
+type PublicMutationRef<
+  A extends Record<string, unknown>,
+  R,
+> = FunctionReference<"mutation", "public", A, R>;
+type PublicActionRef<A extends Record<string, unknown>, R> = FunctionReference<
+  "action",
+  "public",
+  A,
+  R
+>;
+
+export type ConvexAdapterFunctions = {
+  createCognitiveMemory: PublicMutationRef<Record<string, unknown>, string>;
+  updateCognitiveMemory: PublicMutationRef<Record<string, unknown>, null>;
+  deleteCognitiveMemory: PublicMutationRef<Record<string, unknown>, null>;
+  deleteCognitiveMemories: PublicMutationRef<Record<string, unknown>, null>;
+  getCognitiveMemory: PublicQueryRef<Record<string, unknown>, unknown>;
+  getCognitiveMemories: PublicQueryRef<Record<string, unknown>, unknown>;
+  queryCognitiveMemories: PublicQueryRef<Record<string, unknown>, unknown>;
+  findFadingMemories: PublicQueryRef<Record<string, unknown>, unknown>;
+  findStableMemories: PublicQueryRef<Record<string, unknown>, unknown>;
+  markSuperseded: PublicMutationRef<Record<string, unknown>, null>;
+  batchUpdateRetention: PublicMutationRef<Record<string, unknown>, null>;
+  cognitiveVectorSearch: PublicActionRef<Record<string, unknown>, unknown>;
+
+  createOrStrengthenLink: PublicMutationRef<Record<string, unknown>, null>;
+  getLinkedMemories: PublicQueryRef<Record<string, unknown>, unknown>;
+  getLinkedMemoriesMultiple: PublicQueryRef<Record<string, unknown>, unknown>;
+  deleteLink: PublicMutationRef<Record<string, unknown>, null>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isMemoryType(value: unknown): value is MemoryType {
+  return value === "episodic" || value === "semantic" || value === "procedural";
+}
+
+export class ConvexAdapter extends MemoryAdapter {
   private client: ConvexClient;
-  
-  constructor(client: ConvexClient) {
+  private fns: ConvexAdapterFunctions;
+
+  constructor(options: {
+    client: ConvexClient;
+    functions: ConvexAdapterFunctions;
+  }) {
     super();
-    this.client = client;
+    this.client = options.client;
+    this.fns = options.functions;
   }
-  
-  async createMemory(memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+
+  async transaction<T>(
+    callback: (adapter: MemoryAdapter) => Promise<T>,
+  ): Promise<T> {
+    return callback(this);
+  }
+
+  async createMemory(
+    memory: Omit<Memory, "id" | "createdAt" | "updatedAt">,
+  ): Promise<string> {
     const now = Date.now();
-    
-    // Map to Convex schema format
-    const convexMemory = {
-      userId: memory.userId as any, // Convex ID type
+
+    const category =
+      isRecord(memory.metadata) && typeof memory.metadata.category === "string"
+        ? memory.metadata.category
+        : "user_profile";
+
+    const importance10 = memory.importance * 10;
+
+    const id = await this.client.mutation(this.fns.createCognitiveMemory, {
+      userId: memory.userId,
       content: memory.content,
       embedding: memory.embedding,
       memoryType: memory.memoryType,
@@ -50,285 +95,266 @@ export class ConvexAdapter extends BaseMemoryAdapter {
       lastAccessed: memory.lastAccessed,
       retention: memory.retention,
       metadata: {
-        category: memory.metadata?.category || 'user_profile',
-        importance: memory.importance * 10, // Convert 0-1 to 1-10 scale
+        category,
+        importance: importance10,
         extractedAt: now,
         confidence: 1.0,
-        verifiedBy: 'manual' as const,
+        verifiedBy: "manual",
       },
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    // TODO: Replace with actual Convex mutation call
-    // This is a placeholder - need to implement Convex mutations in backend package
-    const id = await this.client.mutation(
-      'memories:createMemory' as any,
-      convexMemory
-    );
-    
-    return id as string;
+    });
+
+    return id;
   }
-  
+
   async getMemory(id: string): Promise<Memory | null> {
-    // TODO: Replace with actual Convex query
-    const memory = await this.client.query(
-      'memories:getMemoryById' as any,
-      { id: id as any }
-    );
-    
-    if (!memory) return null;
-    
-    return this.convexToMemory(memory);
+    const raw = await this.client.query(this.fns.getCognitiveMemory, { id });
+    if (!raw) return null;
+    return this.convexToMemory(raw);
   }
-  
+
   async getMemories(ids: string[]): Promise<Memory[]> {
-    // TODO: Replace with actual Convex query
-    const memories = await this.client.query(
-      'memories:getMemoriesByIds' as any,
-      { ids: ids as any[] }
-    );
-    
-    return memories.map((m: any) => this.convexToMemory(m));
-  }
-  
-  async queryMemories(filters: MemoryFilters): Promise<Memory[]> {
-    // TODO: Replace with actual Convex query
-    const memories = await this.client.query(
-      'memories:queryMemories' as any,
-      {
-        userId: filters.userId as any,
-        memoryTypes: filters.memoryTypes,
-        minRetention: filters.minRetention,
-        minImportance: filters.minImportance,
-        createdAfter: filters.createdAfter,
-        createdBefore: filters.createdBefore,
-        limit: filters.limit,
-        offset: filters.offset,
-      }
-    );
-    
-    return memories.map((m: any) => this.convexToMemory(m));
-  }
-  
-  async updateMemory(id: string, updates: Partial<Memory>): Promise<void> {
-    const convexUpdates: any = {
-      id: id as any,
-      updatedAt: Date.now(),
-    };
-    
-    if (updates.content !== undefined) convexUpdates.content = updates.content;
-    if (updates.embedding !== undefined) convexUpdates.embedding = updates.embedding;
-    if (updates.memoryType !== undefined) convexUpdates.memoryType = updates.memoryType;
-    if (updates.stability !== undefined) convexUpdates.stability = updates.stability;
-    if (updates.accessCount !== undefined) convexUpdates.accessCount = updates.accessCount;
-    if (updates.lastAccessed !== undefined) convexUpdates.lastAccessed = updates.lastAccessed;
-    if (updates.retention !== undefined) convexUpdates.retention = updates.retention;
-    if (updates.importance !== undefined) {
-      convexUpdates.importance = updates.importance * 10; // Convert to 1-10 scale
+    const raw = await this.client.query(this.fns.getCognitiveMemories, { ids });
+    if (!Array.isArray(raw)) return [];
+    const out: Memory[] = [];
+    for (const m of raw) {
+      const memory = this.convexToMemory(m);
+      if (memory) out.push(memory);
     }
-    
-    // TODO: Replace with actual Convex mutation
-    await this.client.mutation(
-      'memories:updateMemory' as any,
-      convexUpdates
-    );
+    return out;
   }
-  
+
+  async queryMemories(filters: MemoryFilters): Promise<Memory[]> {
+    const raw = await this.client.query(this.fns.queryCognitiveMemories, {
+      ...filters,
+    });
+    if (!Array.isArray(raw)) return [];
+    const out: Memory[] = [];
+    for (const m of raw) {
+      const memory = this.convexToMemory(m);
+      if (memory) out.push(memory);
+    }
+    return out;
+  }
+
+  async updateMemory(id: string, updates: Partial<Memory>): Promise<void> {
+    const payload: Record<string, unknown> = { id };
+
+    if (updates.content !== undefined) payload.content = updates.content;
+    if (updates.embedding !== undefined) payload.embedding = updates.embedding;
+    if (updates.memoryType !== undefined)
+      payload.memoryType = updates.memoryType;
+    if (updates.stability !== undefined) payload.stability = updates.stability;
+    if (updates.accessCount !== undefined)
+      payload.accessCount = updates.accessCount;
+    if (updates.lastAccessed !== undefined)
+      payload.lastAccessed = updates.lastAccessed;
+    if (updates.retention !== undefined) payload.retention = updates.retention;
+    if (updates.importance !== undefined)
+      payload.importance = updates.importance * 10;
+
+    await this.client.mutation(this.fns.updateCognitiveMemory, payload);
+  }
+
   async deleteMemory(id: string): Promise<void> {
-    // TODO: Replace with actual Convex mutation
-    await this.client.mutation(
-      'memories:deleteMemory' as any,
-      { id: id as any }
-    );
+    await this.client.mutation(this.fns.deleteCognitiveMemory, { id });
   }
-  
+
   async deleteMemories(ids: string[]): Promise<void> {
-    // TODO: Replace with actual Convex mutation
-    await this.client.mutation(
-      'memories:deleteMemories' as any,
-      { ids: ids as any[] }
-    );
+    await this.client.mutation(this.fns.deleteCognitiveMemories, { ids });
   }
-  
+
   async vectorSearch(
     embedding: number[],
-    filters?: MemoryFilters
+    filters?: MemoryFilters,
   ): Promise<ScoredMemory[]> {
-    // TODO: Replace with actual Convex action (vector search)
-    const results = await this.client.action(
-      'memories:vectorSearch' as any,
-      {
-        embedding,
-        userId: filters?.userId as any,
-        memoryTypes: filters?.memoryTypes,
-        minRetention: filters?.minRetention,
-        limit: filters?.limit || 5,
-      }
-    );
-    
-    return results.map((r: any) => ({
-      ...this.convexToMemory(r),
-      relevanceScore: r.score,
-      finalScore: r.score * r.retention,
-    }));
+    const raw = await this.client.action(this.fns.cognitiveVectorSearch, {
+      embedding,
+      userId: filters?.userId,
+      memoryTypes: filters?.memoryTypes,
+      minRetention: filters?.minRetention,
+      limit: filters?.limit ?? 5,
+    });
+
+    if (!Array.isArray(raw)) return [];
+
+    const out: ScoredMemory[] = [];
+    for (const item of raw) {
+      if (!isRecord(item)) continue;
+      const memory = this.convexToMemory(item.memory);
+      if (!memory) continue;
+      const relevanceScore =
+        typeof item.relevanceScore === "number" ? item.relevanceScore : 0;
+      out.push({
+        ...memory,
+        relevanceScore,
+        finalScore: relevanceScore * memory.retention,
+      });
+    }
+
+    return out;
   }
-  
+
   async updateRetentionScores(updates: Map<string, number>): Promise<void> {
-    const entries = Array.from(updates.entries());
-    
-    // TODO: Replace with actual Convex mutation (batch update)
-    await this.client.mutation(
-      'memories:batchUpdateRetention' as any,
-      {
-        updates: entries.map(([id, retention]) => ({
-          id: id as any,
-          retention,
-        })),
-      }
-    );
+    const entries = Array.from(updates.entries()).map(([id, retention]) => ({
+      id,
+      retention,
+    }));
+    await this.client.mutation(this.fns.batchUpdateRetention, {
+      updates: entries,
+    });
   }
-  
+
   async createOrStrengthenLink(
     sourceId: string,
     targetId: string,
-    strength: number
+    strength: number,
   ): Promise<void> {
-    // TODO: Replace with actual Convex mutation
-    await this.client.mutation(
-      'memoryLinks:createOrStrengthen' as any,
-      {
-        sourceId: sourceId as any,
-        targetId: targetId as any,
-        strength,
-      }
-    );
+    await this.client.mutation(this.fns.createOrStrengthenLink, {
+      sourceId,
+      targetId,
+      strength,
+    });
   }
-  
+
   async getLinkedMemories(
     memoryId: string,
-    minStrength: number = 0.3
+    minStrength: number = 0.3,
   ): Promise<Array<Memory & { linkStrength: number }>> {
-    // TODO: Replace with actual Convex query
-    const linked = await this.client.query(
-      'memoryLinks:getLinkedMemories' as any,
-      {
-        memoryId: memoryId as any,
-        minStrength,
-      }
-    );
-    
-    return linked.map((l: any) => ({
-      ...this.convexToMemory(l.memory),
-      linkStrength: l.strength,
-    }));
+    const raw = await this.client.query(this.fns.getLinkedMemories, {
+      memoryId,
+      minStrength,
+    });
+    return this.linkedResultToMemories(raw);
   }
-  
+
   async getLinkedMemoriesMultiple(
     memoryIds: string[],
-    minStrength: number = 0.3
+    minStrength: number = 0.3,
   ): Promise<Array<Memory & { linkStrength: number }>> {
-    // TODO: Replace with actual Convex query
-    const linked = await this.client.query(
-      'memoryLinks:getLinkedMemoriesMultiple' as any,
-      {
-        memoryIds: memoryIds as any[],
-        minStrength,
-      }
-    );
-    
-    return linked.map((l: any) => ({
-      ...this.convexToMemory(l.memory),
-      linkStrength: l.strength,
-    }));
+    const raw = await this.client.query(this.fns.getLinkedMemoriesMultiple, {
+      memoryIds,
+      minStrength,
+    });
+    return this.linkedResultToMemories(raw);
   }
-  
-  async getLinks(memoryId: string): Promise<any[]> {
-    // TODO: Replace with actual Convex query
-    return await this.client.query(
-      'memoryLinks:getLinks' as any,
-      { memoryId: memoryId as any }
-    );
-  }
-  
+
   async deleteLink(sourceId: string, targetId: string): Promise<void> {
-    // TODO: Replace with actual Convex mutation
-    await this.client.mutation(
-      'memoryLinks:deleteLink' as any,
-      {
-        sourceId: sourceId as any,
-        targetId: targetId as any,
-      }
-    );
+    await this.client.mutation(this.fns.deleteLink, { sourceId, targetId });
   }
-  
+
   async findFadingMemories(
     userId: string,
-    maxRetention: number
+    maxRetention: number,
   ): Promise<Memory[]> {
-    // TODO: Replace with actual Convex query
-    const memories = await this.client.query(
-      'memories:findFading' as any,
-      {
-        userId: userId as any,
-        maxRetention,
-      }
-    );
-    
-    return memories.map((m: any) => this.convexToMemory(m));
+    const raw = await this.client.query(this.fns.findFadingMemories, {
+      userId,
+      maxRetention,
+    });
+    if (!Array.isArray(raw)) return [];
+    const out: Memory[] = [];
+    for (const m of raw) {
+      const memory = this.convexToMemory(m);
+      if (memory) out.push(memory);
+    }
+    return out;
   }
-  
+
   async findStableMemories(
     userId: string,
     minStability: number,
-    minAccessCount: number
+    minAccessCount: number,
   ): Promise<Memory[]> {
-    // TODO: Replace with actual Convex query
-    const memories = await this.client.query(
-      'memories:findStable' as any,
-      {
-        userId: userId as any,
-        minStability,
-        minAccessCount,
-      }
-    );
-    
-    return memories.map((m: any) => this.convexToMemory(m));
+    const raw = await this.client.query(this.fns.findStableMemories, {
+      userId,
+      minStability,
+      minAccessCount,
+    });
+    if (!Array.isArray(raw)) return [];
+    const out: Memory[] = [];
+    for (const m of raw) {
+      const memory = this.convexToMemory(m);
+      if (memory) out.push(memory);
+    }
+    return out;
   }
-  
-  async markSuperseded(
-    memoryIds: string[],
-    summaryId: string
-  ): Promise<void> {
-    // TODO: Replace with actual Convex mutation
-    await this.client.mutation(
-      'memories:markSuperseded' as any,
-      {
-        memoryIds: memoryIds as any[],
-        summaryId: summaryId as any,
-      }
-    );
+
+  async markSuperseded(memoryIds: string[], summaryId: string): Promise<void> {
+    await this.client.mutation(this.fns.markSuperseded, {
+      memoryIds,
+      summaryId,
+    });
   }
-  
-  /**
-   * Convert Convex memory format to SDK Memory type
-   * @private
-   */
-  private convexToMemory(convexMemory: any): Memory {
+
+  private linkedResultToMemories(
+    raw: unknown,
+  ): Array<Memory & { linkStrength: number }> {
+    if (!Array.isArray(raw)) return [];
+    const out: Array<Memory & { linkStrength: number }> = [];
+    for (const item of raw) {
+      if (!isRecord(item)) continue;
+      const memory = this.convexToMemory(item.memory);
+      if (!memory) continue;
+      const linkStrength =
+        typeof item.strength === "number" ? item.strength : 0;
+      out.push({ ...memory, linkStrength });
+    }
+    return out;
+  }
+
+  private convexToMemory(raw: unknown): Memory | null {
+    if (!isRecord(raw)) return null;
+
+    const id = typeof raw._id === "string" ? raw._id : null;
+    const userId = typeof raw.userId === "string" ? raw.userId : null;
+    const content = typeof raw.content === "string" ? raw.content : null;
+    const embedding = Array.isArray(raw.embedding) ? raw.embedding : null;
+    const createdAt = typeof raw.createdAt === "number" ? raw.createdAt : null;
+    const updatedAt = typeof raw.updatedAt === "number" ? raw.updatedAt : null;
+
+    if (
+      !id ||
+      !userId ||
+      !content ||
+      !embedding ||
+      createdAt === null ||
+      updatedAt === null
+    ) {
+      return null;
+    }
+
+    const metadata = isRecord(raw.metadata) ? raw.metadata : undefined;
+    const importance10 =
+      metadata && typeof metadata.importance === "number"
+        ? metadata.importance
+        : 5;
+
+    const memoryType = isMemoryType(raw.memoryType)
+      ? raw.memoryType
+      : "semantic";
+    const stability = typeof raw.stability === "number" ? raw.stability : 0.3;
+    const accessCount =
+      typeof raw.accessCount === "number" ? raw.accessCount : 0;
+    const lastAccessed =
+      typeof raw.lastAccessed === "number" ? raw.lastAccessed : createdAt;
+    const retention = typeof raw.retention === "number" ? raw.retention : 1.0;
+
     return {
-      id: convexMemory._id,
-      userId: convexMemory.userId,
-      content: convexMemory.content,
-      embedding: convexMemory.embedding,
-      memoryType: convexMemory.memoryType || 'semantic',
-      importance: (convexMemory.metadata?.importance || 5) / 10, // Convert 1-10 to 0-1
-      stability: convexMemory.stability || 0.3,
-      accessCount: convexMemory.accessCount || 0,
-      lastAccessed: convexMemory.lastAccessed || convexMemory.createdAt,
-      retention: convexMemory.retention || 1.0,
-      createdAt: convexMemory.createdAt,
-      updatedAt: convexMemory.updatedAt,
-      metadata: convexMemory.metadata,
+      id,
+      userId,
+      content,
+      embedding: embedding.reduce<number[]>((acc, n) => {
+        if (typeof n === "number") acc.push(n);
+        return acc;
+      }, []),
+      memoryType,
+      importance: importance10 / 10,
+      stability,
+      accessCount,
+      lastAccessed,
+      retention,
+      createdAt,
+      updatedAt,
+      metadata: metadata ?? undefined,
     };
   }
 }

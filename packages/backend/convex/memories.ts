@@ -11,6 +11,7 @@ import {
 } from "./_generated/server";
 import { logger } from "./lib/logger";
 
+export * as cognitive from "./memories/cognitive";
 export * as consolidation from "./memories/consolidation";
 export * as deleteModule from "./memories/delete";
 export * as expiration from "./memories/expiration";

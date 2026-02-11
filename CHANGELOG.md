@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.26.1](https://github.com/planetaryescape/blah.chat/compare/v1.26.0...v1.26.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* **ci:** stop actions approving PRs ([947f6fd](https://github.com/planetaryescape/blah.chat/commit/947f6fdf7de012b684b3497d99367394b34cd910))
+* **ci:** use MERGE_BOT_TOKEN for automerge approvals ([082f5cd](https://github.com/planetaryescape/blah.chat/commit/082f5cd7aafce156aa328a36f5733404201e4896))
+
 ## [1.26.0](https://github.com/planetaryescape/blah.chat/compare/v1.25.0...v1.26.0) (2026-02-11)
 
 

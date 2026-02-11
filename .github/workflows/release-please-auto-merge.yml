@@ -19,12 +19,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Resolve PR metadata
         id: pr
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
@@ -55,18 +55,22 @@ jobs:
       - name: Approve release PR
         if: steps.pr.outputs.should_merge == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
-          echo "::notice::Skipping approval: GitHub Actions cannot approve pull requests with GITHUB_TOKEN."
-          echo "::notice::If branch protection requires approvals, use a bot PAT/GitHub App token (not implemented here) or approve manually."
+          if gh pr review --approve "$PR_NUMBER" --repo "$REPO"; then
+            echo "::notice::Approved PR #$PR_NUMBER"
+            exit 0
+          fi
+          echo "::notice::Approval skipped/failed (token lacks permission or branch rules block approvals). Leaving PR open."
+          exit 0
 
       - name: Merge release PR
         id: merge
         if: steps.pr.outputs.should_merge == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |

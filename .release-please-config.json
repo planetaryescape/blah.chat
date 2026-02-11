@@ -155,6 +155,12 @@
       "package-name": "@blah-chat/code-execution-core",
       "include-component-in-tag": true
     },
+    "packages/cognitive-memory": {
+      "release-type": "node",
+      "component": "cognitive-memory",
+      "package-name": "@blah-chat/cognitive-memory",
+      "include-component-in-tag": true
+    },
     "packages/integrations-composio": {
       "release-type": "node",
       "component": "integrations-composio",

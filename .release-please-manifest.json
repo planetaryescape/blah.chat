@@ -25,6 +25,7 @@
   "packages/crypto-core": "0.1.0",
   "packages/assistant-tools-core": "0.1.0",
   "packages/code-execution-core": "0.1.0",
+  "packages/cognitive-memory": "0.1.0",
   "packages/integrations-composio": "0.1.0",
   "apps/cli": "0.3.0",
   "apps/desktop": "0.9.0"

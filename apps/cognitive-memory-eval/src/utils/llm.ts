@@ -3,6 +3,7 @@ import { getModel } from "@blah-chat/ai/registry";
 import { embed, embedMany, generateObject, generateText } from "ai";
 import type { z } from "zod";
 import { appendJsonl, ensureDir } from "./fs";
+import { log as logLine } from "./log";
 import { resultsPath } from "./paths";
 import { withRetry } from "./retry";
 
@@ -36,6 +37,7 @@ export async function llmGenerateObject<T>(options: {
 }): Promise<T> {
   if (options.dryRun) throw new Error("dry-run: llmGenerateObject blocked");
   assertGatewayKey();
+  logLine(`llm generateObject ${options.tag} model=${options.modelId}`);
   return withRetry(async () => {
     try {
       const res = await generateObject({
@@ -79,6 +81,7 @@ export async function llmGenerateText(options: {
 }): Promise<string> {
   if (options.dryRun) throw new Error("dry-run: llmGenerateText blocked");
   assertGatewayKey();
+  logLine(`llm generateText ${options.tag} model=${options.modelId}`);
   return withRetry(async () => {
     try {
       const res = await generateText({

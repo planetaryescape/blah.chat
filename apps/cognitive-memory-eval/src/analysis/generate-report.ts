@@ -3,6 +3,7 @@ import type { AnswerRow, JudgmentRow, Question } from "../types";
 import { parseCommonFlags } from "../utils/cli";
 import { ensureDir, fileExists, readJson, writeJsonAtomic } from "../utils/fs";
 import { readJsonl } from "../utils/jsonl";
+import { log } from "../utils/log";
 import { dataPath, resultsPath } from "../utils/paths";
 import { calculateMetrics } from "./calculate-metrics";
 import { pairedTTest } from "./statistical-tests";
@@ -30,6 +31,9 @@ async function main() {
   const flags = parseCommonFlags(process.argv.slice(2));
   const cfg = loadConfig();
 
+  log(
+    `analyze start sample=${flags.sample ?? "all"} force=${flags.force} dryRun=${flags.dryRun}`,
+  );
   const answersPath = resultsPath("answers.jsonl");
   const judgmentsPath = resultsPath("judgments.jsonl");
   if (!fileExists(answersPath))
@@ -70,6 +74,7 @@ async function main() {
     ...stats,
   });
   await writeVisualizations({ metrics });
+  log("wrote metrics.json stats.json report.md visualizations/*");
 
   const basic = metrics.variants.basic;
   const cognitive = metrics.variants.cognitive;
@@ -149,6 +154,7 @@ async function main() {
   ].join("\n");
 
   await Bun.write(resultsPath("report.md"), report);
+  log("analyze done");
 }
 
 main().catch((err) => {

@@ -3,6 +3,7 @@ import { loadConfig } from "../config";
 import type { Conversation, Persona, Question } from "../types";
 import { ensureDir, fileExists, readJson, writeJsonAtomic } from "../utils/fs";
 import { llmGenerateObject } from "../utils/llm";
+import { log } from "../utils/log";
 import { dataPath } from "../utils/paths";
 
 const questionSchema = z.object({
@@ -81,6 +82,7 @@ export async function generateQuestions(options: {
   const cfg = loadConfig();
   await ensureDir(dataPath("questions"));
 
+  log(`questions ${options.persona.id}`);
   const qs = await llmGenerateObject({
     modelId: cfg.models.questionGen,
     tag: "question-gen",

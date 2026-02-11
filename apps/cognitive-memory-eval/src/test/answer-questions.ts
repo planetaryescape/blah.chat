@@ -13,6 +13,7 @@ import {
   writeJsonAtomic,
 } from "../utils/fs";
 import { llmGenerateText } from "../utils/llm";
+import { counter, log, logBlank } from "../utils/log";
 import { dataPath, resultsPath } from "../utils/paths";
 
 function formatContext(memories: AnswerRow["retrievedMemories"]): string {
@@ -49,8 +50,12 @@ async function main() {
   const flags = parseCommonFlags(process.argv.slice(2));
   const cfg = loadConfig();
 
+  log(
+    `answer start sample=${flags.sample ?? "all"} force=${flags.force} dryRun=${flags.dryRun} concurrency=${flags.concurrency ?? cfg.concurrency.answers}`,
+  );
   const outPath = resultsPath("answers.jsonl");
   if (fileExists(outPath) && !flags.force) {
+    log(`answer skip (exists) ${outPath}`);
     if (flags.dryRun) return;
     return;
   }
@@ -81,8 +86,10 @@ async function main() {
     questions: questions.length,
   });
 
+  log(`questions=${questions.length}`);
   // Re-seed in this process to keep memory strengthening consistent within run.
   const seeded = await seedAdapters({ personaIds, dryRun: flags.dryRun });
+  log("seedAdapters done");
 
   const cognitiveByPersona = new Map<string, CognitiveMemory>();
   for (const personaId of personaIds) {
@@ -109,6 +116,8 @@ async function main() {
     await writeChain;
   };
 
+  logBlank();
+  const prog = counter("answer", questions.length);
   for (const q of questions) {
     rows.push(
       limiter(async () => {
@@ -212,11 +221,13 @@ async function main() {
 
         await writeRow(basicRow);
         await writeRow(cogRow);
+        prog.tick(q.id);
       }),
     );
   }
 
   await Promise.all(rows);
+  log("answer done");
 }
 
 main().catch((err) => {

@@ -16,6 +16,7 @@ import {
 } from "../utils/fs";
 import { readJsonl } from "../utils/jsonl";
 import { llmGenerateObject } from "../utils/llm";
+import { counter, log, logBlank } from "../utils/log";
 import { dataPath, resultsPath } from "../utils/paths";
 
 const judgmentSchema = z.object({
@@ -73,12 +74,16 @@ async function main() {
   const flags = parseCommonFlags(process.argv.slice(2));
   const cfg = loadConfig();
 
+  log(
+    `judge start sample=${flags.sample ?? "all"} force=${flags.force} dryRun=${flags.dryRun} concurrency=${flags.concurrency ?? cfg.concurrency.judge}`,
+  );
   const answersPath = resultsPath("answers.jsonl");
   const outPath = resultsPath("judgments.jsonl");
 
   if (!fileExists(answersPath))
     throw new Error("Missing test-results/answers.jsonl; run answer first");
   if (fileExists(outPath) && !flags.force) {
+    log(`judge skip (exists) ${outPath}`);
     if (flags.dryRun) return;
     return;
   }
@@ -122,6 +127,8 @@ async function main() {
     await writeChain;
   };
 
+  logBlank();
+  const prog = counter("judge", answers.length);
   await Promise.all(
     answers.map((a) =>
       limiter(async () => {
@@ -154,9 +161,11 @@ async function main() {
         };
 
         await writeRow(row);
+        prog.tick(`${a.questionId}:${a.variant}`);
       }),
     ),
   );
+  log("judge done");
 }
 
 main().catch((err) => {

@@ -3,6 +3,7 @@ import { loadConfig } from "../config";
 import type { Conversation, Evidence, Message, Persona } from "../types";
 import { ensureDir, fileExists, readJson, writeJsonAtomic } from "../utils/fs";
 import { llmGenerateObject } from "../utils/llm";
+import { log } from "../utils/log";
 import { dataPath } from "../utils/paths";
 
 const evidenceSchema = z.object({
@@ -79,6 +80,9 @@ export async function generateConversations(options: {
         continue;
       }
 
+      log(
+        `conversation ${persona.id} session ${sessionNumber}/${options.sessionsPerPersona}`,
+      );
       await ensureDir(dir);
       const sessionTs = sessionBase(now, sessionNumber);
       const conv = await llmGenerateObject({

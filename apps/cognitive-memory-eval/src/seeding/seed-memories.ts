@@ -1,6 +1,7 @@
 import { loadConfig } from "../config";
 import { parseCommonFlags } from "../utils/cli";
 import { ensureDir, fileExists, readJson, writeJsonAtomic } from "../utils/fs";
+import { log } from "../utils/log";
 import { dataPath, resultsPath } from "../utils/paths";
 import { seedAdapters } from "./core";
 
@@ -15,8 +16,12 @@ async function main() {
   const flags = parseCommonFlags(process.argv.slice(2));
   const cfg = loadConfig();
 
+  log(
+    `seed start sample=${flags.sample ?? "all"} force=${flags.force} dryRun=${flags.dryRun}`,
+  );
   const outPath = resultsPath("seeding-summary.json");
   if (fileExists(outPath) && !flags.force) {
+    log(`seed skip (exists) ${outPath}`);
     if (flags.dryRun) return;
     return;
   }
@@ -36,6 +41,9 @@ async function main() {
 
   await ensureDir(resultsPath());
   const seeded = await seedAdapters({ personaIds, dryRun: flags.dryRun });
+  log(
+    `seeded basic=${seeded.counts.basic} cognitive=${seeded.counts.cognitive}`,
+  );
 
   const summary: SeedSummary = {
     at: Date.now(),
@@ -50,6 +58,7 @@ async function main() {
     personas: personaIds,
     note: "Adapters are in-memory only; other scripts re-seed as needed.",
   });
+  log("seed done");
 }
 
 main().catch((err) => {

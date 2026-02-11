@@ -3,6 +3,7 @@ import { loadConfig } from "../config";
 import type { Persona } from "../types";
 import { fileExists, readJson, writeJsonAtomic } from "../utils/fs";
 import { llmGenerateObject } from "../utils/llm";
+import { log } from "../utils/log";
 import { dataPath } from "../utils/paths";
 
 const personaSchema = z.object({
@@ -30,6 +31,7 @@ export async function generatePersonas(options: {
 }): Promise<Persona[]> {
   const outPath = dataPath("personas.json");
   if (fileExists(outPath) && !options.force) {
+    log(`personas skip (exists) ${outPath}`);
     return readJson<Persona[]>(outPath);
   }
   if (options.dryRun) {
@@ -42,6 +44,7 @@ export async function generatePersonas(options: {
 
   for (let i = 1; i <= options.count; i++) {
     const id = `persona_${String(i).padStart(3, "0")}`;
+    log(`persona ${i}/${options.count} ${id}`);
     const p = await llmGenerateObject({
       modelId: cfg.models.personaGen,
       tag: "persona-gen",

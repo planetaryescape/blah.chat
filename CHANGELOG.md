@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.26.0](https://github.com/planetaryescape/blah.chat/compare/v1.25.0...v1.26.0) (2026-02-11)
+
+
+### Features
+
+* **cognitive-memory:** access frequency reinforcement ([5f2d737](https://github.com/planetaryescape/blah.chat/commit/5f2d737249eabcd5b490f9fb4bf0aa5f46e23041))
+* **cognitive-memory:** add postgres and jsonl adapters ([1d1475a](https://github.com/planetaryescape/blah.chat/commit/1d1475ab1ea2015ca47dc1cd9d3ede53cd3cd2b7))
+
+
+### Bug Fixes
+
+* **cognitive-memory:** jsonl rollover preserves history ([2d7a34b](https://github.com/planetaryescape/blah.chat/commit/2d7a34b5a97955720cbb6e3f8a3e214a5bcae87d))
+* **cognitive-memory:** postgres linked memories bidirectional ([220005d](https://github.com/planetaryescape/blah.chat/commit/220005d43e35b889ce49990953ac918c91c7bd51))
+* quote run cmd with colon ([e962077](https://github.com/planetaryescape/blah.chat/commit/e962077842bfd4089675dd2ed64eee2b511a19cd))
+
 ## [1.25.0](https://github.com/planetaryescape/blah.chat/compare/v1.24.1...v1.25.0) (2026-02-10)
 
 

@@ -45,7 +45,7 @@ jobs:
           PR_AUTHOR=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json author --jq '.author.login')
           echo "author=$PR_AUTHOR" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -65,10 +65,14 @@ jobs:
       - name: Approve patch/minor updates
         if: steps.check.outputs.is_dependabot == 'true' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
-          echo "::notice::Skipping approval: GitHub Actions cannot approve pull requests with GITHUB_TOKEN."
-          echo "::notice::If branch protection requires approvals, approve manually or use a bot PAT/GitHub App token."
+          if gh pr review --approve "$PR_NUMBER" --repo "$REPO"; then
+            echo "::notice::Approved PR #$PR_NUMBER"
+            exit 0
+          fi
+          echo "::notice::Approval skipped/failed (token lacks permission or branch rules block approvals). Leaving PR open."
+          exit 0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
 
@@ -81,6 +85,6 @@ jobs:
           echo "::notice::Merge skipped/failed (likely requires approval). Leaving PR open."
           exit 0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN || secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}

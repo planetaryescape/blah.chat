@@ -58,18 +58,28 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-        run: gh pr review --approve "$PR_NUMBER" --repo "$REPO"
+        run: |
+          echo "::notice::Skipping approval: GitHub Actions cannot approve pull requests with GITHUB_TOKEN."
+          echo "::notice::If branch protection requires approvals, use a bot PAT/GitHub App token (not implemented here) or approve manually."
 
       - name: Merge release PR
+        id: merge
         if: steps.pr.outputs.should_merge == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-        run: gh pr merge --squash --delete-branch "$PR_NUMBER" --repo "$REPO"
+        run: |
+          if gh pr merge --squash --delete-branch "$PR_NUMBER" --repo "$REPO"; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Merge skipped/failed (likely requires approval). Leaving PR open."
+            exit 0
+          fi
 
       - name: Remove pending label
-        if: steps.pr.outputs.should_merge == 'true'
+        if: steps.pr.outputs.should_merge == 'true' && steps.merge.outputs.merged == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}

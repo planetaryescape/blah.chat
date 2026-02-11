@@ -64,7 +64,9 @@ jobs:
 
       - name: Approve patch/minor updates
         if: steps.check.outputs.is_dependabot == 'true' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
-        run: gh pr review --approve "$PR_NUMBER" --repo "$REPO"
+        run: |
+          echo "::notice::Skipping approval: GitHub Actions cannot approve pull requests with GITHUB_TOKEN."
+          echo "::notice::If branch protection requires approvals, approve manually or use a bot PAT/GitHub App token."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -72,7 +74,12 @@ jobs:
 
       - name: Merge patch/minor updates
         if: steps.check.outputs.is_dependabot == 'true' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
-        run: gh pr merge --auto --rebase "$PR_NUMBER" --repo "$REPO"
+        run: |
+          if gh pr merge --auto --rebase "$PR_NUMBER" --repo "$REPO"; then
+            exit 0
+          fi
+          echo "::notice::Merge skipped/failed (likely requires approval). Leaving PR open."
+          exit 0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}

@@ -1,5 +1,13 @@
-export type { ConvexAdapterFunctions, MemoryFilters } from "./adapters";
-export { ConvexAdapter, MemoryAdapter } from "./adapters";
+export type {
+  ConvexAdapterFunctions,
+  InMemoryAdapterOptions,
+  MemoryFilters,
+} from "./adapters";
+export {
+  ConvexAdapter,
+  InMemoryAdapter,
+  MemoryAdapter,
+} from "./adapters";
 export type {
   CognitiveMemoryConfig,
   ConsolidationResult,

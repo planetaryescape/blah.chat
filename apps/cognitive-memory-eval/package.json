@@ -1,0 +1,25 @@
+{
+  "name": "cognitive-memory-eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "bun run src/generators/index.ts",
+    "seed": "bun run src/seeding/seed-memories.ts",
+    "answer": "bun run src/test/answer-questions.ts",
+    "judge": "bun run src/test/judge-answers.ts",
+    "analyze": "bun run src/analysis/generate-report.ts",
+    "run": "bun run gen && bun run seed && bun run answer && bun run judge && bun run analyze"
+  },
+  "dependencies": {
+    "@blah-chat/ai": "workspace:*",
+    "@blah-chat/cognitive-memory": "workspace:*",
+    "ai": "^6.0.3",
+    "p-limit": "^6.2.0",
+    "ttest": "^4.0.0",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "^5.9.3"
+  }
+}

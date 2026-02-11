@@ -1,0 +1,25 @@
+{
+  "models": {
+    "personaGen": "openai:gpt-oss-120b",
+    "conversationGen": "openai:gpt-oss-120b",
+    "questionGen": "openai:gpt-oss-120b",
+    "answerGen": "anthropic:claude-haiku-4.5",
+    "judge": "google:gemini-2.0-flash"
+  },
+  "sizes": {
+    "personas": 30,
+    "sessionsPerPersona": 4,
+    "questionsPerPersona": 40,
+    "messagesPerSessionMin": 8,
+    "messagesPerSessionMax": 12
+  },
+  "concurrency": {
+    "answers": 10,
+    "judge": 10
+  },
+  "retrieval": {
+    "limit": 5,
+    "includeAssociations": true
+  },
+  "seed": "cogmem-eval-v2"
+}

@@ -12,7 +12,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalAction } from "./_generated/server";
 import { downloadAttachment } from "./generation/attachments";
 import { extractSources, extractWebSearchSources } from "./generation/sources";
-import { createOnStepFinish } from "./generation/tools";
+import { buildToolsAsync, createOnStepFinish } from "./generation/tools";
 import { trackServerEvent } from "./lib/analytics";
 import {
   type BudgetState,
@@ -337,6 +337,12 @@ export const generateResponse = internalAction({
           internal.composio.connections.getActiveConnectionsInternal,
           { userId: args.userId },
         ) as Promise<Doc<"composioConnections">[]>,
+        // Fire-and-forget: set generation status in parallel (saves ~30ms)
+        ctx.runMutation(internal.messages.updateStatus, {
+          messageId: assistantMessageId,
+          status: "generating",
+          generationStartedAt: generationStartTime,
+        }),
       ]);
 
       // Derive connected app names for system prompt (before tools are built)
@@ -354,13 +360,6 @@ export const generateResponse = internalAction({
 
       const memoryExtractionLevel = (memoryExtractionLevelRaw ??
         "moderate") as MemoryExtractionLevel;
-
-      // 2. Set generation started timestamp
-      await ctx.runMutation(internal.messages.updateStatus, {
-        messageId: assistantMessageId,
-        status: "generating",
-        generationStartedAt: generationStartTime,
-      });
 
       // 2.5 Check if trying to switch to a Gemini thought-signature model mid-conversation
       const requiresThoughtSignature = modelId.includes("gemini-3-pro-image");
@@ -404,92 +403,76 @@ export const generateResponse = internalAction({
           (a: Doc<"messages">, b: Doc<"messages">) => b.createdAt - a.createdAt,
         )[0];
 
-      // 5. Skip attachment fetch if model doesn't have function-calling
-      // (fileDocument tool won't be available anyway - saves ~20-50ms)
-      const messageAttachments =
-        hasFunctionCalling && lastUserMsg
-          ? await ctx.runQuery(internal.lib.helpers.getMessageAttachments, {
-              messageId: lastUserMsg._id,
-            })
-          : undefined;
-
-      // 6. Build system prompts (or use override for consolidation)
-      // OPTIMIZATION: Use cached prompt if available (built in background on conversation creation)
-      let systemPromptsResult: {
-        messages: any[];
-        memoryContent: string | null;
-      };
-
-      if (args.systemPromptOverride) {
-        // Consolidation mode: use override directly
-        systemPromptsResult = {
-          messages: [
-            { role: "system" as const, content: args.systemPromptOverride },
-          ],
-          memoryContent: null,
-        };
-      } else if (conversation?.cachedSystemPrompt) {
-        // Use cached prompt (fast path - no queries needed)
-        try {
-          const cachedMessages = JSON.parse(conversation.cachedSystemPrompt);
-          systemPromptsResult = {
-            messages: cachedMessages,
-            memoryContent: null, // Not tracked for cached prompts
-          };
-          logger.info("Using cached system prompt", {
-            tag: "Generation",
-            messageCount: cachedMessages.length,
-          });
-        } catch (_e) {
-          logger.error("Failed to parse cached prompt, falling back", {
-            tag: "Generation",
-          });
-          // Fall through to buildSystemPrompts
-          systemPromptsResult = await buildSystemPrompts(ctx, {
-            userId: args.userId,
-            conversationId: args.conversationId,
-            userMessage: lastUserMsg?.content || "",
-            modelConfig,
-            hasFunctionCalling,
-            prefetchedMemories: null,
-            memoryExtractionLevel,
-            budgetState,
-            connectedApps,
-          });
-        }
-      } else {
-        // Cold start fallback: build synchronously (first message or cache miss)
-        logger.info("No cached prompt, building synchronously", {
-          tag: "Generation",
-        });
-        systemPromptsResult = await buildSystemPrompts(ctx, {
-          userId: args.userId,
-          conversationId: args.conversationId,
-          userMessage: lastUserMsg?.content || "",
-          modelConfig,
-          hasFunctionCalling,
-          prefetchedMemories: null,
-          memoryExtractionLevel,
-          budgetState,
-          connectedApps,
-        });
-      }
-
-      const systemPrompts = systemPromptsResult.messages;
-      const memoryContentForTracking = systemPromptsResult.memoryContent;
-
-      // 7. Filter and transform conversation history (with attachments if vision model)
-      // Filter messages first
+      // 5. Pre-compute filtered messages for parallel attachment fetch
       const filteredMessages = messages.filter(
         (m: Doc<"messages">) =>
           m._id !== assistantMessageId && m.status === "complete",
       );
 
-      // OPTIMIZATION: Batch fetch all attachments in single query (O(1) instead of O(n))
-      const allAttachments = await ctx.runQuery(
-        internal.lib.helpers.getAttachmentsByMessageIds,
-        { messageIds: filteredMessages.map((m: Doc<"messages">) => m._id) },
-      );
+      // 6. PARALLEL: Build system prompts + fetch attachments concurrently (saves ~60ms)
+      const [systemPromptsResult, messageAttachments, allAttachments] =
+        await Promise.all([
+          // Build system prompts (or use override/cache)
+          (async (): Promise<{
+            messages: any[];
+            memoryContent: string | null;
+          }> => {
+            if (args.systemPromptOverride) {
+              return {
+                messages: [
+                  {
+                    role: "system" as const,
+                    content: args.systemPromptOverride,
+                  },
+                ],
+                memoryContent: null,
+              };
+            }
+            if (conversation?.cachedSystemPrompt) {
+              try {
+                const cachedMessages = JSON.parse(
+                  conversation.cachedSystemPrompt,
+                );
+                logger.info("Using cached system prompt", {
+                  tag: "Generation",
+                  messageCount: cachedMessages.length,
+                });
+                return { messages: cachedMessages, memoryContent: null };
+              } catch (_e) {
+                logger.error("Failed to parse cached prompt, falling back", {
+                  tag: "Generation",
+                });
+              }
+            }
+            logger.info("Building system prompts", { tag: "Generation" });
+            return buildSystemPrompts(ctx, {
+              userId: args.userId,
+              conversationId: args.conversationId,
+              userMessage: lastUserMsg?.content || "",
+              modelConfig,
+              hasFunctionCalling,
+              prefetchedMemories: null,
+              memoryExtractionLevel,
+              budgetState,
+              connectedApps,
+            });
+          })(),
+          // Get message attachments for tools (conditional)
+          hasFunctionCalling && lastUserMsg
+            ? ctx.runQuery(internal.lib.helpers.getMessageAttachments, {
+                messageId: lastUserMsg._id,
+              })
+            : undefined,
+          // Batch fetch all attachments for message history
+          ctx.runQuery(internal.lib.helpers.getAttachmentsByMessageIds, {
+            messageIds: filteredMessages.map((m: Doc<"messages">) => m._id),
+          }),
+        ]);
+
+      const systemPrompts = systemPromptsResult.messages;
+      const memoryContentForTracking = systemPromptsResult.memoryContent;
+
+      // 7. Transform conversation history (with attachments if vision model)
 
       // Group attachments by messageId for O(1) lookup
       const attachmentsByMessage = new Map<string, Doc<"attachments">[]>();
@@ -649,8 +632,6 @@ export const generateResponse = internalAction({
       const searchCache = new Map<string, unknown>();
 
       if (shouldEnableTools) {
-        // Import dynamically to allow for async tool creation (Composio)
-        const { buildToolsAsync } = await import("./generation/tools");
         const toolsResult = await buildToolsAsync({
           ctx,
           userId: args.userId,
@@ -783,7 +764,7 @@ export const generateResponse = internalAction({
       // AbortController for immediate stream termination on stop
       const abortController = new AbortController();
       let lastStopCheck = Date.now();
-      const STOP_CHECK_INTERVAL = 10; // ms - decoupled from write throttle for faster stop response
+      const STOP_CHECK_INTERVAL = 200; // ms - check every 200ms (reduces stop-check DB queries by 95%)
 
       // Stream from LLM - capture exact API call time for true TTFT
       const apiCallStartedAt = Date.now();

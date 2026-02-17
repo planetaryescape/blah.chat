@@ -257,21 +257,24 @@ export const sendMessage = mutation({
     const assistantMessageIds: Id<"messages">[] = [];
 
     try {
-      // Get tree context: find last message and root for tree fields
-      const existingMessages = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation_created", (q) =>
-          q.eq("conversationId", conversationId!),
-        )
-        .collect();
-
-      // Sort by createdAt to find last message
-      const sortedMessages = existingMessages.sort(
-        (a, b) => a.createdAt - b.createdAt,
-      );
-      const lastMessage = sortedMessages[sortedMessages.length - 1];
-      const rootMessageId =
-        sortedMessages[0]?.rootMessageId ?? sortedMessages[0]?._id;
+      // Get tree context: find last message and root for tree fields (O(1) instead of O(n))
+      const [lastMessage, firstMessage] = await Promise.all([
+        ctx.db
+          .query("messages")
+          .withIndex("by_conversation_created", (q) =>
+            q.eq("conversationId", conversationId!),
+          )
+          .order("desc")
+          .first(),
+        ctx.db
+          .query("messages")
+          .withIndex("by_conversation_created", (q) =>
+            q.eq("conversationId", conversationId!),
+          )
+          .order("asc")
+          .first(),
+      ]);
+      const rootMessageId = firstMessage?.rootMessageId ?? firstMessage?._id;
 
       // Insert user message (single) - only after lock acquired
       userMessageId = (await ctx.runMutation(internal.messages.create, {

@@ -79,7 +79,7 @@ jobs:
       - name: Merge patch/minor updates
         if: steps.check.outputs.is_dependabot == 'true' && (steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
-          if gh pr merge --auto --rebase "$PR_NUMBER" --repo "$REPO"; then
+          if gh pr merge --rebase "$PR_NUMBER" --repo "$REPO"; then
             exit 0
           fi
           echo "::notice::Merge skipped/failed (likely requires approval). Leaving PR open."

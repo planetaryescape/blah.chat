@@ -66,7 +66,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
       (event: { nativeEvent: { contentSize: { height: number } } }) => {
         const newHeight = Math.min(
           Math.max(44, event.nativeEvent.contentSize.height),
-          120,
+          200,
         );
         setInputHeight(newHeight);
       },
@@ -140,7 +140,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             style={{
               flex: 1,
               height: inputHeight,
-              maxHeight: 120,
+              maxHeight: 200,
               fontFamily: typography.body,
               fontSize: 16,
               color: palette.starlight,

@@ -1,4 +1,7 @@
-import { bcv_parser } from "bible-passage-reference-parser/js/en_bcv_parser.min.js";
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CJS module, ESM import fails in Metro
+const {
+  bcv_parser,
+} = require("bible-passage-reference-parser/js/en_bcv_parser.min.js");
 
 const bcv = new bcv_parser();
 bcv.set_options({

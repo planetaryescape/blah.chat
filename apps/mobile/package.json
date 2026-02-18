@@ -91,6 +91,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
+    "@blah-chat/backend": "workspace:*",
     "@babel/plugin-transform-react-jsx": "^7.27.1",
     "@biomejs/biome": "2.3.14",
     "@types/node": "^25.0.10",

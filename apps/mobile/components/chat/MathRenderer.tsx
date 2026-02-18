@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
-import { palette, spacing } from "@/lib/theme/designSystem";
+import { palette, spacing, typography } from "@/lib/theme/designSystem";
 import { getWebView, webViewAvailable } from "@/lib/webview";
 
 interface MathRendererProps {
@@ -198,7 +198,7 @@ function MathFallback({ latex, isBlock }: MathRendererProps) {
     >
       <Text
         style={{
-          fontFamily: "Courier",
+          fontFamily: typography.mono,
           fontSize: 13,
           color: palette.roseQuartz,
           textAlign: isBlock ? "center" : "left",

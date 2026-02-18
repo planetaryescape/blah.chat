@@ -1,7 +1,12 @@
+import type { api as backendApi } from "@blah-chat/backend/convex/_generated/api";
+import type {
+  Doc as BackendDoc,
+  Id as BackendId,
+  TableNames,
+} from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConvexReactClient } from "convex/react";
 import { anyApi } from "convex/server";
 
-// Portable client shim: keeps Convex-first ergonomics without backend package coupling.
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 
 if (!convexUrl) {
@@ -9,12 +14,12 @@ if (!convexUrl) {
 }
 
 export const convex = new ConvexReactClient(convexUrl);
-export const api: any = anyApi;
+export const api = anyApi as unknown as typeof backendApi;
 
-export type Id<_TableName extends string = string> = string;
+export type Id<T extends string = string> = T extends TableNames
+  ? BackendId<T>
+  : string;
 
-export type Doc<TableName extends string = string> = {
-  _id: Id<TableName>;
-  _creationTime?: number;
-  [key: string]: any;
-};
+export type Doc<T extends string = string> = T extends TableNames
+  ? BackendDoc<T>
+  : { _id: string; _creationTime?: number; [key: string]: any };

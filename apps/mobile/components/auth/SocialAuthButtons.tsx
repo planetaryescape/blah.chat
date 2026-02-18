@@ -9,13 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import {
-  colors,
-  layout,
-  palette,
-  spacing,
-  typography,
-} from "@/lib/theme/designSystem";
+import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 function GoogleIcon() {
   return (
@@ -151,7 +145,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: layout.radius.sm,
-    backgroundColor: colors.background,
+    backgroundColor: palette.void,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -177,12 +171,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   googleButton: {
-    backgroundColor: colors.card,
+    backgroundColor: palette.nebula,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.glassBorder,
   },
   buttonPressed: {
-    backgroundColor: colors.secondary,
+    backgroundColor: palette.nebula,
   },
   googleButtonText: {
     fontFamily: typography.bodySemiBold,
@@ -211,11 +205,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: palette.glassBorder,
   },
   dividerText: {
     fontFamily: typography.body,
-    color: colors.mutedForeground,
+    color: palette.starlightDim,
     fontSize: 13,
     marginHorizontal: spacing.md,
   },

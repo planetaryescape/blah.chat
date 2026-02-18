@@ -16,7 +16,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
 import { convex } from "@/lib/convex";
-import { colors } from "@/lib/theme/colors";
 import { palette } from "@/lib/theme/designSystem";
 
 // Keep splash screen visible while loading fonts
@@ -69,12 +68,12 @@ export default function RootLayout() {
       <View
         style={{
           flex: 1,
-          backgroundColor: colors.background,
+          backgroundColor: palette.void,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator size="large" color={colors.foreground} />
+        <ActivityIndicator size="large" color={palette.starlight} />
       </View>
     );
   }

@@ -60,6 +60,8 @@ function SiblingNavigatorComponent({
         onPress={() => handleSwitch("left")}
         disabled={!canGoLeft}
         hitSlop={8}
+        accessibilityLabel="Previous branch"
+        accessibilityRole="button"
         style={({ pressed }) => ({
           padding: spacing.xs,
           borderRadius: layout.radius.sm,
@@ -73,6 +75,7 @@ function SiblingNavigatorComponent({
       </Pressable>
 
       <Text
+        accessibilityLabel={`Branch ${currentIndex + 1} of ${siblings.length}`}
         style={{
           fontFamily: typography.body,
           fontSize: 12,
@@ -88,6 +91,8 @@ function SiblingNavigatorComponent({
         onPress={() => handleSwitch("right")}
         disabled={!canGoRight}
         hitSlop={8}
+        accessibilityLabel="Next branch"
+        accessibilityRole="button"
         style={({ pressed }) => ({
           padding: spacing.xs,
           borderRadius: layout.radius.sm,

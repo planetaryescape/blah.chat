@@ -136,6 +136,7 @@
         "@babel/core": "^7.25.0",
         "@babel/plugin-transform-react-jsx": "^7.27.1",
         "@biomejs/biome": "2.3.14",
+        "@blah-chat/backend": "workspace:*",
         "@types/node": "^25.0.10",
         "@types/react": "~19.2.13",
         "@types/react-syntax-highlighter": "^15.5.13",

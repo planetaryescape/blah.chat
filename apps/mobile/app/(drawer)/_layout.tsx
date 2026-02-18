@@ -3,6 +3,7 @@ import { Redirect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { ActivityIndicator, View } from "react-native";
 import { DrawerContent } from "@/components/drawer/DrawerContent";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { palette } from "@/lib/theme/designSystem";
 
 export default function DrawerLayout() {
@@ -28,41 +29,43 @@ export default function DrawerLayout() {
   }
 
   return (
-    <Drawer
-      drawerContent={() => <DrawerContent />}
-      screenOptions={{
-        headerShown: false,
-        drawerType: "slide",
-        drawerStyle: {
-          width: "85%",
-          backgroundColor: palette.void,
-        },
-        swipeEnabled: true,
-        swipeEdgeWidth: 50,
-      }}
-      initialRouteName="chat/new"
-    >
-      <Drawer.Screen
-        name="chat/new"
-        options={{
-          drawerLabel: "New Chat",
-          swipeEnabled: false,
-        }}
-      />
-      <Drawer.Screen
-        name="chat/[id]"
-        options={{
-          drawerLabel: "Chat",
-          swipeEnabled: false,
-        }}
-      />
-      <Drawer.Screen
-        name="notes"
-        options={{
-          drawerLabel: "Notes",
+    <ErrorBoundary>
+      <Drawer
+        drawerContent={() => <DrawerContent />}
+        screenOptions={{
+          headerShown: false,
+          drawerType: "slide",
+          drawerStyle: {
+            width: "85%",
+            backgroundColor: palette.void,
+          },
           swipeEnabled: true,
+          swipeEdgeWidth: 50,
         }}
-      />
-    </Drawer>
+        initialRouteName="chat/new"
+      >
+        <Drawer.Screen
+          name="chat/new"
+          options={{
+            drawerLabel: "New Chat",
+            swipeEnabled: false,
+          }}
+        />
+        <Drawer.Screen
+          name="chat/[id]"
+          options={{
+            drawerLabel: "Chat",
+            swipeEnabled: false,
+          }}
+        />
+        <Drawer.Screen
+          name="notes"
+          options={{
+            drawerLabel: "Notes",
+            swipeEnabled: true,
+          }}
+        />
+      </Drawer>
+    </ErrorBoundary>
   );
 }

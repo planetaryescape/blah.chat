@@ -5,6 +5,7 @@ import {
   getModelConfig,
   getModelsByProvider,
   isValidModel,
+  normalizeUsageTokens,
 } from "../utils";
 
 describe("getModelConfig", () => {
@@ -115,6 +116,22 @@ describe("calculateCost", () => {
     expect(costWithCache).toBeGreaterThanOrEqual(costWithoutCache);
   });
 
+  it("supports cachedInputTokens alias", () => {
+    const costWithAlias = calculateCost("openai:gpt-5", {
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+      cachedInputTokens: 500_000,
+    });
+
+    const costWithLegacy = calculateCost("openai:gpt-5", {
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+      cachedTokens: 500_000,
+    });
+
+    expect(costWithAlias).toBe(costWithLegacy);
+  });
+
   it("includes reasoning token cost when available", () => {
     const costWithoutReasoning = calculateCost("openai:gpt-5", {
       inputTokens: 1_000_000,
@@ -151,6 +168,42 @@ describe("calculateCost", () => {
     });
 
     expect(cost2).toBeCloseTo(cost1 * 2);
+  });
+});
+
+describe("normalizeUsageTokens", () => {
+  it("prefers v6 token detail fields", () => {
+    const normalized = normalizeUsageTokens({
+      inputTokens: 100,
+      outputTokens: 200,
+      cachedInputTokens: 10,
+      reasoningTokens: 20,
+      inputTokenDetails: { cacheReadTokens: 30 },
+      outputTokenDetails: { reasoningTokens: 40 },
+    });
+
+    expect(normalized).toEqual({
+      inputTokens: 100,
+      outputTokens: 200,
+      cachedInputTokens: 30,
+      reasoningTokens: 40,
+    });
+  });
+
+  it("falls back to legacy top-level fields", () => {
+    const normalized = normalizeUsageTokens({
+      inputTokens: 100,
+      outputTokens: 200,
+      cachedTokens: 15,
+      reasoningTokens: 25,
+    });
+
+    expect(normalized).toEqual({
+      inputTokens: 100,
+      outputTokens: 200,
+      cachedInputTokens: 15,
+      reasoningTokens: 25,
+    });
   });
 });
 

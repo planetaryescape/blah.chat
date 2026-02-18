@@ -19,7 +19,7 @@
 import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { DOCUMENT_EXTRACTION_MODEL } from "@blah-chat/ai/operational-models";
 import { getModel } from "@blah-chat/ai/registry";
-import { calculateCost } from "@blah-chat/ai/utils";
+import { calculateCost, normalizeUsageTokens } from "@blah-chat/ai/utils";
 import { generateText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -37,16 +37,35 @@ interface UsageContext {
 // Helper to track usage after LLM call
 async function trackUsage(
   usageCtx: UsageContext,
-  usage: { inputTokens?: number; outputTokens?: number } | undefined,
+  usage:
+    | {
+        inputTokens?: number;
+        outputTokens?: number;
+        cachedInputTokens?: number;
+        cachedTokens?: number;
+        reasoningTokens?: number;
+        inputTokenDetails?: {
+          cacheReadTokens?: number;
+        };
+        outputTokenDetails?: {
+          reasoningTokens?: number;
+        };
+      }
+    | undefined,
 ) {
   if (!usage) return;
 
-  const inputTokens = usage.inputTokens ?? 0;
-  const outputTokens = usage.outputTokens ?? 0;
+  const normalizedUsage = normalizeUsageTokens(usage);
+  const inputTokens = normalizedUsage.inputTokens;
+  const outputTokens = normalizedUsage.outputTokens;
+  const cachedInputTokens = normalizedUsage.cachedInputTokens;
+  const reasoningTokens = normalizedUsage.reasoningTokens;
 
   const cost = calculateCost(DOCUMENT_EXTRACTION_MODEL.id, {
     inputTokens,
     outputTokens,
+    cachedInputTokens,
+    reasoningTokens,
   });
 
   await (usageCtx.ctx.runMutation as any)(
@@ -57,6 +76,7 @@ async function trackUsage(
       model: DOCUMENT_EXTRACTION_MODEL.id,
       inputTokens,
       outputTokens,
+      reasoningTokens: reasoningTokens > 0 ? reasoningTokens : undefined,
       cost,
       feature: "files",
     },

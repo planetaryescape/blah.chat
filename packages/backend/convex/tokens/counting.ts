@@ -113,7 +113,7 @@ export async function calculateConversationTokensAsync(
 ): Promise<TokenUsage> {
   const counter = await getTokenCounter(modelId);
 
-  // Convert messages to CoreMessage format
+  // Convert messages to ModelMessage format
   const coreMessages: ModelMessage[] = messages.map((msg) => ({
     role: msg.role as "user" | "assistant" | "system",
     content: msg.content,

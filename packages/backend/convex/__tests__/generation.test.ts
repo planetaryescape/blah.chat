@@ -616,6 +616,7 @@ describe("convex/generation support", () => {
       const msg = await t.run(async (ctx) => ctx.db.get(msgId));
       expect(msg?.inputTokens).toBe(150);
       expect(msg?.outputTokens).toBe(50);
+      expect(msg?.reasoningTokens).toBeUndefined();
       expect(msg?.cost).toBe(0.005);
     });
 

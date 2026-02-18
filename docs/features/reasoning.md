@@ -89,7 +89,7 @@ Stream returns reasoning-delta chunks → stored in DB → displayed to user
 effortMapping: { low: "low", medium: "medium", high: "high" }
 ```
 
-**Token Tracking**: `usage.reasoningTokens` (charged at same rate as output)
+**Token Tracking**: `usage.outputTokenDetails?.reasoningTokens` (fallback: `usage.reasoningTokens`) charged at same rate as output
 
 ### Anthropic (Claude extended thinking)
 
@@ -108,7 +108,7 @@ effortMapping: { low: "low", medium: "medium", high: "high" }
 budgetMapping: { low: 5000, medium: 15000, high: 30000 }
 ```
 
-**Token Tracking**: `usage.reasoningTokens` (charged at 50% of output rate)
+**Token Tracking**: `usage.outputTokenDetails?.reasoningTokens` (fallback: `usage.reasoningTokens`) charged at 50% of output rate
 
 ### Google (Gemini thinking)
 
@@ -280,6 +280,14 @@ cost = (inputTokens * inputRate) + (outputTokens * outputRate) + (reasoningToken
 ```
 
 **Google**: No separate reasoning tokens (included in output count)
+
+**v6 compatibility note**: normalize usage with:
+```typescript
+const reasoningTokens =
+  usage.outputTokenDetails?.reasoningTokens ?? usage.reasoningTokens ?? 0;
+const cachedInputTokens =
+  usage.inputTokenDetails?.cacheReadTokens ?? usage.cachedInputTokens ?? 0;
+```
 
 ---
 

@@ -5,7 +5,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import CodeHighlighter from "react-native-code-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { layout, palette, spacing } from "@/lib/theme/designSystem";
+import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 interface CodeBlockProps {
   code: string;
@@ -82,7 +82,7 @@ function CodeBlockComponent({ code, language }: CodeBlockProps) {
       >
         <Text
           style={{
-            fontFamily: "Courier",
+            fontFamily: typography.mono,
             fontSize: 11,
             color: palette.starlightDim,
           }}
@@ -110,7 +110,7 @@ function CodeBlockComponent({ code, language }: CodeBlockProps) {
         hljsStyle={atomOneDark}
         language={normalizedLang}
         textStyle={{
-          fontFamily: "Courier",
+          fontFamily: typography.mono,
           fontSize: 13,
           lineHeight: 20,
         }}

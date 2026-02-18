@@ -1,8 +1,4 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import {
   Bookmark,
   BookmarkCheck,
@@ -23,6 +19,7 @@ import {
   useRemoveBookmark,
 } from "@/lib/hooks/useBookmarks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 import { BookmarkSheet } from "./BookmarkSheet";
 import { SaveAsNoteSheet } from "./SaveAsNoteSheet";
 
@@ -128,19 +125,6 @@ export function MessageActionSheet({
     [onClose],
   );
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   const handleBookmarkToggle = useCallback(async () => {
     if (!message) return;
 
@@ -168,7 +152,7 @@ export function MessageActionSheet({
         onChange={handleSheetChange}
         enablePanDownToClose
         enableDynamicSizing
-        backdropComponent={renderBackdrop}
+        backdropComponent={renderStandardBackdrop}
         backgroundStyle={{
           backgroundColor: palette.nebula,
           borderTopLeftRadius: layout.radius.xl,
@@ -264,6 +248,7 @@ export function MessageActionSheet({
           isOpen={showBookmarkSheet}
           onClose={() => setShowBookmarkSheet(false)}
           messageId={message._id}
+          conversationId={message.conversationId}
         />
       )}
 

@@ -1,8 +1,4 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import { FileText, FolderOpen } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,6 +9,7 @@ import { haptic } from "@/lib/haptics";
 import { useCreateNote } from "@/lib/hooks/useNotes";
 import { useProjects } from "@/lib/hooks/useProjects";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 type Message = Doc<"messages">;
 type Project = Doc<"projects">;
@@ -64,19 +61,6 @@ export function SaveAsNoteSheet({
     [onClose],
   );
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   const handleSave = useCallback(async () => {
     if (!message) return;
 
@@ -102,7 +86,7 @@ export function SaveAsNoteSheet({
       onChange={handleSheetChange}
       enablePanDownToClose
       enableDynamicSizing
-      backdropComponent={renderBackdrop}
+      backdropComponent={renderStandardBackdrop}
       backgroundStyle={{
         backgroundColor: palette.nebula,
         borderTopLeftRadius: layout.radius.xl,

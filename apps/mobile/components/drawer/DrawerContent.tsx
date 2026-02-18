@@ -7,7 +7,6 @@ import {
   MessageSquarePlus,
   MessagesSquare,
   Search,
-  Settings,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Image, Text, TextInput, View } from "react-native";
@@ -21,27 +20,11 @@ import {
   useProjects,
 } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { getTimeAgo } from "@/lib/utils/time";
 import { ProjectFilterSheet } from "./ProjectFilterSheet";
 
 type Conversation = Doc<"conversations">;
 type Project = Doc<"projects">;
-
-function getTimeAgo(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}d`;
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function getProjectLabel(
   projectId: string | null,
@@ -191,11 +174,6 @@ export function DrawerContent() {
     },
     [router],
   );
-
-  const handleSettings = useCallback(() => {
-    haptic.light();
-    // Settings navigation - future feature
-  }, []);
 
   const handleOpenProjectPicker = useCallback(() => {
     haptic.light();
@@ -487,28 +465,7 @@ export function DrawerContent() {
           </Text>
         </AnimatedPressable>
 
-        {/* Settings */}
-        <AnimatedPressable
-          onPress={handleSettings}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
-            gap: spacing.sm,
-          }}
-        >
-          <Settings size={20} color={palette.starlightDim} />
-          <Text
-            style={{
-              fontFamily: typography.body,
-              fontSize: 14,
-              color: palette.starlightDim,
-            }}
-          >
-            Settings
-          </Text>
-        </AnimatedPressable>
+        {/* TODO: Settings screen — hidden until implemented */}
       </View>
 
       {/* Project Filter Sheet */}

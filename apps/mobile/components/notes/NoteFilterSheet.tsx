@@ -1,13 +1,11 @@
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Check, FolderOpen, Inbox, Pin } from "lucide-react-native";
 import { useCallback, useMemo, useRef } from "react";
 import { Text, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Doc } from "@/lib/convex";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 type Project = Doc<"projects">;
 
@@ -42,18 +40,6 @@ export function NoteFilterSheet({
     [onClose],
   );
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    [],
-  );
-
   const handleSelectProject = useCallback(
     (projectId: string | null) => {
       onSelectProject(projectId);
@@ -76,7 +62,7 @@ export function NoteFilterSheet({
       snapPoints={snapPoints}
       onChange={handleSheetChange}
       enablePanDownToClose
-      backdropComponent={renderBackdrop}
+      backdropComponent={renderStandardBackdrop}
       backgroundStyle={{
         backgroundColor: palette.nebula,
         borderTopLeftRadius: layout.radius.xl,

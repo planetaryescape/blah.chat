@@ -1,7 +1,4 @@
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Pin, PinOff, Trash2 } from "lucide-react-native";
 import { useCallback, useMemo, useRef } from "react";
 import { Alert, Text } from "react-native";
@@ -9,6 +6,7 @@ import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 type Note = Doc<"notes">;
 
@@ -37,18 +35,6 @@ export function NoteMenuSheet({
       }
     },
     [onClose],
-  );
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    [],
   );
 
   const handleTogglePin = useCallback(() => {
@@ -85,7 +71,7 @@ export function NoteMenuSheet({
       snapPoints={snapPoints}
       onChange={handleSheetChange}
       enablePanDownToClose
-      backdropComponent={renderBackdrop}
+      backdropComponent={renderStandardBackdrop}
       backgroundStyle={{
         backgroundColor: palette.nebula,
         borderTopLeftRadius: layout.radius.xl,

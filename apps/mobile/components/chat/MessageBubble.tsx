@@ -11,6 +11,7 @@ import { memo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import Reanimated, { FadeIn } from "react-native-reanimated";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useStreamBuffer } from "@/lib/hooks/useStreamBuffer";
@@ -21,6 +22,36 @@ import { StreamingCursor } from "./StreamingCursor";
 import { TypingIndicator } from "./TypingIndicator";
 
 type Message = Doc<"messages">;
+
+function ActionButton({
+  icon: Icon,
+  onPress,
+  isActive,
+  accessibilityLabel,
+}: {
+  icon: typeof Copy;
+  onPress: () => void;
+  isActive?: boolean;
+  accessibilityLabel: string;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      style={{
+        padding: spacing.xs,
+        borderRadius: layout.radius.sm,
+      }}
+    >
+      <Icon
+        size={16}
+        color={isActive ? palette.roseQuartz : palette.starlightDim}
+      />
+    </TouchableOpacity>
+  );
+}
 
 interface MessageBubbleProps {
   message: Message;
@@ -71,32 +102,6 @@ function MessageBubbleComponent({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  // Quick action button - uses TouchableOpacity from RNGH to avoid
-  // gesture conflicts with parent Pressable's onLongPress
-  const ActionButton = ({
-    icon: Icon,
-    onPress,
-    isActive,
-  }: {
-    icon: typeof Copy;
-    onPress: () => void;
-    isActive?: boolean;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      style={{
-        padding: spacing.xs,
-        borderRadius: layout.radius.sm,
-      }}
-    >
-      <Icon
-        size={16}
-        color={isActive ? palette.roseQuartz : palette.starlightDim}
-      />
-    </TouchableOpacity>
-  );
-
   // Assistant messages: full width, no bubble
   if (!isUser) {
     return (
@@ -121,13 +126,15 @@ function MessageBubbleComponent({
         ) : showTypingIndicator ? (
           <TypingIndicator />
         ) : (
-          <View>
-            <MarkdownContent
-              content={displayContent}
-              isStreaming={isGenerating}
-            />
-            {showCursor && <StreamingCursor />}
-          </View>
+          <ErrorBoundary>
+            <View>
+              <MarkdownContent
+                content={displayContent}
+                isStreaming={isGenerating}
+              />
+              {showCursor && <StreamingCursor />}
+            </View>
+          </ErrorBoundary>
         )}
 
         {/* Model indicator + Actions row */}
@@ -161,18 +168,22 @@ function MessageBubbleComponent({
                     icon={copied ? Check : Copy}
                     onPress={handleCopy}
                     isActive={copied}
+                    accessibilityLabel={copied ? "Copied" : "Copy message"}
                   />
                   <ActionButton
                     icon={RotateCcw}
                     onPress={() => onRegenerate?.(message)}
+                    accessibilityLabel="Regenerate response"
                   />
                   <ActionButton
                     icon={GitBranch}
                     onPress={() => onBranch?.(message)}
+                    accessibilityLabel="Branch conversation"
                   />
                   <ActionButton
                     icon={MoreHorizontal}
                     onPress={() => onMorePress?.(message)}
+                    accessibilityLabel="More actions"
                   />
                 </View>
               )}
@@ -214,20 +225,22 @@ function MessageBubbleComponent({
       <View
         style={{
           maxWidth: "80%",
-          backgroundColor: "rgba(244, 224, 220, 0.1)",
+          backgroundColor: palette.roseQuartz10,
           borderRadius: layout.radius.lg,
           borderBottomRightRadius: layout.radius.xs,
           borderWidth: 1,
-          borderColor: "rgba(244, 224, 220, 0.2)",
+          borderColor: palette.roseQuartz20,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
         }}
       >
-        <MarkdownContent content={rawContent} textColor={palette.starlight} />
+        <ErrorBoundary>
+          <MarkdownContent content={rawContent} textColor={palette.starlight} />
+        </ErrorBoundary>
       </View>
 
       {/* Quick Actions + Sibling Navigator for user messages */}
-      {(showActions || true) && (
+      {
         <Reanimated.View
           entering={FadeIn.duration(200)}
           style={{
@@ -250,20 +263,27 @@ function MessageBubbleComponent({
                 icon={copied ? Check : Copy}
                 onPress={handleCopy}
                 isActive={copied}
+                accessibilityLabel={copied ? "Copied" : "Copy message"}
               />
-              <ActionButton icon={Pencil} onPress={() => onEdit?.(message)} />
+              <ActionButton
+                icon={Pencil}
+                onPress={() => onEdit?.(message)}
+                accessibilityLabel="Edit message"
+              />
               <ActionButton
                 icon={GitBranch}
                 onPress={() => onBranch?.(message)}
+                accessibilityLabel="Branch conversation"
               />
               <ActionButton
                 icon={MoreHorizontal}
                 onPress={() => onMorePress?.(message)}
+                accessibilityLabel="More actions"
               />
             </View>
           )}
         </Reanimated.View>
-      )}
+      }
     </Pressable>
   );
 }

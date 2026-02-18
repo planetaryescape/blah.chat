@@ -1,3 +1,4 @@
+import type { FlashListRef } from "@shopify/flash-list";
 import { FlashList } from "@shopify/flash-list";
 import { memo, useCallback, useMemo, useRef } from "react";
 import { View } from "react-native";
@@ -26,7 +27,7 @@ function MessageListComponent({
   onRegenerate,
   onBranch,
 }: MessageListProps) {
-  const listRef = useRef<any>(null);
+  const listRef = useRef<FlashListRef<Message> | null>(null);
   const prevLengthRef = useRef(0);
 
   // Combine real messages with optimistic ones

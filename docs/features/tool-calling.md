@@ -56,7 +56,7 @@ streamText({ tools: { searchMemories: memoryTool } });
 
 ## Multi-Step Tool Calling
 
-**Critical**: AI SDK v5 uses `stopWhen`, NOT `maxSteps` for multi-step tool execution.
+**Critical**: AI SDK v6 uses `stopWhen`, NOT `maxSteps` for multi-step tool execution.
 
 ```typescript
 import { streamText, stepCountIs } from "ai";
@@ -150,7 +150,7 @@ toolCalls: v.optional(v.array(v.object({
 
 ## Tool Result Property Naming
 
-**Gotcha**: AI SDK v5 uses different property names at different stages.
+**Gotcha**: AI SDK v6 can use different property names at different stages.
 
 **Streaming chunks** (`tool-result` chunk):
 ```typescript
@@ -224,12 +224,17 @@ LLM can then explain the error to user gracefully.
 **Cause**: Using `maxSteps` instead of `stopWhen`.
 **Fix**: `stopWhen: stepCountIs(5)` with import from `ai`.
 
-### 3. Tool Result Missing
+### 3. Global Strict Override Causes Tool Rejections
+**Error**: Unexpected schema/tool-call rejections across tools.
+**Cause**: Setting provider-level `strictJsonSchema` globally.
+**Fix**: Keep strict mode per-tool (`tool({ ..., strict: true })`) only.
+
+### 4. Tool Result Missing
 **Error**: UI shows RUNNING even after tool completes.
 **Cause**: Accessing wrong property (`chunk.result` vs `chunk.output`).
 **Fix**: Use fallback pattern `chunk.result ?? chunk.output`.
 
-### 4. Memoization Blocking UI Updates
+### 5. Memoization Blocking UI Updates
 **Error**: Tool completes in DB but UI doesn't update.
 **Cause**: `React.memo` comparison function doesn't include `toolCalls`/`partialToolCalls`.
 **Fix**: Add these fields to memo comparison.

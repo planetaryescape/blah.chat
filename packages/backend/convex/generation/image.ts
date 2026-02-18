@@ -1,7 +1,11 @@
 import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { buildReasoningOptions } from "@blah-chat/ai/reasoning";
 import { getModel } from "@blah-chat/ai/registry";
-import { calculateCost, getModelConfig } from "@blah-chat/ai/utils";
+import {
+  calculateCost,
+  getModelConfig,
+  normalizeUsageTokens,
+} from "@blah-chat/ai/utils";
 import { streamText } from "ai";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -138,6 +142,7 @@ export const generateImage = internalAction({
 
       // Get token usage
       const usage = await result.usage;
+      const normalizedUsage = normalizeUsageTokens(usage);
 
       // Extract final thinking (only if user wants reasoning)
       const reasoningOutputs = await result.reasoning;
@@ -155,7 +160,10 @@ export const generateImage = internalAction({
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: args.messageId,
           reasoning: finalReasoning,
-          reasoningTokens: usage.reasoningTokens || 0,
+          reasoningTokens:
+            normalizedUsage.reasoningTokens > 0
+              ? normalizedUsage.reasoningTokens
+              : undefined,
         });
       }
 
@@ -207,14 +215,15 @@ export const generateImage = internalAction({
       const totalTime = Date.now() - startTime;
 
       // Calculate cost (includes reasoning tokens!)
-      const inputTokens = usage.inputTokens ?? 0;
-      const outputTokens = usage.outputTokens ?? 0;
-      const reasoningTokens = usage.reasoningTokens ?? 0;
+      const inputTokens = normalizedUsage.inputTokens;
+      const outputTokens = normalizedUsage.outputTokens;
+      const reasoningTokens = normalizedUsage.reasoningTokens;
+      const cachedInputTokens = normalizedUsage.cachedInputTokens;
 
       const cost = calculateCost(modelId, {
         inputTokens,
         outputTokens,
-        cachedTokens: undefined,
+        cachedInputTokens,
         reasoningTokens,
       });
 
@@ -246,7 +255,7 @@ export const generateImage = internalAction({
         reasoning: finalReasoning,
         inputTokens,
         outputTokens,
-        reasoningTokens,
+        reasoningTokens: reasoningTokens > 0 ? reasoningTokens : undefined,
         cost,
       });
 

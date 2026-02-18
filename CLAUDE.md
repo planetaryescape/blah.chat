@@ -643,7 +643,7 @@ Optional: Ollama (for local models), PostHog, TTS providers.
 
 ---
 
-## AI SDK Tool Calling (Vercel AI SDK v5)
+## AI SDK Tool Calling (Vercel AI SDK v6)
 
 **Multi-step tool calling** requires `stopWhen` parameter, NOT `maxSteps`:
 
@@ -659,9 +659,10 @@ const result = streamText({
 ```
 
 **Key learnings**:
-- `maxSteps` is deprecated/different behavior in v5
+- `maxSteps` is deprecated/different behavior in v6
 - `stopWhen: stepCountIs(N)` enables proper multi-step continuation
 - Tool results use `output` property, not `result` (in step data)
+- Tool strict mode should be set per tool (`strict: true`), not globally via provider options
 - Always check `finishReason` and step count in logs for debugging
 
 ---

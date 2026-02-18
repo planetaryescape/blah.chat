@@ -251,6 +251,39 @@ describe("convex/usage", () => {
       });
     });
 
+    it("keeps reasoning tokens undefined when not provided", async () => {
+      const t = convexTest(schema);
+      const identity = createMockIdentity();
+
+      let userId: Id<"users">;
+      let conversationId: Id<"conversations">;
+      await t.run(async (ctx) => {
+        userId = await ctx.db.insert(
+          "users",
+          createTestUserData({ clerkId: identity.subject }),
+        );
+        conversationId = await ctx.db.insert(
+          "conversations",
+          createTestConversationData(userId, { model: "openai:gpt-5" }),
+        );
+      });
+
+      await t.run(async (ctx) => {
+        // @ts-ignore - internal mutation
+        await ctx.runMutation(internal.usage.mutations.recordTextGeneration, {
+          userId: userId as Id<"users">,
+          conversationId: conversationId as Id<"conversations">,
+          model: "openai:gpt-5",
+          inputTokens: 100,
+          outputTokens: 50,
+          cost: 0.01,
+        });
+
+        const records = await ctx.db.query("usageRecords").collect();
+        expect(records[0].reasoningTokens).toBeUndefined();
+      });
+    });
+
     it("aggregates reasoning tokens correctly", async () => {
       const t = convexTest(schema);
       const identity = createMockIdentity();

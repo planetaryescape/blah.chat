@@ -132,7 +132,7 @@ export const TEMPLATE_ANALYSIS_MODEL: ModelConfig =
  * Embedding model for vector search (memories, messages, conversations).
  * Used to generate embeddings for semantic search across the application.
  */
-export const EMBEDDING_MODEL: EmbeddingModel = vercel.textEmbeddingModel(
+export const EMBEDDING_MODEL: EmbeddingModel = vercel.embeddingModel(
   "openai/text-embedding-3-small",
 ) as unknown as EmbeddingModel;
 

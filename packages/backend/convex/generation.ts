@@ -4,7 +4,11 @@ import { getGatewayOptions } from "@blah-chat/ai/gateway";
 import { MODEL_CONFIG } from "@blah-chat/ai/models";
 import { buildReasoningOptions } from "@blah-chat/ai/reasoning";
 import { getModel } from "@blah-chat/ai/registry";
-import { calculateCost, getModelConfig } from "@blah-chat/ai/utils";
+import {
+  calculateCost,
+  getModelConfig,
+  normalizeUsageTokens,
+} from "@blah-chat/ai/utils";
 import { generateText, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
@@ -55,6 +59,7 @@ const MAX_TOOL_STEPS = 15;
  * Example: MAX=3 means retryCount 1,2 allowed = 2 retries = 3 total attempts.
  */
 const _MAX_AUTO_RETRY_ATTEMPTS = 3;
+const GLOBAL_STRICT_JSON_SCHEMA_OVERRIDE_ALLOWLIST = new Set<string>();
 
 function resolveOperationalFallbackModelId(): string {
   const firstConfiguredModel = Object.keys(MODEL_CONFIG).find(
@@ -68,6 +73,44 @@ function resolveOperationalFallbackModelId(): string {
   }
 
   return firstConfiguredModel;
+}
+
+function removeGlobalStrictJsonSchemaOverrides(
+  providerOptions: Record<string, unknown> | undefined,
+  modelId: string,
+): Record<string, unknown> | undefined {
+  if (!providerOptions) return providerOptions;
+
+  let removedCount = 0;
+  const cleaned = Object.fromEntries(
+    Object.entries(providerOptions).map(([provider, value]) => {
+      if (
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        "strictJsonSchema" in (value as Record<string, unknown>) &&
+        !GLOBAL_STRICT_JSON_SCHEMA_OVERRIDE_ALLOWLIST.has(modelId)
+      ) {
+        removedCount += 1;
+        const { strictJsonSchema: _removed, ...rest } = value as Record<
+          string,
+          unknown
+        >;
+        return [provider, rest];
+      }
+      return [provider, value];
+    }),
+  );
+
+  if (removedCount > 0) {
+    logger.warn("Removed global strictJsonSchema override", {
+      tag: "Generation",
+      modelId,
+      removedCount,
+    });
+  }
+
+  return cleaned;
 }
 
 // Minimal message shape for fast inference (client sends, server skips DB fetch)
@@ -749,6 +792,13 @@ export const generateResponse = internalAction({
         };
       }
 
+      // AI SDK v6 policy: strict tool calling remains per-tool opt-in.
+      // We do not allow global strictJsonSchema overrides unless explicitly allowlisted.
+      options.providerOptions = removeGlobalStrictJsonSchemaOverrides(
+        options.providerOptions,
+        modelId,
+      );
+
       // 14. Apply headers (e.g., Anthropic beta)
       if (reasoningResult?.headers) {
         options.headers = reasoningResult.headers;
@@ -1005,8 +1055,12 @@ export const generateResponse = internalAction({
       // Check if we have tool calls but no text response - request continuation
       const hasToolCalls = toolCallsBuffer.size > 0;
       const hasNoText = accumulated.trim().length === 0;
-      let continuationUsage: { inputTokens?: number; outputTokens?: number } =
-        {};
+      let continuationUsage: {
+        inputTokens?: number;
+        outputTokens?: number;
+        cachedInputTokens?: number;
+        reasoningTokens?: number;
+      } = {};
 
       if (hasToolCalls && hasNoText) {
         logger.info(
@@ -1051,10 +1105,7 @@ export const generateResponse = internalAction({
             });
 
             accumulated = continuationResult.text;
-            continuationUsage = {
-              inputTokens: continuationResult.usage?.inputTokens ?? 0,
-              outputTokens: continuationResult.usage?.outputTokens ?? 0,
-            };
+            continuationUsage = normalizeUsageTokens(continuationResult.usage);
 
             // Update UI with continuation result
             const updateResult = await ctx.runMutation(
@@ -1069,14 +1120,18 @@ export const generateResponse = internalAction({
               const contCost = calculateCost(modelId, {
                 inputTokens: continuationUsage.inputTokens ?? 0,
                 outputTokens: continuationUsage.outputTokens ?? 0,
-                cachedTokens: undefined,
-                reasoningTokens: undefined,
+                cachedInputTokens: continuationUsage.cachedInputTokens ?? 0,
+                reasoningTokens: continuationUsage.reasoningTokens ?? 0,
               });
               await ctx.runMutation(internal.messages.completeMessage, {
                 messageId: assistantMessageId,
                 content: accumulated,
                 inputTokens: continuationUsage.inputTokens ?? 0,
                 outputTokens: continuationUsage.outputTokens ?? 0,
+                reasoningTokens:
+                  (continuationUsage.reasoningTokens ?? 0) > 0
+                    ? continuationUsage.reasoningTokens
+                    : undefined,
                 cost: contCost,
               });
               return;
@@ -1110,6 +1165,7 @@ export const generateResponse = internalAction({
 
       // Get final usage info
       const usage = await result.usage;
+      const normalizedUsage = normalizeUsageTokens(usage);
 
       // Complete thinking if user requested reasoning (thinkingEffort not "none")
       // This handles both configurable models (via reasoningResult) and native reasoning models
@@ -1129,21 +1185,29 @@ export const generateResponse = internalAction({
         await ctx.runMutation(internal.messages.completeThinking, {
           messageId: assistantMessageId,
           reasoning: finalReasoning,
-          reasoningTokens: usage.reasoningTokens,
+          reasoningTokens:
+            normalizedUsage.reasoningTokens > 0
+              ? normalizedUsage.reasoningTokens
+              : undefined,
         });
       }
 
       // 8. Calculate cost (include continuation usage if any)
       const inputTokens =
-        (usage.inputTokens ?? 0) + (continuationUsage.inputTokens ?? 0);
+        normalizedUsage.inputTokens + (continuationUsage.inputTokens ?? 0);
       const outputTokens =
-        (usage.outputTokens ?? 0) + (continuationUsage.outputTokens ?? 0);
-      const reasoningTokens = usage.reasoningTokens;
+        normalizedUsage.outputTokens + (continuationUsage.outputTokens ?? 0);
+      const cachedInputTokens =
+        normalizedUsage.cachedInputTokens +
+        (continuationUsage.cachedInputTokens ?? 0);
+      const reasoningTokens =
+        normalizedUsage.reasoningTokens +
+        (continuationUsage.reasoningTokens ?? 0);
 
       const cost = calculateCost(modelId, {
         inputTokens,
         outputTokens,
-        cachedTokens: undefined,
+        cachedInputTokens,
         reasoningTokens,
       });
 
@@ -1408,7 +1472,7 @@ export const generateResponse = internalAction({
           reasoning: finalReasoning,
           inputTokens,
           outputTokens,
-          reasoningTokens,
+          reasoningTokens: reasoningTokens > 0 ? reasoningTokens : undefined,
           cost,
           tokensPerSecond,
           // sources: removed - now using normalized tables only (Phase 2 complete)

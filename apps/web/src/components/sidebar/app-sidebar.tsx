@@ -132,7 +132,7 @@ export function AppSidebar() {
 
   const router = useRouter();
   const pathname = usePathname();
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const { setFilteredConversations } = useConversationContext();
   const { startNewChat } = useNewChat();
   const { isLoaded: isAuthLoaded } = useAuth();
@@ -481,7 +481,12 @@ export function AppSidebar() {
                     "data-tour": "projects",
                   })}
                 >
-                  <PrefetchableLink href={item.href}>
+                  <PrefetchableLink
+                    href={item.href}
+                    onClick={() => {
+                      if (isMobile) setOpenMobile(false);
+                    }}
+                  >
                     <item.icon className="w-4 h-4" />
                     <span>{item.label}</span>
                   </PrefetchableLink>
@@ -517,6 +522,9 @@ export function AppSidebar() {
                             isActive &&
                               "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
                           )}
+                          onClick={() => {
+                            if (isMobile) setOpenMobile(false);
+                          }}
                         >
                           <item.icon className="w-4 h-4 text-muted-foreground" />
                           <span>{item.label}</span>

@@ -213,7 +213,8 @@ export default function ChatScreen() {
         try {
           await updateModel({ conversationId, model: modelId });
         } catch {
-          // Silent fail
+          haptic.error();
+          toast({ preset: "error", title: "Failed to switch model" });
         }
       }
     },

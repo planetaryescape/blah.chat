@@ -3,7 +3,7 @@ import { Redirect } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { colors } from "@/lib/theme/colors";
+import { palette } from "@/lib/theme/designSystem";
 
 export default function Index() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -21,10 +21,10 @@ export default function Index() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: colors.background,
+          backgroundColor: palette.void,
         }}
       >
-        <ActivityIndicator size="large" color={colors.foreground} />
+        <ActivityIndicator size="large" color={palette.starlight} />
       </View>
     );
   }

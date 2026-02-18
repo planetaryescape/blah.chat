@@ -46,7 +46,7 @@ const baseMarkdownStyles = {
   code_inline: {
     backgroundColor: palette.glassMedium,
     color: palette.roseQuartz,
-    fontFamily: "Courier",
+    fontFamily: typography.mono,
     fontSize: 14,
     paddingHorizontal: 4,
     paddingVertical: 2,

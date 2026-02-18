@@ -17,9 +17,7 @@ import {
   AuthDivider,
   SocialAuthButtons,
 } from "@/components/auth/SocialAuthButtons";
-import { colors } from "@/lib/theme/colors";
-import { fonts } from "@/lib/theme/fonts";
-import { radius, spacing } from "@/lib/theme/spacing";
+import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -71,7 +69,7 @@ export default function SignInScreen() {
         {/* Brand Logo */}
         <View style={styles.logoContainer}>
           <View style={styles.logo}>
-            <Sparkles size={28} color={colors.primary} />
+            <Sparkles size={28} color={palette.roseQuartz} />
           </View>
         </View>
 
@@ -102,7 +100,7 @@ export default function SignInScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={palette.starlightDim}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -121,7 +119,7 @@ export default function SignInScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your password"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={palette.starlightDim}
               secureTextEntry
               onFocus={() => setIsFocused("password")}
               onBlur={() => setIsFocused(null)}
@@ -142,7 +140,7 @@ export default function SignInScreen() {
             ]}
           >
             {loading ? (
-              <ActivityIndicator color={colors.primaryForeground} />
+              <ActivityIndicator color={palette.void} />
             ) : (
               <Text style={styles.buttonText}>Sign In</Text>
             )}
@@ -166,7 +164,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: palette.void,
   },
   content: {
     flex: 1,
@@ -180,10 +178,10 @@ const styles = StyleSheet.create({
   logo: {
     width: 64,
     height: 64,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card,
+    borderRadius: layout.radius.md,
+    backgroundColor: palette.nebula,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.glassBorder,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -191,28 +189,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   title: {
-    fontFamily: fonts.heading,
+    fontFamily: typography.heading,
     fontSize: 28,
-    color: colors.foreground,
+    color: palette.starlight,
     marginBottom: spacing.xs,
     textAlign: "center",
   },
   subtitle: {
-    fontFamily: fonts.body,
-    color: colors.mutedForeground,
+    fontFamily: typography.body,
+    color: palette.starlightDim,
     fontSize: 15,
     textAlign: "center",
   },
   errorContainer: {
-    backgroundColor: `${colors.error}15`,
-    borderRadius: radius.md,
+    backgroundColor: `${palette.error}15`,
+    borderRadius: layout.radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginBottom: spacing.md,
   },
   errorText: {
-    fontFamily: fonts.body,
-    color: colors.error,
+    fontFamily: typography.body,
+    color: palette.error,
     fontSize: 14,
     textAlign: "center",
   },
@@ -223,27 +221,27 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   label: {
-    fontFamily: fonts.bodyMedium,
+    fontFamily: typography.bodyMedium,
     fontSize: 14,
-    color: colors.foreground,
+    color: palette.starlight,
   },
   input: {
-    fontFamily: fonts.body,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
+    fontFamily: typography.body,
+    backgroundColor: palette.nebula,
+    borderRadius: layout.radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    color: colors.foreground,
+    color: palette.starlight,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.glassBorder,
   },
   inputFocused: {
-    borderColor: colors.ring,
+    borderColor: palette.roseQuartz,
   },
   button: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
+    backgroundColor: palette.roseQuartz,
+    borderRadius: layout.radius.md,
     paddingVertical: spacing.md,
     alignItems: "center",
     marginTop: spacing.sm,
@@ -255,8 +253,8 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   buttonText: {
-    fontFamily: fonts.bodySemibold,
-    color: colors.primaryForeground,
+    fontFamily: typography.bodySemiBold,
+    color: palette.void,
     fontSize: 16,
   },
   linkContainer: {
@@ -265,13 +263,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   linkText: {
-    fontFamily: fonts.body,
-    color: colors.mutedForeground,
+    fontFamily: typography.body,
+    color: palette.starlightDim,
     fontSize: 14,
   },
   link: {
-    fontFamily: fonts.bodySemibold,
-    color: colors.primary,
+    fontFamily: typography.bodySemiBold,
+    color: palette.roseQuartz,
     fontSize: 14,
   },
 });

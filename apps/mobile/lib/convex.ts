@@ -1,9 +1,3 @@
-import type { api as backendApi } from "@blah-chat/backend/convex/_generated/api";
-import type {
-  Doc as BackendDoc,
-  Id as BackendId,
-  TableNames,
-} from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConvexReactClient } from "convex/react";
 import { anyApi } from "convex/server";
 
@@ -14,12 +8,12 @@ if (!convexUrl) {
 }
 
 export const convex = new ConvexReactClient(convexUrl);
-export const api = anyApi as unknown as typeof backendApi;
+export const api = anyApi;
 
-export type Id<T extends string = string> = T extends TableNames
-  ? BackendId<T>
-  : string;
+export type Id<T extends string = string> = string & { __tableName?: T };
 
-export type Doc<T extends string = string> = T extends TableNames
-  ? BackendDoc<T>
-  : { _id: string; _creationTime?: number; [key: string]: any };
+export type Doc<T extends string = string> = {
+  _id: Id<T>;
+  _creationTime?: number;
+  [key: string]: any;
+};

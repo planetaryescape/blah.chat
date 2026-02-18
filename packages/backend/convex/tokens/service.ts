@@ -230,7 +230,7 @@ class GoogleTokenCounter implements TokenCountService {
     try {
       const geminiModel = this.genAI.getGenerativeModel({ model: this.model });
 
-      // Convert CoreMessage to Gemini format
+      // Convert ModelMessage to Gemini format
       const contents = messages.map((msg) => ({
         role: msg.role === "assistant" ? "model" : "user",
         parts: [

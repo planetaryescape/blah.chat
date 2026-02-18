@@ -100,6 +100,8 @@ export function buildTools(config: BuildToolsConfig): Record<string, unknown> {
   const enableMemoryReadTools =
     enableReadTools && memoryExtractionLevel !== "none";
 
+  // AI SDK v6 policy: strict tool calling is opt-in per tool (`strict: true`).
+  // Do not rely on global strictJsonSchema provider overrides.
   // Capability tools: ALWAYS available (stateless, no persistent writes)
   const calculatorTool = createCalculatorTool();
   const currencyConverterTool = createCurrencyConverterTool();

@@ -1,6 +1,20 @@
 import { MODEL_CONFIG, type ModelConfig } from "./models";
 export type { ModelConfig };
 
+export type UsageTokenInfo = {
+  inputTokens?: number;
+  outputTokens?: number;
+  cachedInputTokens?: number;
+  cachedTokens?: number;
+  reasoningTokens?: number;
+  inputTokenDetails?: {
+    cacheReadTokens?: number;
+  };
+  outputTokenDetails?: {
+    reasoningTokens?: number;
+  };
+};
+
 /**
  * Get model config by ID.
  * @param modelId - Model ID (e.g., "openai:gpt-5")
@@ -92,11 +106,9 @@ export function getModelsByProvider(
  */
 export function calculateCost(
   model: string,
-  usage: {
+  usage: UsageTokenInfo & {
     inputTokens: number;
     outputTokens: number;
-    cachedTokens?: number;
-    reasoningTokens?: number;
   },
   models?: Record<string, ModelConfig>,
 ): number {
@@ -104,15 +116,34 @@ export function calculateCost(
   const config = source[model];
   if (!config || config.isLocal) return 0;
 
+  const cachedInputTokens = usage.cachedInputTokens ?? usage.cachedTokens ?? 0;
+  const reasoningTokens = usage.reasoningTokens ?? 0;
+
   const inputCost = (usage.inputTokens / 1_000_000) * config.pricing.input;
   const outputCost = (usage.outputTokens / 1_000_000) * config.pricing.output;
   const cachedCost =
-    ((usage.cachedTokens || 0) / 1_000_000) * (config.pricing.cached || 0);
+    (cachedInputTokens / 1_000_000) * (config.pricing.cached || 0);
   const reasoningCost =
-    ((usage.reasoningTokens || 0) / 1_000_000) *
-    (config.pricing.reasoning || 0);
+    (reasoningTokens / 1_000_000) * (config.pricing.reasoning || 0);
 
   return inputCost + outputCost + cachedCost + reasoningCost;
+}
+
+/**
+ * Normalize AI SDK usage fields across v6 details and legacy top-level fallbacks.
+ */
+export function normalizeUsageTokens(usage?: UsageTokenInfo | null) {
+  return {
+    inputTokens: usage?.inputTokens ?? 0,
+    outputTokens: usage?.outputTokens ?? 0,
+    cachedInputTokens:
+      usage?.inputTokenDetails?.cacheReadTokens ??
+      usage?.cachedInputTokens ??
+      usage?.cachedTokens ??
+      0,
+    reasoningTokens:
+      usage?.outputTokenDetails?.reasoningTokens ?? usage?.reasoningTokens ?? 0,
+  };
 }
 
 /**

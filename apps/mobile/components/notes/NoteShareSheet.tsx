@@ -1,24 +1,15 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
+import { toast } from "burnt";
 import * as Clipboard from "expo-clipboard";
 import { Check, Copy, Link, Share2 } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Switch, Text, TextInput, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateNoteShare, useToggleNoteShare } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 interface NoteShareSheetProps {
   isOpen: boolean;
@@ -68,19 +59,6 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
     [onClose],
   );
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   const handleCreateShare = useCallback(async () => {
     if (!note) return;
 
@@ -94,10 +72,10 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
         expiresIn: selectedExpiry,
       });
       setPassword("");
-      Alert.alert("Share Link Created", "Your note is now shareable.");
+      toast({ title: "Share link created", preset: "done", haptic: "success" });
     } catch (_e) {
       haptic.error();
-      Alert.alert("Error", "Failed to create share link");
+      toast({ title: "Failed to create share link", preset: "error" });
     } finally {
       setIsCreating(false);
     }
@@ -141,7 +119,7 @@ export function NoteShareSheet({ isOpen, onClose, note }: NoteShareSheetProps) {
       onChange={handleSheetChange}
       enablePanDownToClose
       enableDynamicSizing
-      backdropComponent={renderBackdrop}
+      backdropComponent={renderStandardBackdrop}
       backgroundStyle={{
         backgroundColor: palette.nebula,
         borderTopLeftRadius: layout.radius.xl,

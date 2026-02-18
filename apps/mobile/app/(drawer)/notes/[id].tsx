@@ -1,5 +1,4 @@
 import {
-  BottomSheetBackdrop,
   BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetView,
@@ -52,6 +51,7 @@ import {
   useUpdateNote,
 } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 const AUTOSAVE_DELAY = 2000;
 type Project = Doc<"projects">;
@@ -299,19 +299,6 @@ export default function NoteDetailScreen() {
 
   const selectedProject = projects?.find(
     (p: Project) => p._id === note?.projectId,
-  );
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    [],
   );
 
   if (!note) {
@@ -600,7 +587,7 @@ export default function NoteDetailScreen() {
         }}
         enablePanDownToClose
         enableDynamicSizing
-        backdropComponent={renderBackdrop}
+        backdropComponent={renderStandardBackdrop}
         backgroundStyle={{
           backgroundColor: palette.nebula,
           borderTopLeftRadius: layout.radius.xl,
@@ -758,7 +745,7 @@ export default function NoteDetailScreen() {
         }}
         enablePanDownToClose
         snapPoints={["50%", "75%"]}
-        backdropComponent={renderBackdrop}
+        backdropComponent={renderStandardBackdrop}
         backgroundStyle={{
           backgroundColor: palette.nebula,
           borderTopLeftRadius: layout.radius.xl,

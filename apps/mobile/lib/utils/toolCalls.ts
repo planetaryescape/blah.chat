@@ -26,10 +26,11 @@ export type ToolCallState = "executing" | "complete" | "error";
 
 export function getCallState(call: {
   result?: string;
-  timestamp: number;
+  timestamp?: number;
+  [key: string]: any;
 }): ToolCallState {
   if (!call.result) {
-    const elapsed = Date.now() - call.timestamp;
+    const elapsed = Date.now() - (call.timestamp ?? Date.now());
     if (elapsed > 30000) return "error";
     return "executing";
   }

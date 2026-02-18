@@ -1,9 +1,3 @@
-import type { api as backendApi } from "@blah-chat/backend/convex/_generated/api";
-import type {
-  Doc as BackendDoc,
-  Id as BackendId,
-  TableNames,
-} from "@blah-chat/backend/convex/_generated/dataModel";
 import { ConvexReactClient } from "convex/react";
 import { anyApi } from "convex/server";
 
@@ -15,10 +9,12 @@ if (!convexUrl) {
 }
 
 export const convex = new ConvexReactClient(convexUrl);
+export const api: any = anyApi;
 
-// Type-only cast: gives full type safety on api paths without bundling the backend
-export const api = anyApi as unknown as typeof backendApi;
+export type Id<_TableName extends string = string> = string;
 
-// Re-export branded types from backend
-export type Id<T extends TableNames> = BackendId<T>;
-export type Doc<T extends TableNames> = BackendDoc<T>;
+export type Doc<TableName extends string = string> = {
+  _id: Id<TableName>;
+  _creationTime?: number;
+  [key: string]: any;
+};

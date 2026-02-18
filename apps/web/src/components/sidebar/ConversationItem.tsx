@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
@@ -52,6 +53,7 @@ export function ConversationItem({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { setOpenMobile, isMobile } = useSidebar();
   const [showRename, setShowRename] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -78,6 +80,7 @@ export function ConversationItem({
           ? `?project=${projectFilter}`
           : "";
       router.push(`/chat/${conversation._id}${projectFilterParam}`);
+      if (isMobile) setOpenMobile(false);
     }
   };
 

@@ -3,7 +3,7 @@ import Clipboard from "@react-native-clipboard/clipboard";
 import { DrawerActions } from "@react-navigation/native";
 import { toast } from "burnt";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Menu } from "lucide-react-native";
+import { Menu, SquarePen } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -467,6 +467,16 @@ export default function ChatScreen() {
               {conversation.title}
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              haptic.light();
+              router.push("/(drawer)/chat/new");
+            }}
+            style={{ padding: spacing.xs }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <SquarePen size={22} color={palette.starlight} />
+          </TouchableOpacity>
         </View>
 
         {/* Messages */}

@@ -9,9 +9,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { colors } from "@/lib/theme/colors";
-import { fonts } from "@/lib/theme/fonts";
-import { radius, spacing } from "@/lib/theme/spacing";
+import {
+  colors,
+  layout,
+  palette,
+  spacing,
+  typography,
+} from "@/lib/theme/designSystem";
 
 function GoogleIcon() {
   return (
@@ -94,7 +98,7 @@ export function SocialAuthButtons({ onError }: SocialAuthButtonsProps) {
         ]}
       >
         {googleLoading ? (
-          <ActivityIndicator color={colors.foreground} />
+          <ActivityIndicator color={palette.starlight} />
         ) : (
           <>
             <GoogleIcon />
@@ -146,21 +150,21 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 24,
     height: 24,
-    borderRadius: radius.sm,
+    borderRadius: layout.radius.sm,
     backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
   },
   iconText: {
-    fontFamily: fonts.bodySemibold,
+    fontFamily: typography.bodySemiBold,
     fontSize: 14,
-    color: colors.foreground,
+    color: palette.starlight,
   },
   appleIconContainer: {
     backgroundColor: "transparent",
   },
   appleIconText: {
-    fontFamily: fonts.bodySemibold,
+    fontFamily: typography.bodySemiBold,
     fontSize: 18,
     color: "#000000",
   },
@@ -168,7 +172,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: radius.lg,
+    borderRadius: layout.radius.lg,
     paddingVertical: spacing.md,
     gap: spacing.sm,
   },
@@ -181,8 +185,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   googleButtonText: {
-    fontFamily: fonts.bodySemibold,
-    color: colors.foreground,
+    fontFamily: typography.bodySemiBold,
+    color: palette.starlight,
     fontSize: 15,
   },
   appleButton: {
@@ -192,7 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f1f1",
   },
   appleButtonText: {
-    fontFamily: fonts.bodySemibold,
+    fontFamily: typography.bodySemiBold,
     color: "#000000",
     fontSize: 15,
   },
@@ -210,7 +214,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dividerText: {
-    fontFamily: fonts.body,
+    fontFamily: typography.body,
     color: colors.mutedForeground,
     fontSize: 13,
     marginHorizontal: spacing.md,

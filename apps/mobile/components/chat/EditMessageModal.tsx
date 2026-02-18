@@ -50,7 +50,7 @@ export function EditMessageModal({
         <View
           style={{
             flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
+            backgroundColor: palette.overlay,
             justifyContent: "center",
             padding: spacing.lg,
           }}

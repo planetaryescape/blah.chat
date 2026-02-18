@@ -30,6 +30,19 @@ export const palette = {
   glassMedium: "rgba(255, 255, 255, 0.1)",
   glassLow: "rgba(255, 255, 255, 0.05)",
   glassBorder: "rgba(255, 255, 255, 0.08)",
+  glassSubtle: "rgba(255, 255, 255, 0.03)",
+
+  // Overlay
+  overlay: "rgba(0, 0, 0, 0.6)",
+
+  // Text on glass
+  textMuted: "rgba(250, 250, 250, 0.8)",
+  textSubtle: "rgba(250, 250, 250, 0.7)",
+  textFaint: "rgba(250, 250, 250, 0.4)",
+
+  // User bubble
+  roseQuartz10: "rgba(244, 224, 220, 0.1)",
+  roseQuartz20: "rgba(244, 224, 220, 0.2)",
 };
 
 export const typography = {
@@ -39,6 +52,7 @@ export const typography = {
   bodySemiBold: "Manrope_600SemiBold",
   bodyMedium: "Manrope_500Medium",
   body: "Manrope_400Regular",
+  mono: "Menlo",
 };
 
 export const spacing = {

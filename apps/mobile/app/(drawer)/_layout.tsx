@@ -65,6 +65,13 @@ export default function DrawerLayout() {
             swipeEnabled: true,
           }}
         />
+        <Drawer.Screen
+          name="settings"
+          options={{
+            drawerLabel: "Settings",
+            swipeEnabled: true,
+          }}
+        />
       </Drawer>
     </ErrorBoundary>
   );

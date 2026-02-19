@@ -7,6 +7,7 @@ import {
   MessageSquarePlus,
   MessagesSquare,
   Search,
+  Settings,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { Image, Text, TextInput, View } from "react-native";
@@ -465,7 +466,31 @@ export function DrawerContent() {
           </Text>
         </AnimatedPressable>
 
-        {/* TODO: Settings screen — hidden until implemented */}
+        {/* Settings */}
+        <AnimatedPressable
+          onPress={() => {
+            haptic.light();
+            router.push("/(drawer)/settings");
+          }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm,
+            gap: spacing.sm,
+          }}
+        >
+          <Settings size={20} color={palette.starlightDim} />
+          <Text
+            style={{
+              fontFamily: typography.body,
+              fontSize: 14,
+              color: palette.starlightDim,
+            }}
+          >
+            Settings
+          </Text>
+        </AnimatedPressable>
       </View>
 
       {/* Project Filter Sheet */}

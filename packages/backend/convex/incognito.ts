@@ -205,10 +205,10 @@ export const recordActivity = internalMutation({
 export const findStale = internalQuery({
   args: { cutoffMs: v.number() },
   handler: async (ctx, args) => {
-    // Query incognito conversations using index
+    // Query all incognito conversations
     const convos = await ctx.db
       .query("conversations")
-      .withIndex("by_incognito", (q) => q.eq("isIncognito", true))
+      .filter((q) => q.eq(q.field("isIncognito"), true))
       .collect();
 
     // Filter stale ones

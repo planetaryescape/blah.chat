@@ -41,63 +41,38 @@ export function getCallState(call: {
   return "complete";
 }
 
+const TOOL_ICONS: Record<string, typeof Search> = {
+  saveMemory: BookmarkPlus,
+  searchMemories: Search,
+  calculator: Calculator,
+  currencyConverter: DollarSign,
+  datetime: Calendar,
+  webSearch: Globe,
+  tavilySearch: Globe,
+  tavilyAdvancedSearch: Globe,
+  urlReader: ExternalLink,
+  fileDocument: FileText,
+  codeExecution: Code,
+  weather: Cloud,
+  projectContext: FolderTree,
+  manageTasks: CheckSquare,
+  createDocument: FileText,
+  updateDocument: RefreshCw,
+  readDocument: Eye,
+  enterDocumentMode: FileEdit,
+  exitDocumentMode: MessageSquare,
+  deleteMemory: Trash2,
+  searchFiles: FileText,
+  searchNotes: StickyNote,
+  searchTasks: CheckSquare,
+  queryHistory: History,
+  searchAll: Search,
+  searchKnowledgeBank: Library,
+  youtubeVideo: Youtube,
+};
+
 export function getToolIcon(toolName: string) {
-  switch (toolName) {
-    case "saveMemory":
-      return BookmarkPlus;
-    case "searchMemories":
-      return Search;
-    case "calculator":
-      return Calculator;
-    case "currencyConverter":
-      return DollarSign;
-    case "datetime":
-      return Calendar;
-    case "webSearch":
-    case "tavilySearch":
-    case "tavilyAdvancedSearch":
-      return Globe;
-    case "urlReader":
-      return ExternalLink;
-    case "fileDocument":
-      return FileText;
-    case "codeExecution":
-      return Code;
-    case "weather":
-      return Cloud;
-    case "projectContext":
-      return FolderTree;
-    case "manageTasks":
-      return CheckSquare;
-    case "createDocument":
-      return FileText;
-    case "updateDocument":
-      return RefreshCw;
-    case "readDocument":
-      return Eye;
-    case "enterDocumentMode":
-      return FileEdit;
-    case "exitDocumentMode":
-      return MessageSquare;
-    case "deleteMemory":
-      return Trash2;
-    case "searchFiles":
-      return FileText;
-    case "searchNotes":
-      return StickyNote;
-    case "searchTasks":
-      return CheckSquare;
-    case "queryHistory":
-      return History;
-    case "searchAll":
-      return Search;
-    case "searchKnowledgeBank":
-      return Library;
-    case "youtubeVideo":
-      return Youtube;
-    default:
-      return Search;
-  }
+  return TOOL_ICONS[toolName] ?? Search;
 }
 
 export function getToolLabel(

@@ -1,0 +1,30 @@
+{
+  "at": 1770855777141,
+  "personas": [
+    "persona_001",
+    "persona_002",
+    "persona_003",
+    "persona_004",
+    "persona_005",
+    "persona_006",
+    "persona_007",
+    "persona_008",
+    "persona_009",
+    "persona_010",
+    "persona_011",
+    "persona_012",
+    "persona_013",
+    "persona_014",
+    "persona_015",
+    "persona_016",
+    "persona_017",
+    "persona_018",
+    "persona_019",
+    "persona_020",
+    "persona_021",
+    "persona_022",
+    "persona_023",
+    "persona_024"
+  ],
+  "note": "Adapters are in-memory only; other scripts re-seed as needed."
+}

@@ -1,14 +1,18 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- CJS module, ESM import fails in Metro
-const {
-  bcv_parser,
-} = require("bible-passage-reference-parser/js/en_bcv_parser.min.js");
+// The IIFE in en_bcv_parser.min.js assigns to `this` which resolves to globalThis in Metro's sloppy-mode wrapper,
+// NOT module.exports. So require() executes the side-effect, then we read from globalThis.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require("bible-passage-reference-parser/js/en_bcv_parser.min.js");
+const bcv_parser = (globalThis as any).bcv_parser;
 
-const bcv = new bcv_parser();
-bcv.set_options({
-  osis_compaction_strategy: "b",
-  invalid_passage_strategy: "ignore",
-  invalid_sequence_strategy: "ignore",
-});
+let bcv: any = null;
+if (bcv_parser) {
+  bcv = new bcv_parser();
+  bcv.set_options({
+    osis_compaction_strategy: "b",
+    invalid_passage_strategy: "ignore",
+    invalid_sequence_strategy: "ignore",
+  });
+}
 
 export interface ParsedVerse {
   display: string;
@@ -21,6 +25,7 @@ export interface FoundVerse extends ParsedVerse {
 }
 
 export function parseVerseReference(text: string): ParsedVerse | null {
+  if (!bcv) return null;
   const result = bcv.parse(text);
   const osis = result.osis();
   if (!osis) return null;
@@ -28,6 +33,7 @@ export function parseVerseReference(text: string): ParsedVerse | null {
 }
 
 export function findAllVerses(text: string): FoundVerse[] {
+  if (!bcv) return [];
   const result = bcv.parse(text);
   const entities = result.parsed_entities();
   if (!entities?.length) return [];
@@ -48,6 +54,7 @@ export function findAllVerses(text: string): FoundVerse[] {
  * Skips code blocks to avoid breaking code.
  */
 export function processBibleVerses(text: string): string {
+  if (!bcv) return text;
   // Split by code blocks and existing markdown links to avoid processing them
   const parts = text.split(/(`{3}[\s\S]*?`{3}|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/);
 

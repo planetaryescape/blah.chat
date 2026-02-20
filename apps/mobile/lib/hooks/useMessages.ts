@@ -8,6 +8,7 @@ import {
   useQuery as useConvexQuery,
 } from "convex/react";
 import { useMemo } from "react";
+import { queryClient } from "@/lib/cache/queryClient";
 import type { Doc, Id } from "@/lib/convex";
 import { api } from "@/lib/convex";
 import { createMobileSdkClient } from "@/lib/transport/httpClient";
@@ -77,6 +78,11 @@ export function useSendMessage() {
         models: args.models,
         thinkingEffort: args.thinkingEffort,
         attachments: args.attachments,
+      });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["mobile", "messages", variables.conversationId],
       });
     },
   });

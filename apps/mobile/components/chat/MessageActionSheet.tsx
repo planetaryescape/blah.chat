@@ -1,25 +1,11 @@
-import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
-import {
-  Bookmark,
-  BookmarkCheck,
-  Copy,
-  FileText,
-  GitBranch,
-  Pencil,
-  RotateCcw,
-  Trash2,
-} from "lucide-react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
-import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import { useEffect, useRef, useState } from "react";
+import { ActionSheetIOS, Alert, Platform } from "react-native";
 import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
   useBookmarkByMessage,
   useRemoveBookmark,
 } from "@/lib/hooks/useBookmarks";
-import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
-import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 import { BookmarkSheet } from "./BookmarkSheet";
 import { SaveAsNoteSheet } from "./SaveAsNoteSheet";
 
@@ -36,39 +22,20 @@ interface MessageActionSheetProps {
   onDelete: (message: Message) => void;
 }
 
-interface ActionItemProps {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-  isDestructive?: boolean;
-}
+type ActionKey =
+  | "copy"
+  | "bookmark"
+  | "saveAsNote"
+  | "edit"
+  | "regenerate"
+  | "branch"
+  | "delete";
 
-function ActionItem({ icon, label, onPress, isDestructive }: ActionItemProps) {
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        padding: spacing.md,
-        borderRadius: layout.radius.md,
-        backgroundColor: palette.glassLow,
-        marginBottom: spacing.xs,
-      }}
-    >
-      <View style={{ marginRight: spacing.md }}>{icon}</View>
-      <Text
-        style={{
-          fontFamily: typography.bodySemiBold,
-          fontSize: 15,
-          color: isDestructive ? palette.error : palette.starlight,
-        }}
-      >
-        {label}
-      </Text>
-    </AnimatedPressable>
-  );
-}
+type MenuAction = {
+  key: ActionKey;
+  label: string;
+  destructive?: boolean;
+};
 
 export function MessageActionSheet({
   isOpen,
@@ -80,10 +47,8 @@ export function MessageActionSheet({
   onBranch,
   onDelete,
 }: MessageActionSheetProps) {
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
   const messageRef = useRef<Message | null>(null);
-  const pendingSaveAsNoteRef = useRef(false);
-
+  const presentingRef = useRef(false);
   const [showBookmarkSheet, setShowBookmarkSheet] = useState(false);
   const [showSaveAsNote, setShowSaveAsNote] = useState(false);
 
@@ -98,157 +63,141 @@ export function MessageActionSheet({
   const bookmark = useBookmarkByMessage(message?._id ?? null);
   const removeBookmark = useRemoveBookmark();
 
-  const isUserMessage = message?.role === "user";
-  const isAssistantMessage = message?.role === "assistant";
+  const currentMessage = message ?? messageRef.current;
+  const isUserMessage = currentMessage?.role === "user";
+  const isAssistantMessage = currentMessage?.role === "assistant";
   const isBookmarked = !!bookmark;
 
-  // Control modal via ref
   useEffect(() => {
-    if (isOpen && message) {
-      bottomSheetRef.current?.present();
-    } else {
-      bottomSheetRef.current?.dismiss();
-    }
-  }, [isOpen, message]);
+    if (!isOpen || !currentMessage || presentingRef.current) return;
+    presentingRef.current = true;
 
-  const handleSheetChange = useCallback(
-    (index: number) => {
-      if (index === -1) {
-        if (pendingSaveAsNoteRef.current) {
-          pendingSaveAsNoteRef.current = false;
+    const actions: MenuAction[] = [
+      { key: "copy", label: "Copy" },
+      {
+        key: "bookmark",
+        label: isBookmarked ? "Remove Bookmark" : "Bookmark",
+      },
+      { key: "saveAsNote", label: "Save as Note" },
+      ...(isUserMessage ? [{ key: "edit", label: "Edit" } as const] : []),
+      ...(isAssistantMessage
+        ? [{ key: "regenerate", label: "Regenerate" } as const]
+        : []),
+      { key: "branch", label: "Branch" },
+      { key: "delete", label: "Delete", destructive: true },
+    ];
+
+    const runAction = async (action: MenuAction) => {
+      const msg = messageRef.current;
+      if (!msg) return;
+
+      switch (action.key) {
+        case "copy":
+          onCopy(msg);
+          break;
+        case "bookmark":
+          if (bookmark) {
+            haptic.light();
+            await removeBookmark({ bookmarkId: bookmark._id });
+          } else {
+            setShowBookmarkSheet(true);
+          }
+          break;
+        case "saveAsNote":
           setShowSaveAsNote(true);
-        } else {
-          onClose();
-        }
+          break;
+        case "edit":
+          onEdit(msg);
+          break;
+        case "regenerate":
+          onRegenerate(msg);
+          break;
+        case "branch":
+          onBranch(msg);
+          break;
+        case "delete":
+          onDelete(msg);
+          break;
       }
-    },
-    [onClose],
-  );
+    };
 
-  const handleBookmarkToggle = useCallback(async () => {
-    if (!message) return;
+    if (Platform.OS === "ios") {
+      const options = [...actions.map((action) => action.label), "Cancel"];
+      const cancelButtonIndex = options.length - 1;
+      const destructiveButtonIndex = actions.findIndex(
+        (action) => action.destructive,
+      );
 
-    if (bookmark) {
-      haptic.light();
-      await removeBookmark({ bookmarkId: bookmark._id });
-      onClose();
-    } else {
-      onClose();
-      setShowBookmarkSheet(true);
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex:
+            destructiveButtonIndex >= 0 ? destructiveButtonIndex : undefined,
+          userInterfaceStyle: "dark",
+        },
+        async (selectedIndex) => {
+          presentingRef.current = false;
+          onClose();
+
+          if (selectedIndex < 0 || selectedIndex >= actions.length) return;
+          await runAction(actions[selectedIndex]);
+        },
+      );
+      return;
     }
-  }, [bookmark, message, removeBookmark, onClose]);
 
-  const handleSaveAsNote = useCallback(() => {
-    pendingSaveAsNoteRef.current = true;
-    bottomSheetRef.current?.dismiss();
-  }, []);
+    const buttons = [
+      ...actions.map((action) => ({
+        text: action.label,
+        style: action.destructive
+          ? ("destructive" as const)
+          : ("default" as const),
+        onPress: () => {
+          presentingRef.current = false;
+          onClose();
+          void runAction(action);
+        },
+      })),
+      {
+        text: "Cancel",
+        style: "cancel" as const,
+      },
+    ];
 
-  if (!message) return null;
+    Alert.alert("Message Actions", undefined, buttons, {
+      cancelable: true,
+      onDismiss: () => {
+        presentingRef.current = false;
+        onClose();
+      },
+    });
+  }, [
+    bookmark,
+    currentMessage,
+    isAssistantMessage,
+    isBookmarked,
+    isOpen,
+    isUserMessage,
+    onBranch,
+    onClose,
+    onCopy,
+    onDelete,
+    onEdit,
+    onRegenerate,
+    removeBookmark,
+  ]);
+
+  if (!currentMessage) return null;
 
   return (
     <>
-      <BottomSheetModal
-        ref={bottomSheetRef}
-        onChange={handleSheetChange}
-        enablePanDownToClose
-        enableDynamicSizing
-        backdropComponent={renderStandardBackdrop}
-        backgroundStyle={{
-          backgroundColor: palette.nebula,
-          borderTopLeftRadius: layout.radius.xl,
-          borderTopRightRadius: layout.radius.xl,
-        }}
-        handleIndicatorStyle={{
-          backgroundColor: palette.starlightDim,
-          width: 40,
-        }}
-      >
-        <BottomSheetView
-          style={{
-            paddingHorizontal: spacing.md,
-            paddingBottom: spacing.xxl,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: typography.heading,
-              fontSize: 20,
-              color: palette.starlight,
-              marginBottom: spacing.lg,
-              marginTop: spacing.sm,
-            }}
-          >
-            Message Actions
-          </Text>
-
-          {/* Copy - available for all messages */}
-          <ActionItem
-            icon={<Copy size={20} color={palette.starlight} />}
-            label="Copy"
-            onPress={() => onCopy(message)}
-          />
-
-          {/* Bookmark - available for all messages */}
-          <ActionItem
-            icon={
-              isBookmarked ? (
-                <BookmarkCheck size={20} color={palette.roseQuartz} />
-              ) : (
-                <Bookmark size={20} color={palette.starlight} />
-              )
-            }
-            label={isBookmarked ? "Remove Bookmark" : "Bookmark"}
-            onPress={handleBookmarkToggle}
-          />
-
-          {/* Save as Note - available for all messages */}
-          <ActionItem
-            icon={<FileText size={20} color={palette.indigo} />}
-            label="Save as Note"
-            onPress={handleSaveAsNote}
-          />
-
-          {/* Edit - user messages only */}
-          {isUserMessage && (
-            <ActionItem
-              icon={<Pencil size={20} color={palette.starlight} />}
-              label="Edit"
-              onPress={() => onEdit(message)}
-            />
-          )}
-
-          {/* Regenerate - assistant messages only */}
-          {isAssistantMessage && (
-            <ActionItem
-              icon={<RotateCcw size={20} color={palette.starlight} />}
-              label="Regenerate"
-              onPress={() => onRegenerate(message)}
-            />
-          )}
-
-          {/* Branch - available for all messages */}
-          <ActionItem
-            icon={<GitBranch size={20} color={palette.starlight} />}
-            label="Branch"
-            onPress={() => onBranch(message)}
-          />
-
-          {/* Delete - available for all messages */}
-          <ActionItem
-            icon={<Trash2 size={20} color={palette.error} />}
-            label="Delete"
-            onPress={() => onDelete(message)}
-            isDestructive
-          />
-        </BottomSheetView>
-      </BottomSheetModal>
-
       {showBookmarkSheet && (
         <BookmarkSheet
           isOpen={showBookmarkSheet}
           onClose={() => setShowBookmarkSheet(false)}
-          messageId={message._id}
-          conversationId={message.conversationId}
+          messageId={currentMessage._id}
+          conversationId={currentMessage.conversationId}
         />
       )}
 
@@ -257,7 +206,6 @@ export function MessageActionSheet({
           isOpen={showSaveAsNote}
           onClose={() => {
             setShowSaveAsNote(false);
-            onClose();
           }}
           message={messageRef.current}
         />

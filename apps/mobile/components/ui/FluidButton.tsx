@@ -1,17 +1,17 @@
-import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet, Text } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { haptic } from "@/lib/haptics";
 import { layout, palette, typography } from "@/lib/theme/designSystem";
 
 interface FluidButtonProps {
   onPress?: () => void;
   title: string;
   icon?: React.ReactNode;
-  variant?: "primary" | "ghost" | "glass";
+  variant?: "primary" | "ghost" | "glass" | "destructive";
   disabled?: boolean;
 }
 
@@ -40,7 +40,7 @@ export function FluidButton({
     <Pressable
       onPress={() => {
         if (disabled) return;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        haptic.light();
         onPress?.();
       }}
       onPressIn={handlePressIn}
@@ -54,6 +54,7 @@ export function FluidButton({
           variant === "primary" && styles.primary,
           variant === "ghost" && styles.ghost,
           variant === "glass" && styles.glass,
+          variant === "destructive" && styles.destructive,
           disabled && styles.disabled,
           animatedStyle,
         ]}
@@ -62,7 +63,9 @@ export function FluidButton({
         <Text
           style={[
             styles.text,
-            variant === "primary" ? styles.textPrimary : styles.textGhost,
+            variant === "primary" && styles.textSolid,
+            variant === "destructive" && styles.textDestructive,
+            (variant === "ghost" || variant === "glass") && styles.textGhost,
           ]}
         >
           {title}
@@ -96,6 +99,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.glassBorder,
   },
+  destructive: {
+    backgroundColor: palette.error,
+  },
   disabled: {
     opacity: 0.5,
   },
@@ -103,8 +109,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyBold,
     fontSize: 16,
   },
-  textPrimary: {
+  textSolid: {
     color: palette.void,
+  },
+  textDestructive: {
+    color: palette.starlight,
   },
   textGhost: {
     color: palette.starlight,

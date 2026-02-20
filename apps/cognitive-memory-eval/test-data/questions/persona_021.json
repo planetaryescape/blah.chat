@@ -1,0 +1,1443 @@
+[
+  {
+    "id": "q_persona_021_001",
+    "personaId": "persona_021",
+    "question": "What is Elena Rodriguez's current job title?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a direct factual question about the persona's occupation mentioned in the first session."
+  },
+  {
+    "id": "q_persona_021_002",
+    "personaId": "persona_021",
+    "question": "Which specific brand of bicycle is Elena currently restoring?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m2_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a straightforward factual question about a specific detail mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_003",
+    "personaId": "persona_021",
+    "question": "By what percentage can vertical hydroponics reduce water usage?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a factual question based on a specific statistic provided in the evidence."
+  },
+  {
+    "id": "q_persona_021_004",
+    "personaId": "persona_021",
+    "question": "What type of software does Elena advocate for in urban planning to ensure transparency?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a direct factual question about Elena's advocacy mentioned in the first session."
+  },
+  {
+    "id": "q_persona_021_005",
+    "personaId": "persona_021",
+    "question": "What hobby does Elena practice on Tuesday evenings?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a factual question about a specific recurring activity mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_006",
+    "personaId": "persona_021",
+    "question": "What is the subject of the documentary Elena is working on?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about a project introduced in session 2."
+  },
+  {
+    "id": "q_persona_021_007",
+    "personaId": "persona_021",
+    "question": "Which editing software did Elena switch to recently?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about a specific tool change mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_008",
+    "personaId": "persona_021",
+    "question": "What specific plants is Elena growing in her home hydroponic system?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about the contents of her hydroponic system mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_009",
+    "personaId": "persona_021",
+    "question": "What temperature difference was found in the recent study based on tree canopy cover?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about a specific data point mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_010",
+    "personaId": "persona_021",
+    "question": "How long has Elena been a certified scuba diver?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about the duration of a certification mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_011",
+    "personaId": "persona_021",
+    "question": "What percentage of garment workers globally earn a living wage?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a factual question based on a specific statistic provided in session 3."
+  },
+  {
+    "id": "q_persona_021_012",
+    "personaId": "persona_021",
+    "question": "What event is scheduled to take place in October?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m10_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a factual question about a scheduled event mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_013",
+    "personaId": "persona_021",
+    "question": "How much can white reflective roof coatings reduce peak cooling loads?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a factual question based on a specific percentage provided in session 3."
+  },
+  {
+    "id": "q_persona_021_014",
+    "personaId": "persona_021",
+    "question": "What programming language did Elena use for her hydroponic monitoring script?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a factual question about a technical detail mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_015",
+    "personaId": "persona_021",
+    "question": "Where did Elena recently go for a documentary filming trip?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a factual question about a recent trip mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_016",
+    "personaId": "persona_021",
+    "question": "What is the era of the Peugeot bicycle frame Elena is restoring in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying a specific detail about a hobby mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_017",
+    "personaId": "persona_021",
+    "question": "What is Elena's role in the city's housing authority projects?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying her specific professional involvement mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_018",
+    "personaId": "persona_021",
+    "question": "What is the current status of the bike lane expansion project mentioned in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying the status of a project mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_019",
+    "personaId": "persona_021",
+    "question": "What specific material is Elena experimenting with in her pottery glaze firing in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying a specific technical detail about her hobby in session 2."
+  },
+  {
+    "id": "q_persona_021_020",
+    "personaId": "persona_021",
+    "question": "What specific data has Elena been analyzing for the last three months?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying the specific data types mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_021",
+    "personaId": "persona_021",
+    "question": "What is the era of the road bike Elena is restoring as of session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying a specific detail about a hobby mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_022",
+    "personaId": "persona_021",
+    "question": "What is the current energy consumption status of Elena's hydroponic system?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying a specific technical status mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_023",
+    "personaId": "persona_021",
+    "question": "What was the water temperature deviation at the recent dive site mentioned in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying a specific environmental data point mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_024",
+    "personaId": "persona_021",
+    "question": "Which specific urban areas are currently underserved by transit infrastructure?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying a specific urban planning detail mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_025",
+    "personaId": "persona_021",
+    "question": "What specific hardware does Elena's pH sensors need to be compatible with?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific technical requirement mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_026",
+    "personaId": "persona_021",
+    "question": "How many kilometers of protected lanes are included in the approved bicycle expansion plan?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific statistic from a project mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_027",
+    "personaId": "persona_021",
+    "question": "Since what year has Elena been practicing traditional pottery glazing techniques?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific date mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_028",
+    "personaId": "persona_021",
+    "question": "What specific diving certification has Elena held since 2018?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific certification level mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_029",
+    "personaId": "persona_021",
+    "question": "What percentage of downtown roof space is suitable for hydroponics in Elena's project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific statistic from a project mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_030",
+    "personaId": "persona_021",
+    "question": "What is the current completion percentage of Elena's documentary project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific project status mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_031",
+    "personaId": "persona_021",
+    "question": "What was the water temperature deviation observed during the Cozumel trip?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific environmental data point mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_032",
+    "personaId": "persona_021",
+    "question": "What is Elena investigating regarding biodiversity changes?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying the focus of her investigation mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_033",
+    "personaId": "persona_021",
+    "question": "What kind of neighborhoods are noted for having significantly less tree canopy cover?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires identifying a specific social equity detail mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_034",
+    "personaId": "persona_021",
+    "question": "What can closed algorithms mask in the context of urban planning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires identifying a specific concern mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_035",
+    "personaId": "persona_021",
+    "question": "What is the focus of Elena's research regarding urban heat?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires identifying the specific research topic mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_036",
+    "personaId": "persona_021",
+    "question": "Compare the bicycle models Elena is restoring in session 1 and session 3.",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m2_e3", "persona_021_s3_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires cross-referencing specific details from two different sessions."
+  },
+  {
+    "id": "q_persona_021_037",
+    "personaId": "persona_021",
+    "question": "Contrast the water temperature findings Elena observed in session 3 and session 4.",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m4_e1", "persona_021_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "This requires cross-referencing environmental data from two different sessions."
+  },
+  {
+    "id": "q_persona_021_038",
+    "personaId": "persona_021",
+    "question": "What are the technical requirements Elena mentioned for her hydroponic monitoring system?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m8_e1", "persona_021_s4_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This requires combining multiple technical details mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_039",
+    "personaId": "persona_021",
+    "question": "What are the two main focuses of Elena's documentary project mentioned across sessions?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m1_e1", "persona_021_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires identifying the project's subject and its status from different sessions."
+  },
+  {
+    "id": "q_persona_021_040",
+    "personaId": "persona_021",
+    "question": "Which city council decision directly affects Elena's interest in cycling infrastructure?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m7_e1", "persona_021_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This requires linking a specific event to its detailed outcome within the same session."
+  },
+  {
+    "id": "q_persona_021_041",
+    "personaId": "persona_021",
+    "question": "List the sustainability metrics Elena applies to her professional and personal life as mentioned in sessions 1, 2, and 3.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_021_s1_m3_e1",
+      "persona_021_s1_m9_e1",
+      "persona_021_s2_m5_e2",
+      "persona_021_s3_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "This requires synthesizing information about her values and professional focus from multiple sessions."
+  },
+  {
+    "id": "q_persona_021_042",
+    "personaId": "persona_021",
+    "question": "What are the details of the software stack migration planned by Elena's consultancy?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m5_e2", "persona_021_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This requires linking a scheduled event to the underlying professional philosophy mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_043",
+    "personaId": "persona_021",
+    "question": "What specific municipal data source does Elena use to identify infrastructure investment disparities?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying a specific data source mentioned in a professional context in session 3."
+  },
+  {
+    "id": "q_persona_021_044",
+    "personaId": "persona_021",
+    "question": "How do Elena's pottery glaze experiments in session 2 relate to her long-term practice mentioned in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m10_e2", "persona_021_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires cross-referencing specific details about her hobby across sessions."
+  },
+  {
+    "id": "q_persona_021_045",
+    "personaId": "persona_021",
+    "question": "What are the specific findings regarding tree canopy and temperature mentioned in sessions 1 and 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m8_e1", "persona_021_s2_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires synthesizing research findings from two different sessions."
+  },
+  {
+    "id": "q_persona_021_046",
+    "personaId": "persona_021",
+    "question": "How do closed algorithms affect social equity according to Elena's professional observations?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s1_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This requires explaining a complex professional concept mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_047",
+    "personaId": "persona_021",
+    "question": "What specific work is Elena doing for the city's housing authority?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying a specific professional project mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_048",
+    "personaId": "persona_021",
+    "question": "Detail the timeframe and focus of Elena's biodiversity investigation.",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s4_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying the specific details of a research project mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_049",
+    "personaId": "persona_021",
+    "question": "What are the specific details of the bike lane expansion projects mentioned in sessions 2 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_021_s2_m9_e1", "persona_021_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires cross-referencing project details from two different sessions."
+  },
+  {
+    "id": "q_persona_021_050",
+    "personaId": "persona_021",
+    "question": "How long has Elena Rodriguez worked in the sustainability field?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a direct temporal question about her career duration mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_051",
+    "personaId": "persona_021",
+    "question": "When does Elena typically spend time on her mechanical projects?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about her routine mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_052",
+    "personaId": "persona_021",
+    "question": "How long has Elena been operating her home hydroponic system?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about the duration of a hobby mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_053",
+    "personaId": "persona_021",
+    "question": "When did Elena go diving in the Great Barrier Reef according to session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about a past event mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_054",
+    "personaId": "persona_021",
+    "question": "When is Elena's city council presentation scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a temporal question about a future event mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_055",
+    "personaId": "persona_021",
+    "question": "When did Elena miss her pottery class to finish work?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a temporal question about a recent event mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_056",
+    "personaId": "persona_021",
+    "question": "When is Elena's next planned trip to the Great Barrier Reef?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a temporal question about a future trip mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_057",
+    "personaId": "persona_021",
+    "question": "How long of a period is covered by the heat island data Elena is analyzing?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires identifying the specific timeframe of her data analysis mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_058",
+    "personaId": "persona_021",
+    "question": "When did Elena switch her editing software to Kdenlive?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying the specific timing of a software change mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_059",
+    "personaId": "persona_021",
+    "question": "By what time today did Elena promise to send the project timeline?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying a specific deadline mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_060",
+    "personaId": "persona_021",
+    "question": "When did Elena last go scuba diving as of the conversation in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s3_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying the timing of a recent event mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_061",
+    "personaId": "persona_021",
+    "question": "When is Elena's consultancy scheduled to migrate their software stack?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s3_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying the timing of a future professional event mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_062",
+    "personaId": "persona_021",
+    "question": "For how long has Elena been attending pottery classes on Wednesday evenings?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying the duration of a specific routine mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_063",
+    "personaId": "persona_021",
+    "question": "When was the bike lane expansion plan approved by the city council?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying the timing of a specific event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_064",
+    "personaId": "persona_021",
+    "question": "How long did Elena spend on her bicycle restoration project yesterday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying a specific duration of time mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_065",
+    "personaId": "persona_021",
+    "question": "When did Elena return from her filming trip in Cozumel?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying the timing of a recent return mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_066",
+    "personaId": "persona_021",
+    "question": "When is Elena hosting her upcoming pottery workshop?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying the timing of a future event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_067",
+    "personaId": "persona_021",
+    "question": "Over what timeframe is Elena investigating biodiversity changes?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying the specific period of her investigation mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_068",
+    "personaId": "persona_021",
+    "question": "How long has Elena been working in the sustainability field as of session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about her career duration mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_069",
+    "personaId": "persona_021",
+    "question": "When does Elena typically work on her mechanical projects according to session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about her routine mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_070",
+    "personaId": "persona_021",
+    "question": "How long has Elena's home hydroponic system been in operation?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about the duration of a hobby mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_071",
+    "personaId": "persona_021",
+    "question": "When did Elena go diving in the Great Barrier Reef last month?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about a past event mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_072",
+    "personaId": "persona_021",
+    "question": "How has Elena's pottery class schedule changed between session 1 and session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m7_e2", "persona_021_s3_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires cross-referencing schedule details from two different sessions."
+  },
+  {
+    "id": "q_persona_021_073",
+    "personaId": "persona_021",
+    "question": "Compare the timing of Elena's past and future trips to the Great Barrier Reef.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m6_e2", "persona_021_s2_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires cross-referencing travel dates from different sessions."
+  },
+  {
+    "id": "q_persona_021_074",
+    "personaId": "persona_021",
+    "question": "How does the duration of Elena's professional data analysis compare to her documentary research duration?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m10_e2", "persona_021_s3_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires cross-referencing timeframes of different projects from different sessions."
+  },
+  {
+    "id": "q_persona_021_075",
+    "personaId": "persona_021",
+    "question": "Trace the timeline of Elena's bicycle restoration progress across sessions 1, 2, and 4.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_021_s1_m2_e3",
+      "persona_021_s2_m3_e1",
+      "persona_021_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "This requires synthesizing progress and time spent on a hobby across multiple sessions."
+  },
+  {
+    "id": "q_persona_021_076",
+    "personaId": "persona_021",
+    "question": "What is the sequence of Elena's recent and upcoming travel and filming activities?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m1_e1", "persona_021_s2_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires cross-referencing travel events from different sessions."
+  },
+  {
+    "id": "q_persona_021_077",
+    "personaId": "persona_021",
+    "question": "How long has Elena been practicing pottery glazing compared to the duration of her diving certification?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m5_e2", "persona_021_s2_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires comparing the durations of two different activities mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_078",
+    "personaId": "persona_021",
+    "question": "Analyze the timing of the city council's bike lane approval relative to Elena's scheduled presentation.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m7_e1", "persona_021_s2_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires cross-referencing professional events from different sessions."
+  },
+  {
+    "id": "q_persona_021_079",
+    "personaId": "persona_021",
+    "question": "When did Elena's software preferences shift, and when is her consultancy expected to follow?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m2_e1", "persona_021_s3_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires cross-referencing software-related events from different sessions."
+  },
+  {
+    "id": "q_persona_021_080",
+    "personaId": "persona_021",
+    "question": "How long has Elena's hydroponic system been active relative to her ongoing documentary work?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m4_e2", "persona_021_s3_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires comparing the durations of a hobby and a project from different sessions."
+  },
+  {
+    "id": "q_persona_021_081",
+    "personaId": "persona_021",
+    "question": "Trace the evolution of Elena's pottery involvement from classes to workshops across sessions 1, 3, and 4.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_021_s1_m7_e2",
+      "persona_021_s3_m7_e1",
+      "persona_021_s4_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "This requires synthesizing her pottery-related activities across multiple sessions."
+  },
+  {
+    "id": "q_persona_021_082",
+    "personaId": "persona_021",
+    "question": "Compare the timeframe for the biodiversity changes Elena is studying with her heat island data analysis period.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s4_m9_e2", "persona_021_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This requires comparing the timeframes of two different research projects from different sessions."
+  },
+  {
+    "id": "q_persona_021_083",
+    "personaId": "persona_021",
+    "question": "When was the 1970s Peugeot restoration mentioned compared to the 1980s bike restoration?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s1_m2_e3", "persona_021_s3_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires cross-referencing the timing of different hobby projects from different sessions."
+  },
+  {
+    "id": "q_persona_021_084",
+    "personaId": "persona_021",
+    "question": "How does the timing of Elena's project timeline deadline relate to her work hours yesterday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_021_s2_m10_e1", "persona_021_s4_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires cross-referencing a deadline and a specific work duration from different sessions."
+  },
+  {
+    "id": "q_persona_021_085",
+    "personaId": "persona_021",
+    "question": "What kind of fashion brands does Elena Rodriguez prefer to support?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a direct preference question based on her values mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_086",
+    "personaId": "persona_021",
+    "question": "What is Elena's level of interest in documentary filmmaking?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m6_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a preference question about her interests mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_087",
+    "personaId": "persona_021",
+    "question": "Where does Elena choose to purchase her professional clothing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s2_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a preference question about her consumer choices mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_088",
+    "personaId": "persona_021",
+    "question": "What is Elena's preferred method for waste reduction in her hobbies?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a preference question about her approach to sustainability mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_089",
+    "personaId": "persona_021",
+    "question": "What kind of automation scripts does Elena prefer for managing her home systems?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a preference question about her technical choices mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_090",
+    "personaId": "persona_021",
+    "question": "What specific kind of workshops is Elena interested in attending?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a preference question about her professional interests mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_091",
+    "personaId": "persona_021",
+    "question": "Why does Elena prefer open-source software for urban planning?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires explaining the reasoning behind her preference mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_092",
+    "personaId": "persona_021",
+    "question": "What is Elena's stance on the relationship between personal consumer choices and professional values?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires identifying her personal philosophy mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_093",
+    "personaId": "persona_021",
+    "question": "What kind of software does Elena prefer for editing her documentary work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s2_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying her specific software preference mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_094",
+    "personaId": "persona_021",
+    "question": "How does Elena use pottery to balance her analytical professional life?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s2_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This requires identifying the purpose of her hobby mentioned in session 2."
+  },
+  {
+    "id": "q_persona_021_095",
+    "personaId": "persona_021",
+    "question": "What is Elena's preferred method for waste reduction as mentioned in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying her approach to sustainability mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_096",
+    "personaId": "persona_021",
+    "question": "Why does Elena prefer using open-source automation scripts for her home systems?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires explaining the reasoning behind her technical preference mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_097",
+    "personaId": "persona_021",
+    "question": "What is Elena's preference for fashion brands as described in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying her specific criteria for clothing mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_098",
+    "personaId": "persona_021",
+    "question": "What kind of professional workshops is Elena specifically interested in?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying her specific professional interest mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_099",
+    "personaId": "persona_021",
+    "question": "What type of hydroponic system does Elena prefer over fixed vertical walls?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying her specific system preference mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_100",
+    "personaId": "persona_021",
+    "question": "What is Elena's preference for editing software as mentioned in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying her specific software preference mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_101",
+    "personaId": "persona_021",
+    "question": "What is Elena's preference regarding the materials used in bicycles?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m3_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying her specific material preference mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_102",
+    "personaId": "persona_021",
+    "question": "What are Elena's criteria for the clothing brands she supports in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying her specific disclosure requirements mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_103",
+    "personaId": "persona_021",
+    "question": "What is Elena's preference for the type of arguments used to influence urban planning?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This requires identifying her preferred advocacy method mentioned in session 4."
+  },
+  {
+    "id": "q_persona_021_104",
+    "personaId": "persona_021",
+    "question": "How does Elena Rodriguez define sustainability?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This requires identifying her personal definition of a core concept mentioned in session 1."
+  },
+  {
+    "id": "q_persona_021_105",
+    "personaId": "persona_021",
+    "question": "What is Elena's view on transit equity as a component of urban sustainability?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying her specific priority in urban planning mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_106",
+    "personaId": "persona_021",
+    "question": "How does Elena's preference for ethical fashion align with her professional values across sessions 1 and 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m3_e2", "persona_021_s2_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires synthesizing her values and actions from different sessions."
+  },
+  {
+    "id": "q_persona_021_107",
+    "personaId": "persona_021",
+    "question": "Compare Elena's preferences for open-source software in professional versus personal contexts across sessions 1 and 3.",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_021_s1_m5_e1",
+      "persona_021_s3_m3_e2",
+      "persona_021_s3_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires cross-referencing her software preferences from different sessions and contexts."
+  },
+  {
+    "id": "q_persona_021_108",
+    "personaId": "persona_021",
+    "question": "How do Elena's preferences for waste reduction influence her choice of bicycle restoration as mentioned in sessions 2 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m2_e2", "persona_021_s2_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires linking her sustainability philosophy to her hobby across different sessions."
+  },
+  {
+    "id": "q_persona_021_109",
+    "personaId": "persona_021",
+    "question": "Why does Elena prioritize B-Corp brands for her professional attire according to sessions 2 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s2_m4_e2", "persona_021_s3_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires synthesizing her clothing preferences from different sessions."
+  },
+  {
+    "id": "q_persona_021_110",
+    "personaId": "persona_021",
+    "question": "Analyze Elena's preference for modular hydroponics in the context of the downtown roof space suitability mentioned in session 4.",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m4_e1", "persona_021_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This requires linking a specific preference to a project constraint mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_111",
+    "personaId": "persona_021",
+    "question": "How does Elena's preference for Raspberry Pi compatibility relate to her home automation goals across sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m8_e1", "persona_021_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "This requires cross-referencing technical details from different sessions."
+  },
+  {
+    "id": "q_persona_021_112",
+    "personaId": "persona_021",
+    "question": "Why does Elena prefer older steel bikes over modern carbon fiber ones based on sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m3_e3", "persona_021_s3_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "This requires synthesizing her views on longevity and sustainability from different sessions."
+  },
+  {
+    "id": "q_persona_021_113",
+    "personaId": "persona_021",
+    "question": "How does Elena's preference for grounding through pottery interact with her work schedule across sessions 2 and 3?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_021_s2_m6_e1",
+      "persona_021_s2_m6_e2",
+      "persona_021_s3_m7_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires synthesizing her hobby's purpose and her schedule from different sessions."
+  },
+  {
+    "id": "q_persona_021_114",
+    "personaId": "persona_021",
+    "question": "What is the connection between Elena's preference for open-source software and her concerns about social equity mentioned in sessions 1 and 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s1_m5_e2", "persona_021_s2_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires linking her technical preferences to her social values across different sessions."
+  },
+  {
+    "id": "q_persona_021_115",
+    "personaId": "persona_021",
+    "question": "Why does Elena require Tier 3 supplier disclosure for her clothing based on information from sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m6_e1", "persona_021_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "This requires linking her disclosure requirements to global labor statistics from different sessions."
+  },
+  {
+    "id": "q_persona_021_116",
+    "personaId": "persona_021",
+    "question": "How does Elena's preference for decentralized energy systems fit her role as a sustainability consultant across sessions 1 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m10_e1", "persona_021_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires linking her professional interest to her job title from different sessions."
+  },
+  {
+    "id": "q_persona_021_117",
+    "personaId": "persona_021",
+    "question": "How does Elena's advocacy for albedo-focused planning relate to her preferred cooling strategies in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m9_e2", "persona_021_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This requires linking her advocacy to specific technical data mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_118",
+    "personaId": "persona_021",
+    "question": "Contrast Elena's preference for transit equity with aesthetic greening as mentioned in session 3.",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s3_m8_e1", "persona_021_s3_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This requires identifying her specific priorities in urban planning mentioned in session 3."
+  },
+  {
+    "id": "q_persona_021_119",
+    "personaId": "persona_021",
+    "question": "How does Elena's preference for data-driven arguments relate to her advocacy for open-source software across sessions 1 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_021_s4_m10_e1", "persona_021_s1_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This requires synthesizing her advocacy methods from different sessions."
+  },
+  {
+    "id": "q_persona_021_120",
+    "personaId": "persona_021",
+    "question": "How does Elena's profession as an Urban Sustainability Consultant influence her choice of hobbies across sessions 1 and 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s1_m1_e1", "persona_021_s2_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires inferring the connection between her job and her hobby's philosophy mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_121",
+    "personaId": "persona_021",
+    "question": "What is the relationship between Elena's scuba diving and her documentary filmmaking work across sessions 1 and 4?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s1_m6_e3", "persona_021_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "This requires inferring the connection between two of her interests mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_122",
+    "personaId": "persona_021",
+    "question": "How does Elena's belief in social equity impact her views on urban planning across sessions 1 and 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s1_m9_e1", "persona_021_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires inferring how her core values influence her professional stance mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_123",
+    "personaId": "persona_021",
+    "question": "Why might Elena be concerned about the energy usage of her hydroponic system based on sessions 1 and 3?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s3_m3_e1", "persona_021_s1_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires inferring her concern by linking energy data to her sustainability goals from different sessions."
+  },
+  {
+    "id": "q_persona_021_124",
+    "personaId": "persona_021",
+    "question": "How does Elena's interest in pottery serve her mental health according to sessions 2 and 3?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s2_m6_e2", "persona_021_s3_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires inferring the psychological benefits of her hobby mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_125",
+    "personaId": "persona_021",
+    "question": "What is the link between Elena's fashion choices and her professional ethics across sessions 1 and 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s1_m3_e2", "persona_021_s2_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires inferring the connection between her consumer behavior and her professional values mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_126",
+    "personaId": "persona_021",
+    "question": "Why might Elena prefer modular hydroponics for downtown roof projects based on the data in session 4?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s4_m4_e1", "persona_021_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This requires inferring the suitability of a specific system for a given project constraint mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_127",
+    "personaId": "persona_021",
+    "question": "How does Elena's documentary on urban farming reflect her views on green gentrification as mentioned in session 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s2_m1_e1", "persona_021_s2_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This requires inferring the connection between her creative project and her professional concerns mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_128",
+    "personaId": "persona_021",
+    "question": "What is the significance of Elena's Python script in the context of her sustainability goals across sessions 3 and 4?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s4_m8_e2", "persona_021_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "This requires inferring the importance of her technical work for her broader goals mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_129",
+    "personaId": "persona_021",
+    "question": "How does the observed coral bleaching in Cozumel likely affect Elena's documentary narrative across sessions 2 and 4?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_021_s4_m1_e2",
+      "persona_021_s4_m2_e1",
+      "persona_021_s2_m1_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires inferring the impact of an environmental observation on her creative work mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_130",
+    "personaId": "persona_021",
+    "question": "Why would Elena advocate for albedo-focused planning in the neighborhoods she researches based on sessions 1 and 3?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_021_s3_m9_e2",
+      "persona_021_s1_m10_e1",
+      "persona_021_s1_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This requires inferring her advocacy strategy by linking her research focus to specific planning solutions from different sessions."
+  },
+  {
+    "id": "q_persona_021_131",
+    "personaId": "persona_021",
+    "question": "How does Elena's use of Kdenlive align with her broader advocacy for open-source in urban planning across sessions 1, 2, and 3?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_021_s2_m2_e2",
+      "persona_021_s1_m5_e1",
+      "persona_021_s3_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "This requires inferring the consistency of her technical choices across different professional and creative domains mentioned in multiple sessions."
+  },
+  {
+    "id": "q_persona_021_132",
+    "personaId": "persona_021",
+    "question": "What is the connection between Elena's pottery glazing techniques and her environmental values across sessions 2 and 4?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s4_m5_e2", "persona_021_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This requires inferring the environmental significance of her specific hobby techniques mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_133",
+    "personaId": "persona_021",
+    "question": "How does Elena's work with the housing authority likely incorporate her views on transit equity across sessions 2 and 3?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s2_m8_e2", "persona_021_s3_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires inferring how her professional projects align with her advocacy priorities mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_134",
+    "personaId": "persona_021",
+    "question": "Why is the 15km protected lane expansion significant to Elena's personal and professional life across sessions 1, 2, and 4?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_021_s4_m7_e2",
+      "persona_021_s1_m2_e1",
+      "persona_021_s2_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "This requires inferring the impact of a city project on her hobbies and professional interests mentioned in multiple sessions."
+  },
+  {
+    "id": "q_persona_021_135",
+    "personaId": "persona_021",
+    "question": "How does Elena's analysis of water recycling data integrate with her documentary filming across sessions 2 and 3?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s3_m1_e2", "persona_021_s2_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This requires inferring the connection between her research and her creative projects mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_136",
+    "personaId": "persona_021",
+    "question": "What does Elena's concern about 'green gentrification' imply about her approach to the bike lane project in session 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s2_m9_e2", "persona_021_s2_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This requires inferring her professional caution regarding a specific project mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_137",
+    "personaId": "persona_021",
+    "question": "How do Elena's mechanical projects serve as a practical application of circular economy principles across sessions 1 and 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s1_m2_e2", "persona_021_s2_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires inferring the philosophical basis of her hobbies mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_138",
+    "personaId": "persona_021",
+    "question": "How do Elena's personal consumer choices reflect her professional values across sessions 1 and 2?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s1_m3_e2", "persona_021_s2_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This requires inferring the consistency between her personal life and professional ethics mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_021_139",
+    "personaId": "persona_021",
+    "question": "How do Elena's transparency goals relate to her consultancy's software stack migration in session 3?",
+    "type": "inference",
+    "expectedEvidence": ["persona_021_s3_m5_e1", "persona_021_s3_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This requires inferring the motivation behind a professional event mentioned in the same session."
+  },
+  {
+    "id": "q_persona_021_140",
+    "personaId": "persona_021",
+    "question": "How does Elena's urban heat island research reflect her social equity lens according to session 1?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_021_s1_m10_e1",
+      "persona_021_s1_m9_e1",
+      "persona_021_s1_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This requires inferring the connection between her research focus and her core values mentioned in the same session."
+  }
+]

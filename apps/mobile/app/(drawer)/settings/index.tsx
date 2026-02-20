@@ -1,13 +1,11 @@
 import { useAuth, useUser } from "@clerk/clerk-expo";
-import { DrawerActions } from "@react-navigation/native";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import {
   AlertTriangle,
   Brain,
   Key,
   Lightbulb,
   LogOut,
-  Menu,
   Mic,
   Puzzle,
   Settings2,
@@ -16,29 +14,33 @@ import {
   User,
   Wrench,
 } from "lucide-react-native";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ModelPicker } from "@/components/chat/ModelPicker";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { haptic } from "@/lib/haptics";
 import { usePreferences } from "@/lib/hooks/usePreferences";
 import { useUpdatePreference } from "@/lib/hooks/useUpdatePreference";
-import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const { user } = useUser();
   const { signOut } = useAuth();
   const prefs = usePreferences();
   const updatePref = useUpdatePreference();
+  const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
 
-  const handleOpenDrawer = useCallback(() => {
-    haptic.light();
-    navigation.dispatch(DrawerActions.openDrawer());
-  }, [navigation]);
+  const handleModelPickerSelect = useCallback(
+    (modelId: string) => {
+      updatePref("defaultModel", modelId);
+      setIsModelPickerOpen(false);
+    },
+    [updatePref],
+  );
 
   const handleSignOut = useCallback(async () => {
     haptic.medium();
@@ -70,7 +72,7 @@ export default function SettingsScreen() {
   if (!prefs) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: palette.void }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         edges={["top"]}
       >
         <View
@@ -84,40 +86,10 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.void }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: palette.glassBorder,
-          height: layout.headerHeight,
-          gap: spacing.sm,
-        }}
-      >
-        <TouchableOpacity
-          onPress={handleOpenDrawer}
-          style={{ padding: spacing.xs }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Menu size={24} color={palette.starlight} />
-        </TouchableOpacity>
-        <Text
-          style={{
-            flex: 1,
-            fontFamily: typography.heading,
-            fontSize: 18,
-            color: palette.starlight,
-          }}
-        >
-          Settings
-        </Text>
-      </View>
+      <ScreenHeader title="Settings" leftAction="menu" />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -194,13 +166,6 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </View>
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
           <SettingsRow
             variant="action"
             label="Sign Out"
@@ -225,22 +190,6 @@ export default function SettingsScreen() {
         <SettingsSection title="Models">
           <SettingsRow
             variant="value"
-            label="Default Model"
-            value={prefs.defaultModel === "auto" ? "Auto" : prefs.defaultModel}
-            icon={Sparkles}
-            onPress={() => {
-              // TODO: Open model picker bottom sheet (Phase 2)
-            }}
-          />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
-          <SettingsRow
-            variant="value"
             label="New Chat Model"
             value={
               prefs.newChatModelSelection === "recent" ? "Recent" : "Fixed"
@@ -252,12 +201,12 @@ export default function SettingsScreen() {
               updatePref("newChatModelSelection", next);
             }}
           />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
+          <SettingsRow
+            variant="value"
+            label="Default Model"
+            value={prefs.defaultModel === "auto" ? "Auto" : prefs.defaultModel}
+            icon={Sparkles}
+            onPress={() => setIsModelPickerOpen(true)}
           />
           <SettingsRow
             variant="toggle"
@@ -269,13 +218,6 @@ export default function SettingsScreen() {
           />
           {prefs.autoRouterEnabled && (
             <>
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: palette.glassBorder,
-                  marginHorizontal: spacing.md,
-                }}
-              />
               <SettingsRow
                 variant="slider"
                 label="Cost Bias"
@@ -285,13 +227,6 @@ export default function SettingsScreen() {
                 min={0}
                 max={100}
                 step={5}
-              />
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: palette.glassBorder,
-                  marginHorizontal: spacing.md,
-                }}
               />
               <SettingsRow
                 variant="slider"
@@ -305,13 +240,6 @@ export default function SettingsScreen() {
               />
             </>
           )}
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
           <SettingsRow
             variant="toggle"
             label="Model Recommendations"
@@ -330,26 +258,12 @@ export default function SettingsScreen() {
             value={prefs.showMessageStatistics}
             onToggle={handleToggle("showMessageStatistics")}
           />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
           <SettingsRow
             variant="toggle"
             label="Show Model Provider"
             description="Display provider name alongside model"
             value={prefs.showModelProvider}
             onToggle={handleToggle("showModelProvider")}
-          />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
           />
           <SettingsRow
             variant="toggle"
@@ -358,13 +272,6 @@ export default function SettingsScreen() {
             value={prefs.alwaysShowMessageActions}
             onToggle={handleToggle("alwaysShowMessageActions")}
           />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
           <SettingsRow
             variant="toggle"
             label="Auto-Compress Context"
@@ -372,26 +279,12 @@ export default function SettingsScreen() {
             value={prefs.autoCompressContext}
             onToggle={handleToggle("autoCompressContext")}
           />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
           <SettingsRow
             variant="toggle"
             label="Haptic Feedback"
             description="Vibration feedback for interactions"
             value={prefs.hapticFeedbackEnabled}
             onToggle={handleToggle("hapticFeedbackEnabled")}
-          />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
           />
           <SettingsRow
             variant="toggle"
@@ -411,26 +304,12 @@ export default function SettingsScreen() {
             value={prefs.reasoning.showByDefault}
             onToggle={handleReasoningToggle("showByDefault")}
           />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
-          />
           <SettingsRow
             variant="toggle"
             label="Auto-Expand"
             description="Automatically expand reasoning sections"
             value={prefs.reasoning.autoExpand}
             onToggle={handleReasoningToggle("autoExpand")}
-          />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
           />
           <SettingsRow
             variant="toggle"
@@ -532,6 +411,13 @@ export default function SettingsScreen() {
           />
         </SettingsSection>
       </ScrollView>
+
+      <ModelPicker
+        isOpen={isModelPickerOpen}
+        onClose={() => setIsModelPickerOpen(false)}
+        selectedModel={prefs.defaultModel}
+        onSelectModel={handleModelPickerSelect}
+      />
     </SafeAreaView>
   );
 }

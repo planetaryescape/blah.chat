@@ -1,0 +1,218 @@
+{
+  "id": "conv_persona_024_session_02",
+  "personaId": "persona_024",
+  "sessionNumber": 2,
+  "timestamp": 1768434307859,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Good morning. I've spent the early hours in my workshop today, finally addressing the escapement on a 1950s Patek Philippe watch I've been meaning to fix.",
+      "timestamp": 1768434307859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m1_e1",
+          "type": "factual",
+          "statement": "Marcus is restoring a 1950s Patek Philippe watch.",
+          "importance": 0.7,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_024_s2_m1_e2",
+          "type": "temporal",
+          "statement": "Marcus spent the early hours of today in his workshop.",
+          "importance": 0.4,
+          "category": "schedule"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Restoration requires a certain stillness of mind. It's much like climbing a sheer rock face; one must respect the structure as it is, not as one wishes it to be.",
+      "timestamp": 1768434907859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m2_e1",
+          "type": "preference",
+          "statement": "Marcus enjoys rock climbing.",
+          "importance": 0.8,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_024_s2_m2_e2",
+          "type": "opinion",
+          "statement": "Marcus believes restoration requires stillness and respect for existing structures.",
+          "importance": 0.6,
+          "category": "philosophy"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I have a consultation at the old courthouse downtown at 2:00 PM tomorrow. The masonry is crumbling, and they need a full structural assessment to preserve the original facade.",
+      "timestamp": 1768435507859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m3_e1",
+          "type": "factual",
+          "statement": "Marcus is conducting a structural assessment of the old courthouse.",
+          "importance": 0.9,
+          "category": "work"
+        },
+        {
+          "id": "persona_024_s2_m3_e2",
+          "type": "temporal",
+          "statement": "Marcus has a consultation tomorrow at 2:00 PM.",
+          "importance": 0.5,
+          "category": "schedule"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I prefer using hand-planed oak for these specific joints. Modern power tools lack the tactile feedback necessary for a truly seamless fit in historical wood restoration.",
+      "timestamp": 1768436107859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m4_e1",
+          "type": "preference",
+          "statement": "Marcus prefers using hand-planed oak and manual tools for woodworking.",
+          "importance": 0.7,
+          "category": "craftsmanship"
+        },
+        {
+          "id": "persona_024_s2_m4_e2",
+          "type": "factual",
+          "statement": "Marcus uses hand-planed oak for specific joinery.",
+          "importance": 0.5,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "It's a shame how many mid-century facades are being stripped for glass and steel. We are losing the character of our city's history with every 'modernized' building.",
+      "timestamp": 1768436707859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m5_e1",
+          "type": "opinion",
+          "statement": "Marcus believes modern architectural trends are destroying historical city character.",
+          "importance": 0.8,
+          "category": "architecture"
+        },
+        {
+          "id": "persona_024_s2_m5_e2",
+          "type": "factual",
+          "statement": "Mid-century facades are frequently replaced with glass and steel.",
+          "importance": 0.3,
+          "category": "architecture"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I picked up a rare pressing of Miles Davis's 'Kind of Blue' last night. The mono recording has a depth that digital files simply cannot replicate for a listener.",
+      "timestamp": 1768437307859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m6_e1",
+          "type": "preference",
+          "statement": "Marcus prefers jazz vinyl, specifically mono recordings, over digital files.",
+          "importance": 0.7,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_024_s2_m6_e2",
+          "type": "temporal",
+          "statement": "Marcus purchased a Miles Davis record last night.",
+          "importance": 0.4,
+          "category": "lifestyle"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I will be out of the office all next week for a climbing trip in the Dolomites. I find the verticality of that landscape helps clear my mind for the precision work ahead.",
+      "timestamp": 1768437907859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m7_e1",
+          "type": "temporal",
+          "statement": "Marcus is going to the Dolomites next week.",
+          "importance": 0.6,
+          "category": "travel"
+        },
+        {
+          "id": "persona_024_s2_m7_e2",
+          "type": "factual",
+          "statement": "Marcus travels to the Dolomites for rock climbing.",
+          "importance": 0.7,
+          "category": "hobby"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "The Leica M3 I use for my architectural photography is currently being serviced. I have owned that particular camera for nearly twenty years.",
+      "timestamp": 1768438507859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m8_e1",
+          "type": "factual",
+          "statement": "Marcus uses a Leica M3 for architectural photography.",
+          "importance": 0.6,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_024_s2_m8_e2",
+          "type": "temporal",
+          "statement": "Marcus has owned his Leica M3 for nearly twenty years.",
+          "importance": 0.5,
+          "category": "history"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "There is an inherent honesty in well-aged cedar. It tells the story of the environment it survived, which is why I use it for my custom furniture pieces.",
+      "timestamp": 1768439107859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m9_e1",
+          "type": "preference",
+          "statement": "Marcus likes using well-aged cedar for furniture.",
+          "importance": 0.6,
+          "category": "craftsmanship"
+        },
+        {
+          "id": "persona_024_s2_m9_e2",
+          "type": "opinion",
+          "statement": "Marcus believes aged wood has an 'inherent honesty' reflecting its history.",
+          "importance": 0.5,
+          "category": "philosophy"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Lately, I've been teaching myself a piece by Francisco Tárrega on the classical guitar. The fingerwork is as intricate as any watch movement I've ever repaired.",
+      "timestamp": 1768439707859,
+      "evidence": [
+        {
+          "id": "persona_024_s2_m10_e1",
+          "type": "factual",
+          "statement": "Marcus plays classical guitar and is learning Tárrega.",
+          "importance": 0.7,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_024_s2_m10_e2",
+          "type": "factual",
+          "statement": "Marcus repairs watch movements.",
+          "importance": 0.8,
+          "category": "hobby"
+        }
+      ]
+    }
+  ]
+}

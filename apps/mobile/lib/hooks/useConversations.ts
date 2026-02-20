@@ -41,6 +41,12 @@ export function useConversations(projectId?: string | null) {
       const result = await client.listConversations({
         limit: 200,
         archived: false,
+        projectId:
+          projectId === "none"
+            ? "none"
+            : projectId
+              ? (projectId as Id<"projects">)
+              : undefined,
       });
       return result.items as Conversation[];
     },

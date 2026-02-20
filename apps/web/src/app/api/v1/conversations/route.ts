@@ -48,12 +48,14 @@ async function getHandler(
 
   const limit = Number.parseInt(getQueryParam(req, "limit") || "50", 10);
   const archived = getQueryParam(req, "archived") === "true";
+  const projectId = getQueryParam(req, "projectId");
 
   const conversations = await conversationsDAL.list(
     userId,
     limit,
     archived,
     sessionToken,
+    projectId,
   );
 
   const duration = performance.now() - startTime;

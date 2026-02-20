@@ -5,6 +5,7 @@ import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useSiblings, useSwitchBranch } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { markBranchTransition } from "./branchTransition";
 
 type Message = Doc<"messages">;
 
@@ -41,6 +42,7 @@ function SiblingNavigatorComponent({
     const targetSibling = siblings[targetIndex];
     if (targetSibling) {
       haptic.selection();
+      markBranchTransition();
       await switchBranch({
         conversationId,
         targetMessageId: targetSibling._id,

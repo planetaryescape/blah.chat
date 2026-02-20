@@ -1,12 +1,10 @@
 import { getMobileModels } from "@blah-chat/ai";
 import Clipboard from "@react-native-clipboard/clipboard";
-import { DrawerActions } from "@react-navigation/native";
 import { toast } from "burnt";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Menu, SquarePen } from "lucide-react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ChevronDown, SquarePen } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -18,11 +16,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ChatInput,
   type ChatInputRef,
+  type ChatInputSendPayload,
   EditMessageModal,
   MessageActionSheet,
   MessageList,
+  MessageListSkeleton,
 } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
@@ -39,11 +40,22 @@ import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 type Message = Doc<"messages">;
 
+const DEDUP_WINDOW_MS = 30000;
+
 export default function ChatScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, messageId } = useLocalSearchParams<{
+    id: string;
+    messageId?: string | string[];
+  }>();
   const conversationId = id as Id<"conversations">;
+  const focusMessageId = useMemo(() => {
+    if (!messageId) return null;
+    if (Array.isArray(messageId)) {
+      return (messageId[0] ?? null) as Id<"messages"> | null;
+    }
+    return messageId as Id<"messages">;
+  }, [messageId]);
 
   const conversation = useConversation(conversationId);
   const messages = useMessages(conversationId);
@@ -76,31 +88,22 @@ export default function ChatScreen() {
   const isLoading = conversation === undefined || messages === undefined;
   const hasError = conversation === null;
 
-  const prevMsgCountRef = useRef(messages?.length ?? 0);
   const streamingHapticFiredRef = useRef<string | null>(null);
+  const completionHapticRef = useRef<string | null>(null);
 
+  // Haptic on assistant completion (replaces eager-clear effect)
   useEffect(() => {
     if (!messages) return;
-
-    const currentCount = messages.length;
-    const prevCount = prevMsgCountRef.current;
-
-    if (currentCount > prevCount && optimisticMessages.length > 0) {
-      const latestMessage = messages[messages.length - 1];
-      const hasOptimisticAssistant = optimisticMessages.some(
-        (m) => m.role === "assistant",
-      );
-
-      if (hasOptimisticAssistant && latestMessage?.role === "assistant") {
-        if (latestMessage.status === "complete") {
-          haptic.success();
-        }
-        setOptimisticMessages([]);
-      }
+    const latest = messages[messages.length - 1];
+    if (
+      latest?.role === "assistant" &&
+      latest.status === "complete" &&
+      completionHapticRef.current !== latest._id
+    ) {
+      haptic.success();
+      completionHapticRef.current = latest._id;
     }
-
-    prevMsgCountRef.current = currentCount;
-  }, [messages, optimisticMessages]);
+  }, [messages]);
 
   useEffect(() => {
     if (!messages) return;
@@ -118,10 +121,12 @@ export default function ChatScreen() {
 
   useEffect(() => {
     streamingHapticFiredRef.current = null;
+    completionHapticRef.current = null;
+    setOptimisticMessages([]);
   }, [conversationId]);
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async ({ content, attachments }: ChatInputSendPayload) => {
       if (isSending || !conversationId) return;
       setIsSending(true);
 
@@ -168,6 +173,7 @@ export default function ChatScreen() {
           conversationId,
           content,
           modelId: selectedModel,
+          attachments,
         });
 
         // Keep input focused after send
@@ -182,11 +188,6 @@ export default function ChatScreen() {
     },
     [conversationId, sendMessage, selectedModel, isSending],
   );
-
-  const handleOpenDrawer = useCallback(() => {
-    haptic.light();
-    navigation.dispatch(DrawerActions.openDrawer());
-  }, [navigation]);
 
   const handleModelSelect = useCallback(
     async (modelId: string) => {
@@ -325,17 +326,93 @@ export default function ChatScreen() {
     [deleteMessage],
   );
 
+  const currentMessages = (messages ?? []) as Message[];
+
+  const messageKeys = useMemo(() => {
+    if (currentMessages.length === 0) return new Set<string>();
+    return new Set(
+      currentMessages.map((m: Message) => {
+        const timeBucket = Math.floor(m.createdAt / DEDUP_WINDOW_MS);
+        if (m.role === "user") {
+          return `user:${m.content?.slice(0, 50)}:${timeBucket}`;
+        }
+        return `assistant:${timeBucket}`;
+      }),
+    );
+  }, [currentMessages]);
+
+  const filteredOptimistic = useMemo(
+    () =>
+      optimisticMessages.filter((opt) => {
+        const timeBucket = Math.floor(opt.createdAt / DEDUP_WINDOW_MS);
+        if (opt.role === "user") {
+          const key = `user:${opt.content?.slice(0, 50)}:${timeBucket}`;
+          return !messageKeys.has(key);
+        }
+        const key = `assistant:${timeBucket}`;
+        return !messageKeys.has(key);
+      }),
+    [optimisticMessages, messageKeys],
+  );
+
+  const newChatButton = (
+    <TouchableOpacity
+      onPress={() => {
+        haptic.light();
+        router.push("/(drawer)/chat/new");
+      }}
+      style={{ padding: spacing.xs }}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <SquarePen size={22} color={palette.starlight} />
+    </TouchableOpacity>
+  );
+
+  const modelBadge = (
+    <TouchableOpacity
+      onPress={() => {
+        haptic.light();
+        setIsModelPickerOpen(true);
+      }}
+      style={{
+        alignSelf: "flex-start",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.xs,
+        backgroundColor: palette.glassLow,
+        borderRadius: layout.radius.full,
+        borderWidth: 1,
+        borderColor: palette.glassBorder,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: typography.body,
+          fontSize: 11,
+          color: palette.starlight,
+        }}
+      >
+        {selectedModelConfig?.name || selectedModel}
+      </Text>
+      <ChevronDown size={12} color={palette.starlightDim} />
+    </TouchableOpacity>
+  );
+
   if (isLoading) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: palette.void }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         edges={["top"]}
       >
-        <View
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-        >
-          <ActivityIndicator size="large" color={palette.roseQuartz} />
-        </View>
+        <ScreenHeader
+          title="Chat"
+          leftAction="menu"
+          rightAction={newChatButton}
+          subtitle={modelBadge}
+        />
+        <MessageListSkeleton />
       </SafeAreaView>
     );
   }
@@ -343,7 +420,7 @@ export default function ChatScreen() {
   if (hasError) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: palette.void }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         edges={["top"]}
       >
         <View
@@ -392,98 +469,29 @@ export default function ChatScreen() {
     );
   }
 
-  const DEDUP_WINDOW_MS = 30000;
-  const WINDOW_BUCKET = DEDUP_WINDOW_MS;
-  const currentMessages = (messages ?? []) as Message[];
-
-  const messageKeys = useMemo(() => {
-    if (currentMessages.length === 0) return new Set<string>();
-    return new Set(
-      currentMessages.map((m: Message) => {
-        const timeBucket = Math.floor(m.createdAt / WINDOW_BUCKET);
-        if (m.role === "user") {
-          return `user:${m.content?.slice(0, 50)}:${timeBucket}`;
-        }
-        return `assistant:${timeBucket}`;
-      }),
-    );
-  }, [currentMessages]);
-
-  const filteredOptimistic = useMemo(
-    () =>
-      optimisticMessages.filter((opt) => {
-        const timeBucket = Math.floor(opt.createdAt / WINDOW_BUCKET);
-        if (opt.role === "user") {
-          const key = `user:${opt.content?.slice(0, 50)}:${timeBucket}`;
-          return !messageKeys.has(key);
-        }
-        const key = `assistant:${timeBucket}`;
-        return !messageKeys.has(key);
-      }),
-    [optimisticMessages, messageKeys],
-  );
-
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.void }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: palette.void }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
-            borderBottomWidth: 1,
-            borderBottomColor: palette.glassBorder,
-            height: layout.headerHeight,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              haptic.light();
-              handleOpenDrawer();
-            }}
-            style={{ padding: spacing.xs }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Menu size={24} color={palette.starlight} />
-          </TouchableOpacity>
-          <View style={{ flex: 1, marginLeft: spacing.sm }}>
-            <Text
-              numberOfLines={1}
-              style={{
-                fontFamily: typography.heading,
-                fontSize: 16,
-                color: palette.starlight,
-              }}
-            >
-              {conversation.title}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              haptic.light();
-              router.push("/(drawer)/chat/new");
-            }}
-            style={{ padding: spacing.xs }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <SquarePen size={22} color={palette.starlight} />
-          </TouchableOpacity>
-        </View>
+        <ScreenHeader
+          title={conversation.title}
+          leftAction="menu"
+          rightAction={newChatButton}
+          subtitle={modelBadge}
+        />
 
         {/* Messages */}
         <MessageList
           messages={messages || []}
           conversationId={conversationId}
           optimisticMessages={filteredOptimistic}
+          focusMessageId={focusMessageId}
           onMorePress={handleMessageLongPress}
           onEdit={handleEdit}
           onRegenerate={handleRegenerate}
@@ -494,8 +502,8 @@ export default function ChatScreen() {
         <ChatInput
           ref={chatInputRef}
           onSend={handleSend}
-          onModelPress={() => setIsModelPickerOpen(true)}
           modelName={selectedModelConfig?.name || selectedModel}
+          conversationId={conversationId}
           disabled={isSending}
           isSending={isSending}
         />

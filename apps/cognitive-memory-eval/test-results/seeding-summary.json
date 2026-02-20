@@ -1,0 +1,107 @@
+{
+  "at": 1770855777139,
+  "profile": "standard",
+  "personas": 24,
+  "counts": {
+    "basic": 1758,
+    "cognitive": 1758
+  },
+  "byPersona": {
+    "persona_001": {
+      "basic": 81,
+      "cognitive": 81
+    },
+    "persona_002": {
+      "basic": 69,
+      "cognitive": 69
+    },
+    "persona_003": {
+      "basic": 61,
+      "cognitive": 61
+    },
+    "persona_004": {
+      "basic": 62,
+      "cognitive": 62
+    },
+    "persona_005": {
+      "basic": 73,
+      "cognitive": 73
+    },
+    "persona_006": {
+      "basic": 82,
+      "cognitive": 82
+    },
+    "persona_007": {
+      "basic": 66,
+      "cognitive": 66
+    },
+    "persona_008": {
+      "basic": 73,
+      "cognitive": 73
+    },
+    "persona_009": {
+      "basic": 76,
+      "cognitive": 76
+    },
+    "persona_010": {
+      "basic": 72,
+      "cognitive": 72
+    },
+    "persona_011": {
+      "basic": 72,
+      "cognitive": 72
+    },
+    "persona_012": {
+      "basic": 66,
+      "cognitive": 66
+    },
+    "persona_013": {
+      "basic": 76,
+      "cognitive": 76
+    },
+    "persona_014": {
+      "basic": 71,
+      "cognitive": 71
+    },
+    "persona_015": {
+      "basic": 77,
+      "cognitive": 77
+    },
+    "persona_016": {
+      "basic": 78,
+      "cognitive": 78
+    },
+    "persona_017": {
+      "basic": 79,
+      "cognitive": 79
+    },
+    "persona_018": {
+      "basic": 73,
+      "cognitive": 73
+    },
+    "persona_019": {
+      "basic": 76,
+      "cognitive": 76
+    },
+    "persona_020": {
+      "basic": 78,
+      "cognitive": 78
+    },
+    "persona_021": {
+      "basic": 81,
+      "cognitive": 81
+    },
+    "persona_022": {
+      "basic": 72,
+      "cognitive": 72
+    },
+    "persona_023": {
+      "basic": 69,
+      "cognitive": 69
+    },
+    "persona_024": {
+      "basic": 75,
+      "cognitive": 75
+    }
+  }
+}

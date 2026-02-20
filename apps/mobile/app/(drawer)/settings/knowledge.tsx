@@ -1,72 +1,355 @@
-import { useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
-import { Text, View } from "react-native";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useMutation, useQuery } from "convex/react";
+import {
+  FileText,
+  Globe,
+  Loader2,
+  Plus,
+  Trash2,
+  Type,
+  Youtube,
+} from "lucide-react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import { FluidButton } from "@/components/ui/FluidButton";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
+
+const TYPE_ICONS: Record<string, typeof FileText> = {
+  file: FileText,
+  text: Type,
+  web: Globe,
+  youtube: Youtube,
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  completed: palette.success,
+  processing: palette.roseQuartz,
+  pending: palette.starlightDim,
+  failed: palette.error,
+};
 
 export default function KnowledgeBankScreen() {
-  const router = useRouter();
+  const sources = useQuery(api.knowledgeBank.index.list);
+  const createTextSource = useMutation(
+    api.knowledgeBank.index.createTextSource,
+  );
+  const createWebSource = useMutation(api.knowledgeBank.index.createWebSource);
+  const removeSource = useMutation(api.knowledgeBank.index.remove);
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [addType, setAddType] = useState<"text" | "url">("text");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = useCallback(async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    haptic.medium();
+    try {
+      if (addType === "text") {
+        await createTextSource({
+          title: title.trim(),
+          content: content.trim(),
+        });
+      } else {
+        await createWebSource({ url: content.trim(), title: title.trim() });
+      }
+      setTitle("");
+      setContent("");
+      setSheetOpen(false);
+    } catch {
+      Alert.alert("Error", "Failed to add source. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }, [addType, title, content, createTextSource, createWebSource]);
+
+  const handleDelete = useCallback(
+    (sourceId: string) => {
+      Alert.alert("Delete Source", "This cannot be undone.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            haptic.medium();
+            try {
+              await removeSource({ sourceId });
+            } catch {
+              Alert.alert("Error", "Failed to delete source.");
+            }
+          },
+        },
+      ]);
+    },
+    [removeSource],
+  );
+
+  const rightAction = (
+    <TouchableOpacity
+      onPress={() => {
+        haptic.light();
+        setSheetOpen(true);
+      }}
+      style={{ padding: spacing.xs }}
+    >
+      <Plus size={22} color={palette.roseQuartz} />
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.void }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: palette.glassBorder,
-          height: layout.headerHeight,
-          gap: spacing.sm,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            haptic.light();
-            router.back();
-          }}
-          style={{ padding: spacing.xs }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      <ScreenHeader
+        title="Knowledge Bank"
+        leftAction="back"
+        rightAction={rightAction}
+      />
+
+      {/* Source List */}
+      {sources === undefined ? (
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <ArrowLeft size={24} color={palette.starlight} />
-        </TouchableOpacity>
-        <Text
+          <ActivityIndicator size="large" color={palette.roseQuartz} />
+        </View>
+      ) : sources.length === 0 ? (
+        <View
           style={{
             flex: 1,
-            fontFamily: typography.heading,
-            fontSize: 18,
-            color: palette.starlight,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: spacing.xl,
           }}
         >
-          Knowledge Bank
-        </Text>
-      </View>
+          <FileText size={48} color={palette.starlightDim} strokeWidth={1.5} />
+          <Text
+            style={{
+              fontFamily: typography.heading,
+              fontSize: 16,
+              color: palette.starlight,
+              marginTop: spacing.md,
+              textAlign: "center",
+            }}
+          >
+            No knowledge sources
+          </Text>
+          <Text
+            style={{
+              fontFamily: typography.body,
+              fontSize: 14,
+              color: palette.starlightDim,
+              marginTop: spacing.xs,
+              textAlign: "center",
+            }}
+          >
+            Add text or web sources to give the AI context about your work.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={sources}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ padding: spacing.md }}
+          renderItem={({ item }) => {
+            const Icon = TYPE_ICONS[item.type] || FileText;
+            const statusColor =
+              STATUS_COLORS[item.status] || palette.starlightDim;
+            return (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: palette.glassLow,
+                  borderRadius: 12,
+                  padding: spacing.md,
+                  marginBottom: spacing.sm,
+                  gap: spacing.sm,
+                }}
+              >
+                <Icon size={20} color={palette.starlightDim} />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: typography.bodyMedium,
+                      fontSize: 14,
+                      color: palette.starlight,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.xs,
+                      marginTop: 2,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: statusColor,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        fontFamily: typography.body,
+                        fontSize: 11,
+                        color: palette.starlightDim,
+                      }}
+                    >
+                      {item.status}
+                      {item.chunkCount ? ` · ${item.chunkCount} chunks` : ""}
+                    </Text>
+                  </View>
+                </View>
+                {item.status === "processing" ? (
+                  <Loader2 size={18} color={palette.roseQuartz} />
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleDelete(item._id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={18} color={palette.error} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          }}
+        />
+      )}
 
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: spacing.xl,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: typography.body,
-            fontSize: 15,
-            color: palette.starlightDim,
-            textAlign: "center",
-          }}
+      {/* Add Source Bottom Sheet */}
+      {sheetOpen && (
+        <BottomSheet
+          enablePanDownToClose
+          snapPoints={["55%"]}
+          onClose={() => setSheetOpen(false)}
+          backgroundStyle={{ backgroundColor: palette.nebula }}
+          handleIndicatorStyle={{ backgroundColor: palette.glassBorder }}
+          backdropComponent={renderStandardBackdrop}
         >
-          Knowledge bank management coming soon.
-        </Text>
-      </View>
+          <BottomSheetScrollView
+            contentContainerStyle={{ padding: spacing.md }}
+          >
+            <Text
+              style={{
+                fontFamily: typography.heading,
+                fontSize: 16,
+                color: palette.starlight,
+                marginBottom: spacing.md,
+              }}
+            >
+              Add Source
+            </Text>
+
+            {/* Type selector */}
+            <View
+              style={{
+                flexDirection: "row",
+                gap: spacing.sm,
+                marginBottom: spacing.md,
+              }}
+            >
+              {(["text", "url"] as const).map((t) => (
+                <AnimatedPressable
+                  key={t}
+                  onPress={() => {
+                    haptic.selection();
+                    setAddType(t);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing.sm,
+                    borderRadius: 8,
+                    backgroundColor:
+                      addType === t ? palette.roseQuartzDim : palette.glassLow,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: typography.bodyMedium,
+                      fontSize: 14,
+                      color:
+                        addType === t
+                          ? palette.starlight
+                          : palette.starlightDim,
+                    }}
+                  >
+                    {t === "text" ? "Text" : "Web URL"}
+                  </Text>
+                </AnimatedPressable>
+              ))}
+            </View>
+
+            <TextInput
+              placeholder="Title"
+              placeholderTextColor={palette.starlightDim}
+              value={title}
+              onChangeText={setTitle}
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                color: palette.starlight,
+                backgroundColor: palette.glassLow,
+                borderRadius: 8,
+                padding: spacing.sm,
+                marginBottom: spacing.sm,
+              }}
+            />
+
+            <TextInput
+              placeholder={addType === "text" ? "Content..." : "https://..."}
+              placeholderTextColor={palette.starlightDim}
+              value={content}
+              onChangeText={setContent}
+              multiline={addType === "text"}
+              numberOfLines={addType === "text" ? 5 : 1}
+              autoCapitalize={addType === "url" ? "none" : "sentences"}
+              keyboardType={addType === "url" ? "url" : "default"}
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                color: palette.starlight,
+                backgroundColor: palette.glassLow,
+                borderRadius: 8,
+                padding: spacing.sm,
+                marginBottom: spacing.md,
+                minHeight: addType === "text" ? 100 : undefined,
+                textAlignVertical: "top",
+              }}
+            />
+
+            <FluidButton
+              title={saving ? "Saving..." : "Add Source"}
+              onPress={handleAdd}
+              disabled={saving || !title.trim() || !content.trim()}
+            />
+          </BottomSheetScrollView>
+        </BottomSheet>
+      )}
     </SafeAreaView>
   );
 }

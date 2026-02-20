@@ -1,0 +1,1461 @@
+[
+  {
+    "id": "q_persona_001_001",
+    "personaId": "persona_001",
+    "question": "How old is Elena Rodriguez?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a basic biographical fact mentioned in the first session."
+  },
+  {
+    "id": "q_persona_001_002",
+    "personaId": "persona_001",
+    "question": "What is Elena's current occupation?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple identification of her job role."
+  },
+  {
+    "id": "q_persona_001_003",
+    "personaId": "persona_001",
+    "question": "What instrument does Elena play?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct fact about her musical hobby."
+  },
+  {
+    "id": "q_persona_001_004",
+    "personaId": "persona_001",
+    "question": "What does Elena collect as a hobby?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Straightforward identification of her collection hobby."
+  },
+  {
+    "id": "q_persona_001_005",
+    "personaId": "persona_001",
+    "question": "Where does Elena live in relation to her interest in gardening?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic fact about her residence location."
+  },
+  {
+    "id": "q_persona_001_006",
+    "personaId": "persona_001",
+    "question": "What is Elena's sourdough starter named?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Specific name of an object she owns."
+  },
+  {
+    "id": "q_persona_001_007",
+    "personaId": "persona_001",
+    "question": "What is Elena's professional focus within urban planning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct statement of her professional specialty."
+  },
+  {
+    "id": "q_persona_001_008",
+    "personaId": "persona_001",
+    "question": "How does Elena commute to her work?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic factual information about her daily routine."
+  },
+  {
+    "id": "q_persona_001_009",
+    "personaId": "persona_001",
+    "question": "What is the title of the construction manual Elena is reading?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m12_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct fact about her current reading material."
+  },
+  {
+    "id": "q_persona_001_010",
+    "personaId": "persona_001",
+    "question": "What specific map did Elena add to her collection in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Specific acquisition fact."
+  },
+  {
+    "id": "q_persona_001_011",
+    "personaId": "persona_001",
+    "question": "What specific map from the 1920s did Elena recently purchase?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying a specific item and its time period."
+  },
+  {
+    "id": "q_persona_001_012",
+    "personaId": "persona_001",
+    "question": "What is the incident rate location Elena is concerned about for the bike corridor?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying a specific intersection mentioned in a professional context."
+  },
+  {
+    "id": "q_persona_001_013",
+    "personaId": "persona_001",
+    "question": "What are the specific years of experience Elena has in her field?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m1_e3", "persona_001_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Cross-referencing the same fact across two sessions."
+  },
+  {
+    "id": "q_persona_001_014",
+    "personaId": "persona_001",
+    "question": "What are Elena's primary professional interests according to her persona and session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m10_e2", "persona_001_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Combining personal values with professional focus."
+  },
+  {
+    "id": "q_persona_001_015",
+    "personaId": "persona_001",
+    "question": "What specific nautical charts is Elena researching in the archives?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying specific historical research details."
+  },
+  {
+    "id": "q_persona_001_016",
+    "personaId": "persona_001",
+    "question": "What is the exact percentage of affordable housing Elena advocates for in redevelopments?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Recalling a specific numerical value from her opinions."
+  },
+  {
+    "id": "q_persona_001_017",
+    "personaId": "persona_001",
+    "question": "What project is Elena drafting on 5th Street?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific project location and type."
+  },
+  {
+    "id": "q_persona_001_018",
+    "personaId": "persona_001",
+    "question": "What specific map did Elena acquire in session 4 regarding city infrastructure?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific historical infrastructure map."
+  },
+  {
+    "id": "q_persona_001_019",
+    "personaId": "persona_001",
+    "question": "Where is Elena traveling for her hiking trip in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific travel destination."
+  },
+  {
+    "id": "q_persona_001_020",
+    "personaId": "persona_001",
+    "question": "What specific data is Elena cross-referencing for her zoning report?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying specific technical tasks."
+  },
+  {
+    "id": "q_persona_001_021",
+    "personaId": "persona_001",
+    "question": "What year has the city set for its climate goals?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific target year mentioned."
+  },
+  {
+    "id": "q_persona_001_022",
+    "personaId": "persona_001",
+    "question": "What is the focus of Elena's map collection according to session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Identifying the specific theme of her collection."
+  },
+  {
+    "id": "q_persona_001_023",
+    "personaId": "persona_001",
+    "question": "What is Elena currently reviewing regarding the east side?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific work task and location."
+  },
+  {
+    "id": "q_persona_001_024",
+    "personaId": "persona_001",
+    "question": "What kind of development draft is Elena reviewing in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a specific type of urban planning document."
+  },
+  {
+    "id": "q_persona_001_025",
+    "personaId": "persona_001",
+    "question": "What specific hobby session does Elena have scheduled at 5:30 PM?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Linking a time to a specific activity."
+  },
+  {
+    "id": "q_persona_001_026",
+    "personaId": "persona_001",
+    "question": "What is the status of Elena's sourdough starter in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying the condition of her starter after a period of time."
+  },
+  {
+    "id": "q_persona_001_027",
+    "personaId": "persona_001",
+    "question": "What specific cycling distance did Elena complete recently?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific numerical achievement in her hobby."
+  },
+  {
+    "id": "q_persona_001_028",
+    "personaId": "persona_001",
+    "question": "What is the location of the new sustainable housing complex mentioned in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying the location of a specific development."
+  },
+  {
+    "id": "q_persona_001_029",
+    "personaId": "persona_001",
+    "question": "What specific intersection data is Elena using to justify safety priorities in the bike corridor?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m2_e1", "persona_001_s3_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Connecting data to a specific project goal."
+  },
+  {
+    "id": "q_persona_001_030",
+    "personaId": "persona_001",
+    "question": "What are the three distinct historical maps Elena has acquired or researched across sessions 2, 3, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_001_s2_m2_e2",
+      "persona_001_s3_m8_e1",
+      "persona_001_s4_m6_e1"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires aggregating specific items mentioned across multiple sessions."
+  },
+  {
+    "id": "q_persona_001_031",
+    "personaId": "persona_001",
+    "question": "How does Elena's sourdough starter's name in session 3 relate to its activity status in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m3_e1", "persona_001_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Linking a name from one session to a status update in another."
+  },
+  {
+    "id": "q_persona_001_032",
+    "personaId": "persona_001",
+    "question": "What are the specific professional tasks Elena mentions in session 4, and how do they relate to her focus on equity?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_001_s4_m1_e1",
+      "persona_001_s4_m1_e2",
+      "persona_001_s4_m2_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Identifying multiple tasks and their underlying value system."
+  },
+  {
+    "id": "q_persona_001_033",
+    "personaId": "persona_001",
+    "question": "List all the specific historical periods of maps Elena has expressed interest in or acquired across all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_001_s2_m2_e2",
+      "persona_001_s3_m1_e1",
+      "persona_001_s3_m8_e1",
+      "persona_001_s4_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Comprehensive extraction of dates/periods across the entire history."
+  },
+  {
+    "id": "q_persona_001_034",
+    "personaId": "persona_001",
+    "question": "What are the specific locations mentioned for Elena's hiking trips in sessions 2 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m8_e2", "persona_001_s4_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Comparing specific geographic details across different sessions."
+  },
+  {
+    "id": "q_persona_001_035",
+    "personaId": "persona_001",
+    "question": "What specific technical documents or data sources is Elena using for her work in sessions 2, 3, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_001_s2_m12_e1",
+      "persona_001_s3_m2_e1",
+      "persona_001_s4_m2_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Aggregating technical resources used by the persona across time."
+  },
+  {
+    "id": "q_persona_001_036",
+    "personaId": "persona_001",
+    "question": "In which sessions does Elena mention her sourdough starter, and what specific details are provided about its status or name in those instances?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_001_s2_m4_e1",
+      "persona_001_s2_m4_e2",
+      "persona_001_s3_m3_e1",
+      "persona_001_s4_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Tracking a specific object's narrative across multiple sessions."
+  },
+  {
+    "id": "q_persona_001_037",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's guitar practice habits as mentioned in sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m6_e2", "persona_001_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Comparing specific duration and frequency details across sessions."
+  },
+  {
+    "id": "q_persona_001_038",
+    "personaId": "persona_001",
+    "question": "What specific urban planning projects is Elena working on that involve 5th Street or 5th and Main?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m2_e2", "persona_001_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Identifying projects linked by a specific geographic location."
+  },
+  {
+    "id": "q_persona_001_039",
+    "personaId": "persona_001",
+    "question": "What are the specific professional goals Elena has for the upcoming week as of session 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m2_e1", "persona_001_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Synthesizing a schedule of goals from multiple future-oriented statements."
+  },
+  {
+    "id": "q_persona_001_040",
+    "personaId": "persona_001",
+    "question": "Which specific historical maps in Elena's collection are related to transit or infrastructure?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_001_s1_m3_e2",
+      "persona_001_s3_m8_e1",
+      "persona_001_s4_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Categorizing collection items by theme across sessions."
+  },
+  {
+    "id": "q_persona_001_041",
+    "personaId": "persona_001",
+    "question": "What are the specific details of the community garden project mentioned in sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m7_e1", "persona_001_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Combining meeting information with project drafting information."
+  },
+  {
+    "id": "q_persona_001_042",
+    "personaId": "persona_001",
+    "question": "What specific evidence does Elena cite for the need for safety in the downtown bike corridor?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m2_e1", "persona_001_s3_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Linking data evidence to a specific professional recommendation."
+  },
+  {
+    "id": "q_persona_001_043",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's upcoming hiking trip as described in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m8_e1", "persona_001_s4_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Combining timing and location for a complete picture of a plan."
+  },
+  {
+    "id": "q_persona_001_044",
+    "personaId": "persona_001",
+    "question": "What are the specific zoning and housing requirements Elena mentions in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m9_e1", "persona_001_s3_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Combining a task with a specific policy requirement."
+  },
+  {
+    "id": "q_persona_001_045",
+    "personaId": "persona_001",
+    "question": "What specific map did Elena research in session 3 and what was its origin?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Detailing a specific research activity."
+  },
+  {
+    "id": "q_persona_001_046",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's morning routine mentioned in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s4_m5_e2", "persona_001_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Synthesizing routine information from different messages."
+  },
+  {
+    "id": "q_persona_001_047",
+    "personaId": "persona_001",
+    "question": "What specific map acquisitions are mentioned in sessions 2 and 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s2_m2_e2", "persona_001_s3_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Identifying specific acquisitions across different time points."
+  },
+  {
+    "id": "q_persona_001_048",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's professional focus as described in sessions 1 and 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s1_m5_e1", "persona_001_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Synthesizing her core professional identity from multiple sessions."
+  },
+  {
+    "id": "q_persona_001_049",
+    "personaId": "persona_001",
+    "question": "What specific transit-related map did Elena acquire in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_001_s3_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific item by its theme and session."
+  },
+  {
+    "id": "q_persona_001_050",
+    "personaId": "persona_001",
+    "question": "How many years of experience does Elena have?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m1_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic temporal fact about her career."
+  },
+  {
+    "id": "q_persona_001_051",
+    "personaId": "persona_001",
+    "question": "How long is Elena's daily bike commute?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic temporal fact about her daily routine."
+  },
+  {
+    "id": "q_persona_001_052",
+    "personaId": "persona_001",
+    "question": "Since when has Elena played the guitar?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic temporal fact about her hobby history."
+  },
+  {
+    "id": "q_persona_001_053",
+    "personaId": "persona_001",
+    "question": "When is Elena's hiking trip planned for in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic future temporal reference."
+  },
+  {
+    "id": "q_persona_001_054",
+    "personaId": "persona_001",
+    "question": "When is the community garden meeting today?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Direct time reference for an event."
+  },
+  {
+    "id": "q_persona_001_055",
+    "personaId": "persona_001",
+    "question": "When is Elena's zoning report due?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Direct deadline reference."
+  },
+  {
+    "id": "q_persona_001_056",
+    "personaId": "persona_001",
+    "question": "When does Elena have a guitar session today?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a specific time for a recurring activity."
+  },
+  {
+    "id": "q_persona_001_057",
+    "personaId": "persona_001",
+    "question": "How long did Elena spend on her hobby this morning in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s2_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a specific duration of time spent."
+  },
+  {
+    "id": "q_persona_001_058",
+    "personaId": "persona_001",
+    "question": "When did Elena check her sourdough starter in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s2_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a specific past time reference."
+  },
+  {
+    "id": "q_persona_001_059",
+    "personaId": "persona_001",
+    "question": "When is the hiking trip planned for in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a specific holiday-related timeframe."
+  },
+  {
+    "id": "q_persona_001_060",
+    "personaId": "persona_001",
+    "question": "When did the incident data at 5th and Main occur?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m2_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying the time period for a specific data set."
+  },
+  {
+    "id": "q_persona_001_061",
+    "personaId": "persona_001",
+    "question": "When is Elena planning to hike in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific day and time for a plan."
+  },
+  {
+    "id": "q_persona_001_062",
+    "personaId": "persona_001",
+    "question": "How long did Elena practice guitar last night in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific duration from the previous night."
+  },
+  {
+    "id": "q_persona_001_063",
+    "personaId": "persona_001",
+    "question": "When does the spring planting season begin?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a future seasonal start date."
+  },
+  {
+    "id": "q_persona_001_064",
+    "personaId": "persona_001",
+    "question": "When does Elena want to meet next in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific day for a future meeting."
+  },
+  {
+    "id": "q_persona_001_065",
+    "personaId": "persona_001",
+    "question": "When did Elena complete her 40-kilometer cycle?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific past day for an achievement."
+  },
+  {
+    "id": "q_persona_001_066",
+    "personaId": "persona_001",
+    "question": "How long was Elena's sourdough starter dormant?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific duration of inactivity."
+  },
+  {
+    "id": "q_persona_001_067",
+    "personaId": "persona_001",
+    "question": "How long does Elena practice guitar every evening?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a daily routine duration."
+  },
+  {
+    "id": "q_persona_001_068",
+    "personaId": "persona_001",
+    "question": "When does Elena's three-day hiking trip start in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific day for a multi-day trip."
+  },
+  {
+    "id": "q_persona_001_069",
+    "personaId": "persona_001",
+    "question": "What time must Elena be at city hall in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific time for a professional commitment."
+  },
+  {
+    "id": "q_persona_001_070",
+    "personaId": "persona_001",
+    "question": "Compare the timing of Elena's hiking plans mentioned in sessions 1, 2, and 4.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_001_s1_m9_e1",
+      "persona_001_s2_m8_e1",
+      "persona_001_s4_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Requires tracking and comparing temporal plans across multiple sessions."
+  },
+  {
+    "id": "q_persona_001_071",
+    "personaId": "persona_001",
+    "question": "Based on session 4, what is Elena's schedule for this coming Thursday through Friday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m2_e1", "persona_001_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Synthesizing multiple deadlines and plans into a single timeline."
+  },
+  {
+    "id": "q_persona_001_072",
+    "personaId": "persona_001",
+    "question": "How has Elena's sourdough-related timing changed between session 2 and session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s2_m4_e1", "persona_001_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Tracking the state and timing of a hobby across sessions."
+  },
+  {
+    "id": "q_persona_001_073",
+    "personaId": "persona_001",
+    "question": "What are all the specific times mentioned for Elena's activities in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m2_e1", "persona_001_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Aggregating all specific time references in a single session."
+  },
+  {
+    "id": "q_persona_001_074",
+    "personaId": "persona_001",
+    "question": "How do Elena's guitar practice durations compare between session 3 and session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m6_e2", "persona_001_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Comparing specific time durations across different sessions."
+  },
+  {
+    "id": "q_persona_001_075",
+    "personaId": "persona_001",
+    "question": "What is the chronological order of the historical maps Elena acquired or researched, based on the sessions they were mentioned?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_001_s2_m2_e2",
+      "persona_001_s3_m8_e1",
+      "persona_001_s4_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Ordering events based on session progression."
+  },
+  {
+    "id": "q_persona_001_076",
+    "personaId": "persona_001",
+    "question": "Considering her schedule across sessions 2, 3, and 4, what are the three specific times or days Elena has blocked out for professional meetings or deadlines?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_001_s2_m5_e1",
+      "persona_001_s4_m2_e1",
+      "persona_001_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Synthesizing professional time commitments from multiple sessions."
+  },
+  {
+    "id": "q_persona_001_077",
+    "personaId": "persona_001",
+    "question": "When did Elena's sourdough starter transition from dormant to active?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a temporal transition within a single piece of evidence."
+  },
+  {
+    "id": "q_persona_001_078",
+    "personaId": "persona_001",
+    "question": "What are the specific future dates or seasons mentioned for gardening and hiking in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m4_e1", "persona_001_s3_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Aggregating future temporal references within a session."
+  },
+  {
+    "id": "q_persona_001_079",
+    "personaId": "persona_001",
+    "question": "How many years of professional experience did Elena have in session 1, and how does this compare to her status in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m1_e3", "persona_001_s2_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Verifying temporal consistency across sessions."
+  },
+  {
+    "id": "q_persona_001_080",
+    "personaId": "persona_001",
+    "question": "What is the sequence of Elena's planned activities for the upcoming weekend as of session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m6_e2", "persona_001_s1_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Ordering planned events within a single session's context."
+  },
+  {
+    "id": "q_persona_001_081",
+    "personaId": "persona_001",
+    "question": "What are the specific temporal details of Elena's cycling and hiking activities in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s4_m3_e1", "persona_001_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Aggregating past and future temporal references for physical activities."
+  },
+  {
+    "id": "q_persona_001_082",
+    "personaId": "persona_001",
+    "question": "When was the incident data collected that Elena is using for her downtown bike corridor draft?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s3_m2_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Identifying the specific timeframe of data used in a report."
+  },
+  {
+    "id": "q_persona_001_083",
+    "personaId": "persona_001",
+    "question": "How long does Elena spend on her commute and guitar practice combined, based on sessions 1 and 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s1_m4_e2", "persona_001_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Summing durations from different sessions."
+  },
+  {
+    "id": "q_persona_001_084",
+    "personaId": "persona_001",
+    "question": "What are the specific times mentioned for Elena's guitar-related activities in sessions 2 and 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_001_s2_m5_e1", "persona_001_s3_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Aggregating time references for a specific hobby across sessions."
+  },
+  {
+    "id": "q_persona_001_085",
+    "personaId": "persona_001",
+    "question": "Does Elena prefer email or phone calls for professional updates?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Basic preference stated in the persona/session 1."
+  },
+  {
+    "id": "q_persona_001_086",
+    "personaId": "persona_001",
+    "question": "What kind of sourdough proofing method does Elena prefer?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m4_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct statement of preference for a hobby method."
+  },
+  {
+    "id": "q_persona_001_087",
+    "personaId": "persona_001",
+    "question": "Does Elena enjoy being outdoors?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s1_m9_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "General preference/interest."
+  },
+  {
+    "id": "q_persona_001_088",
+    "personaId": "persona_001",
+    "question": "What kind of plant species does Elena prefer for gardens?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m11_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct statement of preference for a specific type of plant."
+  },
+  {
+    "id": "q_persona_001_089",
+    "personaId": "persona_001",
+    "question": "Does Elena prefer structured or unstructured email updates?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct preference for communication style."
+  },
+  {
+    "id": "q_persona_001_090",
+    "personaId": "persona_001",
+    "question": "What map typography does Elena appreciate?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Direct statement of aesthetic preference."
+  },
+  {
+    "id": "q_persona_001_091",
+    "personaId": "persona_001",
+    "question": "What kind of documentation does Elena value?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s1_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Identifying a preference for a specific style of work."
+  },
+  {
+    "id": "q_persona_001_092",
+    "personaId": "persona_001",
+    "question": "Why does Elena prefer the northern cycling route?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying the reason behind a specific preference."
+  },
+  {
+    "id": "q_persona_001_093",
+    "personaId": "persona_001",
+    "question": "What does Elena value regarding water conservation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m11_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying core values related to environmentalism."
+  },
+  {
+    "id": "q_persona_001_094",
+    "personaId": "persona_001",
+    "question": "What level of detail does Elena prefer in nautical charts?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific historical preference."
+  },
+  {
+    "id": "q_persona_001_095",
+    "personaId": "persona_001",
+    "question": "What does Elena track regarding her sourdough starter?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a preference for a specific hobby activity."
+  },
+  {
+    "id": "q_persona_001_096",
+    "personaId": "persona_001",
+    "question": "What kind of follow-ups does Elena prefer for her reports?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a professional communication preference."
+  },
+  {
+    "id": "q_persona_001_097",
+    "personaId": "persona_001",
+    "question": "What does Elena want for the community garden on 5th Street?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific project goal/preference."
+  },
+  {
+    "id": "q_persona_001_098",
+    "personaId": "persona_001",
+    "question": "When does Elena enjoy baking sourdough loaves?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a preference for a specific time of day for a hobby."
+  },
+  {
+    "id": "q_persona_001_099",
+    "personaId": "persona_001",
+    "question": "What does Elena use guitar practice for?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a functional preference for a hobby."
+  },
+  {
+    "id": "q_persona_001_100",
+    "personaId": "persona_001",
+    "question": "What kind of support does Elena want for the bike lane extension?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a professional goal/preference."
+  },
+  {
+    "id": "q_persona_001_101",
+    "personaId": "persona_001",
+    "question": "What is Elena's preference regarding protected bike lanes?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a specific urban planning preference."
+  },
+  {
+    "id": "q_persona_001_102",
+    "personaId": "persona_001",
+    "question": "What does Elena believe regarding sustainable architecture priorities?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a professional opinion/preference."
+  },
+  {
+    "id": "q_persona_001_103",
+    "personaId": "persona_001",
+    "question": "What kind of charts does Elena prefer over colonial versions?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a comparative preference in her hobby."
+  },
+  {
+    "id": "q_persona_001_104",
+    "personaId": "persona_001",
+    "question": "What does Elena appreciate about hand-drawn map typography?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific aesthetic appreciation."
+  },
+  {
+    "id": "q_persona_001_105",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for historical cartography styles mentioned in session 3 compare to her critique of modern digital rendering in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m8_e2", "persona_001_s4_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Comparing and synthesizing aesthetic preferences across sessions."
+  },
+  {
+    "id": "q_persona_001_106",
+    "personaId": "persona_001",
+    "question": "What are Elena's preferences for communication and documentation as described across sessions 1, 2, and 3?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_001_s1_m8_e1",
+      "persona_001_s1_m8_e2",
+      "persona_001_s2_m7_e1",
+      "persona_001_s3_m10_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Aggregating a consistent set of preferences across multiple sessions."
+  },
+  {
+    "id": "q_persona_001_107",
+    "personaId": "persona_001",
+    "question": "How do Elena's preferences for gardening in session 2 influence her drafting of the community garden proposal in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m11_e1", "persona_001_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Linking personal gardening preferences to professional project goals."
+  },
+  {
+    "id": "q_persona_001_108",
+    "personaId": "persona_001",
+    "question": "What are the specific sourdough techniques and timings Elena prefers, based on sessions 2 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m4_e3", "persona_001_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Synthesizing a complete picture of a hobby preference from multiple sessions."
+  },
+  {
+    "id": "q_persona_001_109",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for elevation challenges in cycling relate to her choice of routes in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Analyzing the reasoning behind a specific hobby preference."
+  },
+  {
+    "id": "q_persona_001_110",
+    "personaId": "persona_001",
+    "question": "What are Elena's core values regarding sustainable architecture and adaptive reuse as mentioned in session 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m6_e1", "persona_001_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Synthesizing professional values within a single session."
+  },
+  {
+    "id": "q_persona_001_111",
+    "personaId": "persona_001",
+    "question": "What specific aspects of map design does Elena prefer, and how does this manifest in her collection choices in sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s3_m8_e2", "persona_001_s4_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Linking aesthetic preferences to specific acquisition opinions."
+  },
+  {
+    "id": "q_persona_001_112",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for equity influence her views on transit and housing across sessions 1, 2, and 3?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_001_s1_m5_e2",
+      "persona_001_s2_m3_e1",
+      "persona_001_s3_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Tracking a core value's influence across multiple professional domains."
+  },
+  {
+    "id": "q_persona_001_113",
+    "personaId": "persona_001",
+    "question": "What are Elena's preferences for outdoor activities as described in sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_001_s3_m4_e2",
+      "persona_001_s4_m3_e2",
+      "persona_001_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Aggregating preferences for different outdoor hobbies."
+  },
+  {
+    "id": "q_persona_001_114",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for methodical processes apply to both her baking and her work documentation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s1_m6_e1", "persona_001_s1_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Identifying a cross-domain personality trait/preference."
+  },
+  {
+    "id": "q_persona_001_115",
+    "personaId": "persona_001",
+    "question": "What does Elena prefer regarding the functionality of public spaces as stated in session 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Identifying a complex professional preference."
+  },
+  {
+    "id": "q_persona_001_116",
+    "personaId": "persona_001",
+    "question": "How do Elena's preferences for historical context influence her opinion on modern mapping in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Analyzing the reasoning behind a specific opinion."
+  },
+  {
+    "id": "q_persona_001_117",
+    "personaId": "persona_001",
+    "question": "What are Elena's preferences for community involvement in her projects as mentioned in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a professional value/preference."
+  },
+  {
+    "id": "q_persona_001_118",
+    "personaId": "persona_001",
+    "question": "What specific environmental values does Elena prioritize in session 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s2_m11_e1", "persona_001_s2_m11_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Synthesizing multiple environmental preferences."
+  },
+  {
+    "id": "q_persona_001_119",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for decompressing with guitar practice relate to her work stress in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_001_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Analyzing the functional preference of a hobby."
+  },
+  {
+    "id": "q_persona_001_120",
+    "personaId": "persona_001",
+    "question": "Why does Elena likely prefer cycling to work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m4_e1", "persona_001_s1_m9_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Inferring a connection between her commute and her love for being outdoors."
+  },
+  {
+    "id": "q_persona_001_121",
+    "personaId": "persona_001",
+    "question": "How does Elena's interest in historical transit maps relate to her job?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m1_e2", "persona_001_s1_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Inferring a connection between a professional role and a specific hobby focus."
+  },
+  {
+    "id": "q_persona_001_122",
+    "personaId": "persona_001",
+    "question": "Why might Elena be interested in the 18th-century nautical charts?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s3_m1_e1", "persona_001_s3_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Inferring interest based on her stated preference for detail."
+  },
+  {
+    "id": "q_persona_001_123",
+    "personaId": "persona_001",
+    "question": "How does Elena's professional focus on social equity influence her view on transit?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m5_e1", "persona_001_s1_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Inferring the application of a value to a specific field."
+  },
+  {
+    "id": "q_persona_001_124",
+    "personaId": "persona_001",
+    "question": "Why does Elena value protected bike lanes?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s2_m1_e2", "persona_001_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1, 2],
+    "reasoning": "Inferring a preference based on her own commuting habits."
+  },
+  {
+    "id": "q_persona_001_125",
+    "personaId": "persona_001",
+    "question": "What is the likely reason Elena prefers native plant species?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s2_m11_e1", "persona_001_s2_m11_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Inferring a reason based on her stated environmental values."
+  },
+  {
+    "id": "q_persona_001_126",
+    "personaId": "persona_001",
+    "question": "How does Elena's view on affordable housing relate to her professional background?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m1_e2", "persona_001_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Inferring professional motivations for a specific policy stance."
+  },
+  {
+    "id": "q_persona_001_127",
+    "personaId": "persona_001",
+    "question": "Why might Elena be interested in the 1895 harbor survey map given her job?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m1_e2", "persona_001_s2_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Inferring a professional interest in a specific historical document."
+  },
+  {
+    "id": "q_persona_001_128",
+    "personaId": "persona_001",
+    "question": "How does Elena's sourdough baking reflect her personality?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inferring personality traits from a described hobby process."
+  },
+  {
+    "id": "q_persona_001_129",
+    "personaId": "persona_001",
+    "question": "Why does Elena prioritize safety at 5th and Main?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s3_m2_e1", "persona_001_s3_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Inferring professional priorities from specific data points."
+  },
+  {
+    "id": "q_persona_001_130",
+    "personaId": "persona_001",
+    "question": "How does Elena's critique of LEED buildings reflect her professional focus?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m5_e1", "persona_001_s3_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Inferring professional values from a specific critique."
+  },
+  {
+    "id": "q_persona_001_131",
+    "personaId": "persona_001",
+    "question": "Why does Elena prefer the northern cycling route for a challenge?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Inferring personal motivation for a specific hobby choice."
+  },
+  {
+    "id": "q_persona_001_132",
+    "personaId": "persona_001",
+    "question": "How does Elena's use of guitar for decompression relate to her work life?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s4_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Inferring a relationship between work-life balance and hobby use."
+  },
+  {
+    "id": "q_persona_001_133",
+    "personaId": "persona_001",
+    "question": "Why does Elena advocate for congestion pricing?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inferring professional reasoning for a specific policy preference."
+  },
+  {
+    "id": "q_persona_001_134",
+    "personaId": "persona_001",
+    "question": "How do Elena's views on social equity manifest in her housing project critiques?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s3_m9_e2", "persona_001_s4_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Connecting a core value to specific project evaluations across sessions."
+  },
+  {
+    "id": "q_persona_001_135",
+    "personaId": "persona_001",
+    "question": "How does Elena's professional focus on social equity influence her specific demands for the downtown bike corridor and the new housing complex?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_001_s1_m5_e1",
+      "persona_001_s3_m2_e2",
+      "persona_001_s4_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Synthesizing how a single value influences multiple project critiques."
+  },
+  {
+    "id": "q_persona_001_136",
+    "personaId": "persona_001",
+    "question": "What is the likely connection between Elena's interest in historical water main maps and her current urban planning work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m1_e2", "persona_001_s4_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Inferring a professional utility for a specific historical hobby item."
+  },
+  {
+    "id": "q_persona_001_137",
+    "personaId": "persona_001",
+    "question": "How does Elena's methodical approach to sourdough baking compare to her professional documentation standards?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s1_m6_e1", "persona_001_s1_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Comparing personal and professional manifestations of a personality trait."
+  },
+  {
+    "id": "q_persona_001_138",
+    "personaId": "persona_001",
+    "question": "Why might Elena's research into 18th-century nautical charts be relevant to her views on modern urban densification?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s2_m3_e1", "persona_001_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Drawing a complex inference between historical research and modern planning philosophy."
+  },
+  {
+    "id": "q_persona_001_139",
+    "personaId": "persona_001",
+    "question": "How do Elena's environmental values in session 2 inform her critique of the housing complex in session 4?",
+    "type": "inference",
+    "expectedEvidence": ["persona_001_s2_m10_e2", "persona_001_s4_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Connecting broad values to specific project critiques across time."
+  },
+  {
+    "id": "q_persona_001_140",
+    "personaId": "persona_001",
+    "question": "Based on her communication preferences across all sessions, why might Elena avoid a phone call regarding the 5th Street garden project?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_001_s1_m8_e1",
+      "persona_001_s2_m7_e1",
+      "persona_001_s4_m1_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Applying established communication preferences to a specific current project."
+  }
+]

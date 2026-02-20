@@ -1,10 +1,106 @@
-import Slider from "@react-native-community/slider";
 import type { LucideIcon } from "lucide-react-native";
 import { ChevronRight } from "lucide-react-native";
-import { Switch, Text, View } from "react-native";
+import { useCallback, useRef } from "react";
+import { PanResponder, Switch, Text, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { haptic } from "@/lib/haptics";
 import { palette, spacing, typography } from "@/lib/theme/designSystem";
+
+/** Pure-JS slider — no native module needed (avoids @react-native-community/slider linking issue) */
+function PureSlider({
+  value,
+  minimumValue,
+  maximumValue,
+  step,
+  onValueChange,
+  minimumTrackTintColor,
+  maximumTrackTintColor,
+  thumbTintColor,
+}: {
+  value: number;
+  minimumValue: number;
+  maximumValue: number;
+  step: number;
+  onValueChange: (v: number) => void;
+  minimumTrackTintColor: string;
+  maximumTrackTintColor: string;
+  thumbTintColor: string;
+}) {
+  const trackWidth = useRef(0);
+  // Store latest props in refs so PanResponder (created once) always reads fresh values
+  const propsRef = useRef({ minimumValue, maximumValue, step, onValueChange });
+  propsRef.current = { minimumValue, maximumValue, step, onValueChange };
+
+  const valueFromX = useCallback((x: number) => {
+    const { minimumValue: min, maximumValue: max, step: s } = propsRef.current;
+    if (trackWidth.current <= 0) return min;
+    const ratio = Math.max(0, Math.min(1, x / trackWidth.current));
+    const raw = min + ratio * (max - min);
+    const stepped = s ? Math.round(raw / s) * s : raw;
+    return Math.min(max, Math.max(min, stepped));
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        propsRef.current.onValueChange(valueFromX(e.nativeEvent.locationX));
+      },
+      onPanResponderMove: (e) => {
+        propsRef.current.onValueChange(valueFromX(e.nativeEvent.locationX));
+      },
+    }),
+  ).current;
+
+  const pct =
+    maximumValue === minimumValue
+      ? 0
+      : ((value - minimumValue) / (maximumValue - minimumValue)) * 100;
+
+  return (
+    <View
+      style={{ height: 40, justifyContent: "center", marginTop: spacing.sm }}
+      onLayout={(e) => {
+        trackWidth.current = e.nativeEvent.layout.width;
+      }}
+      {...panResponder.panHandlers}
+    >
+      <View
+        style={{
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: maximumTrackTintColor,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            backgroundColor: minimumTrackTintColor,
+          }}
+        />
+      </View>
+      <View
+        style={{
+          position: "absolute",
+          left: `${pct}%`,
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          backgroundColor: thumbTintColor,
+          marginLeft: -10,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.3,
+          shadowRadius: 2,
+          elevation: 3,
+        }}
+      />
+    </View>
+  );
+}
 
 type BaseProps = {
   label: string;
@@ -179,8 +275,7 @@ export function SettingsRow(props: SettingsRowProps) {
             {description}
           </Text>
         )}
-        <Slider
-          style={{ marginTop: spacing.sm }}
+        <PureSlider
           minimumValue={props.min}
           maximumValue={props.max}
           step={props.step}

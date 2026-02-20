@@ -1,0 +1,1632 @@
+[
+  {
+    "id": "q_persona_011_001",
+    "personaId": "persona_011",
+    "question": "What is the user's full name?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly asks for the name provided in the first session."
+  },
+  {
+    "id": "q_persona_011_002",
+    "personaId": "persona_011",
+    "question": "What is Elena's current profession?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Identifies the user's occupation from the first session."
+  },
+  {
+    "id": "q_persona_011_003",
+    "personaId": "persona_011",
+    "question": "Where does Elena typically go hiking?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific location mentioned in the first session."
+  },
+  {
+    "id": "q_persona_011_004",
+    "personaId": "persona_011",
+    "question": "What type of plants is Elena focusing on for her current project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for specific plant types mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_005",
+    "personaId": "persona_011",
+    "question": "In which region has Elena done bicycle touring in Europe?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a travel location mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_006",
+    "personaId": "persona_011",
+    "question": "Where does Elena volunteer locally?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for the volunteering location mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_007",
+    "personaId": "persona_011",
+    "question": "What is the title or subject of the book Elena is currently reading in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for specific reading material mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_008",
+    "personaId": "persona_011",
+    "question": "What project is Elena working on in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Identifies the project name from session 2."
+  },
+  {
+    "id": "q_persona_011_009",
+    "personaId": "persona_011",
+    "question": "What is the recorded pH level of the site soil?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s3_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Asks for a specific technical measurement from session 3."
+  },
+  {
+    "id": "q_persona_011_010",
+    "personaId": "persona_011",
+    "question": "What hardiness zone is the project site located in?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s4_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Asks for a specific technical detail from session 4."
+  },
+  {
+    "id": "q_persona_011_011",
+    "personaId": "persona_011",
+    "question": "When did Elena go hiking in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific time mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_012",
+    "personaId": "persona_011",
+    "question": "When did Elena research perennials?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific time mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_013",
+    "personaId": "persona_011",
+    "question": "On what day of the week does Elena usually volunteer?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a recurring schedule mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_014",
+    "personaId": "persona_011",
+    "question": "When does Elena want her project update?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific deadline mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_015",
+    "personaId": "persona_011",
+    "question": "When did the heavy runoff occur according to session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s2_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Asks for a past event time mentioned in session 2."
+  },
+  {
+    "id": "q_persona_011_016",
+    "personaId": "persona_011",
+    "question": "When is Elena's next scheduled meeting in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s2_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Asks for an upcoming time mentioned in session 2."
+  },
+  {
+    "id": "q_persona_011_017",
+    "personaId": "persona_011",
+    "question": "By when must the drainage schematics be finalized?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Asks for a specific deadline mentioned in session 3."
+  },
+  {
+    "id": "q_persona_011_018",
+    "personaId": "persona_011",
+    "question": "When did the bicycle tour in the Loire Valley take place?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Asks for a past event time mentioned in session 3."
+  },
+  {
+    "id": "q_persona_011_019",
+    "personaId": "persona_011",
+    "question": "What time is Elena leading a workshop next Tuesday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Asks for a specific time mentioned in session 3."
+  },
+  {
+    "id": "q_persona_011_020",
+    "personaId": "persona_011",
+    "question": "When is the final project deadline mentioned in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s4_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Asks for a specific deadline mentioned in session 4."
+  },
+  {
+    "id": "q_persona_011_021",
+    "personaId": "persona_011",
+    "question": "What medium does Elena prefer for her initial drafts?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific preference mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_022",
+    "personaId": "persona_011",
+    "question": "What length of meeting does Elena prefer?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m9_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific preference mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_023",
+    "personaId": "persona_011",
+    "question": "What genre of fiction does Elena enjoy reading?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Asks for a specific interest mentioned in session 1."
+  },
+  {
+    "id": "q_persona_011_024",
+    "personaId": "persona_011",
+    "question": "What does Elena prefer using over standard turf?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Asks for a specific design preference mentioned in session 2."
+  },
+  {
+    "id": "q_persona_011_025",
+    "personaId": "persona_011",
+    "question": "How does Elena prefer to travel for site visits?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s2_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Asks for a specific preference mentioned in session 2."
+  },
+  {
+    "id": "q_persona_011_026",
+    "personaId": "persona_011",
+    "question": "What type of grass does Elena prefer for urban projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s3_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Asks for a specific design preference mentioned in session 3."
+  },
+  {
+    "id": "q_persona_011_027",
+    "personaId": "persona_011",
+    "question": "What format does Elena prefer for project communication updates?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s3_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Asks for a specific preference mentioned in session 3."
+  },
+  {
+    "id": "q_persona_011_028",
+    "personaId": "persona_011",
+    "question": "What kind of pavers does Elena prefer for paths?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s4_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Asks for a specific design preference mentioned in session 4."
+  },
+  {
+    "id": "q_persona_011_029",
+    "personaId": "persona_011",
+    "question": "What are the specific locations Elena has gone hiking across different sessions?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m3_e2", "persona_011_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires combining hiking location details from two different sessions."
+  },
+  {
+    "id": "q_persona_011_030",
+    "personaId": "persona_011",
+    "question": "What specific historical fiction topics or eras has Elena explored in her reading?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m8_e2", "persona_011_s3_m12_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining reading details from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_031",
+    "personaId": "persona_011",
+    "question": "What are the details of Elena's bicycle touring experiences in terms of location and distance?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m6_e1", "persona_011_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining travel details from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_032",
+    "personaId": "persona_011",
+    "question": "What specific project sites or names has Elena mentioned working on?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m1_e2",
+      "persona_011_s2_m1_e1",
+      "persona_011_s3_m1_e1"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires listing project names from three different sessions."
+  },
+  {
+    "id": "q_persona_011_033",
+    "personaId": "persona_011",
+    "question": "What specific plant types or species has Elena mentioned for her design projects?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m5_e2",
+      "persona_011_s3_m3_e1",
+      "persona_011_s4_m6_e2"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires combining plant mentions from sessions 1, 3, and 4."
+  },
+  {
+    "id": "q_persona_011_034",
+    "personaId": "persona_011",
+    "question": "What are the specific site conditions and findings for the 4th Street project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s3_m1_e1", "persona_011_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires combining multiple facts about a single project from session 3."
+  },
+  {
+    "id": "q_persona_011_035",
+    "personaId": "persona_011",
+    "question": "What are the topographical features and structural needs of the Greenway site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s4_m10_e1", "persona_011_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires combining topographical and structural facts from session 4."
+  },
+  {
+    "id": "q_persona_011_036",
+    "personaId": "persona_011",
+    "question": "What specific watercolor materials and completed works has Elena mentioned?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s2_m10_e1", "persona_011_s3_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining artistic details from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_037",
+    "personaId": "persona_011",
+    "question": "What types of community-focused designs has Elena created or planned?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s2_m7_e2", "persona_011_s4_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires combining community design details from sessions 2 and 4."
+  },
+  {
+    "id": "q_persona_011_038",
+    "personaId": "persona_011",
+    "question": "What environmental issues has Elena identified as failures in urban planning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m2_e2", "persona_011_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining critical opinions from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_039",
+    "personaId": "persona_011",
+    "question": "What are Elena's specific volunteering roles and activities?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s1_m7_e2", "persona_011_s4_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining volunteering details from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_040",
+    "personaId": "persona_011",
+    "question": "What are the technical requirements and goals for the Greenway project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s4_m1_e1", "persona_011_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires combining technical requirements from session 4."
+  },
+  {
+    "id": "q_persona_011_041",
+    "personaId": "persona_011",
+    "question": "What specific historical eras or countries has Elena researched for her interests?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s2_m5_e2", "persona_011_s3_m12_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining historical research details from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_042",
+    "personaId": "persona_011",
+    "question": "What are the environmental constraints identified at the project sites in sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s3_m7_e1", "persona_011_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining technical site constraints from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_043",
+    "personaId": "persona_011",
+    "question": "What specific watercolor projects or sketches has Elena completed?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s2_m10_e1", "persona_011_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires combining artistic project details from sessions 2 and 4."
+  },
+  {
+    "id": "q_persona_011_044",
+    "personaId": "persona_011",
+    "question": "What specific plant species does Elena use for filtration and nitrogen fixing?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s2_m2_e1", "persona_011_s4_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires combining specific plant species and their functions from sessions 2 and 4."
+  },
+  {
+    "id": "q_persona_011_045",
+    "personaId": "persona_011",
+    "question": "What are the specific distances of the bicycle tours Elena has completed?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s3_m5_e1", "persona_011_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining distance details from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_046",
+    "personaId": "persona_011",
+    "question": "What are the specific drainage and soil health solutions Elena has implemented?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s4_m1_e1", "persona_011_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires combining technical solutions from session 4."
+  },
+  {
+    "id": "q_persona_011_047",
+    "personaId": "persona_011",
+    "question": "What are the specific site boundaries and locations mentioned in sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_011_s3_m1_e1", "persona_011_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining site location details from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_048",
+    "personaId": "persona_011",
+    "question": "What specific historical fiction books or themes has Elena read across all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m8_e2",
+      "persona_011_s3_m12_e1",
+      "persona_011_s4_m8_e1"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires combining reading details from sessions 1, 3, and 4."
+  },
+  {
+    "id": "q_persona_011_049",
+    "personaId": "persona_011",
+    "question": "What did Elena do last Saturday according to the records in sessions 1 and 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m3_e1", "persona_011_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires combining activity details for a specific day from two sessions."
+  },
+  {
+    "id": "q_persona_011_050",
+    "personaId": "persona_011",
+    "question": "What is Elena's schedule for the current week as described in session 2?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s2_m4_e2",
+      "persona_011_s2_m7_e1",
+      "persona_011_s2_m8_e2"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires synthesizing multiple schedule items from session 2."
+  },
+  {
+    "id": "q_persona_011_051",
+    "personaId": "persona_011",
+    "question": "When are Elena's volunteering commitments across sessions 1, 2, and 4?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m7_e1",
+      "persona_011_s2_m7_e1",
+      "persona_011_s4_m7_e1"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Requires combining volunteering schedule details from three sessions."
+  },
+  {
+    "id": "q_persona_011_052",
+    "personaId": "persona_011",
+    "question": "When did Elena's various bicycle tours take place?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m5_e2", "persona_011_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining travel timing details from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_053",
+    "personaId": "persona_011",
+    "question": "What are Elena's project deadlines for the next few days in sessions 3 and 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m2_e1", "persona_011_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining deadline details from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_054",
+    "personaId": "persona_011",
+    "question": "When did Elena perform her site research and sketching activities?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m5_e1", "persona_011_s3_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining timing for professional activities from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_055",
+    "personaId": "persona_011",
+    "question": "How long has the current work phase lasted according to session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s4_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Asks for a duration mentioned in session 4."
+  },
+  {
+    "id": "q_persona_011_056",
+    "personaId": "persona_011",
+    "question": "When does Elena have meetings or workshops scheduled across sessions 2 and 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s2_m8_e2", "persona_011_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining meeting and workshop times from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_057",
+    "personaId": "persona_011",
+    "question": "When did the heavy runoff and the Loire Valley bicycle tour occur?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s2_m1_e2", "persona_011_s3_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining two distinct past event times from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_058",
+    "personaId": "persona_011",
+    "question": "What is Elena's schedule for this Saturday and next Tuesday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m8_e1", "persona_011_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining schedule details from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_059",
+    "personaId": "persona_011",
+    "question": "When did Elena research perennials and when is her upcoming workshop?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m5_e1", "persona_011_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining a past and future time from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_060",
+    "personaId": "persona_011",
+    "question": "When were the 50km and 400-mile bicycle tours completed?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s3_m5_e2", "persona_011_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining timing for two different tours from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_061",
+    "personaId": "persona_011",
+    "question": "When did Elena go hiking in the Cascades versus the canyon?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m3_e1", "persona_011_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires combining hiking times from sessions 1 and 2."
+  },
+  {
+    "id": "q_persona_011_062",
+    "personaId": "persona_011",
+    "question": "When is the project update due and when is the final project deadline?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m9_e1", "persona_011_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining deadline information from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_063",
+    "personaId": "persona_011",
+    "question": "When did Elena volunteer in the first two sessions?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_011_s1_m7_e1", "persona_011_s2_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires combining volunteering times from sessions 1 and 2."
+  },
+  {
+    "id": "q_persona_011_064",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences regarding plant selection for urban spaces?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s2_m2_e1", "persona_011_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining plant preferences from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_065",
+    "personaId": "persona_011",
+    "question": "How does Elena prefer to communicate project updates across sessions 2 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s2_m8_e1", "persona_011_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining communication preferences from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_066",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for site visit transportation and timing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s2_m4_e1", "persona_011_s3_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires combining transportation and timing preferences from sessions 2 and 3."
+  },
+  {
+    "id": "q_persona_011_067",
+    "personaId": "persona_011",
+    "question": "What materials does Elena prefer for urban infrastructure and paths?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s3_m4_e1", "persona_011_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires combining material preferences from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_068",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for artistic media in her professional presentations?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m4_e1", "persona_011_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining artistic preferences from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_069",
+    "personaId": "persona_011",
+    "question": "What themes does Elena prefer in her reading material across sessions 1 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m8_e1", "persona_011_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining reading preferences from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_070",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for plant functions in her garden designs?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m5_e2", "persona_011_s4_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining plant function preferences from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_071",
+    "personaId": "persona_011",
+    "question": "How does Elena prefer to receive project information and updates?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m9_e2", "persona_011_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining communication format preferences from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_072",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for landscape design aesthetics and materials?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m6_e2", "persona_011_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining aesthetic and material preferences from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_073",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for drawing tools and lighting conditions?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m4_e1", "persona_011_s3_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires combining tool and timing preferences from sessions 1 and 3."
+  },
+  {
+    "id": "q_persona_011_074",
+    "personaId": "persona_011",
+    "question": "What does Elena prefer for path materials and specific plant types in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s4_m3_e1", "persona_011_s4_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires combining two distinct preferences from session 4."
+  },
+  {
+    "id": "q_persona_011_075",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for communication and meeting length?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m9_e2", "persona_011_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires combining communication preferences from sessions 1 and 2."
+  },
+  {
+    "id": "q_persona_011_076",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for urban biodiversity and native plants?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m6_e2", "persona_011_s2_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires combining design philosophy and plant preferences from sessions 1 and 2."
+  },
+  {
+    "id": "q_persona_011_077",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for historical research and botanical literature?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s2_m5_e2", "persona_011_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires combining research and reading preferences from sessions 2 and 4."
+  },
+  {
+    "id": "q_persona_011_078",
+    "personaId": "persona_011",
+    "question": "What does Elena prefer for initial drafts and final client presentations?",
+    "type": "preference",
+    "expectedEvidence": ["persona_011_s1_m4_e1", "persona_011_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires combining artistic preferences for different project stages from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_079",
+    "personaId": "persona_011",
+    "question": "Why might Elena choose native drought-resistant plants for her downtown project?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m5_e2", "persona_011_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires inferring motivation by connecting plant choice to environmental commitment in session 1."
+  },
+  {
+    "id": "q_persona_011_080",
+    "personaId": "persona_011",
+    "question": "How does Elena's interest in history potentially impact her landscape design philosophy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m8_e1", "persona_011_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires inferring the connection between historical interests and design inspiration across two sessions."
+  },
+  {
+    "id": "q_persona_011_081",
+    "personaId": "persona_011",
+    "question": "Why does Elena prefer watercolor over digital rendering tools?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m4_e2", "persona_011_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires inferring the rationale by connecting her views on artistic media from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_082",
+    "personaId": "persona_011",
+    "question": "How does Elena view the role of biodiversity in urban spaces based on her design values?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m6_e2", "persona_011_s1_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires inferring her perspective by connecting design values and material requirements in session 1."
+  },
+  {
+    "id": "q_persona_011_083",
+    "personaId": "persona_011",
+    "question": "Why does Elena prefer permeable pavers for her landscape projects?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s4_m3_e1", "persona_011_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires inferring the reason by connecting material preference to environmental benefit in session 4."
+  },
+  {
+    "id": "q_persona_011_084",
+    "personaId": "persona_011",
+    "question": "How does Elena use literature as a tool in her professional work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s4_m8_e1", "persona_011_s4_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires inferring the application of her hobby to her profession based on session 4."
+  },
+  {
+    "id": "q_persona_011_085",
+    "personaId": "persona_011",
+    "question": "Describe the technical site constraints Elena has identified across her current projects in sessions 3 and 4.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s3_m7_e1",
+      "persona_011_s4_m6_e1",
+      "persona_011_s4_m10_e1",
+      "persona_011_s4_m10_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires synthesizing multiple technical details across two sessions."
+  },
+  {
+    "id": "q_persona_011_086",
+    "personaId": "persona_011",
+    "question": "What are the various ways Elena incorporates her environmental commitment into her landscape architecture work?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m10_e1",
+      "persona_011_s2_m2_e1",
+      "persona_011_s3_m10_e1",
+      "persona_011_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing environmental design choices across all four sessions."
+  },
+  {
+    "id": "q_persona_011_087",
+    "personaId": "persona_011",
+    "question": "Detail Elena's professional use of watercolors across different project phases as mentioned in all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m4_e1",
+      "persona_011_s2_m10_e1",
+      "persona_011_s3_m6_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing information about her artistic process across all four sessions."
+  },
+  {
+    "id": "q_persona_011_088",
+    "personaId": "persona_011",
+    "question": "List the specific urban design projects and their locations or names mentioned throughout the records.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m1_e2",
+      "persona_011_s2_m1_e1",
+      "persona_011_s3_m1_e1",
+      "persona_011_s4_m1_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing project names and locations from all four sessions."
+  },
+  {
+    "id": "q_persona_011_089",
+    "personaId": "persona_011",
+    "question": "What are the specific environmental issues Elena has addressed through her design choices in all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m10_e2",
+      "persona_011_s2_m1_e2",
+      "persona_011_s3_m10_e2",
+      "persona_011_s4_m3_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing environmental issues and solutions across all four sessions."
+  },
+  {
+    "id": "q_persona_011_090",
+    "personaId": "persona_011",
+    "question": "Identify the specific plants and their intended functions in Elena's projects across all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m5_e2",
+      "persona_011_s2_m2_e1",
+      "persona_011_s3_m3_e1",
+      "persona_011_s4_m6_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing plant species and their purposes across all four sessions."
+  },
+  {
+    "id": "q_persona_011_091",
+    "personaId": "persona_011",
+    "question": "What are the different types of historical research Elena has conducted across her interests and work?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m8_e2",
+      "persona_011_s2_m5_e2",
+      "persona_011_s3_m12_e1",
+      "persona_011_s4_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing historical research topics from all four sessions."
+  },
+  {
+    "id": "q_persona_011_092",
+    "personaId": "persona_011",
+    "question": "What are the specific technical site findings across sessions 2, 3, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s2_m1_e2",
+      "persona_011_s3_m7_e1",
+      "persona_011_s4_m6_e1",
+      "persona_011_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires synthesizing technical data from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_093",
+    "personaId": "persona_011",
+    "question": "Detail the community-oriented projects and activities Elena has been involved in across all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m7_e2",
+      "persona_011_s2_m7_e2",
+      "persona_011_s3_m8_e1",
+      "persona_011_s4_m6_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing community involvement from all four sessions."
+  },
+  {
+    "id": "q_persona_011_094",
+    "personaId": "persona_011",
+    "question": "What are Elena's critical opinions on current urban planning failures as expressed in all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m2_e2",
+      "persona_011_s2_m6_e1",
+      "persona_011_s4_m5_e1",
+      "persona_011_s4_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Requires synthesizing critical opinions from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_095",
+    "personaId": "persona_011",
+    "question": "List all the specific bicycle touring details mentioned throughout the records.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m6_e1",
+      "persona_011_s3_m5_e1",
+      "persona_011_s4_m4_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires synthesizing travel details from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_096",
+    "personaId": "persona_011",
+    "question": "What are the specific materials Elena has advocated for or against across all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m10_e2",
+      "persona_011_s3_m4_e1",
+      "persona_011_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires synthesizing material advocacy from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_097",
+    "personaId": "persona_011",
+    "question": "What are the specific site locations Elena has visited or worked on across all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m3_e2",
+      "persona_011_s2_m3_e1",
+      "persona_011_s3_m1_e1",
+      "persona_011_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing site locations from all four sessions."
+  },
+  {
+    "id": "q_persona_011_098",
+    "personaId": "persona_011",
+    "question": "What are the specific communication methods Elena uses for her projects across all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m9_e2",
+      "persona_011_s2_m8_e1",
+      "persona_011_s3_m9_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing communication methods from all four sessions."
+  },
+  {
+    "id": "q_persona_011_099",
+    "personaId": "persona_011",
+    "question": "Identify the specific watercolor techniques, tools, or brands Elena uses across all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m4_e1",
+      "persona_011_s2_m3_e2",
+      "persona_011_s3_m6_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing artistic tools and techniques from all four sessions."
+  },
+  {
+    "id": "q_persona_011_100",
+    "personaId": "persona_011",
+    "question": "What are the specific environmental benefits of the design features Elena implements in sessions 2, 3, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s2_m2_e2",
+      "persona_011_s3_m10_e2",
+      "persona_011_s4_m3_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires synthesizing environmental benefits from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_101",
+    "personaId": "persona_011",
+    "question": "What are the specific historical fiction themes or eras she has read about across sessions 1, 3, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s1_m8_e2",
+      "persona_011_s3_m12_e1",
+      "persona_011_s4_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires synthesizing reading themes from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_102",
+    "personaId": "persona_011",
+    "question": "What are the specific technical measurements and zones mentioned in sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s3_m7_e1",
+      "persona_011_s4_m6_e1",
+      "persona_011_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires synthesizing technical data from sessions 3 and 4."
+  },
+  {
+    "id": "q_persona_011_103",
+    "personaId": "persona_011",
+    "question": "What are the specific design requirements and constraints for the Greenway project in session 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_011_s4_m1_e1",
+      "persona_011_s4_m10_e2",
+      "persona_011_s4_m10_e3"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires synthesizing multiple requirements for a single project from session 4."
+  },
+  {
+    "id": "q_persona_011_104",
+    "personaId": "persona_011",
+    "question": "Trace the timeline of Elena's bicycle touring activities from past to most recent across all sessions.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m6_e1",
+      "persona_011_s3_m5_e2",
+      "persona_011_s4_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires constructing a chronological timeline from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_105",
+    "personaId": "persona_011",
+    "question": "Compare Elena's volunteering schedule and activities across all recorded sessions.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m7_e1",
+      "persona_011_s2_m7_e1",
+      "persona_011_s3_m8_e1",
+      "persona_011_s4_m7_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires comparing schedule details across all four sessions."
+  },
+  {
+    "id": "q_persona_011_106",
+    "personaId": "persona_011",
+    "question": "Create a timeline of Elena's project-related deadlines and meetings mentioned across all sessions.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m9_e1",
+      "persona_011_s2_m8_e2",
+      "persona_011_s3_m2_e1",
+      "persona_011_s4_m2_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires constructing a chronological project timeline from all four sessions."
+  },
+  {
+    "id": "q_persona_011_107",
+    "personaId": "persona_011",
+    "question": "When did Elena's various leisure activities like hiking and biking occur across the sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m3_e1",
+      "persona_011_s2_m3_e1",
+      "persona_011_s4_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Requires synthesizing the timing of leisure activities from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_108",
+    "personaId": "persona_011",
+    "question": "What is the sequence of Elena's research and sketching activities across all sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m5_e1",
+      "persona_011_s2_m10_e1",
+      "persona_011_s3_m11_e1",
+      "persona_011_s4_m1_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires constructing a sequence of professional activities from all four sessions."
+  },
+  {
+    "id": "q_persona_011_109",
+    "personaId": "persona_011",
+    "question": "How does Elena's volunteering frequency change or remain consistent across the four sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m7_e1",
+      "persona_011_s2_m7_e1",
+      "persona_011_s3_m8_e1",
+      "persona_011_s4_m7_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires analyzing frequency and consistency of schedule across all sessions."
+  },
+  {
+    "id": "q_persona_011_110",
+    "personaId": "persona_011",
+    "question": "When did the specific environmental events and project milestones occur in sessions 2, 3, and 4?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s2_m1_e2",
+      "persona_011_s3_m2_e1",
+      "persona_011_s4_m2_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires synthesizing timing of events and milestones from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_111",
+    "personaId": "persona_011",
+    "question": "Trace the timing and subjects of Elena's reading habits across all sessions.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m8_e2",
+      "persona_011_s3_m12_e1",
+      "persona_011_s4_m8_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires constructing a timeline of reading habits from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_112",
+    "personaId": "persona_011",
+    "question": "What is the chronological order of Elena's site visits and surveys across sessions 2, 3, and 4?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s2_m4_e2",
+      "persona_011_s3_m1_e1",
+      "persona_011_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires constructing a chronological sequence of site visits from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_113",
+    "personaId": "persona_011",
+    "question": "When did Elena engage in artistic activities across each of the four sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_011_s1_m4_e1",
+      "persona_011_s2_m10_e1",
+      "persona_011_s3_m11_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing the timing of artistic activities from all four sessions."
+  },
+  {
+    "id": "q_persona_011_114",
+    "personaId": "persona_011",
+    "question": "How do Elena's artistic preferences influence her professional presentation style across all sessions?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m4_e2",
+      "persona_011_s2_m10_e1",
+      "persona_011_s4_m9_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Requires synthesizing artistic philosophy and its application from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_115",
+    "personaId": "persona_011",
+    "question": "Analyze Elena's preference for sustainable materials across different project components in all sessions.",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m10_e2",
+      "persona_011_s2_m2_e1",
+      "persona_011_s3_m4_e1",
+      "persona_011_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing material preferences from all four sessions."
+  },
+  {
+    "id": "q_persona_011_116",
+    "personaId": "persona_011",
+    "question": "How do Elena's communication preferences reflect her personality as described across the first three sessions?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m9_e2",
+      "persona_011_s2_m8_e1",
+      "persona_011_s3_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires connecting communication preferences to personality traits across three sessions."
+  },
+  {
+    "id": "q_persona_011_117",
+    "personaId": "persona_011",
+    "question": "What is the relationship between Elena's leisure interests and her design preferences across sessions 1 and 4?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m6_e2",
+      "persona_011_s4_m4_e2",
+      "persona_011_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires synthesizing leisure interests and design philosophy from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_118",
+    "personaId": "persona_011",
+    "question": "How does Elena's preference for biodiversity manifest in her various urban design projects across all sessions?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m6_e2",
+      "persona_011_s2_m2_e1",
+      "persona_011_s3_m3_e1",
+      "persona_011_s4_m6_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing biodiversity preferences from all four sessions."
+  },
+  {
+    "id": "q_persona_011_119",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for site analysis and how do they impact her workflow across sessions 2, 3, and 4?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s2_m4_e1",
+      "persona_011_s3_m11_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires synthesizing site analysis preferences and workflow from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_120",
+    "personaId": "persona_011",
+    "question": "How do Elena's reading preferences inform her creative process for landscape layouts across all sessions?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m8_e1",
+      "persona_011_s2_m5_e2",
+      "persona_011_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Requires synthesizing reading interests and creative process from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_121",
+    "personaId": "persona_011",
+    "question": "Analyze Elena's preference for natural cycles in her design work across sessions 2, 3, and 4.",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s2_m2_e2",
+      "persona_011_s3_m10_e1",
+      "persona_011_s4_m1_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires synthesizing design philosophy regarding natural cycles from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_122",
+    "personaId": "persona_011",
+    "question": "How do Elena's preferences for communication formats change or stay the same across different projects in sessions 1, 2, and 3?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m9_e2",
+      "persona_011_s2_m8_e1",
+      "persona_011_s3_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires analyzing consistency of communication preferences across three sessions."
+  },
+  {
+    "id": "q_persona_011_123",
+    "personaId": "persona_011",
+    "question": "What are Elena's preferences for urban plants based on their environmental benefits across all sessions?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m5_e2",
+      "persona_011_s2_m2_e1",
+      "persona_011_s3_m3_e1",
+      "persona_011_s4_m6_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires synthesizing plant preferences and benefits from all four sessions."
+  },
+  {
+    "id": "q_persona_011_124",
+    "personaId": "persona_011",
+    "question": "How does Elena's preference for watercolor sketches compare to her views on digital tools across all sessions?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s1_m4_e2",
+      "persona_011_s4_m9_e1",
+      "persona_011_s4_m9_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires synthesizing views on artistic media from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_011_125",
+    "personaId": "persona_011",
+    "question": "Analyze Elena's preference for community-centric design elements across sessions 2, 3, and 4.",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_011_s2_m7_e2",
+      "persona_011_s3_m4_e1",
+      "persona_011_s4_m6_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires synthesizing community design preferences from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_126",
+    "personaId": "persona_011",
+    "question": "Given Elena's view on green roof zoning and maintenance, what would she likely suggest for a long-term urban project?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_011_s2_m6_e1",
+      "persona_011_s2_m6_e2",
+      "persona_011_s2_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires complex inference from multiple opinions and facts in session 2."
+  },
+  {
+    "id": "q_persona_011_127",
+    "personaId": "persona_011",
+    "question": "Based on Elena's preference for early morning light and watercolor sketching, how might she plan a site visit to the 4th Street industrial site?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_011_s3_m1_e1",
+      "persona_011_s3_m11_e1",
+      "persona_011_s1_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires complex inference by connecting preferences and project sites across two sessions."
+  },
+  {
+    "id": "q_persona_011_128",
+    "personaId": "persona_011",
+    "question": "How does Elena's commitment to environmental stewardship manifest in her critique of modern urban planning across all sessions?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_011_s1_m2_e2",
+      "persona_011_s1_m10_e1",
+      "persona_011_s4_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires complex inference by connecting core values to critiques across multiple sessions."
+  },
+  {
+    "id": "q_persona_011_129",
+    "personaId": "persona_011",
+    "question": "Why might Elena prioritize permeable pavers and native sedges in a downtown plaza project?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_011_s2_m1_e1",
+      "persona_011_s2_m2_e2",
+      "persona_011_s4_m3_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires complex inference by connecting material choices to environmental benefits across two sessions."
+  },
+  {
+    "id": "q_persona_011_130",
+    "personaId": "persona_011",
+    "question": "How does Elena's interest in late 19th-century industrial history relate to her surveying of the 4th Street site?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s2_m5_e2", "persona_011_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires complex inference by connecting historical interests to professional site work across two sessions."
+  },
+  {
+    "id": "q_persona_011_131",
+    "personaId": "persona_011",
+    "question": "What design strategy would Elena likely use to address the elevation drop at the Greenway project's north boundary?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_011_s4_m10_e1",
+      "persona_011_s4_m10_e2",
+      "persona_011_s4_m10_e3"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires complex inference from multiple site facts in session 4."
+  },
+  {
+    "id": "q_persona_011_132",
+    "personaId": "persona_011",
+    "question": "How does Elena's use of Winsor & Newton watercolors support her goal of conveying the fluidity of natural spaces?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m4_e2", "persona_011_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires complex inference by connecting specific tools to artistic philosophy across two sessions."
+  },
+  {
+    "id": "q_persona_011_133",
+    "personaId": "persona_011",
+    "question": "Why would Elena consider living walls essential for urban resilience based on her design philosophy?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_011_s2_m9_e1",
+      "persona_011_s3_m10_e1",
+      "persona_011_s3_m10_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires complex inference by connecting design philosophy to specific infrastructure benefits across two sessions."
+  },
+  {
+    "id": "q_persona_011_134",
+    "personaId": "persona_011",
+    "question": "How does Elena's volunteering at community gardens influence her professional design of composting systems?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m7_e2", "persona_011_s2_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires complex inference by connecting volunteering experience to professional design across two sessions."
+  },
+  {
+    "id": "q_persona_011_135",
+    "personaId": "persona_011",
+    "question": "Based on her personality, why does Elena prefer concise email updates over long meetings for project communication?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m9_e2", "persona_011_s2_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires complex inference by connecting communication preferences to personality traits across two sessions."
+  },
+  {
+    "id": "q_persona_011_136",
+    "personaId": "persona_011",
+    "question": "How does Elena's experience with bicycle touring in Europe influence her design of narrow urban streets?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m6_e1", "persona_011_s1_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires complex inference by connecting personal travel experience to design philosophy in session 1."
+  },
+  {
+    "id": "q_persona_011_137",
+    "personaId": "persona_011",
+    "question": "Why would Elena prioritize nitrogen-fixing plants in a community garden design based on her environmental goals?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s4_m6_e2", "persona_011_s1_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires complex inference by connecting plant choice to core environmental values across two sessions."
+  },
+  {
+    "id": "q_persona_011_138",
+    "personaId": "persona_011",
+    "question": "How does Elena's belief in natural water cycles influence her refinement of the Greenway project sketches?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s4_m1_e1", "persona_011_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires complex inference by connecting design philosophy to specific project refinements in session 4."
+  },
+  {
+    "id": "q_persona_011_139",
+    "personaId": "persona_011",
+    "question": "Why might Elena find digital renders 'sterile' compared to her watercolor sketches for client presentations?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m4_e2", "persona_011_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires complex inference by connecting her aesthetic critiques from multiple sessions."
+  },
+  {
+    "id": "q_persona_011_140",
+    "personaId": "persona_011",
+    "question": "How does Elena's reading of historical fiction about Victorian parks relate to her current professional focus as a landscape architect?",
+    "type": "inference",
+    "expectedEvidence": ["persona_011_s1_m8_e2", "persona_011_s1_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires complex inference by connecting specific reading material to her professional role in session 1."
+  }
+]

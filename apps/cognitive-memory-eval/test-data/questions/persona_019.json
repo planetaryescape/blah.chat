@@ -1,0 +1,1406 @@
+[
+  {
+    "id": "q_persona_019_001",
+    "personaId": "persona_019",
+    "question": "How many years of experience does Elias have in urban planning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct factual question about Elias's career length mentioned in the first session."
+  },
+  {
+    "id": "q_persona_019_002",
+    "personaId": "persona_019",
+    "question": "What is Elias currently reviewing blueprints for?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple factual lookup regarding Elias's current work task."
+  },
+  {
+    "id": "q_persona_019_003",
+    "personaId": "persona_019",
+    "question": "What tool does Elias use for urban advocacy?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct question about a specific tool Elias uses for his work."
+  },
+  {
+    "id": "q_persona_019_004",
+    "personaId": "persona_019",
+    "question": "How many vintage jazz records does Elias own?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Factual inquiry about the size of Elias's record collection."
+  },
+  {
+    "id": "q_persona_019_005",
+    "personaId": "persona_019",
+    "question": "In which city history topic does Elias have specific expertise?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Factual question about Elias's historical knowledge."
+  },
+  {
+    "id": "q_persona_019_006",
+    "personaId": "persona_019",
+    "question": "What statistics is Elias currently working with?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m10_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct factual question about Elias's current data tasks."
+  },
+  {
+    "id": "q_persona_019_007",
+    "personaId": "persona_019",
+    "question": "What was the Old Port district's layout originally designed to maximize?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about the history of the Old Port district."
+  },
+  {
+    "id": "q_persona_019_008",
+    "personaId": "persona_019",
+    "question": "Which programming libraries does Elias use for data visualization?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about Elias's technical skills."
+  },
+  {
+    "id": "q_persona_019_009",
+    "personaId": "persona_019",
+    "question": "What brand of camera does Elias use for his photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Simple factual question about Elias's hobby equipment."
+  },
+  {
+    "id": "q_persona_019_010",
+    "personaId": "persona_019",
+    "question": "What material was used for the West End parklet construction?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m10_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about a specific project material."
+  },
+  {
+    "id": "q_persona_019_011",
+    "personaId": "persona_019",
+    "question": "What is the duration of the pedestrian signal phase at 5th and Main?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Specific factual detail regarding urban infrastructure."
+  },
+  {
+    "id": "q_persona_019_012",
+    "personaId": "persona_019",
+    "question": "By what percentage can bioswales reduce flooding if they occupy 10% of parking space?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Factual question requiring retrieval of specific environmental data."
+  },
+  {
+    "id": "q_persona_019_013",
+    "personaId": "persona_019",
+    "question": "How many minutes was the average commute reduced by the light rail expansion?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Factual question about transit impact statistics."
+  },
+  {
+    "id": "q_persona_019_014",
+    "personaId": "persona_019",
+    "question": "What is the story limit for residential buildings in the North District?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Factual question about specific zoning regulations."
+  },
+  {
+    "id": "q_persona_019_015",
+    "personaId": "persona_019",
+    "question": "How many glass plate negatives are in the history society collection?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m12_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a specific number from historical evidence."
+  },
+  {
+    "id": "q_persona_019_016",
+    "personaId": "persona_019",
+    "question": "Which project is Elias currently leading in the downtown area?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about Elias's current leadership role."
+  },
+  {
+    "id": "q_persona_019_017",
+    "personaId": "persona_019",
+    "question": "What new system is Elias implementing at the community garden?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about garden maintenance tasks."
+  },
+  {
+    "id": "q_persona_019_018",
+    "personaId": "persona_019",
+    "question": "How much has city center cycling traffic increased over the last five years?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about urban transit trends."
+  },
+  {
+    "id": "q_persona_019_019",
+    "personaId": "persona_019",
+    "question": "What is the temperature increase caused by the downtown heat island effect?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about environmental data."
+  },
+  {
+    "id": "q_persona_019_020",
+    "personaId": "persona_019",
+    "question": "What is the transit service headway gap between different neighborhoods?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about transit inequality data."
+  },
+  {
+    "id": "q_persona_019_021",
+    "personaId": "persona_019",
+    "question": "Which specific jazz record did Elias purchase this morning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about a recent specific purchase."
+  },
+  {
+    "id": "q_persona_019_022",
+    "personaId": "persona_019",
+    "question": "Which specific Leica model does Elias use for street photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question requiring specific model identification."
+  },
+  {
+    "id": "q_persona_019_023",
+    "personaId": "persona_019",
+    "question": "By what percentage are property values higher near urban parks?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about economic data related to urban planning."
+  },
+  {
+    "id": "q_persona_019_024",
+    "personaId": "persona_019",
+    "question": "What environmental phenomenon is Elias currently mapping with data visualizations?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about Elias's current data project."
+  },
+  {
+    "id": "q_persona_019_025",
+    "personaId": "persona_019",
+    "question": "What is the subject of the lecture Elias is giving next month?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Factual question about a future scheduled event."
+  },
+  {
+    "id": "q_persona_019_026",
+    "personaId": "persona_019",
+    "question": "What construction materials does Elias prefer over synthetic options?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Factual question about Elias's material preferences."
+  },
+  {
+    "id": "q_persona_019_027",
+    "personaId": "persona_019",
+    "question": "What specific jazz subgenre does Elias collect?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about Elias's musical interests."
+  },
+  {
+    "id": "q_persona_019_028",
+    "personaId": "persona_019",
+    "question": "Which organization is Elias currently consulting for?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about Elias's professional clients."
+  },
+  {
+    "id": "q_persona_019_029",
+    "personaId": "persona_019",
+    "question": "How does Elias view the role of data visualization in policy accessibility?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Factual question about Elias's professional opinions."
+  },
+  {
+    "id": "q_persona_019_030",
+    "personaId": "persona_019",
+    "question": "What is the current accessibility issue with the 5th Street community garden?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m2_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about a specific infrastructure failure."
+  },
+  {
+    "id": "q_persona_019_031",
+    "personaId": "persona_019",
+    "question": "Where did Elias design a modular parklet last summer?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about a past project location."
+  },
+  {
+    "id": "q_persona_019_032",
+    "personaId": "persona_019",
+    "question": "What kind of data is Elias using for his downtown revitalization research?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Factual question about Elias's research methods."
+  },
+  {
+    "id": "q_persona_019_033",
+    "personaId": "persona_019",
+    "question": "When was the pedestrian density data collected?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m3_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Factual question about data collection timing."
+  },
+  {
+    "id": "q_persona_019_034",
+    "personaId": "persona_019",
+    "question": "What is the specific location of the 12-second pedestrian signal phase?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Factual question about a specific urban detail."
+  },
+  {
+    "id": "q_persona_019_035",
+    "personaId": "persona_019",
+    "question": "What percentage of parking space is needed for bioswales to achieve a 30% flood reduction?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Factual question about environmental engineering ratios."
+  },
+  {
+    "id": "q_persona_019_036",
+    "personaId": "persona_019",
+    "question": "How does the historical layout of the Old Port district relate to Elias's current archival research?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m1_e1", "persona_019_s2_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard factual question requiring synthesis of historical facts and current work tasks."
+  },
+  {
+    "id": "q_persona_019_037",
+    "personaId": "persona_019",
+    "question": "How does Elias use his photography to support his work as an urban planner?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard factual question about the intersection of Elias's hobby and career."
+  },
+  {
+    "id": "q_persona_019_038",
+    "personaId": "persona_019",
+    "question": "Compare the materials used in the West End parklet to Elias's stated material preferences.",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m9_e1", "persona_019_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Hard factual question requiring cross-session comparison of preferences and project outcomes."
+  },
+  {
+    "id": "q_persona_019_039",
+    "personaId": "persona_019",
+    "question": "How do the residential height limits in the North District compare to Elias's revitalization goals?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m11_e1", "persona_019_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Hard factual question requiring synthesis of zoning data and project objectives."
+  },
+  {
+    "id": "q_persona_019_040",
+    "personaId": "persona_019",
+    "question": "What specific environmental data is Elias currently visualizing for his urban heat island mapping?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard factual question about Elias's current technical project."
+  },
+  {
+    "id": "q_persona_019_041",
+    "personaId": "persona_019",
+    "question": "What is the correlation between light rail expansion and city center cycling trends according to the data Elias has?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s3_m8_e1", "persona_019_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Hard factual question requiring synthesis of transit and cycling data across sessions."
+  },
+  {
+    "id": "q_persona_019_042",
+    "personaId": "persona_019",
+    "question": "What specific historical transit data is Elias researching for the downtown revitalization project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard factual question about specific research parameters."
+  },
+  {
+    "id": "q_persona_019_043",
+    "personaId": "persona_019",
+    "question": "How long has Elias lived in the city center relative to the increase in cycling traffic?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m4_e1", "persona_019_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard factual question linking personal history with urban trends."
+  },
+  {
+    "id": "q_persona_019_044",
+    "personaId": "persona_019",
+    "question": "Which camera model will Elias likely use for his upcoming photography exhibition?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard factual question requiring identification of specific equipment for an event."
+  },
+  {
+    "id": "q_persona_019_045",
+    "personaId": "persona_019",
+    "question": "What economic evidence does Elias have regarding the value of urban parks?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard factual question about specific economic statistics."
+  },
+  {
+    "id": "q_persona_019_046",
+    "personaId": "persona_019",
+    "question": "What is the nature of Elias's current project with the municipal transit authority?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard factual question about Elias's professional consulting work."
+  },
+  {
+    "id": "q_persona_019_047",
+    "personaId": "persona_019",
+    "question": "What specific type of wood was used in the West End modular parklet?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard factual question about specific material details in a project."
+  },
+  {
+    "id": "q_persona_019_048",
+    "personaId": "persona_019",
+    "question": "What is the significance of the 1958 Miles Davis pressing in Elias's collection?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m5_e1", "persona_019_s2_m5_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard factual question requiring synthesis of music history and Elias's collection."
+  },
+  {
+    "id": "q_persona_019_049",
+    "personaId": "persona_019",
+    "question": "What specific data did Elias collect regarding pedestrian density last month?",
+    "type": "factual",
+    "expectedEvidence": ["persona_019_s2_m3_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard factual question about the timing and nature of data collection."
+  },
+  {
+    "id": "q_persona_019_050",
+    "personaId": "persona_019",
+    "question": "At what time does Elias start his bike commute every morning?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple temporal lookup of a daily routine."
+  },
+  {
+    "id": "q_persona_019_051",
+    "personaId": "persona_019",
+    "question": "When did Elias lead the community garden project in the East District?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct temporal question about a past project."
+  },
+  {
+    "id": "q_persona_019_052",
+    "personaId": "persona_019",
+    "question": "When is Elias scheduled to give a lecture on local history?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple temporal question about a future event."
+  },
+  {
+    "id": "q_persona_019_053",
+    "personaId": "persona_019",
+    "question": "When is the deadline for Elias's pedestrian zone proposal?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct temporal question about a work deadline."
+  },
+  {
+    "id": "q_persona_019_054",
+    "personaId": "persona_019",
+    "question": "When did Elias spend three hours cycling in the north quadrant?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Simple temporal lookup of a recent activity."
+  },
+  {
+    "id": "q_persona_019_055",
+    "personaId": "persona_019",
+    "question": "When is Elias's stakeholders' presentation scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct temporal question about a work schedule."
+  },
+  {
+    "id": "q_persona_019_056",
+    "personaId": "persona_019",
+    "question": "At what time did Elias take urban photographs today?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Simple temporal lookup of a daily activity."
+  },
+  {
+    "id": "q_persona_019_057",
+    "personaId": "persona_019",
+    "question": "When did Elias design the modular parklet in the West End?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct temporal question about a past project."
+  },
+  {
+    "id": "q_persona_019_058",
+    "personaId": "persona_019",
+    "question": "When did Elias visit the municipal archives?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s3_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Simple temporal lookup of a recent visit."
+  },
+  {
+    "id": "q_persona_019_059",
+    "personaId": "persona_019",
+    "question": "When does the soil remediation phase begin?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Direct temporal question about a project phase."
+  },
+  {
+    "id": "q_persona_019_060",
+    "personaId": "persona_019",
+    "question": "When was Elias's most recent visit to the community garden?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Temporal question requiring retrieval of recent activity timing."
+  },
+  {
+    "id": "q_persona_019_061",
+    "personaId": "persona_019",
+    "question": "When is Elias's photography exhibition taking place?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Temporal question about a specific upcoming event."
+  },
+  {
+    "id": "q_persona_019_062",
+    "personaId": "persona_019",
+    "question": "What is the sequence of Elias's activities from his archive visit to his next presentation?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s3_m2_e1", "persona_019_s2_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Temporal question requiring sequencing of events across different sessions."
+  },
+  {
+    "id": "q_persona_019_063",
+    "personaId": "persona_019",
+    "question": "How long has Elias lived in the city center?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Temporal question about duration of residence."
+  },
+  {
+    "id": "q_persona_019_064",
+    "personaId": "persona_019",
+    "question": "When did Elias begin his consulting project for the municipal transit authority?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Temporal question about project start dates."
+  },
+  {
+    "id": "q_persona_019_065",
+    "personaId": "persona_019",
+    "question": "Compare the timing of the East District garden project and the West End parklet design.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m5_e1", "persona_019_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Temporal question requiring comparison of project dates across sessions."
+  },
+  {
+    "id": "q_persona_019_066",
+    "personaId": "persona_019",
+    "question": "How does Elias's daily commute time relate to the time he took photographs today?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m3_e1", "persona_019_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Temporal question comparing daily routine with a specific event."
+  },
+  {
+    "id": "q_persona_019_067",
+    "personaId": "persona_019",
+    "question": "When was the pedestrian density data collected relative to the current month?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m3_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Temporal question about data collection history."
+  },
+  {
+    "id": "q_persona_019_068",
+    "personaId": "persona_019",
+    "question": "How many years has Elias been working in urban planning?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Temporal question about career duration."
+  },
+  {
+    "id": "q_persona_019_069",
+    "personaId": "persona_019",
+    "question": "What is the specific time Elias leaves for work on his bike?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Temporal question about a specific routine time."
+  },
+  {
+    "id": "q_persona_019_070",
+    "personaId": "persona_019",
+    "question": "When did Elias add a Miles Davis record to his collection?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Temporal question about a recent purchase."
+  },
+  {
+    "id": "q_persona_019_071",
+    "personaId": "persona_019",
+    "question": "At what time did Elias document urban facades today?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Temporal question about a daily activity time."
+  },
+  {
+    "id": "q_persona_019_072",
+    "personaId": "persona_019",
+    "question": "When did Elias last visit the municipal archives for research?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Temporal question about a recent research visit."
+  },
+  {
+    "id": "q_persona_019_073",
+    "personaId": "persona_019",
+    "question": "What day of the week does the soil remediation phase start?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s3_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Temporal question about project scheduling."
+  },
+  {
+    "id": "q_persona_019_074",
+    "personaId": "persona_019",
+    "question": "When did Elias most recently check on the community garden?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Temporal question about recent hobby activities."
+  },
+  {
+    "id": "q_persona_019_075",
+    "personaId": "persona_019",
+    "question": "On what day of the week is Elias's photography exhibition?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard temporal question requiring specific calendar day identification."
+  },
+  {
+    "id": "q_persona_019_076",
+    "personaId": "persona_019",
+    "question": "How long has Elias been working on his current consulting project?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard temporal question about project duration."
+  },
+  {
+    "id": "q_persona_019_077",
+    "personaId": "persona_019",
+    "question": "How many years of Elias's residence in the city center overlap with the 40% cycling increase?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s4_m4_e1", "persona_019_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard temporal question requiring correlation of two time-based facts."
+  },
+  {
+    "id": "q_persona_019_078",
+    "personaId": "persona_019",
+    "question": "What is the timeline for the stakeholders' presentation relative to his current work week?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard temporal question requiring contextual scheduling knowledge."
+  },
+  {
+    "id": "q_persona_019_079",
+    "personaId": "persona_019",
+    "question": "How much time has passed between Elias's East District project and the upcoming soil remediation?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m5_e1", "persona_019_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Hard temporal question requiring calculation across sessions."
+  },
+  {
+    "id": "q_persona_019_080",
+    "personaId": "persona_019",
+    "question": "What is the sequence of Elias's work deadlines for the pedestrian zone and the photography exhibition?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m10_e1", "persona_019_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Hard temporal question requiring sequencing of deadlines across sessions."
+  },
+  {
+    "id": "q_persona_019_081",
+    "personaId": "persona_019",
+    "question": "When was the West End parklet designed in relation to Elias's current revitalization project?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s2_m10_e1", "persona_019_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Hard temporal question requiring comparison of project timelines."
+  },
+  {
+    "id": "q_persona_019_082",
+    "personaId": "persona_019",
+    "question": "Is the photography exhibition before or after the pedestrian zone proposal deadline?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s1_m10_e1", "persona_019_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Hard temporal question comparing two specific future dates."
+  },
+  {
+    "id": "q_persona_019_083",
+    "personaId": "persona_019",
+    "question": "Trace Elias's involvement with community gardens from last year to the upcoming remediation phase.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_019_s1_m5_e1",
+      "persona_019_s3_m6_e1",
+      "persona_019_s4_m2_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Hard temporal question requiring a full timeline construction of a specific interest."
+  },
+  {
+    "id": "q_persona_019_084",
+    "personaId": "persona_019",
+    "question": "How does the timing of Elias's recent archive visit compare to his upcoming lecture schedule?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_019_s3_m2_e1", "persona_019_s1_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Hard temporal question comparing research timing with presentation timing."
+  },
+  {
+    "id": "q_persona_019_085",
+    "personaId": "persona_019",
+    "question": "What is Elias's preferred method for his daily commute?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple preference lookup from the first session."
+  },
+  {
+    "id": "q_persona_019_086",
+    "personaId": "persona_019",
+    "question": "What composition style does Elias prefer for his urban photography?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct question about Elias's artistic preferences."
+  },
+  {
+    "id": "q_persona_019_087",
+    "personaId": "persona_019",
+    "question": "What materials does Elias prefer to use in his projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple preference lookup regarding construction materials."
+  },
+  {
+    "id": "q_persona_019_088",
+    "personaId": "persona_019",
+    "question": "What kind of design lines does Elias prefer in architecture?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct question about Elias's architectural taste."
+  },
+  {
+    "id": "q_persona_019_089",
+    "personaId": "persona_019",
+    "question": "When does Elias prefer to work to achieve better focus?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Simple lookup of Elias's work habits."
+  },
+  {
+    "id": "q_persona_019_090",
+    "personaId": "persona_019",
+    "question": "What specific type of bicycle does Elias prefer for his commute?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Direct question about a specific equipment preference."
+  },
+  {
+    "id": "q_persona_019_091",
+    "personaId": "persona_019",
+    "question": "What focal length lens does Elias prefer for his urban photography?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Simple lookup of technical preference in photography."
+  },
+  {
+    "id": "q_persona_019_092",
+    "personaId": "persona_019",
+    "question": "Does Elias prefer concrete or plastic barriers for bike paths?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Direct choice preference question from evidence."
+  },
+  {
+    "id": "q_persona_019_093",
+    "personaId": "persona_019",
+    "question": "What is Elias's preference regarding the recording format of his jazz collection?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Preference question about a specific hobby detail."
+  },
+  {
+    "id": "q_persona_019_094",
+    "personaId": "persona_019",
+    "question": "Why does Elias prefer cycling for his daily commute?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Preference question requiring the reason behind a choice."
+  },
+  {
+    "id": "q_persona_019_095",
+    "personaId": "persona_019",
+    "question": "What is Elias's preference for materials in sustainable urban projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m10_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Preference question about professional values."
+  },
+  {
+    "id": "q_persona_019_096",
+    "personaId": "persona_019",
+    "question": "What are Elias's aesthetic preferences regarding the texture of buildings?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m8_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Preference question about architectural aesthetics."
+  },
+  {
+    "id": "q_persona_019_097",
+    "personaId": "persona_019",
+    "question": "What era and style of jazz does Elias enjoy the most?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Preference question about musical taste details."
+  },
+  {
+    "id": "q_persona_019_098",
+    "personaId": "persona_019",
+    "question": "Why does Elias prefer concrete barriers over plastic bollards for bike paths?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Preference question requiring the rationale for infrastructure choices."
+  },
+  {
+    "id": "q_persona_019_099",
+    "personaId": "persona_019",
+    "question": "How does Elias's photography style reflect his architectural preferences?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m4_e1", "persona_019_s2_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Preference question linking two different interests across sessions."
+  },
+  {
+    "id": "q_persona_019_100",
+    "personaId": "persona_019",
+    "question": "What materials does Elias favor for urban design projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Preference question about design choices."
+  },
+  {
+    "id": "q_persona_019_101",
+    "personaId": "persona_019",
+    "question": "Why does Elias prefer working in the late evening?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Preference question about productivity habits."
+  },
+  {
+    "id": "q_persona_019_102",
+    "personaId": "persona_019",
+    "question": "What kind of bike does Elias use for his daily commute?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Preference question about specific gear."
+  },
+  {
+    "id": "q_persona_019_103",
+    "personaId": "persona_019",
+    "question": "What is Elias's preferred lens for capturing urban environments?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Hard preference question about technical artistic choices."
+  },
+  {
+    "id": "q_persona_019_104",
+    "personaId": "persona_019",
+    "question": "What is Elias's stance on digital versus mono jazz recordings?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Hard preference question about specific audio formats."
+  },
+  {
+    "id": "q_persona_019_105",
+    "personaId": "persona_019",
+    "question": "What architectural style does Elias favor for reducing urban friction?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard preference question linking style to urban theory."
+  },
+  {
+    "id": "q_persona_019_106",
+    "personaId": "persona_019",
+    "question": "Why does Elias prefer cycling to observe urban infrastructure?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard preference question about the observational benefits of his commute."
+  },
+  {
+    "id": "q_persona_019_107",
+    "personaId": "persona_019",
+    "question": "How does Elias's preference for minimalist design influence his professional work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m5_e1", "persona_019_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard preference question linking philosophy to practice."
+  },
+  {
+    "id": "q_persona_019_108",
+    "personaId": "persona_019",
+    "question": "What is Elias's preference for sustainable materials in public works?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard preference question about professional ethics."
+  },
+  {
+    "id": "q_persona_019_109",
+    "personaId": "persona_019",
+    "question": "How does Elias's late-night work preference aid his focus on complex data?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard preference question about the utility of his habits."
+  },
+  {
+    "id": "q_persona_019_110",
+    "personaId": "persona_019",
+    "question": "What are Elias's aesthetic preferences regarding brutalist architecture?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m8_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard preference question about specific architectural movements."
+  },
+  {
+    "id": "q_persona_019_111",
+    "personaId": "persona_019",
+    "question": "How does Elias's preference for mono jazz recordings relate to his collection of hard bop?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m5_e2", "persona_019_s3_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Hard preference question linking subgenre and format across sessions."
+  },
+  {
+    "id": "q_persona_019_112",
+    "personaId": "persona_019",
+    "question": "How does Elias's preference for minimalist architecture manifest in his view of urban friction?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard preference question about the impact of design on urban living."
+  },
+  {
+    "id": "q_persona_019_113",
+    "personaId": "persona_019",
+    "question": "How does Elias's preference for late-evening work align with his analytical personality?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard preference question linking habits to personality traits."
+  },
+  {
+    "id": "q_persona_019_114",
+    "personaId": "persona_019",
+    "question": "Compare Elias's preference for mono jazz recordings to his interest in 1950s West Coast jazz.",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s3_m7_e1", "persona_019_s4_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Hard preference question comparing musical interests across sessions."
+  },
+  {
+    "id": "q_persona_019_115",
+    "personaId": "persona_019",
+    "question": "How does Elias's preference for fixed-gear bikes relate to his daily commute routine?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m3_e1", "persona_019_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Hard preference question linking equipment choice to routine across sessions."
+  },
+  {
+    "id": "q_persona_019_116",
+    "personaId": "persona_019",
+    "question": "How do Elias's architectural preferences influence his view on cognitive load in cities?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s2_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard preference question linking design to psychological impact."
+  },
+  {
+    "id": "q_persona_019_117",
+    "personaId": "persona_019",
+    "question": "What is the link between Elias's preference for 35mm lenses and his minimalist photography style?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m4_e1", "persona_019_s3_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Hard preference question linking technical tools to artistic style across sessions."
+  },
+  {
+    "id": "q_persona_019_118",
+    "personaId": "persona_019",
+    "question": "How does Elias's preference for reclaimed wood appear in his past projects like the West End parklet?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s1_m9_e1", "persona_019_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Hard preference question linking material choices to project outcomes across sessions."
+  },
+  {
+    "id": "q_persona_019_119",
+    "personaId": "persona_019",
+    "question": "What kind of jazz does Elias enjoy for focusing during his drafting work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_019_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard preference question about the functional use of music in his work."
+  },
+  {
+    "id": "q_persona_019_120",
+    "personaId": "persona_019",
+    "question": "How does Elias's belief in structural integrity influence his current work on the transit hub?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m2_e1", "persona_019_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inference question linking personal values to a specific work task."
+  },
+  {
+    "id": "q_persona_019_121",
+    "personaId": "persona_019",
+    "question": "Why might Elias be using data visualization for the urban heat island project?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m5_e2", "persona_019_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Inference question linking a skill to a project across sessions."
+  },
+  {
+    "id": "q_persona_019_122",
+    "personaId": "persona_019",
+    "question": "How does Elias's interest in local history support his downtown revitalization project?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m8_e2", "persona_019_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Inference question linking historical expertise to a current project across sessions."
+  },
+  {
+    "id": "q_persona_019_123",
+    "personaId": "persona_019",
+    "question": "What is the relationship between Elias's view of data as 'scaffolding' and his use of Python?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m6_e1", "persona_019_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Inference question linking a philosophical view of data to a specific technical tool."
+  },
+  {
+    "id": "q_persona_019_124",
+    "personaId": "persona_019",
+    "question": "How does Elias's advocacy for pedestrian zones connect to his current work on traffic statistics?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m10_e2", "persona_019_s1_m10_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inference question linking advocacy to current data tasks."
+  },
+  {
+    "id": "q_persona_019_125",
+    "personaId": "persona_019",
+    "question": "Why would Elias be concerned about the 15-minute headway gap in transit?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m9_e1", "persona_019_s2_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Inference question linking social equity values to transit data."
+  },
+  {
+    "id": "q_persona_019_126",
+    "personaId": "persona_019",
+    "question": "How does the condition of the 5th Street garden ramp conflict with Elias's professional values?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m2_e3", "persona_019_s2_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard inference question linking a specific observation to broad professional values."
+  },
+  {
+    "id": "q_persona_019_127",
+    "personaId": "persona_019",
+    "question": "How might Elias's photography of infrastructure gaps influence his pedestrian zone proposals?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m4_e2", "persona_019_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard inference question linking documentation methods to policy advocacy."
+  },
+  {
+    "id": "q_persona_019_128",
+    "personaId": "persona_019",
+    "question": "In what way does Elias's observation of urban flow in jazz reflect in his transit hub review?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m7_e2", "persona_019_s1_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard inference question linking musical metaphors to urban planning tasks."
+  },
+  {
+    "id": "q_persona_019_129",
+    "personaId": "persona_019",
+    "question": "How does Elias's use of reclaimed cedar in the West End reflect his broader sustainability goals?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m10_e2", "persona_019_s2_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard inference question linking a specific project choice to general values."
+  },
+  {
+    "id": "q_persona_019_130",
+    "personaId": "persona_019",
+    "question": "Why is Elias researching 1950s trolley data for a modern revitalization project?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s4_m1_e2", "persona_019_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Hard inference question about the relevance of historical data to modern planning."
+  },
+  {
+    "id": "q_persona_019_131",
+    "personaId": "persona_019",
+    "question": "How does Elias's belief in equitable green space access relate to his work on modular parklets?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m10_e1", "persona_019_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Hard inference question linking social values to specific project types across sessions."
+  },
+  {
+    "id": "q_persona_019_132",
+    "personaId": "persona_019",
+    "question": "How does Elias's photography exhibition theme likely relate to his documentation of infrastructure gaps?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m4_e2", "persona_019_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Hard inference question linking professional documentation to artistic exhibition across sessions."
+  },
+  {
+    "id": "q_persona_019_133",
+    "personaId": "persona_019",
+    "question": "What role does data visualization play in Elias's advocacy for public policy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m5_e2", "persona_019_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Hard inference question linking technical skills to policy goals across sessions."
+  },
+  {
+    "id": "q_persona_019_134",
+    "personaId": "persona_019",
+    "question": "How does Elias's view on community integrity manifest in his garden monitoring?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m2_e2", "persona_019_s3_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Hard inference question linking social philosophy to hobby activities across sessions."
+  },
+  {
+    "id": "q_persona_019_135",
+    "personaId": "persona_019",
+    "question": "Why would Elias value permeable surfaces in his urban master plan?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m6_e2", "persona_019_s2_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Hard inference question linking environmental needs to a specific planning project."
+  },
+  {
+    "id": "q_persona_019_136",
+    "personaId": "persona_019",
+    "question": "How does Elias's minimalist architectural philosophy impact his view on cognitive load?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s2_m4_e1", "persona_019_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Hard inference question linking design philosophy to psychological outcomes across sessions."
+  },
+  {
+    "id": "q_persona_019_137",
+    "personaId": "persona_019",
+    "question": "How does Elias's expertise in trolley history inform his current transit consulting?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m8_e2", "persona_019_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Hard inference question linking historical knowledge to professional consulting across sessions."
+  },
+  {
+    "id": "q_persona_019_138",
+    "personaId": "persona_019",
+    "question": "Why might Elias prioritize concrete barriers for bike paths based on his views on structural integrity?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m2_e2", "persona_019_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Hard inference question linking a core value to a specific infrastructure preference across sessions."
+  },
+  {
+    "id": "q_persona_019_139",
+    "personaId": "persona_019",
+    "question": "How does Elias's commute by bike inform his professional advocacy for pedestrian zones?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m3_e2", "persona_019_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard inference question linking personal experience to professional advocacy."
+  },
+  {
+    "id": "q_persona_019_140",
+    "personaId": "persona_019",
+    "question": "How does Elias's interest in the rhythm of jazz influence his analysis of urban flow?",
+    "type": "inference",
+    "expectedEvidence": ["persona_019_s1_m7_e2", "persona_019_s1_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Hard inference question linking an artistic interest to a specific technical task."
+  }
+]

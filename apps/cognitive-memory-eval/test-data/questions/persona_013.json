@@ -1,0 +1,1414 @@
+[
+  {
+    "id": "q_persona_013_001",
+    "personaId": "persona_013",
+    "question": "What is Elias Thorne's primary occupation?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct factual recall from the first session."
+  },
+  {
+    "id": "q_persona_013_002",
+    "personaId": "persona_013",
+    "question": "What specific jazz album has Elias owned for two decades?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple retrieval of a specific fact about a possession."
+  },
+  {
+    "id": "q_persona_013_003",
+    "personaId": "persona_013",
+    "question": "What type of bonsai tree did Elias spend time pruning in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct identification of the bonsai species mentioned."
+  },
+  {
+    "id": "q_persona_013_004",
+    "personaId": "persona_013",
+    "question": "Which type of wine does Elias use when cooking Coq au Vin?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m4_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Factual detail about a specific recipe ingredient."
+  },
+  {
+    "id": "q_persona_013_005",
+    "personaId": "persona_013",
+    "question": "On which street is the Victorian building Elias is restoring located?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Retrieval of a specific location mentioned in session 2."
+  },
+  {
+    "id": "q_persona_013_006",
+    "personaId": "persona_013",
+    "question": "What specific film does Elias prefer for its organic grain?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Direct factual recall of a preferred photography material."
+  },
+  {
+    "id": "q_persona_013_007",
+    "personaId": "persona_013",
+    "question": "Which camera model does Elias use for his analog photography in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Identification of a specific tool used by the persona."
+  },
+  {
+    "id": "q_persona_013_008",
+    "personaId": "persona_013",
+    "question": "What material is Elias incorporating into his community center project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Fact about a specific architectural project."
+  },
+  {
+    "id": "q_persona_013_009",
+    "personaId": "persona_013",
+    "question": "What ingredient is infused into the risotto Elias is practicing?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Specific detail about a cooking recipe."
+  },
+  {
+    "id": "q_persona_013_010",
+    "personaId": "persona_013",
+    "question": "Where is the clock tower that Elias is restoring located?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Simple location retrieval from session 3."
+  },
+  {
+    "id": "q_persona_013_011",
+    "personaId": "persona_013",
+    "question": "What kind of wood does Elias favor for interior design?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Factual identification of a preferred material."
+  },
+  {
+    "id": "q_persona_013_012",
+    "personaId": "persona_013",
+    "question": "To which table tennis club does Elias belong?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Direct recall of an organization name."
+  },
+  {
+    "id": "q_persona_013_013",
+    "personaId": "persona_013",
+    "question": "Which film does Elias consider superior to digital sensors?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific opinionated fact."
+  },
+  {
+    "id": "q_persona_013_014",
+    "personaId": "persona_013",
+    "question": "What kind of vinyl records does Elias collect?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Identification of a specific collectible item."
+  },
+  {
+    "id": "q_persona_013_015",
+    "personaId": "persona_013",
+    "question": "Where is Elias's adaptive reuse project located?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Direct location retrieval from session 4."
+  },
+  {
+    "id": "q_persona_013_016",
+    "personaId": "persona_013",
+    "question": "What specific type of jazz does Elias enjoy listening to while drafting?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m11_e1", "persona_013_s1_m11_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting a genre preference with a specific activity."
+  },
+  {
+    "id": "q_persona_013_017",
+    "personaId": "persona_013",
+    "question": "What are the two main components of the soil mix Elias uses for his bonsai?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying multiple specific items in a list."
+  },
+  {
+    "id": "q_persona_013_018",
+    "personaId": "persona_013",
+    "question": "Which museum's restoration is Elias currently studying in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a specific historical building name."
+  },
+  {
+    "id": "q_persona_013_019",
+    "personaId": "persona_013",
+    "question": "What specific species of Juniper is Elias cultivating in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires distinguishing between different types of bonsai mentioned across sessions."
+  },
+  {
+    "id": "q_persona_013_020",
+    "personaId": "persona_013",
+    "question": "What is the construction year of the city clock tower Elias is studying?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific historical date."
+  },
+  {
+    "id": "q_persona_013_021",
+    "personaId": "persona_013",
+    "question": "What specific jazz artist did Elias listen to on the morning of session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a specific event and person from session 4."
+  },
+  {
+    "id": "q_persona_013_022",
+    "personaId": "persona_013",
+    "question": "What material does Elias use in his architectural projects to ensure sustainability?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Connecting a project goal with a specific material."
+  },
+  {
+    "id": "q_persona_013_023",
+    "personaId": "persona_013",
+    "question": "What is the date of the city library blueprints Elias is examining in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Retrieval of a specific year associated with a document."
+  },
+  {
+    "id": "q_persona_013_024",
+    "personaId": "persona_013",
+    "question": "What complex dish involving a slow reduction of sauce is Elias cooking?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m5_e1", "persona_013_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Connecting a dish name with its preparation method."
+  },
+  {
+    "id": "q_persona_013_025",
+    "personaId": "persona_013",
+    "question": "What specific camera model does Elias use in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifying a specific tool that changed or was specified in a later session."
+  },
+  {
+    "id": "q_persona_013_026",
+    "personaId": "persona_013",
+    "question": "What century of masonry is Elias researching in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a specific historical period."
+  },
+  {
+    "id": "q_persona_013_027",
+    "personaId": "persona_013",
+    "question": "What type of building is Elias designing in the third session?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifying a specific architectural project type."
+  },
+  {
+    "id": "q_persona_013_028",
+    "personaId": "persona_013",
+    "question": "What specific metaphors does Elias use in his communication?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Recall of specific communication style details."
+  },
+  {
+    "id": "q_persona_013_029",
+    "personaId": "persona_013",
+    "question": "What material does Elias use for interior cladding in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Recall of a specific material used for a specific purpose."
+  },
+  {
+    "id": "q_persona_013_030",
+    "personaId": "persona_013",
+    "question": "What is the name of the jazz artist whose album Elias has owned for 20 years?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m5_e1", "persona_013_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Linking a person with a specific possession."
+  },
+  {
+    "id": "q_persona_013_031",
+    "personaId": "persona_013",
+    "question": "What specific dish is Elias preparing for a gathering in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a social event detail."
+  },
+  {
+    "id": "q_persona_013_032",
+    "personaId": "persona_013",
+    "question": "What type of timber is used in the community center project mentioned in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Specific material identification for a project."
+  },
+  {
+    "id": "q_persona_013_033",
+    "personaId": "persona_013",
+    "question": "What is the name of the jazz trio Elias prefers in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Specific artist group identification."
+  },
+  {
+    "id": "q_persona_013_034",
+    "personaId": "persona_013",
+    "question": "What specific type of reduction is required for Beef Bourguignon?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Detail about a cooking technique."
+  },
+  {
+    "id": "q_persona_013_035",
+    "personaId": "persona_013",
+    "question": "In which session is Elias mentioned to be researching 19th-century masonry?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Meta-factual question about the data source."
+  },
+  {
+    "id": "q_persona_013_036",
+    "personaId": "persona_013",
+    "question": "Based on sessions 1 and 4, which specific materials does Elias incorporate into his architectural designs to align with his sustainability principles?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires synthesizing material information from multiple sessions."
+  },
+  {
+    "id": "q_persona_013_037",
+    "personaId": "persona_013",
+    "question": "What are the two different Leica camera models Elias uses for his photography across sessions 2 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m6_e2", "persona_013_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires identifying and distinguishing specific equipment across multiple sessions."
+  },
+  {
+    "id": "q_persona_013_038",
+    "personaId": "persona_013",
+    "question": "Which two different streets or avenues are associated with Elias's restoration projects in sessions 2 and 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m1_e1", "persona_013_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires comparing location data from different sessions."
+  },
+  {
+    "id": "q_persona_013_039",
+    "personaId": "persona_013",
+    "question": "What are the specific ingredients and dishes Elias prepares that involve wine or slow reduction?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m4_e3", "persona_013_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Synthesizing cooking details from disparate sessions."
+  },
+  {
+    "id": "q_persona_013_040",
+    "personaId": "persona_013",
+    "question": "Identify the two specific species of Juniper bonsai Elias is mentioned to be working with across all sessions.",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m6_e2", "persona_013_s4_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Distinguishing specific botanical varieties across sessions."
+  },
+  {
+    "id": "q_persona_013_041",
+    "personaId": "persona_013",
+    "question": "What are the specific years of the historical documents Elias is studying in sessions 1 and 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m10_e1", "persona_013_s2_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Retrieving and comparing historical dates from different sessions."
+  },
+  {
+    "id": "q_persona_013_042",
+    "personaId": "persona_013",
+    "question": "Which jazz artists or groups are mentioned as Elias's favorites across sessions 1, 3, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_013_s1_m5_e1",
+      "persona_013_s3_m2_e1",
+      "persona_013_s4_m7_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Synthesizing a list of people from multiple sessions."
+  },
+  {
+    "id": "q_persona_013_043",
+    "personaId": "persona_013",
+    "question": "What specific types of timber or wood does Elias favor for interiors across sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Comparing material preferences across sessions."
+  },
+  {
+    "id": "q_persona_013_044",
+    "personaId": "persona_013",
+    "question": "Identify the specific architectural projects Elias is working on in sessions 2, 3, and 4.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_013_s2_m1_e1",
+      "persona_013_s3_m9_e1",
+      "persona_013_s4_m1_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Synthesizing a list of projects from multiple sessions."
+  },
+  {
+    "id": "q_persona_013_045",
+    "personaId": "persona_013",
+    "question": "What are the specific film types Elias uses for his photography across sessions 2 and 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s2_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Retrieving specific material names from different sessions."
+  },
+  {
+    "id": "q_persona_013_046",
+    "personaId": "persona_013",
+    "question": "Which specific sports club and tournament are mentioned in relation to Elias's table tennis hobby?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m5_e1", "persona_013_s3_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Identifying multiple specific entities within a single hobby."
+  },
+  {
+    "id": "q_persona_013_047",
+    "personaId": "persona_013",
+    "question": "What specific historical buildings or museums is Elias studying or restoring across sessions 1, 2, and 4?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_013_s1_m10_e2",
+      "persona_013_s2_m1_e1",
+      "persona_013_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Compiling a list of specific buildings from multiple sessions."
+  },
+  {
+    "id": "q_persona_013_048",
+    "personaId": "persona_013",
+    "question": "What are the specific components of Elias's bonsai care routine mentioned in sessions 3 and 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s3_m4_e2", "persona_013_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Synthesizing care details from different sessions."
+  },
+  {
+    "id": "q_persona_013_049",
+    "personaId": "persona_013",
+    "question": "What specific historical years are mentioned in the context of Elias's research across sessions 1 and 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_013_s1_m10_e1", "persona_013_s2_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Retrieving multiple specific years from different contexts."
+  },
+  {
+    "id": "q_persona_013_050",
+    "personaId": "persona_013",
+    "question": "When did Elias review blueprints in the first session?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple retrieval of a time of day."
+  },
+  {
+    "id": "q_persona_013_051",
+    "personaId": "persona_013",
+    "question": "How many rolls of film did Elias develop last night in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific count and time."
+  },
+  {
+    "id": "q_persona_013_052",
+    "personaId": "persona_013",
+    "question": "In what year was the city clock tower built?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct retrieval of a historical date."
+  },
+  {
+    "id": "q_persona_013_053",
+    "personaId": "persona_013",
+    "question": "On what day is the table tennis tournament scheduled in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a specific day of the week."
+  },
+  {
+    "id": "q_persona_013_054",
+    "personaId": "persona_013",
+    "question": "When was Elias in his darkroom relative to session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s4_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Simple temporal reference."
+  },
+  {
+    "id": "q_persona_013_055",
+    "personaId": "persona_013",
+    "question": "How long has Elias owned the album Kind of Blue?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a duration."
+  },
+  {
+    "id": "q_persona_013_056",
+    "personaId": "persona_013",
+    "question": "When is Elias's table tennis match scheduled in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a future-relative time."
+  },
+  {
+    "id": "q_persona_013_057",
+    "personaId": "persona_013",
+    "question": "When did Elias last perform maintenance on his Juniper bonsai in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a past-relative duration."
+  },
+  {
+    "id": "q_persona_013_058",
+    "personaId": "persona_013",
+    "question": "When did Elias play a competitive table tennis match in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a past-relative time."
+  },
+  {
+    "id": "q_persona_013_059",
+    "personaId": "persona_013",
+    "question": "What time is Elias's site inspection scheduled for in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific clock time."
+  },
+  {
+    "id": "q_persona_013_060",
+    "personaId": "persona_013",
+    "question": "How long ago did the clock tower restoration project start in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a project start duration."
+  },
+  {
+    "id": "q_persona_013_061",
+    "personaId": "persona_013",
+    "question": "How often does Elias mist his bonsai during humidity shifts?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a frequency."
+  },
+  {
+    "id": "q_persona_013_062",
+    "personaId": "persona_013",
+    "question": "When does Elias spend time at the municipal archives?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a recurring time."
+  },
+  {
+    "id": "q_persona_013_063",
+    "personaId": "persona_013",
+    "question": "On what nights does Elias play table tennis in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a recurring day."
+  },
+  {
+    "id": "q_persona_013_064",
+    "personaId": "persona_013",
+    "question": "When is Elias cooking Beef Bourguignon in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific evening."
+  },
+  {
+    "id": "q_persona_013_065",
+    "personaId": "persona_013",
+    "question": "When did Elias listen to Duke Ellington in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a specific time of day."
+  },
+  {
+    "id": "q_persona_013_066",
+    "personaId": "persona_013",
+    "question": "How many years has Elias been an architect?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a career duration."
+  },
+  {
+    "id": "q_persona_013_067",
+    "personaId": "persona_013",
+    "question": "When did Elias develop three rolls of film in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific past time."
+  },
+  {
+    "id": "q_persona_013_068",
+    "personaId": "persona_013",
+    "question": "When did Elias spend two hours on his Juniper bonsai in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific duration and time."
+  },
+  {
+    "id": "q_persona_013_069",
+    "personaId": "persona_013",
+    "question": "When is Elias's site inspection relative to the day mentioned in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a future-relative date."
+  },
+  {
+    "id": "q_persona_013_070",
+    "personaId": "persona_013",
+    "question": "How does the timing of Elias's bonsai pruning in session 1 compare to his maintenance schedule in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires comparing specific time points across different sessions."
+  },
+  {
+    "id": "q_persona_013_071",
+    "personaId": "persona_013",
+    "question": "What is the chronological order of Elias's site inspection and the start of his clock tower project across sessions 2 and 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires sequencing events from different sessions."
+  },
+  {
+    "id": "q_persona_013_072",
+    "personaId": "persona_013",
+    "question": "How many years of architectural experience does Elias have compared to the age of his favorite jazz album?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires comparing two different durations from different sessions."
+  },
+  {
+    "id": "q_persona_013_073",
+    "personaId": "persona_013",
+    "question": "When does Elias perform his darkroom work in session 4 relative to his table tennis tournament in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s4_m3_e1", "persona_013_s3_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires relating specific days across sessions."
+  },
+  {
+    "id": "q_persona_013_074",
+    "personaId": "persona_013",
+    "question": "Compare the timing of Elias's blueprint review in session 1 with his study of library blueprints in session 2.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e2", "persona_013_s2_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Comparing specific activities and their associated times across sessions."
+  },
+  {
+    "id": "q_persona_013_075",
+    "personaId": "persona_013",
+    "question": "How does the frequency of Elias's bonsai misting in session 3 compare to his last pruning session in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Comparing a frequency with a specific past event across sessions."
+  },
+  {
+    "id": "q_persona_013_076",
+    "personaId": "persona_013",
+    "question": "When does Elias prepare his gourmet meals in session 1 relative to his jazz listening sessions in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m4_e2", "persona_013_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Relating meal preparation timing to music listening timing across sessions."
+  },
+  {
+    "id": "q_persona_013_077",
+    "personaId": "persona_013",
+    "question": "What is the sequence of Elias's table tennis matches across sessions 2 and 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s4_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Sequencing recurring and specific hobby events across sessions."
+  },
+  {
+    "id": "q_persona_013_078",
+    "personaId": "persona_013",
+    "question": "How does the timing of Elias's film development in session 1 compare to his research at the archives in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m3_e2", "persona_013_s3_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Comparing the timing of two different hobbies across sessions."
+  },
+  {
+    "id": "q_persona_013_079",
+    "personaId": "persona_013",
+    "question": "When was the city clock tower built relative to the date of the library blueprints Elias studies?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m10_e1", "persona_013_s2_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Comparing two historical dates mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_013_080",
+    "personaId": "persona_013",
+    "question": "When does Elias work on the docklands project in session 4 relative to his research on 19th-century masonry in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s4_m1_e1", "persona_013_s3_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Sequencing work activities across sessions."
+  },
+  {
+    "id": "q_persona_013_081",
+    "personaId": "persona_013",
+    "question": "How does the timing of Elias's site inspection in session 2 compare to his cooking of Beef Bourguignon in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Comparing a professional event with a personal one across sessions."
+  },
+  {
+    "id": "q_persona_013_082",
+    "personaId": "persona_013",
+    "question": "When did Elias acquire his favorite album relative to when he started the clock tower restoration?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m5_e2", "persona_013_s3_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Comparing long-term ownership with a recent project start."
+  },
+  {
+    "id": "q_persona_013_083",
+    "personaId": "persona_013",
+    "question": "Compare the timing of Elias's table tennis match in session 2 with the tournament in session 3.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s3_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Sequencing specific hobby milestones across sessions."
+  },
+  {
+    "id": "q_persona_013_084",
+    "personaId": "persona_013",
+    "question": "When did Elias review blueprints in session 1 compared to his darkroom visit in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_013_s1_m1_e2", "persona_013_s4_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Comparing the timing of professional and personal activities across sessions."
+  },
+  {
+    "id": "q_persona_013_085",
+    "personaId": "persona_013",
+    "question": "What is Elias's preferred method of communication?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct retrieval of a stated preference."
+  },
+  {
+    "id": "q_persona_013_086",
+    "personaId": "persona_013",
+    "question": "What specific jazz genre does Elias prefer?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m11_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct retrieval of a music preference."
+  },
+  {
+    "id": "q_persona_013_087",
+    "personaId": "persona_013",
+    "question": "What does Elias prefer about analog photography over digital?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m3_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a preference and its reason."
+  },
+  {
+    "id": "q_persona_013_088",
+    "personaId": "persona_013",
+    "question": "What music does Elias prefer to listen to while working on drafts?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct retrieval of a preference associated with an activity."
+  },
+  {
+    "id": "q_persona_013_089",
+    "personaId": "persona_013",
+    "question": "Who is Elias a fan of in the world of jazz as mentioned in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Direct retrieval of a fan preference."
+  },
+  {
+    "id": "q_persona_013_090",
+    "personaId": "persona_013",
+    "question": "Why does Elias prefer written correspondence over digital?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m9_e1", "persona_013_s1_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Connecting a preference with its philosophical reasoning."
+  },
+  {
+    "id": "q_persona_013_091",
+    "personaId": "persona_013",
+    "question": "What album does Elias like by Miles Davis?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific favorite item."
+  },
+  {
+    "id": "q_persona_013_092",
+    "personaId": "persona_013",
+    "question": "What material does Elias prefer over modern glass architecture?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a comparative preference."
+  },
+  {
+    "id": "q_persona_013_093",
+    "personaId": "persona_013",
+    "question": "What film does Elias prefer for its organic grain quality?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Retrieval of a preference for a specific material property."
+  },
+  {
+    "id": "q_persona_013_094",
+    "personaId": "persona_013",
+    "question": "What jazz trio does Elias prefer in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a specific music preference."
+  },
+  {
+    "id": "q_persona_013_095",
+    "personaId": "persona_013",
+    "question": "What wood does Elias favor for interior cladding in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a specific material preference."
+  },
+  {
+    "id": "q_persona_013_096",
+    "personaId": "persona_013",
+    "question": "What does Elias enjoy about developing film in a darkroom?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of an activity-based preference."
+  },
+  {
+    "id": "q_persona_013_097",
+    "personaId": "persona_013",
+    "question": "What is Elias's preference regarding sauce consistency in his cooking?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s3_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Retrieval of a specific culinary preference."
+  },
+  {
+    "id": "q_persona_013_098",
+    "personaId": "persona_013",
+    "question": "What does Elias value most in architectural design according to session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a high-level design preference."
+  },
+  {
+    "id": "q_persona_013_099",
+    "personaId": "persona_013",
+    "question": "What material does Elias prefer for interior cladding in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific material preference."
+  },
+  {
+    "id": "q_persona_013_100",
+    "personaId": "persona_013",
+    "question": "What does Elias enjoy about the game of table tennis?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a preference for a specific game quality."
+  },
+  {
+    "id": "q_persona_013_101",
+    "personaId": "persona_013",
+    "question": "What kind of musical arrangements does Elias prefer?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m7_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a specific musical preference."
+  },
+  {
+    "id": "q_persona_013_102",
+    "personaId": "persona_013",
+    "question": "What kind of light does Elias prefer for precision tasks?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Retrieval of a task-specific preference."
+  },
+  {
+    "id": "q_persona_013_103",
+    "personaId": "persona_013",
+    "question": "What does Elias like about Miles Davis's music in session 1?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a specific artist preference."
+  },
+  {
+    "id": "q_persona_013_104",
+    "personaId": "persona_013",
+    "question": "What is Elias's preference for historical structures as stated in session 1?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Retrieval of a broad interest preference."
+  },
+  {
+    "id": "q_persona_013_105",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for historical preservation influence his choice of building materials across sessions 1 and 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Connecting a philosophical preference with a material preference across sessions."
+  },
+  {
+    "id": "q_persona_013_106",
+    "personaId": "persona_013",
+    "question": "What is the common theme in Elias's preference for stone masonry and reclaimed chestnut?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Synthesizing themes from disparate material preferences."
+  },
+  {
+    "id": "q_persona_013_107",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for analog photography's tactile quality relate to his view on architectural integrity across sessions 1 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m3_e3", "persona_013_s4_m3_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Linking preferences for quality across different domains."
+  },
+  {
+    "id": "q_persona_013_108",
+    "personaId": "persona_013",
+    "question": "In what way does Elias's preference for natural light manifest in both his design and his precision tasks across sessions 2 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Synthesizing a preference for light across different session contexts."
+  },
+  {
+    "id": "q_persona_013_109",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for Miles Davis influence his work habits across sessions 1 and 2?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Connecting a music preference with a work habit across sessions."
+  },
+  {
+    "id": "q_persona_013_110",
+    "personaId": "persona_013",
+    "question": "What connects Elias's preference for complex brass arrangements with his interest in architectural metaphors in sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m7_e3", "persona_013_s3_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Synthesizing complex preferences from different sessions."
+  },
+  {
+    "id": "q_persona_013_111",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for written correspondence align with his values regarding historical resonance in sessions 1 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m9_e2", "persona_013_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Linking communication preferences with philosophical values across sessions."
+  },
+  {
+    "id": "q_persona_013_112",
+    "personaId": "persona_013",
+    "question": "What is the relationship between Elias's preference for Kodak Tri-X and his belief in silver halide's quality across sessions 2 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s2_m6_e1", "persona_013_s4_m3_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Linking a specific material preference with a general belief across sessions."
+  },
+  {
+    "id": "q_persona_013_113",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for gourmet cooking reflect his meticulous personality across sessions 1 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m4_e1", "persona_013_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Relating a hobby preference to a personality trait across sessions."
+  },
+  {
+    "id": "q_persona_013_114",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for specific film types influence his view on digital sensors across sessions 2 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s2_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Synthesizing a comparative preference across sessions."
+  },
+  {
+    "id": "q_persona_013_115",
+    "personaId": "persona_013",
+    "question": "What does Elias's preference for sustainable design imply about his choice of reclaimed timber across sessions 1 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Linking a design principle with a material choice across sessions."
+  },
+  {
+    "id": "q_persona_013_116",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for jazz while drafting compare to his fan status of Duke Ellington across sessions 2 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Comparing artist-specific preferences across sessions."
+  },
+  {
+    "id": "q_persona_013_117",
+    "personaId": "persona_013",
+    "question": "Why does Elias favor specific jazz artists like Miles Davis and the Bill Evans Trio across sessions 1 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s1_m5_e1", "persona_013_s3_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Synthesizing multiple artist preferences across sessions."
+  },
+  {
+    "id": "q_persona_013_118",
+    "personaId": "persona_013",
+    "question": "How does Elias's preference for precision in table tennis relate to his architectural communication style across sessions 3 and 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s4_m4_e2", "persona_013_s3_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Linking hobby qualities with professional communication across sessions."
+  },
+  {
+    "id": "q_persona_013_119",
+    "personaId": "persona_013",
+    "question": "What is the link between Elias's preference for natural light and his use of passive solar across sessions 2 and 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_013_s3_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Linking a design preference with a technical ethical choice across sessions."
+  },
+  {
+    "id": "q_persona_013_120",
+    "personaId": "persona_013",
+    "question": "Why does Elias prefer written correspondence?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m9_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Simple inference from a stated opinion."
+  },
+  {
+    "id": "q_persona_013_121",
+    "personaId": "persona_013",
+    "question": "Why does Elias use reclaimed materials in his projects?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Inference based on a stated professional principle."
+  },
+  {
+    "id": "q_persona_013_122",
+    "personaId": "persona_013",
+    "question": "Why does Elias value aesthetic harmony in design?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Direct inference from a stated value."
+  },
+  {
+    "id": "q_persona_013_123",
+    "personaId": "persona_013",
+    "question": "Why might Elias find digital communication lacking?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inference based on a stated philosophical view."
+  },
+  {
+    "id": "q_persona_013_124",
+    "personaId": "persona_013",
+    "question": "Why does Elias prefer stone masonry over modern glass?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inference based on a stated preference for material 'honesty'."
+  },
+  {
+    "id": "q_persona_013_125",
+    "personaId": "persona_013",
+    "question": "What does Elias mean by natural light being the 'punctuation' of design?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Interpreting a specific architectural metaphor."
+  },
+  {
+    "id": "q_persona_013_126",
+    "personaId": "persona_013",
+    "question": "Why does Elias avoid synthetic materials?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Inference from a stated opinion on historical resonance."
+  },
+  {
+    "id": "q_persona_013_127",
+    "personaId": "persona_013",
+    "question": "Why is passive solar considered an ethical choice by Elias?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Inference from a stated ethical design principle."
+  },
+  {
+    "id": "q_persona_013_128",
+    "personaId": "persona_013",
+    "question": "How does Elias's communication style reflect his profession?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Inference linking communication style to professional background."
+  },
+  {
+    "id": "q_persona_013_129",
+    "personaId": "persona_013",
+    "question": "How does Elias's belief that cities must preserve their soul influence his adaptive reuse projects?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m2_e2", "persona_013_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Linking a core philosophy from session 1 to a project in session 4."
+  },
+  {
+    "id": "q_persona_013_130",
+    "personaId": "persona_013",
+    "question": "If Elias believes stone masonry has 'honesty', why might he avoid synthetic materials in his restoration work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Synthesizing material honesty with historical resonance across sessions."
+  },
+  {
+    "id": "q_persona_013_131",
+    "personaId": "persona_013",
+    "question": "How does Elias's view of architecture as a 'long game of controlled evolution' relate to his practice of bonsai cultivation?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s4_m6_e2", "persona_013_s1_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Linking a professional philosophy to a personal hobby across sessions."
+  },
+  {
+    "id": "q_persona_013_132",
+    "personaId": "persona_013",
+    "question": "Why would Elias consider passive solar the 'only ethical choice' for a civic building like a public library?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m9_e2", "persona_013_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Linking an ethical principle to a specific project type."
+  },
+  {
+    "id": "q_persona_013_133",
+    "personaId": "persona_013",
+    "question": "How does Elias's meticulous nature in reviewing blueprints translate to his precision in analog photography?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m1_e2", "persona_013_s1_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Inference linking a personality trait across different activities."
+  },
+  {
+    "id": "q_persona_013_134",
+    "personaId": "persona_013",
+    "question": "Why might Elias's preference for natural light as 'punctuation' lead him to choose it for precision tasks?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Linking a design metaphor to a practical task preference across sessions."
+  },
+  {
+    "id": "q_persona_013_135",
+    "personaId": "persona_013",
+    "question": "How does Elias's use of musical metaphors reflect his deep interest in classical jazz?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m10_e2", "persona_013_s1_m11_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Linking communication style to a specific interest across sessions."
+  },
+  {
+    "id": "q_persona_013_136",
+    "personaId": "persona_013",
+    "question": "What does Elias's commitment to sustainable design suggest about his long-term career goals as an architect?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Inference about career trajectory based on principles and experience."
+  },
+  {
+    "id": "q_persona_013_137",
+    "personaId": "persona_013",
+    "question": "How does Elias's study of historical blueprints and masonry inform his current restoration projects?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s3_m8_e1", "persona_013_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Linking research activities to project execution across sessions."
+  },
+  {
+    "id": "q_persona_013_138",
+    "personaId": "persona_013",
+    "question": "Why does Elias value the 'integrity' of physical letters and 'tactile quality' of silver halide over digital alternatives?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m9_e2", "persona_013_s4_m3_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Synthesizing a preference for physical integrity across different domains."
+  },
+  {
+    "id": "q_persona_013_139",
+    "personaId": "persona_013",
+    "question": "How does Elias's focus on aesthetic harmony in design influence his meticulous approach to complex cooking recipes?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Linking design values to culinary habits across sessions."
+  },
+  {
+    "id": "q_persona_013_140",
+    "personaId": "persona_013",
+    "question": "Why does Elias's belief in preserving a city's soul drive his interest in the restoration of the city clock tower?",
+    "type": "inference",
+    "expectedEvidence": ["persona_013_s1_m2_e2", "persona_013_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Linking a philosophical belief to a specific project within a session."
+  }
+]

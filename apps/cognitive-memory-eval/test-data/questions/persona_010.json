@@ -1,0 +1,1406 @@
+[
+  {
+    "id": "q_persona_010_001",
+    "personaId": "persona_010",
+    "question": "What is Elena's current profession?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_002",
+    "personaId": "persona_010",
+    "question": "How old is Elena?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_003",
+    "personaId": "persona_010",
+    "question": "Does Elena play a musical instrument?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_004",
+    "personaId": "persona_010",
+    "question": "What kind of garden does Elena maintain?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_005",
+    "personaId": "persona_010",
+    "question": "In what type of town did Elena grow up?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_006",
+    "personaId": "persona_010",
+    "question": "What genre of literature does Elena read?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_007",
+    "personaId": "persona_010",
+    "question": "What is the focus of Elena's photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_008",
+    "personaId": "persona_010",
+    "question": "What is the subject of the documentary Elena is filming in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_009",
+    "personaId": "persona_010",
+    "question": "What is Elena's job title?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_010",
+    "personaId": "persona_010",
+    "question": "What is Elena's age?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_011",
+    "personaId": "persona_010",
+    "question": "When did Elena last go rock climbing in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_012",
+    "personaId": "persona_010",
+    "question": "When did Elena visit a project site in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2."
+  },
+  {
+    "id": "q_persona_010_013",
+    "personaId": "persona_010",
+    "question": "When did Elena finish her garden's irrigation system?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2."
+  },
+  {
+    "id": "q_persona_010_014",
+    "personaId": "persona_010",
+    "question": "When is Elena's climbing trip to the Dolomites planned?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2."
+  },
+  {
+    "id": "q_persona_010_015",
+    "personaId": "persona_010",
+    "question": "When did Elena finish reading The Brothers Karamazov?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_016",
+    "personaId": "persona_010",
+    "question": "At what time does Elena start her consulting work?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_017",
+    "personaId": "persona_010",
+    "question": "When is the photography trip to the Pantanal scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m9_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_018",
+    "personaId": "persona_010",
+    "question": "When was the bioswale installation at the shipyard completed?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4."
+  },
+  {
+    "id": "q_persona_010_019",
+    "personaId": "persona_010",
+    "question": "When did Elena go rock climbing in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4."
+  },
+  {
+    "id": "q_persona_010_020",
+    "personaId": "persona_010",
+    "question": "When is Elena's meeting with the zoning board?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4."
+  },
+  {
+    "id": "q_persona_010_021",
+    "personaId": "persona_010",
+    "question": "What type of architecture does Elena value most?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_022",
+    "personaId": "persona_010",
+    "question": "Does Elena prefer complex jazz arrangements?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1."
+  },
+  {
+    "id": "q_persona_010_023",
+    "personaId": "persona_010",
+    "question": "What kind of literature does Elena enjoy reading?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_024",
+    "personaId": "persona_010",
+    "question": "Where does Elena want to photograph jaguars?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_025",
+    "personaId": "persona_010",
+    "question": "Does Elena prefer lead climbing or bouldering?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m11_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2."
+  },
+  {
+    "id": "q_persona_010_026",
+    "personaId": "persona_010",
+    "question": "What material does Elena prefer for her garden beds?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_027",
+    "personaId": "persona_010",
+    "question": "What material does Elena prefer over concrete for structural projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2."
+  },
+  {
+    "id": "q_persona_010_028",
+    "personaId": "persona_010",
+    "question": "What type of habitat does Elena prefer for wildlife photography?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m9_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated in session 3."
+  },
+  {
+    "id": "q_persona_010_029",
+    "personaId": "persona_010",
+    "question": "What specific site plan did Elena review in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific project mentioned."
+  },
+  {
+    "id": "q_persona_010_030",
+    "personaId": "persona_010",
+    "question": "What is Elena analyzing for the industrial park reclamation project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific data type."
+  },
+  {
+    "id": "q_persona_010_031",
+    "personaId": "persona_010",
+    "question": "What structural material does Elena prefer for her projects?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific material name."
+  },
+  {
+    "id": "q_persona_010_032",
+    "personaId": "persona_010",
+    "question": "What is the subject of Elena's documentary in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific subjects."
+  },
+  {
+    "id": "q_persona_010_033",
+    "personaId": "persona_010",
+    "question": "Where does Elena go every Saturday for photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific location."
+  },
+  {
+    "id": "q_persona_010_034",
+    "personaId": "persona_010",
+    "question": "What specific climbing route did Elena lead in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific grade."
+  },
+  {
+    "id": "q_persona_010_035",
+    "personaId": "persona_010",
+    "question": "What wood property makes Elena's chosen garden material desirable?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the property of the wood."
+  },
+  {
+    "id": "q_persona_010_036",
+    "personaId": "persona_010",
+    "question": "How many client portfolios is Elena currently managing?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific number."
+  },
+  {
+    "id": "q_persona_010_037",
+    "personaId": "persona_010",
+    "question": "What gardening technique does Elena use in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific technique."
+  },
+  {
+    "id": "q_persona_010_038",
+    "personaId": "persona_010",
+    "question": "By what percentage did runoff levels decrease at the shipyard?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific percentage."
+  },
+  {
+    "id": "q_persona_010_039",
+    "personaId": "persona_010",
+    "question": "What did Elena use for the rooftop garden project to help it stabilize?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific additive."
+  },
+  {
+    "id": "q_persona_010_040",
+    "personaId": "persona_010",
+    "question": "Which novel by George Eliot is Elena currently reading?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific book title."
+  },
+  {
+    "id": "q_persona_010_041",
+    "personaId": "persona_010",
+    "question": "What are Elena's primary tools for communicating data to stakeholders?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m10_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the two tools mentioned."
+  },
+  {
+    "id": "q_persona_010_042",
+    "personaId": "persona_010",
+    "question": "What is the focus of Elena's documentary in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific subject."
+  },
+  {
+    "id": "q_persona_010_043",
+    "personaId": "persona_010",
+    "question": "What is the critical deadline for carbon tax implementation according to Elena?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific year."
+  },
+  {
+    "id": "q_persona_010_044",
+    "personaId": "persona_010",
+    "question": "How long has Elena been filming her current documentary in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the duration."
+  },
+  {
+    "id": "q_persona_010_045",
+    "personaId": "persona_010",
+    "question": "What author was Elena reading earlier today in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s1_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the author and the timing."
+  },
+  {
+    "id": "q_persona_010_046",
+    "personaId": "persona_010",
+    "question": "What did Elena review today in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s1_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the activity and timing."
+  },
+  {
+    "id": "q_persona_010_047",
+    "personaId": "persona_010",
+    "question": "On what day of the week does Elena visit the wetlands?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the frequency/day."
+  },
+  {
+    "id": "q_persona_010_048",
+    "personaId": "persona_010",
+    "question": "How long ago did the documentary project in session 3 begin?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the start time."
+  },
+  {
+    "id": "q_persona_010_049",
+    "personaId": "persona_010",
+    "question": "When did Elena last go climbing in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the day."
+  },
+  {
+    "id": "q_persona_010_050",
+    "personaId": "persona_010",
+    "question": "What year does Elena identify as a critical deadline for carbon tax?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the year."
+  },
+  {
+    "id": "q_persona_010_051",
+    "personaId": "persona_010",
+    "question": "When does Elena aim to finish the first cut of her film?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the month."
+  },
+  {
+    "id": "q_persona_010_052",
+    "personaId": "persona_010",
+    "question": "When is the next phase of construction scheduled for Elena's project?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the season."
+  },
+  {
+    "id": "q_persona_010_053",
+    "personaId": "persona_010",
+    "question": "How many hours does Elena practice jazz piano daily?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the duration."
+  },
+  {
+    "id": "q_persona_010_054",
+    "personaId": "persona_010",
+    "question": "How long did Elena spend working on the V5 bouldering problem?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the duration."
+  },
+  {
+    "id": "q_persona_010_055",
+    "personaId": "persona_010",
+    "question": "In what season is the Pantanal trip planned?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific season."
+  },
+  {
+    "id": "q_persona_010_056",
+    "personaId": "persona_010",
+    "question": "In what month is the Dolomites trip planned?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the month."
+  },
+  {
+    "id": "q_persona_010_057",
+    "personaId": "persona_010",
+    "question": "When did Elena visit the project site mentioned in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the relative time."
+  },
+  {
+    "id": "q_persona_010_058",
+    "personaId": "persona_010",
+    "question": "What did Elena review on the day of session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s1_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific activity and day."
+  },
+  {
+    "id": "q_persona_010_059",
+    "personaId": "persona_010",
+    "question": "Why does Elena enjoy the process of rock climbing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific reason."
+  },
+  {
+    "id": "q_persona_010_060",
+    "personaId": "persona_010",
+    "question": "What is Elena's preference regarding structural materials in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the preferred material."
+  },
+  {
+    "id": "q_persona_010_061",
+    "personaId": "persona_010",
+    "question": "What is Elena's preference for wildlife photography locations?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m9_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific condition of the habitat."
+  },
+  {
+    "id": "q_persona_010_062",
+    "personaId": "persona_010",
+    "question": "Why does Elena enjoy reading Tolstoy?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific benefit."
+  },
+  {
+    "id": "q_persona_010_063",
+    "personaId": "persona_010",
+    "question": "What is Elena's goal for her documentary film regarding stakeholders?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the communication goal."
+  },
+  {
+    "id": "q_persona_010_064",
+    "personaId": "persona_010",
+    "question": "What specific musical characteristic does Elena prefer in jazz?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the musical trait."
+  },
+  {
+    "id": "q_persona_010_065",
+    "personaId": "persona_010",
+    "question": "What material does Elena prefer over steel for the new wing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the preferred material."
+  },
+  {
+    "id": "q_persona_010_066",
+    "personaId": "persona_010",
+    "question": "What does Elena value as a 'biological necessity' in design?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific value."
+  },
+  {
+    "id": "q_persona_010_067",
+    "personaId": "persona_010",
+    "question": "What kind of music does Elena play to relax after work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the composer/genre."
+  },
+  {
+    "id": "q_persona_010_068",
+    "personaId": "persona_010",
+    "question": "What is Elena's preference for garden bed materials in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific material."
+  },
+  {
+    "id": "q_persona_010_069",
+    "personaId": "persona_010",
+    "question": "Does Elena prefer syncopated music?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific musical preference."
+  },
+  {
+    "id": "q_persona_010_070",
+    "personaId": "persona_010",
+    "question": "What is Elena's preference for climbing styles between lead and bouldering?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the preferred style."
+  },
+  {
+    "id": "q_persona_010_071",
+    "personaId": "persona_010",
+    "question": "Why does Elena read Tolstoy for philosophical grounding?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the reason for the preference."
+  },
+  {
+    "id": "q_persona_010_072",
+    "personaId": "persona_010",
+    "question": "What is Elena's preference regarding the analytical nature of her hobbies?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific trait she enjoys."
+  },
+  {
+    "id": "q_persona_010_073",
+    "personaId": "persona_010",
+    "question": "Does Elena prefer lead climbing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the preference."
+  },
+  {
+    "id": "q_persona_010_074",
+    "personaId": "persona_010",
+    "question": "How does Elena's view of organizations as ecosystems influence her consulting?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires inferring the application of her philosophy."
+  },
+  {
+    "id": "q_persona_010_075",
+    "personaId": "persona_010",
+    "question": "Why does Elena believe industry can be a symbiotic organism?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires inferring the logic behind her belief."
+  },
+  {
+    "id": "q_persona_010_076",
+    "personaId": "persona_010",
+    "question": "What does Elena mean by describing industrial waste as 'misplaced nutrients'?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s2_m12_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires interpreting her metaphor."
+  },
+  {
+    "id": "q_persona_010_077",
+    "personaId": "persona_010",
+    "question": "How does Elena's background in an industrial town drive her career?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m9_e1", "persona_010_s1_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting her background to her motivation."
+  },
+  {
+    "id": "q_persona_010_078",
+    "personaId": "persona_010",
+    "question": "Why does Elena compare corporations to monocultures?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires interpreting her organizational metaphor."
+  },
+  {
+    "id": "q_persona_010_079",
+    "personaId": "persona_010",
+    "question": "How does Elena's photography style reflect her philosophy of observation?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting her practice to her belief."
+  },
+  {
+    "id": "q_persona_010_080",
+    "personaId": "persona_010",
+    "question": "What is the metaphorical link Elena makes between George Eliot and ecology?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s4_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires interpreting her literary metaphor."
+  },
+  {
+    "id": "q_persona_010_081",
+    "personaId": "persona_010",
+    "question": "How does Elena view the relationship between design and ecological preservation?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires inferring her design philosophy."
+  },
+  {
+    "id": "q_persona_010_082",
+    "personaId": "persona_010",
+    "question": "Why does Elena think current zoning laws are problematic?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s2_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires inferring her critique of the laws."
+  },
+  {
+    "id": "q_persona_010_083",
+    "personaId": "persona_010",
+    "question": "How does Elena's management of portfolios relate to her gardening?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s3_m10_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires interpreting her comparison."
+  },
+  {
+    "id": "q_persona_010_084",
+    "personaId": "persona_010",
+    "question": "What phase of corporate communication is Elena currently in?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying her current professional focus."
+  },
+  {
+    "id": "q_persona_010_085",
+    "personaId": "persona_010",
+    "question": "What are the specific technical details of the site plan Elena reviewed in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s1_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires detailed recall of the site plan subject."
+  },
+  {
+    "id": "q_persona_010_086",
+    "personaId": "persona_010",
+    "question": "What specific project is Elena analyzing soil density for in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires detailed recall of the project name."
+  },
+  {
+    "id": "q_persona_010_087",
+    "personaId": "persona_010",
+    "question": "Contrast Elena's preference for timber over concrete and steel across sessions.",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m3_e1", "persona_010_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires synthesizing information across sessions."
+  },
+  {
+    "id": "q_persona_010_088",
+    "personaId": "persona_010",
+    "question": "What are the two subjects of the documentary Elena is filming in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying both subjects."
+  },
+  {
+    "id": "q_persona_010_089",
+    "personaId": "persona_010",
+    "question": "Describe Elena's Saturday routine involving photography and climbing.",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s2_m10_e1", "persona_010_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires synthesizing routine details across sessions."
+  },
+  {
+    "id": "q_persona_010_090",
+    "personaId": "persona_010",
+    "question": "What specific grade and type of climbing did Elena achieve in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific climbing grade."
+  },
+  {
+    "id": "q_persona_010_091",
+    "personaId": "persona_010",
+    "question": "Explain the properties of the cedar Elena uses for her garden beds.",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific natural property."
+  },
+  {
+    "id": "q_persona_010_092",
+    "personaId": "persona_010",
+    "question": "How does Elena describe the delicacy of managing fifteen client portfolios?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m10_e1", "persona_010_s3_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires connecting the number to the metaphor."
+  },
+  {
+    "id": "q_persona_010_093",
+    "personaId": "persona_010",
+    "question": "What specific measurement is Elena monitoring in her hydroponic system?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific chemical level."
+  },
+  {
+    "id": "q_persona_010_094",
+    "personaId": "persona_010",
+    "question": "Describe the impact of the bioswale on shipyard runoff levels.",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific percentage and location."
+  },
+  {
+    "id": "q_persona_010_095",
+    "personaId": "persona_010",
+    "question": "What specific inoculants did Elena use for her rooftop garden?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific type of inoculant."
+  },
+  {
+    "id": "q_persona_010_096",
+    "personaId": "persona_010",
+    "question": "How does Elena compare George Eliot's literature to her professional work?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific comparison."
+  },
+  {
+    "id": "q_persona_010_097",
+    "personaId": "persona_010",
+    "question": "What tools does Elena use to present data to stakeholders?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying both tools mentioned."
+  },
+  {
+    "id": "q_persona_010_098",
+    "personaId": "persona_010",
+    "question": "What is the subject of the documentary project mentioned in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific subject."
+  },
+  {
+    "id": "q_persona_010_099",
+    "personaId": "persona_010",
+    "question": "What is the specific deadline year for the carbon tax Elena advocates?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the year."
+  },
+  {
+    "id": "q_persona_010_100",
+    "personaId": "persona_010",
+    "question": "What specific certification is the complex Elena is analyzing in session 3 aiming for?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific certification."
+  },
+  {
+    "id": "q_persona_010_101",
+    "personaId": "persona_010",
+    "question": "What is the subject of the documentary Elena is filming in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific subject."
+  },
+  {
+    "id": "q_persona_010_102",
+    "personaId": "persona_010",
+    "question": "Relate the bioswale installation to the change in runoff levels.",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m1_e1", "persona_010_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting the action to the result."
+  },
+  {
+    "id": "q_persona_010_103",
+    "personaId": "persona_010",
+    "question": "What specific bouldering problem did Elena work on in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific grade."
+  },
+  {
+    "id": "q_persona_010_104",
+    "personaId": "persona_010",
+    "question": "What is the current state of the nitrogen cycle in Elena's project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific status."
+  },
+  {
+    "id": "q_persona_010_105",
+    "personaId": "persona_010",
+    "question": "Which specific jazz composer does Elena play to relax?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific composer."
+  },
+  {
+    "id": "q_persona_010_106",
+    "personaId": "persona_010",
+    "question": "How does Elena incorporate site inspections into her routine?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the professional routine."
+  },
+  {
+    "id": "q_persona_010_107",
+    "personaId": "persona_010",
+    "question": "What is Elena's schedule for the zoning board meeting?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific timing."
+  },
+  {
+    "id": "q_persona_010_108",
+    "personaId": "persona_010",
+    "question": "When is the next phase of construction scheduled?",
+    "type": "factual",
+    "expectedEvidence": ["persona_010_s4_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific season."
+  },
+  {
+    "id": "q_persona_010_109",
+    "personaId": "persona_010",
+    "question": "Contrast the timing of Elena's climbing trips in sessions 1 and 4.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s1_m4_e1", "persona_010_s4_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires comparing dates across sessions."
+  },
+  {
+    "id": "q_persona_010_110",
+    "personaId": "persona_010",
+    "question": "How does Elena's daily piano practice compare to her work start time?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m7_e1", "persona_010_s3_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires comparing two different time-based facts."
+  },
+  {
+    "id": "q_persona_010_111",
+    "personaId": "persona_010",
+    "question": "What is the sequence of Elena's documentary projects across sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_010_s1_m5_e2",
+      "persona_010_s3_m2_e2",
+      "persona_010_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires synthesizing a timeline from multiple sessions."
+  },
+  {
+    "id": "q_persona_010_112",
+    "personaId": "persona_010",
+    "question": "Relate the completion of the bioswale to the runoff measurement timing.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m1_e1", "persona_010_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting the timing of an action to its result."
+  },
+  {
+    "id": "q_persona_010_113",
+    "personaId": "persona_010",
+    "question": "What are the upcoming professional and personal milestones Elena has scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m9_e2", "persona_010_s4_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires synthesizing future plans across sessions."
+  },
+  {
+    "id": "q_persona_010_114",
+    "personaId": "persona_010",
+    "question": "How long has Elena been working on her urban pollinator film?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific duration."
+  },
+  {
+    "id": "q_persona_010_115",
+    "personaId": "persona_010",
+    "question": "When did Elena finish her most recent Dostoevsky novel?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific time."
+  },
+  {
+    "id": "q_persona_010_116",
+    "personaId": "persona_010",
+    "question": "What is the specific timing of Elena's Saturday routine in sessions 2 and 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s2_m10_e1", "persona_010_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires synthesizing Saturday activities."
+  },
+  {
+    "id": "q_persona_010_117",
+    "personaId": "persona_010",
+    "question": "Compare the duration of Elena's piano practice to her bouldering session.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s3_m7_e1", "persona_010_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires comparing durations from different sessions."
+  },
+  {
+    "id": "q_persona_010_118",
+    "personaId": "persona_010",
+    "question": "When is the first cut of the film expected relative to the next construction phase?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_010_s4_m10_e1", "persona_010_s4_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires comparing two future dates."
+  },
+  {
+    "id": "q_persona_010_119",
+    "personaId": "persona_010",
+    "question": "How does Elena's preference for analytical patience manifest in her hobbies?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting a personality trait to a hobby."
+  },
+  {
+    "id": "q_persona_010_120",
+    "personaId": "persona_010",
+    "question": "Compare Elena's material preferences for gardening versus structural architecture.",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m4_e1", "persona_010_s2_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires comparing preferences across different domains."
+  },
+  {
+    "id": "q_persona_010_121",
+    "personaId": "persona_010",
+    "question": "Why does Elena prefer cross-laminated timber in the context of carbon sinks?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m3_e1", "persona_010_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting a preference to a factual benefit."
+  },
+  {
+    "id": "q_persona_010_122",
+    "personaId": "persona_010",
+    "question": "How does Elena's preference for wildlife photography locations align with her values?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m9_e3", "persona_010_s1_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires connecting a preference to a core value."
+  },
+  {
+    "id": "q_persona_010_123",
+    "personaId": "persona_010",
+    "question": "What is the connection between Elena's preference for complex jazz and her personality?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting a musical preference to her analytical nature."
+  },
+  {
+    "id": "q_persona_010_124",
+    "personaId": "persona_010",
+    "question": "Why does Elena prefer to use film to present data to stakeholders?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires explaining the reasoning behind a preference."
+  },
+  {
+    "id": "q_persona_010_125",
+    "personaId": "persona_010",
+    "question": "How does Elena's choice of classical literature reflect her need for philosophical grounding?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m9_e1", "persona_010_s3_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires connecting a literary preference to a personal need."
+  },
+  {
+    "id": "q_persona_010_126",
+    "personaId": "persona_010",
+    "question": "Explain Elena's preference for lead climbing over bouldering.",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s2_m11_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific preference."
+  },
+  {
+    "id": "q_persona_010_127",
+    "personaId": "persona_010",
+    "question": "What is the significance of Elena's preference for reclaimed cedar?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m4_e1", "persona_010_s3_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires connecting a preference to a factual property."
+  },
+  {
+    "id": "q_persona_010_128",
+    "personaId": "persona_010",
+    "question": "How does Elena's preference for Gershwin relate to her work-life balance?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting a preference to its function."
+  },
+  {
+    "id": "q_persona_010_129",
+    "personaId": "persona_010",
+    "question": "Describe Elena's preference for 'non-impacted habitats' in her photography.",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s3_m9_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific preference."
+  },
+  {
+    "id": "q_persona_010_130",
+    "personaId": "persona_010",
+    "question": "Why does Elena value sustainable architecture as a 'biological necessity'?",
+    "type": "preference",
+    "expectedEvidence": ["persona_010_s1_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires explaining a specific value."
+  },
+  {
+    "id": "q_persona_010_131",
+    "personaId": "persona_010",
+    "question": "How does Elena's analytical patience in climbing translate to her work as a consultant?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m4_e2", "persona_010_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires inferring a cross-domain skill transfer."
+  },
+  {
+    "id": "q_persona_010_132",
+    "personaId": "persona_010",
+    "question": "In what way does Elena's documentary filmmaking serve her goal of bridging industry and ecology?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s4_m10_e2", "persona_010_s1_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires connecting a hobby to a professional mission."
+  },
+  {
+    "id": "q_persona_010_133",
+    "personaId": "persona_010",
+    "question": "How does the concept of 'closed-loop ecosystems' apply to Elena's professional advice?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m3_e2", "persona_010_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires synthesizing her philosophy with her critique of corporations."
+  },
+  {
+    "id": "q_persona_010_134",
+    "personaId": "persona_010",
+    "question": "Why might Elena consider current zoning laws a barrier to her vision of sustainable architecture?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s2_m7_e1", "persona_010_s1_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires connecting her critique to her values."
+  },
+  {
+    "id": "q_persona_010_135",
+    "personaId": "persona_010",
+    "question": "How does Elena's use of 'microbial inoculants' reflect her view of industry as a symbiotic organism?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s4_m5_e2", "persona_010_s4_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting a technical action to a philosophy."
+  },
+  {
+    "id": "q_persona_010_136",
+    "personaId": "persona_010",
+    "question": "What does Elena's interest in 'structural decay and oxidation' suggest about her view of industrial progress?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s4_m2_e2", "persona_010_s1_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires interpreting an aesthetic preference as a professional outlook."
+  },
+  {
+    "id": "q_persona_010_137",
+    "personaId": "persona_010",
+    "question": "How does Elena's practice of 'silent observation' in photography inform her site inspections?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s1_m8_e2", "persona_010_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires inferring the application of a hobby skill to work."
+  },
+  {
+    "id": "q_persona_010_138",
+    "personaId": "persona_010",
+    "question": "Why does Elena believe corporations lack resilience?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires interpreting her biological metaphor for business."
+  },
+  {
+    "id": "q_persona_010_139",
+    "personaId": "persona_010",
+    "question": "How does Elena's choice of 'Round Midnight' reflect her interest in complex jazz?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s2_m5_e1", "persona_010_s1_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires connecting a specific song to a general preference."
+  },
+  {
+    "id": "q_persona_010_140",
+    "personaId": "persona_010",
+    "question": "What is the significance of the 2030 deadline in Elena's environmental advocacy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_010_s3_m8_e1", "persona_010_s3_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires interpreting the urgency of her stated timeline."
+  }
+]

@@ -1,0 +1,1414 @@
+[
+  {
+    "id": "q_persona_023_001",
+    "personaId": "persona_023",
+    "question": "Where is the current excavation site that Dr. Thorne is overseeing?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a basic factual question about the location of the excavation site mentioned in the first session."
+  },
+  {
+    "id": "q_persona_023_002",
+    "personaId": "persona_023",
+    "question": "What kind of amphorae were recovered from the Kythira site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a straightforward factual question about the artifacts recovered in session 1."
+  },
+  {
+    "id": "q_persona_023_003",
+    "personaId": "persona_023",
+    "question": "What specific type of clocks does Dr. Thorne restore as a hobby?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a simple factual question about Dr. Thorne's hobby mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_004",
+    "personaId": "persona_023",
+    "question": "In what year did Dr. Thorne participate in an expedition in Marseille?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a factual question about a specific date mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_005",
+    "personaId": "persona_023",
+    "question": "What brand of camera does Dr. Thorne use for his underwater photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a factual question about the equipment Dr. Thorne uses, mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_006",
+    "personaId": "persona_023",
+    "question": "Which shipwreck did Dr. Thorne survey in 2015?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a factual question about a specific project mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_007",
+    "personaId": "persona_023",
+    "question": "Where is the research site containing a 1st-century Roman merchant vessel located?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about the location of the site mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_008",
+    "personaId": "persona_023",
+    "question": "At what approximate depth is the shipwreck off the coast of Crete located?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m1_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about the depth of the site mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_009",
+    "personaId": "persona_023",
+    "question": "Whose 16th-century maps does Dr. Thorne utilize for his navigation research?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about the research materials mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_010",
+    "personaId": "persona_023",
+    "question": "From which ancient port did the lead seal found by Dr. Thorne originate?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m8_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a factual question about the origin of an artifact mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_011",
+    "personaId": "persona_023",
+    "question": "Where is the excavation site that Dr. Thorne is working on in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a factual question about the location of the site mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_012",
+    "personaId": "persona_023",
+    "question": "What specific bronze item was recovered from the Antikythera site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a factual question about an artifact recovered in session 3."
+  },
+  {
+    "id": "q_persona_023_013",
+    "personaId": "persona_023",
+    "question": "What is the exact weight of the lead anchor stock recovered by Dr. Thorne's team?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m12_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a factual question about the weight of an artifact mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_014",
+    "personaId": "persona_023",
+    "question": "Where is the dive site located that Dr. Thorne is working at in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a factual question about the location of the site mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_015",
+    "personaId": "persona_023",
+    "question": "What type of amphorae were identified at the Aegates Islands shipwreck site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a factual question about the artifacts identified in session 4."
+  },
+  {
+    "id": "q_persona_023_016",
+    "personaId": "persona_023",
+    "question": "What specific antique clock is Dr. Thorne currently restoring in his workshop?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a factual question about the specific clock mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_017",
+    "personaId": "persona_023",
+    "question": "In what year and location did Dr. Thorne go on his first expedition?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a factual question about Dr. Thorne's first expedition mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_018",
+    "personaId": "persona_023",
+    "question": "For how long has the excavation off the coast of Kythira been ongoing?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a straightforward temporal question about the duration of the excavation mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_019",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne last review the Phoenician inscriptions?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a temporal question about a recent activity mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_020",
+    "personaId": "persona_023",
+    "question": "When was the sonar sweep of the debris field conducted?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a temporal question about a recent activity mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_021",
+    "personaId": "persona_023",
+    "question": "At what time is the next dive descent scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a temporal question about a future schedule mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_022",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne prepare the meal of Kakavia?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "This is a temporal question about a recent activity mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_023",
+    "personaId": "persona_023",
+    "question": "How many hours did Dr. Thorne spend diving yesterday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s3_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a temporal question about the duration of an activity mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_024",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne identify the Phoenician inscription in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "This is a temporal question about a specific event mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_025",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne return from the dive site near the Aegates Islands?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a temporal question about a recent event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_026",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne spend his sabbatical in Marseilles?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a temporal question about a past event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_027",
+    "personaId": "persona_023",
+    "question": "When is Dr. Thorne's next fencing bout scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "This is a temporal question about a future schedule mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_028",
+    "personaId": "persona_023",
+    "question": "What specific ingredient does Dr. Thorne prefer in his traditional Bouillabaisse?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a simple preference question about Dr. Thorne's culinary tastes mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_029",
+    "personaId": "persona_023",
+    "question": "To which century do the Rhodian amphorae recovered from Kythira date?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This factual question requires identifying a specific historical period mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_030",
+    "personaId": "persona_023",
+    "question": "What specific era of cartography does Dr. Thorne study?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This factual question identifies a specific area of study mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_031",
+    "personaId": "persona_023",
+    "question": "What type of vessel is located at the research site off the coast of Crete?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This factual question requires identifying the specific type of ship mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_032",
+    "personaId": "persona_023",
+    "question": "How does the actual debris field compare to the initial projections?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This factual question requires comparing two states mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_033",
+    "personaId": "persona_023",
+    "question": "What language is the inscription on the lead seal found at the Crete site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This factual question identifies a specific linguistic detail mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_034",
+    "personaId": "persona_023",
+    "question": "What is the current speed of the Mistral winds mentioned in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This factual question requires identifying a specific environmental measurement mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_035",
+    "personaId": "persona_023",
+    "question": "Which dialects does Dr. Thorne study to understand ancient trade patterns?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This factual question identifies a specific area of linguistic study mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_036",
+    "personaId": "persona_023",
+    "question": "What is the origin and approximate date of the longcase clock Dr. Thorne is restoring?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying two specific details about the clock mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_037",
+    "personaId": "persona_023",
+    "question": "What dish does Dr. Thorne enjoy consuming after a day of work?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This factual question identifies a specific meal preference mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_038",
+    "personaId": "persona_023",
+    "question": "What linguistic roots does Dr. Thorne study in relation to maritime dialects?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This factual question identifies a specific linguistic focus mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_039",
+    "personaId": "persona_023",
+    "question": "What technical issue is affecting the documentation of the bronze rostra?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This factual question identifies a specific technical problem mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_040",
+    "personaId": "persona_023",
+    "question": "What is Dr. Thorne currently translating from the Aegates Islands site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This factual question identifies a specific task Dr. Thorne is performing in session 4."
+  },
+  {
+    "id": "q_persona_023_041",
+    "personaId": "persona_023",
+    "question": "What does Dr. Thorne prefer to use when translating lead scrolls?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This factual question identifies a specific tool preference mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_042",
+    "personaId": "persona_023",
+    "question": "How often does Dr. Thorne practice fencing?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This factual question identifies the frequency of an activity mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_043",
+    "personaId": "persona_023",
+    "question": "In what year did Dr. Thorne's Marseille expedition take place?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question identifies a specific year from a past event in session 1."
+  },
+  {
+    "id": "q_persona_023_044",
+    "personaId": "persona_023",
+    "question": "When was the survey of the 'Mentor' wreck conducted?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question identifies a specific year for a project mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_045",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne conduct his expedition off the coast of Kyrenia?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question identifies a specific year for an expedition mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_046",
+    "personaId": "persona_023",
+    "question": "During which season did Dr. Thorne take his sabbatical in Marseilles?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question identifies a specific season mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_047",
+    "personaId": "persona_023",
+    "question": "At what specific time is the dive descent planned for tomorrow?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This temporal question identifies a specific time for a future event mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_048",
+    "personaId": "persona_023",
+    "question": "When was the sonar sweep of the debris field performed?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This temporal question identifies the timing of a recent activity mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_049",
+    "personaId": "persona_023",
+    "question": "On what day did Dr. Thorne identify the Phoenician inscription in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s3_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This temporal question identifies a specific day mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_050",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne complete his six-hour dive?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This temporal question identifies the timing of an activity mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_051",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne return from the Aegates Islands site?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question identifies the timing of a recent event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_052",
+    "personaId": "persona_023",
+    "question": "On what day of the week is Dr. Thorne's fencing bout scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question identifies a specific day for a future event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_053",
+    "personaId": "persona_023",
+    "question": "How long has the excavation off Kythira been in progress as of session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question identifies the duration of an ongoing project in session 1."
+  },
+  {
+    "id": "q_persona_023_054",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne review the Phoenician inscriptions in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question identifies the timing of a specific task in session 1."
+  },
+  {
+    "id": "q_persona_023_055",
+    "personaId": "persona_023",
+    "question": "When was the meal of Kakavia prepared in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This temporal question identifies the timing of a culinary activity in session 2."
+  },
+  {
+    "id": "q_persona_023_056",
+    "personaId": "persona_023",
+    "question": "What does Dr. Thorne recall about the sensory experience of the 2015 dive?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question relates to a memory of a past event mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_057",
+    "personaId": "persona_023",
+    "question": "When did Dr. Thorne go on his very first expedition?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question identifies the year of a significant career milestone mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_058",
+    "personaId": "persona_023",
+    "question": "When was Dr. Thorne's expedition to Marseille?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question identifies the year of a specific past expedition mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_059",
+    "personaId": "persona_023",
+    "question": "What does Dr. Thorne find appealing about the precision of horology?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This preference question explores the reasoning behind Dr. Thorne's hobby mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_060",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne view the sport of fencing in an academic context?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This preference question identifies Dr. Thorne's metaphorical view of a hobby mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_061",
+    "personaId": "persona_023",
+    "question": "What aspect of Phoenician dialects fascinates Dr. Thorne?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This preference question identifies a specific interest mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_062",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne prefer physical parchment maps over digital displays?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This preference question explores Dr. Thorne's choice of research materials mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_063",
+    "personaId": "persona_023",
+    "question": "What level of precision does Dr. Thorne believe is required for archaeological excavation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This preference question identifies Dr. Thorne's professional standards mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_064",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne feel about the dish Kakavia?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This preference question identifies Dr. Thorne's enjoyment of a specific dish mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_065",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne approach the maintenance of his diving equipment?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This preference question identifies Dr. Thorne's meticulous nature regarding his gear mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_066",
+    "personaId": "persona_023",
+    "question": "What quality of antique clocks provides Dr. Thorne with solace?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This preference question explores the emotional appeal of Dr. Thorne's hobby mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_067",
+    "personaId": "persona_023",
+    "question": "What does Dr. Thorne appreciate about the practice of fencing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This preference question identifies the personal benefits Dr. Thorne derives from fencing in session 3."
+  },
+  {
+    "id": "q_persona_023_068",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne prefer Mediterranean cuisine?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This preference question identifies the connection between Dr. Thorne's diet and his work mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_069",
+    "personaId": "persona_023",
+    "question": "Where does Dr. Thorne perform his clock restoration work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This preference question identifies the location of Dr. Thorne's hobby mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_070",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne continue to practice fencing in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s4_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This preference question identifies the physical and mental benefits of fencing mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_071",
+    "personaId": "persona_023",
+    "question": "What resources does Dr. Thorne prefer for his translation work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This preference question identifies Dr. Thorne's preferred reference materials mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_072",
+    "personaId": "persona_023",
+    "question": "What is Dr. Thorne's opinion on digital photogrammetry?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This preference question identifies Dr. Thorne's critical view of modern technology mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_073",
+    "personaId": "persona_023",
+    "question": "What action does Dr. Thorne advocate for regarding historical preservation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This preference question identifies Dr. Thorne's professional advocacy mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_074",
+    "personaId": "persona_023",
+    "question": "What quality of saffron does Dr. Thorne require for his Bouillabaisse?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This preference question identifies a specific culinary standard mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_075",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne consider the preservation of recovered amphorae to be paramount?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This inference question requires understanding the broader purpose of artifact preservation mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_076",
+    "personaId": "persona_023",
+    "question": "How do historical maps reflect more than just geography, according to Dr. Thorne?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This inference question requires interpreting Dr. Thorne's views on cartography mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_077",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne believe digital sensors are inadequate for underwater photography?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s1_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This inference question requires understanding Dr. Thorne's aesthetic critique of technology mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_078",
+    "personaId": "persona_023",
+    "question": "What is the primary threat to submerged cultural heritage, according to Dr. Thorne?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "This inference question requires identifying a specific threat mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_079",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne equate suction dredges with historical vandalism?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This inference question requires interpreting Dr. Thorne's ethical stance on excavation methods mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_080",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne view the preservation of artifacts in a moral context?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s2_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "This inference question requires understanding Dr. Thorne's moral philosophy regarding history mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_081",
+    "personaId": "persona_023",
+    "question": "What does Dr. Thorne believe is missing from digital photogrammetry?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This inference question requires interpreting Dr. Thorne's critique of digital methods mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_082",
+    "personaId": "persona_023",
+    "question": "Why is Dr. Thorne opposed to the commercialization of shipwreck sites?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "This inference question requires understanding Dr. Thorne's ethical opposition to commercial archaeology mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_083",
+    "personaId": "persona_023",
+    "question": "Why does Dr. Thorne consider the use of canned tuna in Salade Niçoise to be a sacrilege?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This inference question requires interpreting Dr. Thorne's strong culinary opinions mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_084",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne define the historical preservation of shipwrecks?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "This inference question requires understanding Dr. Thorne's professional and moral imperative mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_085",
+    "personaId": "persona_023",
+    "question": "What are the specific origins and chronological dating of the amphorae recovered from the Kythira site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This factual question requires combining multiple specific details about the artifacts mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_086",
+    "personaId": "persona_023",
+    "question": "Can you provide the year and the specific location of Dr. Thorne's 1998 expedition?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This factual question requires recalling both the date and location of a past event from session 1."
+  },
+  {
+    "id": "q_persona_023_087",
+    "personaId": "persona_023",
+    "question": "What camera equipment and specialized housing does Dr. Thorne use to capture underwater light?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This factual question requires identifying specific equipment and its purpose mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_088",
+    "personaId": "persona_023",
+    "question": "What was the name of the shipwreck surveyed by Dr. Thorne in 2015?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This factual question requires identifying a specific project name mentioned in session 1."
+  },
+  {
+    "id": "q_persona_023_089",
+    "personaId": "persona_023",
+    "question": "What are the details of the vessel found at the research site off the coast of Crete?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This factual question requires identifying the origin and period of the ship mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_090",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne use 16th-century maps for his current navigation research?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This factual question requires identifying the specific cartographer and the purpose of the maps in session 2."
+  },
+  {
+    "id": "q_persona_023_091",
+    "personaId": "persona_023",
+    "question": "What are the characteristics and origin of the lead seal found at the Crete site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s2_m8_e1", "persona_023_s2_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This factual question requires combining details about the seal's inscription and origin from session 2."
+  },
+  {
+    "id": "q_persona_023_092",
+    "personaId": "persona_023",
+    "question": "What items were recovered and what environmental conditions were present during the Antikythera excavation?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m2_e1", "persona_023_s3_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This factual question requires combining details about artifacts and environment from session 3."
+  },
+  {
+    "id": "q_persona_023_093",
+    "personaId": "persona_023",
+    "question": "Which specific dialects does Dr. Thorne study to analyze ancient trade patterns?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m11_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This factual question requires identifying a specific area of linguistic study mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_094",
+    "personaId": "persona_023",
+    "question": "What is the weight and material of the anchor stock recovered from the Antikythera site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s3_m12_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This factual question requires identifying two specific details about an artifact mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_095",
+    "personaId": "persona_023",
+    "question": "What specific type of amphorae was identified at the Aegates Islands site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying a specific archaeological classification mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_096",
+    "personaId": "persona_023",
+    "question": "Can you describe the antique clock Dr. Thorne is currently restoring in his workshop?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying the date, origin, and type of the clock mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_097",
+    "personaId": "persona_023",
+    "question": "When and where did Dr. Thorne spend his recent sabbatical?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying the time and location of a sabbatical mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_098",
+    "personaId": "persona_023",
+    "question": "What linguistic roots and dialects does Dr. Thorne study in relation to maritime history?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying specific linguistic focuses mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_099",
+    "personaId": "persona_023",
+    "question": "What technical difficulties are hindering the documentation of the bronze rostra?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying a specific technical issue mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_100",
+    "personaId": "persona_023",
+    "question": "What are the details of Dr. Thorne's first expedition in 2004?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires identifying the date and location of a career milestone from session 4."
+  },
+  {
+    "id": "q_persona_023_101",
+    "personaId": "persona_023",
+    "question": "What is Dr. Thorne currently translating, and what resources is he using for this task?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s4_m10_e1", "persona_023_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This factual question requires combining details about a current task and the preferred tools from session 4."
+  },
+  {
+    "id": "q_persona_023_102",
+    "personaId": "persona_023",
+    "question": "Could you detail the specific location and the current duration of the excavation site Dr. Thorne is managing?",
+    "type": "factual",
+    "expectedEvidence": ["persona_023_s1_m1_e1", "persona_023_s1_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This factual question requires combining location and duration details from session 1."
+  },
+  {
+    "id": "q_persona_023_103",
+    "personaId": "persona_023",
+    "question": "Can you contrast the duration of the Kythira excavation with the timing of Dr. Thorne's most recent review of Phoenician inscriptions?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m1_e2", "persona_023_s1_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This temporal question requires comparing the duration of one event with the specific timing of another in session 1."
+  },
+  {
+    "id": "q_persona_023_104",
+    "personaId": "persona_023",
+    "question": "How does the timing of the sonar sweep compare to the scheduled dive descent?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m2_e1", "persona_023_s2_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This temporal question requires comparing the timing of a past event with a future schedule in session 2."
+  },
+  {
+    "id": "q_persona_023_105",
+    "personaId": "persona_023",
+    "question": "What was the sequence of events involving the preparation of Kakavia and the sonar sweep?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s2_m7_e1", "persona_023_s2_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This temporal question requires establishing a sequence for two recent events mentioned in session 2."
+  },
+  {
+    "id": "q_persona_023_106",
+    "personaId": "persona_023",
+    "question": "How does the duration of yesterday's dive compare to the day the Phoenician inscription was identified?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s3_m3_e1", "persona_023_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This temporal question requires comparing the duration of an activity with the specific date of an event in session 3."
+  },
+  {
+    "id": "q_persona_023_107",
+    "personaId": "persona_023",
+    "question": "What is the temporal relationship between Dr. Thorne's return from the Aegates Islands and his sabbatical in Marseilles?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m1_e2", "persona_023_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question requires establishing the timing of a recent return relative to a past sabbatical in session 4."
+  },
+  {
+    "id": "q_persona_023_108",
+    "personaId": "persona_023",
+    "question": "How does the scheduled fencing bout relate to the timing of Dr. Thorne's return from the dive site?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s4_m6_e1", "persona_023_s4_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This temporal question requires comparing a future schedule with a recent event mentioned in session 4."
+  },
+  {
+    "id": "q_persona_023_109",
+    "personaId": "persona_023",
+    "question": "Can you compare the years of the 'Mentor' wreck survey and the Kyrenia expedition?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m9_e1", "persona_023_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This temporal question requires comparing dates from two different sessions (1 and 4)."
+  },
+  {
+    "id": "q_persona_023_110",
+    "personaId": "persona_023",
+    "question": "What is the chronological distance between the 1998 Marseille expedition and the winter sabbatical in Marseilles?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m4_e2", "persona_023_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This temporal question requires calculating the time between two events mentioned in different sessions (1 and 4)."
+  },
+  {
+    "id": "q_persona_023_111",
+    "personaId": "persona_023",
+    "question": "How does the three-week duration of the Kythira excavation compare to the six-hour dive performed in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_023_s1_m1_e2", "persona_023_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This temporal question requires comparing durations from two different sessions (1 and 3)."
+  },
+  {
+    "id": "q_persona_023_112",
+    "personaId": "persona_023",
+    "question": "In what manner does the mechanical precision Dr. Thorne finds in horology compare to the predictability he seeks in clock restoration across his sessions?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m3_e1", "persona_023_s3_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This preference question requires synthesizing Dr. Thorne's views on his hobby from two different sessions (1 and 3)."
+  },
+  {
+    "id": "q_persona_023_113",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's view of fencing as a metaphor for academic debate relate to his appreciation for its mental discipline?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m6_e1", "persona_023_s3_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This preference question requires synthesizing Dr. Thorne's views on fencing from two different sessions (1 and 3)."
+  },
+  {
+    "id": "q_persona_023_114",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's preference for physical parchment maps contrast with his critique of digital photogrammetry?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m3_e2", "persona_023_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This preference question requires comparing Dr. Thorne's views on traditional vs. digital tools from different sessions (2 and 3)."
+  },
+  {
+    "id": "q_persona_023_115",
+    "personaId": "persona_023",
+    "question": "What are the similarities in Dr. Thorne's preferences for Kakavia and Bouillabaisse?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m4_e1", "persona_023_s2_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "This preference question requires comparing Dr. Thorne's culinary tastes from two different sessions (1 and 2)."
+  },
+  {
+    "id": "q_persona_023_116",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's meticulous maintenance of diving equipment reflect his broader professional standards?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This preference question requires inferring Dr. Thorne's professional philosophy from his specific actions in session 2."
+  },
+  {
+    "id": "q_persona_023_117",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's fascination with Phoenician dialects influence his choice of tools for translation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m7_e1", "persona_023_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires connecting an interest from session 1 with a tool preference from session 4."
+  },
+  {
+    "id": "q_persona_023_118",
+    "personaId": "persona_023",
+    "question": "In what way does Dr. Thorne's practice of fencing to maintain reflexes balance his academic research?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m6_e1", "persona_023_s4_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires synthesizing Dr. Thorne's views on fencing from session 1 and session 4."
+  },
+  {
+    "id": "q_persona_023_119",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's view of Mediterranean cuisine as a pinnacle of achievement relate to its cultural connection to his work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m7_e3", "persona_023_s3_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This preference question requires synthesizing Dr. Thorne's culinary philosophy from two different sessions (2 and 3)."
+  },
+  {
+    "id": "q_persona_023_120",
+    "personaId": "persona_023",
+    "question": "How does the solace Dr. Thorne finds in horology manifest in his dedicated workshop restoration?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m3_e1", "persona_023_s4_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires connecting an emotional state from session 1 with a specific activity in session 4."
+  },
+  {
+    "id": "q_persona_023_121",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's insistence on high-quality saffron in Bouillabaisse mirror his disdain for the use of canned tuna in a Salade Niçoise?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m4_e1", "persona_023_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires comparing Dr. Thorne's culinary standards from session 1 and session 4."
+  },
+  {
+    "id": "q_persona_023_122",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's requirement for extreme precision in excavation inform his critique of suction dredges?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m5_e2", "persona_023_s2_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This preference question requires connecting Dr. Thorne's professional standards with his ethical critique in session 2."
+  },
+  {
+    "id": "q_persona_023_123",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's fascination with Phoenician dialects relate to his study of maritime linguistic roots?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m7_e1", "persona_023_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires connecting a specific interest from session 1 with a research focus in session 4."
+  },
+  {
+    "id": "q_persona_023_124",
+    "personaId": "persona_023",
+    "question": "How do the technical issues with Dr. Thorne's photography rig impact his ability to capture the ethereal light he values?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m8_e1", "persona_023_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires connecting an aesthetic value from session 1 with a technical problem in session 4."
+  },
+  {
+    "id": "q_persona_023_125",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's preference for traditional film photography relate to his choice of camera housing?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m8_e2", "persona_023_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This preference question requires connecting Dr. Thorne's equipment choice from session 1 with his artistic philosophy in session 3."
+  },
+  {
+    "id": "q_persona_023_126",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's belief in the importance of artifact preservation relate to his advocacy for urgent action?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m2_e2", "persona_023_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "This preference question requires connecting Dr. Thorne's professional values with his calls for action in session 1."
+  },
+  {
+    "id": "q_persona_023_127",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's opposition to the commercialization of shipwrecks relate to his view of preservation as a moral obligation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m9_e1", "persona_023_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "This preference question requires synthesizing Dr. Thorne's ethical stance from two different sessions (2 and 3)."
+  },
+  {
+    "id": "q_persona_023_128",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's preference for physical parchment maps relate to his reliance on personal lexicons for translation?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s2_m3_e2", "persona_023_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "This preference question requires connecting Dr. Thorne's choice of research materials from session 2 and session 4."
+  },
+  {
+    "id": "q_persona_023_129",
+    "personaId": "persona_023",
+    "question": "How does the solace Dr. Thorne finds in mechanical precision relate to his enjoyment of Salade Niçoise after work?",
+    "type": "preference",
+    "expectedEvidence": ["persona_023_s1_m3_e1", "persona_023_s4_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "This preference question requires connecting Dr. Thorne's emotional needs from session 1 with his lifestyle choices in session 4."
+  },
+  {
+    "id": "q_persona_023_130",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's investigation into archaic Greek dialects and Phoenician linguistic roots synthesize with his analysis of ancient trade patterns?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s3_m11_e1", "persona_023_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "This inference question requires synthesizing Dr. Thorne's linguistic research from two different sessions to understand his broader archaeological analysis."
+  },
+  {
+    "id": "q_persona_023_131",
+    "personaId": "persona_023",
+    "question": "In what ways does Dr. Thorne's hobby of clock restoration mirror the meticulous nature required for his archaeological work?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_023_s1_m3_e1",
+      "persona_023_s3_m4_e1",
+      "persona_023_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "This inference question requires connecting Dr. Thorne's personal hobby with his professional standards across multiple sessions."
+  },
+  {
+    "id": "q_persona_023_132",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's critique of digital photography's lack of 'soul' relate to his attempt to capture ethereal underwater light?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s1_m8_e1", "persona_023_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "This inference question requires synthesizing Dr. Thorne's aesthetic and technical views on photography from different sessions."
+  },
+  {
+    "id": "q_persona_023_133",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's use of fencing as a metaphor for academic debate inform his approach to mental discipline in his research?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_023_s1_m6_e1",
+      "persona_023_s3_m7_e1",
+      "persona_023_s4_m6_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "This inference question requires synthesizing Dr. Thorne's views on fencing as a mental and metaphorical tool across multiple sessions."
+  },
+  {
+    "id": "q_persona_023_134",
+    "personaId": "persona_023",
+    "question": "What is the connection between Dr. Thorne's view of Mediterranean cuisine and his professional identity as a marine archaeologist?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_023_s2_m7_e3",
+      "persona_023_s3_m8_e1",
+      "persona_023_s4_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "This inference question requires synthesizing Dr. Thorne's culinary and professional views across multiple sessions."
+  },
+  {
+    "id": "q_persona_023_135",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's prioritization of physical parchment maps reflect his broader commitment to historical preservation?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s2_m3_e2", "persona_023_s2_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This inference question requires connecting Dr. Thorne's research preferences with his moral philosophy in session 2."
+  },
+  {
+    "id": "q_persona_023_136",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's meticulous maintenance of diving equipment serve as a practical application of his belief in precision and delicacy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s2_m10_e2", "persona_023_s2_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This inference question requires connecting Dr. Thorne's gear maintenance with his professional standards in session 2."
+  },
+  {
+    "id": "q_persona_023_137",
+    "personaId": "persona_023",
+    "question": "What does the discovery of the Alexandria lead seal imply about the trade connections of the Roman merchant vessel found off Crete?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s2_m8_e2", "persona_023_s2_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This inference question requires drawing a historical conclusion from two pieces of evidence found in session 2."
+  },
+  {
+    "id": "q_persona_023_138",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's study of archaic Greek dialects specifically inform his understanding of trade patterns in the Antikythera region?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s3_m11_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "This inference question requires interpreting the purpose of Dr. Thorne's linguistic study mentioned in session 3."
+  },
+  {
+    "id": "q_persona_023_139",
+    "personaId": "persona_023",
+    "question": "How does Dr. Thorne's requirement for extreme precision in excavation serve as a defense against historical vandalism?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s2_m5_e2", "persona_023_s2_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "This inference question requires connecting Dr. Thorne's professional methods with his ethical concerns in session 2."
+  },
+  {
+    "id": "q_persona_023_140",
+    "personaId": "persona_023",
+    "question": "In what ways did Dr. Thorne's sabbatical in Marseille provide a temporal and geographical context for his research into Phoenician linguistic roots?",
+    "type": "inference",
+    "expectedEvidence": ["persona_023_s4_m5_e1", "persona_023_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "This inference question requires connecting Dr. Thorne's personal travel with his academic research mentioned in session 4."
+  }
+]

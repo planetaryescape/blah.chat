@@ -1,0 +1,1402 @@
+[
+  {
+    "id": "q_persona_004_001",
+    "personaId": "persona_004",
+    "question": "What project is Evelyn drafting a proposal for in the first session?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in the first message of session 1."
+  },
+  {
+    "id": "q_persona_004_002",
+    "personaId": "persona_004",
+    "question": "What is the soil pH in the north quadrant?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1, message 8."
+  },
+  {
+    "id": "q_persona_004_003",
+    "personaId": "persona_004",
+    "question": "Which biography is Evelyn reading in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1, message 5."
+  },
+  {
+    "id": "q_persona_004_004",
+    "personaId": "persona_004",
+    "question": "What material is the old library courtyard constructed with?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2, message 1."
+  },
+  {
+    "id": "q_persona_004_005",
+    "personaId": "persona_004",
+    "question": "Where are the heron nests located?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2, message 2."
+  },
+  {
+    "id": "q_persona_004_006",
+    "personaId": "persona_004",
+    "question": "What kind of clay does Evelyn use in her ceramics class?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2, message 6."
+  },
+  {
+    "id": "q_persona_004_007",
+    "personaId": "persona_004",
+    "question": "What is the slope percentage on the eastern side of the project site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4, message 2."
+  },
+  {
+    "id": "q_persona_004_008",
+    "personaId": "persona_004",
+    "question": "What birds did Evelyn observe nesting at the project site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m12_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4, message 12."
+  },
+  {
+    "id": "q_persona_004_009",
+    "personaId": "persona_004",
+    "question": "What tree did Evelyn sketch this morning in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4, message 6."
+  },
+  {
+    "id": "q_persona_004_010",
+    "personaId": "persona_004",
+    "question": "What specific native tree species does Evelyn prefer in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1, message 3."
+  },
+  {
+    "id": "q_persona_004_011",
+    "personaId": "persona_004",
+    "question": "Which historical figure's biography did Evelyn recently finish in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2, message 4."
+  },
+  {
+    "id": "q_persona_004_012",
+    "personaId": "persona_004",
+    "question": "What is the soil pH at the site mentioned in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4, message 7."
+  },
+  {
+    "id": "q_persona_004_013",
+    "personaId": "persona_004",
+    "question": "What plants does Evelyn prefer for urban rooftop projects?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2, message 3."
+  },
+  {
+    "id": "q_persona_004_014",
+    "personaId": "persona_004",
+    "question": "Which birds returned early to the park in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated in session 2, message 5."
+  },
+  {
+    "id": "q_persona_004_015",
+    "personaId": "persona_004",
+    "question": "What project is Evelyn working on in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated in session 4, message 1."
+  },
+  {
+    "id": "q_persona_004_016",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn listen to while sketching in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in session 1, message 6."
+  },
+  {
+    "id": "q_persona_004_017",
+    "personaId": "persona_004",
+    "question": "What is the drainage issue in the downtown redevelopment project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "The user must identify the specific drainage problem mentioned in session 3."
+  },
+  {
+    "id": "q_persona_004_018",
+    "personaId": "persona_004",
+    "question": "Which plants does Evelyn use for landscaping perimeters?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "The user must identify the specific plants mentioned for perimeters in session 3."
+  },
+  {
+    "id": "q_persona_004_019",
+    "personaId": "persona_004",
+    "question": "What specific bird does Evelyn look for while kayaking?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "The user must identify the specific bird mentioned in session 3 kayaking."
+  },
+  {
+    "id": "q_persona_004_020",
+    "personaId": "persona_004",
+    "question": "What was the water level of the river during Evelyn's kayaking trip in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the water level detail from session 1."
+  },
+  {
+    "id": "q_persona_004_021",
+    "personaId": "persona_004",
+    "question": "What does Evelyn use for technical drafting focus?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the music choice for technical drafting in session 3."
+  },
+  {
+    "id": "q_persona_004_022",
+    "personaId": "persona_004",
+    "question": "What are the characteristics of Salvia and Lavender mentioned in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the plant characteristics from session 2."
+  },
+  {
+    "id": "q_persona_004_023",
+    "personaId": "persona_004",
+    "question": "What is needed to finalize a planting schedule according to session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the requirement for the planting schedule in session 2."
+  },
+  {
+    "id": "q_persona_004_024",
+    "personaId": "persona_004",
+    "question": "What effect does a lack of vegetation have on urban areas?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the environmental effect mentioned in session 2."
+  },
+  {
+    "id": "q_persona_004_025",
+    "personaId": "persona_004",
+    "question": "What did Evelyn sketch at the old library in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the subject of the sketch in session 2."
+  },
+  {
+    "id": "q_persona_004_026",
+    "personaId": "persona_004",
+    "question": "What does Evelyn want to create for her patio?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the custom item mentioned in session 1."
+  },
+  {
+    "id": "q_persona_004_027",
+    "personaId": "persona_004",
+    "question": "What biography is Evelyn reading in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the book title from session 3."
+  },
+  {
+    "id": "q_persona_004_028",
+    "personaId": "persona_004",
+    "question": "What is the status of warblers this year according to session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the migration status from session 3."
+  },
+  {
+    "id": "q_persona_004_029",
+    "personaId": "persona_004",
+    "question": "What is Evelyn's current professional project in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the project name from session 1."
+  },
+  {
+    "id": "q_persona_004_030",
+    "personaId": "persona_004",
+    "question": "What specific perennials does Evelyn intend for the north quadrant?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the plant type for the north quadrant in session 1."
+  },
+  {
+    "id": "q_persona_004_031",
+    "personaId": "persona_004",
+    "question": "What is the current time according to session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the timeframe mentioned in session 1."
+  },
+  {
+    "id": "q_persona_004_032",
+    "personaId": "persona_004",
+    "question": "What is the anniversary milestone for Evelyn's firm?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the anniversary detail from session 3."
+  },
+  {
+    "id": "q_persona_004_033",
+    "personaId": "persona_004",
+    "question": "What is the slope of the eastern side of the site in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the slope percentage from session 4."
+  },
+  {
+    "id": "q_persona_004_034",
+    "personaId": "persona_004",
+    "question": "What kind of pots does Evelyn prefer for gardening?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the pot material preference from session 3."
+  },
+  {
+    "id": "q_persona_004_035",
+    "personaId": "persona_004",
+    "question": "What is the soil pH at the project site in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the pH value from session 4."
+  },
+  {
+    "id": "q_persona_004_036",
+    "personaId": "persona_004",
+    "question": "What did Evelyn observe at the project site in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m12_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific bird observation from session 4."
+  },
+  {
+    "id": "q_persona_004_037",
+    "personaId": "persona_004",
+    "question": "Identify the two specific tree species Evelyn prefers in session 1.",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires naming both tree species mentioned in session 1."
+  },
+  {
+    "id": "q_persona_004_038",
+    "personaId": "persona_004",
+    "question": "What is the specific soil pH and location mentioned in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires both the pH value and the quadrant location from session 1."
+  },
+  {
+    "id": "q_persona_004_039",
+    "personaId": "persona_004",
+    "question": "Which two plants are mentioned as drought-tolerant in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires naming both drought-tolerant plants from session 2."
+  },
+  {
+    "id": "q_persona_004_040",
+    "personaId": "persona_004",
+    "question": "What is the specific drainage problem in the downtown project in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific location and nature of the drainage issue."
+  },
+  {
+    "id": "q_persona_004_041",
+    "personaId": "persona_004",
+    "question": "What is the anniversary mentioned in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific year and timing of the firm's anniversary."
+  },
+  {
+    "id": "q_persona_004_042",
+    "personaId": "persona_004",
+    "question": "What is the slope of the eastern side of the redevelopment site?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific slope percentage from session 4."
+  },
+  {
+    "id": "q_persona_004_043",
+    "personaId": "persona_004",
+    "question": "What material does Evelyn use in her ceramics class in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific type of clay mentioned in session 2."
+  },
+  {
+    "id": "q_persona_004_044",
+    "personaId": "persona_004",
+    "question": "What birds are nesting at the reservoir?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s2_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific bird species from session 2."
+  },
+  {
+    "id": "q_persona_004_045",
+    "personaId": "persona_004",
+    "question": "What biography is Evelyn reading in session 1?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s1_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the full name of the subject of the biography."
+  },
+  {
+    "id": "q_persona_004_046",
+    "personaId": "persona_004",
+    "question": "What is the soil pH in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific pH value from session 4."
+  },
+  {
+    "id": "q_persona_004_047",
+    "personaId": "persona_004",
+    "question": "What did Evelyn sketch this morning in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s4_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the subject and location of the sketch."
+  },
+  {
+    "id": "q_persona_004_048",
+    "personaId": "persona_004",
+    "question": "What birds are migrating early this year according to session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific bird species mentioned in session 3."
+  },
+  {
+    "id": "q_persona_004_049",
+    "personaId": "persona_004",
+    "question": "What is the specific location of the problematic soil drainage in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_004_s3_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the exact corner mentioned in session 3."
+  },
+  {
+    "id": "q_persona_004_050",
+    "personaId": "persona_004",
+    "question": "When must the planting schedule be finalized?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated deadline in session 1."
+  },
+  {
+    "id": "q_persona_004_051",
+    "personaId": "persona_004",
+    "question": "When did Evelyn go bird watching in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated timeframe in session 1."
+  },
+  {
+    "id": "q_persona_004_052",
+    "personaId": "persona_004",
+    "question": "When did Evelyn go kayaking in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated day in session 1."
+  },
+  {
+    "id": "q_persona_004_053",
+    "personaId": "persona_004",
+    "question": "When does the ceramics workshop begin?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated start day in session 1."
+  },
+  {
+    "id": "q_persona_004_054",
+    "personaId": "persona_004",
+    "question": "When did Evelyn go kayaking in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated timeframe in session 2."
+  },
+  {
+    "id": "q_persona_004_055",
+    "personaId": "persona_004",
+    "question": "When did Evelyn attend her ceramics class in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated day in session 2."
+  },
+  {
+    "id": "q_persona_004_056",
+    "personaId": "persona_004",
+    "question": "When is Evelyn installing a greywater system?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated timeframe in session 2."
+  },
+  {
+    "id": "q_persona_004_057",
+    "personaId": "persona_004",
+    "question": "When did Evelyn spend time sketching in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated day and time in session 3."
+  },
+  {
+    "id": "q_persona_004_058",
+    "personaId": "persona_004",
+    "question": "When is Evelyn's firm's anniversary?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated timeframe in session 3."
+  },
+  {
+    "id": "q_persona_004_059",
+    "personaId": "persona_004",
+    "question": "When is Evelyn's next kayaking trip in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated timeframe in session 3."
+  },
+  {
+    "id": "q_persona_004_060",
+    "personaId": "persona_004",
+    "question": "When does Evelyn plan to finish the plant list in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated deadline in session 4."
+  },
+  {
+    "id": "q_persona_004_061",
+    "personaId": "persona_004",
+    "question": "How long ago did Evelyn start her practice?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated duration in session 4."
+  },
+  {
+    "id": "q_persona_004_062",
+    "personaId": "persona_004",
+    "question": "When did Evelyn sketch the oak tree in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the timeframe from session 4."
+  },
+  {
+    "id": "q_persona_004_063",
+    "personaId": "persona_004",
+    "question": "What is the current season based on the planting schedule deadline?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m2_e1", "persona_004_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires inferring the season from the current time and deadline."
+  },
+  {
+    "id": "q_persona_004_064",
+    "personaId": "persona_004",
+    "question": "How much time is there between early January and the planting schedule deadline?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m2_e1", "persona_004_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires calculating the time difference between the current time and the deadline."
+  },
+  {
+    "id": "q_persona_004_065",
+    "personaId": "persona_004",
+    "question": "When did Evelyn recently finish a biography in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the timeframe from session 2."
+  },
+  {
+    "id": "q_persona_004_066",
+    "personaId": "persona_004",
+    "question": "When did the warblers return to the park in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the timeframe from session 2."
+  },
+  {
+    "id": "q_persona_004_067",
+    "personaId": "persona_004",
+    "question": "When did Evelyn sketch at the library?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the timeframe from session 2."
+  },
+  {
+    "id": "q_persona_004_068",
+    "personaId": "persona_004",
+    "question": "When is the long weekend kayaking trip scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the timeframe from session 3."
+  },
+  {
+    "id": "q_persona_004_069",
+    "personaId": "persona_004",
+    "question": "When did Evelyn sketch at 4 PM?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m2_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific day from session 3."
+  },
+  {
+    "id": "q_persona_004_070",
+    "personaId": "persona_004",
+    "question": "When is the greywater system installation scheduled in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the timeframe from session 2."
+  },
+  {
+    "id": "q_persona_004_071",
+    "personaId": "persona_004",
+    "question": "When did Evelyn go bird watching yesterday in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific time of day from session 1."
+  },
+  {
+    "id": "q_persona_004_072",
+    "personaId": "persona_004",
+    "question": "When is the ceramics workshop starting relative to session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the day relative to the session."
+  },
+  {
+    "id": "q_persona_004_073",
+    "personaId": "persona_004",
+    "question": "When did Evelyn start her landscape architecture practice?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the duration from session 4."
+  },
+  {
+    "id": "q_persona_004_074",
+    "personaId": "persona_004",
+    "question": "When is the plant list due in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific day from session 4."
+  },
+  {
+    "id": "q_persona_004_075",
+    "personaId": "persona_004",
+    "question": "When did Evelyn sketch the oak tree in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific time of day from session 4."
+  },
+  {
+    "id": "q_persona_004_076",
+    "personaId": "persona_004",
+    "question": "When did Evelyn attend ceramics in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific day mentioned in session 2."
+  },
+  {
+    "id": "q_persona_004_077",
+    "personaId": "persona_004",
+    "question": "How many weeks from early January until the planting schedule is due?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s1_m2_e1", "persona_004_s1_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires calculating the exact number of weeks between the two dates."
+  },
+  {
+    "id": "q_persona_004_078",
+    "personaId": "persona_004",
+    "question": "When did Evelyn go kayaking in session 2 relative to the current time?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the timeframe from session 2."
+  },
+  {
+    "id": "q_persona_004_079",
+    "personaId": "persona_004",
+    "question": "When did Evelyn sketch the old library?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s2_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the timeframe from session 2."
+  },
+  {
+    "id": "q_persona_004_080",
+    "personaId": "persona_004",
+    "question": "When is the ten-year anniversary of Evelyn's firm?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the timeframe from session 3."
+  },
+  {
+    "id": "q_persona_004_081",
+    "personaId": "persona_004",
+    "question": "When did Evelyn spend time sketching last Tuesday?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying both the day and the specific time from session 3."
+  },
+  {
+    "id": "q_persona_004_082",
+    "personaId": "persona_004",
+    "question": "When is the kayaking trip for the long weekend?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the timeframe from session 3."
+  },
+  {
+    "id": "q_persona_004_083",
+    "personaId": "persona_004",
+    "question": "When did Evelyn start her practice relative to session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the duration from session 4."
+  },
+  {
+    "id": "q_persona_004_084",
+    "personaId": "persona_004",
+    "question": "When is the plant list deadline in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_004_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific day from session 4."
+  },
+  {
+    "id": "q_persona_004_085",
+    "personaId": "persona_004",
+    "question": "What landscaping growth does Evelyn prioritize?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the priority from session 1."
+  },
+  {
+    "id": "q_persona_004_086",
+    "personaId": "persona_004",
+    "question": "What tree species does Evelyn prefer for landscaping?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the preferred trees from session 1."
+  },
+  {
+    "id": "q_persona_004_087",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn listen to while sketching?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the music preference from session 1."
+  },
+  {
+    "id": "q_persona_004_088",
+    "personaId": "persona_004",
+    "question": "What does Evelyn intend to plant in the north quadrant?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the plant preference from session 1."
+  },
+  {
+    "id": "q_persona_004_089",
+    "personaId": "persona_004",
+    "question": "What does Evelyn want to make in her ceramics workshop?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the custom item from session 1."
+  },
+  {
+    "id": "q_persona_004_090",
+    "personaId": "persona_004",
+    "question": "What plants does Evelyn prefer for urban rooftops?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the plant preference from session 2."
+  },
+  {
+    "id": "q_persona_004_091",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn listen to while drafting site plans?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the music preference from session 2."
+  },
+  {
+    "id": "q_persona_004_092",
+    "personaId": "persona_004",
+    "question": "Why does Evelyn value greywater systems?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the value from session 2."
+  },
+  {
+    "id": "q_persona_004_093",
+    "personaId": "persona_004",
+    "question": "What plants does Evelyn prefer for landscaping perimeters?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the plant preference from session 3."
+  },
+  {
+    "id": "q_persona_004_094",
+    "personaId": "persona_004",
+    "question": "What does Evelyn like to look for while kayaking?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the bird preference from session 3."
+  },
+  {
+    "id": "q_persona_004_095",
+    "personaId": "persona_004",
+    "question": "What kind of pots does Evelyn prefer in session 3?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the pot material preference from session 3."
+  },
+  {
+    "id": "q_persona_004_096",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn use to focus on technical drafting?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the music preference from session 3."
+  },
+  {
+    "id": "q_persona_004_097",
+    "personaId": "persona_004",
+    "question": "What perennials does Evelyn prefer in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the plant preference from session 4."
+  },
+  {
+    "id": "q_persona_004_098",
+    "personaId": "persona_004",
+    "question": "What material does Evelyn prefer for furniture?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the material preference from session 4."
+  },
+  {
+    "id": "q_persona_004_099",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn like while working in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m11_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the music preference from session 4."
+  },
+  {
+    "id": "q_persona_004_100",
+    "personaId": "persona_004",
+    "question": "What is Evelyn's priority in landscaping growth?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific priority from session 1."
+  },
+  {
+    "id": "q_persona_004_101",
+    "personaId": "persona_004",
+    "question": "Which native tree species are Evelyn's favorites?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific tree species from session 1."
+  },
+  {
+    "id": "q_persona_004_102",
+    "personaId": "persona_004",
+    "question": "What does Evelyn listen to while sketching in session 1?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific music piece from session 1."
+  },
+  {
+    "id": "q_persona_004_103",
+    "personaId": "persona_004",
+    "question": "What is Evelyn's intention for the north quadrant?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the plant type from session 1."
+  },
+  {
+    "id": "q_persona_004_104",
+    "personaId": "persona_004",
+    "question": "What are the custom items Evelyn wants for her patio?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific item from session 1."
+  },
+  {
+    "id": "q_persona_004_105",
+    "personaId": "persona_004",
+    "question": "Which plants does Evelyn select for urban rooftops?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific plants from session 2."
+  },
+  {
+    "id": "q_persona_004_106",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn play while drafting site plans?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific music piece from session 2."
+  },
+  {
+    "id": "q_persona_004_107",
+    "personaId": "persona_004",
+    "question": "Why does Evelyn support greywater systems?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying the specific value from session 2."
+  },
+  {
+    "id": "q_persona_004_108",
+    "personaId": "persona_004",
+    "question": "What are Evelyn's preferred perimeter plants?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific plants from session 3."
+  },
+  {
+    "id": "q_persona_004_109",
+    "personaId": "persona_004",
+    "question": "What bird does Evelyn enjoy watching while kayaking?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific bird from session 3."
+  },
+  {
+    "id": "q_persona_004_110",
+    "personaId": "persona_004",
+    "question": "What is Evelyn's preference regarding gardening pots?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific material from session 3."
+  },
+  {
+    "id": "q_persona_004_111",
+    "personaId": "persona_004",
+    "question": "What does Evelyn listen to for technical drafting focus?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s3_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the specific composer from session 3."
+  },
+  {
+    "id": "q_persona_004_112",
+    "personaId": "persona_004",
+    "question": "What drought-resistant perennials does Evelyn prefer in session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific plants from session 4."
+  },
+  {
+    "id": "q_persona_004_113",
+    "personaId": "persona_004",
+    "question": "What material does Evelyn prefer for furniture over plastic composites?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific material from session 4."
+  },
+  {
+    "id": "q_persona_004_114",
+    "personaId": "persona_004",
+    "question": "What music does Evelyn listen to while working?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m11_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific music piece from session 4."
+  },
+  {
+    "id": "q_persona_004_115",
+    "personaId": "persona_004",
+    "question": "What are Evelyn's preferred native tree species?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying both tree species from session 1."
+  },
+  {
+    "id": "q_persona_004_116",
+    "personaId": "persona_004",
+    "question": "What does Evelyn listen to while sketching?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific composer and piece from session 1."
+  },
+  {
+    "id": "q_persona_004_117",
+    "personaId": "persona_004",
+    "question": "What does Evelyn want to make in her ceramics workshop?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying the specific item from session 1."
+  },
+  {
+    "id": "q_persona_004_118",
+    "personaId": "persona_004",
+    "question": "What plants does Evelyn prefer for urban rooftops?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s2_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying both plants from session 2."
+  },
+  {
+    "id": "q_persona_004_119",
+    "personaId": "persona_004",
+    "question": "What is Evelyn's preference for furniture materials?",
+    "type": "preference",
+    "expectedEvidence": ["persona_004_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying the specific material from session 4."
+  },
+  {
+    "id": "q_persona_004_120",
+    "personaId": "persona_004",
+    "question": "Why might Evelyn choose White Oak and Sugar Maple for her projects?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s1_m3_e1", "persona_004_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting the preferred trees with the reason for choosing native species."
+  },
+  {
+    "id": "q_persona_004_121",
+    "personaId": "persona_004",
+    "question": "What does Evelyn think about the current state of urban planning?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires identifying her opinion on urban planning from session 1."
+  },
+  {
+    "id": "q_persona_004_122",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's view of Olmsted relate to her own work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s1_m5_e1", "persona_004_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting her reading choice with her opinion on Olmsted."
+  },
+  {
+    "id": "q_persona_004_123",
+    "personaId": "persona_004",
+    "question": "What does Evelyn believe about early bird returns?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s2_m5_e1", "persona_004_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires connecting the bird observation with her belief about microclimates."
+  },
+  {
+    "id": "q_persona_004_124",
+    "personaId": "persona_004",
+    "question": "Why does Evelyn advocate for green corridors?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s2_m8_e1", "persona_004_s2_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Requires connecting her advocacy with the environmental reason provided."
+  },
+  {
+    "id": "q_persona_004_125",
+    "personaId": "persona_004",
+    "question": "Why does Evelyn prefer 4 PM for sketching?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s3_m2_e1", "persona_004_s3_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying the reason for the specific time choice from session 3."
+  },
+  {
+    "id": "q_persona_004_126",
+    "personaId": "persona_004",
+    "question": "What is Evelyn's opinion on manicured lawns?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying her opinion from session 4."
+  },
+  {
+    "id": "q_persona_004_127",
+    "personaId": "persona_004",
+    "question": "What is the foundation of Evelyn's design philosophy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying her core design philosophy from session 4."
+  },
+  {
+    "id": "q_persona_004_128",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's choice of plants reflect her environmental values?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s1_m1_e2", "persona_004_s1_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting her priority for sustainability with her specific plant choices."
+  },
+  {
+    "id": "q_persona_004_129",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's interest in biographies influence her perspective on landscape architecture?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s1_m5_e1", "persona_004_s1_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting her reading of Olmsted with her professional perspective."
+  },
+  {
+    "id": "q_persona_004_130",
+    "personaId": "persona_004",
+    "question": "What is the connection between Evelyn's hobby of ceramics and her professional work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Requires connecting her ceramic project with her landscaping work."
+  },
+  {
+    "id": "q_persona_004_131",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's choice of rooftop plants align with her sustainability goals?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s2_m3_e1", "persona_004_s2_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires connecting the specific plant choice with their drought-tolerant nature."
+  },
+  {
+    "id": "q_persona_004_132",
+    "personaId": "persona_004",
+    "question": "What does Evelyn's reaction to the Eleanor of Aquitaine biography suggest about her preferences?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s2_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires identifying her preference for pacing in biographies."
+  },
+  {
+    "id": "q_persona_004_133",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's advocacy for green corridors address urban heat islands?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s2_m8_e1", "persona_004_s2_m8_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires connecting her advocacy with the environmental benefit."
+  },
+  {
+    "id": "q_persona_004_134",
+    "personaId": "persona_004",
+    "question": "Why does Evelyn believe modern urban planning is failing?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s3_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires identifying her specific critique of urban planning from session 3."
+  },
+  {
+    "id": "q_persona_004_135",
+    "personaId": "persona_004",
+    "question": "How do Evelyn's perimeter plant choices support her environmental philosophy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s3_m3_e1", "persona_004_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires connecting the plant choice with their irrigation needs."
+  },
+  {
+    "id": "q_persona_004_136",
+    "personaId": "persona_004",
+    "question": "What does Evelyn's preference for reclaimed timber say about her design ethics?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s4_m8_e1", "persona_004_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting her material choice with her sustainability foundation."
+  },
+  {
+    "id": "q_persona_004_137",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's observation of falcons relate to her professional project?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s4_m12_e1", "persona_004_s4_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting the bird observation with the project location."
+  },
+  {
+    "id": "q_persona_004_138",
+    "personaId": "persona_004",
+    "question": "Why might Evelyn be sketching the old library courtyard specifically?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s2_m1_e1", "persona_004_s2_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires connecting the sketch subject with the material description."
+  },
+  {
+    "id": "q_persona_004_139",
+    "personaId": "persona_004",
+    "question": "How does Evelyn's view of sustainability impact her plant list deadline?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s4_m5_e1", "persona_004_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires connecting her design foundation with her work schedule."
+  },
+  {
+    "id": "q_persona_004_140",
+    "personaId": "persona_004",
+    "question": "What is the relationship between Evelyn's music choice and her work tasks in session 3?",
+    "type": "inference",
+    "expectedEvidence": ["persona_004_s3_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires connecting the music choice with the specific task of technical drafting."
+  }
+]

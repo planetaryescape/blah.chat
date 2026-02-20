@@ -2,7 +2,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Redirect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { ActivityIndicator, View } from "react-native";
-import { DrawerContent } from "@/components/drawer/DrawerContent";
+import { DrawerContentV2 } from "@/components/drawer/DrawerContentV2";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { palette } from "@/lib/theme/designSystem";
 
@@ -31,10 +31,13 @@ export default function DrawerLayout() {
   return (
     <ErrorBoundary>
       <Drawer
-        drawerContent={() => <DrawerContent />}
+        drawerContent={(props) => <DrawerContentV2 {...props} />}
         screenOptions={{
           headerShown: false,
           drawerType: "slide",
+          sceneStyle: {
+            backgroundColor: "transparent",
+          },
           drawerStyle: {
             width: "85%",
             backgroundColor: palette.void,
@@ -62,6 +65,20 @@ export default function DrawerLayout() {
           name="notes"
           options={{
             drawerLabel: "Notes",
+            swipeEnabled: true,
+          }}
+        />
+        <Drawer.Screen
+          name="projects/index"
+          options={{
+            drawerLabel: "Projects",
+            swipeEnabled: true,
+          }}
+        />
+        <Drawer.Screen
+          name="bookmarks"
+          options={{
+            drawerLabel: "Bookmarks",
             swipeEnabled: true,
           }}
         />

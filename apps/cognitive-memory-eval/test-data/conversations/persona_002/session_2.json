@@ -1,0 +1,218 @@
+{
+  "id": "conv_persona_002_session_02",
+  "personaId": "persona_002",
+  "sessionNumber": 2,
+  "timestamp": 1768434307859,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello. I've successfully installed the drip irrigation system for my balcony garden today. It should reduce water waste by approximately 30% compared to my manual watering schedule.",
+      "timestamp": 1768434307859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m1_e1",
+          "type": "factual",
+          "statement": "Elena has an urban drip irrigation system on her balcony garden.",
+          "importance": 0.7,
+          "category": "gardening"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I am currently analyzing the 2024 Carbon Disclosure Project findings for my consultation report. The data indicates a significant lag in sustainability reporting among local SMEs.",
+      "timestamp": 1768434907859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m2_e1",
+          "type": "temporal",
+          "statement": "Elena is currently analyzing 2024 Carbon Disclosure Project data.",
+          "importance": 0.8,
+          "category": "work"
+        },
+        {
+          "id": "persona_002_s2_m2_e2",
+          "type": "factual",
+          "statement": "Elena consults on sustainability reporting for SMEs.",
+          "importance": 0.9,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm heading out to practice classical guitar now. I've maintained a strict routine of forty-five minutes every Tuesday evening for the past year.",
+      "timestamp": 1768435507859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m3_e1",
+          "type": "temporal",
+          "statement": "Elena practices guitar every Tuesday evening for 45 minutes.",
+          "importance": 0.6,
+          "category": "hobbies"
+        },
+        {
+          "id": "persona_002_s2_m3_e2",
+          "type": "factual",
+          "statement": "Elena plays classical guitar.",
+          "importance": 0.5,
+          "category": "hobbies"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I spent some time at the new minimalist library downtown. I find the exposed concrete and clean lines very grounding, though I know the aesthetic is polarizing for some.",
+      "timestamp": 1768436107859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m4_e1",
+          "type": "preference",
+          "statement": "Elena appreciates minimalist and exposed concrete architecture.",
+          "importance": 0.4,
+          "category": "interests"
+        },
+        {
+          "id": "persona_002_s2_m4_e2",
+          "type": "opinion",
+          "statement": "Elena finds minimalist architecture with clean lines to be grounding.",
+          "importance": 0.5,
+          "category": "interests"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm planning a kayaking excursion at the reservoir this Saturday at 8:00 AM. Starting early is essential to avoid the recreational crowds and observe the morning wildlife.",
+      "timestamp": 1768436707859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m5_e1",
+          "type": "temporal",
+          "statement": "Elena is going kayaking this Saturday morning.",
+          "importance": 0.6,
+          "category": "hobbies"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I just finished recording a podcast segment where I interviewed a soil scientist. We discussed the factual benefits of regenerative agriculture for carbon sequestration.",
+      "timestamp": 1768437307859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m6_e1",
+          "type": "factual",
+          "statement": "Elena hosts a podcast focused on sustainability.",
+          "importance": 0.7,
+          "category": "hobbies"
+        },
+        {
+          "id": "persona_002_s2_m6_e2",
+          "type": "factual",
+          "statement": "Elena recently interviewed a soil scientist about regenerative agriculture.",
+          "importance": 0.6,
+          "category": "hobbies"
+        },
+        {
+          "id": "persona_002_s2_m6_e3",
+          "type": "temporal",
+          "statement": "Elena recorded a podcast segment recently.",
+          "importance": 0.5,
+          "category": "hobbies"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "When choosing hiking routes, I consistently prefer the northern forest loop trails. The elevation gain provides a more rigorous training session than the flat coastal paths.",
+      "timestamp": 1768437907859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m7_e1",
+          "type": "preference",
+          "statement": "Elena prefers northern forest loop trails for hiking.",
+          "importance": 0.5,
+          "category": "hobbies"
+        },
+        {
+          "id": "persona_002_s2_m7_e2",
+          "type": "preference",
+          "statement": "Elena prefers hiking trails with high elevation gain for training.",
+          "importance": 0.6,
+          "category": "hobbies"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "In my mediation role at work, I find it most effective to focus the group on long-term project viability. Addressing emotional friction is easier once the data-backed objectives are clear.",
+      "timestamp": 1768438507859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m8_e1",
+          "type": "factual",
+          "statement": "Elena acts as a mediator in professional group settings.",
+          "importance": 0.8,
+          "category": "work"
+        },
+        {
+          "id": "persona_002_s2_m8_e2",
+          "type": "opinion",
+          "statement": "Elena believes focusing on data-backed objectives simplifies emotional conflict resolution.",
+          "importance": 0.7,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "My recent urban heat island study shows that a 15% increase in tree canopy can lower surface temperatures by 3 degrees. I'm presenting these figures to the council tomorrow.",
+      "timestamp": 1768439107859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m9_e1",
+          "type": "factual",
+          "statement": "Elena conducts studies on urban heat islands and canopy cover.",
+          "importance": 0.9,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Adopting a minimalist lifestyle was a deliberate choice. I only keep gear that I use frequently, as I believe reducing physical clutter significantly improves mental focus.",
+      "timestamp": 1768439707859,
+      "evidence": [
+        {
+          "id": "persona_002_s2_m10_e1",
+          "type": "preference",
+          "statement": "Elena prioritizes a minimalist lifestyle and high-quality experiences.",
+          "importance": 0.7,
+          "category": "lifestyle"
+        },
+        {
+          "id": "persona_002_s2_m10_e2",
+          "type": "factual",
+          "statement": "Elena follows minimalist principles in her daily life.",
+          "importance": 0.6,
+          "category": "lifestyle"
+        },
+        {
+          "id": "persona_002_s2_m10_e3",
+          "type": "opinion",
+          "statement": "Elena believes reducing physical clutter improves mental focus.",
+          "importance": 0.8,
+          "category": "lifestyle"
+        },
+        {
+          "id": "persona_002_s2_m10_e4",
+          "type": "preference",
+          "statement": "Elena only retains equipment and gear that she uses frequently.",
+          "importance": 0.5,
+          "category": "lifestyle"
+        }
+      ]
+    }
+  ]
+}

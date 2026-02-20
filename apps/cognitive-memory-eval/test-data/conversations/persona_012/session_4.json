@@ -1,0 +1,183 @@
+{
+  "id": "conv_persona_012_session_04",
+  "personaId": "persona_012",
+  "sessionNumber": 4,
+  "timestamp": 1770594307859,
+  "messages": [
+    {
+      "role": "user",
+      "content": "I've reviewed the preliminary Life Cycle Assessment for the modular housing project. The embodied carbon figures for the cross-laminated timber are currently 5% higher than the 2024 industry baseline.",
+      "timestamp": 1770594307859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m1_e1",
+          "type": "factual",
+          "statement": "The CLT embodied carbon figures are 5% higher than the 2024 industry baseline.",
+          "importance": 0.85,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I am heading to the bouldering gym at 18:00 today to decompress. It is a necessary part of my routine to maintain analytical focus.",
+      "timestamp": 1770594907859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m2_e1",
+          "type": "temporal",
+          "statement": "Elena is going to the bouldering gym at 18:00 today.",
+          "importance": 0.4,
+          "category": "hobbies"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "For the rooftop solar installation, I strongly prefer using Perovskite-silicon tandem cells. The theoretical efficiency limit is much higher than standard monocrystalline panels.",
+      "timestamp": 1770595507859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m3_e1",
+          "type": "preference",
+          "statement": "Elena prefers Perovskite-silicon tandem cells for solar installations.",
+          "importance": 0.75,
+          "category": "tech"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "The current surge in 'fast-fashion' ethical marketing is largely greenwashing. In my opinion, true sustainability in the fashion industry requires a complete shift to regenerative natural fibers.",
+      "timestamp": 1770596107859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m4_e1",
+          "type": "opinion",
+          "statement": "True fashion sustainability requires a shift to regenerative natural fibers.",
+          "importance": 0.65,
+          "category": "fashion"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Our latest site data confirms that the permeable pavement installation has reduced surface runoff by exactly 60% compared to the previous asphalt surface.",
+      "timestamp": 1770596707859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m5_e1",
+          "type": "factual",
+          "statement": "Permeable pavement reduced surface runoff by 60% at the site.",
+          "importance": 0.9,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I have blocked out three hours this Saturday morning to finish the rough cut of the community garden documentary.",
+      "timestamp": 1770597307859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m6_e1",
+          "type": "temporal",
+          "statement": "Elena is editing her documentary this Saturday morning.",
+          "importance": 0.5,
+          "category": "filming"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I am planning a dinner for the team. I always insist on sourcing authentic heirloom corn from Oaxaca for my tortillas; the flavor profile is vital for traditional Mexican cuisine.",
+      "timestamp": 1770597907859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m7_e1",
+          "type": "preference",
+          "statement": "Elena prefers authentic heirloom corn from Oaxaca for making tortillas.",
+          "importance": 0.55,
+          "category": "food"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "The project site currently holds a biodiversity net gain score of 12%. This is a significant improvement over the 8% we recorded last year.",
+      "timestamp": 1770598507859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m8_e1",
+          "type": "factual",
+          "statement": "The project site biodiversity net gain score is 12%.",
+          "importance": 0.8,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Minimalist interior design is more than an aesthetic; I believe it is a functional requirement for high-performance work environments to reduce cognitive load.",
+      "timestamp": 1770599107859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m9_e1",
+          "type": "opinion",
+          "statement": "Minimalist design is viewed as a functional requirement for high-performance work.",
+          "importance": 0.6,
+          "category": "design"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "We must ensure the final ESG audit is submitted by next Friday at 12:00 PM to meet the investor deadline.",
+      "timestamp": 1770599707859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m10_e1",
+          "type": "temporal",
+          "statement": "The ESG audit deadline is next Friday at 12:00 PM.",
+          "importance": 0.7,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "The battery storage capacity at the renewable pilot site is 500kWh, and the round-trip discharge efficiency is 92%.",
+      "timestamp": 1770600307859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m11_e1",
+          "type": "factual",
+          "statement": "The pilot site battery storage capacity is 500kWh.",
+          "importance": 0.8,
+          "category": "tech"
+        },
+        {
+          "id": "persona_012_s4_m11_e2",
+          "type": "factual",
+          "statement": "The pilot site battery discharge efficiency is 92%.",
+          "importance": 0.8,
+          "category": "tech"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I prefer managing all project documentation through a centralized digital twin rather than fragmented spreadsheets.",
+      "timestamp": 1770600907859,
+      "evidence": [
+        {
+          "id": "persona_012_s4_m12_e1",
+          "type": "preference",
+          "statement": "Elena prefers using digital twins over spreadsheets for project management.",
+          "importance": 0.7,
+          "category": "work"
+        }
+      ]
+    }
+  ]
+}

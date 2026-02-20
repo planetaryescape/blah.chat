@@ -1,7 +1,6 @@
-import { DrawerActions } from "@react-navigation/native";
 import { FlashList } from "@shopify/flash-list";
-import { useNavigation, useRouter } from "expo-router";
-import { Filter, Menu, Plus, Search } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Filter, Plus, Search } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
@@ -12,6 +11,7 @@ import {
   NoteListItem,
   NoteMenuSheet,
 } from "@/components/notes";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
@@ -27,7 +27,6 @@ type Note = Doc<"notes">;
 
 export default function NotesListScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const projects = useProjects();
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
@@ -56,11 +55,6 @@ export default function NotesListScreen() {
     selectedProjectId === "none"
       ? notes?.filter((note: Note) => !note.projectId)
       : notes;
-
-  const handleOpenDrawer = useCallback(() => {
-    haptic.light();
-    navigation.dispatch(DrawerActions.openDrawer());
-  }, [navigation]);
 
   const handleCreateNote = useCallback(async () => {
     haptic.medium();
@@ -114,61 +108,33 @@ export default function NotesListScreen() {
   const isFiltered = selectedProjectId !== null || pinnedOnly;
   const isSearching = searchQuery.trim().length > 0;
 
+  const createNoteAction = (
+    <TouchableOpacity
+      onPress={() => {
+        haptic.light();
+        handleCreateNote();
+      }}
+      style={{
+        padding: spacing.xs,
+        backgroundColor: palette.roseQuartz,
+        borderRadius: layout.radius.sm,
+      }}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Plus size={20} color={palette.void} />
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.void }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: palette.glassBorder,
-          height: layout.headerHeight,
-          gap: spacing.sm,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            haptic.light();
-            handleOpenDrawer();
-          }}
-          style={{ padding: spacing.xs }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Menu size={24} color={palette.starlight} />
-        </TouchableOpacity>
-
-        <Text
-          style={{
-            flex: 1,
-            fontFamily: typography.heading,
-            fontSize: 18,
-            color: palette.starlight,
-          }}
-        >
-          Notes
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => {
-            haptic.light();
-            handleCreateNote();
-          }}
-          style={{
-            padding: spacing.xs,
-            backgroundColor: palette.roseQuartz,
-            borderRadius: layout.radius.sm,
-          }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Plus size={20} color={palette.void} />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Notes"
+        leftAction="menu"
+        rightAction={createNoteAction}
+      />
 
       {/* Search */}
       <View

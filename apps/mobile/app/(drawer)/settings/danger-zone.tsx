@@ -1,57 +1,89 @@
+import { useAuth } from "@clerk/clerk-expo";
+import { useAction, useMutation } from "convex/react";
+import { File, Paths } from "expo-file-system";
 import { useRouter } from "expo-router";
-import { AlertTriangle, ArrowLeft } from "lucide-react-native";
-import { Text, View } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
+import { AlertTriangle } from "lucide-react-native";
+import { useCallback, useState } from "react";
+import { Alert, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SettingsRow } from "@/components/settings/SettingsRow";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { FluidButton } from "@/components/ui/FluidButton";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { api } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function DangerZoneScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
+  const exportData = useAction(api.users.exportMyData);
+  const deleteData = useMutation(api.users.deleteMyData);
+  const deleteAccount = useMutation(api.users.deleteMyAccount);
+
+  const [exporting, setExporting] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteAccountText, setDeleteAccountText] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAccountConfirm, setShowAccountConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    haptic.medium();
+    try {
+      const data = await exportData();
+      const json = JSON.stringify(data, null, 2);
+      const fileName = `blahchat-export-${Date.now()}.json`;
+      const file = new File(Paths.document, fileName);
+      file.write(json);
+      Alert.alert("Export Complete", `Data saved to ${fileName}`);
+    } catch {
+      Alert.alert("Error", "Failed to export data.");
+    } finally {
+      setExporting(false);
+    }
+  }, [exportData]);
+
+  const handleDeleteData = useCallback(async () => {
+    if (deleteConfirmText !== "DELETE MY DATA") return;
+    setDeleting(true);
+    haptic.error();
+    try {
+      await deleteData({ confirmationText: "DELETE MY DATA" });
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText("");
+      Alert.alert("Done", "All data has been deleted.");
+      router.back();
+    } catch {
+      Alert.alert("Error", "Failed to delete data.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteConfirmText, deleteData, router]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (deleteAccountText !== "DELETE MY ACCOUNT") return;
+    setDeleting(true);
+    haptic.error();
+    try {
+      await deleteAccount({ confirmationText: "DELETE MY ACCOUNT" });
+      await signOut();
+    } catch {
+      Alert.alert("Error", "Failed to delete account.");
+      setDeleting(false);
+    }
+  }, [deleteAccountText, deleteAccount, signOut]);
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.void }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: palette.glassBorder,
-          height: layout.headerHeight,
-          gap: spacing.sm,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            haptic.light();
-            router.back();
-          }}
-          style={{ padding: spacing.xs }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ArrowLeft size={24} color={palette.starlight} />
-        </TouchableOpacity>
-        <Text
-          style={{
-            flex: 1,
-            fontFamily: typography.heading,
-            fontSize: 18,
-            color: palette.starlight,
-          }}
-        >
-          Danger Zone
-        </Text>
-      </View>
+      <ScreenHeader title="Danger Zone" leftAction="back" />
 
-      <View
-        style={{
+      <ScrollView
+        contentContainerStyle={{
           paddingTop: spacing.lg,
           paddingBottom: spacing.xxl,
         }}
@@ -59,20 +91,10 @@ export default function DangerZoneScreen() {
         <SettingsSection title="Data Management">
           <SettingsRow
             variant="action"
-            label="Download My Data"
+            label={exporting ? "Exporting..." : "Download My Data"}
             description="Export all your data as JSON"
             icon={AlertTriangle}
-            onPress={() => {
-              // TODO: Implement data export
-              haptic.medium();
-            }}
-          />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
+            onPress={handleExport}
           />
           <SettingsRow
             variant="action"
@@ -80,17 +102,10 @@ export default function DangerZoneScreen() {
             description="Permanently delete all conversations and memories"
             icon={AlertTriangle}
             onPress={() => {
-              // TODO: Implement with confirmation dialog
               haptic.medium();
+              setShowDeleteConfirm(true);
             }}
             destructive
-          />
-          <View
-            style={{
-              height: 1,
-              backgroundColor: palette.glassBorder,
-              marginHorizontal: spacing.md,
-            }}
           />
           <SettingsRow
             variant="action"
@@ -98,13 +113,139 @@ export default function DangerZoneScreen() {
             description="Permanently delete your account and all data"
             icon={AlertTriangle}
             onPress={() => {
-              // TODO: Implement with confirmation dialog
               haptic.medium();
+              setShowAccountConfirm(true);
             }}
             destructive
           />
         </SettingsSection>
-      </View>
+
+        {/* Delete Data Confirmation */}
+        {showDeleteConfirm && (
+          <View
+            style={{
+              marginHorizontal: spacing.md,
+              marginTop: spacing.lg,
+              backgroundColor: palette.glassLow,
+              borderRadius: 12,
+              padding: spacing.md,
+              borderWidth: 1,
+              borderColor: palette.error,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: typography.bodyMedium,
+                fontSize: 14,
+                color: palette.error,
+                marginBottom: spacing.sm,
+              }}
+            >
+              Type "DELETE MY DATA" to confirm
+            </Text>
+            <TextInput
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder="DELETE MY DATA"
+              placeholderTextColor={palette.starlightDim}
+              autoCapitalize="characters"
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                color: palette.starlight,
+                backgroundColor: palette.void,
+                borderRadius: 8,
+                padding: spacing.sm,
+                marginBottom: spacing.sm,
+              }}
+            />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <FluidButton
+                  title={deleting ? "Deleting..." : "Delete Everything"}
+                  onPress={handleDeleteData}
+                  variant="destructive"
+                  disabled={deleting || deleteConfirmText !== "DELETE MY DATA"}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <FluidButton
+                  title="Cancel"
+                  variant="ghost"
+                  onPress={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteConfirmText("");
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Delete Account Confirmation */}
+        {showAccountConfirm && (
+          <View
+            style={{
+              marginHorizontal: spacing.md,
+              marginTop: spacing.lg,
+              backgroundColor: palette.glassLow,
+              borderRadius: 12,
+              padding: spacing.md,
+              borderWidth: 1,
+              borderColor: palette.error,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: typography.bodyMedium,
+                fontSize: 14,
+                color: palette.error,
+                marginBottom: spacing.sm,
+              }}
+            >
+              Type "DELETE MY ACCOUNT" to confirm
+            </Text>
+            <TextInput
+              value={deleteAccountText}
+              onChangeText={setDeleteAccountText}
+              placeholder="DELETE MY ACCOUNT"
+              placeholderTextColor={palette.starlightDim}
+              autoCapitalize="characters"
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                color: palette.starlight,
+                backgroundColor: palette.void,
+                borderRadius: 8,
+                padding: spacing.sm,
+                marginBottom: spacing.sm,
+              }}
+            />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <FluidButton
+                  title={deleting ? "Deleting..." : "Delete Account"}
+                  onPress={handleDeleteAccount}
+                  variant="destructive"
+                  disabled={
+                    deleting || deleteAccountText !== "DELETE MY ACCOUNT"
+                  }
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <FluidButton
+                  title="Cancel"
+                  variant="ghost"
+                  onPress={() => {
+                    setShowAccountConfirm(false);
+                    setDeleteAccountText("");
+                  }}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -1,0 +1,933 @@
+{
+  "at": 1770855549211,
+  "profile": "standard",
+  "personas": 24,
+  "byPersona": {
+    "persona_008": {
+      "personaId": "persona_008",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_008_026",
+        "repaired-session-span:q_persona_008_026",
+        "repaired-empty-evidence:q_persona_008_056",
+        "repaired-session-span:q_persona_008_056",
+        "rebalanced-type-quota",
+        "rebalanced-difficulty-quota",
+        "found-invalid-evidence-refs:2",
+        "found-malformed-session-spans:2"
+      ]
+    },
+    "persona_007": {
+      "personaId": "persona_007",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_007_049",
+        "repaired-session-span:q_persona_007_049",
+        "repaired-session-span:q_persona_007_118",
+        "repaired-session-span:q_persona_007_124",
+        "rebalanced-type-quota",
+        "rebalanced-difficulty-quota",
+        "found-invalid-evidence-refs:3",
+        "found-malformed-session-spans:3"
+      ]
+    },
+    "persona_016": {
+      "personaId": "persona_016",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_016_019",
+        "repaired-session-span:q_persona_016_019",
+        "rebalanced-type-quota",
+        "rebalanced-difficulty-quota",
+        "found-invalid-evidence-refs:1",
+        "found-malformed-session-spans:1"
+      ]
+    },
+    "persona_001": {
+      "personaId": "persona_001",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-session-span:q_persona_001_039",
+        "repaired-empty-evidence:q_persona_001_133",
+        "repaired-session-span:q_persona_001_133",
+        "rebalanced-difficulty-quota",
+        "found-invalid-evidence-refs:2",
+        "found-malformed-session-spans:2"
+      ]
+    },
+    "persona_006": {
+      "personaId": "persona_006",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": ["rebalanced-type-quota"]
+    },
+    "persona_015": {
+      "personaId": "persona_015",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_015_022",
+        "repaired-session-span:q_persona_015_022",
+        "repaired-session-span:q_persona_015_029",
+        "repaired-empty-evidence:q_persona_015_072",
+        "repaired-session-span:q_persona_015_072",
+        "repaired-empty-evidence:q_persona_015_073",
+        "repaired-session-span:q_persona_015_073",
+        "found-invalid-evidence-refs:4",
+        "found-malformed-session-spans:4"
+      ]
+    },
+    "persona_002": {
+      "personaId": "persona_002",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_002_014",
+        "repaired-session-span:q_persona_002_014",
+        "repaired-empty-evidence:q_persona_002_088",
+        "repaired-session-span:q_persona_002_088",
+        "found-invalid-evidence-refs:2",
+        "found-malformed-session-spans:2"
+      ]
+    },
+    "persona_010": {
+      "personaId": "persona_010",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": false,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": []
+    },
+    "persona_009": {
+      "personaId": "persona_009",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-session-span:q_persona_009_049",
+        "repaired-empty-evidence:q_persona_009_060",
+        "repaired-session-span:q_persona_009_060",
+        "repaired-session-span:q_persona_009_072",
+        "repaired-session-span:q_persona_009_081",
+        "repaired-empty-evidence:q_persona_009_125",
+        "rebalanced-type-quota",
+        "found-invalid-evidence-refs:5",
+        "found-malformed-session-spans:4"
+      ]
+    },
+    "persona_004": {
+      "personaId": "persona_004",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_004_022",
+        "repaired-session-span:q_persona_004_022",
+        "found-invalid-evidence-refs:1",
+        "found-malformed-session-spans:1"
+      ]
+    },
+    "persona_003": {
+      "personaId": "persona_003",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_003_036",
+        "repaired-empty-evidence:q_persona_003_098",
+        "repaired-session-span:q_persona_003_098",
+        "found-invalid-evidence-refs:4",
+        "found-malformed-session-spans:1"
+      ]
+    },
+    "persona_013": {
+      "personaId": "persona_013",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_013_013",
+        "repaired-session-span:q_persona_013_013",
+        "repaired-empty-evidence:q_persona_013_029",
+        "repaired-session-span:q_persona_013_029",
+        "repaired-empty-evidence:q_persona_013_032",
+        "repaired-session-span:q_persona_013_032",
+        "repaired-session-span:q_persona_013_036",
+        "repaired-session-span:q_persona_013_043",
+        "repaired-session-span:q_persona_013_045",
+        "repaired-empty-evidence:q_persona_013_057",
+        "repaired-session-span:q_persona_013_057",
+        "repaired-empty-evidence:q_persona_013_058",
+        "repaired-session-span:q_persona_013_058",
+        "repaired-empty-evidence:q_persona_013_059",
+        "repaired-session-span:q_persona_013_059",
+        "repaired-empty-evidence:q_persona_013_064",
+        "repaired-session-span:q_persona_013_064",
+        "repaired-empty-evidence:q_persona_013_066",
+        "repaired-session-span:q_persona_013_066",
+        "repaired-empty-evidence:q_persona_013_069",
+        "repaired-session-span:q_persona_013_069",
+        "repaired-session-span:q_persona_013_070",
+        "repaired-session-span:q_persona_013_071",
+        "repaired-session-span:q_persona_013_072",
+        "repaired-session-span:q_persona_013_075",
+        "repaired-session-span:q_persona_013_077",
+        "repaired-empty-evidence:q_persona_013_081",
+        "repaired-session-span:q_persona_013_081",
+        "repaired-session-span:q_persona_013_083",
+        "repaired-empty-evidence:q_persona_013_088",
+        "repaired-session-span:q_persona_013_088",
+        "repaired-empty-evidence:q_persona_013_092",
+        "repaired-session-span:q_persona_013_092",
+        "repaired-empty-evidence:q_persona_013_096",
+        "repaired-session-span:q_persona_013_096",
+        "repaired-empty-evidence:q_persona_013_098",
+        "repaired-session-span:q_persona_013_098",
+        "repaired-empty-evidence:q_persona_013_099",
+        "repaired-session-span:q_persona_013_099",
+        "repaired-session-span:q_persona_013_105",
+        "repaired-session-span:q_persona_013_106",
+        "repaired-session-span:q_persona_013_108",
+        "repaired-session-span:q_persona_013_109",
+        "repaired-session-span:q_persona_013_114",
+        "repaired-session-span:q_persona_013_115",
+        "repaired-session-span:q_persona_013_116",
+        "repaired-session-span:q_persona_013_119",
+        "repaired-empty-evidence:q_persona_013_122",
+        "repaired-session-span:q_persona_013_122",
+        "repaired-empty-evidence:q_persona_013_124",
+        "repaired-session-span:q_persona_013_124",
+        "repaired-empty-evidence:q_persona_013_125",
+        "repaired-session-span:q_persona_013_125",
+        "repaired-session-span:q_persona_013_130",
+        "repaired-session-span:q_persona_013_134",
+        "repaired-session-span:q_persona_013_136",
+        "repaired-session-span:q_persona_013_137",
+        "repaired-session-span:q_persona_013_139",
+        "found-invalid-evidence-refs:41",
+        "found-malformed-session-spans:40"
+      ]
+    },
+    "persona_011": {
+      "personaId": "persona_011",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": false,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": []
+    },
+    "persona_012": {
+      "personaId": "persona_012",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_012_090",
+        "repaired-session-span:q_persona_012_090",
+        "found-invalid-evidence-refs:1",
+        "found-malformed-session-spans:1"
+      ]
+    },
+    "persona_005": {
+      "personaId": "persona_005",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": false,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": []
+    },
+    "persona_017": {
+      "personaId": "persona_017",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_017_082",
+        "repaired-session-span:q_persona_017_082",
+        "repaired-empty-evidence:q_persona_017_116",
+        "repaired-session-span:q_persona_017_116",
+        "found-invalid-evidence-refs:3",
+        "found-malformed-session-spans:2"
+      ]
+    },
+    "persona_018": {
+      "personaId": "persona_018",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": ["rebalanced-difficulty-quota"]
+    },
+    "persona_022": {
+      "personaId": "persona_022",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": false,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": []
+    },
+    "persona_021": {
+      "personaId": "persona_021",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": false,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": []
+    },
+    "persona_019": {
+      "personaId": "persona_019",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_019_045",
+        "repaired-session-span:q_persona_019_045",
+        "found-invalid-evidence-refs:1",
+        "found-malformed-session-spans:1"
+      ]
+    },
+    "persona_014": {
+      "personaId": "persona_014",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": ["rebalanced-difficulty-quota"]
+    },
+    "persona_020": {
+      "personaId": "persona_020",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": false,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": []
+    },
+    "persona_023": {
+      "personaId": "persona_023",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_023_064",
+        "repaired-session-span:q_persona_023_064",
+        "found-invalid-evidence-refs:1",
+        "found-malformed-session-spans:1"
+      ]
+    },
+    "persona_024": {
+      "personaId": "persona_024",
+      "requestedQuestions": 140,
+      "generatedQuestions": 140,
+      "repaired": true,
+      "invalidEvidenceRefs": 0,
+      "malformedSessionSpans": 0,
+      "quotaTypeTarget": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaTypeActual": {
+        "factual": 49,
+        "temporal": 35,
+        "preference": 35,
+        "inference": 21
+      },
+      "quotaDifficultyTarget": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "quotaDifficultyActual": {
+        "easy": 28,
+        "medium": 56,
+        "hard": 56
+      },
+      "passed": true,
+      "notes": [
+        "repaired-empty-evidence:q_persona_024_125",
+        "repaired-session-span:q_persona_024_125",
+        "found-invalid-evidence-refs:1",
+        "found-malformed-session-spans:1"
+      ]
+    }
+  }
+}

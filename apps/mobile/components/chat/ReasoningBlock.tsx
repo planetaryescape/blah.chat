@@ -4,10 +4,12 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import Reanimated, {
   FadeIn,
   FadeOut,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
@@ -50,6 +52,7 @@ export function ReasoningBlock({
       : null;
 
   const pulseOpacity = useSharedValue(1);
+  const chevronRotation = useSharedValue(0);
 
   useEffect(() => {
     if (isThinking) {
@@ -65,8 +68,23 @@ export function ReasoningBlock({
     }
   }, [isThinking, pulseOpacity]);
 
+  useEffect(() => {
+    chevronRotation.value = withSpring(isExpanded ? 1 : 0, {
+      damping: 14,
+      stiffness: 170,
+      mass: 0.7,
+    });
+  }, [isExpanded, chevronRotation]);
+
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseOpacity.value,
+  }));
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        rotate: `${interpolate(chevronRotation.value, [0, 1], [0, 180])}deg`,
+      },
+    ],
   }));
 
   return (
@@ -128,15 +146,9 @@ export function ReasoningBlock({
               </Text>
             </View>
           )}
-          <View style={{ marginLeft: "auto" }}>
-            <ChevronDown
-              size={16}
-              color={palette.starlightDim}
-              style={{
-                transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
-              }}
-            />
-          </View>
+          <Reanimated.View style={[{ marginLeft: "auto" }, chevronStyle]}>
+            <ChevronDown size={16} color={palette.starlightDim} />
+          </Reanimated.View>
         </Reanimated.View>
       </Pressable>
 

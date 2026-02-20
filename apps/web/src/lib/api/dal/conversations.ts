@@ -88,6 +88,7 @@ export const conversationsDAL = {
     limit = 50,
     archived = false,
     sessionToken: string,
+    projectId?: string,
   ) => {
     const convex = getAuthenticatedConvexClient(sessionToken);
 
@@ -97,6 +98,12 @@ export const conversationsDAL = {
       {
         limit,
         archived,
+        projectId:
+          projectId === "none"
+            ? "none"
+            : projectId
+              ? (projectId as Id<"projects">)
+              : undefined,
       },
     )) as Array<any>;
 

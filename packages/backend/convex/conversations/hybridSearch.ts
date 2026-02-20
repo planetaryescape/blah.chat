@@ -11,6 +11,15 @@ import { action, internalQuery } from "../_generated/server";
 import { logger } from "../lib/logger";
 import { estimateTokens } from "../tokens/counting";
 
+function isValidConvexId(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value !== "undefined" &&
+    value !== "null" &&
+    value.length > 10
+  );
+}
+
 /**
  * Hybrid search for conversations
  * Combines title search (keyword) + message content search (semantic)
@@ -72,13 +81,22 @@ export const hybridSearch = action({
         },
       );
 
-      // Group by conversationId - vectorSearch results have all document fields
+      // Resolve message docs, then group by conversationId.
+      // vectorSearch results are not guaranteed to include conversationId.
+      const messageIds = messageResults
+        .map((result) => result._id as Id<"messages"> | undefined)
+        .filter((id): id is Id<"messages"> => isValidConvexId(id));
+      const uniqueMessageIds = Array.from(new Set(messageIds));
+      const messages = await ctx.runQuery(internal.lib.helpers.getMessagesByIds, {
+        ids: uniqueMessageIds,
+      });
+
       const conversationIds = new Set<Id<"conversations">>();
       const topConversations: Id<"conversations">[] = [];
 
-      for (const result of messageResults) {
-        // Type assertion: vectorSearch returns document fields + _score
-        const convId = (result as any).conversationId as Id<"conversations">;
+      for (const message of messages) {
+        const convId = message.conversationId;
+        if (!isValidConvexId(convId)) continue;
         if (!conversationIds.has(convId)) {
           conversationIds.add(convId);
           topConversations.push(convId);
@@ -87,6 +105,21 @@ export const hybridSearch = action({
       }
 
       // Fetch full conversation objects using helper query (action context)
+      if (topConversations.length === 0) {
+        // No semantic hits found; continue with keyword-only.
+        let merged = mergeConversationsRRF(keywordResults, [], limit * 2);
+
+        if (args.projectId !== undefined) {
+          if (args.projectId === "none") {
+            merged = merged.filter((c) => c.projectId === undefined);
+          } else {
+            merged = merged.filter((c) => c.projectId === args.projectId);
+          }
+        }
+
+        return merged.slice(0, limit);
+      }
+
       const conversations = await ctx.runQuery(
         internal.lib.helpers.getConversationsByIds,
         { ids: topConversations },

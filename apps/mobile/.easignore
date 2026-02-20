@@ -2,10 +2,14 @@
 ios/
 android/
 
+# Dependencies (EAS installs these)
+node_modules/
+
 # Expo
 .expo/
 dist/
 web-build/
+.turbo/
 
 # Debug/logs
 *.log
@@ -14,6 +18,7 @@ npm-debug.*
 # IDE
 .idea/
 .vscode/
+.DS_Store
 
 # Tests
 __tests__/

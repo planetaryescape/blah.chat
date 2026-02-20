@@ -38,8 +38,9 @@ export const scheduleDelete = internalMutation({
     }
 
     // Schedule new deletion
-    const scheduledId = await ctx.scheduler.runAfter(
+    const scheduledId = await (ctx.scheduler as any).runAfter(
       args.delayMs,
+      // @ts-ignore - TypeScript recursion limit with 80+ Convex modules
       internal.incognito.executeDelete,
       { conversationId: args.conversationId },
     );
@@ -204,10 +205,10 @@ export const recordActivity = internalMutation({
 export const findStale = internalQuery({
   args: { cutoffMs: v.number() },
   handler: async (ctx, args) => {
-    // Query all incognito conversations
+    // Query incognito conversations using index
     const convos = await ctx.db
       .query("conversations")
-      .filter((q) => q.eq(q.field("isIncognito"), true))
+      .withIndex("by_incognito", (q) => q.eq("isIncognito", true))
       .collect();
 
     // Filter stale ones

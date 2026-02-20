@@ -4,7 +4,6 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "eas-build-pre-install": "cd ../.. && rm -f bun.lock bun.lockb",
     "dev": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

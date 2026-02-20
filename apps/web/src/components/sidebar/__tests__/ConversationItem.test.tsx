@@ -47,6 +47,11 @@ vi.mock("../ConversationPrefetcher", () => ({
   ConversationPrefetcher: () => null,
 }));
 
+// Mock useSidebar — ConversationItem uses it to close sidebar on mobile
+vi.mock("@/components/ui/sidebar", () => ({
+  useSidebar: () => ({ setOpenMobile: vi.fn(), isMobile: false }),
+}));
+
 import type { Doc, Id } from "@blah-chat/backend/convex/_generated/dataModel";
 // Import AFTER mocks
 import { ConversationItem } from "../ConversationItem";

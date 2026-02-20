@@ -3,7 +3,7 @@ import Clipboard from "@react-native-clipboard/clipboard";
 import { DrawerActions } from "@react-navigation/native";
 import { toast } from "burnt";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { Menu } from "lucide-react-native";
+import { Menu, SquarePen } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -174,6 +174,7 @@ export default function ChatScreen() {
         chatInputRef.current?.focus();
       } catch {
         haptic.error();
+        toast({ preset: "error", title: "Failed to send message" });
         setOptimisticMessages([]);
       } finally {
         setIsSending(false);
@@ -202,6 +203,7 @@ export default function ChatScreen() {
           haptic.success();
         } catch {
           haptic.error();
+          toast({ preset: "error", title: "Failed to regenerate" });
         }
         setActionSheetMessage(null);
         return;
@@ -211,7 +213,8 @@ export default function ChatScreen() {
         try {
           await updateModel({ conversationId, model: modelId });
         } catch {
-          // Silent fail
+          haptic.error();
+          toast({ preset: "error", title: "Failed to switch model" });
         }
       }
     },
@@ -259,6 +262,7 @@ export default function ChatScreen() {
         haptic.success();
       } catch {
         haptic.error();
+        toast({ preset: "error", title: "Failed to edit message" });
       }
       setEditModalMessage(null);
     },
@@ -392,25 +396,32 @@ export default function ChatScreen() {
   const WINDOW_BUCKET = DEDUP_WINDOW_MS;
   const currentMessages = (messages ?? []) as Message[];
 
-  const messageKeys = new Set(
-    currentMessages.map((m: Message) => {
-      const timeBucket = Math.floor(m.createdAt / WINDOW_BUCKET);
-      if (m.role === "user") {
-        return `user:${m.content?.slice(0, 50)}:${timeBucket}`;
-      }
-      return `assistant:${timeBucket}`;
-    }),
-  );
+  const messageKeys = useMemo(() => {
+    if (currentMessages.length === 0) return new Set<string>();
+    return new Set(
+      currentMessages.map((m: Message) => {
+        const timeBucket = Math.floor(m.createdAt / WINDOW_BUCKET);
+        if (m.role === "user") {
+          return `user:${m.content?.slice(0, 50)}:${timeBucket}`;
+        }
+        return `assistant:${timeBucket}`;
+      }),
+    );
+  }, [currentMessages]);
 
-  const filteredOptimistic = optimisticMessages.filter((opt) => {
-    const timeBucket = Math.floor(opt.createdAt / WINDOW_BUCKET);
-    if (opt.role === "user") {
-      const key = `user:${opt.content?.slice(0, 50)}:${timeBucket}`;
-      return !messageKeys.has(key);
-    }
-    const key = `assistant:${timeBucket}`;
-    return !messageKeys.has(key);
-  });
+  const filteredOptimistic = useMemo(
+    () =>
+      optimisticMessages.filter((opt) => {
+        const timeBucket = Math.floor(opt.createdAt / WINDOW_BUCKET);
+        if (opt.role === "user") {
+          const key = `user:${opt.content?.slice(0, 50)}:${timeBucket}`;
+          return !messageKeys.has(key);
+        }
+        const key = `assistant:${timeBucket}`;
+        return !messageKeys.has(key);
+      }),
+    [optimisticMessages, messageKeys],
+  );
 
   return (
     <SafeAreaView
@@ -456,6 +467,16 @@ export default function ChatScreen() {
               {conversation.title}
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              haptic.light();
+              router.push("/(drawer)/chat/new");
+            }}
+            style={{ padding: spacing.xs }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <SquarePen size={22} color={palette.starlight} />
+          </TouchableOpacity>
         </View>
 
         {/* Messages */}

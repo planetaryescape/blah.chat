@@ -21,27 +21,11 @@ import {
   useProjects,
 } from "@/lib/hooks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { getTimeAgo } from "@/lib/utils/time";
 import { ProjectFilterSheet } from "./ProjectFilterSheet";
 
 type Conversation = Doc<"conversations">;
 type Project = Doc<"projects">;
-
-function getTimeAgo(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}d`;
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function getProjectLabel(
   projectId: string | null,
@@ -191,11 +175,6 @@ export function DrawerContent() {
     },
     [router],
   );
-
-  const handleSettings = useCallback(() => {
-    haptic.light();
-    // Settings navigation - future feature
-  }, []);
 
   const handleOpenProjectPicker = useCallback(() => {
     haptic.light();
@@ -489,7 +468,10 @@ export function DrawerContent() {
 
         {/* Settings */}
         <AnimatedPressable
-          onPress={handleSettings}
+          onPress={() => {
+            haptic.light();
+            router.push("/(drawer)/settings");
+          }}
           style={{
             flexDirection: "row",
             alignItems: "center",

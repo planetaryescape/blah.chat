@@ -38,8 +38,9 @@ export const scheduleDelete = internalMutation({
     }
 
     // Schedule new deletion
-    const scheduledId = await ctx.scheduler.runAfter(
+    const scheduledId = await (ctx.scheduler as any).runAfter(
       args.delayMs,
+      // @ts-ignore - TypeScript recursion limit with 80+ Convex modules
       internal.incognito.executeDelete,
       { conversationId: args.conversationId },
     );

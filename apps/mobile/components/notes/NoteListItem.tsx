@@ -4,6 +4,7 @@ import removeMarkdown from "remove-markdown";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import type { Doc } from "@/lib/convex";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { getTimeAgo } from "@/lib/utils/time";
 
 type Note = Doc<"notes">;
 
@@ -11,23 +12,6 @@ interface NoteListItemProps {
   note: Note;
   onPress: () => void;
   onLongPress?: () => void;
-}
-
-function getTimeAgo(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}d`;
-  return new Date(timestamp).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function getPreview(content: string, maxLength = 100): string {

@@ -71,7 +71,7 @@ ${escapedCode}
   </div>
   <script>
     mermaid.initialize({
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'dark',
       themeVariables: {
         primaryColor: '${palette.roseQuartz}',
@@ -104,9 +104,11 @@ ${escapedCode}
       },
     });
 
-    setTimeout(() => {
+    mermaid.run({ querySelector: '.mermaid' }).then(() => {
       window.ReactNativeWebView.postMessage('ready');
-    }, 500);
+    }).catch(() => {
+      window.ReactNativeWebView.postMessage('error:render_failed');
+    });
   </script>
 </body>
 </html>`;
@@ -206,7 +208,7 @@ function MermaidFallback({
         >
           <Text
             style={{
-              fontFamily: "Courier",
+              fontFamily: typography.mono,
               fontSize: 12,
               color: palette.starlightDim,
             }}

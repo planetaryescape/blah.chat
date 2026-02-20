@@ -15,6 +15,10 @@ export {
   useUpdateModel,
 } from "./useConversations";
 export {
+  useCustomInstructions,
+  useUpdateCustomInstructions,
+} from "./useCustomInstructions";
+export {
   useBranchMessage,
   useDeleteMessage,
   useEditMessage,
@@ -37,5 +41,7 @@ export {
   useTriggerAutoTag,
   useUpdateNote,
 } from "./useNotes";
+export { usePreferences } from "./usePreferences";
 export { useProjects } from "./useProjects";
 export { useSiblings } from "./useSiblings";
+export { useUpdatePreference } from "./useUpdatePreference";

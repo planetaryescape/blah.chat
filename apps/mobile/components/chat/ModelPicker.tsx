@@ -1,14 +1,12 @@
 import type { ModelConfig, Provider } from "@blah-chat/ai";
 import { getMobileModels, getProviderDisplayName } from "@blah-chat/ai";
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Check } from "lucide-react-native";
 import { useCallback, useMemo, useRef } from "react";
 import { Text, View } from "react-native";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 
 interface ModelPickerProps {
   isOpen: boolean;
@@ -70,18 +68,6 @@ export function ModelPicker({
     [onClose],
   );
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-      />
-    ),
-    [],
-  );
-
   if (!isOpen) return null;
 
   return (
@@ -91,7 +77,7 @@ export function ModelPicker({
       snapPoints={snapPoints}
       onChange={handleSheetChange}
       enablePanDownToClose
-      backdropComponent={renderBackdrop}
+      backdropComponent={renderStandardBackdrop}
       backgroundStyle={{
         backgroundColor: palette.nebula,
         borderTopLeftRadius: layout.radius.xl,

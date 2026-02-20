@@ -29,4 +29,18 @@ config.resolver.extraNodeModules = {
   "react-dom": path.resolve(projectRoot, "node_modules/react-dom"),
 };
 
+// Redirect refractor imports to an empty shim.
+// We only use the hljs path (highlight.js) via react-native-code-highlighter.
+// refractor (Prism-based) crashes in Metro due to ESM/CJS language registration issues.
+const originalResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === "refractor" || moduleName.startsWith("refractor/")) {
+    return { type: "empty" };
+  }
+  if (originalResolveRequest) {
+    return originalResolveRequest(context, moduleName, platform);
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;

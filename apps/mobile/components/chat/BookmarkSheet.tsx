@@ -1,8 +1,4 @@
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Bookmark } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Text, TextInput, View } from "react-native";
@@ -11,18 +7,21 @@ import type { Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useCreateBookmark } from "@/lib/hooks/useBookmarks";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { renderStandardBackdrop } from "@/lib/utils/bottomSheet";
 import { TagInput } from "../notes/TagInput";
 
 interface BookmarkSheetProps {
   isOpen: boolean;
   onClose: () => void;
   messageId: Id<"messages"> | null;
+  conversationId: Id<"conversations">;
 }
 
 export function BookmarkSheet({
   isOpen,
   onClose,
   messageId,
+  conversationId,
 }: BookmarkSheetProps) {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [notes, setNotes] = useState("");
@@ -50,26 +49,14 @@ export function BookmarkSheet({
     [onClose],
   );
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        disappearsOnIndex={-1}
-        appearsOnIndex={0}
-        opacity={0.5}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   const handleSave = useCallback(async () => {
     if (!messageId) return;
 
     haptic.medium();
     await createBookmark({
       messageId,
-      notes: notes.trim() || undefined,
+      conversationId,
+      note: notes.trim() || undefined,
       tags: tags.length > 0 ? tags : undefined,
     });
     setNotes("");
@@ -93,7 +80,7 @@ export function BookmarkSheet({
       onChange={handleSheetChange}
       enablePanDownToClose
       enableDynamicSizing
-      backdropComponent={renderBackdrop}
+      backdropComponent={renderStandardBackdrop}
       backgroundStyle={{
         backgroundColor: palette.nebula,
         borderTopLeftRadius: layout.radius.xl,

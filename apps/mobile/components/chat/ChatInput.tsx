@@ -153,6 +153,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           <AnimatedPressable
             onPress={handleSend}
             disabled={!canSend || isSending}
+            accessibilityLabel={isSending ? "Sending message" : "Send message"}
+            accessibilityRole="button"
             style={{
               width: 36,
               height: 36,

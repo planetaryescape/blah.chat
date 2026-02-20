@@ -31,6 +31,7 @@ import { CanvasProvider } from "@/contexts/CanvasContext";
 import { ConversationProvider } from "@/contexts/ConversationContext";
 import { SelectionProvider } from "@/contexts/SelectionContext";
 import { useNewChat } from "@/hooks/useNewChat";
+import { cn } from "@/lib/utils";
 
 function Header() {
   const { open, isMobile, openMobile, setOpenMobile } = useSidebar();
@@ -57,39 +58,42 @@ function Header() {
     <>
       <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-all duration-300 ease-in-out">
         <SidebarTrigger />
-        {(isMobile || !open) && (
-          <div className="flex items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNewChat}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              aria-label="New Chat"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            {/* Desktop: show incognito button inline with other actions */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleOpenIncognito}
-              className="h-8 w-8 text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
-              aria-label="New Incognito Chat"
-              title="New Incognito Chat (Shift+Alt+N)"
-            >
-              <Ghost className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSearch}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              aria-label="Search conversations"
-            >
-              <Search className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
-        )}
+        <div
+          className={cn(
+            "items-center gap-1 animate-in fade-in slide-in-from-left-2 duration-300",
+            open ? "flex md:hidden" : "flex",
+          )}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewChat}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            aria-label="New Chat"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          {/* Desktop: show incognito button inline with other actions */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleOpenIncognito}
+            className="h-8 w-8 text-violet-400/70 hover:text-violet-400 hover:bg-violet-500/10"
+            aria-label="New Incognito Chat"
+            title="New Incognito Chat (Shift+Alt+N)"
+          >
+            <Ghost className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSearch}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            aria-label="Search conversations"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
         <div className="ml-auto flex items-center gap-1">
           <NotificationBell />
           <FeedbackButton />

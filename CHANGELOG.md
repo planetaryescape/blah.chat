@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.27.0](https://github.com/planetaryescape/blah.chat/compare/v1.26.1...v1.27.0) (2026-02-20)
+
+
+### Features
+
+* **mobile:** add design system tokens and migrate hardcoded values ([04f0c79](https://github.com/planetaryescape/blah.chat/commit/04f0c7996f7a272e2625a9dfb5131d16d9483a16))
+* **mobile:** add settings screen with full preference management ([f1cd204](https://github.com/planetaryescape/blah.chat/commit/f1cd204b58163d36d962e239e486e7ff0fb29832))
+* **mobile:** add typed Convex API, ErrorBoundary, and accessibility ([e6c8e6c](https://github.com/planetaryescape/blah.chat/commit/e6c8e6cc01c89300e0d5ee09a3906b4a445123f8))
+* **mobile:** increase chat input max expand height to 200px ([da98a45](https://github.com/planetaryescape/blah.chat/commit/da98a4577ff23a138aef445e0f0d8d209a5f815c))
+
+
+### Bug Fixes
+
+* **ci:** restore valid incognito stale query ([d84d021](https://github.com/planetaryescape/blah.chat/commit/d84d0212b191209d89728526249b43fe00da0468))
+* **ci:** sync lockfile and unblock checks ([36b09f0](https://github.com/planetaryescape/blah.chat/commit/36b09f0b941aa0380ae9a359c93704f95593e3e6))
+* dependabot auto-merge workflow chain ([c9d45ad](https://github.com/planetaryescape/blah.chat/commit/c9d45adc6121fe3aae1a297fc2a0c01b0f82d17c))
+* **mobile,web:** new chat button + sidebar auto-close + SSR header visibility ([6a3cd92](https://github.com/planetaryescape/blah.chat/commit/6a3cd92176686dbb363df569ab9a548727c1bbaa))
+* **mobile:** audit phase A/B — parser fix, design system, typed API ([2a63d6b](https://github.com/planetaryescape/blah.chat/commit/2a63d6b0d49cacdda14a68970c492108e3a32d4d))
+* **mobile:** fix refractor crash by shimming it out in Metro ([b55825b](https://github.com/planetaryescape/blah.chat/commit/b55825bebfa69d8e21d3892421c34fa20f3d3d55))
+* **mobile:** keep bun lockfile for EAS ([ed55fcd](https://github.com/planetaryescape/blah.chat/commit/ed55fcdd7e8a54a9907115bcced295f44f4afcc1))
+* **mobile:** pin react to 19.1.0 to match react-native 0.81.5 ([d553f55](https://github.com/planetaryescape/blah.chat/commit/d553f5517198f6c97fef6e747ca14bfee5babe1b))
+* **mobile:** remove _generated imports to pass portable check ([b81cb1e](https://github.com/planetaryescape/blah.chat/commit/b81cb1e24e494320e6187eadd9a0385b8e25c9b0))
+* **mobile:** remove dead (app) route group and fix auth redirect ([05d7868](https://github.com/planetaryescape/blah.chat/commit/05d7868f1e8481e8b440f36e44368e705181bc3d))
+* **mobile:** resolve bugs in chat rendering and animations ([b8f0fe5](https://github.com/planetaryescape/blah.chat/commit/b8f0fe5deb23b8dc390ccdb968317534f96f6fe2))
+* **mobile:** revert typed Convex API to fix React version mismatch ([02da6ca](https://github.com/planetaryescape/blah.chat/commit/02da6ca02ac4baa3886107eb0db5bc0105407dc8))
+* **mobile:** use require() for bible-passage-reference-parser ([c746f34](https://github.com/planetaryescape/blah.chat/commit/c746f34818c96dc0e953edbdf3b49c72262d40cb))
+* **test:** mock useSidebar in ConversationItem tests ([8473ae0](https://github.com/planetaryescape/blah.chat/commit/8473ae0399809bd6b9d1ce544c1a08a06bdaaddc))
+
 ## [1.26.1](https://github.com/planetaryescape/blah.chat/compare/v1.26.0...v1.26.1) (2026-02-11)
 
 

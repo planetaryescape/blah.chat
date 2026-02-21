@@ -1,5 +1,8 @@
-import type { StarterSuggestion, StarterSuggestionsResponse } from "@blah-chat/shared";
 import { api } from "@blah-chat/backend/convex/_generated/api";
+import type {
+  StarterSuggestion,
+  StarterSuggestionsResponse,
+} from "@blah-chat/shared";
 import { useAction, useQuery } from "convex/react";
 import { useEffect, useRef } from "react";
 

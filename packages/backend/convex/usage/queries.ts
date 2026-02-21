@@ -965,11 +965,8 @@ export const getAllUsersUsageSummary = query({
 
     const records = await ctx.db
       .query("usageRecords")
-      .filter((q) =>
-        q.and(
-          q.gte(q.field("date"), args.startDate),
-          q.lte(q.field("date"), args.endDate),
-        ),
+      .withIndex("by_date", (q) =>
+        q.gte("date", args.startDate).lte("date", args.endDate),
       )
       .collect();
 
@@ -1181,11 +1178,8 @@ export const getAllUsersCostByFeature = query({
 
     const records = await ctx.db
       .query("usageRecords")
-      .filter((q) =>
-        q.and(
-          q.gte(q.field("date"), args.startDate),
-          q.lte(q.field("date"), args.endDate),
-        ),
+      .withIndex("by_date", (q) =>
+        q.gte("date", args.startDate).lte("date", args.endDate),
       )
       .collect();
 
@@ -1233,7 +1227,7 @@ export const getAllUsersMonthlyTotal = query({
 
     const records = await ctx.db
       .query("usageRecords")
-      .filter((q) => q.gte(q.field("date"), monthStart))
+      .withIndex("by_date", (q) => q.gte("date", monthStart))
       .collect();
 
     const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
@@ -1272,7 +1266,7 @@ export const getAllUsersDailySpend = query({
 
     const records = await ctx.db
       .query("usageRecords")
-      .filter((q) => q.gte(q.field("date"), startDateStr))
+      .withIndex("by_date", (q) => q.gte("date", startDateStr))
       .collect();
 
     const dailyTotals = records.reduce(
@@ -1310,7 +1304,7 @@ export const getAllUsersSpendByModel = query({
 
     const records = await ctx.db
       .query("usageRecords")
-      .filter((q) => q.gte(q.field("date"), startDateStr))
+      .withIndex("by_date_model", (q) => q.gte("date", startDateStr))
       .collect();
 
     const modelTotals = records.reduce(

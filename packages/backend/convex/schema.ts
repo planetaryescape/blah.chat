@@ -64,6 +64,27 @@ export default defineSchema({
     .index("by_user_category", ["userId", "category"])
     .index("by_user_key", ["userId", "key"]),
 
+  chatSuggestionsCache: defineTable({
+    userId: v.id("users"),
+    fingerprint: v.string(),
+    suggestions: v.array(
+      v.object({
+        id: v.string(),
+        text: v.string(),
+        icon: v.union(
+          v.literal("sparkles"),
+          v.literal("brain"),
+          v.literal("zap"),
+          v.literal("penLine"),
+        ),
+      }),
+    ),
+    generatedAt: v.number(),
+    expiresAt: v.number(),
+    lastRefreshAttemptAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   conversations: defineTable({
     userId: v.id("users"),
     title: v.string(),
@@ -143,6 +164,8 @@ export default defineSchema({
     .index("by_user_pinned", ["userId", "pinned"])
     .index("by_user_archived", ["userId", "archived"])
     .index("by_user_lastMessageAt", ["userId", "lastMessageAt"])
+    .index("by_lastMessageAt", ["lastMessageAt"])
+    .index("by_incognito", ["isIncognito"])
     .index("by_projectId", ["projectId"])
     .index("by_parent_conversation", ["parentConversationId"]) // Legacy
     .index("by_active_leaf", ["activeLeafMessageId"]) // P7: Tree navigation

@@ -1,0 +1,1475 @@
+[
+  {
+    "id": "q_persona_024_001",
+    "personaId": "persona_024",
+    "question": "What is Marcus Thorne's current job title?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated in the first session."
+  },
+  {
+    "id": "q_persona_024_002",
+    "personaId": "persona_024",
+    "question": "Which camera brand does Marcus use for his black and white photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly mentioned as his camera of choice in session 1."
+  },
+  {
+    "id": "q_persona_024_003",
+    "personaId": "persona_024",
+    "question": "What specific watch model was Marcus restoring on the morning of the first session?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Explicitly mentioned in the schedule for session 1."
+  },
+  {
+    "id": "q_persona_024_004",
+    "personaId": "persona_024",
+    "question": "What physical medium does Marcus prefer for his jazz music collection?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Marcus's preference for jazz vinyl is stated in session 1."
+  },
+  {
+    "id": "q_persona_024_005",
+    "personaId": "persona_024",
+    "question": "What musical instrument does Marcus play?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Marcus's hobby of playing classical guitar is mentioned in session 1."
+  },
+  {
+    "id": "q_persona_024_006",
+    "personaId": "persona_024",
+    "question": "What type of locations does Marcus explore as part of his urban exploration hobby?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m9_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence specifies abandoned industrial sites."
+  },
+  {
+    "id": "q_persona_024_007",
+    "personaId": "persona_024",
+    "question": "What specific watch is Marcus restoring in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "The 1950s Patek Philippe is mentioned as his current project in session 2."
+  },
+  {
+    "id": "q_persona_024_008",
+    "personaId": "persona_024",
+    "question": "What building is Marcus conducting a structural assessment of in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "The old courthouse is explicitly named in session 2."
+  },
+  {
+    "id": "q_persona_024_009",
+    "personaId": "persona_024",
+    "question": "What specific camera model does Marcus use for architectural photography in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "The Leica M3 is identified in session 2."
+  },
+  {
+    "id": "q_persona_024_010",
+    "personaId": "persona_024",
+    "question": "What composer's work is Marcus learning on the guitar in session 2?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m10_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Tárrega is mentioned as the composer he is learning in session 2."
+  },
+  {
+    "id": "q_persona_024_011",
+    "personaId": "persona_024",
+    "question": "What piece of furniture is Marcus restoring in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "A 1920s drafting table is mentioned as his restoration project in session 3."
+  },
+  {
+    "id": "q_persona_024_012",
+    "personaId": "persona_024",
+    "question": "What material is the drafting table Marcus is restoring made of?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Quartersawn oak is specified as the material in session 3."
+  },
+  {
+    "id": "q_persona_024_013",
+    "personaId": "persona_024",
+    "question": "What specific watch model from 1952 does Marcus own?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m4_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "The 1952 Seamaster is mentioned in session 3."
+  },
+  {
+    "id": "q_persona_024_014",
+    "personaId": "persona_024",
+    "question": "Where is Marcus planning to go rock climbing next week according to session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Red River Gorge is mentioned as his destination in session 3."
+  },
+  {
+    "id": "q_persona_024_015",
+    "personaId": "persona_024",
+    "question": "Which Leica camera model is Marcus using in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "The Leica M6 is mentioned in session 3."
+  },
+  {
+    "id": "q_persona_024_016",
+    "personaId": "persona_024",
+    "question": "Which jazz musician does Marcus enjoy listening to on vinyl in session 3?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Bill Evans is explicitly mentioned in session 3."
+  },
+  {
+    "id": "q_persona_024_017",
+    "personaId": "persona_024",
+    "question": "What composer does Marcus play on the classical guitar in the evenings?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Bach is mentioned as the composer he plays in the evenings in session 3."
+  },
+  {
+    "id": "q_persona_024_018",
+    "personaId": "persona_024",
+    "question": "What library is Marcus currently restoring in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "The St. Jude library is mentioned as his project in session 4."
+  },
+  {
+    "id": "q_persona_024_019",
+    "personaId": "persona_024",
+    "question": "What specific watch is Marcus restoring in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "A 1954 Omega watch is mentioned in session 4."
+  },
+  {
+    "id": "q_persona_024_020",
+    "personaId": "persona_024",
+    "question": "What specific photography technique does Marcus use for his work?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Long-exposure techniques are mentioned in session 4."
+  },
+  {
+    "id": "q_persona_024_021",
+    "personaId": "persona_024",
+    "question": "What specific pressing of Kind of Blue did Marcus acquire?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "The 1959 pressing is specified in session 4."
+  },
+  {
+    "id": "q_persona_024_022",
+    "personaId": "persona_024",
+    "question": "In which city did Marcus find the 18th-century chisels he is restoring?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Lyon is mentioned as the location where the chisels were found."
+  },
+  {
+    "id": "q_persona_024_023",
+    "personaId": "persona_024",
+    "question": "What specific type of historical buildings does Marcus specialize in restoring?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "18th-century brownstones are given as an example of his work."
+  },
+  {
+    "id": "q_persona_024_024",
+    "personaId": "persona_024",
+    "question": "What specific type of reclaimed wood does Marcus prefer for his woodworking?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Reclaimed white oak is specified in session 1."
+  },
+  {
+    "id": "q_persona_024_025",
+    "personaId": "persona_024",
+    "question": "What material does Marcus use for specific joinery in his woodworking?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Hand-planed oak is mentioned for joinery in session 2."
+  },
+  {
+    "id": "q_persona_024_026",
+    "personaId": "persona_024",
+    "question": "According to Marcus, what materials are replacing mid-century facades?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Glass and steel are mentioned as the modern replacements."
+  },
+  {
+    "id": "q_persona_024_027",
+    "personaId": "persona_024",
+    "question": "What region did Marcus explore during his early twenties?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Textile mills in New England are mentioned in session 3."
+  },
+  {
+    "id": "q_persona_024_028",
+    "personaId": "persona_024",
+    "question": "What specific type of film does Marcus prefer for architectural subjects?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Silver halide film is specified in session 3."
+  },
+  {
+    "id": "q_persona_024_029",
+    "personaId": "persona_024",
+    "question": "What structural principle does Marcus advocate for in building construction?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Buildings held together by weight and geometry."
+  },
+  {
+    "id": "q_persona_024_030",
+    "personaId": "persona_024",
+    "question": "What quality does Marcus believe 18th-century steel possesses?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He believes it has a unique temper."
+  },
+  {
+    "id": "q_persona_024_031",
+    "personaId": "persona_024",
+    "question": "What project is Marcus planning to finish tonight in session 4?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "A mahogany desk project is mentioned in session 4."
+  },
+  {
+    "id": "q_persona_024_032",
+    "personaId": "persona_024",
+    "question": "What is Marcus's role in the St. Jude library project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He is working on the restoration of the library."
+  },
+  {
+    "id": "q_persona_024_033",
+    "personaId": "persona_024",
+    "question": "What type of wood does Marcus prefer for carving?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Walnut is preferred over pine for carving."
+  },
+  {
+    "id": "q_persona_024_034",
+    "personaId": "persona_024",
+    "question": "What is Marcus's opinion on the temper of 18th-century steel?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He believes it has a unique temper compared to other steels."
+  },
+  {
+    "id": "q_persona_024_035",
+    "personaId": "persona_024",
+    "question": "What specific type of vinyl recordings does Marcus prefer for jazz?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Mono recordings are specified in session 2."
+  },
+  {
+    "id": "q_persona_024_036",
+    "personaId": "persona_024",
+    "question": "What specific part of watches does Marcus repair?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Watch movements are mentioned in session 2."
+  },
+  {
+    "id": "q_persona_024_037",
+    "personaId": "persona_024",
+    "question": "Identify four specific vintage watch models or brands Marcus has restored or owned across all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_024_s1_m2_e1",
+      "persona_024_s2_m1_e1",
+      "persona_024_s3_m4_e2",
+      "persona_024_s4_m2_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires aggregating specific watch details from all four sessions."
+  },
+  {
+    "id": "q_persona_024_038",
+    "personaId": "persona_024",
+    "question": "Which two specific Leica camera models has Marcus mentioned using for his photography?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m8_e1", "persona_024_s3_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires identifying the M3 and M6 models from different sessions."
+  },
+  {
+    "id": "q_persona_024_039",
+    "personaId": "persona_024",
+    "question": "List the two specific geographical locations Marcus visits for rock climbing mentioned across the sessions.",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m7_e2", "persona_024_s3_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires identifying the Dolomites and Red River Gorge from different sessions."
+  },
+  {
+    "id": "q_persona_024_040",
+    "personaId": "persona_024",
+    "question": "Compare the different types of wood Marcus has used for his furniture and woodworking projects across sessions 1, 3, and 4.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_024_s1_m6_e2",
+      "persona_024_s3_m2_e1",
+      "persona_024_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires identifying white oak, quartersawn oak, and mahogany from different sessions."
+  },
+  {
+    "id": "q_persona_024_041",
+    "personaId": "persona_024",
+    "question": "What are the specific years of the Patek Philippe and Omega watches Marcus has restored?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s1_m2_e1", "persona_024_s4_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Requires identifying 1954 for both watches from sessions 1 and 4."
+  },
+  {
+    "id": "q_persona_024_042",
+    "personaId": "persona_024",
+    "question": "Identify the specific musical pieces or composers Marcus has been learning or playing on the classical guitar in sessions 2 and 3.",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s2_m10_e1", "persona_024_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires identifying Tárrega and Bach from different sessions."
+  },
+  {
+    "id": "q_persona_024_043",
+    "personaId": "persona_024",
+    "question": "What specific historical tools did Marcus find in Lyon and what is their century of origin?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires identifying 18th-century chisels from session 4."
+  },
+  {
+    "id": "q_persona_024_044",
+    "personaId": "persona_024",
+    "question": "What are the specific materials Marcus mentions using for his drafting table and his desk project?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m2_e1", "persona_024_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires identifying quartersawn oak and mahogany from different sessions."
+  },
+  {
+    "id": "q_persona_024_045",
+    "personaId": "persona_024",
+    "question": "Identify the specific jazz artists or albums Marcus has listened to or acquired on vinyl in sessions 2, 3, and 4.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_024_s2_m6_e2",
+      "persona_024_s3_m8_e1",
+      "persona_024_s4_m7_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires identifying Miles Davis, Bill Evans, and Kind of Blue from different sessions."
+  },
+  {
+    "id": "q_persona_024_046",
+    "personaId": "persona_024",
+    "question": "List all the different types of wood Marcus mentions using for his woodworking across all sessions.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_024_s1_m6_e2",
+      "persona_024_s2_m9_e1",
+      "persona_024_s3_m2_e1",
+      "persona_024_s4_m3_e1",
+      "persona_024_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires aggregating white oak, cedar, quartersawn oak, walnut, and mahogany."
+  },
+  {
+    "id": "q_persona_024_047",
+    "personaId": "persona_024",
+    "question": "Which specific watch did Marcus spend three months searching for a part for?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m4_e1", "persona_024_s3_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires linking the search duration to the 1952 Seamaster in session 3."
+  },
+  {
+    "id": "q_persona_024_048",
+    "personaId": "persona_024",
+    "question": "What are the specific locations Marcus has visited for his photography and urban exploration hobbies?",
+    "type": "factual",
+    "expectedEvidence": ["persona_024_s3_m2_e2", "persona_024_s4_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires identifying New England textile mills and the quarry from different sessions."
+  },
+  {
+    "id": "q_persona_024_049",
+    "personaId": "persona_024",
+    "question": "Contrast the specific tools Marcus uses for his woodworking versus his watch restoration as mentioned in sessions 2 and 3.",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_024_s2_m4_e1",
+      "persona_024_s3_m3_e1",
+      "persona_024_s2_m10_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires identifying manual tools/chisels for wood and movement repair tools for watches."
+  },
+  {
+    "id": "q_persona_024_050",
+    "personaId": "persona_024",
+    "question": "When did Marcus plan to go to the climbing gym during the first session?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated as the evening of the first session."
+  },
+  {
+    "id": "q_persona_024_051",
+    "personaId": "persona_024",
+    "question": "At what time is Marcus's consultation scheduled for in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated as tomorrow at 2:00 PM in session 2."
+  },
+  {
+    "id": "q_persona_024_052",
+    "personaId": "persona_024",
+    "question": "When is Marcus traveling to the Dolomites according to session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Directly stated as next week in session 2."
+  },
+  {
+    "id": "q_persona_024_053",
+    "personaId": "persona_024",
+    "question": "When is Marcus going to Red River Gorge according to session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated as next week in session 3."
+  },
+  {
+    "id": "q_persona_024_054",
+    "personaId": "persona_024",
+    "question": "When did Marcus buy a record in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s4_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated as yesterday in session 4."
+  },
+  {
+    "id": "q_persona_024_055",
+    "personaId": "persona_024",
+    "question": "How long has Marcus been practicing the specific classical guitar piece mentioned in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Mentioned as three weeks in session 1."
+  },
+  {
+    "id": "q_persona_024_056",
+    "personaId": "persona_024",
+    "question": "When did Marcus purchase the Miles Davis record mentioned in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Mentioned as last night in session 2."
+  },
+  {
+    "id": "q_persona_024_057",
+    "personaId": "persona_024",
+    "question": "How long has Marcus owned his Leica M3 camera?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Mentioned as nearly twenty years in session 2."
+  },
+  {
+    "id": "q_persona_024_058",
+    "personaId": "persona_024",
+    "question": "How long ago did Marcus acquire the 1920s drafting table?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Mentioned as one month ago in session 3."
+  },
+  {
+    "id": "q_persona_024_059",
+    "personaId": "persona_024",
+    "question": "How long did Marcus spend searching for a specific watch part in session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Mentioned as three months in session 3."
+  },
+  {
+    "id": "q_persona_024_060",
+    "personaId": "persona_024",
+    "question": "When did Marcus visit a quarry for his photography?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s4_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Mentioned as last week in session 4."
+  },
+  {
+    "id": "q_persona_024_061",
+    "personaId": "persona_024",
+    "question": "When was the scaffolding removed from the St. Jude library?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s4_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Mentioned as today in session 4."
+  },
+  {
+    "id": "q_persona_024_062",
+    "personaId": "persona_024",
+    "question": "When does Marcus plan to finish his mahogany desk project?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Mentioned as tonight in session 4."
+  },
+  {
+    "id": "q_persona_024_063",
+    "personaId": "persona_024",
+    "question": "In session 4, when is Marcus's upcoming trip to the Dolomites?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Mentioned as in three weeks in session 4."
+  },
+  {
+    "id": "q_persona_024_064",
+    "personaId": "persona_024",
+    "question": "During what time of day does Marcus prefer to work on his blueprints?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Mentioned as quiet, late-night hours in session 1."
+  },
+  {
+    "id": "q_persona_024_065",
+    "personaId": "persona_024",
+    "question": "When did Marcus spend time in his workshop during session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Mentioned as the early hours of today in session 2."
+  },
+  {
+    "id": "q_persona_024_066",
+    "personaId": "persona_024",
+    "question": "When does Marcus plan to go on an urban exploration trip in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Mentioned as the following weekend in session 1."
+  },
+  {
+    "id": "q_persona_024_067",
+    "personaId": "persona_024",
+    "question": "What time of day does Marcus typically play Bach on the classical guitar?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Mentioned as in the evenings in session 3."
+  },
+  {
+    "id": "q_persona_024_068",
+    "personaId": "persona_024",
+    "question": "Trace the timeline of Marcus's watch restoration activities across all four sessions.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s1_m2_e1",
+      "persona_024_s2_m1_e1",
+      "persona_024_s3_m4_e1",
+      "persona_024_s4_m2_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires aggregating the sequence of watch projects and search durations across all sessions."
+  },
+  {
+    "id": "q_persona_024_069",
+    "personaId": "persona_024",
+    "question": "Compare the timing of Marcus's upcoming rock climbing trips as mentioned in sessions 2, 3, and 4.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s2_m7_e1",
+      "persona_024_s3_m6_e1",
+      "persona_024_s4_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires comparing 'next week' in s2/s3 with 'three weeks' in s4."
+  },
+  {
+    "id": "q_persona_024_070",
+    "personaId": "persona_024",
+    "question": "How does Marcus's schedule in the early hours of session 2 compare to his preferred working hours in session 1?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m10_e1", "persona_024_s2_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires comparing late-night preference with early-morning workshop activity."
+  },
+  {
+    "id": "q_persona_024_071",
+    "personaId": "persona_024",
+    "question": "Create a timeline of Marcus's acquisitions (watches, records, tools) mentioned in sessions 2, 3, and 4.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s2_m6_e2",
+      "persona_024_s3_m1_e2",
+      "persona_024_s3_m4_e2",
+      "persona_024_s4_m7_e1",
+      "persona_024_s4_m7_e2",
+      "persona_024_s4_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires ordering events like 'one month ago', 'last night', and 'yesterday' across sessions."
+  },
+  {
+    "id": "q_persona_024_072",
+    "personaId": "persona_024",
+    "question": "Based on sessions 1 and 2, when does Marcus typically engage in his hobbies versus his professional consultations?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s1_m2_e1",
+      "persona_024_s1_m4_e1",
+      "persona_024_s2_m1_e2",
+      "persona_024_s2_m3_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires contrasting morning/evening hobby time with the scheduled afternoon consultation."
+  },
+  {
+    "id": "q_persona_024_073",
+    "personaId": "persona_024",
+    "question": "How has the description of Marcus's guitar practice changed or been specified between session 1 and session 3?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m7_e1", "persona_024_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires linking the three-week practice period in s1 to the evening routine in s3."
+  },
+  {
+    "id": "q_persona_024_074",
+    "personaId": "persona_024",
+    "question": "What is the chronological order of the historical periods Marcus is working on in session 4?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s4_m1_e1",
+      "persona_024_s4_m2_e1",
+      "persona_024_s4_m7_e1",
+      "persona_024_s4_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires ordering 18th-century chisels, 1954 watch, and 1959 record."
+  },
+  {
+    "id": "q_persona_024_075",
+    "personaId": "persona_024",
+    "question": "Relate the timing of the scaffolding removal at the library to Marcus's other projects in session 4.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s4_m1_e2", "persona_024_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires linking the 'today' removal with the 'tonight' desk completion."
+  },
+  {
+    "id": "q_persona_024_076",
+    "personaId": "persona_024",
+    "question": "When did Marcus explore textile mills relative to his current age?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Requires calculating time from his current age (48) and the 'early twenties' exploration."
+  },
+  {
+    "id": "q_persona_024_077",
+    "personaId": "persona_024",
+    "question": "Identify all mentions of 'next week' or 'tomorrow' across the sessions and what activities they refer to.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s2_m3_e2",
+      "persona_024_s2_m7_e1",
+      "persona_024_s3_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires aggregating future plans from multiple sessions."
+  },
+  {
+    "id": "q_persona_024_078",
+    "personaId": "persona_024",
+    "question": "How does Marcus's morning activity in session 1 compare to his morning activity in session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s1_m2_e1", "persona_024_s2_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires comparing watch restoration in s1 morning with workshop time in s2 morning."
+  },
+  {
+    "id": "q_persona_024_079",
+    "personaId": "persona_024",
+    "question": "What is the temporal relationship between Marcus acquiring the drafting table and his plan to finish the mahogany desk?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m1_e2", "persona_024_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires linking the 'one month ago' acquisition in s3 to the 'tonight' finish in s4."
+  },
+  {
+    "id": "q_persona_024_080",
+    "personaId": "persona_024",
+    "question": "How many weeks or months of specific progress or searching are mentioned across all sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s1_m7_e1",
+      "persona_024_s3_m1_e2",
+      "persona_024_s3_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires aggregating three weeks (guitar), one month (table), and three months (watch part)."
+  },
+  {
+    "id": "q_persona_024_081",
+    "personaId": "persona_024",
+    "question": "When did Marcus acquire his Leica M3 compared to when he explored the textile mills?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m8_e2", "persona_024_s3_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires comparing 'nearly twenty years ago' with 'early twenties' (approx 25+ years ago)."
+  },
+  {
+    "id": "q_persona_024_082",
+    "personaId": "persona_024",
+    "question": "Contrast the timing of Marcus's record purchases in sessions 2 and 4.",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s2_m6_e2", "persona_024_s4_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Requires comparing 'last night' in s2 with 'yesterday' in s4."
+  },
+  {
+    "id": "q_persona_024_083",
+    "personaId": "persona_024",
+    "question": "What is the temporal relationship between Marcus's climbing trips in sessions 3 and 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_024_s3_m6_e1", "persona_024_s4_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires comparing 'next week' in s3 with 'in three weeks' in s4."
+  },
+  {
+    "id": "q_persona_024_084",
+    "personaId": "persona_024",
+    "question": "Map out Marcus's evening activities as described across all four sessions.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_024_s1_m4_e1",
+      "persona_024_s3_m9_e1",
+      "persona_024_s4_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Requires aggregating climbing (s1), guitar (s3), and desk work (s4) evening routines."
+  },
+  {
+    "id": "q_persona_024_085",
+    "personaId": "persona_024",
+    "question": "Does Marcus prefer jazz on vinyl or digital recordings?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated preference in session 1."
+  },
+  {
+    "id": "q_persona_024_086",
+    "personaId": "persona_024",
+    "question": "What kind of wood does Marcus prefer for his woodworking?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated preference for reclaimed white oak in session 1."
+  },
+  {
+    "id": "q_persona_024_087",
+    "personaId": "persona_024",
+    "question": "Does Marcus prefer manual chisels or power tools for woodworking?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s3_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "Directly stated preference for manual chisels in session 3."
+  },
+  {
+    "id": "q_persona_024_088",
+    "personaId": "persona_024",
+    "question": "What wood does Marcus prefer for carving?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "Directly stated preference for walnut over pine in session 4."
+  },
+  {
+    "id": "q_persona_024_089",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer jazz vinyl over digital recordings?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "He values their warmth and physical depth."
+  },
+  {
+    "id": "q_persona_024_090",
+    "personaId": "persona_024",
+    "question": "What does Marcus value more: original masonry or modern restoration techniques?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "He values the integrity of original masonry."
+  },
+  {
+    "id": "q_persona_024_091",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer black and white photography?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "He believes it is more honest and captures structural essence."
+  },
+  {
+    "id": "q_persona_024_092",
+    "personaId": "persona_024",
+    "question": "What type of recordings does Marcus prefer for his jazz collection?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s2_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "He prefers mono recordings over digital files."
+  },
+  {
+    "id": "q_persona_024_093",
+    "personaId": "persona_024",
+    "question": "What kind of wood does Marcus like for furniture?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s2_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "He likes using well-aged cedar."
+  },
+  {
+    "id": "q_persona_024_094",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer film photography for architectural subjects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "He prefers silver halide film for its specific qualities."
+  },
+  {
+    "id": "q_persona_024_095",
+    "personaId": "persona_024",
+    "question": "What specific activity does Marcus find meditative?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He finds watch restoration to be a form of meditation."
+  },
+  {
+    "id": "q_persona_024_096",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer lead climbing in the Dolomites?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "To feel a sense of scale."
+  },
+  {
+    "id": "q_persona_024_097",
+    "personaId": "persona_024",
+    "question": "What does Marcus value in long-term woodworking projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He values the patience required for them."
+  },
+  {
+    "id": "q_persona_024_098",
+    "personaId": "persona_024",
+    "question": "What is Marcus's preference regarding his working hours for blueprints?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "He prefers quiet, late-night hours."
+  },
+  {
+    "id": "q_persona_024_099",
+    "personaId": "persona_024",
+    "question": "What kind of materials and tools does Marcus prefer for joinery?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s2_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "He prefers hand-planed oak and manual tools."
+  },
+  {
+    "id": "q_persona_024_100",
+    "personaId": "persona_024",
+    "question": "What is Marcus's preference for how buildings should be held together?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He advocates for buildings held by weight and geometry."
+  },
+  {
+    "id": "q_persona_024_101",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer walnut over pine for carving?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "He believes walnut has superior structural integrity."
+  },
+  {
+    "id": "q_persona_024_102",
+    "personaId": "persona_024",
+    "question": "What is Marcus's preference for photography subjects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "He prefers architectural subjects."
+  },
+  {
+    "id": "q_persona_024_103",
+    "personaId": "persona_024",
+    "question": "What does Marcus prefer using to decompress from his work environment?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s3_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "He uses classical guitar as a method to decompress."
+  },
+  {
+    "id": "q_persona_024_104",
+    "personaId": "persona_024",
+    "question": "How do Marcus's preferences for manual tools in session 3 relate to his professional values in session 1?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m1_e2", "persona_024_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Links his preference for manual chisels to his value of original masonry integrity."
+  },
+  {
+    "id": "q_persona_024_105",
+    "personaId": "persona_024",
+    "question": "Compare Marcus's preference for 'honesty' in photography versus 'honesty' in woodworking materials.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m3_e2", "persona_024_s2_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Links his belief in B&W photography honesty with the inherent honesty of aged wood."
+  },
+  {
+    "id": "q_persona_024_106",
+    "personaId": "persona_024",
+    "question": "Analyze Marcus's preference for physical depth in music and how it relates to his architectural philosophy.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m5_e1", "persona_024_s2_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Links the physical depth of vinyl with respect for existing structures."
+  },
+  {
+    "id": "q_persona_024_107",
+    "personaId": "persona_024",
+    "question": "How does Marcus's preference for 'stillness' in restoration manifest in his choice of hobbies?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s2_m2_e2", "persona_024_s4_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Links the need for stillness in restoration with the meditative nature of watch repair."
+  },
+  {
+    "id": "q_persona_024_108",
+    "personaId": "persona_024",
+    "question": "Contrast Marcus's preference for reclaimed white oak in session 1 with his use of quartersawn oak in session 3.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m6_e2", "persona_024_s3_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Requires comparing two specific wood preferences mentioned in different sessions."
+  },
+  {
+    "id": "q_persona_024_109",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer traditional joinery over modern adhesives, and how does this reflect his views on longevity?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m5_e1", "persona_024_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Links his preference for joinery with his belief in historical intent for longevity."
+  },
+  {
+    "id": "q_persona_024_110",
+    "personaId": "persona_024",
+    "question": "How does Marcus's preference for lead climbing relate to his professional view of architectural scale?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m6_e2", "persona_024_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links his climbing preference with his work on large historical buildings."
+  },
+  {
+    "id": "q_persona_024_111",
+    "personaId": "persona_024",
+    "question": "Discuss Marcus's preference for silver halide film and its connection to capturing 'structural essence'.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s3_m7_e1", "persona_024_s1_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Links his film preference with his philosophy on B&W photography."
+  },
+  {
+    "id": "q_persona_024_112",
+    "personaId": "persona_024",
+    "question": "How does Marcus's preference for late-night work hours align with his belief in consistency?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m10_e1", "persona_024_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "Links his specific routine preference with his personal philosophy."
+  },
+  {
+    "id": "q_persona_024_113",
+    "personaId": "persona_024",
+    "question": "Compare Marcus's preference for aged cedar and walnut in terms of their 'honesty' and 'integrity'.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s2_m9_e2", "persona_024_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Links 'inherent honesty' of cedar with 'structural integrity' of walnut."
+  },
+  {
+    "id": "q_persona_024_114",
+    "personaId": "persona_024",
+    "question": "Why does Marcus prefer mono recordings of jazz, and how does this fit his meticulous personality?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s2_m6_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Requires connecting his specific audio preference to his described personality traits."
+  },
+  {
+    "id": "q_persona_024_115",
+    "personaId": "persona_024",
+    "question": "How do Marcus's preferences for manual chisels and hand-planed oak reflect his stance on modern manufacturing?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_024_s3_m3_e1",
+      "persona_024_s2_m4_e1",
+      "persona_024_s3_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Links tool preferences with his critique of modern manufacturing's lack of intent."
+  },
+  {
+    "id": "q_persona_024_116",
+    "personaId": "persona_024",
+    "question": "Explain Marcus's preference for using classical guitar as a decompression method in the context of his restoration work.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s3_m9_e2", "persona_024_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Links his hobby preference with the demands of his professional role."
+  },
+  {
+    "id": "q_persona_024_117",
+    "personaId": "persona_024",
+    "question": "How does Marcus's preference for 'stewardship' in architecture influence his preference for restoring old tools?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m8_e1", "persona_024_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links his professional philosophy with his tool restoration hobby."
+  },
+  {
+    "id": "q_persona_024_118",
+    "personaId": "persona_024",
+    "question": "Analyze the connection between Marcus's preference for 'physical depth' in records and 'structural integrity' in buildings.",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s1_m5_e1", "persona_024_s4_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links his aesthetic preference in music with his structural values in architecture."
+  },
+  {
+    "id": "q_persona_024_119",
+    "personaId": "persona_024",
+    "question": "How does Marcus's preference for 'patience' in woodworking relate to his view of consistency as a 'cornerstone'?",
+    "type": "preference",
+    "expectedEvidence": ["persona_024_s4_m10_e2", "persona_024_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links his woodworking values with his core life philosophy."
+  },
+  {
+    "id": "q_persona_024_120",
+    "personaId": "persona_024",
+    "question": "Why might Marcus find watch restoration to be a good balance to his work on large buildings?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m4_e2", "persona_024_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Inferred from his need to balance professional life and the meditative nature of watch repair."
+  },
+  {
+    "id": "q_persona_024_121",
+    "personaId": "persona_024",
+    "question": "How does Marcus's view of a staircase as a 'spine' reflect his overall architectural philosophy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s4_m8_e1", "persona_024_s1_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 4],
+    "reasoning": "Inferred from his view of restoration as stewardship of a building's spirit."
+  },
+  {
+    "id": "q_persona_024_122",
+    "personaId": "persona_024",
+    "question": "Why does Marcus believe black and white photography is 'more honest'?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Directly stated as capturing structural essence rather than surface color."
+  },
+  {
+    "id": "q_persona_024_123",
+    "personaId": "persona_024",
+    "question": "What does Marcus's choice of a 1920s drafting table suggest about his aesthetic values?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s3_m1_e1", "persona_024_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Inferred from his preference for original craftsmanship over modern items."
+  },
+  {
+    "id": "q_persona_024_124",
+    "personaId": "persona_024",
+    "question": "How does Marcus's interest in urban exploration of industrial sites complement his career?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m9_e2", "persona_024_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Inferred from his professional focus on historical structures and craftsmanship."
+  },
+  {
+    "id": "q_persona_024_125",
+    "personaId": "persona_024",
+    "question": "Why does Marcus view Bill Evans' music as 'architectural'?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "He sees Evans' musical structure as analogous to blueprints."
+  },
+  {
+    "id": "q_persona_024_126",
+    "personaId": "persona_024",
+    "question": "What can be inferred about Marcus's view of modern city development from his comments on facades?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s2_m5_e1", "persona_024_s2_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "He believes modern trends are destroying historical character."
+  },
+  {
+    "id": "q_persona_024_127",
+    "personaId": "persona_024",
+    "question": "How does Marcus's belief in 'stillness' apply to both his hobby of watch restoration and his profession?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s2_m2_e2", "persona_024_s4_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Inferred from his statements on restoration requirements and the meditative nature of watches."
+  },
+  {
+    "id": "q_persona_024_128",
+    "personaId": "persona_024",
+    "question": "Why does Marcus value 'aged wood' beyond its physical properties?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s2_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "He believes it has an inherent honesty reflecting its history."
+  },
+  {
+    "id": "q_persona_024_129",
+    "personaId": "persona_024",
+    "question": "What does Marcus's use of manual tools suggest about his relationship with time?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s3_m3_e1", "persona_024_s4_m10_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Inferred from his valuation of patience and manual craftsmanship."
+  },
+  {
+    "id": "q_persona_024_130",
+    "personaId": "persona_024",
+    "question": "How does Marcus's philosophy of 'stewardship' in restoration conflict with modern architectural trends?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m8_e1", "persona_024_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Inferred from his view of stewardship versus the destruction of character by modern trends."
+  },
+  {
+    "id": "q_persona_024_131",
+    "personaId": "persona_024",
+    "question": "Infer how Marcus's belief that 'consistency is the cornerstone of a well-lived life' manifests in his daily routines across sessions.",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_024_s1_m10_e2",
+      "persona_024_s2_m1_e2",
+      "persona_024_s3_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires linking his philosophy to his repeated morning workshop and evening guitar routines."
+  },
+  {
+    "id": "q_persona_024_132",
+    "personaId": "persona_024",
+    "question": "How does Marcus's view of 'structural essence' in photography relate to his advocacy for buildings held together by 'weight and geometry'?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m3_e2", "persona_024_s4_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links his belief in capturing structure with his advocacy for geometric building integrity."
+  },
+  {
+    "id": "q_persona_024_133",
+    "personaId": "persona_024",
+    "question": "What does Marcus's pursuit of a specific watch part for three months reveal about his personality?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s3_m4_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3],
+    "reasoning": "Reflects the 'meticulous' and 'patient' traits described in his persona."
+  },
+  {
+    "id": "q_persona_024_134",
+    "personaId": "persona_024",
+    "question": "How does Marcus's interest in 18th-century steel temper connect to his valuation of 'original masonry'?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s4_m9_e2", "persona_024_s1_m1_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links his appreciation for historical material integrity across different mediums."
+  },
+  {
+    "id": "q_persona_024_135",
+    "personaId": "persona_024",
+    "question": "Why might Marcus see the 'intent for longevity' as missing in modern manufacturing compared to his own woodworking?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s3_m5_e1", "persona_024_s4_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Links his critique of modern manufacturing with the patience he puts into long-term projects."
+  },
+  {
+    "id": "q_persona_024_136",
+    "personaId": "persona_024",
+    "question": "How does Marcus's use of long-exposure photography reflect his professional need for 'stillness' and 'patience'?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_024_s4_m4_e2",
+      "persona_024_s2_m2_e2",
+      "persona_024_s4_m10_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Links the technical requirements of his hobby with his professional and personal values."
+  },
+  {
+    "id": "q_persona_024_137",
+    "personaId": "persona_024",
+    "question": "Infer the connection between Marcus's interest in 'structural integrity' and his choice of rock climbing as a hobby.",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s3_m10_e1", "persona_024_s1_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Links his belief that integrity is reflected in habits/tools with the physical demands of climbing."
+  },
+  {
+    "id": "q_persona_024_138",
+    "personaId": "persona_024",
+    "question": "How does Marcus's appreciation for the 'warmth' of vinyl records parallel his preference for 'aged wood'?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s1_m5_e1", "persona_024_s2_m9_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Links the sensory and historical qualities he values in different objects."
+  },
+  {
+    "id": "q_persona_024_139",
+    "personaId": "persona_024",
+    "question": "What does Marcus's transition from exploring textile mills in his youth to restoring brownstones now suggest about his life's trajectory?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s3_m2_e2", "persona_024_s1_m1_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Inferred from his lifelong interest in historical industrial and residential structures."
+  },
+  {
+    "id": "q_persona_024_140",
+    "personaId": "persona_024",
+    "question": "How does Marcus's belief that a staircase is the 'spine' of a home's spirit integrate with his view of consistency?",
+    "type": "inference",
+    "expectedEvidence": ["persona_024_s4_m8_e1", "persona_024_s1_m10_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links the central structural element of a building with his central life philosophy."
+  }
+]

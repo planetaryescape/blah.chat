@@ -66,6 +66,7 @@ import type * as byok_saveCredentials from "../byok/saveCredentials.js";
 import type * as canvas_documents from "../canvas/documents.js";
 import type * as canvas_history from "../canvas/history.js";
 import type * as chat from "../chat.js";
+import type * as chatSuggestions from "../chatSuggestions.js";
 import type * as cliAuth from "../cliAuth.js";
 import type * as composio_connections from "../composio/connections.js";
 import type * as composio_constants from "../composio/constants.js";
@@ -358,6 +359,7 @@ declare const fullApi: ApiFromModules<{
   "canvas/documents": typeof canvas_documents;
   "canvas/history": typeof canvas_history;
   chat: typeof chat;
+  chatSuggestions: typeof chatSuggestions;
   cliAuth: typeof cliAuth;
   "composio/connections": typeof composio_connections;
   "composio/constants": typeof composio_constants;

@@ -1,0 +1,5308 @@
+[
+  {
+    "questionId": "q_persona_001_001",
+    "personaId": "persona_001",
+    "question": "How old is Elena Rodriguez?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e1",
+        "statement": "Elena is 34 years old",
+        "category": "personal",
+        "sessionNumber": 1,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 1690,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is 34 years old\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_002",
+    "personaId": "persona_001",
+    "question": "What is Elena's current occupation?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e2",
+        "statement": "Elena is an urban planner",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 1008,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena works as an urban planner.\" on 2026-01-29",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_003",
+    "personaId": "persona_001",
+    "question": "What instrument does Elena play?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m7_e1",
+        "statement": "Elena plays classical guitar",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 1239,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is 34 years old\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Elena plays the classical guitar.",
+      "retrievalTimeMs": 806,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena plays classical guitar\" on 2026-01-01",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_004",
+    "personaId": "persona_001",
+    "question": "What does Elena collect as a hobby?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m3_e1",
+        "statement": "Elena enjoys collecting vintage maps",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None of",
+      "retrievalTimeMs": 1114,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena practices classical guitar for thirty minutes every evening.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_005",
+    "personaId": "persona_001",
+    "question": "Where does Elena live in relation to her interest in gardening?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m2_e2",
+        "statement": "Elena lives near a community garden",
+        "category": "home",
+        "sessionNumber": 1,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 832,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While a",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is drafting a proposal for a community garden on 5th Street.\" on 2026-02-08",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_006",
+    "personaId": "persona_001",
+    "question": "What is Elena's sourdough starter named?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m3_e1",
+        "statement": "Elena has a sourdough starter named Barnaby.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None of the provided memories mention the name of Elena's sourdough starter.",
+      "retrievalTimeMs": 1098,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena's sourdough starter is active after being dormant for a week.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_007",
+    "personaId": "persona_001",
+    "question": "What is Elena's professional focus within urban planning?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m5_e1",
+        "statement": "Elena's professional focus is social equity",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "Based on the provided memories",
+      "retrievalTimeMs": 1546,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 397,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena works as an urban planner.\" on 2026-01-29",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_008",
+    "personaId": "persona_001",
+    "question": "How does Elena commute to her work?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m4_e1",
+        "statement": "Elena commutes to work by bicycle",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 1370,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_009",
+    "personaId": "persona_001",
+    "question": "What is the title of the construction manual Elena is reading?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m12_e1",
+        "statement": "Elena is reading a manual on mass timber construction.",
+        "category": "work",
+        "sessionNumber": 2,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 1165,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 430,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_010",
+    "personaId": "persona_001",
+    "question": "What specific map did Elena add to her collection in session 2?",
+    "difficulty": "easy",
+    "type": "factual",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m2_e2",
+        "statement": "Elena added an 1895 harbor survey map to her collection.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 1275,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_011",
+    "personaId": "persona_001",
+    "question": "What specific map from the 1920s did Elena recently purchase?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 363,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_012",
+    "personaId": "persona_001",
+    "question": "What is the incident rate location Elena is concerned about for the bike corridor?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e1",
+        "statement": "The 5th and Main intersection had the highest incident rate last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 441,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_013",
+    "personaId": "persona_001",
+    "question": "What are the specific years of experience Elena has in her field?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e3",
+        "statement": "Elena has 10 years of experience in her field",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s2_m10_e1",
+        "statement": "Elena has ten years of experience as an urban planner.",
+        "category": "biography",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "Elena has 10 years of",
+      "retrievalTimeMs": 484,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_014",
+    "personaId": "persona_001",
+    "question": "What are Elena's primary professional interests according to her persona and session 2?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m10_e2",
+        "statement": "Elena is passionate about environmental sustainability.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s1_m5_e1",
+        "statement": "Elena's professional focus is social equity",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memories from 20",
+      "retrievalTimeMs": 501,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the provided memories, Elena",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_015",
+    "personaId": "persona_001",
+    "question": "What specific nautical charts is Elena researching in the archives?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m1_e1",
+        "statement": "Elena is researching 18th-century Mediterranean nautical charts in archives.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 551,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_016",
+    "personaId": "persona_001",
+    "question": "What is the exact percentage of affordable housing Elena advocates for in redevelopments?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m9_e2",
+        "statement": "A minimum of 20% affordable housing is necessary to prevent displacement in redevelopments.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 509,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 43,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_017",
+    "personaId": "persona_001",
+    "question": "What project is Elena drafting on 5th Street?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m1_e1",
+        "statement": "Elena is drafting a proposal for a community garden on 5th Street.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 577,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_018",
+    "personaId": "persona_001",
+    "question": "What specific map did Elena acquire in session 4 regarding city infrastructure?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m6_e1",
+        "statement": "Elena acquired a 19th-century map of the city's water mains.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 546,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_019",
+    "personaId": "persona_001",
+    "question": "Where is Elena traveling for her hiking trip in session 4?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m8_e2",
+        "statement": "Elena is traveling to the Olympic Peninsula for hiking.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 508,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 43,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_020",
+    "personaId": "persona_001",
+    "question": "What specific data is Elena cross-referencing for her zoning report?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m2_e2",
+        "statement": "Elena is cross-referencing transit data with residential density maps.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 383,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_021",
+    "personaId": "persona_001",
+    "question": "What year has the city set for its climate goals?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m9_e2",
+        "statement": "The city has established climate goals for the year 2030.",
+        "category": "ecology",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 667,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Green spaces are vital for neighborhood social life\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Sustainable architecture must be a priority for all new developments\" on 2026-01-01",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_022",
+    "personaId": "persona_001",
+    "question": "What is the focus of Elena's map collection according to session 1?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m3_e2",
+        "statement": "Elena's map collection focuses on historical transit lines",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 521,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_023",
+    "personaId": "persona_001",
+    "question": "What is Elena currently reviewing regarding the east side?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m9_e1",
+        "statement": "Elena is reviewing mixed-use zoning laws for the east side.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 681,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_024",
+    "personaId": "persona_001",
+    "question": "What kind of development draft is Elena reviewing in session 2?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m1_e1",
+        "statement": "Elena is currently reviewing a transit-oriented development draft.",
+        "category": "work",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 568,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_025",
+    "personaId": "persona_001",
+    "question": "What specific hobby session does Elena have scheduled at 5:30 PM?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m5_e1",
+        "statement": "Elena has a guitar session at 5:30 PM today.",
+        "category": "schedule",
+        "sessionNumber": 2,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None of",
+      "retrievalTimeMs": 538,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 43,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_026",
+    "personaId": "persona_001",
+    "question": "What is the status of Elena's sourdough starter in session 4?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m5_e1",
+        "statement": "Elena's sourdough starter is active after being dormant for a week.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 508,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_027",
+    "personaId": "persona_001",
+    "question": "What specific cycling distance did Elena complete recently?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m3_e1",
+        "statement": "Elena completed a 40-kilometer cycle last Saturday.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 463,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_028",
+    "personaId": "persona_001",
+    "question": "What is the location of the new sustainable housing complex mentioned in session 4?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m4_e2",
+        "statement": "There is a new sustainable housing complex downtown.",
+        "category": "planning",
+        "sessionNumber": 4,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 414,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Green spaces are vital for neighborhood social life\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Sustainable architecture must be a priority for all new developments\" on 2026-01-01",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_029",
+    "personaId": "persona_001",
+    "question": "What specific intersection data is Elena using to justify safety priorities in the bike corridor?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e1",
+        "statement": "The 5th and Main intersection had the highest incident rate last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s3_m2_e2",
+        "statement": "The downtown bike corridor draft must prioritize safety at 5th and Main.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 368,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_030",
+    "personaId": "persona_001",
+    "question": "What are the three distinct historical maps Elena has acquired or researched across sessions 2, 3, and 4?",
+    "difficulty": "medium",
+    "type": "factual",
+    "sessionSpan": [2, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m2_e2",
+        "statement": "Elena added an 1895 harbor survey map to her collection.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m6_e1",
+        "statement": "Elena acquired a 19th-century map of the city's water mains.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 482,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_031",
+    "personaId": "persona_001",
+    "question": "How does Elena's sourdough starter's name in session 3 relate to its activity status in session 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m3_e1",
+        "statement": "Elena has a sourdough starter named Barnaby.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m5_e1",
+        "statement": "Elena's sourdough starter is active after being dormant for a week.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 470,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_032",
+    "personaId": "persona_001",
+    "question": "What are the specific professional tasks Elena mentions in session 4, and how do they relate to her focus on equity?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m1_e1",
+        "statement": "Elena is drafting a proposal for a community garden on 5th Street.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s4_m1_e2",
+        "statement": "Elena wants the garden to be accessible for elderly residents.",
+        "category": "equity",
+        "sessionNumber": 4,
+        "importance": 0.75
+      },
+      {
+        "id": "persona_001_s4_m2_e2",
+        "statement": "Elena is cross-referencing transit data with residential density maps.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 572,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_033",
+    "personaId": "persona_001",
+    "question": "List all the specific historical periods of maps Elena has expressed interest in or acquired across all sessions.",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [2, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m2_e2",
+        "statement": "Elena added an 1895 harbor survey map to her collection.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s3_m1_e1",
+        "statement": "Elena is researching 18th-century Mediterranean nautical charts in archives.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m6_e1",
+        "statement": "Elena acquired a 19th-century map of the city's water mains.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 675,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 533,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_034",
+    "personaId": "persona_001",
+    "question": "What are the specific locations mentioned for Elena's hiking trips in sessions 2 and 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m8_e2",
+        "statement": "Elena is organizing a hiking trip to the northern ridge.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m8_e2",
+        "statement": "Elena is traveling to the Olympic Peninsula for hiking.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None of",
+      "retrievalTimeMs": 703,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_035",
+    "personaId": "persona_001",
+    "question": "What specific technical documents or data sources is Elena using for her work in sessions 2, 3, and 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [2, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m12_e1",
+        "statement": "Elena is reading a manual on mass timber construction.",
+        "category": "work",
+        "sessionNumber": 2,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s3_m2_e1",
+        "statement": "The 5th and Main intersection had the highest incident rate last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m2_e2",
+        "statement": "Elena is cross-referencing transit data with residential density maps.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 498,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the provided memories",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_036",
+    "personaId": "persona_001",
+    "question": "In which sessions does Elena mention her sourdough starter, and what specific details are provided about its status or name in those instances?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [2, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m4_e1",
+        "statement": "Elena checked her sourdough starter last night.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.3
+      },
+      {
+        "id": "persona_001_s2_m4_e2",
+        "statement": "Elena has an active sourdough starter.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s3_m3_e1",
+        "statement": "Elena has a sourdough starter named Barnaby.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m5_e1",
+        "statement": "Elena's sourdough starter is active after being dormant for a week.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 619,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Elena mentions her sourdough starter in the sessions",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_037",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's guitar practice habits as mentioned in sessions 3 and 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m6_e2",
+        "statement": "Elena practiced guitar for two hours last night.",
+        "category": "routine",
+        "sessionNumber": 3,
+        "importance": 0.3
+      },
+      {
+        "id": "persona_001_s4_m7_e1",
+        "statement": "Elena practices classical guitar for thirty minutes every evening.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 389,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. Based on",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_038",
+    "personaId": "persona_001",
+    "question": "What specific urban planning projects is Elena working on that involve 5th Street or 5th and Main?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e2",
+        "statement": "The downtown bike corridor draft must prioritize safety at 5th and Main.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s4_m1_e1",
+        "statement": "Elena is drafting a proposal for a community garden on 5th Street.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 681,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_039",
+    "personaId": "persona_001",
+    "question": "What are the specific professional goals Elena has for the upcoming week as of session 3 and 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m2_e1",
+        "statement": "Elena has a final zoning report due Friday at 5 PM.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m10_e1",
+        "statement": "Elena must be at city hall by 8:30 AM for a public hearing.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 338,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_040",
+    "personaId": "persona_001",
+    "question": "Which specific historical maps in Elena's collection are related to transit or infrastructure?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [1, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m3_e2",
+        "statement": "Elena's map collection focuses on historical transit lines",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m6_e1",
+        "statement": "Elena acquired a 19th-century map of the city's water mains.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 476,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_041",
+    "personaId": "persona_001",
+    "question": "What are the specific details of the community garden project mentioned in sessions 3 and 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m7_e1",
+        "statement": "There is a community garden meeting today at 6 PM.",
+        "category": "community",
+        "sessionNumber": 3,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s4_m1_e1",
+        "statement": "Elena is drafting a proposal for a community garden on 5th Street.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 380,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the provided memories, the specific",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_042",
+    "personaId": "persona_001",
+    "question": "What specific evidence does Elena cite for the need for safety in the downtown bike corridor?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e1",
+        "statement": "The 5th and Main intersection had the highest incident rate last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s3_m2_e2",
+        "statement": "The downtown bike corridor draft must prioritize safety at 5th and Main.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based on",
+      "retrievalTimeMs": 383,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_043",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's upcoming hiking trip as described in session 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m8_e1",
+        "statement": "Elena is starting a three-day hiking trip this Thursday.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.95
+      },
+      {
+        "id": "persona_001_s4_m8_e2",
+        "statement": "Elena is traveling to the Olympic Peninsula for hiking.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 485,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 43,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_044",
+    "personaId": "persona_001",
+    "question": "What are the specific zoning and housing requirements Elena mentions in session 3?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m9_e1",
+        "statement": "Elena is reviewing mixed-use zoning laws for the east side.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s3_m9_e2",
+        "statement": "A minimum of 20% affordable housing is necessary to prevent displacement in redevelopments.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 392,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While the",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_045",
+    "personaId": "persona_001",
+    "question": "What specific map did Elena research in session 3 and what was its origin?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m1_e1",
+        "statement": "Elena is researching 18th-century Mediterranean nautical charts in archives.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based on",
+      "retrievalTimeMs": 565,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_046",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's morning routine mentioned in session 4?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m5_e2",
+        "statement": "Elena enjoys baking sourdough loaves in the morning.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m10_e1",
+        "statement": "Elena must be at city hall by 8:30 AM for a public hearing.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 538,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_047",
+    "personaId": "persona_001",
+    "question": "What specific map acquisitions are mentioned in sessions 2 and 3?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [2, 3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m2_e2",
+        "statement": "Elena added an 1895 harbor survey map to her collection.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 467,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Green spaces are vital for neighborhood social life\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_048",
+    "personaId": "persona_001",
+    "question": "What are the specific details of Elena's professional focus as described in sessions 1 and 2?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m5_e1",
+        "statement": "Elena's professional focus is social equity",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s2_m10_e2",
+        "statement": "Elena is passionate about environmental sustainability.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memories from 2",
+      "retrievalTimeMs": 499,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memories from",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_049",
+    "personaId": "persona_001",
+    "question": "What specific transit-related map did Elena acquire in session 3?",
+    "difficulty": "hard",
+    "type": "factual",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 317,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_050",
+    "personaId": "persona_001",
+    "question": "How many years of experience does Elena have?",
+    "difficulty": "easy",
+    "type": "temporal",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e3",
+        "statement": "Elena has 10 years of experience in her field",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 482,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_051",
+    "personaId": "persona_001",
+    "question": "How long is Elena's daily bike commute?",
+    "difficulty": "easy",
+    "type": "temporal",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m4_e2",
+        "statement": "Elena's daily bike commute takes twenty minutes",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 460,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_052",
+    "personaId": "persona_001",
+    "question": "Since when has Elena played the guitar?",
+    "difficulty": "easy",
+    "type": "temporal",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m7_e2",
+        "statement": "Elena has played guitar since her teenage years",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 510,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_053",
+    "personaId": "persona_001",
+    "question": "When is Elena's hiking trip planned for in session 1?",
+    "difficulty": "easy",
+    "type": "temporal",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m9_e1",
+        "statement": "Elena has a hiking trip planned for next month",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 624,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_054",
+    "personaId": "persona_001",
+    "question": "When is the community garden meeting today?",
+    "difficulty": "easy",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m7_e1",
+        "statement": "There is a community garden meeting today at 6 PM.",
+        "category": "community",
+        "sessionNumber": 3,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 391,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"There is a community garden meeting today at 6 PM.\" on 2026-01-29",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_055",
+    "personaId": "persona_001",
+    "question": "When is Elena's zoning report due?",
+    "difficulty": "easy",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m2_e1",
+        "statement": "Elena has a final zoning report due Friday at 5 PM.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None of",
+      "retrievalTimeMs": 379,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has a final zoning report due Friday at 5 PM.\" on 2026-02-08",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_056",
+    "personaId": "persona_001",
+    "question": "When does Elena have a guitar session today?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m5_e1",
+        "statement": "Elena has a guitar session at 5:30 PM today.",
+        "category": "schedule",
+        "sessionNumber": 2,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 364,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_057",
+    "personaId": "persona_001",
+    "question": "How long did Elena spend on her hobby this morning in session 2?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m2_e1",
+        "statement": "Elena spent three hours this morning on her hobby.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 517,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_058",
+    "personaId": "persona_001",
+    "question": "When did Elena check her sourdough starter in session 2?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m4_e1",
+        "statement": "Elena checked her sourdough starter last night.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.3
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 345,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_059",
+    "personaId": "persona_001",
+    "question": "When is the hiking trip planned for in session 2?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m8_e1",
+        "statement": "Elena is planning a hiking trip for the upcoming holiday break.",
+        "category": "travel",
+        "sessionNumber": 2,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 379,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_060",
+    "personaId": "persona_001",
+    "question": "When did the incident data at 5th and Main occur?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e3",
+        "statement": "The incident data mentioned is from last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 443,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Green spaces are vital for neighborhood social life\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_061",
+    "personaId": "persona_001",
+    "question": "When is Elena planning to hike in session 3?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m4_e1",
+        "statement": "Elena is planning a hike for this coming Saturday morning.",
+        "category": "leisure",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "34).\n    *   ",
+      "retrievalTimeMs": 552,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_062",
+    "personaId": "persona_001",
+    "question": "How long did Elena practice guitar last night in session 3?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m6_e2",
+        "statement": "Elena practiced guitar for two hours last night.",
+        "category": "routine",
+        "sessionNumber": 3,
+        "importance": 0.3
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 355,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_063",
+    "personaId": "persona_001",
+    "question": "When does the spring planting season begin?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m7_e2",
+        "statement": "The spring planting season begins next month.",
+        "category": "community",
+        "sessionNumber": 3,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 567,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_064",
+    "personaId": "persona_001",
+    "question": "When does Elena want to meet next in session 3?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m10_e1",
+        "statement": "Elena wants to meet or touch base next Tuesday.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 353,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is 34 years old\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_065",
+    "personaId": "persona_001",
+    "question": "When did Elena complete her 40-kilometer cycle?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m3_e1",
+        "statement": "Elena completed a 40-kilometer cycle last Saturday.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 567,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is 34 years old\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena completed a 40-kilometer cycle last Saturday.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_066",
+    "personaId": "persona_001",
+    "question": "How long was Elena's sourdough starter dormant?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m5_e1",
+        "statement": "Elena's sourdough starter is active after being dormant for a week.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 495,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_067",
+    "personaId": "persona_001",
+    "question": "How long does Elena practice guitar every evening?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m7_e1",
+        "statement": "Elena practices classical guitar for thirty minutes every evening.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 494,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena practices classical guitar for thirty minutes every evening.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_068",
+    "personaId": "persona_001",
+    "question": "When does Elena's three-day hiking trip start in session 4?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m8_e1",
+        "statement": "Elena is starting a three-day hiking trip this Thursday.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.95
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 513,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_069",
+    "personaId": "persona_001",
+    "question": "What time must Elena be at city hall in session 4?",
+    "difficulty": "medium",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m10_e1",
+        "statement": "Elena must be at city hall by 8:30 AM for a public hearing.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 426,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_070",
+    "personaId": "persona_001",
+    "question": "Compare the timing of Elena's hiking plans mentioned in sessions 1, 2, and 4.",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [1, 2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m9_e1",
+        "statement": "Elena has a hiking trip planned for next month",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s2_m8_e1",
+        "statement": "Elena is planning a hiking trip for the upcoming holiday break.",
+        "category": "travel",
+        "sessionNumber": 2,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m8_e1",
+        "statement": "Elena is starting a three-day hiking trip this Thursday.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.95
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 363,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_071",
+    "personaId": "persona_001",
+    "question": "Based on session 4, what is Elena's schedule for this coming Thursday through Friday?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m2_e1",
+        "statement": "Elena has a final zoning report due Friday at 5 PM.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m8_e1",
+        "statement": "Elena is starting a three-day hiking trip this Thursday.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.95
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 452,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_072",
+    "personaId": "persona_001",
+    "question": "How has Elena's sourdough-related timing changed between session 2 and session 4?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m4_e1",
+        "statement": "Elena checked her sourdough starter last night.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.3
+      },
+      {
+        "id": "persona_001_s4_m5_e1",
+        "statement": "Elena's sourdough starter is active after being dormant for a week.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 504,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_073",
+    "personaId": "persona_001",
+    "question": "What are all the specific times mentioned for Elena's activities in session 4?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m2_e1",
+        "statement": "Elena has a final zoning report due Friday at 5 PM.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m10_e1",
+        "statement": "Elena must be at city hall by 8:30 AM for a public hearing.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 619,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is 34 years old\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memories from 2",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_074",
+    "personaId": "persona_001",
+    "question": "How do Elena's guitar practice durations compare between session 3 and session 4?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m6_e2",
+        "statement": "Elena practiced guitar for two hours last night.",
+        "category": "routine",
+        "sessionNumber": 3,
+        "importance": 0.3
+      },
+      {
+        "id": "persona_001_s4_m7_e1",
+        "statement": "Elena practices classical guitar for thirty minutes every evening.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 516,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_075",
+    "personaId": "persona_001",
+    "question": "What is the chronological order of the historical maps Elena acquired or researched, based on the sessions they were mentioned?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [2, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m2_e2",
+        "statement": "Elena added an 1895 harbor survey map to her collection.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s3_m8_e1",
+        "statement": "Elena recently bought a 1920s London Underground map.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m6_e1",
+        "statement": "Elena acquired a 19th-century map of the city's water mains.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based on",
+      "retrievalTimeMs": 505,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_076",
+    "personaId": "persona_001",
+    "question": "Considering her schedule across sessions 2, 3, and 4, what are the three specific times or days Elena has blocked out for professional meetings or deadlines?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m5_e1",
+        "statement": "Elena has a guitar session at 5:30 PM today.",
+        "category": "schedule",
+        "sessionNumber": 2,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m2_e1",
+        "statement": "Elena has a final zoning report due Friday at 5 PM.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m10_e1",
+        "statement": "Elena must be at city hall by 8:30 AM for a public hearing.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 485,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 44,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena enjoys baking sourdough loaves in the morning.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_077",
+    "personaId": "persona_001",
+    "question": "When did Elena's sourdough starter transition from dormant to active?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m5_e1",
+        "statement": "Elena's sourdough starter is active after being dormant for a week.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 388,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena's sourdough starter is active after being dormant for a week.\" on 2026-02-09",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_078",
+    "personaId": "persona_001",
+    "question": "What are the specific future dates or seasons mentioned for gardening and hiking in session 3?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m4_e1",
+        "statement": "Elena is planning a hike for this coming Saturday morning.",
+        "category": "leisure",
+        "sessionNumber": 3,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s3_m7_e2",
+        "statement": "The spring planting season begins next month.",
+        "category": "community",
+        "sessionNumber": 3,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 474,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Green spaces are vital for neighborhood social life\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena plays classical guitar\" on 2026-01-01",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_079",
+    "personaId": "persona_001",
+    "question": "How many years of professional experience did Elena have in session 1, and how does this compare to her status in session 2?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e3",
+        "statement": "Elena has 10 years of experience in her field",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s2_m10_e1",
+        "statement": "Elena has ten years of experience as an urban planner.",
+        "category": "biography",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "Based on the provided memories",
+      "retrievalTimeMs": 426,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_080",
+    "personaId": "persona_001",
+    "question": "What is the sequence of Elena's planned activities for the upcoming weekend as of session 1?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m6_e2",
+        "statement": "Elena is baking sourdough this upcoming weekend",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.4
+      },
+      {
+        "id": "persona_001_s1_m9_e1",
+        "statement": "Elena has a hiking trip planned for next month",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 336,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_081",
+    "personaId": "persona_001",
+    "question": "What are the specific temporal details of Elena's cycling and hiking activities in session 4?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m3_e1",
+        "statement": "Elena completed a 40-kilometer cycle last Saturday.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s4_m8_e1",
+        "statement": "Elena is starting a three-day hiking trip this Thursday.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.95
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 451,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_082",
+    "personaId": "persona_001",
+    "question": "When was the incident data collected that Elena is using for her downtown bike corridor draft?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e3",
+        "statement": "The incident data mentioned is from last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 526,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_083",
+    "personaId": "persona_001",
+    "question": "How long does Elena spend on her commute and guitar practice combined, based on sessions 1 and 4?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [1, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m4_e2",
+        "statement": "Elena's daily bike commute takes twenty minutes",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m7_e1",
+        "statement": "Elena practices classical guitar for thirty minutes every evening.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 456,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_084",
+    "personaId": "persona_001",
+    "question": "What are the specific times mentioned for Elena's guitar-related activities in sessions 2 and 3?",
+    "difficulty": "hard",
+    "type": "temporal",
+    "sessionSpan": [2, 3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m5_e1",
+        "statement": "Elena has a guitar session at 5:30 PM today.",
+        "category": "schedule",
+        "sessionNumber": 2,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s3_m6_e2",
+        "statement": "Elena practiced guitar for two hours last night.",
+        "category": "routine",
+        "sessionNumber": 3,
+        "importance": 0.3
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 468,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 2",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_085",
+    "personaId": "persona_001",
+    "question": "Does Elena prefer email or phone calls for professional updates?",
+    "difficulty": "easy",
+    "type": "preference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m8_e1",
+        "statement": "Elena prefers email for professional project updates",
+        "category": "communication",
+        "sessionNumber": 1,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 818,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_086",
+    "personaId": "persona_001",
+    "question": "What kind of sourdough proofing method does Elena prefer?",
+    "difficulty": "easy",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m4_e3",
+        "statement": "Elena prefers a longer cold proofing method for baking sourdough.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 583,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_087",
+    "personaId": "persona_001",
+    "question": "Does Elena enjoy being outdoors?",
+    "difficulty": "easy",
+    "type": "preference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m9_e2",
+        "statement": "Elena loves being outdoors and in nature",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. While",
+      "retrievalTimeMs": 577,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_088",
+    "personaId": "persona_001",
+    "question": "What kind of plant species does Elena prefer for gardens?",
+    "difficulty": "easy",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m11_e1",
+        "statement": "Elena prefers using native plant species in gardens.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 442,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_089",
+    "personaId": "persona_001",
+    "question": "Does Elena prefer structured or unstructured email updates?",
+    "difficulty": "easy",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m7_e1",
+        "statement": "Elena prefers structured email updates over phone calls.",
+        "category": "communication",
+        "sessionNumber": 2,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 386,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_090",
+    "personaId": "persona_001",
+    "question": "What map typography does Elena appreciate?",
+    "difficulty": "easy",
+    "type": "preference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m8_e2",
+        "statement": "Elena appreciates hand-drawn map typography over modern digital renderings.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 330,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_091",
+    "personaId": "persona_001",
+    "question": "What kind of documentation does Elena value?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m8_e2",
+        "statement": "Elena values methodical and organized documentation",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 460,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_092",
+    "personaId": "persona_001",
+    "question": "Why does Elena prefer the northern cycling route?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m3_e2",
+        "statement": "Elena prefers the northern cycling route for its elevation challenge.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.65
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 717,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_093",
+    "personaId": "persona_001",
+    "question": "What does Elena value regarding water conservation?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m11_e2",
+        "statement": "Elena values water conservation and local biodiversity support.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 470,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_094",
+    "personaId": "persona_001",
+    "question": "What level of detail does Elena prefer in nautical charts?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m1_e2",
+        "statement": "Elena prefers the detail level of 18th-century charts over later colonial versions.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 404,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_095",
+    "personaId": "persona_001",
+    "question": "What does Elena track regarding her sourdough starter?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m3_e2",
+        "statement": "Elena tracks the fermentation progress of her sourdough starter.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 639,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_096",
+    "personaId": "persona_001",
+    "question": "What kind of follow-ups does Elena prefer for her reports?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m10_e2",
+        "statement": "Elena prefers structured follow-ups regarding her reports.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 609,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_097",
+    "personaId": "persona_001",
+    "question": "What does Elena want for the community garden on 5th Street?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m1_e2",
+        "statement": "Elena wants the garden to be accessible for elderly residents.",
+        "category": "equity",
+        "sessionNumber": 4,
+        "importance": 0.75
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 447,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_098",
+    "personaId": "persona_001",
+    "question": "When does Elena enjoy baking sourdough loaves?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m5_e2",
+        "statement": "Elena enjoys baking sourdough loaves in the morning.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 336,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_099",
+    "personaId": "persona_001",
+    "question": "What does Elena use guitar practice for?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m7_e2",
+        "statement": "Elena uses guitar practice to decompress from work stress.",
+        "category": "wellness",
+        "sessionNumber": 4,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 434,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_100",
+    "personaId": "persona_001",
+    "question": "What kind of support does Elena want for the bike lane extension?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m10_e2",
+        "statement": "Elena wants community support for the bike lane extension project.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 479,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_101",
+    "personaId": "persona_001",
+    "question": "What is Elena's preference regarding protected bike lanes?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m1_e2",
+        "statement": "Elena wants protected bike lanes connecting to the community garden.",
+        "category": "urban_planning",
+        "sessionNumber": 2,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 347,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_102",
+    "personaId": "persona_001",
+    "question": "What does Elena believe regarding sustainable architecture priorities?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m6_e1",
+        "statement": "Elena believes sustainable architecture should prioritize adaptive reuse.",
+        "category": "work",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 622,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_103",
+    "personaId": "persona_001",
+    "question": "What kind of charts does Elena prefer over colonial versions?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m1_e2",
+        "statement": "Elena prefers the detail level of 18th-century charts over later colonial versions.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 698,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. (The",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_104",
+    "personaId": "persona_001",
+    "question": "What does Elena appreciate about hand-drawn map typography?",
+    "difficulty": "medium",
+    "type": "preference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m8_e2",
+        "statement": "Elena appreciates hand-drawn map typography over modern digital renderings.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 554,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_105",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for historical cartography styles mentioned in session 3 compare to her critique of modern digital rendering in session 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m8_e2",
+        "statement": "Elena appreciates hand-drawn map typography over modern digital renderings.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m6_e2",
+        "statement": "Elena believes hand-drawn cartography is superior to digital renders for historical context.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.75
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 542,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While the",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_106",
+    "personaId": "persona_001",
+    "question": "What are Elena's preferences for communication and documentation as described across sessions 1, 2, and 3?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [1, 2, 3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m8_e1",
+        "statement": "Elena prefers email for professional project updates",
+        "category": "communication",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s1_m8_e2",
+        "statement": "Elena values methodical and organized documentation",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s2_m7_e1",
+        "statement": "Elena prefers structured email updates over phone calls.",
+        "category": "communication",
+        "sessionNumber": 2,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s3_m10_e2",
+        "statement": "Elena prefers structured follow-ups regarding her reports.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.4
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 663,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_107",
+    "personaId": "persona_001",
+    "question": "How do Elena's preferences for gardening in session 2 influence her drafting of the community garden proposal in session 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m11_e1",
+        "statement": "Elena prefers using native plant species in gardens.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s4_m1_e2",
+        "statement": "Elena wants the garden to be accessible for elderly residents.",
+        "category": "equity",
+        "sessionNumber": 4,
+        "importance": 0.75
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 574,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 52,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_108",
+    "personaId": "persona_001",
+    "question": "What are the specific sourdough techniques and timings Elena prefers, based on sessions 2 and 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m4_e3",
+        "statement": "Elena prefers a longer cold proofing method for baking sourdough.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.4
+      },
+      {
+        "id": "persona_001_s4_m5_e2",
+        "statement": "Elena enjoys baking sourdough loaves in the morning.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 499,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While a",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_109",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for elevation challenges in cycling relate to her choice of routes in session 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m3_e2",
+        "statement": "Elena prefers the northern cycling route for its elevation challenge.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.65
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 384,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 54,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_110",
+    "personaId": "persona_001",
+    "question": "What are Elena's core values regarding sustainable architecture and adaptive reuse as mentioned in session 2?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m6_e1",
+        "statement": "Elena believes sustainable architecture should prioritize adaptive reuse.",
+        "category": "work",
+        "sessionNumber": 2,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s2_m10_e2",
+        "statement": "Elena is passionate about environmental sustainability.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 469,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_111",
+    "personaId": "persona_001",
+    "question": "What specific aspects of map design does Elena prefer, and how does this manifest in her collection choices in sessions 3 and 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m8_e2",
+        "statement": "Elena appreciates hand-drawn map typography over modern digital renderings.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m6_e2",
+        "statement": "Elena believes hand-drawn cartography is superior to digital renders for historical context.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.75
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 499,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_112",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for equity influence her views on transit and housing across sessions 1, 2, and 3?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [1, 2, 3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m5_e2",
+        "statement": "Accessible transit is the key factor for urban social equity",
+        "category": "values",
+        "sessionNumber": 1,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s2_m3_e1",
+        "statement": "Elena believes urban densification requires social equity and affordable housing.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s3_m9_e2",
+        "statement": "A minimum of 20% affordable housing is necessary to prevent displacement in redevelopments.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 760,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While the",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_113",
+    "personaId": "persona_001",
+    "question": "What are Elena's preferences for outdoor activities as described in sessions 3 and 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m4_e2",
+        "statement": "Elena enjoys hiking the Ridge Trail.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.5
+      },
+      {
+        "id": "persona_001_s4_m3_e2",
+        "statement": "Elena prefers the northern cycling route for its elevation challenge.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.65
+      },
+      {
+        "id": "persona_001_s4_m8_e2",
+        "statement": "Elena is traveling to the Olympic Peninsula for hiking.",
+        "category": "travel",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 587,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_114",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for methodical processes apply to both her baking and her work documentation?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m6_e1",
+        "statement": "Elena enjoys the methodical process of baking sourdough",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s1_m8_e2",
+        "statement": "Elena values methodical and organized documentation",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 518,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_115",
+    "personaId": "persona_001",
+    "question": "What does Elena prefer regarding the functionality of public spaces as stated in session 2?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m9_e1",
+        "statement": "Elena believes public spaces should serve multi-functional ecological and social roles.",
+        "category": "urban_planning",
+        "sessionNumber": 2,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 540,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 50,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_116",
+    "personaId": "persona_001",
+    "question": "How do Elena's preferences for historical context influence her opinion on modern mapping in session 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m6_e2",
+        "statement": "Elena believes hand-drawn cartography is superior to digital renders for historical context.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.75
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 411,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_117",
+    "personaId": "persona_001",
+    "question": "What are Elena's preferences for community involvement in her projects as mentioned in session 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m10_e2",
+        "statement": "Elena wants community support for the bike lane extension project.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 507,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 52,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_118",
+    "personaId": "persona_001",
+    "question": "What specific environmental values does Elena prioritize in session 2?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m11_e1",
+        "statement": "Elena prefers using native plant species in gardens.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s2_m11_e2",
+        "statement": "Elena values water conservation and local biodiversity support.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "Based on the memory from ",
+      "retrievalTimeMs": 424,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from",
+      "retrievalTimeMs": 54,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_119",
+    "personaId": "persona_001",
+    "question": "How does Elena's preference for decompressing with guitar practice relate to her work stress in session 4?",
+    "difficulty": "hard",
+    "type": "preference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m7_e2",
+        "statement": "Elena uses guitar practice to decompress from work stress.",
+        "category": "wellness",
+        "sessionNumber": 4,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 342,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_120",
+    "personaId": "persona_001",
+    "question": "Why does Elena likely prefer cycling to work?",
+    "difficulty": "easy",
+    "type": "inference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m4_e1",
+        "statement": "Elena commutes to work by bicycle",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s1_m9_e2",
+        "statement": "Elena loves being outdoors and in nature",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.5
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 374,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_121",
+    "personaId": "persona_001",
+    "question": "How does Elena's interest in historical transit maps relate to her job?",
+    "difficulty": "easy",
+    "type": "inference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e2",
+        "statement": "Elena is an urban planner",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s1_m3_e2",
+        "statement": "Elena's map collection focuses on historical transit lines",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 323,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the provided memories,",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_122",
+    "personaId": "persona_001",
+    "question": "Why might Elena be interested in the 18th-century nautical charts?",
+    "difficulty": "easy",
+    "type": "inference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m1_e1",
+        "statement": "Elena is researching 18th-century Mediterranean nautical charts in archives.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s3_m1_e2",
+        "statement": "Elena prefers the detail level of 18th-century charts over later colonial versions.",
+        "category": "interests",
+        "sessionNumber": 3,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 527,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "The provided memories do not specify",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_123",
+    "personaId": "persona_001",
+    "question": "How does Elena's professional focus on social equity influence her view on transit?",
+    "difficulty": "easy",
+    "type": "inference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m5_e1",
+        "statement": "Elena's professional focus is social equity",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s1_m5_e2",
+        "statement": "Accessible transit is the key factor for urban social equity",
+        "category": "values",
+        "sessionNumber": 1,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 453,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Based on the memory from 20",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_124",
+    "personaId": "persona_001",
+    "question": "Why does Elena value protected bike lanes?",
+    "difficulty": "easy",
+    "type": "inference",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m1_e2",
+        "statement": "Elena wants protected bike lanes connecting to the community garden.",
+        "category": "urban_planning",
+        "sessionNumber": 2,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s1_m4_e1",
+        "statement": "Elena commutes to work by bicycle",
+        "category": "travel",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 368,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_125",
+    "personaId": "persona_001",
+    "question": "What is the likely reason Elena prefers native plant species?",
+    "difficulty": "easy",
+    "type": "inference",
+    "sessionSpan": [2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m11_e1",
+        "statement": "Elena prefers using native plant species in gardens.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s2_m11_e2",
+        "statement": "Elena values water conservation and local biodiversity support.",
+        "category": "environment",
+        "sessionNumber": 2,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 386,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_126",
+    "personaId": "persona_001",
+    "question": "How does Elena's view on affordable housing relate to her professional background?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e2",
+        "statement": "Elena is an urban planner",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s2_m3_e1",
+        "statement": "Elena believes urban densification requires social equity and affordable housing.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 410,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 45,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_127",
+    "personaId": "persona_001",
+    "question": "Why might Elena be interested in the 1895 harbor survey map given her job?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [1, 2],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e2",
+        "statement": "Elena is an urban planner",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s2_m2_e2",
+        "statement": "Elena added an 1895 harbor survey map to her collection.",
+        "category": "hobby",
+        "sessionNumber": 2,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "Based on memory from 202",
+      "retrievalTimeMs": 487,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Elena might be interested in the",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_128",
+    "personaId": "persona_001",
+    "question": "How does Elena's sourdough baking reflect her personality?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m6_e1",
+        "statement": "Elena enjoys the methodical process of baking sourdough",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. None",
+      "retrievalTimeMs": 455,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_129",
+    "personaId": "persona_001",
+    "question": "Why does Elena prioritize safety at 5th and Main?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m2_e1",
+        "statement": "The 5th and Main intersection had the highest incident rate last year.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s3_m2_e2",
+        "statement": "The downtown bike corridor draft must prioritize safety at 5th and Main.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 388,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_130",
+    "personaId": "persona_001",
+    "question": "How does Elena's critique of LEED buildings reflect her professional focus?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [1, 3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m5_e1",
+        "statement": "Elena's professional focus is social equity",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s3_m5_e2",
+        "statement": "LEED-certified buildings frequently fail to address social accessibility on ground levels.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The",
+      "retrievalTimeMs": 417,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_131",
+    "personaId": "persona_001",
+    "question": "Why does Elena prefer the northern cycling route for a challenge?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m3_e2",
+        "statement": "Elena prefers the northern cycling route for its elevation challenge.",
+        "category": "hobby",
+        "sessionNumber": 4,
+        "importance": 0.65
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 384,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "Elena prefers the northern cycling route because of",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_132",
+    "personaId": "persona_001",
+    "question": "How does Elena's use of guitar for decompression relate to her work life?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s4_m7_e2",
+        "statement": "Elena uses guitar practice to decompress from work stress.",
+        "category": "wellness",
+        "sessionNumber": 4,
+        "importance": 0.6
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 682,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_133",
+    "personaId": "persona_001",
+    "question": "Why does Elena advocate for congestion pricing?",
+    "difficulty": "medium",
+    "type": "inference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e1",
+        "statement": "Elena is 34 years old",
+        "category": "personal",
+        "sessionNumber": 1,
+        "importance": 0.9
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 606,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 47,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_134",
+    "personaId": "persona_001",
+    "question": "How do Elena's views on social equity manifest in her housing project critiques?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s3_m9_e2",
+        "statement": "A minimum of 20% affordable housing is necessary to prevent displacement in redevelopments.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m4_e1",
+        "statement": "Elena believes the new housing complex lacks sufficient shared green space.",
+        "category": "planning",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 631,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 46,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_135",
+    "personaId": "persona_001",
+    "question": "How does Elena's professional focus on social equity influence her specific demands for the downtown bike corridor and the new housing complex?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [1, 3, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m5_e1",
+        "statement": "Elena's professional focus is social equity",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s3_m2_e2",
+        "statement": "The downtown bike corridor draft must prioritize safety at 5th and Main.",
+        "category": "work",
+        "sessionNumber": 3,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s4_m4_e1",
+        "statement": "Elena believes the new housing complex lacks sufficient shared green space.",
+        "category": "planning",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. Based",
+      "retrievalTimeMs": 593,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_136",
+    "personaId": "persona_001",
+    "question": "What is the likely connection between Elena's interest in historical water main maps and her current urban planning work?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [1, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m1_e2",
+        "statement": "Elena is an urban planner",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m6_e1",
+        "statement": "Elena acquired a 19th-century map of the city's water mains.",
+        "category": "collection",
+        "sessionNumber": 4,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. The provided",
+      "retrievalTimeMs": 802,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 49,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_137",
+    "personaId": "persona_001",
+    "question": "How does Elena's methodical approach to sourdough baking compare to her professional documentation standards?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [1],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m6_e1",
+        "statement": "Elena enjoys the methodical process of baking sourdough",
+        "category": "hobby",
+        "sessionNumber": 1,
+        "importance": 0.6
+      },
+      {
+        "id": "persona_001_s1_m8_e2",
+        "statement": "Elena values methodical and organized documentation",
+        "category": "work",
+        "sessionNumber": 1,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 580,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena has 10 years of experience in her field\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_138",
+    "personaId": "persona_001",
+    "question": "Why might Elena's research into 18th-century nautical charts be relevant to her views on modern urban densification?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [2, 3],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m3_e1",
+        "statement": "Elena believes urban densification requires social equity and affordable housing.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s3_m1_e1",
+        "statement": "Elena is researching 18th-century Mediterranean nautical charts in archives.",
+        "category": "hobby",
+        "sessionNumber": 3,
+        "importance": 0.7
+      }
+    ],
+    "basic": {
+      "answer": "I don't know. There is",
+      "retrievalTimeMs": 792,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 51,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_139",
+    "personaId": "persona_001",
+    "question": "How do Elena's environmental values in session 2 inform her critique of the housing complex in session 4?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s2_m10_e2",
+        "statement": "Elena is passionate about environmental sustainability.",
+        "category": "philosophy",
+        "sessionNumber": 2,
+        "importance": 0.9
+      },
+      {
+        "id": "persona_001_s4_m4_e1",
+        "statement": "Elena believes the new housing complex lacks sufficient shared green space.",
+        "category": "planning",
+        "sessionNumber": 4,
+        "importance": 0.85
+      }
+    ],
+    "basic": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 696,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is an urban planner\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know. While the",
+      "retrievalTimeMs": 48,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  },
+  {
+    "questionId": "q_persona_001_140",
+    "personaId": "persona_001",
+    "question": "Based on her communication preferences across all sessions, why might Elena avoid a phone call regarding the 5th Street garden project?",
+    "difficulty": "hard",
+    "type": "inference",
+    "sessionSpan": [1, 2, 4],
+    "expectedEvidence": [
+      {
+        "id": "persona_001_s1_m8_e1",
+        "statement": "Elena prefers email for professional project updates",
+        "category": "communication",
+        "sessionNumber": 1,
+        "importance": 0.8
+      },
+      {
+        "id": "persona_001_s2_m7_e1",
+        "statement": "Elena prefers structured email updates over phone calls.",
+        "category": "communication",
+        "sessionNumber": 2,
+        "importance": 0.7
+      },
+      {
+        "id": "persona_001_s4_m1_e1",
+        "statement": "Elena is drafting a proposal for a community garden on 5th Street.",
+        "category": "work",
+        "sessionNumber": 4,
+        "importance": 0.8
+      }
+    ],
+    "basic": {
+      "answer": "I don't know.",
+      "retrievalTimeMs": 504,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena lives near a community garden\" on 2025-12-31",
+      "scores": null,
+      "reasoning": null
+    },
+    "cognitive": {
+      "answer": "I don't know",
+      "retrievalTimeMs": 56,
+      "memoriesRetrieved": 5,
+      "topMemory": "persona_001 said: \"Elena is currently reviewing a transit-oriented development draft.\" on 2026-01-14",
+      "scores": null,
+      "reasoning": null
+    },
+    "deltaOverall": null
+  }
+]

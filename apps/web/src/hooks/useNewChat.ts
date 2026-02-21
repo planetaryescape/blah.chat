@@ -29,6 +29,8 @@ export function useNewChat() {
   const router = useRouter();
   // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
   const createConversation = useMutation(api.conversations.create);
+  // @ts-ignore - Type depth exceeded with complex Convex mutation (85+ modules)
+  const updateModel = useMutation(api.conversations.updateModel);
   const { newChatModel } = useNewChatModel();
   const { findEmptyConversation, isLoading } = useEmptyConversationReuse();
 
@@ -37,7 +39,13 @@ export function useNewChat() {
     const empty = findEmptyConversation();
 
     if (empty) {
-      // Reuse existing empty conversation
+      // Update model to user's preferred new chat model if different
+      if (empty.model !== newChatModel) {
+        await updateModel({
+          conversationId: empty._id,
+          model: newChatModel,
+        });
+      }
       router.push(`/chat/${empty._id}`);
       analytics.track("conversation_reused", { conversationId: empty._id });
       return empty._id;
@@ -52,7 +60,13 @@ export function useNewChat() {
     router.push(`/chat/${conversationId}`);
     analytics.track("conversation_started", { model: newChatModel });
     return conversationId;
-  }, [findEmptyConversation, createConversation, newChatModel, router]);
+  }, [
+    findEmptyConversation,
+    createConversation,
+    updateModel,
+    newChatModel,
+    router,
+  ]);
 
   return {
     startNewChat,

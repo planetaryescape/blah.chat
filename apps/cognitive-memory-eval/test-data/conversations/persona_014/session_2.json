@@ -1,0 +1,218 @@
+{
+  "id": "conv_persona_014_session_02",
+  "personaId": "persona_014",
+  "sessionNumber": 2,
+  "timestamp": 1768434307859,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hi there. I've been analyzing the latest soil density reports for the new urban park project we discussed last time. The data suggests we need more organic matter in the topsoil layer.",
+      "timestamp": 1768434307859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m1_e1",
+          "type": "factual",
+          "statement": "Elena is analyzing soil density reports for an urban park project.",
+          "importance": 0.8,
+          "category": "work"
+        },
+        {
+          "id": "persona_014_s2_m1_e2",
+          "type": "temporal",
+          "statement": "The project was discussed in a previous session.",
+          "importance": 0.4,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I really believe that the integration of native flora is non-negotiable for long-term ecological stability, despite the higher upfront costs. I saw a case study from Seattle that proves it.",
+      "timestamp": 1768434907859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m2_e1",
+          "type": "opinion",
+          "statement": "Native flora integration is non-negotiable for ecological stability.",
+          "importance": 0.9,
+          "category": "environment"
+        },
+        {
+          "id": "persona_014_s2_m2_e2",
+          "type": "factual",
+          "statement": "Native flora integration has higher upfront costs.",
+          "importance": 0.6,
+          "category": "finance"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Last weekend, I took my kayak out to the estuary. The water levels were significantly lower than this time last year, which is concerning for the local fish populations.",
+      "timestamp": 1768435507859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m3_e1",
+          "type": "temporal",
+          "statement": "Elena went kayaking last weekend.",
+          "importance": 0.5,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_014_s2_m3_e2",
+          "type": "factual",
+          "statement": "Estuary water levels are lower than last year.",
+          "importance": 0.7,
+          "category": "environment"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm currently scouting locations for my new documentary on sustainable infrastructure. I'm looking for sites that show a clear contrast between industrial decay and nature's resilience.",
+      "timestamp": 1768436107859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m4_e1",
+          "type": "factual",
+          "statement": "Elena is making a documentary on sustainable infrastructure.",
+          "importance": 0.8,
+          "category": "creative"
+        },
+        {
+          "id": "persona_014_s2_m4_e2",
+          "type": "preference",
+          "statement": "She prefers sites showing contrast between industry and nature.",
+          "importance": 0.6,
+          "category": "creative"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I tried a new Persian restaurant yesterday. Their Ghormeh Sabzi was excellent, though I think they over-salted the kidney beans slightly. I love finding authentic Middle Eastern spots.",
+      "timestamp": 1768436707859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m5_e1",
+          "type": "temporal",
+          "statement": "Elena visited a Persian restaurant yesterday.",
+          "importance": 0.3,
+          "category": "lifestyle"
+        },
+        {
+          "id": "persona_014_s2_m5_e2",
+          "type": "preference",
+          "statement": "She enjoys Middle Eastern cuisine like Ghormeh Sabzi.",
+          "importance": 0.5,
+          "category": "food"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Bouldering has been a great stress reliever lately. I've been hitting the gym three times a week to keep my strength up for field work.",
+      "timestamp": 1768437307859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m6_e1",
+          "type": "factual",
+          "statement": "Elena boulders three times a week.",
+          "importance": 0.6,
+          "category": "health"
+        },
+        {
+          "id": "persona_014_s2_m6_e2",
+          "type": "preference",
+          "statement": "She finds bouldering to be an effective stress reliever.",
+          "importance": 0.5,
+          "category": "health"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I prefer listening to my vinyl collection while I work on my garden plans. There's something about the analog sound that helps me focus on the spatial layout of the beds.",
+      "timestamp": 1768437907859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m7_e1",
+          "type": "preference",
+          "statement": "Elena prefers vinyl records for background music while working.",
+          "importance": 0.4,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_014_s2_m7_e2",
+          "type": "factual",
+          "statement": "She is currently working on garden plans.",
+          "importance": 0.7,
+          "category": "hobby"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Next month, I'm attending a symposium on urban permaculture. I'm hoping to gather more data on decentralized water filtration systems to use in my consulting.",
+      "timestamp": 1768438507859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m8_e1",
+          "type": "temporal",
+          "statement": "Elena is attending a symposium next month.",
+          "importance": 0.6,
+          "category": "work"
+        },
+        {
+          "id": "persona_014_s2_m8_e2",
+          "type": "factual",
+          "statement": "She is researching decentralized water filtration systems.",
+          "importance": 0.8,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "In my professional opinion, the lack of transparency in the recent zoning amendments is a major setback for community trust. We need open data.",
+      "timestamp": 1768439107859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m9_e1",
+          "type": "opinion",
+          "statement": "Zoning amendment secrecy damages community trust.",
+          "importance": 0.9,
+          "category": "politics"
+        },
+        {
+          "id": "persona_014_s2_m9_e2",
+          "type": "preference",
+          "statement": "Elena values transparency in urban planning.",
+          "importance": 0.9,
+          "category": "values"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I've decided to install a greywater system in my own home by the end of the summer. It feels hypocritical to consult on these things without implementing them myself.",
+      "timestamp": 1768439707859,
+      "evidence": [
+        {
+          "id": "persona_014_s2_m10_e1",
+          "type": "temporal",
+          "statement": "The greywater system installation is planned for the end of summer.",
+          "importance": 0.7,
+          "category": "home"
+        },
+        {
+          "id": "persona_014_s2_m10_e2",
+          "type": "opinion",
+          "statement": "Consultants should implement the sustainable practices they recommend.",
+          "importance": 0.6,
+          "category": "values"
+        }
+      ]
+    }
+  ]
+}

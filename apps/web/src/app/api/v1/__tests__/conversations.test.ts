@@ -97,6 +97,7 @@ describe("/api/v1/conversations", () => {
         25,
         false,
         "test-session-token",
+        undefined,
       );
     });
 
@@ -112,6 +113,25 @@ describe("/api/v1/conversations", () => {
         50,
         true,
         "test-session-token",
+        undefined,
+      );
+    });
+
+    it("passes projectId query parameter to DAL", async () => {
+      vi.mocked(conversationsDAL.list).mockResolvedValue([]);
+
+      const { GET } = await import("../conversations/route");
+      const req = createMockRequest(
+        "/api/v1/conversations?projectId=proj_123abc",
+      );
+      await GET(req, { params: Promise.resolve({}) });
+
+      expect(conversationsDAL.list).toHaveBeenCalledWith(
+        "test-user-id",
+        50,
+        false,
+        "test-session-token",
+        "proj_123abc",
       );
     });
 
@@ -127,6 +147,7 @@ describe("/api/v1/conversations", () => {
         50,
         false,
         "test-session-token",
+        undefined,
       );
     });
 

@@ -1,0 +1,1539 @@
+[
+  {
+    "id": "q_persona_002_001",
+    "personaId": "persona_002",
+    "question": "What is the user's full name?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "This is a basic factual question about the user's identity found in the first session."
+  },
+  {
+    "id": "q_persona_002_002",
+    "personaId": "persona_002",
+    "question": "What is Elena's current profession?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The user's occupation is explicitly stated in the evidence."
+  },
+  {
+    "id": "q_persona_002_003",
+    "personaId": "persona_002",
+    "question": "Which musical instrument does Elena play?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence directly mentions her playing the classical guitar."
+  },
+  {
+    "id": "q_persona_002_004",
+    "personaId": "persona_002",
+    "question": "Where does Elena keep her urban garden?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The location of the garden is specified as her balcony."
+  },
+  {
+    "id": "q_persona_002_005",
+    "personaId": "persona_002",
+    "question": "What specific plants is Elena currently growing in her balcony garden?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence lists heirloom tomatoes and basil as the plants she is growing."
+  },
+  {
+    "id": "q_persona_002_006",
+    "personaId": "persona_002",
+    "question": "What is the renewable energy goal for Elena's city by 2040?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m9_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The city's goal of 100% renewable energy is a direct fact from the evidence."
+  },
+  {
+    "id": "q_persona_002_007",
+    "personaId": "persona_002",
+    "question": "What type of irrigation system does Elena use for her garden?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "The urban drip irrigation system is mentioned in session 2."
+  },
+  {
+    "id": "q_persona_002_008",
+    "personaId": "persona_002",
+    "question": "What kind of data is Elena currently analyzing for her work?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m2_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "The 2024 Carbon Disclosure Project data is explicitly mentioned."
+  },
+  {
+    "id": "q_persona_002_009",
+    "personaId": "persona_002",
+    "question": "Who did Elena recently interview for her podcast?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "The interview with a soil scientist is a factual event from session 2."
+  },
+  {
+    "id": "q_persona_002_010",
+    "personaId": "persona_002",
+    "question": "What is the focus of Elena's podcast?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s3_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "The podcast's focus on data-backed sustainability is explicitly stated."
+  },
+  {
+    "id": "q_persona_002_011",
+    "personaId": "persona_002",
+    "question": "How many listeners did Elena's latest podcast episode receive in one week?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s3_m5_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "The listener count is a specific data point in the evidence."
+  },
+  {
+    "id": "q_persona_002_012",
+    "personaId": "persona_002",
+    "question": "What role does Elena often take in professional group settings?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m8_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "Her role as a mediator is mentioned across multiple sessions."
+  },
+  {
+    "id": "q_persona_002_013",
+    "personaId": "persona_002",
+    "question": "What metrics is Elena seeking regarding building materials?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s4_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "The search for carbon footprint metrics for CLT versus steel is a specific task."
+  },
+  {
+    "id": "q_persona_002_014",
+    "personaId": "persona_002",
+    "question": "What kind of audit is Elena conducting for the city?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The sustainability audit for the city's park system is a direct fact."
+  },
+  {
+    "id": "q_persona_002_015",
+    "personaId": "persona_002",
+    "question": "What is Elena's area of specialization within environmental consultancy?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m2_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Her specialization in LEED certification and water management is stated early on."
+  },
+  {
+    "id": "q_persona_002_016",
+    "personaId": "persona_002",
+    "question": "How does Elena's role as a mediator relate to her professional communication style?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m8_e1", "persona_002_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires connecting her role as a mediator with her structured, summary-based communication style."
+  },
+  {
+    "id": "q_persona_002_017",
+    "personaId": "persona_002",
+    "question": "What are the various professional projects Elena is currently involved in across different sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s2_m2_e2",
+      "persona_002_s3_m2_e1",
+      "persona_002_s4_m8_e2"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Requires aggregating her work with SMEs, manufacturing audits, and city park audits."
+  },
+  {
+    "id": "q_persona_002_018",
+    "personaId": "persona_002",
+    "question": "What specific environmental data has Elena reviewed recently for urban planning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m9_e1", "persona_002_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Combines her studies on canopy cover and heat island data for redevelopment."
+  },
+  {
+    "id": "q_persona_002_019",
+    "personaId": "persona_002",
+    "question": "What are the components of Elena's urban gardening setup and her current focus?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s2_m1_e1",
+      "persona_002_s3_m9_e1",
+      "persona_002_s4_m9_e1"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Combines the irrigation system, the search for native shrubs, and soil health experiments."
+  },
+  {
+    "id": "q_persona_002_020",
+    "personaId": "persona_002",
+    "question": "How long has Elena been working in her field and what are her core certifications?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m2_e1", "persona_002_s1_m2_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Combines her ten years of experience with her LEED certification specialty."
+  },
+  {
+    "id": "q_persona_002_021",
+    "personaId": "persona_002",
+    "question": "What is the status and theme of Elena's recent podcasting activities?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s3_m5_e1", "persona_002_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Combines the data-backed theme with the fact that an urban planning episode is in post-production."
+  },
+  {
+    "id": "q_persona_002_022",
+    "personaId": "persona_002",
+    "question": "What are the specific details of Elena's city's renewable energy targets?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "While factual, it requires specific recall of the percentage and the target year."
+  },
+  {
+    "id": "q_persona_002_023",
+    "personaId": "persona_002",
+    "question": "Which groups has Elena mediated between in her professional capacity?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifies the specific stakeholders (developers and environmental groups) she worked with."
+  },
+  {
+    "id": "q_persona_002_024",
+    "personaId": "persona_002",
+    "question": "What kind of training does Elena do during her hikes?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifies that she uses high elevation gain trails specifically for training."
+  },
+  {
+    "id": "q_persona_002_025",
+    "personaId": "persona_002",
+    "question": "What are the core principles Elena follows in her daily life regarding her possessions?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m10_e2", "persona_002_s2_m10_e4"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Combines her minimalist principles with the specific habit of only keeping frequently used gear."
+  },
+  {
+    "id": "q_persona_002_026",
+    "personaId": "persona_002",
+    "question": "What specific environmental metrics is Elena currently analyzing for her consultancy?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m2_e1", "persona_002_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Combines CDP data analysis with CLT vs steel carbon footprint metrics."
+  },
+  {
+    "id": "q_persona_002_027",
+    "personaId": "persona_002",
+    "question": "How does Elena describe her communication style in her podcasting and professional work?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m7_e2", "persona_002_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 3],
+    "reasoning": "Combines her value for objective communication with her structured, summary-based style."
+  },
+  {
+    "id": "q_persona_002_028",
+    "personaId": "persona_002",
+    "question": "What are the different types of audits Elena has performed or is planning?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s3_m2_e1", "persona_002_s4_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Identifies the manufacturing facility audit and the city park system audit."
+  },
+  {
+    "id": "q_persona_002_029",
+    "personaId": "persona_002",
+    "question": "What specific details are known about Elena's balcony garden infrastructure?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m6_e1", "persona_002_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Combines the location (balcony) with the specific irrigation technology used."
+  },
+  {
+    "id": "q_persona_002_030",
+    "personaId": "persona_002",
+    "question": "What kind of professional mediation session does Elena have scheduled?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s3_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifies the upcoming mediation session mentioned in session 3."
+  },
+  {
+    "id": "q_persona_002_031",
+    "personaId": "persona_002",
+    "question": "What are the specific subjects of Elena's recent environmental studies?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m9_e1", "persona_002_s4_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Identifies urban heat islands and canopy cover as her research subjects."
+  },
+  {
+    "id": "q_persona_002_032",
+    "personaId": "persona_002",
+    "question": "What data sources does Elena prefer for her sustainability information?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Identifies her preference for data-heavy sources over general blogs."
+  },
+  {
+    "id": "q_persona_002_033",
+    "personaId": "persona_002",
+    "question": "What are the specific details of Elena's classical guitar practice?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m8_e1",
+      "persona_002_s2_m3_e1",
+      "persona_002_s3_m4_e1"
+    ],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Aggregates the daily 30-minute practice, the Tuesday 45-minute practice, and the 2-hour session."
+  },
+  {
+    "id": "q_persona_002_034",
+    "personaId": "persona_002",
+    "question": "What is the relationship between Elena's minimalist design preference and energy consumption?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s1_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "States the correlation between space efficiency and lower energy consumption."
+  },
+  {
+    "id": "q_persona_002_035",
+    "personaId": "persona_002",
+    "question": "What specific types of trails does Elena prefer for her hiking hobby?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m7_e1", "persona_002_s2_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Combines her preference for northern forest loops and high elevation gain trails."
+  },
+  {
+    "id": "q_persona_002_036",
+    "personaId": "persona_002",
+    "question": "How does Elena integrate her professional expertise in water management into her personal life and future goals?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m10_e1",
+      "persona_002_s2_m1_e1",
+      "persona_002_s3_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires connecting her career specialty to her drip irrigation, native shrub search, and goal to integrate design with water data."
+  },
+  {
+    "id": "q_persona_002_037",
+    "personaId": "persona_002",
+    "question": "Can you detail Elena's professional evolution and current projects as described across all sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m2_e1",
+      "persona_002_s2_m2_e2",
+      "persona_002_s3_m2_e1",
+      "persona_002_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires a comprehensive summary of her ten-year career, SME consulting, manufacturing audit, and park system audit."
+  },
+  {
+    "id": "q_persona_002_038",
+    "personaId": "persona_002",
+    "question": "What is the evidence of Elena's data-driven approach in both her professional and media-related activities?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m7_e2",
+      "persona_002_s2_m2_e1",
+      "persona_002_s3_m5_e1",
+      "persona_002_s4_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Synthesizes her podcast theme, her CDP data analysis, her CLT metrics search, and her communication values."
+  },
+  {
+    "id": "q_persona_002_039",
+    "personaId": "persona_002",
+    "question": "How does Elena's work as a mediator manifest in different contexts throughout the recorded sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s2_m8_e1",
+      "persona_002_s3_m8_e2",
+      "persona_002_s4_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Tracks her role as a mediator from a general personality trait to specific professional instances with developers."
+  },
+  {
+    "id": "q_persona_002_040",
+    "personaId": "persona_002",
+    "question": "What are the specific technical topics Elena has covered in her podcast and research?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s2_m6_e2",
+      "persona_002_s2_m9_e1",
+      "persona_002_s4_m1_e1",
+      "persona_002_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Combines regenerative agriculture, urban heat islands, canopy cover, and urban planning."
+  },
+  {
+    "id": "q_persona_002_041",
+    "personaId": "persona_002",
+    "question": "How has Elena's classical guitar practice varied in duration and frequency across the sessions?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m8_e1",
+      "persona_002_s2_m3_e1",
+      "persona_002_s3_m4_e1",
+      "persona_002_s4_m7_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires comparing the 30-minute daily practice, the 45-minute Tuesday practice, and the 2-hour session."
+  },
+  {
+    "id": "q_persona_002_042",
+    "personaId": "persona_002",
+    "question": "What specific evidence exists for Elena's commitment to urban sustainability in her personal gardening?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s2_m1_e1",
+      "persona_002_s3_m9_e1",
+      "persona_002_s4_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Synthesizes the use of drip irrigation, drought-resistant native shrubs, and soil health experiments."
+  },
+  {
+    "id": "q_persona_002_043",
+    "personaId": "persona_002",
+    "question": "In what ways does Elena's preference for minimalism appear in her professional recommendations and personal life?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m4_e1",
+      "persona_002_s2_m10_e1",
+      "persona_002_s3_m3_e1",
+      "persona_002_s4_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Connects her personal lifestyle, architectural preference, and professional recommendations for community projects."
+  },
+  {
+    "id": "q_persona_002_044",
+    "personaId": "persona_002",
+    "question": "What are the specific environmental goals and metrics Elena is tracking for her city and her clients?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m9_e1",
+      "persona_002_s2_m2_e1",
+      "persona_002_s4_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Combines the city's renewable target, CDP data for SMEs, and CLT carbon metrics."
+  },
+  {
+    "id": "q_persona_002_045",
+    "personaId": "persona_002",
+    "question": "How does Elena's communication style differ between her podcasting and her mediation work?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s1_m7_e2",
+      "persona_002_s3_m10_e1",
+      "persona_002_s2_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires synthesizing her value for objectivity, her structured summaries, and her data-backed conflict resolution."
+  },
+  {
+    "id": "q_persona_002_046",
+    "personaId": "persona_002",
+    "question": "What are the specific details of Elena's recent and upcoming professional audits and mediations?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s3_m2_e1",
+      "persona_002_s3_m8_e1",
+      "persona_002_s4_m8_e1",
+      "persona_002_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Combines the manufacturing audit, the upcoming mediation, and the city park system audit timeline."
+  },
+  {
+    "id": "q_persona_002_047",
+    "personaId": "persona_002",
+    "question": "What specific architectural styles and materials has Elena expressed interest in for her projects?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s2_m4_e1",
+      "persona_002_s4_m4_e1",
+      "persona_002_s4_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Combines exposed concrete, minimalist community projects, and CLT (Cross Laminated Timber)."
+  },
+  {
+    "id": "q_persona_002_048",
+    "personaId": "persona_002",
+    "question": "How does Elena's interest in soil health manifest in her media and gardening activities?",
+    "type": "factual",
+    "expectedEvidence": ["persona_002_s2_m6_e2", "persona_002_s4_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Connects the soil scientist interview on her podcast with her personal soil health experiments."
+  },
+  {
+    "id": "q_persona_002_049",
+    "personaId": "persona_002",
+    "question": "What are the specific listener and content details of Elena's sustainability podcast?",
+    "type": "factual",
+    "expectedEvidence": [
+      "persona_002_s3_m5_e1",
+      "persona_002_s3_m5_e2",
+      "persona_002_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Combines the podcast's focus, its recent listener count, and the current status of the urban planning episode."
+  },
+  {
+    "id": "q_persona_002_050",
+    "personaId": "persona_002",
+    "question": "When did Elena last go kayaking?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m3_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence specifies she went kayaking last Saturday."
+  },
+  {
+    "id": "q_persona_002_051",
+    "personaId": "persona_002",
+    "question": "When is Elena's next podcast recording scheduled?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence states she is recording on Tuesday morning."
+  },
+  {
+    "id": "q_persona_002_052",
+    "personaId": "persona_002",
+    "question": "When did Elena work in her garden recently?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m1_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "The evidence mentions she worked in her garden this morning."
+  },
+  {
+    "id": "q_persona_002_053",
+    "personaId": "persona_002",
+    "question": "When did Elena attend a stakeholder meeting?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [4],
+    "reasoning": "The evidence states she attended a stakeholder meeting today."
+  },
+  {
+    "id": "q_persona_002_054",
+    "personaId": "persona_002",
+    "question": "When is Elena planning her next kayaking trip?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m6_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "The evidence mentions she is planning a trip for this Saturday."
+  },
+  {
+    "id": "q_persona_002_055",
+    "personaId": "persona_002",
+    "question": "What is Elena's professional schedule for the next month and the next quarter?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m8_e1", "persona_002_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Combines the mediation session next month and the sustainability audit next quarter."
+  },
+  {
+    "id": "q_persona_002_056",
+    "personaId": "persona_002",
+    "question": "How has Elena's guitar practice schedule changed between session 1 and session 2?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m8_e1", "persona_002_s2_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Compares the daily 30-minute practice with the specific Tuesday 45-minute practice."
+  },
+  {
+    "id": "q_persona_002_057",
+    "personaId": "persona_002",
+    "question": "What are Elena's plans for this coming Saturday morning?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s2_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifies her specific plan to go kayaking on Saturday morning."
+  },
+  {
+    "id": "q_persona_002_058",
+    "personaId": "persona_002",
+    "question": "When did Elena record her most recent podcast segment?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s2_m6_e3"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifies the recent recording activity mentioned in session 2."
+  },
+  {
+    "id": "q_persona_002_059",
+    "personaId": "persona_002",
+    "question": "What is the current status of the podcast episode on urban planning?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m3_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifies that the episode is currently in post-production."
+  },
+  {
+    "id": "q_persona_002_060",
+    "personaId": "persona_002",
+    "question": "When did Elena last review urban heat island data?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifies the recent nature of the heat island data review."
+  },
+  {
+    "id": "q_persona_002_061",
+    "personaId": "persona_002",
+    "question": "What is the timeframe for Elena's current consultancy project?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m1_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Identifies that she is starting a new project this month."
+  },
+  {
+    "id": "q_persona_002_062",
+    "personaId": "persona_002",
+    "question": "How recently did Elena's podcast episode reach 5,000 listeners?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifies the 'one week' timeframe for the listener milestone."
+  },
+  {
+    "id": "q_persona_002_063",
+    "personaId": "persona_002",
+    "question": "When did Elena practice guitar for an extended two-hour session?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m4_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "Identifies that this happened 'last night' relative to session 3."
+  },
+  {
+    "id": "q_persona_002_064",
+    "personaId": "persona_002",
+    "question": "What are Elena's upcoming commitments for the next few months?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m8_e1", "persona_002_s4_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3, 4],
+    "reasoning": "Synthesizes the mediation and the audit timelines."
+  },
+  {
+    "id": "q_persona_002_065",
+    "personaId": "persona_002",
+    "question": "When did Elena interview the soil scientist?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s2_m6_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "Identifies the 'recently' timeframe from session 2."
+  },
+  {
+    "id": "q_persona_002_066",
+    "personaId": "persona_002",
+    "question": "What is Elena's guitar practice routine as of session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifies her daily practice routine for decompression."
+  },
+  {
+    "id": "q_persona_002_067",
+    "personaId": "persona_002",
+    "question": "When did Elena work as a mediator between developers and environmental groups?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m6_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Identifies the past tense nature of this specific mediation activity."
+  },
+  {
+    "id": "q_persona_002_068",
+    "personaId": "persona_002",
+    "question": "What is the target year for the renewable energy goals Elena follows?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Identifies 2040 as the target year."
+  },
+  {
+    "id": "q_persona_002_069",
+    "personaId": "persona_002",
+    "question": "When does Elena typically record her podcast?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Identifies Tuesday morning as her recording time."
+  },
+  {
+    "id": "q_persona_002_070",
+    "personaId": "persona_002",
+    "question": "Can you construct a timeline of Elena's kayaking activities across all sessions?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s1_m3_e1",
+      "persona_002_s2_m5_e1",
+      "persona_002_s3_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires sequencing 'last Saturday', 'this Saturday morning', and 'planning for this Saturday'."
+  },
+  {
+    "id": "q_persona_002_071",
+    "personaId": "persona_002",
+    "question": "How has Elena's guitar practice duration and timing evolved from session 1 through session 4?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s1_m8_e1",
+      "persona_002_s2_m3_e1",
+      "persona_002_s3_m4_e1",
+      "persona_002_s4_m7_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3, 4],
+    "reasoning": "Requires a detailed comparison of practice times (30m, 45m, 2h, daily) across the timeline."
+  },
+  {
+    "id": "q_persona_002_072",
+    "personaId": "persona_002",
+    "question": "What is the sequence of events for Elena's podcast production mentioned in the evidence?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s1_m7_e1",
+      "persona_002_s2_m6_e3",
+      "persona_002_s4_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 4],
+    "reasoning": "Sequences recording on Tuesday, a recent recording segment, and the current post-production phase."
+  },
+  {
+    "id": "q_persona_002_073",
+    "personaId": "persona_002",
+    "question": "Compare the timing of Elena's professional audits and mediation sessions across sessions 3 and 4.",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s3_m2_e1",
+      "persona_002_s3_m8_e1",
+      "persona_002_s4_m8_e1",
+      "persona_002_s4_m8_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires distinguishing between the current audit, the upcoming mediation (next month), and the future audit (next quarter)."
+  },
+  {
+    "id": "q_persona_002_074",
+    "personaId": "persona_002",
+    "question": "What is the chronological order of Elena's gardening activities mentioned in the logs?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s3_m1_e2",
+      "persona_002_s3_m9_e1",
+      "persona_002_s4_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Sequences working this morning, seeking shrubs, and conducting experiments."
+  },
+  {
+    "id": "q_persona_002_075",
+    "personaId": "persona_002",
+    "question": "How do Elena's professional commitments this month compare to her plans for the next quarter?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m1_e2", "persona_002_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Compares the 'starting this month' project with the 'next quarter' audit."
+  },
+  {
+    "id": "q_persona_002_076",
+    "personaId": "persona_002",
+    "question": "What is the timeline of Elena's involvement with urban heat island data?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s2_m9_e1",
+      "persona_002_s4_m1_e1",
+      "persona_002_s4_m1_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Connects her ongoing studies with the recent review for a redevelopment project."
+  },
+  {
+    "id": "q_persona_002_077",
+    "personaId": "persona_002",
+    "question": "When did Elena's podcast reach its listener milestone relative to her interview with the soil scientist?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s2_m6_e2", "persona_002_s3_m5_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Requires inferring the sequence between the 'recent' interview in session 2 and the milestone in session 3."
+  },
+  {
+    "id": "q_persona_002_078",
+    "personaId": "persona_002",
+    "question": "What are the specific days of the week associated with Elena's recurring activities?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s1_m7_e1",
+      "persona_002_s2_m3_e1",
+      "persona_002_s2_m5_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Identifies Tuesday for recording/guitar and Saturday for kayaking."
+  },
+  {
+    "id": "q_persona_002_079",
+    "personaId": "persona_002",
+    "question": "How does the timing of Elena's stakeholder meeting today relate to her ongoing mediation work?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m6_e1", "persona_002_s4_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Connects the 'today' meeting with her past and future mediation roles."
+  },
+  {
+    "id": "q_persona_002_080",
+    "personaId": "persona_002",
+    "question": "What is the relationship between the target year for renewable energy and Elena's consultancy projects?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s1_m9_e1", "persona_002_s2_m2_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Connects the 2040 goal with her current 2024 data analysis."
+  },
+  {
+    "id": "q_persona_002_081",
+    "personaId": "persona_002",
+    "question": "Can you map out Elena's weekend vs. weekday activities based on the evidence?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s1_m3_e1",
+      "persona_002_s1_m7_e1",
+      "persona_002_s1_m8_e1",
+      "persona_002_s2_m3_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Requires categorizing kayaking (Saturday) vs. recording/guitar (Tuesday/Daily)."
+  },
+  {
+    "id": "q_persona_002_082",
+    "personaId": "persona_002",
+    "question": "How does the 'recent' review of heat island data fit into the timeline of Elena's park system audit?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s4_m1_e2", "persona_002_s4_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Requires distinguishing between a recent task and a plan for the next quarter."
+  },
+  {
+    "id": "q_persona_002_083",
+    "personaId": "persona_002",
+    "question": "What is the duration of Elena's guitar practice mentioned across sessions 1, 2, and 3?",
+    "type": "temporal",
+    "expectedEvidence": [
+      "persona_002_s1_m8_e1",
+      "persona_002_s2_m3_e1",
+      "persona_002_s3_m4_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Requires listing 30 minutes, 45 minutes, and 2 hours."
+  },
+  {
+    "id": "q_persona_002_084",
+    "personaId": "persona_002",
+    "question": "When did Elena work in her garden relative to her stakeholder meeting in session 4?",
+    "type": "temporal",
+    "expectedEvidence": ["persona_002_s3_m1_e2", "persona_002_s4_m6_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Requires comparing 'this morning' in session 3 to 'today' in session 4."
+  },
+  {
+    "id": "q_persona_002_085",
+    "personaId": "persona_002",
+    "question": "What type of architecture does Elena prefer?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m4_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence explicitly states her preference for minimalist architecture."
+  },
+  {
+    "id": "q_persona_002_086",
+    "personaId": "persona_002",
+    "question": "What kind of information sources does Elena prefer for sustainability?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m5_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "She prefers data-heavy sources over general blogs."
+  },
+  {
+    "id": "q_persona_002_087",
+    "personaId": "persona_002",
+    "question": "What kind of hiking trails does Elena prefer?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m7_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "She prefers northern forest loop trails."
+  },
+  {
+    "id": "q_persona_002_088",
+    "personaId": "persona_002",
+    "question": "What is Elena's preferred way to reset her mental focus?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m1_e1"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "Kayaking is her preferred way to reset focus."
+  },
+  {
+    "id": "q_persona_002_089",
+    "personaId": "persona_002",
+    "question": "What does Elena value in her podcast communication?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m7_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "She values data-driven and objective communication."
+  },
+  {
+    "id": "q_persona_002_090",
+    "personaId": "persona_002",
+    "question": "Why does Elena prefer minimalist architecture for community projects?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s4_m4_e1", "persona_002_s4_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "She believes it is essential for reducing material waste."
+  },
+  {
+    "id": "q_persona_002_091",
+    "personaId": "persona_002",
+    "question": "What is Elena's preference regarding the gear and equipment she keeps?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m10_e4"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "She only retains equipment and gear that she uses frequently."
+  },
+  {
+    "id": "q_persona_002_092",
+    "personaId": "persona_002",
+    "question": "Why does Elena prefer data-heavy sources over sustainability blogs?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "She finds many blogs lack rigorous data."
+  },
+  {
+    "id": "q_persona_002_093",
+    "personaId": "persona_002",
+    "question": "What kind of plants is Elena specifically seeking for her garden?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s3_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "She is seeking drought-resistant native shrubs."
+  },
+  {
+    "id": "q_persona_002_094",
+    "personaId": "persona_002",
+    "question": "What type of hiking trails does Elena use for training purposes?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m7_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "She prefers trails with high elevation gain for training."
+  },
+  {
+    "id": "q_persona_002_095",
+    "personaId": "persona_002",
+    "question": "How does Elena view the relationship between nature and her analytical focus?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "She believes nature is essential for maintaining focus."
+  },
+  {
+    "id": "q_persona_002_096",
+    "personaId": "persona_002",
+    "question": "What is Elena's preference for architectural styles in terms of 'honesty'?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s3_m3_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "She believes minimalist architecture is more honest than ornamental styles."
+  },
+  {
+    "id": "q_persona_002_097",
+    "personaId": "persona_002",
+    "question": "Why does Elena enjoy playing the classical guitar?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "She enjoys it as a creative outlet."
+  },
+  {
+    "id": "q_persona_002_098",
+    "personaId": "persona_002",
+    "question": "What does Elena prioritize in her lifestyle choices?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "She prioritizes a minimalist lifestyle and high-quality experiences."
+  },
+  {
+    "id": "q_persona_002_099",
+    "personaId": "persona_002",
+    "question": "How does Elena feel about consumer-focused sustainability blogs?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s3_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "She thinks they distract from systemic industrial issues."
+  },
+  {
+    "id": "q_persona_002_100",
+    "personaId": "persona_002",
+    "question": "What architectural features does Elena find grounding?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m4_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "She finds minimalist architecture with clean lines to be grounding."
+  },
+  {
+    "id": "q_persona_002_101",
+    "personaId": "persona_002",
+    "question": "What is Elena's stance on renewable energy targets?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m9_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "She believes ambitious targets are necessary for resilience."
+  },
+  {
+    "id": "q_persona_002_102",
+    "personaId": "persona_002",
+    "question": "What does Elena value more: short-term gains or long-term impact?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s4_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "She values long-term ecological impact over short-term financial gains."
+  },
+  {
+    "id": "q_persona_002_103",
+    "personaId": "persona_002",
+    "question": "How does Elena prefer to communicate in professional settings?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s3_m10_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [3],
+    "reasoning": "She prefers a structured, summary-based communication style."
+  },
+  {
+    "id": "q_persona_002_104",
+    "personaId": "persona_002",
+    "question": "Why does Elena practice classical guitar daily according to session 4?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s4_m7_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "She practices it to decompress."
+  },
+  {
+    "id": "q_persona_002_105",
+    "personaId": "persona_002",
+    "question": "How do Elena's architectural preferences influence her professional goals for integrating design and data?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m10_e1", "persona_002_s3_m3_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Connects her preference for functional minimalist architecture with her goal to integrate it with water data."
+  },
+  {
+    "id": "q_persona_002_106",
+    "personaId": "persona_002",
+    "question": "What is the connection between Elena's minimalist lifestyle and her professional focus on sustainability?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m10_e1", "persona_002_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 4],
+    "reasoning": "Links her personal priority for high-quality experiences with her belief that minimalist design reduces waste."
+  },
+  {
+    "id": "q_persona_002_107",
+    "personaId": "persona_002",
+    "question": "How does Elena's preference for data-heavy sources manifest in her criticism of sustainability media?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_002_s1_m5_e1",
+      "persona_002_s1_m5_e2",
+      "persona_002_s3_m7_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Synthesizes her preference for data with her views on the lack of rigor and the distracting nature of blogs."
+  },
+  {
+    "id": "q_persona_002_108",
+    "personaId": "persona_002",
+    "question": "How do Elena's recreational preferences (kayaking and hiking) serve her professional mindset?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_002_s1_m3_e2",
+      "persona_002_s3_m6_e2",
+      "persona_002_s4_m2_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3, 4],
+    "reasoning": "Connects her use of nature for focus, resetting, and maintaining professional focus."
+  },
+  {
+    "id": "q_persona_002_109",
+    "personaId": "persona_002",
+    "question": "What is the link between Elena's preference for minimalist architecture and her views on material efficiency?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m4_e2", "persona_002_s4_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Connects energy consumption benefits with the reduction of material waste."
+  },
+  {
+    "id": "q_persona_002_110",
+    "personaId": "persona_002",
+    "question": "How does Elena's preference for objective communication influence her role as a mediator?",
+    "type": "preference",
+    "expectedEvidence": [
+      "persona_002_s1_m7_e2",
+      "persona_002_s2_m8_e2",
+      "persona_002_s3_m10_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "Synthesizes her value for objective data in her podcast, mediation, and structured communication style."
+  },
+  {
+    "id": "q_persona_002_111",
+    "personaId": "persona_002",
+    "question": "Why does Elena choose specific hiking trails based on her training needs and aesthetic preferences?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m7_e1", "persona_002_s2_m7_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Combines her preference for forest loops with the functional need for high elevation gain."
+  },
+  {
+    "id": "q_persona_002_112",
+    "personaId": "persona_002",
+    "question": "How does Elena's gardening preference reflect her professional interest in water management?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m1_e1", "persona_002_s3_m9_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Links the use of drip irrigation with the search for drought-resistant native shrubs."
+  },
+  {
+    "id": "q_persona_002_113",
+    "personaId": "persona_002",
+    "question": "What is the relationship between Elena's musical hobby and her need for decompression?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m8_e2", "persona_002_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Connects the 'creative outlet' aspect with the 'daily decompression' aspect."
+  },
+  {
+    "id": "q_persona_002_114",
+    "personaId": "persona_002",
+    "question": "How does Elena's belief in long-term impact shape her professional and personal choices?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m9_e2", "persona_002_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "Links her belief in ambitious renewable targets with her value for ecological impact over financial gain."
+  },
+  {
+    "id": "q_persona_002_115",
+    "personaId": "persona_002",
+    "question": "What is the connection between Elena's preference for minimalist design and her view on 'honesty' in architecture?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m4_e2", "persona_002_s3_m3_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Links the grounding nature of clean lines with the idea that minimalism is more 'honest' than ornamentation."
+  },
+  {
+    "id": "q_persona_002_116",
+    "personaId": "persona_002",
+    "question": "How does Elena's preference for data-backed objectives apply to her approach to emotional conflict?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m8_e2", "persona_002_s3_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Connects her mediation philosophy with her structured communication style."
+  },
+  {
+    "id": "q_persona_002_117",
+    "personaId": "persona_002",
+    "question": "Why does Elena prefer high-quality experiences and minimalist living according to her philosophy?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s2_m10_e1", "persona_002_s2_m10_e3"],
+    "difficulty": "hard",
+    "sessionSpan": [2],
+    "reasoning": "Links her lifestyle priority with her belief that reducing clutter improves mental focus."
+  },
+  {
+    "id": "q_persona_002_118",
+    "personaId": "persona_002",
+    "question": "How do Elena's preferences for building materials (like CLT) align with her sustainability values?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s4_m4_e2", "persona_002_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Links her belief in waste reduction with her search for carbon footprint metrics of sustainable materials."
+  },
+  {
+    "id": "q_persona_002_119",
+    "personaId": "persona_002",
+    "question": "What is the connection between Elena's preference for data-heavy sources and her podcast's mission?",
+    "type": "preference",
+    "expectedEvidence": ["persona_002_s1_m5_e1", "persona_002_s3_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 3],
+    "reasoning": "Links her personal information preference with the 'data-backed' focus of her podcast."
+  },
+  {
+    "id": "q_persona_002_120",
+    "personaId": "persona_002",
+    "question": "Why does Elena believe nature is important for her work?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s1_m3_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [1],
+    "reasoning": "The evidence directly states she believes nature is essential for maintaining analytical focus."
+  },
+  {
+    "id": "q_persona_002_121",
+    "personaId": "persona_002",
+    "question": "How does Elena's minimalist philosophy affect her mental state?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s2_m10_e3"],
+    "difficulty": "easy",
+    "sessionSpan": [2],
+    "reasoning": "She believes reducing physical clutter improves mental focus."
+  },
+  {
+    "id": "q_persona_002_122",
+    "personaId": "persona_002",
+    "question": "What is the intended outcome of Elena's kayaking habit?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s3_m6_e2"],
+    "difficulty": "easy",
+    "sessionSpan": [3],
+    "reasoning": "She uses it as a way to reset her mental focus."
+  },
+  {
+    "id": "q_persona_002_123",
+    "personaId": "persona_002",
+    "question": "How does Elena's analytical nature influence her approach to conflict resolution?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s2_m8_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [2],
+    "reasoning": "She believes focusing on data-backed objectives simplifies emotional conflict resolution."
+  },
+  {
+    "id": "q_persona_002_124",
+    "personaId": "persona_002",
+    "question": "What is the relationship between Elena's personal gardening and her professional interest in urban water?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s1_m2_e2", "persona_002_s2_m1_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [1, 2],
+    "reasoning": "Her use of a drip irrigation system reflects her professional specialization in urban water management."
+  },
+  {
+    "id": "q_persona_002_125",
+    "personaId": "persona_002",
+    "question": "How does Elena's preference for data-heavy sources affect her view of the sustainability blogosphere?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s1_m5_e1", "persona_002_s1_m5_e2"],
+    "difficulty": "medium",
+    "sessionSpan": [1],
+    "reasoning": "Her preference leads her to find many blogs lacking in rigorous data."
+  },
+  {
+    "id": "q_persona_002_126",
+    "personaId": "persona_002",
+    "question": "Why might Elena be interested in CLT (Cross Laminated Timber) for her projects?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s4_m4_e2", "persona_002_s4_m5_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [4],
+    "reasoning": "Her belief that minimalist design reduces waste likely drives her interest in comparing the carbon footprint of materials like CLT."
+  },
+  {
+    "id": "q_persona_002_127",
+    "personaId": "persona_002",
+    "question": "How does Elena's communication style facilitate her role as a mediator?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s3_m10_e1", "persona_002_s2_m8_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 3],
+    "reasoning": "A structured, summary-based style is highly effective for a mediator in group settings."
+  },
+  {
+    "id": "q_persona_002_128",
+    "personaId": "persona_002",
+    "question": "In what way does Elena's interest in soil health relate to her professional background in environmental consultancy?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s2_m6_e2", "persona_002_s4_m9_e1"],
+    "difficulty": "medium",
+    "sessionSpan": [2, 4],
+    "reasoning": "Her podcast interviews and personal experiments with soil health align with her broader sustainability expertise."
+  },
+  {
+    "id": "q_persona_002_129",
+    "personaId": "persona_002",
+    "question": "How does Elena's commitment to long-term ecological impact influence her professional skepticism of short-term financial gains?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s4_m10_e1", "persona_002_s3_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [3, 4],
+    "reasoning": "Her values likely lead her to see consumer-focused blogs as a distraction from the systemic industrial issues that have long-term impact."
+  },
+  {
+    "id": "q_persona_002_130",
+    "personaId": "persona_002",
+    "question": "How does Elena's data-driven mindset manifest in her choice of hobbies and their stated benefits?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_002_s1_m3_e2",
+      "persona_002_s2_m8_e2",
+      "persona_002_s2_m10_e3"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "She views her hobbies (nature, minimalism) through the lens of how they optimize her analytical and mental focus."
+  },
+  {
+    "id": "q_persona_002_131",
+    "personaId": "persona_002",
+    "question": "What can be inferred about Elena's professional ethics from her mediation between developers and environmental groups?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s4_m6_e1", "persona_002_s4_m10_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "Her role as a mediator suggests she seeks to balance interests while prioritizing long-term ecological impact."
+  },
+  {
+    "id": "q_persona_002_132",
+    "personaId": "persona_002",
+    "question": "How does Elena's professional specialization in LEED certification relate to her personal architectural preferences?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s1_m2_e2", "persona_002_s1_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1],
+    "reasoning": "LEED certification focuses on efficiency, which correlates with her belief that minimalist design lowers energy consumption."
+  },
+  {
+    "id": "q_persona_002_133",
+    "personaId": "persona_002",
+    "question": "How does Elena's podcast serve as an extension of her professional identity as an environmental consultant?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_002_s3_m5_e1",
+      "persona_002_s1_m7_e2",
+      "persona_002_s2_m6_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2, 3],
+    "reasoning": "The podcast's focus on data-backed sustainability and interviews with scientists mirrors her professional consulting work."
+  },
+  {
+    "id": "q_persona_002_134",
+    "personaId": "persona_002",
+    "question": "What does Elena's approach to gardening reveal about her broader philosophy on environmental management?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_002_s2_m1_e1",
+      "persona_002_s3_m9_e1",
+      "persona_002_s4_m9_e1"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3, 4],
+    "reasoning": "Her use of drip irrigation and native shrubs shows a preference for efficient, data-informed, and site-appropriate environmental solutions."
+  },
+  {
+    "id": "q_persona_002_135",
+    "personaId": "persona_002",
+    "question": "How does Elena's communication style reflect her personality as described in her persona?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s3_m10_e1", "persona_002_s2_m8_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [2, 3],
+    "reasoning": "Her structured and summary-based communication aligns with her analytical and conscientious personality."
+  },
+  {
+    "id": "q_persona_002_136",
+    "personaId": "persona_002",
+    "question": "How does Elena's choice of classical guitar as a creative outlet balance her analytical professional life?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s1_m8_e2", "persona_002_s4_m7_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "It provides a creative and decompressing counterpoint to her data-heavy and structured work day."
+  },
+  {
+    "id": "q_persona_002_137",
+    "personaId": "persona_002",
+    "question": "What is the significance of Elena's search for CLT vs. steel metrics in the context of her architectural preferences?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s4_m4_e2", "persona_002_s4_m5_e1"],
+    "difficulty": "hard",
+    "sessionSpan": [4],
+    "reasoning": "It shows she applies her minimalist preference for waste reduction to the selection of low-carbon building materials."
+  },
+  {
+    "id": "q_persona_002_138",
+    "personaId": "persona_002",
+    "question": "How does Elena's belief in ambitious renewable energy targets relate to her work with SMEs on sustainability reporting?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s1_m9_e2", "persona_002_s2_m2_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "She likely encourages SMEs to align with these ambitious targets to ensure long-term resilience."
+  },
+  {
+    "id": "q_persona_002_139",
+    "personaId": "persona_002",
+    "question": "How does Elena's practice of only keeping frequently used gear reflect her professional focus on efficiency?",
+    "type": "inference",
+    "expectedEvidence": ["persona_002_s2_m10_e4", "persona_002_s1_m4_e2"],
+    "difficulty": "hard",
+    "sessionSpan": [1, 2],
+    "reasoning": "Her personal habit of gear efficiency mirrors her professional belief in space and material efficiency."
+  },
+  {
+    "id": "q_persona_002_140",
+    "personaId": "persona_002",
+    "question": "How does Elena's commitment to long-term ecological impact reflect in her choice of data-heavy sources over general blogs?",
+    "type": "inference",
+    "expectedEvidence": [
+      "persona_002_s4_m10_e1",
+      "persona_002_s1_m5_e1",
+      "persona_002_s1_m5_e2"
+    ],
+    "difficulty": "hard",
+    "sessionSpan": [1, 4],
+    "reasoning": "She prioritizes rigorous data because it is more likely to lead to the long-term impact she values, unlike general blogs."
+  }
+]

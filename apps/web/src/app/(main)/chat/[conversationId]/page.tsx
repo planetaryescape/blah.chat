@@ -129,6 +129,7 @@ function ChatPageContent({
   const nickname =
     (customInstructions as { nickname?: string } | undefined)?.nickname || "";
   const autoCompressContext = useUserPreference("autoCompressContext");
+  const enableModelRecs = useUserPreference("enableModelRecommendations");
 
   // Feature toggles for conditional UI elements
   const features = useFeatureToggles();
@@ -549,7 +550,8 @@ function ChatPageContent({
                   )}
 
                   {/* Model Recommendation Banner */}
-                  {conversation?.modelRecommendation &&
+                  {enableModelRecs !== false &&
+                    conversation?.modelRecommendation &&
                     !conversation.modelRecommendation.dismissed &&
                     validConversationId && (
                       <ModelRecommendationBanner

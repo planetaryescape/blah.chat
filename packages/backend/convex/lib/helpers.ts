@@ -136,6 +136,17 @@ export const getConversationsByIds = internalQuery({
 });
 
 /**
+ * Get messages by IDs (batch operation)
+ */
+export const getMessagesByIds = internalQuery({
+  args: { ids: v.array(v.id("messages")) },
+  handler: async (ctx, args): Promise<Doc<"messages">[]> => {
+    const results = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    return results.filter((m): m is Doc<"messages"> => m !== null);
+  },
+});
+
+/**
  * Get single memory by ID
  * Replaces: ctx.runQuery(internal.memories.getMemoryById, { id })
  */

@@ -1,7 +1,8 @@
 import { useUser } from "@clerk/clerk-expo";
 import { FlashList } from "@shopify/flash-list";
-import { useRouter } from "expo-router";
+import { useRouter, useSegments } from "expo-router";
 import {
+  Bookmark,
   FileText,
   FolderOpen,
   MessageSquarePlus,
@@ -13,6 +14,7 @@ import { useCallback, useState } from "react";
 import { Image, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimatedPressable } from "@/components/ui/AnimatedPressable";
+import { ShimmerPlaceholder } from "@/components/ui/ShimmerPlaceholder";
 import type { Doc } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import {
@@ -100,39 +102,61 @@ function ConversationSkeleton() {
             paddingHorizontal: spacing.sm,
           }}
         >
-          <View
-            style={{
-              width: 18,
-              height: 18,
-              borderRadius: 4,
-              backgroundColor: palette.glassLow,
-            }}
-          />
-          <View
-            style={{
-              flex: 1,
-              height: 16,
-              borderRadius: 4,
-              backgroundColor: palette.glassLow,
-            }}
-          />
-          <View
-            style={{
-              width: 24,
-              height: 12,
-              borderRadius: 4,
-              backgroundColor: palette.glassLow,
-            }}
-          />
+          <ShimmerPlaceholder width={18} height={18} borderRadius={4} />
+          <ShimmerPlaceholder width="100%" height={16} borderRadius={4} />
+          <ShimmerPlaceholder width={24} height={12} borderRadius={4} />
         </View>
       ))}
     </View>
   );
 }
 
+function FooterItem({
+  icon: Icon,
+  label,
+  onPress,
+  isActive,
+}: {
+  icon: typeof FileText;
+  label: string;
+  onPress: () => void;
+  isActive: boolean;
+}) {
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        gap: spacing.sm,
+        marginHorizontal: spacing.sm,
+        borderRadius: layout.radius.md,
+        backgroundColor: isActive ? palette.glassLow : "transparent",
+      }}
+    >
+      <Icon
+        size={20}
+        color={isActive ? palette.roseQuartz : palette.starlightDim}
+      />
+      <Text
+        style={{
+          fontFamily: isActive ? typography.bodySemiBold : typography.body,
+          fontSize: 14,
+          color: isActive ? palette.roseQuartz : palette.starlightDim,
+        }}
+      >
+        {label}
+      </Text>
+    </AnimatedPressable>
+  );
+}
+
 export function DrawerContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const segments = useSegments();
   const { user } = useUser();
   const projects = useProjects();
 
@@ -192,6 +216,7 @@ export function DrawerContent() {
   const isLoading = conversations === undefined;
   const hasProjects = projects && projects.length > 0;
   const isFiltered = selectedProjectId !== null;
+  const activeSection = segments[1];
 
   return (
     <View
@@ -279,26 +304,50 @@ export function DrawerContent() {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: palette.glassLow,
-            borderRadius: layout.radius.md,
-            paddingHorizontal: spacing.sm,
-            gap: spacing.xs,
+            gap: spacing.sm,
           }}
         >
-          <Search size={18} color={palette.starlightDim} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            placeholder="Search conversations..."
-            placeholderTextColor={palette.starlightDim}
+          <View
             style={{
               flex: 1,
-              fontFamily: typography.body,
-              fontSize: 14,
-              color: palette.starlight,
-              paddingVertical: spacing.sm,
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: palette.glassLow,
+              borderRadius: layout.radius.md,
+              paddingHorizontal: spacing.sm,
+              gap: spacing.xs,
             }}
-          />
+          >
+            <Search size={18} color={palette.starlightDim} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              placeholder="Search conversations..."
+              placeholderTextColor={palette.starlightDim}
+              style={{
+                flex: 1,
+                fontFamily: typography.body,
+                fontSize: 14,
+                color: palette.starlight,
+                paddingVertical: spacing.sm,
+              }}
+            />
+          </View>
+          <AnimatedPressable
+            onPress={handleNewChat}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: palette.glassLow,
+              borderWidth: 1,
+              borderColor: palette.glassBorder,
+            }}
+          >
+            <MessageSquarePlus size={20} color={palette.starlight} />
+          </AnimatedPressable>
         </View>
       </View>
 
@@ -342,33 +391,6 @@ export function DrawerContent() {
           </AnimatedPressable>
         </View>
       )}
-
-      {/* New Chat Button */}
-      <AnimatedPressable
-        onPress={handleNewChat}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginHorizontal: spacing.md,
-          marginBottom: spacing.sm,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          backgroundColor: palette.roseQuartz,
-          borderRadius: layout.radius.md,
-          gap: spacing.sm,
-        }}
-      >
-        <MessageSquarePlus size={20} color={palette.void} />
-        <Text
-          style={{
-            fontFamily: typography.bodySemiBold,
-            fontSize: 14,
-            color: palette.void,
-          }}
-        >
-          New Chat
-        </Text>
-      </AnimatedPressable>
 
       {/* Conversations List */}
       <View style={{ flex: 1 }}>
@@ -440,57 +462,42 @@ export function DrawerContent() {
           paddingVertical: spacing.sm,
         }}
       >
-        {/* Notes */}
-        <AnimatedPressable
+        <FooterItem
+          icon={FileText}
+          label="Notes"
+          isActive={activeSection === "notes"}
           onPress={() => {
             haptic.light();
             router.push("/(drawer)/notes");
           }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
-            gap: spacing.sm,
+        />
+        <FooterItem
+          icon={FolderOpen}
+          label="Projects"
+          isActive={activeSection === "projects"}
+          onPress={() => {
+            haptic.light();
+            router.push("/(drawer)/projects");
           }}
-        >
-          <FileText size={20} color={palette.starlightDim} />
-          <Text
-            style={{
-              fontFamily: typography.body,
-              fontSize: 14,
-              color: palette.starlightDim,
-            }}
-          >
-            Notes
-          </Text>
-        </AnimatedPressable>
-
-        {/* Settings */}
-        <AnimatedPressable
+        />
+        <FooterItem
+          icon={Bookmark}
+          label="Bookmarks"
+          isActive={activeSection === "bookmarks"}
+          onPress={() => {
+            haptic.light();
+            router.push("/(drawer)/bookmarks");
+          }}
+        />
+        <FooterItem
+          icon={Settings}
+          label="Settings"
+          isActive={activeSection === "settings"}
           onPress={() => {
             haptic.light();
             router.push("/(drawer)/settings");
           }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
-            gap: spacing.sm,
-          }}
-        >
-          <Settings size={20} color={palette.starlightDim} />
-          <Text
-            style={{
-              fontFamily: typography.body,
-              fontSize: 14,
-              color: palette.starlightDim,
-            }}
-          >
-            Settings
-          </Text>
-        </AnimatedPressable>
+        />
       </View>
 
       {/* Project Filter Sheet */}

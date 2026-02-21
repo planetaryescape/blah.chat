@@ -131,15 +131,17 @@ export class BlahClient {
   }
 
   async listConversations(
-    params: { limit?: number; archived?: boolean } = {},
+    params: { limit?: number; archived?: boolean; projectId?: string } = {},
   ): Promise<{ items: Conversation[]; total: number }> {
     const result = await this.client.GET("/api/v1/conversations", {
       headers: await this.authHeaders("bearer"),
       params: {
+        // `projectId` is supported by runtime route; generated OpenAPI types lag.
         query: {
           limit: params.limit,
           archived: params.archived,
-        },
+          projectId: params.projectId,
+        } as any,
       },
     });
 

@@ -1,0 +1,19 @@
+{
+  "at": 1770882059674,
+  "runId": null,
+  "callCount": 10069,
+  "estimatedUsd": 5.052782660000001,
+  "inputTokens": 2230240,
+  "outputTokens": 1312223,
+  "cachedTokens": 0,
+  "reasoningTokens": 1269482,
+  "embeddingTokens": 49683,
+  "byKind": {
+    "generateText": 5.051789000000003,
+    "embedMany": 0.0009936599999999943
+  },
+  "byModel": {
+    "google:gemini-3-flash": 5.051789000000003,
+    "openai/text-embedding-3-small": 0.0009936599999999943
+  }
+}

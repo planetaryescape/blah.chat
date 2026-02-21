@@ -1,0 +1,204 @@
+{
+  "id": "conv_persona_011_session_02",
+  "personaId": "persona_011",
+  "sessionNumber": 2,
+  "timestamp": 1768434307859,
+  "messages": [
+    {
+      "role": "user",
+      "content": "I've been reviewing the drainage plans for the downtown plaza project. The current slope doesn't account for the heavy runoff we saw last spring, and I'm concerned about pooling near the seating areas.",
+      "timestamp": 1768434307859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m1_e1",
+          "type": "factual",
+          "statement": "Elena is working on a downtown plaza project.",
+          "importance": 0.8,
+          "category": "work"
+        },
+        {
+          "id": "persona_011_s2_m1_e2",
+          "type": "temporal",
+          "statement": "Heavy runoff occurred last spring.",
+          "importance": 0.5,
+          "category": "environment"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm thinking of incorporating more native sedges in the bioswales. They're like nature's sponge, much better than standard turf for filtration and they fit my vision for sustainable urban design.",
+      "timestamp": 1768434907859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m2_e1",
+          "type": "preference",
+          "statement": "Elena prefers using native sedges over standard turf.",
+          "importance": 0.7,
+          "category": "work"
+        },
+        {
+          "id": "persona_011_s2_m2_e2",
+          "type": "opinion",
+          "statement": "Elena believes sedges are more effective for filtration than turf.",
+          "importance": 0.6,
+          "category": "environment"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I spent Saturday hiking in the canyon. The way the light hit the rock layers reminds me of a specific watercolor technique I've been trying to master for my landscape renderings.",
+      "timestamp": 1768435507859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m3_e1",
+          "type": "temporal",
+          "statement": "Elena went hiking in a canyon last Saturday.",
+          "importance": 0.4,
+          "category": "hobby"
+        },
+        {
+          "id": "persona_011_s2_m3_e2",
+          "type": "factual",
+          "statement": "Elena practices watercolor painting for her landscape renderings.",
+          "importance": 0.6,
+          "category": "hobby"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I've decided to bike to all my site visits this week. It's about 15 miles round trip, but it's the best way to observe the neighborhood's micro-climates directly.",
+      "timestamp": 1768436107859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m4_e1",
+          "type": "preference",
+          "statement": "Elena prefers bicycle touring or biking for site visits.",
+          "importance": 0.5,
+          "category": "travel"
+        },
+        {
+          "id": "persona_011_s2_m4_e2",
+          "type": "temporal",
+          "statement": "Elena is biking to site visits during the current week.",
+          "importance": 0.3,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Could you look for some historical fiction recommendations set in the late 19th-century industrial era? I'm looking for inspiration on how urban green spaces were first conceptualized during that period.",
+      "timestamp": 1768436707859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m5_e1",
+          "type": "factual",
+          "statement": "Elena reads historical fiction.",
+          "importance": 0.4,
+          "category": "media"
+        },
+        {
+          "id": "persona_011_s2_m5_e2",
+          "type": "preference",
+          "statement": "Elena is interested in the late 19th-century industrial era for research and inspiration.",
+          "importance": 0.5,
+          "category": "media"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "The city's new zoning law for green roofs is a step forward, but it lacks teeth. Without mandatory maintenance clauses, these installations will likely fail within three years.",
+      "timestamp": 1768437307859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m6_e1",
+          "type": "opinion",
+          "statement": "Elena believes the new green roof zoning law is insufficient without maintenance clauses.",
+          "importance": 0.7,
+          "category": "work"
+        },
+        {
+          "id": "persona_011_s2_m6_e2",
+          "type": "factual",
+          "statement": "Elena expects green roof installations to fail in three years without maintenance.",
+          "importance": 0.6,
+          "category": "environment"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm volunteering at the community garden this Thursday. We're installing a new composting system I designed to help the neighborhood manage organic waste more efficiently.",
+      "timestamp": 1768437907859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m7_e1",
+          "type": "temporal",
+          "statement": "Elena is volunteering at a community garden this Thursday.",
+          "importance": 0.5,
+          "category": "community"
+        },
+        {
+          "id": "persona_011_s2_m7_e2",
+          "type": "factual",
+          "statement": "Elena designs composting systems for community use.",
+          "importance": 0.7,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Let's skip the hour-long sync tomorrow. I'll just send over the visual boards via email; I find it much more efficient than long meetings.",
+      "timestamp": 1768438507859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m8_e1",
+          "type": "preference",
+          "statement": "Elena prefers concise email updates and visual boards over long meetings.",
+          "importance": 0.8,
+          "category": "communication"
+        },
+        {
+          "id": "persona_011_s2_m8_e2",
+          "type": "temporal",
+          "statement": "Elena has a meeting scheduled for tomorrow.",
+          "importance": 0.2,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Sustainable design isn't a luxury; it's a necessity for urban resilience. We can't keep building as if the climate isn't shifting right in front of us.",
+      "timestamp": 1768439107859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m9_e1",
+          "type": "opinion",
+          "statement": "Elena views sustainable design as a necessity for urban resilience.",
+          "importance": 0.9,
+          "category": "environment"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I've finished the preliminary watercolor sketches for the park's east entrance. I'll send the scan over as soon as the pigment is fully dry.",
+      "timestamp": 1768439707859,
+      "evidence": [
+        {
+          "id": "persona_011_s2_m10_e1",
+          "type": "factual",
+          "statement": "Elena has completed watercolor sketches for a park entrance.",
+          "importance": 0.6,
+          "category": "work"
+        }
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ export const calculateAllUserRankings = internalMutation({
     // Get all usage records in date range
     const allRecords = await ctx.db
       .query("usageRecords")
-      .filter((q) => q.gte(q.field("date"), startDate))
+      .withIndex("by_date", (q) => q.gte("date", startDate))
       .collect();
 
     // Group by user

@@ -7,6 +7,15 @@ export {
   useRemoveBookmarkTag,
   useUpdateBookmark,
 } from "./useBookmarks";
+export { useChatAttachmentUpload } from "./useChatAttachmentUpload";
+export { useChatSTT } from "./useChatSTT";
+export {
+  useArchiveConversation,
+  useDeleteConversation,
+  useRenameConversation,
+  useToggleConversationPin,
+  useToggleConversationStar,
+} from "./useConversationActions";
 export { useConversationSearch } from "./useConversationSearch";
 export {
   useConversation,
@@ -44,4 +53,5 @@ export {
 export { usePreferences } from "./usePreferences";
 export { useProjects } from "./useProjects";
 export { useSiblings } from "./useSiblings";
+export { useStarterSuggestions } from "./useStarterSuggestions";
 export { useUpdatePreference } from "./useUpdatePreference";

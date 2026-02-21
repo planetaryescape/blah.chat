@@ -1,0 +1,59 @@
+{
+  "at": 1770882059655,
+  "variants": {
+    "basic": {
+      "variant": "basic",
+      "overallScore": 0,
+      "accuracy": 0,
+      "completeness": 0,
+      "relevance": 0,
+      "byType": {
+        "factual": 0,
+        "temporal": 0,
+        "preference": 0,
+        "inference": 0
+      },
+      "byDifficulty": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "bySession": {
+        "session1": 0,
+        "session2": 0,
+        "session3": 0,
+        "session4": 0
+      },
+      "avgRetrievalTimeMs": 549.7928571428571,
+      "avgMemoriesRetrieved": 5,
+      "n": 0
+    },
+    "cognitive": {
+      "variant": "cognitive",
+      "overallScore": 0,
+      "accuracy": 0,
+      "completeness": 0,
+      "relevance": 0,
+      "byType": {
+        "factual": 0,
+        "temporal": 0,
+        "preference": 0,
+        "inference": 0
+      },
+      "byDifficulty": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 0
+      },
+      "bySession": {
+        "session1": 0,
+        "session2": 0,
+        "session3": 0,
+        "session4": 0
+      },
+      "avgRetrievalTimeMs": 61.27857142857143,
+      "avgMemoriesRetrieved": 5,
+      "n": 0
+    }
+  }
+}

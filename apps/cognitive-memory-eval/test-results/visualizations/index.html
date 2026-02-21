@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cognitive Memory Eval Dashboard</title>
+    <style>
+      :root { --bg:#0f1220; --panel:#171a2b; --ink:#ecf1ff; --muted:#9fb0d9; --line:#2b3150; --blue:#3b82f6; --green:#22c55e; --red:#ef4444; --amber:#f59e0b; }
+      * { box-sizing:border-box; }
+      body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:var(--bg); color:var(--ink); }
+      .wrap { max-width: 1220px; margin: 0 auto; padding: 20px; }
+      h1, h2, h3 { margin: 0 0 12px; }
+      a { color:#93c5fd; text-decoration:none; }
+      a:hover { text-decoration:underline; }
+      .muted { color:var(--muted); }
+      .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); }
+      .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+      .big { font-size:28px; font-weight:700; }
+      .row { display:flex; gap:8px; flex-wrap:wrap; }
+      .pill { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:2px 8px; font-size:12px; color:var(--muted); }
+      table { width:100%; border-collapse:collapse; }
+      th, td { border-bottom:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; font-size:13px; }
+      th { color:var(--muted); font-weight:600; }
+      code, pre { background:#101426; border:1px solid var(--line); border-radius:8px; }
+      pre { padding:10px; overflow:auto; }
+      .ok { color:var(--green); }
+      .bad { color:var(--red); }
+      .warn { color:var(--amber); }
+      canvas { width: 100%; height: 430px; }
+      .section { margin-top: 18px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Cognitive Memory Eval Dashboard</h1>
+<p class="muted">What this run tested: generated personas/conversations/questions; answered each question with <b>basic</b> vs <b>cognitive</b> retrieval; judged both answers on a 0..10 rubric.</p>
+<div class="row">
+  <span class="pill">personas: 1</span>
+  <span class="pill">questions: 140</span>
+  <span class="pill">questions/persona: 140</span>
+  <span class="pill">paired evals: 0</span>
+  <span class="pill">judged pairs: 0</span>
+  <span class="pill">run cost: $5.0528</span>
+  <span class="pill">model calls: 10069</span>
+</div>
+
+<div class="grid section">
+  <div class="card"><div class="muted">basic overall</div><div class="big">0.00</div></div>
+  <div class="card"><div class="muted">cognitive overall</div><div class="big">0.00</div></div>
+  <div class="card"><div class="muted">delta</div><div class="big">0.00</div></div>
+  <div class="card"><div class="muted">persona-level p (primary)</div><div class="big">NaN</div></div>
+</div>
+
+<div class="card section">
+  <h2>What scores mean</h2>
+  <p>Score is average of judge dimensions: accuracy, completeness, relevance. Scale is 0..10.</p>
+  <p>If you see very low scores (for example basic=0, cognitive=0.5), usually means: tiny sample, low-quality generated tests, or poor model outputs. Not enough evidence for strong conclusions.</p>
+  
+</div>
+
+<div class="card section">
+  <h2>Significance</h2>
+  <p>Primary significance uses persona-level paired t-test (controls for many correlated questions per persona).</p>
+  <div>persona-level p: NaN</div>
+  <div>question-level p (secondary): NaN</div>
+  
+</div>
+
+<div class="card section">
+  <h2>Signal Quality</h2>
+  <div class="bad">FAIL sample adequacy (paired evals >= 1000)</div>
+  <div class="bad">FAIL persona diversity (personas >= 20)</div>
+  <div class="bad">FAIL significance robustness (both p-values < 0.05)</div>
+</div>
+
+<div class="grid section">
+  <div class="card">
+    <h3>Difficulty mix</h3>
+    <div>easy: 28</div>
+    <div>medium: 56</div>
+    <div>hard: 56</div>
+  </div>
+  <div class="card">
+    <h3>Type mix</h3>
+    <div>factual: 49</div>
+    <div>temporal: 35</div>
+    <div>preference: 35</div>
+    <div>inference: 21</div>
+  </div>
+  <div class="card">
+    <h3>Judge rubric</h3>
+    <div>Accuracy: factual correctness</div>
+    <div>Completeness: key facts covered</div>
+    <div>Relevance: answers question directly</div>
+    <div class="section"><a href="../judge-rubric.md">open full rubric</a></div>
+  </div>
+</div>
+
+<div class="card section">
+  <h2>View Tests + Results</h2>
+  <div><a href="../questions.json">questions.json (all test cases)</a></div>
+  <div><a href="../generation-quality.json">generation-quality.json (validation summary)</a></div>
+  <div><a href="../results-detailed.json">results-detailed.json (full per-question results)</a></div>
+  <div><a href="results-table.html">results-table.html (readable table)</a></div>
+  <div><a href="../answers.jsonl">answers.jsonl (raw)</a></div>
+  <div><a href="../judgments.jsonl">judgments.jsonl (raw)</a></div>
+  <div><a href="../cost-summary.json">cost-summary.json</a></div>
+</div>
+
+<div class="card section">
+  <h2>Charts</h2>
+  <div><a href="overall-scores.html">overall-scores.html</a></div>
+  <div><a href="by-difficulty.html">by-difficulty.html</a></div>
+  <div><a href="by-type.html">by-type.html</a></div>
+  <div><a href="decay-curve.html">decay-curve.html</a></div>
+  <div><a href="retrieval-heatmap.html">retrieval-heatmap.html</a></div>
+</div>
+    </div>
+    <script></script>
+  </body>
+</html>

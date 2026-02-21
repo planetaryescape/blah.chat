@@ -1,36 +1,51 @@
 import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
-import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import * as Font from "expo-font";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { persister, queryClient } from "@/lib/cache/queryClient";
 import { tokenCache } from "@/lib/clerk";
-import { convex } from "@/lib/convex";
+import { getRuntimeConfig } from "@/lib/runtimeConfig";
 import { palette } from "@/lib/theme/designSystem";
 
 // Keep splash screen visible while loading fonts
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore if splash was already hidden
+});
 
-const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
-
-if (!clerkPublishableKey) {
-  throw new Error("EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not set");
-}
+const navigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: "transparent",
+    card: "transparent",
+    border: palette.glassBorder,
+    text: palette.starlight,
+    primary: palette.roseQuartz,
+  },
+};
 
 function RootLayoutNav() {
   return (
     // @ts-ignore - React 18/19 type mismatch in monorepo
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: "transparent" },
+      }}
+    >
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(drawer)" />
@@ -38,8 +53,124 @@ function RootLayoutNav() {
   );
 }
 
+function ConfigurationError({
+  title,
+  message,
+  logMessage,
+}: {
+  title: string;
+  message: string;
+  logMessage: string;
+}) {
+  useEffect(() => {
+    console.error(logMessage);
+  }, [logMessage]);
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: "Syne_600SemiBold",
+          fontSize: 20,
+          color: palette.starlight,
+          textAlign: "center",
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          fontFamily: "Manrope_500Medium",
+          fontSize: 14,
+          color: palette.starlightDim,
+          textAlign: "center",
+        }}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
+
+function ClerkLoadingGate({ children }: { children: ReactNode }) {
+  const { isLoaded } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded) {
+      setTimedOut(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 15000);
+
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (timedOut) {
+      console.error("[mobile] Clerk initialization timed out after 15 seconds");
+    }
+  }, [timedOut]);
+
+  if (timedOut) {
+    return (
+      <ConfigurationError
+        title="Connection Failed"
+        message="Unable to connect to authentication service. Please check your connection and restart the app."
+        logMessage="[mobile] Showing Clerk timeout fallback UI"
+      />
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "transparent",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+        }}
+      >
+        <ActivityIndicator size="large" color={palette.starlight} />
+        <Text
+          style={{
+            fontFamily: "Manrope_500Medium",
+            fontSize: 14,
+            color: palette.starlightDim,
+          }}
+        >
+          Connecting...
+        </Text>
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const runtimeConfig = useMemo(() => getRuntimeConfig(), []);
+  const convex = useMemo(
+    () =>
+      runtimeConfig.convexUrl
+        ? new ConvexReactClient(runtimeConfig.convexUrl)
+        : null,
+    [runtimeConfig.convexUrl],
+  );
 
   useEffect(() => {
     async function loadFonts() {
@@ -63,6 +194,13 @@ export default function RootLayout() {
     loadFonts();
   }, []);
 
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    SplashScreen.hideAsync().catch(() => {
+      // Ignore hide errors during startup race conditions
+    });
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
     return (
       <View
@@ -78,37 +216,63 @@ export default function RootLayout() {
     );
   }
 
+  let content: ReactNode;
+
+  if (!runtimeConfig.clerkPublishableKey) {
+    content = (
+      <ConfigurationError
+        title="Configuration Error"
+        message="Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY"
+        logMessage="[mobile] Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY"
+      />
+    );
+  } else if (!convex) {
+    content = (
+      <ConfigurationError
+        title="Configuration Error"
+        message="Missing EXPO_PUBLIC_CONVEX_URL"
+        logMessage="[mobile] Missing EXPO_PUBLIC_CONVEX_URL"
+      />
+    );
+  } else {
+    content = (
+      // @ts-ignore - React 18/19 type mismatch in monorepo
+      <ClerkProvider
+        publishableKey={runtimeConfig.clerkPublishableKey}
+        tokenCache={tokenCache}
+      >
+        <ClerkLoadingGate>
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{ persister }}
+          >
+            <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+              <BottomSheetModalProvider>
+                <ThemeProvider value={navigationTheme}>
+                  <RootLayoutNav />
+                </ThemeProvider>
+              </BottomSheetModalProvider>
+            </ConvexProviderWithClerk>
+          </PersistQueryClientProvider>
+        </ClerkLoadingGate>
+      </ClerkProvider>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
           {/* Global Nebula Background */}
           <LinearGradient
-            colors={[palette.void, palette.nebula, palette.void]}
+            colors={[palette.void, palette.nebula, "#13101A", palette.void]}
+            locations={[0, 0.35, 0.6, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ flex: 1 }}
           >
-            {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-            <ClerkProvider
-              publishableKey={clerkPublishableKey}
-              tokenCache={tokenCache}
-            >
-              {/* @ts-ignore - React 18/19 type mismatch in monorepo */}
-              <ClerkLoaded>
-                <PersistQueryClientProvider
-                  client={queryClient}
-                  persistOptions={{ persister }}
-                >
-                  <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-                    <BottomSheetModalProvider>
-                      <RootLayoutNav />
-                      <StatusBar style="light" />
-                    </BottomSheetModalProvider>
-                  </ConvexProviderWithClerk>
-                </PersistQueryClientProvider>
-              </ClerkLoaded>
-            </ClerkProvider>
+            {content}
+            <StatusBar style="light" />
           </LinearGradient>
         </SafeAreaProvider>
       </KeyboardProvider>

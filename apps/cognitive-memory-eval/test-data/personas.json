@@ -1,0 +1,413 @@
+[
+  {
+    "id": "persona_001",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Planner",
+    "interests": [
+      "cycling",
+      "community gardening",
+      "vintage map collecting",
+      "classical guitar",
+      "sustainable architecture",
+      "baking sourdough",
+      "hiking"
+    ],
+    "personality": "Methodical and empathetic with a strong focus on social equity and environmental sustainability.",
+    "communicationStyle": "Professional yet warm, uses precise terminology but remains accessible, prefers structured email updates over phone calls."
+  },
+  {
+    "id": "persona_002",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "hiking",
+      "urban gardening",
+      "classical guitar",
+      "minimalist architecture",
+      "sustainability blogs",
+      "kayaking",
+      "podcasting"
+    ],
+    "personality": "Elena is a conscientious and analytical individual who values authenticity and long-term impact over short-term gains. She is empathetic but maintains professional boundaries, often acting as a mediator in group settings.",
+    "communicationStyle": "Direct and data-driven, yet warm. She uses precise language and prefers structured discussions with clear objectives, often summarizing points to ensure mutual understanding."
+  },
+  {
+    "id": "persona_003",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Sustainable Urban Planner",
+    "interests": [
+      "Community gardening",
+      "Bicycle touring",
+      "Data visualization",
+      "Regenerative agriculture",
+      "Sci-fi literature",
+      "Ceramics",
+      "Local politics"
+    ],
+    "personality": "Pragmatic idealist who values systemic change over individual fixes; highly observant and patient.",
+    "communicationStyle": "Direct and data-driven but uses metaphors to explain complex urban systems; prefers asynchronous written communication."
+  },
+  {
+    "id": "persona_004",
+    "name": "Evelyn Thorne",
+    "age": 42,
+    "occupation": "Landscape Architect",
+    "interests": [
+      "Sustainable Gardening",
+      "Urban Sketching",
+      "Kayaking",
+      "Classical Music",
+      "Historical Biographies",
+      "Bird Watching",
+      "Ceramics"
+    ],
+    "personality": "Pragmatic yet creative, highly observant of spatial details, and environmentally conscious.",
+    "communicationStyle": "Articulate and professional, often uses metaphors related to nature and growth, prefers concise emails."
+  },
+  {
+    "id": "persona_005",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "sustainable gardening",
+      "kayaking",
+      "classical guitar",
+      "urban planning",
+      "documentary filmmaking",
+      "stargazing",
+      "fermenting foods"
+    ],
+    "personality": "Conscientious and empathetic with a strong analytical mind and a passion for ecological preservation.",
+    "communicationStyle": "Articulate and professional, often using data-driven arguments while maintaining a warm and approachable tone."
+  },
+  {
+    "id": "persona_006",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "hiking",
+      "sustainable gardening",
+      "urban photography",
+      "ceramic pottery",
+      "minimalist architecture",
+      "podcast production",
+      "jazz fusion"
+    ],
+    "personality": "Analytical yet empathetic, driven by a desire for ecological preservation and social equity.",
+    "communicationStyle": "Professional and precise, often using data-driven arguments but maintaining a warm, approachable tone in interpersonal interactions."
+  },
+  {
+    "id": "persona_007",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Planning Consultant",
+    "interests": [
+      "Sustainable Architecture",
+      "Community Gardening",
+      "Bicycle Touring",
+      "Local History",
+      "Documentary Filmmaking",
+      "Bread Baking",
+      "Jazz Fusion"
+    ],
+    "personality": "Analytical yet empathetic, highly organized, and driven by a desire for social equity.",
+    "communicationStyle": "Professional and precise, often using data-driven arguments while remaining accessible and collaborative."
+  },
+  {
+    "id": "persona_008",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "Sustainable gardening",
+      "Urban cycling",
+      "Documentary filmmaking",
+      "Ancient history",
+      "Kayaking",
+      "Fermentation",
+      "Minimalist architecture"
+    ],
+    "personality": "Analytical yet empathetic, driven by a desire for ecological preservation and social equity.",
+    "communicationStyle": "Direct and informative, often using metaphors related to natural systems, prefers asynchronous written communication for complex topics."
+  },
+  {
+    "id": "persona_009",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Planner",
+    "interests": [
+      "Sustainable Architecture",
+      "Kayaking",
+      "Community Gardening",
+      "Classical Guitar",
+      "Sci-Fi Literature",
+      "Baking Sourdough",
+      "Data Visualization"
+    ],
+    "personality": "Analytical yet creative, highly organized, and deeply committed to social equity and environmental sustainability.",
+    "communicationStyle": "Professional and articulate, favoring data-driven arguments but capable of empathetic storytelling to engage community stakeholders."
+  },
+  {
+    "id": "persona_010",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "urban gardening",
+      "documentary filmmaking",
+      "sustainable architecture",
+      "jazz piano",
+      "rock climbing",
+      "classical literature",
+      "wildlife photography"
+    ],
+    "personality": "Analytical yet deeply empathetic, driven by a desire to bridge the gap between industrial progress and ecological preservation.",
+    "communicationStyle": "Direct and data-driven, often using metaphors related to natural systems to explain complex organizational concepts."
+  },
+  {
+    "id": "persona_011",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Landscape Architect",
+    "interests": [
+      "Urban gardening",
+      "Sustainable design",
+      "Hiking",
+      "Watercolor painting",
+      "Historical fiction",
+      "Bicycle touring",
+      "Community volunteering"
+    ],
+    "personality": "Pragmatic yet creative, highly observant, and deeply committed to environmental stewardship.",
+    "communicationStyle": "Direct and professional, often uses visual metaphors to explain complex concepts, prefers concise email updates over long meetings."
+  },
+  {
+    "id": "persona_012",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Sustainability Consultant",
+    "interests": [
+      "Urban gardening",
+      "Renewable energy tech",
+      "Bouldering",
+      "Minimalist interior design",
+      "Documentary filmmaking",
+      "Ethical fashion",
+      "Traditional Mexican cuisine"
+    ],
+    "personality": "Analytical yet empathetic, driven by a desire for environmental impact, highly organized and proactive.",
+    "communicationStyle": "Direct and professional, uses data-backed arguments, prefers concise emails over long meetings, and often uses industry-specific terminology."
+  },
+  {
+    "id": "persona_013",
+    "name": "Elias Thorne",
+    "age": 42,
+    "occupation": "Urban Architect",
+    "interests": [
+      "Sustainable Design",
+      "Analog Photography",
+      "Classical Jazz",
+      "Gourmet Cooking",
+      "Historical Restoration",
+      "Table Tennis",
+      "Bonsai Cultivation"
+    ],
+    "personality": "Meticulous and contemplative, Elias values structural integrity and aesthetic harmony in both his professional and personal life.",
+    "communicationStyle": "Articulate and precise, he often uses architectural metaphors and prefers written correspondence for its clarity and permanence."
+  },
+  {
+    "id": "persona_014",
+    "name": "Elena Vance",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "Sustainable Gardening",
+      "Urban Planning",
+      "Kayaking",
+      "Documentary Filmmaking",
+      "Middle Eastern Cuisine",
+      "Bouldering",
+      "Vinyl Records"
+    ],
+    "personality": "Analytical yet empathetic, Elena is driven by a desire to bridge the gap between industrial progress and ecological preservation. She is highly organized and values transparency.",
+    "communicationStyle": "Professional and direct, often using data-driven arguments while maintaining a warm, collaborative tone in interpersonal discussions."
+  },
+  {
+    "id": "persona_015",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "Urban gardening",
+      "High-altitude hiking",
+      "Data visualization",
+      "Sustainable architecture",
+      "Vintage watch restoration",
+      "Indie film festivals",
+      "Sourdough baking"
+    ],
+    "personality": "Analytical yet empathetic, highly organized, and driven by ecological impact. She enjoys solving complex spatial problems.",
+    "communicationStyle": "Direct and professional, favoring data-backed arguments and concise asynchronous updates."
+  },
+  {
+    "id": "persona_016",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Planning Consultant",
+    "interests": [
+      "Sustainable architecture",
+      "Community gardening",
+      "Long-distance cycling",
+      "Historical fiction",
+      "Craft beer brewing",
+      "Data visualization",
+      "Jazz piano"
+    ],
+    "personality": "Analytical yet empathetic, highly organized, and driven by a desire to improve public spaces for accessibility and equity.",
+    "communicationStyle": "Professional and structured, often uses data-driven arguments, prefers concise emails but enjoys collaborative brainstorming sessions."
+  },
+  {
+    "id": "persona_017",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Planner",
+    "interests": [
+      "Sustainable Architecture",
+      "Urban Cycling",
+      "Hand-built Pottery",
+      "Classical Guitar",
+      "Community Gardening",
+      "Data Visualization",
+      "Backpacking"
+    ],
+    "personality": "Elena is a pragmatic visionary who balances technical data with human-centric design. She is patient, methodical, and deeply committed to social equity.",
+    "communicationStyle": "She communicates with precision and clarity, favoring structured reports and visual aids. She tends to be an active listener who synthesizes diverse viewpoints before offering a concise summary."
+  },
+  {
+    "id": "persona_018",
+    "name": "Elena Vance",
+    "age": 34,
+    "occupation": "Urban Planning Consultant",
+    "interests": [
+      "Sustainable Architecture",
+      "Kayaking",
+      "Community Gardening",
+      "Data Visualization",
+      "Historical Non-fiction",
+      "Bread Making",
+      "Pottery"
+    ],
+    "personality": "Detail-oriented and pragmatic with a strong sense of social responsibility and a quiet, contemplative nature.",
+    "communicationStyle": "Professional yet approachable, favoring clear, evidence-based explanations and active listening in group settings."
+  },
+  {
+    "id": "persona_019",
+    "name": "Elias Thorne",
+    "age": 34,
+    "occupation": "Urban Planner and Sustainability Consultant",
+    "interests": [
+      "cycling",
+      "urban photography",
+      "minimalist architecture",
+      "community gardening",
+      "vintage jazz records",
+      "data visualization",
+      "local history"
+    ],
+    "personality": "Analytical yet creative, Elias is a pragmatic idealist who values efficiency and social equity. He is observant, patient, and driven by a desire to improve urban living conditions.",
+    "communicationStyle": "Professional and articulate, favoring data-backed arguments while maintaining an approachable and collaborative tone. He often uses metaphors related to structural integrity and flow."
+  },
+  {
+    "id": "persona_020",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Sustainability Consultant",
+    "interests": [
+      "Vertical farming",
+      "Cycling",
+      "Indie folk music",
+      "Photography",
+      "Community gardening",
+      "Sustainable architecture",
+      "Historical fiction"
+    ],
+    "personality": "Pragmatic idealist with a strong sense of civic duty and a penchant for analytical problem-solving.",
+    "communicationStyle": "Direct and data-driven, yet empathetic; often uses metaphors related to structural integrity or ecosystem balance."
+  },
+  {
+    "id": "persona_021",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Urban Sustainability Consultant",
+    "interests": [
+      "Hydroponic gardening",
+      "Bicycle restoration",
+      "Scuba diving",
+      "Documentary filmmaking",
+      "Ethical fashion",
+      "Traditional pottery",
+      "Open-source software"
+    ],
+    "personality": "Analytical yet empathetic, driven by environmental advocacy and social equity.",
+    "communicationStyle": "Professional and precise, using data-driven arguments while maintaining an approachable and collaborative tone."
+  },
+  {
+    "id": "persona_022",
+    "name": "Elena Rodriguez",
+    "age": 34,
+    "occupation": "Environmental Consultant",
+    "interests": [
+      "Sustainable gardening",
+      "Classical piano",
+      "Hiking",
+      "Urban sketching",
+      "Documentary filmmaking",
+      "Kayaking",
+      "Ancient history",
+      "Bread baking"
+    ],
+    "personality": "Empathetic and detail-oriented with a strong sense of civic responsibility. She is a deep thinker who values authenticity and evidence-based decision making.",
+    "communicationStyle": "Articulate and structured, often using technical metaphors. She prefers written communication for clarity but is warm and engaging in person."
+  },
+  {
+    "id": "persona_023",
+    "name": "Dr. Elias Thorne",
+    "age": 58,
+    "occupation": "Marine Archaeologist",
+    "interests": [
+      "Shipwreck diving",
+      "Historical cartography",
+      "Classical mythology",
+      "Restoring antique clocks",
+      "Mediterranean cooking",
+      "Underwater photography",
+      "Fencing",
+      "Linguistics"
+    ],
+    "personality": "Meticulous, intellectually curious, and slightly eccentric with a dry sense of humor and a profound reverence for historical preservation.",
+    "communicationStyle": "Highly articulate and verbose, often utilizing academic jargon and historical anecdotes to illustrate points, delivered with a calm and measured cadence."
+  },
+  {
+    "id": "persona_024",
+    "name": "Marcus Thorne",
+    "age": 48,
+    "occupation": "Senior Architectural Restorationist",
+    "interests": [
+      "black and white photography",
+      "restoring vintage watches",
+      "architectural history",
+      "rock climbing",
+      "jazz vinyl collecting",
+      "woodworking",
+      "urban exploration",
+      "classical guitar"
+    ],
+    "personality": "Meticulous, patient, and deeply appreciative of historical craftsmanship and the stories behind objects.",
+    "communicationStyle": "Measured and precise, often using metaphors related to structure and stability while speaking in a calm, baritone voice."
+  }
+]

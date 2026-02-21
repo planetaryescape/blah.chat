@@ -357,68 +357,91 @@ export const findInactiveConversations = internalQuery({
     batchSize: v.number(),
   },
   handler: async (ctx, args) => {
-    // Get all conversations (will filter in-memory)
-    // Note: Convex doesn't have composite index on (userId, lastMessageAt)
-    // so we fetch all and filter
-    const allConversations = await ctx.db.query("conversations").collect();
-
     const candidates: Array<{
       _id: Id<"conversations">;
       lastMessageAt: number;
     }> = [];
+    const pageSize = Math.max(50, Math.min(200, args.batchSize * 3));
+    let cursor: string | null = null;
 
-    for (const conv of allConversations) {
-      // Filter 1: Must be inactive (last message >15min ago)
-      if (conv.lastMessageAt > args.inactivityThreshold) {
-        continue; // Still active
-      }
-
-      // Filter 2: Must not be stale (last message <7 days ago)
-      if (conv.lastMessageAt < args.staleThreshold) {
-        continue; // Too old
-      }
-
-      // Filter 3: Must have unextracted messages
-      const unextractedCount = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .filter((q) =>
-          q.or(
-            q.eq(q.field("memoryExtracted"), false),
-            q.eq(q.field("memoryExtracted"), undefined),
-          ),
+    while (candidates.length < args.batchSize) {
+      const page = await ctx.db
+        .query("conversations")
+        .withIndex("by_lastMessageAt", (q) =>
+          q
+            .gte("lastMessageAt", args.staleThreshold)
+            .lte("lastMessageAt", args.inactivityThreshold),
         )
-        .collect()
-        .then((msgs) => msgs.length);
+        .order("asc")
+        .paginate({
+          cursor,
+          numItems: pageSize,
+        });
 
-      if (unextractedCount === 0) {
-        continue; // All messages already extracted
-      }
-
-      // Filter 4: Must have at least 2 messages total (avoid trivial convos)
-      const totalMessages = await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
-        .collect()
-        .then((msgs) => msgs.length);
-
-      if (totalMessages < 2) {
-        continue; // Single-message conversation (not useful)
-      }
-
-      candidates.push({
-        _id: conv._id,
-        lastMessageAt: conv.lastMessageAt,
-      });
-
-      // Stop at batch size
-      if (candidates.length >= args.batchSize) {
+      if (page.page.length === 0) {
         break;
       }
-    }
 
-    // Sort by lastMessageAt (oldest inactive first = highest priority)
-    candidates.sort((a, b) => a.lastMessageAt - b.lastMessageAt);
+      for (const conv of page.page) {
+        // Filter 1: Must be inactive (last message >15min ago)
+        if (conv.lastMessageAt > args.inactivityThreshold) {
+          continue; // Still active
+        }
+
+        // Filter 2: Must not be stale (last message <7 days ago)
+        if (conv.lastMessageAt < args.staleThreshold) {
+          continue; // Too old
+        }
+
+        // Filter 3: Must have unextracted messages
+        const unextractedCount = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) =>
+            q.eq("conversationId", conv._id),
+          )
+          .filter((q) =>
+            q.or(
+              q.eq(q.field("memoryExtracted"), false),
+              q.eq(q.field("memoryExtracted"), undefined),
+            ),
+          )
+          .collect()
+          .then((msgs) => msgs.length);
+
+        if (unextractedCount === 0) {
+          continue; // All messages already extracted
+        }
+
+        // Filter 4: Must have at least 2 messages total (avoid trivial convos)
+        const totalMessages = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) =>
+            q.eq("conversationId", conv._id),
+          )
+          .collect()
+          .then((msgs) => msgs.length);
+
+        if (totalMessages < 2) {
+          continue; // Single-message conversation (not useful)
+        }
+
+        candidates.push({
+          _id: conv._id,
+          lastMessageAt: conv.lastMessageAt,
+        });
+
+        // Stop at batch size
+        if (candidates.length >= args.batchSize) {
+          break;
+        }
+      }
+
+      if (page.isDone) {
+        break;
+      }
+
+      cursor = page.continueCursor;
+    }
 
     return candidates;
   },

@@ -1,33 +1,75 @@
 import { getMobileModels } from "@blah-chat/ai";
-import { DrawerActions } from "@react-navigation/native";
-import { useNavigation, useRouter } from "expo-router";
-import { Menu, MessagesSquare } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import {
+  ArrowRight,
+  Brain,
+  ChevronDown,
+  PenLine,
+  Sparkles,
+  Zap,
+} from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import Reanimated, { FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { ChatInputSendPayload } from "@/components/chat";
 import { ChatInput, type ChatInputRef, MessageList } from "@/components/chat";
 import { ModelPicker } from "@/components/chat/ModelPicker";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
-import { useCreateConversation, useSendMessage } from "@/lib/hooks";
+import {
+  useCreateConversation,
+  useSendMessage,
+  useStarterSuggestions,
+} from "@/lib/hooks";
+import { usePreferences } from "@/lib/hooks/usePreferences";
+import {
+  getTimeGreeting,
+  type SuggestionIcon,
+} from "@/lib/prompts/suggestions";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 type Message = Doc<"messages">;
 
-const DEFAULT_MODEL = "openai:gpt-5-mini";
+const FALLBACK_MODEL = "openai:gpt-5-mini";
+const PROMPT_ICON_MAP: Record<SuggestionIcon, typeof Sparkles> = {
+  sparkles: Sparkles,
+  brain: Brain,
+  zap: Zap,
+  penLine: PenLine,
+};
 
 export default function NewChatScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const createConversation = useCreateConversation();
   const sendMessage = useSendMessage();
+  const { suggestions: starterSuggestions } = useStarterSuggestions();
+  const prefs = usePreferences();
 
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const initialModel = useMemo(() => {
+    if (!prefs) return FALLBACK_MODEL;
+    const mode = prefs.newChatModelSelection as string;
+    if (mode === "fixed") {
+      return prefs.defaultModel || FALLBACK_MODEL;
+    }
+    // "recent" mode — use defaultModel as fallback (recent model tracking not available on mobile yet)
+    return prefs.defaultModel || FALLBACK_MODEL;
+  }, [prefs]);
+
+  const [selectedModel, setSelectedModel] = useState(FALLBACK_MODEL);
+
+  // Sync selectedModel when prefs load
+  useEffect(() => {
+    if (initialModel !== FALLBACK_MODEL) {
+      setSelectedModel(initialModel);
+    }
+  }, [initialModel]);
   const [isModelPickerOpen, setIsModelPickerOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [draftText, setDraftText] = useState("");
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
-  const pendingNavigationRef = useRef<Id<"conversations"> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
 
   const models = useMemo(() => getMobileModels(), []);
@@ -43,7 +85,7 @@ export default function NewChatScreen() {
   }, []);
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async ({ content, attachments }: ChatInputSendPayload) => {
       if (isSending) return;
       setIsSending(true);
 
@@ -90,12 +132,11 @@ export default function NewChatScreen() {
           model: selectedModel,
         });
 
-        pendingNavigationRef.current = conversationId;
-
         await sendMessage({
           conversationId,
           content,
           modelId: selectedModel,
+          attachments,
         });
 
         router.replace(`/(drawer)/chat/${conversationId}`);
@@ -109,99 +150,122 @@ export default function NewChatScreen() {
     [createConversation, sendMessage, selectedModel, router, isSending],
   );
 
-  const handleOpenDrawer = useCallback(() => {
-    haptic.light();
-    navigation.dispatch(DrawerActions.openDrawer());
-  }, [navigation]);
-
   const handleModelSelect = useCallback((modelId: string) => {
     setSelectedModel(modelId);
     setIsModelPickerOpen(false);
   }, []);
 
+  const modelBadge = (
+    <TouchableOpacity
+      onPress={() => {
+        haptic.light();
+        setIsModelPickerOpen(true);
+      }}
+      style={{
+        alignSelf: "flex-start",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.xs,
+        backgroundColor: palette.glassLow,
+        borderRadius: layout.radius.full,
+        borderWidth: 1,
+        borderColor: palette.glassBorder,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 4,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: typography.body,
+          fontSize: 11,
+          color: palette.starlight,
+        }}
+      >
+        {selectedModelConfig?.name || selectedModel}
+      </Text>
+      <ChevronDown size={12} color={palette.starlightDim} />
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.void }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: palette.void }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
-            borderBottomWidth: 1,
-            borderBottomColor: palette.glassBorder,
-            height: layout.headerHeight,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => {
-              haptic.light();
-              handleOpenDrawer();
-            }}
-            style={{ padding: spacing.xs }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Menu size={24} color={palette.starlight} />
-          </TouchableOpacity>
-          <Text
-            style={{
-              flex: 1,
-              fontFamily: typography.heading,
-              fontSize: 18,
-              color: palette.starlight,
-              marginLeft: spacing.sm,
-            }}
-          >
-            New Chat
-          </Text>
-        </View>
+        <ScreenHeader
+          title="New Chat"
+          leftAction="menu"
+          subtitle={modelBadge}
+        />
 
         {/* Content */}
-        {optimisticMessages.length === 0 ? (
+        {optimisticMessages.length === 0 && draftText.trim().length === 0 ? (
           <View
             style={{
               flex: 1,
-              alignItems: "center",
-              justifyContent: "center",
-              paddingHorizontal: spacing.xl,
-              backgroundColor: palette.void,
+              paddingTop: spacing.xxl,
+              paddingHorizontal: spacing.lg,
             }}
           >
-            <MessagesSquare
-              size={48}
-              color={palette.starlightDim}
-              strokeWidth={1.5}
-            />
             <Text
               style={{
                 fontFamily: typography.heading,
-                fontSize: 18,
+                fontSize: 28,
                 color: palette.starlight,
-                marginTop: spacing.lg,
-                textAlign: "center",
+                marginBottom: spacing.xl,
               }}
             >
-              Start a conversation
+              {getTimeGreeting()}
             </Text>
-            <Text
-              style={{
-                fontFamily: typography.body,
-                fontSize: 14,
-                color: palette.starlightDim,
-                marginTop: spacing.sm,
-                textAlign: "center",
-              }}
-            >
-              Type a message below to begin
-            </Text>
+
+            <View style={{ gap: spacing.xs }}>
+              {starterSuggestions.map((prompt, index) => {
+                const Icon = PROMPT_ICON_MAP[prompt.icon];
+                return (
+                  <Reanimated.View
+                    key={prompt.id}
+                    entering={FadeIn.delay(index * 100).duration(250)}
+                  >
+                    <TouchableOpacity
+                      onPress={() =>
+                        handleSend({
+                          content: prompt.text,
+                        })
+                      }
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: spacing.sm,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.md,
+                        borderRadius: layout.radius.md,
+                        borderWidth: 1,
+                        borderColor: palette.glassBorder,
+                        backgroundColor: palette.glassLow,
+                      }}
+                    >
+                      <Icon size={16} color={palette.roseQuartz} />
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontFamily: typography.body,
+                          fontSize: 14,
+                          color: palette.starlight,
+                        }}
+                      >
+                        {prompt.text}
+                      </Text>
+                      <ArrowRight size={14} color={palette.starlightDim} />
+                    </TouchableOpacity>
+                  </Reanimated.View>
+                );
+              })}
+            </View>
           </View>
         ) : (
           <MessageList
@@ -215,7 +279,7 @@ export default function NewChatScreen() {
         <ChatInput
           ref={chatInputRef}
           onSend={handleSend}
-          onModelPress={() => setIsModelPickerOpen(true)}
+          onDraftChange={setDraftText}
           modelName={selectedModelConfig?.name || selectedModel}
           disabled={isSending}
           isSending={isSending}

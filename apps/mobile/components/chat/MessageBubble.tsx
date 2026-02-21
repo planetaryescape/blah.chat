@@ -10,12 +10,18 @@ import {
 import { memo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import Reanimated, { FadeIn } from "react-native-reanimated";
+import Reanimated, {
+  FadeIn,
+  FadeInUp,
+  FadeOut,
+  LinearTransition,
+} from "react-native-reanimated";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import type { Doc, Id } from "@/lib/convex";
 import { haptic } from "@/lib/haptics";
 import { useStreamBuffer } from "@/lib/hooks/useStreamBuffer";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
+import { hasRecentBranchTransition } from "./branchTransition";
 import { MarkdownContent } from "./MarkdownContent";
 import { SiblingNavigator } from "./SiblingNavigator";
 import { StreamingCursor } from "./StreamingCursor";
@@ -76,6 +82,9 @@ function MessageBubbleComponent({
   const hasError = message.status === "error";
   const isComplete = message.status === "complete";
   const rawContent = message.partialContent || message.content || "";
+  const createdAt = message._creationTime ?? message.createdAt;
+  const shouldAnimateEntry =
+    Date.now() - createdAt < 5000 || hasRecentBranchTransition();
 
   const [copied, setCopied] = useState(false);
 
@@ -105,142 +114,169 @@ function MessageBubbleComponent({
   // Assistant messages: full width, no bubble
   if (!isUser) {
     return (
-      <Pressable
-        onLongPress={() => onMorePress?.(message)}
-        delayLongPress={500}
-        style={{
-          marginVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
-        }}
+      <Reanimated.View
+        entering={
+          shouldAnimateEntry ? FadeInUp.duration(300).springify() : undefined
+        }
+        layout={LinearTransition.duration(220)}
       >
-        {hasError ? (
-          <Text
-            style={{
-              fontFamily: typography.body,
-              fontSize: 15,
-              color: palette.error,
-            }}
-          >
-            {message.error || "Something went wrong"}
-          </Text>
-        ) : showTypingIndicator ? (
-          <TypingIndicator />
-        ) : (
-          <ErrorBoundary>
-            <View>
-              <MarkdownContent
-                content={displayContent}
-                isStreaming={isGenerating}
-              />
-              {showCursor && <StreamingCursor />}
-            </View>
-          </ErrorBoundary>
-        )}
+        <Pressable
+          onLongPress={() => onMorePress?.(message)}
+          delayLongPress={500}
+          style={{
+            marginVertical: spacing.sm,
+            paddingHorizontal: spacing.md,
+          }}
+        >
+          {hasError ? (
+            <Text
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                color: palette.error,
+              }}
+            >
+              {message.error || "Something went wrong"}
+            </Text>
+          ) : showTypingIndicator ? (
+            <TypingIndicator />
+          ) : (
+            <ErrorBoundary>
+              <Reanimated.View
+                key={`assistant-${message._id}`}
+                entering={FadeIn.duration(180)}
+                exiting={FadeOut.duration(120)}
+                layout={LinearTransition.duration(220)}
+              >
+                <MarkdownContent
+                  content={displayContent}
+                  isStreaming={isGenerating}
+                />
+                {showCursor && <StreamingCursor />}
+              </Reanimated.View>
+            </ErrorBoundary>
+          )}
 
-        {/* Model indicator + Actions row */}
-        {!showTypingIndicator && (
-          <Reanimated.View
-            entering={FadeIn.duration(200)}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: spacing.xs,
-            }}
-          >
-            {/* Quick Actions + Sibling Navigator on LEFT for assistant */}
-            <View
+          {/* Model indicator + Actions row */}
+          {!showTypingIndicator && (
+            <Reanimated.View
+              entering={FadeIn.duration(200)}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                gap: spacing.sm,
+                justifyContent: "space-between",
+                marginTop: spacing.xs,
               }}
             >
-              {showActions && (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.xs,
-                  }}
-                >
-                  <ActionButton
-                    icon={copied ? Check : Copy}
-                    onPress={handleCopy}
-                    isActive={copied}
-                    accessibilityLabel={copied ? "Copied" : "Copy message"}
-                  />
-                  <ActionButton
-                    icon={RotateCcw}
-                    onPress={() => onRegenerate?.(message)}
-                    accessibilityLabel="Regenerate response"
-                  />
-                  <ActionButton
-                    icon={GitBranch}
-                    onPress={() => onBranch?.(message)}
-                    accessibilityLabel="Branch conversation"
-                  />
-                  <ActionButton
-                    icon={MoreHorizontal}
-                    onPress={() => onMorePress?.(message)}
-                    accessibilityLabel="More actions"
-                  />
-                </View>
-              )}
-              <SiblingNavigator
-                message={message}
-                conversationId={conversationId}
-              />
-            </View>
-
-            {/* Model name on RIGHT */}
-            {message.model && (
-              <Text
+              {/* Quick Actions + Sibling Navigator on LEFT for assistant */}
+              <View
                 style={{
-                  fontFamily: typography.body,
-                  fontSize: 11,
-                  color: palette.starlightDim,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
                 }}
               >
-                {getModelDisplayName(message.model)}
-              </Text>
-            )}
-          </Reanimated.View>
-        )}
-      </Pressable>
+                {showActions && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: spacing.xs,
+                    }}
+                  >
+                    <ActionButton
+                      icon={copied ? Check : Copy}
+                      onPress={handleCopy}
+                      isActive={copied}
+                      accessibilityLabel={copied ? "Copied" : "Copy message"}
+                    />
+                    <ActionButton
+                      icon={RotateCcw}
+                      onPress={() => onRegenerate?.(message)}
+                      accessibilityLabel="Regenerate response"
+                    />
+                    <ActionButton
+                      icon={GitBranch}
+                      onPress={() => onBranch?.(message)}
+                      accessibilityLabel="Branch conversation"
+                    />
+                    <ActionButton
+                      icon={MoreHorizontal}
+                      onPress={() => onMorePress?.(message)}
+                      accessibilityLabel="More actions"
+                    />
+                  </View>
+                )}
+                <SiblingNavigator
+                  message={message}
+                  conversationId={conversationId}
+                />
+              </View>
+
+              {/* Model name on RIGHT */}
+              {message.model && (
+                <Text
+                  style={{
+                    fontFamily: typography.body,
+                    fontSize: 11,
+                    color: palette.starlightDim,
+                  }}
+                >
+                  {getModelDisplayName(message.model)}
+                </Text>
+              )}
+            </Reanimated.View>
+          )}
+        </Pressable>
+      </Reanimated.View>
     );
   }
 
   // User messages: bubble on right, reduced padding
   return (
-    <Pressable
-      onLongPress={() => onMorePress?.(message)}
-      delayLongPress={500}
-      style={{
-        alignItems: "flex-end",
-        marginVertical: spacing.xs,
-        paddingHorizontal: spacing.md,
-      }}
+    <Reanimated.View
+      entering={
+        shouldAnimateEntry ? FadeInUp.duration(300).springify() : undefined
+      }
+      layout={LinearTransition.duration(220)}
     >
-      <View
+      <Pressable
+        onLongPress={() => onMorePress?.(message)}
+        delayLongPress={500}
         style={{
-          maxWidth: "80%",
-          backgroundColor: palette.roseQuartz10,
-          borderRadius: layout.radius.lg,
-          borderBottomRightRadius: layout.radius.xs,
-          borderWidth: 1,
-          borderColor: palette.roseQuartz20,
+          alignItems: "flex-end",
+          marginVertical: spacing.xs,
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
         }}
       >
-        <ErrorBoundary>
-          <MarkdownContent content={rawContent} textColor={palette.starlight} />
-        </ErrorBoundary>
-      </View>
+        <View
+          style={{
+            maxWidth: "80%",
+            backgroundColor: palette.roseQuartz10,
+            borderRadius: layout.radius.lg,
+            borderBottomRightRadius: layout.radius.xs,
+            borderWidth: 1,
+            borderColor: palette.roseQuartz20,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm,
+          }}
+        >
+          <ErrorBoundary>
+            <Reanimated.View
+              key={`user-${message._id}`}
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(120)}
+              layout={LinearTransition.duration(220)}
+            >
+              <MarkdownContent
+                content={rawContent}
+                textColor={palette.starlight}
+              />
+            </Reanimated.View>
+          </ErrorBoundary>
+        </View>
 
-      {/* Quick Actions + Sibling Navigator for user messages */}
-      {
+        {/* Quick Actions + Sibling Navigator for user messages */}
         <Reanimated.View
           entering={FadeIn.duration(200)}
           style={{
@@ -283,8 +319,8 @@ function MessageBubbleComponent({
             </View>
           )}
         </Reanimated.View>
-      }
-    </Pressable>
+      </Pressable>
+    </Reanimated.View>
   );
 }
 

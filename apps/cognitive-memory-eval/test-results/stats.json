@@ -1,0 +1,33 @@
+{
+  "at": 1770882059674,
+  "primaryTest": "persona_level",
+  "questionLevel": {
+    "n": 0,
+    "meanDiff": 0,
+    "t": null,
+    "pValue": null,
+    "df": 0,
+    "ci95": {
+      "low": 0,
+      "high": 0
+    },
+    "effectSizeDz": 0
+  },
+  "personaLevel": {
+    "n": 0,
+    "meanDiff": 0,
+    "t": null,
+    "pValue": null,
+    "df": 0,
+    "ci95": {
+      "low": 0,
+      "high": 0
+    },
+    "effectSizeDz": 0
+  },
+  "personaBootstrapCi95": {
+    "low": 0,
+    "high": 0
+  },
+  "warning": null
+}

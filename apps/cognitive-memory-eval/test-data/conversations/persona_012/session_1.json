@@ -1,0 +1,225 @@
+{
+  "id": "conv_persona_012_session_01",
+  "personaId": "persona_012",
+  "sessionNumber": 1,
+  "timestamp": 1767224707859,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hi, I'm Elena. I'm currently auditing a firm's supply chain for sustainability leaks and need some data support.",
+      "timestamp": 1767224707859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m1_e1",
+          "type": "factual",
+          "statement": "Elena is a Sustainability Consultant auditing supply chains.",
+          "importance": 0.9,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I need a breakdown of the latest PV cell efficiency ratings. I'm specifically looking for anything above 22% for a residential project I'm overseeing.",
+      "timestamp": 1767225307859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m2_e1",
+          "type": "factual",
+          "statement": "Elena is researching residential solar technology with over 22% efficiency.",
+          "importance": 0.8,
+          "category": "technology"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I have a bouldering session at 6 PM today, so I'll need to wrap up this analysis by then. I prefer to keep our correspondence concise and data-driven.",
+      "timestamp": 1767225907859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m3_e1",
+          "type": "temporal",
+          "statement": "Elena has a bouldering session at 6 PM today.",
+          "importance": 0.5,
+          "category": "recreation"
+        },
+        {
+          "id": "persona_012_s1_m3_e2",
+          "type": "preference",
+          "statement": "Elena prefers concise, data-driven communication.",
+          "importance": 0.7,
+          "category": "communication"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "When it comes to ethical fashion, I always prioritize natural fibers like organic hemp over recycled polyester. Synthetics are quite problematic due to microplastic shedding.",
+      "timestamp": 1767226507859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m4_e1",
+          "type": "preference",
+          "statement": "Elena prioritizes natural fibers over synthetics in fashion.",
+          "importance": 0.8,
+          "category": "fashion"
+        },
+        {
+          "id": "persona_012_s1_m4_e2",
+          "type": "opinion",
+          "statement": "Elena believes synthetic fibers are problematic due to microplastics.",
+          "importance": 0.6,
+          "category": "environment"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "My home office follows a strict minimalist aesthetic. I've maintained this design for five years now to reduce cognitive load while I work.",
+      "timestamp": 1767227107859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m5_e1",
+          "type": "temporal",
+          "statement": "Elena has maintained a minimalist home office for five years.",
+          "importance": 0.4,
+          "category": "lifestyle"
+        },
+        {
+          "id": "persona_012_s1_m5_e2",
+          "type": "factual",
+          "statement": "Elena uses a minimalist interior design style.",
+          "importance": 0.7,
+          "category": "home"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "In my professional experience, current carbon offset programs lack sufficient transparency and are often more marketing than substance.",
+      "timestamp": 1767227707859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m6_e1",
+          "type": "opinion",
+          "statement": "Elena believes carbon offset programs lack transparency.",
+          "importance": 0.7,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm finishing the final edit of my documentary on urban gardening next week. I've been filming various community plots to show their ecological impact.",
+      "timestamp": 1767228307859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m7_e1",
+          "type": "temporal",
+          "statement": "Elena is finishing a documentary edit next week.",
+          "importance": 0.6,
+          "category": "hobbies"
+        },
+        {
+          "id": "persona_012_s1_m7_e2",
+          "type": "factual",
+          "statement": "Elena makes documentaries about the impact of urban gardening.",
+          "importance": 0.8,
+          "category": "hobbies"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I need a traditional recipe for Mole Poblano for my family this weekend. It must be authentic; I don't enjoy fusion versions of Mexican classics.",
+      "timestamp": 1767228907859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m8_e1",
+          "type": "preference",
+          "statement": "Elena prefers authentic traditional Mexican cuisine over fusion.",
+          "importance": 0.9,
+          "category": "food"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "Could you provide data on the ROI of smart glass in commercial buildings? I have a client meeting tomorrow morning regarding a LEED certification.",
+      "timestamp": 1767229507859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m9_e1",
+          "type": "temporal",
+          "statement": "Elena has a client meeting tomorrow morning.",
+          "importance": 0.8,
+          "category": "work"
+        },
+        {
+          "id": "persona_012_s1_m9_e2",
+          "type": "factual",
+          "statement": "Elena is researching the ROI of smart glass for LEED projects.",
+          "importance": 0.7,
+          "category": "work"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "The shift to decentralized energy is inevitable, but the infrastructure isn't ready yet. Most current grids operate on 20th-century architecture.",
+      "timestamp": 1767230107859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m10_e1",
+          "type": "opinion",
+          "statement": "Elena believes current energy infrastructure is unready for decentralization.",
+          "importance": 0.5,
+          "category": "technology"
+        },
+        {
+          "id": "persona_012_s1_m10_e2",
+          "type": "factual",
+          "statement": "Most current energy grids utilize 20th-century architectural standards.",
+          "importance": 0.6,
+          "category": "technology"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I'm planning a bouldering trip to Joshua Tree this winter. I find that outdoor climbing really helps me reset after intense consulting projects.",
+      "timestamp": 1767230707859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m11_e1",
+          "type": "temporal",
+          "statement": "Elena is planning a bouldering trip for this winter.",
+          "importance": 0.6,
+          "category": "travel"
+        },
+        {
+          "id": "persona_012_s1_m11_e2",
+          "type": "preference",
+          "statement": "Elena uses outdoor bouldering as a mental reset.",
+          "importance": 0.7,
+          "category": "recreation"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "I only buy from B-Corp certified brands whenever possible. It's a key part of my personal commitment to ethical consumption.",
+      "timestamp": 1767231307859,
+      "evidence": [
+        {
+          "id": "persona_012_s1_m12_e1",
+          "type": "factual",
+          "statement": "Elena prioritizes purchasing from B-Corp certified brands.",
+          "importance": 0.8,
+          "category": "lifestyle"
+        }
+      ]
+    }
+  ]
+}

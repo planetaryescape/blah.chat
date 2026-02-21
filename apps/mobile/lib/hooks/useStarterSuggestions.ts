@@ -15,9 +15,9 @@ type StarterSuggestionsResponse = {
 
 export function useStarterSuggestions() {
   // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-  const data = useQuery(
-    (api as any).chatSuggestions.getForCurrentUser,
-  ) as StarterSuggestionsResponse | undefined;
+  const data = useQuery((api as any).chatSuggestions.getForCurrentUser) as
+    | StarterSuggestionsResponse
+    | undefined;
 
   // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
   const refresh = useAction((api as any).chatSuggestions.refreshForCurrentUser);

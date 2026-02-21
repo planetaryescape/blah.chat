@@ -4,6 +4,7 @@ Generated: 2026-02-12T07:40:59.680Z
 Run ID: manual/unknown
 
 ## Summary
+
 - sample: personas=1, questions=140, paired-evals=0
 - basic overall: 0.00
 - cognitive overall: 0.00
@@ -21,22 +22,27 @@ Run ID: manual/unknown
 - Persona-level means estimate between-person generalization more honestly.
 
 ## Signal Quality
+
 - [ ] Sample adequacy: paired-evals >= 1000
 - [ ] Persona diversity: personas >= 20
 - [ ] Significance robustness: persona-level and question-level p < 0.05
 
 ## Success Criteria
+
 - [ ] Primary: cognitive overall > basic by >= 10% and persona-level p < 0.05
 - [ ] Medium: cognitive > basic by >= 15%
 - [ ] Hard: cognitive > basic by >= 30%
 - [ ] Decay resilience: session1 within 15% of session4 (cognitive)
 
 ## Breakdown
+
 ### By Difficulty (overall)
+
 - basic: easy 0.00, medium 0.00, hard 0.00
 - cognitive: easy 0.00, medium 0.00, hard 0.00
 
 ### By Type (overall)
+
 - basic: factual 0.00, temporal 0.00, preference 0.00, inference 0.00
 - cognitive: factual 0.00, temporal 0.00, preference 0.00, inference 0.00
 
@@ -45,6 +51,7 @@ Run ID: manual/unknown
 - cognitive: s1 0.00, s2 0.00, s3 0.00, s4 0.00
 
 ## Data You Can Inspect
+
 - questions.json (the generated test cases)
 - generation-quality.json (quota/evidence/span validation summary)
 - results-detailed.json (per-question answers + judgments + deltas)
@@ -62,6 +69,7 @@ Run ID: manual/unknown
 - visualizations/results-table.html
 
 ## Config
+
 ```json
 {
   "models": {

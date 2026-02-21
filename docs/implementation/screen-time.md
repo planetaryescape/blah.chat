@@ -7,6 +7,7 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 ## Key Frameworks
 
 ### DeviceActivity (iOS 15+)
+
 - `DeviceActivityMonitor` — app extension that runs on schedule boundaries
 - `DeviceActivityReport` — SwiftUI view extension for rendering usage data
 - `DeviceActivitySchedule` — defines monitoring windows
@@ -16,20 +17,23 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 - Provides `FamilyActivitySelection` for picking apps/categories to monitor
 
 ### ManagedSettings (iOS 16+)
+
 - `ShieldConfiguration` — app blocking (not needed for data collection)
 
 ## Apple Approval Process
 
 **Required entitlement:** `com.apple.developer.family-controls`
 
-### Steps:
+### Steps
+
 1. Submit request via Apple Developer portal → Certificates, Identifiers & Profiles
 2. Fill out "Family Controls" capability request form
 3. Explain use case: personal health coaching (self-monitoring, not parental controls)
 4. Approval timeline: typically 1-4 weeks
 5. Once approved, add capability to App ID and Xcode project
 
-### Important Notes:
+### Important Notes
+
 - Apple is restrictive — they want to see legitimate use cases
 - Parental control framing works better than "tracking" framing
 - The entitlement is per-App-ID, not per-developer
@@ -37,7 +41,8 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 
 ## Data Available
 
-### From DeviceActivityReport:
+### From DeviceActivityReport
+
 - **Total screen time** per day (minutes)
 - **Screen time by category** (Social, Entertainment, Productivity, etc.)
 - **Number of pickups** per day
@@ -53,12 +58,14 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 ## Privacy Constraints
 
 ### Tokenized App Names
+
 - Apps are identified by opaque `ApplicationToken`, not bundle IDs
 - You **cannot** resolve token → app name outside the reporting UI
 - Category names (Social, Entertainment, etc.) ARE readable
 - This means backend storage should use category-level aggregates, not per-app data
 
 ### On-Device Only
+
 - `DeviceActivityReport` renders as a SwiftUI view — data doesn't leave the device easily
 - To extract numeric data, use `DeviceActivityReport` with a custom `DeviceActivityReportScene` that computes aggregates and stores them locally
 
@@ -79,11 +86,13 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 - Minimal logic: compute aggregates, write to shared App Group container
 
 ### App Extension: `DeviceActivityReportExtension`
+
 - Provides SwiftUI views for rendering usage data
 - Custom `DeviceActivityReportScene` extracts numeric aggregates
 - Stores computed data to shared App Group UserDefaults or file
 
 ### Main App
+
 - Reads aggregated data from shared App Group
 - Uploads to Convex via existing ingestion pipeline
 
@@ -97,6 +106,7 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 5. Add authorization status to MoreView
 
 ### Phase B: DeviceActivityReport Extension
+
 1. Create `DeviceActivityReportExtension` target
 2. Implement custom `DeviceActivityReportScene` that computes:
    - Total screen time (minutes)
@@ -108,6 +118,7 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 4. Display report in a SwiftUI view within the app
 
 ### Phase C: DeviceActivityMonitor Extension
+
 1. Create `DeviceActivityMonitorExtension` target
 2. Define daily monitoring schedule (midnight to midnight)
 3. On `intervalDidEnd`: compute daily aggregates
@@ -115,6 +126,7 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 5. Schedule local notification to wake main app for upload
 
 ### Phase D: Data Pipeline
+
 1. Create `ScreenTimeEvent` model:
    ```swift
    struct ScreenTimeEvent: Codable {
@@ -132,6 +144,7 @@ Apple's Screen Time APIs (DeviceActivity framework + FamilyControls) provide acc
 5. Update analyst prompt with screen time coaching hints
 
 ### Phase E: Coaching Integration
+
 - "You picked up your phone 47 times yesterday (baseline: 32)"
 - "Social media: 2h 15m — that's 45min above your baseline"
 - "First pickup at 6:23 AM — 20min before your alarm"

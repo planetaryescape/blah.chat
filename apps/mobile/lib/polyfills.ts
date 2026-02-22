@@ -1,6 +1,16 @@
 // lib/polyfills.ts
 // MUST be imported as FIRST line in app/_layout.tsx
-// Required for Convex to work in React Native
+// Required for Convex and Clerk to work in React Native
+
+// Clerk internally uses web APIs (addEventListener/removeEventListener)
+// which don't exist in React Native — polyfill before Clerk loads
+if (
+  typeof window !== "undefined" &&
+  typeof window.addEventListener !== "function"
+) {
+  (window as any).addEventListener = () => {};
+  (window as any).removeEventListener = () => {};
+}
 
 // Buffer polyfill for Convex WebSocket
 if (typeof global.Buffer === "undefined") {

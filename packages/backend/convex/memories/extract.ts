@@ -396,9 +396,7 @@ export const findInactiveConversations = internalQuery({
         // Filter 3: Must have unextracted messages
         const unextractedCount = await ctx.db
           .query("messages")
-          .withIndex("by_conversation", (q) =>
-            q.eq("conversationId", conv._id),
-          )
+          .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
           .filter((q) =>
             q.or(
               q.eq(q.field("memoryExtracted"), false),
@@ -415,9 +413,7 @@ export const findInactiveConversations = internalQuery({
         // Filter 4: Must have at least 2 messages total (avoid trivial convos)
         const totalMessages = await ctx.db
           .query("messages")
-          .withIndex("by_conversation", (q) =>
-            q.eq("conversationId", conv._id),
-          )
+          .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
           .collect()
           .then((msgs) => msgs.length);
 

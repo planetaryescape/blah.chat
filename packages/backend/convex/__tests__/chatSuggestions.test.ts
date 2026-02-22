@@ -2,10 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { convexTest } from "../../__tests__/testSetup";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import {
-  createMockIdentity,
-  createTestUserData,
-} from "../lib/test/factories";
+import { createMockIdentity, createTestUserData } from "../lib/test/factories";
 import schema from "../schema";
 
 const generateObjectMock = vi.fn();
@@ -20,11 +17,31 @@ vi.mock("ai", async (importOriginal) => {
 
 function seedSuggestions(prefix: string) {
   return [
-    { id: `${prefix}-1`, text: "Plan next steps for this week", icon: "sparkles" as const },
-    { id: `${prefix}-2`, text: "Rewrite this into a crisp update", icon: "penLine" as const },
-    { id: `${prefix}-3`, text: "Debug this issue with a safe fix", icon: "brain" as const },
-    { id: `${prefix}-4`, text: "Compare these options and choose one", icon: "zap" as const },
-    { id: `${prefix}-5`, text: "Draft a short follow-up message", icon: "sparkles" as const },
+    {
+      id: `${prefix}-1`,
+      text: "Plan next steps for this week",
+      icon: "sparkles" as const,
+    },
+    {
+      id: `${prefix}-2`,
+      text: "Rewrite this into a crisp update",
+      icon: "penLine" as const,
+    },
+    {
+      id: `${prefix}-3`,
+      text: "Debug this issue with a safe fix",
+      icon: "brain" as const,
+    },
+    {
+      id: `${prefix}-4`,
+      text: "Compare these options and choose one",
+      icon: "zap" as const,
+    },
+    {
+      id: `${prefix}-5`,
+      text: "Draft a short follow-up message",
+      icon: "sparkles" as const,
+    },
   ];
 }
 
@@ -39,12 +56,18 @@ describe("chatSuggestions", () => {
     const identity = createMockIdentity();
 
     await t.run(async (ctx) => {
-      await ctx.db.insert("users", createTestUserData({ clerkId: identity.subject }));
+      await ctx.db.insert(
+        "users",
+        createTestUserData({ clerkId: identity.subject }),
+      );
     });
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    const result = await asUser.query(api.chatSuggestions.getForCurrentUser, {});
+    const result = await asUser.query(
+      api.chatSuggestions.getForCurrentUser,
+      {},
+    );
 
     expect(result.needsRefresh).toBe(true);
     expect(result.source).toBe("fallback");
@@ -81,18 +104,30 @@ describe("chatSuggestions", () => {
           { text: "  Plan my launch week with milestones  ", icon: "sparkles" },
           { text: "Plan my launch week with milestones", icon: "sparkles" },
           { text: "short", icon: "brain" },
-          { text: "Rewrite this investor update to be clearer and shorter", icon: "penLine" },
-          { text: "Debug this TypeScript error and show the safest fix", icon: "brain" },
-          { text: "Compare these pricing options and recommend one", icon: "zap" },
+          {
+            text: "Rewrite this investor update to be clearer and shorter",
+            icon: "penLine",
+          },
+          {
+            text: "Debug this TypeScript error and show the safest fix",
+            icon: "brain",
+          },
+          {
+            text: "Compare these pricing options and recommend one",
+            icon: "zap",
+          },
         ],
       },
     } as any);
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-    const result = await asUser.action(api.chatSuggestions.refreshForCurrentUser, {
-      force: true,
-    });
+    const result = await asUser.action(
+      api.chatSuggestions.refreshForCurrentUser,
+      {
+        force: true,
+      },
+    );
 
     expect(result.suggestions).toHaveLength(5);
 
@@ -130,7 +165,10 @@ describe("chatSuggestions", () => {
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    const result = await asUser.query(api.chatSuggestions.getForCurrentUser, {});
+    const result = await asUser.query(
+      api.chatSuggestions.getForCurrentUser,
+      {},
+    );
 
     expect(result.source).toBe("cache");
     expect(result.needsRefresh).toBe(true);
@@ -170,7 +208,10 @@ describe("chatSuggestions", () => {
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded with complex Convex query (85+ modules)
-    const result = await asUser.query(api.chatSuggestions.getForCurrentUser, {});
+    const result = await asUser.query(
+      api.chatSuggestions.getForCurrentUser,
+      {},
+    );
 
     expect(result.source).toBe("cache");
     expect(result.needsRefresh).toBe(true);
@@ -215,9 +256,12 @@ describe("chatSuggestions", () => {
 
     const asUser = t.withIdentity(identity);
     // @ts-ignore - Type depth exceeded with complex Convex action (85+ modules)
-    const result = await asUser.action(api.chatSuggestions.refreshForCurrentUser, {
-      force: true,
-    });
+    const result = await asUser.action(
+      api.chatSuggestions.refreshForCurrentUser,
+      {
+        force: true,
+      },
+    );
 
     expect(result.source).toBe("cache");
     expect(result.suggestions).toEqual(cached);

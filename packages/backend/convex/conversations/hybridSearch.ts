@@ -87,9 +87,12 @@ export const hybridSearch = action({
         .map((result) => result._id as Id<"messages"> | undefined)
         .filter((id): id is Id<"messages"> => isValidConvexId(id));
       const uniqueMessageIds = Array.from(new Set(messageIds));
-      const messages = await ctx.runQuery(internal.lib.helpers.getMessagesByIds, {
-        ids: uniqueMessageIds,
-      });
+      const messages = await ctx.runQuery(
+        internal.lib.helpers.getMessagesByIds,
+        {
+          ids: uniqueMessageIds,
+        },
+      );
 
       const conversationIds = new Set<Id<"conversations">>();
       const topConversations: Id<"conversations">[] = [];

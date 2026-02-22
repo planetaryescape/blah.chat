@@ -1,12 +1,12 @@
+import { getGatewayOptions } from "@blah-chat/ai/gateway";
+import { MEMORY_PROCESSING_MODEL } from "@blah-chat/ai/operational-models";
+import { getModel } from "@blah-chat/ai/registry";
+import { calculateCost } from "@blah-chat/ai/utils";
 import type {
   StarterSuggestion,
   StarterSuggestionIcon,
   StarterSuggestionsResponse,
 } from "@blah-chat/shared";
-import { getGatewayOptions } from "@blah-chat/ai/gateway";
-import { MEMORY_PROCESSING_MODEL } from "@blah-chat/ai/operational-models";
-import { getModel } from "@blah-chat/ai/registry";
-import { calculateCost } from "@blah-chat/ai/utils";
 import { generateObject } from "ai";
 import { v } from "convex/values";
 import { z } from "zod";
@@ -456,7 +456,9 @@ function buildMemoryContext(memories: Doc<"memories">[]): string {
   if (memories.length === 0) return "";
 
   const topImportant = [...memories]
-    .sort((a, b) => (b.metadata?.importance ?? 0) - (a.metadata?.importance ?? 0))
+    .sort(
+      (a, b) => (b.metadata?.importance ?? 0) - (a.metadata?.importance ?? 0),
+    )
     .slice(0, 8);
 
   const topRecent = [...memories]

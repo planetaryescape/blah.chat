@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.3](https://github.com/planetaryescape/blah.chat/compare/v1.27.2...v1.27.3) (2026-02-23)
+
+
+### Bug Fixes
+
+* **mobile:** resolve Clerk isLoaded hang on TestFlight ([30c6d28](https://github.com/planetaryescape/blah.chat/commit/30c6d28089bce259246cd2d306069d8b181be5d2))
+
 ## [1.27.2](https://github.com/planetaryescape/blah.chat/compare/v1.27.1...v1.27.2) (2026-02-23)
 
 

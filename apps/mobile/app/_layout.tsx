@@ -2,7 +2,6 @@ import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
 console.log("[mobile][init] polyfills loaded");
 
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import { resourceCache } from "@clerk/clerk-expo/resource-cache";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -438,7 +437,6 @@ export default function RootLayout() {
       <ClerkProvider
         publishableKey={runtimeConfig.clerkPublishableKey}
         tokenCache={tokenCache}
-        __experimental_resourceCache={resourceCache}
       >
         <ClerkLoadingGate>
           <PersistQueryClientProvider

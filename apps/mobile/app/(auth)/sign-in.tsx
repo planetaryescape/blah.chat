@@ -1,6 +1,5 @@
 import { useSignIn } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,10 +12,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AuthDivider,
-  SocialAuthButtons,
-} from "@/components/auth/SocialAuthButtons";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function SignInScreen() {
@@ -31,10 +26,17 @@ export default function SignInScreen() {
   const [isFocused, setIsFocused] = useState<"email" | "password" | null>(null);
 
   const handleSignIn = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signIn) {
+      console.log("[mobile][sign-in] Not ready", {
+        isLoaded,
+        signIn: !!signIn,
+      });
+      return;
+    }
 
     setLoading(true);
     setError("");
+    console.log("[mobile][sign-in] Attempting sign in for:", email);
 
     try {
       const result = await signIn.create({
@@ -42,12 +44,21 @@ export default function SignInScreen() {
         password,
       });
 
+      console.log("[mobile][sign-in] Result status:", result.status);
+
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        console.log("[mobile][sign-in] Session activated, navigating");
         router.replace("/(drawer)/chat/new");
+      } else {
+        console.log("[mobile][sign-in] Unexpected status:", result.status);
+        setError("Sign in requires additional steps. Please try again.");
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Failed to sign in");
+      const msg =
+        err.errors?.[0]?.message || err.message || "Failed to sign in";
+      console.log("[mobile][sign-in] Error:", msg, err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -66,26 +77,13 @@ export default function SignInScreen() {
           { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom },
         ]}
       >
-        {/* Brand Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Sparkles size={28} color={palette.roseQuartz} />
-          </View>
-        </View>
-
-        {/* Header */}
+        {/* Brand */}
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to continue to blah.chat</Text>
+          <Text style={styles.brandName}>blah.chat</Text>
+          <Text style={styles.subtitle}>Sign in to your account</Text>
         </View>
 
-        {/* Social Auth */}
-        <SocialAuthButtons onError={setError} />
-
-        {/* Divider */}
-        <AuthDivider />
-
-        {/* Error message */}
+        {/* Error */}
         {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
@@ -104,6 +102,7 @@ export default function SignInScreen() {
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
+              returnKeyType="next"
               onFocus={() => setIsFocused("email")}
               onBlur={() => setIsFocused(null)}
               style={[
@@ -121,6 +120,8 @@ export default function SignInScreen() {
               placeholder="Enter your password"
               placeholderTextColor={palette.starlightDim}
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={handleSignIn}
               onFocus={() => setIsFocused("password")}
               onBlur={() => setIsFocused(null)}
               style={[
@@ -164,36 +165,22 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: palette.void,
   },
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
     justifyContent: "center",
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: layout.radius.md,
-    backgroundColor: palette.nebula,
-    borderWidth: 1,
-    borderColor: palette.glassBorder,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   header: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  title: {
-    fontFamily: typography.heading,
-    fontSize: 28,
+  brandName: {
+    fontFamily: typography.display,
+    fontSize: 32,
     color: palette.starlight,
-    marginBottom: spacing.xs,
     textAlign: "center",
+    marginBottom: spacing.xs,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: typography.body,
@@ -203,7 +190,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     backgroundColor: `${palette.error}15`,
-    borderRadius: layout.radius.sm,
+    borderRadius: layout.radius.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginBottom: spacing.md,
@@ -222,35 +209,38 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: typography.bodyMedium,
-    fontSize: 14,
-    color: palette.starlight,
+    fontSize: 13,
+    color: palette.starlightDim,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   input: {
     fontFamily: typography.body,
-    backgroundColor: palette.nebula,
-    borderRadius: layout.radius.md,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: layout.radius.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     color: palette.starlight,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: palette.glassBorder,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   inputFocused: {
-    borderColor: palette.roseQuartz,
+    borderColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
   button: {
-    backgroundColor: palette.roseQuartz,
-    borderRadius: layout.radius.md,
-    paddingVertical: spacing.md,
+    backgroundColor: palette.starlight,
+    borderRadius: layout.radius.xs,
+    paddingVertical: 14,
     alignItems: "center",
     marginTop: spacing.sm,
   },
   buttonDisabled: {
-    opacity: 0.4,
+    opacity: 0.3,
   },
   buttonPressed: {
-    opacity: 0.9,
+    opacity: 0.85,
   },
   buttonText: {
     fontFamily: typography.bodySemiBold,
@@ -260,7 +250,7 @@ const styles = StyleSheet.create({
   linkContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   linkText: {
     fontFamily: typography.body,
@@ -269,7 +259,7 @@ const styles = StyleSheet.create({
   },
   link: {
     fontFamily: typography.bodySemiBold,
-    color: palette.roseQuartz,
+    color: palette.starlight,
     fontSize: 14,
   },
 });

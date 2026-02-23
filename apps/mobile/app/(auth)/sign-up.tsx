@@ -1,6 +1,5 @@
 import { useSignUp } from "@clerk/clerk-expo";
 import { Link, useRouter } from "expo-router";
-import { Mail, Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,10 +12,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AuthDivider,
-  SocialAuthButtons,
-} from "@/components/auth/SocialAuthButtons";
 import { layout, palette, spacing, typography } from "@/lib/theme/designSystem";
 
 export default function SignUpScreen() {
@@ -35,10 +30,17 @@ export default function SignUpScreen() {
   >(null);
 
   const handleSignUp = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) {
+      console.log("[mobile][sign-up] Not ready", {
+        isLoaded,
+        signUp: !!signUp,
+      });
+      return;
+    }
 
     setLoading(true);
     setError("");
+    console.log("[mobile][sign-up] Attempting sign up for:", email);
 
     try {
       await signUp.create({
@@ -47,31 +49,51 @@ export default function SignUpScreen() {
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      console.log("[mobile][sign-up] Verification email sent");
       setPendingVerification(true);
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Failed to sign up");
+      const msg =
+        err.errors?.[0]?.message || err.message || "Failed to sign up";
+      console.log("[mobile][sign-up] Error:", msg, err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerify = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) {
+      console.log("[mobile][sign-up] Not ready for verify", {
+        isLoaded,
+        signUp: !!signUp,
+      });
+      return;
+    }
 
     setLoading(true);
     setError("");
+    console.log("[mobile][sign-up] Attempting verification");
 
     try {
       const result = await signUp.attemptEmailAddressVerification({
         code,
       });
 
+      console.log("[mobile][sign-up] Verify result:", result.status);
+
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        console.log("[mobile][sign-up] Session activated, navigating");
         router.replace("/(drawer)/chat/new");
+      } else {
+        console.log("[mobile][sign-up] Unexpected status:", result.status);
+        setError("Verification requires additional steps.");
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Invalid verification code");
+      const msg =
+        err.errors?.[0]?.message || err.message || "Invalid verification code";
+      console.log("[mobile][sign-up] Verify error:", msg, err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -94,15 +116,8 @@ export default function SignUpScreen() {
             },
           ]}
         >
-          {/* Verification Icon */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logo}>
-              <Mail size={28} color={palette.roseQuartz} />
-            </View>
-          </View>
-
           <View style={styles.header}>
-            <Text style={styles.title}>Verify your email</Text>
+            <Text style={styles.brandName}>Check your email</Text>
             <Text style={styles.subtitle}>We sent a code to {email}</Text>
           </View>
 
@@ -121,6 +136,8 @@ export default function SignUpScreen() {
                 placeholder="000000"
                 placeholderTextColor={palette.starlightDim}
                 keyboardType="number-pad"
+                returnKeyType="done"
+                onSubmitEditing={handleVerify}
                 onFocus={() => setIsFocused("code")}
                 onBlur={() => setIsFocused(null)}
                 style={[
@@ -166,28 +183,13 @@ export default function SignUpScreen() {
           { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom },
         ]}
       >
-        {/* Brand Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Sparkles size={28} color={palette.roseQuartz} />
-          </View>
-        </View>
-
-        {/* Header */}
+        {/* Brand */}
         <View style={styles.header}>
-          <Text style={styles.title}>Create account</Text>
-          <Text style={styles.subtitle}>
-            Sign up to get started with blah.chat
-          </Text>
+          <Text style={styles.brandName}>blah.chat</Text>
+          <Text style={styles.subtitle}>Create your account</Text>
         </View>
 
-        {/* Social Auth */}
-        <SocialAuthButtons onError={setError} />
-
-        {/* Divider */}
-        <AuthDivider />
-
-        {/* Error message */}
+        {/* Error */}
         {error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
@@ -206,6 +208,7 @@ export default function SignUpScreen() {
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
+              returnKeyType="next"
               onFocus={() => setIsFocused("email")}
               onBlur={() => setIsFocused(null)}
               style={[
@@ -223,6 +226,8 @@ export default function SignUpScreen() {
               placeholder="Create a password"
               placeholderTextColor={palette.starlightDim}
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={handleSignUp}
               onFocus={() => setIsFocused("password")}
               onBlur={() => setIsFocused(null)}
               style={[
@@ -244,7 +249,7 @@ export default function SignUpScreen() {
             {loading ? (
               <ActivityIndicator color={palette.void} />
             ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+              <Text style={styles.buttonText}>Create Account</Text>
             )}
           </Pressable>
         </View>
@@ -266,36 +271,22 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: palette.void,
   },
   content: {
     flex: 1,
     paddingHorizontal: spacing.lg,
     justifyContent: "center",
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: spacing.lg,
-  },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: layout.radius.md,
-    backgroundColor: palette.nebula,
-    borderWidth: 1,
-    borderColor: palette.glassBorder,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   header: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  title: {
-    fontFamily: typography.heading,
-    fontSize: 28,
+  brandName: {
+    fontFamily: typography.display,
+    fontSize: 32,
     color: palette.starlight,
-    marginBottom: spacing.xs,
     textAlign: "center",
+    marginBottom: spacing.xs,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: typography.body,
@@ -305,7 +296,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     backgroundColor: `${palette.error}15`,
-    borderRadius: layout.radius.sm,
+    borderRadius: layout.radius.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     marginBottom: spacing.md,
@@ -324,22 +315,25 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: typography.bodyMedium,
-    fontSize: 14,
-    color: palette.starlight,
+    fontSize: 13,
+    color: palette.starlightDim,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   input: {
     fontFamily: typography.body,
-    backgroundColor: palette.nebula,
-    borderRadius: layout.radius.md,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: layout.radius.xs,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 14,
     color: palette.starlight,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: palette.glassBorder,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   inputFocused: {
-    borderColor: palette.roseQuartz,
+    borderColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
   codeInput: {
     textAlign: "center",
@@ -348,17 +342,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   button: {
-    backgroundColor: palette.roseQuartz,
-    borderRadius: layout.radius.md,
-    paddingVertical: spacing.md,
+    backgroundColor: palette.starlight,
+    borderRadius: layout.radius.xs,
+    paddingVertical: 14,
     alignItems: "center",
     marginTop: spacing.sm,
   },
   buttonDisabled: {
-    opacity: 0.4,
+    opacity: 0.3,
   },
   buttonPressed: {
-    opacity: 0.9,
+    opacity: 0.85,
   },
   buttonText: {
     fontFamily: typography.bodySemiBold,
@@ -368,7 +362,7 @@ const styles = StyleSheet.create({
   linkContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   linkText: {
     fontFamily: typography.body,
@@ -377,7 +371,7 @@ const styles = StyleSheet.create({
   },
   link: {
     fontFamily: typography.bodySemiBold,
-    color: palette.roseQuartz,
+    color: palette.starlight,
     fontSize: 14,
   },
 });

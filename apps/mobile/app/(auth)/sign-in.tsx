@@ -21,9 +21,13 @@ export default function SignInScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [pendingVerification, setPendingVerification] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState<"email" | "password" | null>(null);
+  const [isFocused, setIsFocused] = useState<
+    "email" | "password" | "code" | null
+  >(null);
 
   const handleSignIn = async () => {
     if (!isLoaded || !signIn) {
@@ -50,9 +54,32 @@ export default function SignInScreen() {
         await setActive({ session: result.createdSessionId });
         console.log("[mobile][sign-in] Session activated, navigating");
         router.replace("/(drawer)/chat/new");
+      } else if (
+        result.status === "needs_first_factor" ||
+        result.status === "needs_second_factor"
+      ) {
+        const emailFactor = result.supportedFirstFactors?.find(
+          (f) => f.strategy === "email_code",
+        );
+        if (emailFactor && "emailAddressId" in emailFactor) {
+          await signIn.prepareFirstFactor({
+            strategy: "email_code",
+            emailAddressId: emailFactor.emailAddressId,
+          });
+          console.log("[mobile][sign-in] Email verification code sent");
+          setPendingVerification(true);
+        } else {
+          console.log(
+            "[mobile][sign-in] No email_code factor available:",
+            result.supportedFirstFactors,
+          );
+          setError(
+            "This account requires a verification method not yet supported.",
+          );
+        }
       } else {
         console.log("[mobile][sign-in] Unexpected status:", result.status);
-        setError("Sign in requires additional steps. Please try again.");
+        setError("Unable to complete sign in. Please try again.");
       }
     } catch (err: any) {
       const msg =
@@ -63,6 +90,126 @@ export default function SignInScreen() {
       setLoading(false);
     }
   };
+
+  const handleVerify = async () => {
+    if (!isLoaded || !signIn) return;
+
+    setLoading(true);
+    setError("");
+    console.log("[mobile][sign-in] Attempting email verification");
+
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "email_code",
+        code,
+      });
+
+      console.log("[mobile][sign-in] Verify result:", result.status);
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        console.log("[mobile][sign-in] Session activated, navigating");
+        router.replace("/(drawer)/chat/new");
+      } else {
+        console.log(
+          "[mobile][sign-in] Unexpected verify status:",
+          result.status,
+        );
+        setError("Verification incomplete. Please try again.");
+      }
+    } catch (err: any) {
+      const msg =
+        err.errors?.[0]?.message || err.message || "Invalid verification code";
+      console.log("[mobile][sign-in] Verify error:", msg, err);
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (pendingVerification) {
+    const isVerifyDisabled = loading || code.length < 6;
+
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <View
+          style={[
+            styles.content,
+            {
+              paddingTop: insets.top + spacing.xl,
+              paddingBottom: insets.bottom,
+            },
+          ]}
+        >
+          <View style={styles.header}>
+            <Text style={styles.brandName}>Check your email</Text>
+            <Text style={styles.subtitle}>
+              We sent a verification code to {email}
+            </Text>
+          </View>
+
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Verification Code</Text>
+              <TextInput
+                value={code}
+                onChangeText={setCode}
+                placeholder="000000"
+                placeholderTextColor={palette.starlightDim}
+                keyboardType="number-pad"
+                returnKeyType="done"
+                onSubmitEditing={handleVerify}
+                onFocus={() => setIsFocused("code")}
+                onBlur={() => setIsFocused(null)}
+                style={[
+                  styles.input,
+                  styles.codeInput,
+                  isFocused === "code" && styles.inputFocused,
+                ]}
+                maxLength={6}
+              />
+            </View>
+
+            <Pressable
+              onPress={handleVerify}
+              disabled={isVerifyDisabled}
+              style={({ pressed }) => [
+                styles.button,
+                isVerifyDisabled && styles.buttonDisabled,
+                pressed && !isVerifyDisabled && styles.buttonPressed,
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator color={palette.void} />
+              ) : (
+                <Text style={styles.buttonText}>Verify</Text>
+              )}
+            </Pressable>
+          </View>
+
+          <Pressable
+            onPress={() => {
+              setPendingVerification(false);
+              setCode("");
+              setError("");
+            }}
+            style={styles.linkContainer}
+          >
+            <Text style={styles.link}>Back to sign in</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
 
   const isDisabled = loading || !email || !password;
 
@@ -228,6 +375,12 @@ const styles = StyleSheet.create({
   inputFocused: {
     borderColor: "rgba(255,255,255,0.25)",
     backgroundColor: "rgba(255,255,255,0.07)",
+  },
+  codeInput: {
+    textAlign: "center",
+    letterSpacing: 8,
+    fontFamily: typography.bodySemiBold,
+    fontSize: 24,
   },
   button: {
     backgroundColor: palette.starlight,

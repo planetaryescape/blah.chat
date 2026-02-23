@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.1](https://github.com/planetaryescape/blah.chat/compare/v1.27.0...v1.27.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* **mobile:** resolve TestFlight login connection failure ([#348](https://github.com/planetaryescape/blah.chat/issues/348)) ([9d5290a](https://github.com/planetaryescape/blah.chat/commit/9d5290ac07e4aa44f1b2b0eaf45ea14672899d39))
+
 ## [1.27.0](https://github.com/planetaryescape/blah.chat/compare/v1.26.1...v1.27.0) (2026-02-20)
 
 

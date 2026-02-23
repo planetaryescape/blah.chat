@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.2](https://github.com/planetaryescape/blah.chat/compare/v1.27.1...v1.27.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* **mobile:** add diagnostic overlay for TestFlight connection failure ([208f1f4](https://github.com/planetaryescape/blah.chat/commit/208f1f4af085d217631bd5b9a4311fe9697c6e84))
+
 ## [1.27.1](https://github.com/planetaryescape/blah.chat/compare/v1.27.0...v1.27.1) (2026-02-23)
 
 

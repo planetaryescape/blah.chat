@@ -2,7 +2,6 @@
 
 ## [0.13.0](https://github.com/planetaryescape/blah.chat/compare/desktop-v0.12.0...desktop-v0.13.0) (2026-02-23)
 
-
 ### Features
 
 * add desktop app shell and automated release pipeline ([6dddde1](https://github.com/planetaryescape/blah.chat/commit/6dddde1e62a3d520e3d3e4a856f88e10ff74fe4c))

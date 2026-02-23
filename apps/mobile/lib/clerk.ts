@@ -46,7 +46,11 @@ export const tokenCache = {
   },
   async clearToken(key: string): Promise<void> {
     try {
+      const start = Date.now();
       await withTimeout(SecureStore.deleteItemAsync(key), undefined);
+      console.log(
+        `[mobile][tokenCache] clearToken(${key}): success (${Date.now() - start}ms)`,
+      );
       console.log(`[mobile][tokenCache] clearToken(${key}): success`);
     } catch (e) {
       console.log(`[mobile][tokenCache] clearToken(${key}) ERROR:`, e);

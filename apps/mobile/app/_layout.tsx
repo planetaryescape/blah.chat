@@ -2,6 +2,7 @@ import "../lib/polyfills"; // MUST BE FIRST - Node.js polyfills for Convex
 console.log("[mobile][init] polyfills loaded");
 
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
+import { resourceCache } from "@clerk/clerk-expo/resource-cache";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -119,13 +120,25 @@ function ConfigurationError({
 
 function DiagnosticOverlay({ onRetry }: { onRetry: () => void }) {
   const [networkStatus, setNetworkStatus] = useState<string>("checking...");
-  const [clerkApiReachable, setClerkApiReachable] =
-    useState<string>("checking...");
+  const [clerkFapiStatus, setClerkFapiStatus] = useState<string>("checking...");
 
   const config = useMemo(() => getRuntimeConfig(), []);
   const extra = Constants.expoConfig?.extra as
     | Record<string, unknown>
     | undefined;
+
+  // Derive the Clerk Frontend API URL from the publishable key
+  const clerkFapiDomain = useMemo(() => {
+    const key = config.clerkPublishableKey;
+    if (!key) return null;
+    try {
+      const encoded = key.replace(/^pk_(live|test)_/, "");
+      const decoded = atob(encoded.replace(/\$+$/, ""));
+      return decoded;
+    } catch {
+      return null;
+    }
+  }, [config.clerkPublishableKey]);
 
   useEffect(() => {
     // Check general network
@@ -136,18 +149,31 @@ function DiagnosticOverlay({ onRetry }: { onRetry: () => void }) {
       .then((r) => setNetworkStatus(`reachable (${r.status})`))
       .catch((e) => setNetworkStatus(`unreachable: ${e.message}`));
 
-    // Check Clerk API specifically
-    fetch("https://api.clerk.com/v1/health", {
-      method: "GET",
-      cache: "no-store",
-    })
-      .then((r) => setClerkApiReachable(`${r.status} ${r.statusText}`))
-      .catch((e) => setClerkApiReachable(`unreachable: ${e.message}`));
-  }, []);
+    // Check actual Clerk Frontend API (what ClerkProvider actually hits)
+    if (clerkFapiDomain) {
+      fetch(`https://${clerkFapiDomain}/v1/environment`, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${config.clerkPublishableKey}`,
+        },
+      })
+        .then((r) => setClerkFapiStatus(`${r.status} ${r.statusText}`))
+        .catch((e) => setClerkFapiStatus(`unreachable: ${e.message}`));
+    } else {
+      setClerkFapiStatus("NO key to derive URL");
+    }
+  }, [clerkFapiDomain, config.clerkPublishableKey]);
 
   const rows: [string, string][] = [
     ["Time", new Date().toISOString()],
     ["Platform", `${Platform.OS} ${Platform.Version}`],
+    [
+      "navigator.onLine",
+      typeof window !== "undefined"
+        ? String(window.navigator?.onLine)
+        : "no window",
+    ],
     ["clerkKey defined", config.clerkPublishableKey ? "yes" : "NO"],
     [
       "clerkKey prefix",
@@ -170,7 +196,8 @@ function DiagnosticOverlay({ onRetry }: { onRetry: () => void }) {
     ["Constants.expoConfig", Constants.expoConfig ? "defined" : "undefined"],
     ["@clerk/clerk-expo", "^2.9.0"],
     ["Network", networkStatus],
-    ["Clerk API", clerkApiReachable],
+    ["Clerk FAPI domain", clerkFapiDomain ?? "unknown"],
+    ["Clerk FAPI /v1/env", clerkFapiStatus],
     ["expo-constants appId", Constants.expoConfig?.slug ?? "unknown"],
   ];
 
@@ -437,6 +464,7 @@ export default function RootLayout() {
       <ClerkProvider
         publishableKey={runtimeConfig.clerkPublishableKey}
         tokenCache={tokenCache}
+        __experimental_resourceCache={resourceCache}
       >
         <ClerkLoadingGate>
           <PersistQueryClientProvider
